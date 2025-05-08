@@ -410,3 +410,36 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert signal_handler.call_count == 1
         assert signal_handler.call_args[1]["origin"] == "ui"
         project_created.disconnect(signal_handler)
+
+    def test_project_inherits_autofix_tuning_from_org_option_set(self):
+        self.organization.update_option("sentry:default_autofix_automation_tuning", "medium")
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="Project Medium Tuning",
+            slug="project-medium-tuning",
+            platform="python",
+            status_code=201,
+        )
+        project = Project.objects.get(id=response.data["id"])
+        autofix_tuning = ProjectOption.objects.get_value(
+            project=project, key="sentry:default_autofix_automation_tuning"
+        )
+        assert autofix_tuning == "medium"
+
+    def test_project_autofix_tuning_none_if_org_option_not_set_in_db(self):
+        # Ensure the option is not set for this specific organization,
+        self.organization.delete_option("sentry:default_autofix_automation_tuning")
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="Project Tuning Default",
+            slug="project-tuning-default",
+            platform="python",
+            status_code=201,
+        )
+        project = Project.objects.get(id=response.data["id"])
+        autofix_tuning = ProjectOption.objects.get_value(
+            project=project, key="sentry:default_autofix_automation_tuning"
+        )
+        assert autofix_tuning is None
