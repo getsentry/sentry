@@ -27,9 +27,8 @@ CONFIGS_TO_DEPRECATE = set(CONFIGURATIONS.keys()) - {
 
 def update_grouping_config_if_needed(project: Project, source: str) -> None:
     current_config = project.get_option("sentry:grouping_config")
-    new_config = DEFAULT_GROUPING_CONFIG
 
-    if current_config == new_config or current_config == BETA_GROUPING_CONFIG:
+    if current_config == DEFAULT_GROUPING_CONFIG or current_config == BETA_GROUPING_CONFIG:
         return
 
     # Because the way the auto grouping upgrading happening is racy, we want to
@@ -54,7 +53,7 @@ def update_grouping_config_if_needed(project: Project, source: str) -> None:
         # hash (which we do in an effort to preserve group continuity).
         expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 
-        changes: dict[str, str | int] = {"sentry:grouping_config": new_config}
+        changes: dict[str, str | int] = {"sentry:grouping_config": DEFAULT_GROUPING_CONFIG}
         # If the current config is valid we will have a migration period
         if current_config in CONFIGURATIONS.keys():
             changes.update(
