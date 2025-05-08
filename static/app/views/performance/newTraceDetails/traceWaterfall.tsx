@@ -766,7 +766,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   }
 
   return (
-    <div>
+    <FlexBox>
       <TraceTypeWarnings
         tree={props.tree}
         traceSlug={props.traceSlug}
@@ -873,7 +873,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           />
         </TraceLinksNavigationContainer>
       )}
-    </div>
+    </FlexBox>
   );
 }
 
@@ -960,4 +960,10 @@ export const TraceGrid = styled('div')<{
     p.hasTraceTabsUi
       ? `border-radius: ${p.theme.borderRadius};`
       : `border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;`}
+`;
+
+const FlexBox = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 `;
