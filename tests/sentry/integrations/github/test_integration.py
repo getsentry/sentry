@@ -17,14 +17,13 @@ import sentry
 from fixtures.github import INSTALLATION_EVENT_EXAMPLE
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import client
-from sentry.integrations.github.client import MINIMUM_REQUESTS
+from sentry.integrations.github.client import MINIMUM_REQUESTS, GithubSetupApiClient
 from sentry.integrations.github.integration import (
     API_ERRORS,
     GitHubInstallationError,
     GitHubIntegration,
     GitHubIntegrationProvider,
-    get_eligible_multi_org_installations,
-    get_owner_github_organizations,
+    OAuthLoginView,
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -1542,8 +1541,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_github_installation_gets_owner_orgs(self):
         self._setup_with_existing_installations()
+        pipeline_view = OAuthLoginView()
+        pipeline_view.client = GithubSetupApiClient(self.access_token)
 
-        owner_orgs = get_owner_github_organizations(self.access_token)
+        owner_orgs = pipeline_view._get_owner_github_organizations()
 
         assert owner_orgs == ["santry"]
 
@@ -1551,12 +1552,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_github_installation_filters_valid_installations(self):
         self._setup_with_existing_installations()
+        pipeline_view = OAuthLoginView()
+        pipeline_view.client = GithubSetupApiClient(self.access_token)
 
-        owner_orgs = get_owner_github_organizations(self.access_token)
+        owner_orgs = pipeline_view._get_owner_github_organizations()
         assert owner_orgs == ["santry"]
 
-        installation_info = get_eligible_multi_org_installations(
-            access_token=self.access_token, owner_orgs=owner_orgs
+        installation_info = pipeline_view._get_eligible_multi_org_installations(
+            owner_orgs=owner_orgs
         )
 
         assert installation_info == [
