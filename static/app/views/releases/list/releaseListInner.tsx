@@ -17,6 +17,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {HealthStatsPeriodOption, type Release} from 'sentry/types/release';
 import {decodeScalar} from 'sentry/utils/queryString';
+// Using withSentryRouter only to facilitate converting ReleaseList from DeprecatedAsyncComponent
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import ReleaseCard from 'sentry/views/releases/list/releaseCard';
 import ReleasesAdoptionChart from 'sentry/views/releases/list/releasesAdoptionChart';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
@@ -36,10 +39,11 @@ interface Props {
   router: InjectedRouter;
   selectedProject: Project | undefined;
   selection: PageFilters;
-  shouldShowQuickstart: false | Project | undefined;
+  shouldShowQuickstart: boolean;
   showReleaseAdoptionStages: boolean;
 }
-export default function ReleaseListInner({
+
+function ReleaseListInner({
   activeDisplay,
   loading,
   location,
@@ -129,6 +133,8 @@ export default function ReleaseListInner({
     </ReleasesRequest>
   );
 }
+
+export default withSentryRouter(ReleaseListInner);
 
 function getQuery(location: Location) {
   const {query} = location.query;
