@@ -4,9 +4,10 @@ import logging
 import re
 from collections.abc import Callable, Mapping
 from enum import StrEnum
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import parse_qsl
 
+from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
@@ -16,7 +17,12 @@ from django.utils.translation import gettext_lazy as _
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.identity.github import GitHubIdentityProvider, get_user_info
+from sentry.identity.github.provider import (
+    GitHubIdentityProvider,
+    get_organization_memberships_for_user,
+    get_user_info,
+    get_user_info_installations,
+)
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -146,6 +152,15 @@ ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST = _(
 ERR_INTEGRATION_PENDING_DELETION = _(
     "It seems that your Sentry organization has an installation pending deletion. Please wait ~15min for the uninstall to complete and try again."
 )
+ERR_INTEGRATION_INVALID_INSTALLATION = _(
+    "Your GitHub account does not have owner privileges for the chosen organization."
+)
+
+
+class GithubInstallationInfo(TypedDict):
+    installation_id: str
+    github_organization: str
+    avatar_url: str
 
 
 def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -> bytes:
@@ -687,7 +702,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         )
 
     def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
-        return [OAuthLoginView(), GitHubInstallation()]
+        return [OAuthLoginView(), GithubOrganizationSelection(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         client = self.get_client()
@@ -741,6 +756,7 @@ class GitHubInstallationError(StrEnum):
     INSTALLATION_EXISTS = "Github installed on another Sentry organization."
     USER_MISMATCH = "Authenticated user is not the same as who installed the app."
     MISSING_INTEGRATION = "Integration does not exist."
+    INVALID_INSTALLATION = "User does not have access to given installation"
 
 
 def record_event(event: IntegrationPipelineViewType):
@@ -752,10 +768,14 @@ def record_event(event: IntegrationPipelineViewType):
 class OAuthLoginView(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
-            self.active_organization = determine_active_organization(request)
+            self.active_user_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
-                self.active_organization.organization.id if self.active_organization else None,
+                (
+                    self.active_user_organization.organization.id
+                    if self.active_user_organization
+                    else None
+                ),
             )
 
             ghip = GitHubIdentityProvider()
@@ -781,7 +801,7 @@ class OAuthLoginView(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.INVALID_STATE)
                 return error(
                     request,
-                    self.active_organization,
+                    self.active_user_organization,
                     error_short=GitHubInstallationError.INVALID_STATE,
                 )
 
@@ -794,7 +814,6 @@ class OAuthLoginView(PipelineView):
 
             # similar to OAuth2CallbackView.exchange_token
             req = safe_urlopen(url=ghip.get_oauth_access_token_url(), data=data)
-
             try:
                 body = safe_urlread(req).decode("utf-8")
                 payload = dict(parse_qsl(body))
@@ -805,21 +824,65 @@ class OAuthLoginView(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.MISSING_TOKEN)
                 return error(
                     request,
-                    self.active_organization,
+                    self.active_user_organization,
                     error_short=GitHubInstallationError.MISSING_TOKEN,
                 )
 
             authenticated_user_info = get_user_info(payload["access_token"])
+
+            if self.active_user_organization.organization is not None and features.has(
+                "organizations:github-multi-org",
+                organization=self.active_user_organization.organization,
+                actor=request.user,
+            ):
+                owner_orgs = get_owner_github_organizations(access_token=payload["access_token"])
+
+                installation_info = get_eligible_multi_org_installations(
+                    access_token=payload["access_token"], owner_orgs=owner_orgs
+                )
+                pipeline.bind_state("existing_installation_info", installation_info)
+
             if "login" not in authenticated_user_info:
                 lifecycle.record_failure(GitHubInstallationError.MISSING_LOGIN)
                 return error(
                     request,
-                    self.active_organization,
+                    self.active_user_organization,
                     error_short=GitHubInstallationError.MISSING_LOGIN,
                 )
-
             pipeline.bind_state("github_authenticated_user", authenticated_user_info["login"])
             return pipeline.next_step()
+
+
+def get_owner_github_organizations(access_token: str) -> list[str]:
+    user_org_membership_details = get_organization_memberships_for_user(access_token)
+
+    return [
+        gh_org.get("organization", {}).get("login")
+        for gh_org in user_org_membership_details
+        if (
+            gh_org.get("role", "").lower() == "admin"
+            and gh_org.get("state", "").lower() == "active"
+        )
+    ]
+
+
+def get_eligible_multi_org_installations(
+    access_token: str, owner_orgs: list[str]
+) -> list[GithubInstallationInfo]:
+    installed_orgs = get_user_info_installations(access_token)
+
+    return [
+        {
+            "installation_id": str(installation.get("id")),
+            "github_organization": installation.get("account").get("login"),
+            "avatar_url": installation.get("account").get("avatar_url"),
+        }
+        for installation in installed_orgs["installations"]
+        if (
+            installation.get("account").get("login") in owner_orgs
+            or installation.get("target_type") == "User"
+        )
+    ]
 
 
 class GitHubInstallation(PipelineView):
@@ -829,6 +892,25 @@ class GitHubInstallation(PipelineView):
 
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
+            self.active_user_organization = determine_active_organization(request)
+
+            if self.active_user_organization.organization is not None and features.has(
+                "organizations:github-multi-org",
+                organization=self.active_user_organization.organization,
+                actor=request.user,
+            ):
+                chosen_installation_id = pipeline.fetch_state("chosen_installation")
+                if chosen_installation_id is not None:
+                    error_page = self.check_pending_integration_deletion(
+                        request=request, installation_id=chosen_installation_id
+                    )
+                    if error_page is not None:
+                        lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
+                        return error_page
+
+                    pipeline.bind_state("installation_id", chosen_installation_id)
+                    return pipeline.next_step()
+
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")
             )
@@ -836,31 +918,23 @@ class GitHubInstallation(PipelineView):
                 return HttpResponseRedirect(self.get_app_url())
 
             pipeline.bind_state("installation_id", installation_id)
-            self.active_organization = determine_active_organization(request)
+
             lifecycle.add_extra(
                 "organization_id",
-                self.active_organization.organization.id if self.active_organization else None,
+                (
+                    self.active_user_organization.organization.id
+                    if self.active_user_organization
+                    else None
+                ),
             )
 
-            integration_pending_deletion_exists = False
-            if self.active_organization:
-                # We want to wait until the scheduled deletions finish or else the
-                # post install to migrate repos do not work.
-                integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
-                    integration__provider=GitHubIntegrationProvider.key,
-                    organization_id=self.active_organization.organization.id,
-                    status=ObjectStatus.PENDING_DELETION,
-                ).exists()
-
-            if integration_pending_deletion_exists:
-                lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
-                return error(
-                    request,
-                    self.active_organization,
-                    error_short=GitHubInstallationError.PENDING_DELETION,
-                    error_long=ERR_INTEGRATION_PENDING_DELETION,
+            if self.active_user_organization:
+                error_page = self.check_pending_integration_deletion(
+                    request=request, installation_id=installation_id
                 )
-
+                if error_page is not None:
+                    lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
+                    return error_page
             try:
                 # We want to limit GitHub integrations to 1 organization
                 installations_exist = OrganizationIntegration.objects.filter(
@@ -874,7 +948,7 @@ class GitHubInstallation(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.INSTALLATION_EXISTS)
                 return error(
                     request,
-                    self.active_organization,
+                    self.active_user_organization,
                     error_short=GitHubInstallationError.INSTALLATION_EXISTS,
                     error_long=ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
                 )
@@ -886,7 +960,7 @@ class GitHubInstallation(PipelineView):
                 )
             except Integration.DoesNotExist:
                 lifecycle.record_failure(GitHubInstallationError.MISSING_INTEGRATION)
-                return error(request, self.active_organization)
+                return error(request, self.active_user_organization)
 
             # Check that the authenticated GitHub user is the same as who installed the app.
             if (
@@ -896,8 +970,86 @@ class GitHubInstallation(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.USER_MISMATCH)
                 return error(
                     request,
-                    self.active_organization,
+                    self.active_user_organization,
                     error_short=GitHubInstallationError.USER_MISMATCH,
                 )
 
             return pipeline.next_step()
+
+    def check_pending_integration_deletion(
+        self, request: HttpRequest, installation_id: int
+    ) -> HttpResponse | None:
+        # We want to wait until the scheduled deletions finish or else the
+        # post install to migrate repos do not work.
+        integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
+            integration__provider=GitHubIntegrationProvider.key,
+            organization_id=self.active_user_organization.organization.id,
+            status=ObjectStatus.PENDING_DELETION,
+        ).exists()
+
+        if integration_pending_deletion_exists:
+            return error(
+                request,
+                self.active_user_organization,
+                error_short=GitHubInstallationError.PENDING_DELETION,
+                error_long=ERR_INTEGRATION_PENDING_DELETION,
+            )
+        return None
+
+
+class GithubOrganizationSelection(PipelineView):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+        self.active_user_organization = determine_active_organization(request)
+
+        if self.active_user_organization.organization is None or not features.has(
+            "organizations:github-multi-org",
+            organization=self.active_user_organization.organization,
+            actor=request.user,
+        ):
+            return pipeline.next_step()
+
+        with record_event(
+            IntegrationPipelineViewType.ORGANIZATION_SELECTION
+        ).capture() as lifecycle:
+            installation_info = pipeline.fetch_state("existing_installation_info") or []
+            if len(installation_info) == 0:
+                return pipeline.next_step()
+
+            # add an option for users to install on a new GH organization
+            installation_info.append(
+                {
+                    "installation_id": "-1",
+                    "github_organization": "Integrate with a new GitHub organization",
+                    "avatar_url": "https://a.slack-edge.com/production-standard-emoji-assets/14.0/apple-medium/2795.png",
+                }
+            )
+
+            if "chosen_installation_id" in request.GET:
+                chosen_installation_id = request.GET["chosen_installation_id"]
+
+                # Verify that the given GH installation belongs to the person installing the pipeline
+                installation_ids = [
+                    installation["installation_id"] for installation in installation_info
+                ]
+                if chosen_installation_id not in installation_ids:
+                    lifecycle.record_failure(
+                        failure_reason=GitHubInstallationError.INVALID_INSTALLATION
+                    )
+                    return error(
+                        request,
+                        self.active_user_organization,
+                        error_short=GitHubInstallationError.INVALID_INSTALLATION,
+                        error_long=ERR_INTEGRATION_INVALID_INSTALLATION,
+                    )
+
+                if chosen_installation_id == "-1":
+                    return pipeline.next_step()
+
+                pipeline.bind_state("chosen_installation", chosen_installation_id)
+                return pipeline.next_step()
+
+            return self.render_react_view(
+                request=request,
+                pipeline_name="githubInstallationSelect",
+                props={"installation_info": installation_info},
+            )
