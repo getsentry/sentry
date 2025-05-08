@@ -223,9 +223,10 @@ class StatefulGroupingDetectorHandler(
         )
 
         if is_group_condition_met:
+            # TODO - use the `_` as the condition to snapshot in the evidence data
             validated_condition_results: list[DetectorPriorityLevel] = [
                 result
-                for result in condition_results
+                for _, result in condition_results
                 if result is not None and isinstance(result, DetectorPriorityLevel)
             ]
 
