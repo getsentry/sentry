@@ -17,7 +17,6 @@ from sentry.utils.iterators import chunked
 from sentry.workflow_engine.handlers.detector.base import (
     DataPacketEvaluationType,
     DataPacketType,
-    DetectorEvaluationResult,
     DetectorHandler,
     DetectorOccurrence,
 )
@@ -26,7 +25,11 @@ from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     process_data_condition_group,
 )
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
+from sentry.workflow_engine.types import (
+    DetectorEvaluationResult,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+)
 
 REDIS_TTL = int(timedelta(days=7).total_seconds())
 
@@ -391,7 +394,7 @@ class StatefulGroupingDetectorHandler(
         """
         pass
 
-    def build_fingerprint(self, group_key: DetectorGroupKey) -> list[str]:
+    def build_group_fingerprint(self, group_key: DetectorGroupKey) -> list[str]:
         """
         Builds a fingerprint to uniquely identify a detected issue
 

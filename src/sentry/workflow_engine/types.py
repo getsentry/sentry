@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.handlers.detector import DetectorHandler
     from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
+    from sentry.issues.issue_occurrence import IssueOccurrence
+    from sentry.issues.status_change_message import StatusChangeMessage
 
 T = TypeVar("T")
 
@@ -33,6 +35,20 @@ class DetectorPriorityLevel(IntEnum):
 DetectorGroupKey = str | None
 
 DataConditionResult = DetectorPriorityLevel | int | float | bool | None
+
+
+@dataclass(frozen=True)
+class DetectorEvaluationResult:
+    # TODO - Should group key live at this level?
+    group_key: DetectorGroupKey
+    # TODO: Are these actually necessary? We're going to produce the occurrence in the detector, so we probably don't
+    # need to know the other results externally
+    is_triggered: bool
+    priority: DetectorPriorityLevel
+    # TODO: This is only temporarily optional. We should always have a value here if returning a result
+    result: IssueOccurrence | StatusChangeMessage | None = None
+    # Event data to supplement the `IssueOccurrence`, if passed.
+    event_data: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)

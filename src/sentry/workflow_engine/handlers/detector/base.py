@@ -8,11 +8,14 @@ from typing import Any, Generic, TypeVar
 
 from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import Condition, DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
+from sentry.workflow_engine.types import (
+    DetectorEvaluationResult,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,20 +76,6 @@ class DetectorOccurrence:
             priority=status,
             assignee=self.assignee,
         )
-
-
-@dataclasses.dataclass(frozen=True)
-class DetectorEvaluationResult:
-    # TODO - Should group key live at this level?
-    group_key: DetectorGroupKey
-    # TODO: Are these actually necessary? We're going to produce the occurrence in the detector, so we probably don't
-    # need to know the other results externally
-    is_triggered: bool
-    priority: DetectorPriorityLevel
-    # TODO: This is only temporarily optional. We should always have a value here if returning a result
-    result: IssueOccurrence | StatusChangeMessage | None = None
-    # Event data to supplement the `IssueOccurrence`, if passed.
-    event_data: dict[str, Any] | None = None
 
 
 # TODO - DetectorHandler -> AbstractDetectorHandler? (then DetectorHandler is the base implementation)

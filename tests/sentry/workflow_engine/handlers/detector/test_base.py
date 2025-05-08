@@ -9,14 +9,19 @@ from sentry.testutils.abstract import Abstract
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import (
     DataPacketEvaluationType,
-    DetectorEvaluationResult,
     DetectorHandler,
     DetectorOccurrence,
     StatefulGroupingDetectorHandler,
 )
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorSettings
+from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.types import (
+    DetectorEvaluationResult,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+    DetectorSettings,
+)
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
@@ -64,7 +69,10 @@ class MockDetectorStateHandler(StatefulGroupingDetectorHandler[dict, int | None]
         return data_packet.packet.get("group_vals", {})
 
     def create_occurrence(
-        self, value: DataPacketEvaluationType, priority: DetectorPriorityLevel
+        self,
+        result: ProcessedDataConditionGroup,
+        data_packet: DataPacket[dict],
+        priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
 
