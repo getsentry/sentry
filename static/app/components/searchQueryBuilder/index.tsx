@@ -40,7 +40,7 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
-  autofocus?: boolean;
+  autoFocus?: boolean;
   className?: string;
   disabled?: boolean;
   /**
@@ -181,7 +181,7 @@ function ActionButtons({
 }
 
 function SearchQueryBuilderUI({
-  autofocus,
+  autoFocus,
   className,
   disabled = false,
   label,
@@ -222,7 +222,7 @@ function SearchQueryBuilderUI({
           <PlainTextQueryInput label={label} />
         ) : (
           <TokenizedQueryGrid
-            autofocus={autofocus || false}
+            autoFocus={autoFocus || false}
             label={label}
             actionBarWidth={actionBarWidth}
           />

@@ -3303,16 +3303,15 @@ describe('SearchQueryBuilder', function () {
       render(
         <SearchQueryBuilder
           {...defaultProps}
-          autofocus
+          autoFocus
           initialQuery=""
           onChange={mockOnChange}
           onSearch={mockOnSearch}
         />
       );
-      // Must await something to prevent act warnings
-      await act(tick);
-
-      expect(getLastInput()).toHaveFocus();
+      await waitFor(() => {
+        expect(getLastInput()).toHaveFocus();
+      });
     });
 
     it('should autofocus with non-empty initial query', async function () {
@@ -3321,16 +3320,15 @@ describe('SearchQueryBuilder', function () {
       render(
         <SearchQueryBuilder
           {...defaultProps}
-          autofocus
+          autoFocus
           initialQuery="browser.name:firefox"
           onChange={mockOnChange}
           onSearch={mockOnSearch}
         />
       );
-      // Must await something to prevent act warnings
-      await act(tick);
-
-      expect(getLastInput()).toHaveFocus();
+      await waitFor(() => {
+        expect(getLastInput()).toHaveFocus();
+      });
     });
   });
 });

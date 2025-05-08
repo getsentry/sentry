@@ -180,7 +180,7 @@ export function SpanSearchQueryBuilder({
 export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
-  autofocus?: boolean;
+  autoFocus?: boolean;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   onChange?: (query: string, state: CallbackSearchState) => void;
   portalTarget?: HTMLElement | null;
