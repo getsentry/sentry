@@ -822,6 +822,12 @@ export const enum PriorityLevel {
   LOW = 'low',
 }
 
+export const enum FixabilityScoreThresholds {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];

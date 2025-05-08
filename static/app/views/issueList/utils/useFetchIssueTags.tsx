@@ -6,6 +6,7 @@ import {
   type SearchGroup,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
 import {
+  FixabilityScoreThresholds,
   getIssueTitleFromType,
   IssueCategory,
   PriorityLevel,
@@ -352,6 +353,22 @@ function builtInIssuesFields({
       name: 'Issue Priority',
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
       predefined: true,
+    },
+    [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_ACTIONABILITY]!,
+      name: 'Issue Fixability',
+      values: [
+        FixabilityScoreThresholds.HIGH,
+        FixabilityScoreThresholds.MEDIUM,
+        FixabilityScoreThresholds.LOW,
+      ],
+      predefined: true,
+    },
+    [FieldKey.ISSUE_SEER_LAST_RUN]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_LAST_RUN]!,
+      name: 'Issue Fix Last Triggered',
+      values: [],
+      predefined: false,
     },
   };
 
