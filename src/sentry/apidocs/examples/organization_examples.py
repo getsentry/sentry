@@ -322,7 +322,6 @@ class OrganizationExamples:
                 "githubNudgeInvite": True,
                 "gitlabPRBot": True,
                 "aggregatedDataConsent": False,
-                "defaultAutofixAutomationTuning": "off",
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
                 "trustedRelays": [],
