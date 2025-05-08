@@ -1,5 +1,5 @@
 from sentry.testutils.cases import APITestCase
-from tests.sentry.api.endpoints.test_assistant import control_silo_test
+from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test

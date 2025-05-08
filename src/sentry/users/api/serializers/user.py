@@ -403,7 +403,12 @@ class DetailedSelfUserSerializer(UserSerializer):
 
 
 class UserSerializerWithOrgMemberships(UserSerializer):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[User],
+        user: User | AnonymousUser | RpcUser,
+        **kwargs: Any,
+    ) -> MutableMapping[User, Any]:
         attrs = super().get_attrs(item_list, user, **kwargs)
 
         memberships = OrganizationMemberMapping.objects.filter(
@@ -418,7 +423,7 @@ class UserSerializerWithOrgMemberships(UserSerializer):
         for om in oms:
             active_organization_names[om.organization_id] = om.name
 
-        user_org_memberships: DefaultDict[int, list] = defaultdict(list)
+        user_org_memberships: DefaultDict[int, list[str]] = defaultdict(list)
         for membership in memberships:
             if membership.organization_id in active_organization_ids:
                 user_org_memberships[membership.user_id].append(
