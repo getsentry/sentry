@@ -159,6 +159,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "https://api.github.com/repos/getsentry/sentry/labels",
             json=[
                 {"name": "bug"},
+                {"name": "Big Bug"},
                 {"name": "enhancement"},
                 {"name": "duplicate"},
                 {"name": "1"},
@@ -174,6 +175,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             ("1", "1"),
             ("2", "2"),
             ("10", "10"),
+            ("Big Bug", "Big Bug"),
             ("bug", "bug"),
             ("duplicate", "duplicate"),
             ("enhancement", "enhancement"),

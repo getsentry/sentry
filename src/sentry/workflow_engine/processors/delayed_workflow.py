@@ -288,12 +288,12 @@ def get_groups_to_fire(
                 ]
                 conditions_to_evaluate.append((condition, query_values))
 
-            passes, _ = evaluate_data_conditions(conditions_to_evaluate, action_match)
+            evaluation = evaluate_data_conditions(conditions_to_evaluate, action_match)
             if (
-                passes and workflow_id is None
+                evaluation.logic_result and workflow_id is None
             ):  # TODO: detector trigger passes. do something like create issue
                 pass
-            elif passes:
+            elif evaluation.logic_result:
                 groups_to_fire[group_id].add(dcg)
 
     return groups_to_fire

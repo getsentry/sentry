@@ -127,6 +127,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
+    @pytest.fixture(autouse=True)
+    def stub_get_jwt_function(self):
+        with mock.patch("sentry.integrations.github.utils.get_jwt", return_value="jwt_token_1"):
+            yield
+
     def _stub_github(self):
         """This stubs the calls related to a Github App"""
         self.gh_org = "Test-Organization"

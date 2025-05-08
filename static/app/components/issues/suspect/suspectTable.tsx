@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -6,14 +7,16 @@ import {Alert} from 'sentry/components/core/alert';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import useSuspectFlagScoreThreshold from 'sentry/components/issues/suspect/useSuspectFlagScoreThreshold';
 import {IconSentry} from 'sentry/icons/iconSentry';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
+import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
 import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
-import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 
 interface Props {
   debugSuspectScores: boolean;
@@ -21,14 +24,9 @@ interface Props {
   group: Group;
 }
 
-const SUSPECT_SCORE_LOCAL_STATE_KEY = 'flag-drawer-suspicion-score-threshold';
-const SUSPECT_SCORE_THRESHOLD = 7;
-
 export default function SuspectTable({debugSuspectScores, environments, group}: Props) {
-  const [threshold, setThreshold] = useLocalStorageState(
-    SUSPECT_SCORE_LOCAL_STATE_KEY,
-    SUSPECT_SCORE_THRESHOLD
-  );
+  const organization = useOrganization();
+  const [threshold, setThreshold] = useSuspectFlagScoreThreshold();
 
   const {displayFlags, isPending} = useGroupFlagDrawerData({
     environments,
@@ -46,6 +44,19 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
     </Flex>
   ) : null;
 
+  const susFlags = displayFlags.filter(flag => (flag.suspect.score ?? 0) > threshold);
+
+  useEffect(() => {
+    if (!isPending) {
+      trackAnalytics('flags.suspect_flags_v2_found', {
+        numTotalFlags: displayFlags.length,
+        numSuspectFlags: susFlags.length,
+        organization,
+        threshold,
+      });
+    }
+  }, [isPending, organization, displayFlags.length, susFlags.length, threshold]);
+
   if (isPending) {
     return (
       <Alert type="muted">
@@ -57,8 +68,6 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
       </Alert>
     );
   }
-
-  const susFlags = displayFlags.filter(flag => (flag.suspect.score ?? 0) > threshold);
 
   if (!susFlags.length) {
     return (
@@ -73,9 +82,9 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
   }
 
   return (
-    <Alert type="warning">
+    <GradientBox>
       <TagHeader>
-        {t('Suspect')}
+        {t('Suspect Flags')}
         {debugThresholdInput}
       </TagHeader>
 
@@ -83,38 +92,45 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
         {susFlags.map(flag => {
           const topValue = flag.topValues[0];
 
-          const pct =
-            topValue?.value === 'true'
-              ? (flag.suspect.baselinePercent ?? 0)
-              : 100 - (flag.suspect.baselinePercent ?? 0);
-          const projPercentage = Math.round(pct * 100);
-          const displayProjPercent =
-            projPercentage < 1 ? '<1%' : `${projPercentage.toFixed(0)}%`;
-
           return (
             <TagValueRow key={flag.key}>
               {/* TODO: why is flag.name transformed to TitleCase? */}
-              <Tooltip title={flag.key} showOnlyOnOverflow>
-                <Name>{flag.key}</Name>
-              </Tooltip>
-              <TagBar percentage={((topValue?.count ?? 0) / flag.totalValues) * 100} />
+              <FlagDetailsLink flag={flag}>
+                <Tooltip
+                  title={flag.key}
+                  showOnlyOnOverflow
+                  data-underline-on-hover="true"
+                >
+                  {flag.key}
+                </Tooltip>
+              </FlagDetailsLink>
               <RightAligned>
                 {toRoundedPercent((topValue?.count ?? 0) / flag.totalValues)}
               </RightAligned>
               <span>{topValue?.value}</span>
-              <Subtext>vs</Subtext>
-              <RightAligned>
-                <Subtext>{t('%s in project', displayProjPercent)}</Subtext>
-              </RightAligned>
             </TagValueRow>
           );
         })}
       </TagValueGrid>
-    </Alert>
+    </GradientBox>
   );
 }
 
-const TagHeader = styled('h5')`
+const GradientBox = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.background};
+  background: linear-gradient(
+    90deg,
+    ${p => p.theme.backgroundSecondary}00 0%,
+    ${p => p.theme.backgroundSecondary}FF 70%,
+    ${p => p.theme.backgroundSecondary}FF 100%
+  );
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.textColor};
+  padding: ${space(1)};
+`;
+
+const TagHeader = styled('h4')`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -150,15 +166,6 @@ const TagValueRow = styled('li')`
   }
 `;
 
-const Name = styled('div')`
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-`;
-
-const Subtext = styled('span')`
-  color: ${p => p.theme.subText};
-`;
 const RightAligned = styled('span')`
   text-align: right;
 `;

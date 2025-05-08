@@ -31,7 +31,7 @@ function CodecovSecondaryNav() {
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.CODECOV].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
-        <SecondaryNav.Section>
+        <SecondaryNav.Section id="codecov-main">
           <SecondaryNav.Item
             to={`${coveragePathname}commits/`}
             activeTo={coveragePathname}
@@ -42,7 +42,7 @@ function CodecovSecondaryNav() {
             {t('Tests')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <SecondaryNav.Section title={t('Configure')}>
+        <SecondaryNav.Section id="codecov-configure" title={t('Configure')}>
           <SecondaryNav.Item to={`${tokensPathName}`} activeTo={tokensPathName}>
             {t('Tokens')}
           </SecondaryNav.Item>

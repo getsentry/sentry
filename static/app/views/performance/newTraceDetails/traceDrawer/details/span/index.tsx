@@ -365,7 +365,7 @@ function EAPSpanNodeDetails({
       />
       <TraceDrawerComponents.BodyContainer>
         <LogsPageParamsProvider
-          isOnEmbeddedView
+          isTableFrozen
           limitToTraceId={traceId}
           limitToSpanId={node.value.event_id}
           limitToProjectIds={[node.value.project_id]}

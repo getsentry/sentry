@@ -675,6 +675,8 @@ class SearchResolver:
                         )
                     bool_value = lowered_value in constants.TRUTHY_VALUES
                     return AttributeValue(val_bool=bool_value)
+                elif isinstance(value, bool):
+                    return AttributeValue(val_bool=value)
             raise InvalidSearchQuery(
                 f"{value} is not a valid filter value for {column.public_alias}, expecting {constants.TYPE_TO_STRING_MAP[column_type]}, but got a {type(value)}"
             )

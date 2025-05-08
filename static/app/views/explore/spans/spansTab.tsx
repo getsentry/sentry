@@ -2,7 +2,6 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -55,7 +54,6 @@ import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAg
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
@@ -114,7 +112,6 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
         />
         <SpanTabContentSection
           maxPickableDays={datePageFilterProps.maxPickableDays}
-          organization={organization}
           setControlSectionExpanded={setControlSectionExpanded}
           controlSectionExpanded={controlSectionExpanded}
         />
@@ -203,22 +200,20 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
               <EnvironmentPageFilter />
               <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
-            <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+            <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
           </FilterSection>
-          <Feature features="organizations:traces-schema-hints">
-            <StyledSchemaHintsSection>
-              <SchemaHintsList
-                supportedAggregates={
-                  mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
-                }
-                numberTags={numberTags}
-                stringTags={stringTags}
-                isLoading={numberTagsLoading || stringTagsLoading}
-                exploreQuery={query}
-                source={SchemaHintsSources.EXPLORE}
-              />
-            </StyledSchemaHintsSection>
-          </Feature>
+          <StyledSchemaHintsSection>
+            <SchemaHintsList
+              supportedAggregates={
+                mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+              }
+              numberTags={numberTags}
+              stringTags={stringTags}
+              isLoading={numberTagsLoading || stringTagsLoading}
+              exploreQuery={query}
+              source={SchemaHintsSources.EXPLORE}
+            />
+          </StyledSchemaHintsSection>
         </TourElement>
       </SearchQueryBuilderProvider>
     </Layout.Main>
@@ -261,13 +256,11 @@ function SpanTabControlSection({
 interface SpanTabContentSectionProps {
   controlSectionExpanded: boolean;
   maxPickableDays: PickableDays['maxPickableDays'];
-  organization: Organization;
   setControlSectionExpanded: (expanded: boolean) => void;
 }
 
 function SpanTabContentSection({
   maxPickableDays,
-  organization,
   controlSectionExpanded,
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
@@ -357,16 +350,6 @@ function SpanTabContentSection({
         ? spansTableResult.result.isPending
         : tracesTableResult.result.isPending;
 
-  const tableIsProgressivelyLoading =
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    (queryType === 'samples'
-      ? false // Samples mode won't show the progressive loading spinner
-      : queryType === 'aggregate'
-        ? // Only show the progressive spinner after the preflight query has been run
-          aggregatesTableResult.samplingMode === SAMPLING_MODE.PREFLIGHT &&
-          aggregatesTableResult.result.isFetched
-        : false);
-
   return (
     <ContentSection expanded={controlSectionExpanded}>
       <ChevronButton
@@ -404,7 +387,6 @@ function SpanTabContentSection({
           confidences={confidences}
           samplesTab={samplesTab}
           setSamplesTab={setSamplesTab}
-          isProgressivelyLoading={tableIsProgressivelyLoading}
         />
       </TourElement>
     </ContentSection>

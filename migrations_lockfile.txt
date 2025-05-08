@@ -27,6 +27,6 @@ social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0037_fix_drift_default_to_db_default
+uptime: 0040_uptime_backfill_detector_conditions
 
-workflow_engine: 0055_datasource_define_indexes
+workflow_engine: 0059_fix_high_priority_condition_triggers

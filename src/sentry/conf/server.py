@@ -394,6 +394,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.sites",
     "drf_spectacular",
     "crispy_forms",
+    "pgtrigger",
     "rest_framework",
     "sentry",
     "sentry.analytics",
@@ -3151,6 +3152,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
     "taskworker": "default",
+    "taskworker-ingest": "default",
     "snuba-ourlogs": "default",
 }
 
