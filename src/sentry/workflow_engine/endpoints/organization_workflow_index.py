@@ -1,5 +1,3 @@
-from functools import reduce
-
 from django.db.models import Count, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -20,7 +18,8 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
-from sentry.search.utils import InvalidQuery, tokenize_query
+from sentry.db.models.query import in_icontains, in_iexact
+from sentry.search.utils import tokenize_query
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
@@ -49,11 +48,6 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         return args, kwargs
-
-
-def icontains_oneof(field: str, values: list[str]) -> Q:
-    assert values
-    return reduce(Q.__or__, (Q(**{f"{field}__icontains": value}) for value in values))
 
 
 @region_silo_endpoint
@@ -89,22 +83,22 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         queryset = Workflow.objects.filter(organization_id=organization.id)
 
         if raw_query := request.GET.get("query"):
-            try:
-                tokenized_query = tokenize_query(raw_query)
-            except InvalidQuery as e:
-                return self.get_error_response(e.message, status_code=400)
+            tokenized_query = tokenize_query(raw_query)
             for key, values in tokenized_query.items():
                 match key:
                     case "name":
-                        queryset = queryset.filter(icontains_oneof("name", values))
+                        queryset = queryset.filter(in_iexact("name", values))
                     case "action":
                         queryset = queryset.filter(
-                            workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type__in=values
+                            in_iexact(
+                                "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type",
+                                values,
+                            )
                         ).distinct()
                     case "query":
                         queryset = queryset.filter(
-                            icontains_oneof("name", values)
-                            | icontains_oneof(
+                            in_icontains("name", values)
+                            | in_icontains(
                                 "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type",
                                 values,
                             )

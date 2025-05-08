@@ -150,12 +150,22 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         response = self.get_success_response(self.organization.slug, qs_params={"query": "apple"})
         assert len(response.data) == 2
+        assert {workflow.name, workflow_three.name} == {w["name"] for w in response.data}
 
-        response2 = self.get_success_response(
-            self.organization.slug, qs_params={"query": "name:apple"}
+        # With tag syntax, exact only.
+        assert (
+            self.get_success_response(
+                self.organization.slug, qs_params={"query": "name:apple"}
+            ).data
+            == []
         )
-        assert len(response2.data) == 2
-        assert {workflow.name, workflow_three.name} == {w["name"] for w in response2.data}
+
+        assert (
+            self.get_success_response(
+                self.organization.slug, qs_params={"query": 'name:"apple workflow"'}
+            ).data[0]["name"]
+            == workflow.name
+        )
 
         response3 = self.get_success_response(
             self.organization.slug, qs_params={"query": "Chicago"}
@@ -256,6 +266,14 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert len(response.data) == 1
         assert response.data[0]["name"] == workflow.name
+
+        # No partial matches with tags.
+        assert (
+            self.get_success_response(
+                self.organization.slug, qs_params={"query": "action:sla"}
+            ).data
+            == []
+        )
 
         assert (
             self.get_success_response(self.organization.slug, qs_params={"query": "Slack"}).data[0][
