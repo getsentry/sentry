@@ -411,7 +411,17 @@ function useFilterSuggestions({
       {
         sectionText: '',
         items: getItemsWithKeys([
-          ...selectedValues.map(value => createItem({value}, true)),
+          ...selectedValues.map(value => {
+            const matchingSuggestion = suggestionGroups
+              .flatMap(group => group.suggestions)
+              .find(suggestion => suggestion.value === value);
+
+            if (matchingSuggestion) {
+              return createItem(matchingSuggestion, true);
+            }
+
+            return createItem({value}, true);
+          }),
           ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
         ]),
       },
