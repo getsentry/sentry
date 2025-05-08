@@ -4,12 +4,14 @@
 
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
+import {getTimeSeriesInterval} from './getTimeSeriesInterval';
+
 export function markDelayedData(timeSeries: TimeSeries, delay: number): TimeSeries {
   if (delay === 0) {
     return timeSeries;
   }
 
-  const bucketSize = getTimeSeriesBucketSize(timeSeries);
+  const bucketSize = getTimeSeriesInterval(timeSeries);
 
   const ingestionDelayTimestamp = Date.now() - delay * 1000;
 
@@ -28,18 +30,4 @@ export function markDelayedData(timeSeries: TimeSeries, delay: number): TimeSeri
       };
     }),
   };
-}
-
-function getTimeSeriesBucketSize(timeSeries: TimeSeries): number {
-  const penultimateDatum = timeSeries.values.at(-2);
-  const finalDatum = timeSeries.values.at(-1);
-
-  let bucketSize = 0;
-  if (penultimateDatum && finalDatum) {
-    bucketSize =
-      new Date(finalDatum.timestamp).getTime() -
-      new Date(penultimateDatum.timestamp).getTime();
-  }
-
-  return bucketSize;
 }
