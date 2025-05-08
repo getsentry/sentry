@@ -2077,3 +2077,38 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         )
 
         assert response.data["meta"]["dataScanned"] == "full"
+
+    def test_top_n_is_transaction(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"is_segment": True},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"is_segment": False},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "field": ["is_transaction", "count(span.duration)"],
+                "yAxis": ["count(span.duration)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "excludeOther": 1,
+                "topEvents": 2,
+                "partial": 1,
+                "per_page": 50,
+                "interval": "1d",
+                "statsPeriod": "7d",
+                "orderby": "-count_span_duration",
+                "sort": "-count_span_duration",
+                "transformAliasToInputFormat": 1,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert set(response.data.keys()) == {"True", "False"}
