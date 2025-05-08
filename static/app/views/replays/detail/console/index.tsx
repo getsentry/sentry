@@ -1,6 +1,7 @@
 import {useMemo, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
+import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
@@ -98,7 +99,7 @@ export default function Console() {
   };
 
   return (
-    <FluidHeight style={{paddingTop: space(1)}}>
+    <PaddedFluidHeight>
       <ConsoleFilters frames={frames} {...filterProps} />
       <TabItemContainer data-test-id="replay-details-console-tab">
         {frames ? (
@@ -142,6 +143,10 @@ export default function Console() {
           />
         ) : null}
       </TabItemContainer>
-    </FluidHeight>
+    </PaddedFluidHeight>
   );
 }
+
+const PaddedFluidHeight = styled(FluidHeight)`
+  padding-top: ${space(1)};
+`;

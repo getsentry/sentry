@@ -125,7 +125,7 @@ export default function ErrorList() {
   };
 
   return (
-    <FluidHeight style={{paddingTop: space(1)}}>
+    <PaddedFluidHeight>
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
       <ErrorTable data-test-id="replay-details-errors-tab">
         {errorFrames ? (
@@ -178,9 +178,13 @@ export default function ErrorList() {
           <Placeholder height="100%" />
         )}
       </ErrorTable>
-    </FluidHeight>
+    </PaddedFluidHeight>
   );
 }
+
+const PaddedFluidHeight = styled(FluidHeight)`
+  padding-top: ${space(1)};
+`;
 
 const OverflowHidden = styled('div')`
   position: relative;

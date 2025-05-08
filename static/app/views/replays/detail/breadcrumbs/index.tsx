@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
+import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
@@ -111,7 +112,7 @@ export default function Breadcrumbs() {
   };
 
   return (
-    <FluidHeight style={{paddingTop: space(1)}}>
+    <PaddedFluidHeight>
       <FilterLoadingIndicator isLoading={isFetchingExtractions}>
         <BreadcrumbFilters frames={frames} {...filterProps} />
       </FilterLoadingIndicator>
@@ -157,6 +158,10 @@ export default function Breadcrumbs() {
           />
         ) : null}
       </TabItemContainer>
-    </FluidHeight>
+    </PaddedFluidHeight>
   );
 }
+
+const PaddedFluidHeight = styled(FluidHeight)`
+  padding-top: ${space(1)};
+`;

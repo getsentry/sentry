@@ -68,18 +68,12 @@ export default function TagPanel() {
   );
 
   if (!replayRecord) {
-    return (
-      <Placeholder
-        style={{paddingTop: space(1)}}
-        testId="replay-tags-loading-placeholder"
-        height="100%"
-      />
-    );
+    return <PaddedPlaceholder testId="replay-tags-loading-placeholder" height="100%" />;
   }
   const filteredTags = Object.entries(items);
 
   return (
-    <FluidHeight style={{paddingTop: space(1)}}>
+    <PaddedFluidHeight>
       <TagFilters tags={tags} {...filterProps} />
       <TabItemContainer>
         <StyledPanel>
@@ -101,9 +95,17 @@ export default function TagPanel() {
           </FluidPanel>
         </StyledPanel>
       </TabItemContainer>
-    </FluidHeight>
+    </PaddedFluidHeight>
   );
 }
+
+const PaddedPlaceholder = styled(Placeholder)`
+  padding-top: ${space(1)};
+`;
+
+const PaddedFluidHeight = styled(FluidHeight)`
+  padding-top: ${space(1)};
+`;
 
 const StyledPanel = styled('div')`
   position: relative;

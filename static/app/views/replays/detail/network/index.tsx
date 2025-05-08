@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import type {GridCellProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
+import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
@@ -169,7 +170,7 @@ export default function NetworkList() {
   };
 
   return (
-    <FluidHeight style={{paddingTop: space(1)}}>
+    <PaddedFluidHeight>
       <FilterLoadingIndicator isLoading={!replay}>
         <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       </FilterLoadingIndicator>
@@ -240,6 +241,10 @@ export default function NetworkList() {
           />
         </SplitPanel>
       </GridTable>
-    </FluidHeight>
+    </PaddedFluidHeight>
   );
 }
+
+const PaddedFluidHeight = styled(FluidHeight)`
+  padding-top: ${space(1)};
+`;
