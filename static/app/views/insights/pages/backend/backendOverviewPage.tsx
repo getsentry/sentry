@@ -227,24 +227,23 @@ function EAPBackendOverviewPage() {
                       title={t('Requests')}
                       trafficSeriesName={t('Requests')}
                       baseQuery={'span.op:http.server'}
-                      query={searchBarQuery}
                     />
-                    <DurationWidget query={searchBarQuery} />
+                    <DurationWidget />
                   </StackedWidgetWrapper>
                 </ModuleLayout.Third>
                 <ModuleLayout.TwoThirds>
-                  <IssuesWidget query={searchBarQuery} />
+                  <IssuesWidget />
                 </ModuleLayout.TwoThirds>
                 <ModuleLayout.Full>
                   <TripleRowWidgetWrapper>
                     <ModuleLayout.Third>
-                      <JobsWidget query={searchBarQuery} />
+                      <JobsWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <QueriesWidget query={searchBarQuery} />
+                      <QueriesWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <CachesWidget query={searchBarQuery} />
+                      <CachesWidget />
                     </ModuleLayout.Third>
                   </TripleRowWidgetWrapper>
                 </ModuleLayout.Full>
