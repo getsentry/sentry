@@ -81,11 +81,14 @@ export function ExploreSecondaryNav() {
               {t('All Queries')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
-          <SecondaryNav.Section id="explore-starred-queries" title={t('Starred Queries')}>
-            {starredQueries && starredQueries.length > 0 && (
+          {starredQueries && starredQueries.length > 0 && (
+            <SecondaryNav.Section
+              id="explore-starred-queries"
+              title={t('Starred Queries')}
+            >
               <ExploreSavedQueryNavItems queries={starredQueries} />
-            )}
-          </SecondaryNav.Section>
+            </SecondaryNav.Section>
+          )}
         </Feature>
       </SecondaryNav.Body>
     </SecondaryNav>

@@ -23,13 +23,30 @@ import {space} from 'sentry/styles/space';
 
 interface TokenizedQueryGridProps {
   actionBarWidth: number;
+  autoFocus: boolean;
   label?: string;
 }
 
 interface GridProps extends AriaGridListOptions<ParseResultToken> {
   actionBarWidth: number;
+  autoFocus: boolean;
   children: CollectionChildren<ParseResultToken>;
   items: ParseResultToken[];
+}
+
+function useAutoFocus(autoFocus: boolean, state: ListState<ParseResultToken>) {
+  const {dispatch} = useSearchQueryBuilder();
+  const autoFocused = useRef(!autoFocus);
+
+  useLayoutEffect(() => {
+    if (autoFocused.current) {
+      return; // already focused
+    }
+
+    state.selectionManager.setFocused(true);
+    state.selectionManager.setFocusedKey(state.collection.getLastKey());
+    autoFocused.current = true;
+  }, [dispatch, state.collection, state.selectionManager]);
 }
 
 function useApplyFocusOverride(state: ListState<ParseResultToken>) {
@@ -74,6 +91,7 @@ function Grid(props: GridProps) {
     selectionKeyHandlerRef,
     undo,
   });
+  useAutoFocus(props.autoFocus, state);
   useApplyFocusOverride(state);
   useSelectOnDrag(state);
 
@@ -134,7 +152,11 @@ function Grid(props: GridProps) {
   );
 }
 
-export function TokenizedQueryGrid({label, actionBarWidth}: TokenizedQueryGridProps) {
+export function TokenizedQueryGrid({
+  autoFocus,
+  label,
+  actionBarWidth,
+}: TokenizedQueryGridProps) {
   const {parsedQuery} = useSearchQueryBuilder();
 
   // Shouldn't ever get here since we will render the plain text input instead
@@ -145,6 +167,7 @@ export function TokenizedQueryGrid({label, actionBarWidth}: TokenizedQueryGridPr
   return (
     <KeyboardSelection>
       <Grid
+        autoFocus={autoFocus}
         aria-label={label ?? t('Create a search query')}
         items={parsedQuery}
         selectionMode="multiple"

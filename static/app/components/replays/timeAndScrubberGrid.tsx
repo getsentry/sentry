@@ -1,4 +1,5 @@
 import {useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -115,11 +116,11 @@ const Grid = styled('div')<{isCompact: boolean}>`
   align-items: center;
   ${p =>
     p.isCompact
-      ? `
-        order: -1;
-        min-width: 100%;
-        margin-top: -8px;
-      `
+      ? css`
+          order: -1;
+          min-width: 100%;
+          margin-top: -8px;
+        `
       : ''}
 `;
 

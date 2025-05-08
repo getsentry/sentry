@@ -68,9 +68,14 @@ function getCodeSourceName(url: string): string {
 function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
   const [showThoughtsPopup, setShowThoughtsPopup] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const thoughtsButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
+      if (thoughtsButtonRef.current?.contains(event.target as Node)) {
+        return;
+      }
+
       if (overlayRef.current && !overlayRef.current.contains(event.target as Node)) {
         setShowThoughtsPopup(false);
       }
@@ -80,7 +85,7 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [overlayRef]);
+  }, [overlayRef, thoughtsButtonRef]);
 
   if (!sources) {
     return null;
@@ -146,7 +151,10 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
         key={`trace-${id}`}
         onClick={() => {
           if (sources.event_trace_id) {
-            window.open(`trace/${sources.event_trace_id}?node=txn-${id}`, '_blank');
+            window.open(
+              `/issues/trace/${sources.event_trace_id}?node=txn-${id}`,
+              '_blank'
+            );
           }
         }}
         size="xs"
@@ -165,7 +173,7 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
         size="xs"
         icon={<IconProfiling size="xs" />}
         onClick={() =>
-          window.open(`explore/profiling/profile/${id}/flamegraph`, '_blank')
+          window.open(`/explore/profiling/profile/${id}/flamegraph`, '_blank')
         }
       >
         {t('Profile: %s', id.substring(0, 7))}
@@ -181,7 +189,10 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
         size="xs"
         onClick={() => {
           if (sources.event_trace_id) {
-            window.open(`trace/${sources.event_trace_id}?node=error-${id}`, '_blank');
+            window.open(
+              `/issues/trace/${sources.event_trace_id}?node=error-${id}`,
+              '_blank'
+            );
           }
         }}
         icon={<IconFatal size="xs" />}
@@ -224,7 +235,10 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
     sourceCards.push(
       <SourceCard
         key="thoughts"
-        onClick={() => setShowThoughtsPopup(true)}
+        ref={thoughtsButtonRef}
+        onClick={() => {
+          setShowThoughtsPopup(prev => !prev);
+        }}
         size="xs"
         icon={<IconChat size="xs" />}
       >
@@ -274,7 +288,6 @@ const SourcesContainer = styled('div')`
   margin-top: -${space(1)};
   padding-bottom: ${space(1)};
   width: 100%;
-  overflow: hidden;
 `;
 
 const CardsContainer = styled('div')`

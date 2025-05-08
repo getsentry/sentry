@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
@@ -407,7 +408,7 @@ const MenuItemWrapper = styled('div')<{
   font-size: 13px;
   ${p =>
     typeof p.py !== 'undefined' &&
-    `
+    css`
       padding-top: ${p.py};
       padding-bottom: ${p.py};
     `};
