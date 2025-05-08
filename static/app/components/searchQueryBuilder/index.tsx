@@ -40,6 +40,7 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  autofocus?: boolean;
   className?: string;
   disabled?: boolean;
   /**
@@ -180,6 +181,7 @@ function ActionButtons({
 }
 
 function SearchQueryBuilderUI({
+  autofocus,
   className,
   disabled = false,
   label,
@@ -219,7 +221,11 @@ function SearchQueryBuilderUI({
         {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
           <PlainTextQueryInput label={label} />
         ) : (
-          <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
+          <TokenizedQueryGrid
+            autofocus={autofocus || false}
+            label={label}
+            actionBarWidth={actionBarWidth}
+          />
         )}
         {size !== 'small' && (
           <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
