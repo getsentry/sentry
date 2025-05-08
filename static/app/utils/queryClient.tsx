@@ -19,6 +19,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   defaultOptions: {
     queries: {
+      refetchOnReconnect: false,
       refetchOnWindowFocus: false,
     },
   },
