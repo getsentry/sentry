@@ -172,7 +172,7 @@ const useTopNDiscoverMultiSeries = <
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
-      samplingMode: shouldSetSamplingMode ? samplingMode : undefined,
+      sampling: shouldSetSamplingMode ? samplingMode : undefined,
     }),
     options: {
       enabled: options.enabled && defaultPageFilters.isReady,
