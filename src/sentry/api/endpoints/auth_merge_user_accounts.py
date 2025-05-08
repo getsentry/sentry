@@ -4,8 +4,10 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
+from sentry.users.api.serializers.user import UserSerializerWithOrgMemberships
 from sentry.users.models.user import User
 
 
@@ -21,12 +23,18 @@ class AuthMergeUserAccountsEndpoint(Endpoint):
     """
 
     def get(self, request: Request) -> Response:
-        if isinstance(request.user, AnonymousUser):
+        user = request.user
+        if isinstance(user, AnonymousUser):
             return Response(
                 status=401,
                 data={"error": "You must be authenticated to use this endpoint"},
             )
 
-        shared_email = request.user.email
-        all_users = User.objects.filter(email=shared_email).order_by("last_active").values()
-        return Response(serialize(all_users))
+        shared_email = user.email
+        queryset = User.objects.filter(email=shared_email).order_by("last_active")
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            on_results=lambda x: serialize(x, user, UserSerializerWithOrgMemberships()),
+            paginator_cls=OffsetPaginator,
+        )

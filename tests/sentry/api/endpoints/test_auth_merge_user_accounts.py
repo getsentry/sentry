@@ -18,3 +18,23 @@ class ListUserAccountsWithSharedEmailTest(APITestCase):
         assert len(response.data) == 2
         assert response.data[0]["username"] == user1.username
         assert response.data[1]["username"] == user2.username
+
+    def test_with_orgs(self):
+        user1 = self.create_user(username="powerful mifu", email="mifu@email.com")
+        user2 = self.create_user(username="transcendent mifu", email="mifu@email.com")
+        self.create_user(username="garden variety mifu", email="mifu@email.com")
+
+        org1 = self.create_organization(name="hojicha")
+        org2 = self.create_organization(name="matcha")
+        org3 = self.create_organization(name="oolong")
+
+        self.create_member(user=user1, organization=org1)
+        self.create_member(user=user1, organization=org2)
+        self.create_member(user=user2, organization=org3)
+
+        self.login_as(user1)
+        response = self.get_success_response()
+
+        assert response.data[0]["organizations"] == [org1.name, org2.name]
+        assert response.data[1]["organizations"] == [org3.name]
+        assert response.data[2]["organizations"] == []
