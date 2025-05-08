@@ -87,7 +87,7 @@ export function IssuesSecondaryNav() {
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const hasWorkflowEngine = useWorkflowEngineFeatureGate();
   return (
-    <StickyBottomSection id="issues-configure" title={t('Configure')}>
+    <StickyBottomSection id="issues-configure" title={t('Configure')} collapsible={false}>
       {hasWorkflowEngine ? (
         <Fragment>
           <SecondaryNav.Item
