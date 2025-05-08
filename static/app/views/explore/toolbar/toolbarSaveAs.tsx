@@ -281,27 +281,27 @@ export function ToolbarSaveAs() {
             </SaveAsButton>
           )}
         />
-        {organization.features.includes('explore-multi-query') && (
-          <LinkButton
-            aria-label={t('Compare')}
-            onClick={() =>
-              trackAnalytics('trace_explorer.compare', {
-                organization,
-              })
-            }
-            to={generateExploreCompareRoute({
+        <LinkButton
+          aria-label={t('Compare')}
+          onClick={() =>
+            trackAnalytics('trace_explorer.compare', {
               organization,
-              mode,
-              location,
-              query,
-              yAxes: [visualizeYAxes[0]!],
-              groupBys,
-              fields,
-              sortBys,
-              chartType: visualizes[0]!.chartType,
-            })}
-          >{`${t('Compare Queries')}`}</LinkButton>
-        )}
+            })
+          }
+          to={generateExploreCompareRoute({
+            organization,
+            mode,
+            location,
+            query,
+            yAxes: [visualizeYAxes[0]!],
+            groupBys,
+            fields,
+            sortBys,
+            chartType: visualizes[0]!.chartType,
+          })}
+        >
+          {`${t('Compare Queries')}`}
+        </LinkButton>
       </ButtonBar>
     </StyledToolbarSection>
   );
