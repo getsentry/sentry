@@ -9,8 +9,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {DeadRageClicksWidget} from 'sentry/views/insights/pages/platform/nextjs/deadRageClickWidget';
 import SSRTreeWidget from 'sentry/views/insights/pages/platform/nextjs/ssrTreeWidget';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
@@ -42,13 +40,6 @@ export function NextJsOverviewPage({
   performanceType: 'backend' | 'frontend';
 }) {
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
-  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
-  const releases =
-    releasesWithDate?.map(({date, version}) => ({
-      timestamp: date,
-      version,
-    })) ?? [];
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -94,11 +85,10 @@ export function NextJsOverviewPage({
             trafficSeriesName={t('Page views')}
             baseQuery={'span.op:[navigation,pageload]'}
             query={query}
-            releases={releases}
           />
         </WidgetGrid.Position1>
         <WidgetGrid.Position2>
-          <DurationWidget query={query} releases={releases} />
+          <DurationWidget query={query} />
         </WidgetGrid.Position2>
         <WidgetGrid.Position3>
           <IssuesWidget query={query} />
@@ -107,7 +97,7 @@ export function NextJsOverviewPage({
           <WebVitalsWidget query={query} />
         </WidgetGrid.Position4>
         <WidgetGrid.Position5>
-          <DeadRageClicksWidget query={query} releases={releases} />
+          <DeadRageClicksWidget query={query} />
         </WidgetGrid.Position5>
         <WidgetGrid.Position6>
           <SSRTreeWidget />

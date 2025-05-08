@@ -10,7 +10,6 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -43,13 +42,12 @@ function renameMeta(meta: EventsMetaType, from: string, to: string): EventsMetaT
   };
 }
 
-export function SlowSSRWidget({query, releases}: {query?: string; releases?: Release[]}) {
+export function SlowSSRWidget({query}: {query?: string}) {
   const theme = useTheme();
   const {selection} = usePageFilters();
   const organization = useOrganization();
-  const pageFilterChartParams = usePageFilterChartParams({
-    granularity: 'spans',
-  });
+  const releaseBubbleProps = useReleaseBubbleProps();
+  const pageFilterChartParams = usePageFilterChartParams();
 
   const fullQuery = `span.op:function.nextjs ${query}`;
 
@@ -133,7 +131,7 @@ export function SlowSSRWidget({query, releases}: {query?: string; releases?: Rel
               alias: aliases[ts.seriesName],
             })
         ),
-        ...useReleaseBubbleProps(releases),
+        ...releaseBubbleProps,
       }}
     />
   );
