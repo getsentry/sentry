@@ -136,12 +136,12 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             yield
 
     def _check_proxying(self) -> None:
-        assert len(responses.calls) == 1
-        request = responses.calls[0].request
         assert self.install.org_integration is not None
-        assert request.headers[PROXY_OI_HEADER] == str(self.install.org_integration.id)
-        assert request.headers[PROXY_BASE_URL_HEADER] == "https://api.github.com"
-        assert PROXY_SIGNATURE_HEADER in request.headers
+        for call_request in responses.calls:
+            request = call_request.request
+            assert request.headers[PROXY_OI_HEADER] == str(self.install.org_integration.id)
+            assert request.headers[PROXY_BASE_URL_HEADER] == "https://api.github.com"
+            assert PROXY_SIGNATURE_HEADER in request.headers
 
     @responses.activate
     def test_get_allowed_assignees(self):
@@ -188,20 +188,18 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         api_url = "https://api.github.com/repos/getsentry/sentry/labels"
         self._generate_pagination_responses(api_url, labels, per_page_limit)
 
-        expected_labels = (
-            ("1", "1"),
-            ("2", "2"),
-            ("10", "10"),
-            ("bug", "bug"),
-            ("duplicate", "duplicate"),
-            ("enhancement", "enhancement"),
-        )
-
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.page_size", new=len(labels) - 1
         ):
             # results should be sorted alphabetically
-            assert self.install.get_repo_labels("getsentry", "sentry") == expected_labels
+            assert self.install.get_repo_labels("getsentry", "sentry") == (
+                ("1", "1"),
+                ("2", "2"),
+                ("10", "10"),
+                ("bug", "bug"),
+                ("duplicate", "duplicate"),
+                ("enhancement", "enhancement"),
+            )
 
             if self.should_call_api_without_proxying():
                 assert len(responses.calls) == 2
