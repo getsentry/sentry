@@ -7,6 +7,7 @@ import React, {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -24,18 +25,20 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldDefinition} from 'sentry/utils/fields';
+import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface TraceExploreAiQueryContextValue {
-  onAiButtonClick: () => void;
+  onAiButtonClick: (initialQuery?: string) => void;
 }
 
 const AI_QUERY_DRAWER_WIDTH = '350px';
@@ -106,8 +109,8 @@ function QueryTokens({result}: QueryTokensProps) {
 
   if (result.stats_period && result.stats_period.length > 0) {
     tokens.push(
-      <Token key="statsPeriod">
-        <ExploreParamTitle>{t('Stats Period')}</ExploreParamTitle>
+      <Token key="timeRange">
+        <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
         <ExploreGroupBys key={result.stats_period}>{result.stats_period}</ExploreGroupBys>
       </Token>
     );
@@ -117,7 +120,9 @@ function QueryTokens({result}: QueryTokensProps) {
     tokens.push(
       <Token key="sort">
         <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
-        <ExploreGroupBys key={result.sort}>{result.sort}</ExploreGroupBys>
+        <ExploreGroupBys key={result.sort}>
+          {result.sort[0] === '-' ? result.sort.slice(1) + ' Desc' : result.sort + ' Asc'}
+        </ExploreGroupBys>
       </Token>
     );
   }
@@ -125,8 +130,8 @@ function QueryTokens({result}: QueryTokensProps) {
   return <React.Fragment>{tokens}</React.Fragment>;
 }
 
-export function AiQueryDrawer() {
-  const [searchQuery, setSearchQuery] = useState('');
+export function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [response, setResponse] = useState<React.ReactNode>(null);
   const [rawResult, setRawResult] = useState<any>(null);
   const api = useApi();
@@ -135,16 +140,23 @@ export function AiQueryDrawer() {
   const {closeDrawer} = useDrawer();
   const openFeedbackForm = useFeedbackForm();
   const navigate = useNavigate();
+  const {projects} = useProjects();
+  const memberProjects = projects.filter(p => p.isMember);
 
   const {mutate: submitQuery, isPending} = useMutation({
     mutationFn: async (query: string) => {
+      const selectedProjects = getSelectedProjectList(
+        pageFilters.selection.projects,
+        memberProjects
+      ).map(p => p.id);
+
       const result = await api.requestPromise(
         `/api/0/organizations/${organization.slug}/trace-explorer-ai/query/`,
         {
           method: 'POST',
           data: {
             natural_language_query: query,
-            project_ids: pageFilters.selection.projects,
+            project_ids: selectedProjects,
           },
         }
       );
@@ -304,25 +316,45 @@ export function TraceExploreAiQueryContextProvider({
   const {openDrawer} = useDrawer();
   const pageFilters = usePageFilters();
   const client = useApi();
+  const {projects} = useProjects();
 
   useEffect(() => {
-    client.requestPromise(
-      `/api/0/organizations/${organization.slug}/trace-explorer-ai/setup/`,
-      {
-        method: 'POST',
-        data: {
-          org_id: organization.id,
-          project_ids: pageFilters.selection.projects,
-        },
+    const selectedProjects =
+      pageFilters.selection.projects &&
+      pageFilters.selection.projects.length > 0 &&
+      pageFilters.selection.projects[0] !== -1
+        ? pageFilters.selection.projects
+        : projects.map(p => p.id);
+
+    (async () => {
+      try {
+        await client.requestPromise(
+          `/api/0/organizations/${organization.slug}/trace-explorer-ai/setup/`,
+          {
+            method: 'POST',
+            data: {
+              org_id: organization.id,
+              project_ids: selectedProjects,
+            },
+          }
+        );
+      } catch (err) {
+        Sentry.captureException(err);
       }
-    );
-  }, [client, organization.id, organization.slug, pageFilters.selection.projects]);
+    })();
+  }, [
+    client,
+    organization.id,
+    organization.slug,
+    pageFilters.selection.projects,
+    projects,
+  ]);
 
   return (
     <TraceExploreAiQueryContext.Provider
       value={{
-        onAiButtonClick: () => {
-          openDrawer(() => <AiQueryDrawer />, {
+        onAiButtonClick: (initialQuery = '') => {
+          openDrawer(() => <AiQueryDrawer initialQuery={initialQuery} />, {
             ariaLabel: t('AI Query Drawer'),
             drawerWidth: AI_QUERY_DRAWER_WIDTH,
             drawerKey: 'ai-query-drawer',

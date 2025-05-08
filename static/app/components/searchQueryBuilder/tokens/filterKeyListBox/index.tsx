@@ -77,7 +77,7 @@ function ListBoxSectionButton({
 }
 
 function FeedbackFooter() {
-  const {searchSource} = useSearchQueryBuilder();
+  const {searchSource, query} = useSearchQueryBuilder();
   const openForm = useFeedbackForm();
   const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
   const organization = useOrganization();
@@ -93,14 +93,14 @@ function FeedbackFooter() {
     <SectionedOverlayFooter>
       <Feature features="organizations:gen-ai-explore-traces">
         {traceExploreAiQueryContext && areAiFeaturesAllowed ? (
-          <Button
+          <StyledSeerButton
             priority="primary"
             size="xs"
             icon={<IconSeer />}
-            onClick={() => traceExploreAiQueryContext?.onAiButtonClick?.()}
+            onClick={() => traceExploreAiQueryContext?.onAiButtonClick?.(query)}
           >
             {t('Use Seer AI')}
-          </Button>
+          </StyledSeerButton>
         ) : null}
       </Feature>
       <Button
@@ -437,6 +437,10 @@ const SectionedOverlay = styled(Overlay, {
   width: ${p => (p.fullWidth ? '100%' : `${p.width}px`)};
   ${p =>
     p.fullWidth && `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
+`;
+
+const StyledSeerButton = styled(Button)`
+  margin-right: ${space(1)};
 `;
 
 const SectionedOverlayFooter = styled('div')`
