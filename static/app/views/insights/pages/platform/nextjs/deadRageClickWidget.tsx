@@ -36,7 +36,7 @@ export function DeadRageClicksWidget({
   const fullQuery = `!count_dead_clicks:0 ${query}`.trim();
 
   const {isLoading, error, data} = useDeadRageSelectors({
-    per_page: 5,
+    per_page: 6,
     sort: '-count_dead_clicks',
     cursor: undefined,
     query: fullQuery,
