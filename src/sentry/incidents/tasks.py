@@ -85,7 +85,9 @@ def handle_snuba_query_update(
     default_retry_delay=60,
     max_retries=5,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=5)),
+    taskworker_config=TaskworkerConfig(
+        namespace=alerts_tasks, retry=Retry(times=5), processing_deadline_duration=30
+    ),
 )
 def handle_trigger_action(
     action_id: int,
