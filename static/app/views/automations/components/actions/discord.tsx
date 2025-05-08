@@ -1,4 +1,5 @@
 import {Flex} from 'sentry/components/container/flex';
+import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {BannerLink, InfoBanner} from 'sentry/components/workflowEngine/ui/infoBanner';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -9,7 +10,6 @@ import {TargetDisplayField} from 'sentry/views/automations/components/actions/ta
 import {
   ICON_SIZE,
   OptionalRowLine,
-  RowLine,
 } from 'sentry/views/automations/components/automationBuilderRow';
 
 export default function DiscordNode() {
