@@ -73,6 +73,7 @@ function ReleasesDrawerContent({
                   {releaseMeta?.projects?.map(releaseProject => (
                     <SelectableProjectBadge
                       key={releaseProject.id}
+                      data-test-id={`select-project-${releaseProject.id}`}
                       to={{
                         pathname: location.pathname,
                         query: {

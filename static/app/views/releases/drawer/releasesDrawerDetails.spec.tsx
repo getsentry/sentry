@@ -70,6 +70,11 @@ describe('ReleasesDrawerDetails', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/projects/org-slug/test-project-2/releases/test-release/repositories/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/repos/',
       method: 'GET',
       body: [],
@@ -134,12 +139,7 @@ describe('ReleasesDrawerDetails', () => {
     );
   });
 
-  it('renders content when single project exists', async () => {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/test-project-2/releases/test-release/repositories/',
-      method: 'GET',
-      body: [],
-    });
+  it('renders content when single project exists in release meta', async () => {
     render(<ReleasesDrawerDetails {...defaultProps} />, {organization});
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -147,6 +147,42 @@ describe('ReleasesDrawerDetails', () => {
     expect(screen.getByText('General')).toBeInTheDocument();
     expect(screen.getByText('Commits')).toBeInTheDocument();
     expect(screen.getByText('File Changes')).toBeInTheDocument();
+  });
+
+  it('can switch projects when multiple projects exist', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/test-release/meta/',
+      method: 'GET',
+      body: ReleaseMetaFixture({
+        projects: [
+          ReleaseProjectFixture({
+            id: 1,
+            slug: 'test-project',
+            platform: 'android',
+            platforms: ['android'],
+          }),
+          ReleaseProjectFixture({
+            id: 2,
+            slug: 'test-project-2',
+            platform: 'javascript',
+            platforms: ['javascript'],
+          }),
+        ],
+      }),
+    });
+    render(<ReleasesDrawerDetails {...defaultProps} projectId="2" />, {organization});
+
+    expect(await screen.findByText('Details')).toBeInTheDocument();
+    expect(screen.getByText('General')).toBeInTheDocument();
+    expect(screen.getByText('Commits')).toBeInTheDocument();
+    expect(screen.getByText('File Changes')).toBeInTheDocument();
+
+    // assert that the <Link> component goes to the correct url
+    const link = screen.getByTestId('select-project-1');
+    expect(link).toHaveAttribute(
+      'href',
+      expect.stringContaining('/?rdReleaseProjectId=1')
+    );
   });
 
   it('renders error state when release meta fails to load', async () => {
