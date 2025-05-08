@@ -7,13 +7,13 @@ import {Alert} from 'sentry/components/core/alert';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import useSuspectFlagScoreThreshold from 'sentry/components/issues/suspect/useSuspectFlagScoreThreshold';
 import {IconSentry} from 'sentry/icons/iconSentry';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
 import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
@@ -24,16 +24,9 @@ interface Props {
   group: Group;
 }
 
-const SUSPECT_SCORE_LOCAL_STATE_KEY = 'flag-drawer-suspicion-score-threshold';
-const SUSPECT_SCORE_THRESHOLD = 7;
-
 export default function SuspectTable({debugSuspectScores, environments, group}: Props) {
   const organization = useOrganization();
-
-  const [threshold, setThreshold] = useLocalStorageState(
-    SUSPECT_SCORE_LOCAL_STATE_KEY,
-    SUSPECT_SCORE_THRESHOLD
-  );
+  const [threshold, setThreshold] = useSuspectFlagScoreThreshold();
 
   const {displayFlags, isPending} = useGroupFlagDrawerData({
     environments,

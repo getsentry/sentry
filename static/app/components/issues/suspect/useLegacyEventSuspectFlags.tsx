@@ -20,11 +20,13 @@ import {
  * B) organization audit logs (queried from /logs/).
  */
 export default function useLegacyEventSuspectFlags({
-  organization,
-  firstSeen,
-  rawFlagData,
+  enabled,
   event,
+  firstSeen,
+  organization,
+  rawFlagData,
 }: {
+  enabled: boolean;
   event: Event | undefined;
   firstSeen: string;
   organization: Organization;
@@ -57,7 +59,7 @@ export default function useLegacyEventSuspectFlags({
     {
       staleTime: 0,
       // if no intersection, then there are no suspect flags
-      enabled: Boolean(intersectionFlags.length),
+      enabled: enabled && Boolean(intersectionFlags.length),
     }
   );
 

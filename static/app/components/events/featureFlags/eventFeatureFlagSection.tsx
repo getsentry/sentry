@@ -22,6 +22,9 @@ import {
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
+import {useGroupSuspectFlagScores} from 'sentry/components/issues/suspect/useGroupSuspectFlagScores';
+import useLegacyEventSuspectFlags from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
+import useSuspectFlagScoreThreshold from 'sentry/components/issues/suspect/useSuspectFlagScoreThreshold';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
@@ -35,10 +38,10 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import useLegacyEventSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useLegacyEventSuspectFlags';
 import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function EventFeatureFlagSection(props: EventFeatureFlagSectionProps) {
   return (
@@ -55,6 +58,9 @@ type EventFeatureFlagSectionProps = {
 };
 
 function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
+  const organization = useOrganization();
+  const environments = useEnvironmentsFromUrl();
+
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
@@ -75,11 +81,14 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     </Button>
   ) : null;
 
+  // If we're showing the suspect section at all
+  const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
+
   const [sortBy, setSortBy] = useState<SortBy>(SortBy.EVAL_ORDER);
   const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
-  const organization = useOrganization();
+
   const eventView = useIssueDetailsEventView({group});
   const {data: rawFlagData} = useOrganizationFlagLog({
     organization,
@@ -120,22 +129,31 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     [organization, queryParams]
   );
 
-  const {
-    suspectFlags,
-    isError: isSuspectError,
-    isPending: isSuspectPending,
-  } = useLegacyEventSuspectFlags({
+  const {suspectFlags: legacySuspectFlags} = useLegacyEventSuspectFlags({
+    enabled: !enableSuspectFlags, // Fallback to the legacy strategy
     organization,
     firstSeen: group.firstSeen,
     rawFlagData,
     event,
   });
 
+  const [suspectThreshold] = useSuspectFlagScoreThreshold();
+  const {data: suspectScores} = useGroupSuspectFlagScores({
+    groupId: group.id,
+    environment: environments.length ? environments : undefined,
+    enabled: enableSuspectFlags,
+  });
+
   const suspectFlagNames: Set<string> = useMemo(() => {
-    return isSuspectError || isSuspectPending
-      ? new Set()
-      : new Set(suspectFlags.map(f => f.flag));
-  }, [isSuspectError, isSuspectPending, suspectFlags]);
+    if (enableSuspectFlags) {
+      return new Set(
+        suspectScores?.data
+          .filter(score => score.score >= suspectThreshold)
+          .map(score => score.flag)
+      );
+    }
+    return new Set(legacySuspectFlags.map(f => f.flag));
+  }, [enableSuspectFlags, legacySuspectFlags, suspectScores?.data, suspectThreshold]);
 
   const eventFlags: Array<Required<FeatureFlag>> = useMemo(() => {
     // At runtime there's no type guarantees on the event flags. So we have to
