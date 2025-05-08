@@ -1,5 +1,5 @@
 import {useMemo, useRef} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaRadioProps} from '@react-aria/radio';
 import {useRadio, useRadioGroup} from '@react-aria/radio';
@@ -272,15 +272,15 @@ const SegmentWrap = withChonk(
 
     ${p =>
       !p.isDisabled &&
-      `
-    &:hover {
-      background-color: inherit;
+      css`
+        &:hover {
+          background-color: inherit;
 
-      [role='separator'] {
-        opacity: 0;
-      }
-    }
-  `}
+          [role='separator'] {
+            opacity: 0;
+          }
+        }
+      `}
 
     ${p => p.isSelected && `z-index: 1;`}
   `,
