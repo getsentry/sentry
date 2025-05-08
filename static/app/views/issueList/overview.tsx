@@ -606,7 +606,9 @@ function IssueListOverview({
           setQueryMaxCount(newQueryMaxCount);
           setPageLinks(newPageLinks === null ? '' : newPageLinks);
 
-          fetchCounts(newQueryCount, fetchAllCounts);
+          if (!prefersStackedNav) {
+            fetchCounts(newQueryCount, fetchAllCounts);
+          }
 
           // Need to wait for stats request to finish before saving to cache
           await fetchStats(data.map((group: BaseGroup) => group.id));
@@ -652,6 +654,7 @@ function IssueListOverview({
       location.query,
       query,
       resumePolling,
+      prefersStackedNav,
     ]
   );
 
