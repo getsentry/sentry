@@ -108,7 +108,8 @@ def _delete_for_entity_by_type(
         errors = checkin_error.errors
         if not any(error["type"] == type for error in errors):
             continue
-        # If the processing error only holds this one type of error, remove the whole error
+        # If the processing error holds more than one type of error, re-store the filtered version
+        # with the target error type removed
         if len(errors) > 1:
             filtered_errors = list(filter(lambda error: error["type"] != type, errors))
             new_checkin_error = CheckinProcessingError(filtered_errors, checkin_error.checkin)
