@@ -9,11 +9,5 @@ export const TraceExploreAiQueryContext = createContext<
 >(undefined);
 
 export const useTraceExploreAiQueryContext = () => {
-  const context = useContext(TraceExploreAiQueryContext);
-  if (!context) {
-    throw new Error(
-      'useTraceExploreAiQueryContext must be used within a TraceExploreAiQueryProvider'
-    );
-  }
-  return context;
+  return useContext(TraceExploreAiQueryContext);
 };
