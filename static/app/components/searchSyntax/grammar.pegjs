@@ -303,21 +303,15 @@ quoted_value
 
 quoted_contains_value
   = '"' "*" value:('\\"' / '\\*' / [^"*\\])* "*" '"' {
-    const result = tc.tokenValueText(value.join(''), true, true);
-    result.text = '"' + value.join('') + '"';
-    return result;
-  }
+      return tc.tokenValueText(value.join(''), true, true);
+    }
 
 contains_value
   = "*" value:(contains_inner_value)* "*" {
       if (!value.length) {
         return tc.tokenValueText('', false, true);
       }
-      if (Array.isArray(value) && value.length === 1 && value[0]?.type) {
-        const v = value[0];
-        return tc.tokenValueText(v.value, v.quoted, true);
-      }
-      return tc.tokenValueText(value.map(v => typeof v === "string" ? v : v.text).join(''), false, true);
+      return tc.tokenValueText(value.join(''), false, true);
     }
 
 contains_inner_value
@@ -329,7 +323,7 @@ in_value
     }
 
 text_in_value
-  = quoted_contains_value  / quoted_value / contains_value / in_value
+  = quoted_contains_value / quoted_value / contains_value / in_value
 
 search_value
   = quoted_contains_value / quoted_value / contains_value / value

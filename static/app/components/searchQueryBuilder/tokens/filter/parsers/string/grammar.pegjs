@@ -36,13 +36,7 @@ contains_value
         // Handle '**' as an empty contains value
         return tc.tokenValueText('', false, true);
       }
-      if (Array.isArray(value) && value.length === 1 && value[0]?.type) {
-        // quoted_value returns a tokenValueText, so mark as contains
-        const v = value[0];
-        v.contains = true;
-        return v;
-      }
-      return tc.tokenValueText(value.map(v => typeof v === "string" ? v : v.text).join(''), false, true);
+      return tc.tokenValueText(value.join(''), false, true);
     }
 
 contains_inner_value
@@ -55,9 +49,7 @@ quoted_value
 
 quoted_contains_value
   = '"' "*" value:('\\"' / '\\*' / [^"*\\])* "*" '"' {
-      const result = tc.tokenValueText(value.join(''), true, true);
-      result.text = '"' + value.join('') + '"';
-      return result;
+      return tc.tokenValueText(value.join(''), true, true);
   }
 
 in_value_termination
