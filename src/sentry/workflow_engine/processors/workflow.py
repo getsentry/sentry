@@ -150,7 +150,7 @@ def evaluate_workflows_action_filters(
                 workflow_event_data, workflow_env=workflow_data_condition_group.workflow.environment
             )
 
-        (evaluation, result), remaining_conditions = process_data_condition_group(
+        group_evaluation, remaining_conditions = process_data_condition_group(
             action_condition.id, workflow_event_data
         )
 
@@ -165,7 +165,7 @@ def evaluate_workflows_action_filters(
                     WorkflowDataConditionGroupType.ACTION_FILTER,
                 )
         else:
-            if evaluation:
+            if group_evaluation.logic_result:
                 filtered_action_groups.add(action_condition)
 
     return filter_recently_fired_workflow_actions(filtered_action_groups, event_data)

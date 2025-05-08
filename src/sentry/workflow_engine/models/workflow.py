@@ -81,10 +81,10 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             return True, []
 
         workflow_event_data = replace(event_data, workflow_env=self.environment)
-        (evaluation, _), remaining_conditions = process_data_condition_group(
+        group_evaluation, remaining_conditions = process_data_condition_group(
             self.when_condition_group.id, workflow_event_data
         )
-        return evaluation, remaining_conditions
+        return group_evaluation.logic_result, remaining_conditions
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:
