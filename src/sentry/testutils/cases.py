@@ -380,7 +380,8 @@ class BaseTestCase(Fixtures):
         with open(get_fixture_path(filepath), "rb") as fp:
             return fp.read()
 
-    def _pre_setup(self):
+    @classmethod
+    def _pre_setup(cls):
         super()._pre_setup()
 
         cache.clear()
