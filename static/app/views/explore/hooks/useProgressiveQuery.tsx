@@ -1,30 +1,18 @@
 import useOrganization from 'sentry/utils/useOrganization';
 
 export const SAMPLING_MODE = {
-  PREFLIGHT: 'PREFLIGHT',
-  BEST_EFFORT: 'BEST_EFFORT',
   NORMAL: 'NORMAL',
-  HIGH_ACCURACY: 'HIGH_ACCURACY',
-} as const;
-
-export const QUERY_MODE = {
-  SERIAL: 'serial',
-  PARALLEL: 'parallel',
-} as const;
-
-const LOW_SAMPLING_MODE_QUERY_EXTRAS = {
-  samplingMode: SAMPLING_MODE.PREFLIGHT,
-} as const;
-
-const HIGH_SAMPLING_MODE_QUERY_EXTRAS = {
-  samplingMode: SAMPLING_MODE.BEST_EFFORT,
+  HIGH_ACCURACY: 'HIGHEST_ACCURACY',
 } as const;
 
 const NORMAL_SAMPLING_MODE_QUERY_EXTRAS = {
   samplingMode: SAMPLING_MODE.NORMAL,
 } as const;
 
-type QueryMode = (typeof QUERY_MODE)[keyof typeof QUERY_MODE];
+const HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS = {
+  samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
+} as const;
+
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
 export type SpansRPCQueryExtras = {
   samplingMode?: SamplingMode;
@@ -47,7 +35,6 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
 
 interface QueryOptions<TQueryFn extends (...args: any[]) => any> {
   canTriggerHighAccuracy?: (data: ReturnType<TQueryFn>['result']) => boolean;
-  queryMode?: QueryMode;
   withholdBestEffort?: boolean;
 }
 
@@ -75,48 +62,14 @@ export function useProgressiveQuery<
   samplingMode?: SamplingMode;
 } {
   const organization = useOrganization();
-  const canUseProgressiveLoading = organization.features.includes(
-    'visibility-explore-progressive-loading'
-  );
   const canUseNormalSamplingMode = organization.features.includes(
     'visibility-explore-progressive-loading-normal-sampling-mode'
   );
 
-  const queryMode = queryOptions?.queryMode ?? QUERY_MODE.SERIAL;
-
   const singleQueryResult = queryHookImplementation({
     ...queryHookArgs,
-    enabled:
-      queryHookArgs.enabled && !canUseProgressiveLoading && !canUseNormalSamplingMode,
+    enabled: queryHookArgs.enabled && !canUseNormalSamplingMode,
   });
-
-  // This is the execution of the PREFLIGHT -> BEST_EFFORT flow
-  const preflightRequest = queryHookImplementation({
-    ...queryHookArgs,
-    queryExtras: LOW_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled:
-      queryHookArgs.enabled && canUseProgressiveLoading && !canUseNormalSamplingMode,
-  });
-
-  const triggerBestEffortAfterPreflight =
-    !queryOptions?.withholdBestEffort && preflightRequest.result.isFetched;
-  const triggerBestEffortRequestForEmptyPreflight =
-    preflightRequest.result.isFetched &&
-    queryOptions?.withholdBestEffort &&
-    preflightRequest.result.data?.length === 0;
-
-  const bestEffortRequest = queryHookImplementation({
-    ...queryHookArgs,
-    queryExtras: HIGH_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled:
-      queryHookArgs.enabled &&
-      canUseProgressiveLoading &&
-      !canUseNormalSamplingMode &&
-      (queryMode === QUERY_MODE.PARALLEL ||
-        triggerBestEffortAfterPreflight ||
-        triggerBestEffortRequestForEmptyPreflight),
-  });
-  // End of PREFLIGHT -> BEST_EFFORT flow
 
   // This is the execution of the NORMAL -> HIGH_ACCURACY flow
   const normalSamplingModeRequest = queryHookImplementation({
@@ -133,6 +86,7 @@ export function useProgressiveQuery<
   // queryExtras is not passed in here because this request should be unsampled.
   const highAccuracyRequest = queryHookImplementation({
     ...queryHookArgs,
+    queryExtras: HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS,
     enabled: queryHookArgs.enabled && canUseNormalSamplingMode && triggerHighAccuracy,
   });
   // End of NORMAL -> HIGH_ACCURACY flow
@@ -151,19 +105,6 @@ export function useProgressiveQuery<
     return {
       ...normalSamplingModeRequest,
       samplingMode: SAMPLING_MODE.NORMAL,
-    };
-  }
-  if (canUseProgressiveLoading) {
-    if (bestEffortRequest.result.isFetched) {
-      return {
-        ...bestEffortRequest,
-        samplingMode: SAMPLING_MODE.BEST_EFFORT,
-      };
-    }
-
-    return {
-      ...preflightRequest,
-      samplingMode: SAMPLING_MODE.PREFLIGHT,
     };
   }
 

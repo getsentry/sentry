@@ -15,6 +15,7 @@ export function getUserOrgNavigationConfiguration({
 }): NavigationSection[] {
   return [
     {
+      id: 'settings-account',
       name: t('Account'),
       items: [
         {
@@ -70,6 +71,7 @@ export function getUserOrgNavigationConfiguration({
       ],
     },
     {
+      id: 'settings-organization',
       name: t('Organization'),
       items: [
         {
@@ -184,6 +186,7 @@ export function getUserOrgNavigationConfiguration({
       ],
     },
     {
+      id: 'settings-developer',
       name: t('Developer Settings'),
       items: [
         {
@@ -201,6 +204,7 @@ export function getUserOrgNavigationConfiguration({
       ],
     },
     {
+      id: 'settings-api',
       name: t('API'),
       items: [
         {

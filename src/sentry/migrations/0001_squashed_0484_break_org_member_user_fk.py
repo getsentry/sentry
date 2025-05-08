@@ -10124,14 +10124,4 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="user",
-                    name="id",
-                    field=sentry.db.models.fields.bounded.BoundedAutoField(primary_key=True),
-                ),
-            ],
-            database_operations=[],
-        ),
     ]

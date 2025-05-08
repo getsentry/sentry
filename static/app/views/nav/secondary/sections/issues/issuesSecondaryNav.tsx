@@ -25,7 +25,7 @@ export function IssuesSecondaryNav() {
       </SecondaryNav.Header>
       <SecondaryNav.Body>
         {!hasIssueTaxonomy && (
-          <SecondaryNav.Section>
+          <SecondaryNav.Section id="issues-feed">
             <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
               {t('Feed')}
             </SecondaryNav.Item>
@@ -39,12 +39,12 @@ export function IssuesSecondaryNav() {
         )}
         {hasIssueTaxonomy && (
           <Fragment>
-            <SecondaryNav.Section>
+            <SecondaryNav.Section id="issues-feed">
               <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
                 {t('Feed')}
               </SecondaryNav.Item>
             </SecondaryNav.Section>
-            <SecondaryNav.Section>
+            <SecondaryNav.Section id="issues-types">
               {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
                 <SecondaryNav.Item
                   key={key}
@@ -65,8 +65,12 @@ export function IssuesSecondaryNav() {
           </Fragment>
         )}
         {organization.features.includes('enforce-stacked-navigation') && (
-          <SecondaryNav.Section>
-            <SecondaryNav.Item to={`${baseUrl}/views/`} end>
+          <SecondaryNav.Section id="issues-views-all">
+            <SecondaryNav.Item
+              to={`${baseUrl}/views/`}
+              analyticsItemName="issues_all_views"
+              end
+            >
               {t('All Views')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
@@ -83,7 +87,7 @@ export function IssuesSecondaryNav() {
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const hasWorkflowEngine = useWorkflowEngineFeatureGate();
   return (
-    <StickyBottomSection title={t('Configure')}>
+    <StickyBottomSection id="issues-configure" title={t('Configure')}>
       {hasWorkflowEngine ? (
         <Fragment>
           <SecondaryNav.Item

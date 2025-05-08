@@ -16,6 +16,7 @@ export function AdminNavigation() {
       stickyTop="0"
       navigationObjects={[
         {
+          id: 'admin-system-status',
           name: 'System Status',
           items: [
             {path: '/manage/', index: true, title: 'Overview'},
@@ -30,6 +31,7 @@ export function AdminNavigation() {
           ],
         },
         {
+          id: 'admin-manage',
           name: 'Manage',
           items: [
             {path: '/manage/organizations/', title: 'Organizations'},

@@ -25,6 +25,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 interface TableData {
@@ -107,20 +108,17 @@ function useTableSortParams() {
 }
 
 interface PathsTableProps {
-  handleAddTransactionFilter: (value: string) => void;
-  query?: string;
   showHttpMethodColumn?: boolean;
   showUsersColumn?: boolean;
 }
 
 export function PathsTable({
-  query,
-  handleAddTransactionFilter,
   showHttpMethodColumn = true,
   showUsersColumn = true,
 }: PathsTableProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const {query, setTransactionFilter} = useTransactionNameQuery();
   const [columnOrder, setColumnOrder] = useState(() => {
     let columns = [...defaultColumnOrder];
 
@@ -240,11 +238,11 @@ export function PathsTable({
         <BodyCell
           column={column}
           dataRow={dataRow}
-          handleAddTransactionFilter={handleAddTransactionFilter}
+          handleAddTransactionFilter={setTransactionFilter}
         />
       );
     },
-    [handleAddTransactionFilter]
+    [setTransactionFilter]
   );
 
   return (

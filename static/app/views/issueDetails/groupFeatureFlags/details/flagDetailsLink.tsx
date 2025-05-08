@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
+import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 interface Props {
@@ -18,7 +19,7 @@ export default function FlagDetailsLink({flag, children}: Props) {
         pathname: `${location.pathname}${flag.key}/`,
         query: {
           ...location.query,
-          tab: 'featureFlags',
+          tab: DrawerTab.FEATURE_FLAGS,
         },
       }}
     >
