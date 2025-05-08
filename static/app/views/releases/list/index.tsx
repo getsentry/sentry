@@ -1,4 +1,5 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
+import {forceCheck} from 'react-lazyload';
 import styled from '@emotion/styled';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -18,7 +19,7 @@ import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Tag} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
@@ -46,8 +47,7 @@ const RELEASE_FILTER_KEYS = [
     key: 'release',
     name: 'release',
   },
-].reduce((acc, tag) => {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+].reduce<TagCollection>((acc, tag) => {
   acc[tag.key] = tag;
   return acc;
 }, {});
@@ -154,6 +154,18 @@ export default function ReleasesList() {
       staleTime: 30000,
     }
   );
+
+  useEffect(() => {
+    /**
+     * Manually trigger checking for elements in viewport.
+     * Helpful when LazyLoad components enter the viewport without resize or scroll events,
+     * https://github.com/twobin/react-lazyload#forcecheck
+     *
+     * HealthStatsCharts are being rendered only when they are scrolled into viewport.
+     * This is how we re-check them without scrolling once releases change.
+     */
+    forceCheck();
+  }, [releases]);
 
   const selectedProject = useMemo(() => {
     // Return the first project when 'All Projects' is displayed.
