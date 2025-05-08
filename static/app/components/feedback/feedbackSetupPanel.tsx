@@ -29,7 +29,7 @@ export default function FeedbackSetupPanel() {
         </IlloBox>
         <StyledBox>
           <Fragment>
-            <h3>{t('Introducing the New User Feedback')}</h3>
+            <h3>{t('Introducing User Feedback')}</h3>
             <p>
               {t(
                 'Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, tags, and errors, making fixing the issue dead simple.'
