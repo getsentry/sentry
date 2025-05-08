@@ -1,9 +1,7 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
-// @ts-expect-error TS(7016): Could not find a declaration file for module 'cbor... Remove this comment to see the full error message
-import * as cbor from 'cbor-web';
+import {decode} from 'cbor2';
 
-import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {ChallengeData} from 'sentry/types/auth';
@@ -18,14 +16,8 @@ type TapParams = {
 
 type Props = {
   challengeData: ChallengeData;
-  flowMode: string;
-  onTap: ({
-    response,
-    challenge,
-    isSuperuserModal,
-    superuserAccessCategory,
-    superuserReason,
-  }: TapParams) => Promise<void>;
+  flowMode: 'sign' | 'enroll';
+  onTap: (params: TapParams) => Promise<void>;
   silentIfUnsupported: boolean;
   children?: React.ReactNode;
   style?: React.CSSProperties;
@@ -41,6 +33,22 @@ type State = {
   isSupported: boolean | null;
   responseElement: HTMLInputElement | null;
 };
+
+function base64urlToUint8(baseurl64String: string): Uint8Array {
+  const padding = '=='.slice(0, (4 - (baseurl64String.length % 4)) % 4);
+  const base64 = baseurl64String.replace(/-/g, '+').replace(/_/g, '/') + padding;
+  return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+}
+
+function bufferToBase64url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  const base64 = btoa(binary);
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
 
 class U2fInterface extends Component<Props, State> {
   state: State = {
@@ -75,12 +83,15 @@ class U2fInterface extends Component<Props, State> {
     }
   }
 
-  getU2FResponse(data: any) {
+  getU2FResponse(data: Credential) {
+    if (!(data instanceof PublicKeyCredential)) {
+      return JSON.stringify(data);
+    }
     if (!data.response) {
       return JSON.stringify(data);
     }
 
-    if (this.props.flowMode === 'sign') {
+    if (data.response instanceof AuthenticatorAssertionResponse) {
       const authenticatorData = {
         keyHandle: data.id,
         clientData: bufferToBase64url(data.response.clientDataJSON),
@@ -89,15 +100,16 @@ class U2fInterface extends Component<Props, State> {
       };
       return JSON.stringify(authenticatorData);
     }
-    if (this.props.flowMode === 'enroll') {
+
+    if (data.response instanceof AuthenticatorAttestationResponse) {
       const authenticatorData = {
         id: data.id,
+        type: data.type,
         rawId: bufferToBase64url(data.rawId),
         response: {
           attestationObject: bufferToBase64url(data.response.attestationObject),
           clientDataJSON: bufferToBase64url(data.response.clientDataJSON),
         },
-        type: bufferToBase64url(data.type),
       };
       return JSON.stringify(authenticatorData);
     }
@@ -105,9 +117,13 @@ class U2fInterface extends Component<Props, State> {
     throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
   }
 
-  submitU2fResponse(promise: any) {
+  submitU2fResponse(promise: Promise<Credential | null>) {
     promise
-      .then((data: any) => {
+      .then(data => {
+        if (data === null) {
+          throw new Error('Missing credential data');
+        }
+
         this.setState(
           {
             hasBeenTapped: true,
@@ -141,7 +157,7 @@ class U2fInterface extends Component<Props, State> {
           }
         );
       })
-      .catch((err: any) => {
+      .catch(err => {
         let failure = 'DEVICE_ERROR';
         // in some rare cases there is no metadata on the error which
         // causes this to blow up badly.
@@ -168,59 +184,54 @@ class U2fInterface extends Component<Props, State> {
       });
   }
 
-  webAuthnSignIn(publicKeyCredentialRequestOptions: any) {
-    const promise = navigator.credentials.get({
-      publicKey: publicKeyCredentialRequestOptions,
-    });
+  webAuthnSignIn(publicKey: PublicKeyCredentialRequestOptions) {
+    const promise = navigator.credentials.get({publicKey});
     this.submitU2fResponse(promise);
   }
 
-  webAuthnRegister(publicKey: any) {
-    const promise = navigator.credentials.create({
-      publicKey,
-    });
+  webAuthnRegister({publicKey}: CredentialCreationOptions) {
+    const promise = navigator.credentials.create({publicKey});
     this.submitU2fResponse(promise);
   }
 
   invokeU2fFlow() {
     if (this.props.flowMode === 'sign') {
-      const challengeArray = base64urlToBuffer(
+      const challengeArray = base64urlToUint8(
         this.props.challengeData.webAuthnAuthenticationData
       );
-      const challenge = cbor.decodeFirst(challengeArray);
-      challenge
-        .then((data: any) => {
-          this.webAuthnSignIn(data);
-        })
-        .catch((err: any) => {
-          const failure = 'DEVICE_ERROR';
-          Sentry.captureException(err);
-          this.setState({
-            deviceFailure: failure,
-            hasBeenTapped: false,
-          });
+
+      try {
+        this.webAuthnSignIn(decode(challengeArray));
+      } catch (err) {
+        const failure = 'DEVICE_ERROR';
+        Sentry.captureException(err);
+        this.setState({
+          deviceFailure: failure,
+          hasBeenTapped: false,
         });
-    } else if (this.props.flowMode === 'enroll') {
-      const challengeArray = base64urlToBuffer(
+      }
+      return;
+    }
+
+    if (this.props.flowMode === 'enroll') {
+      const challengeArray = base64urlToUint8(
         this.props.challengeData.webAuthnRegisterData
       );
-      const challenge = cbor.decodeFirst(challengeArray);
-      // challenge contains a PublicKeyCredentialRequestOptions object for webauthn registration
-      challenge
-        .then((data: any) => {
-          this.webAuthnRegister(data.publicKey);
-        })
-        .catch((err: any) => {
-          const failure = 'DEVICE_ERROR';
-          Sentry.captureException(err);
-          this.setState({
-            deviceFailure: failure,
-            hasBeenTapped: false,
-          });
+
+      try {
+        this.webAuthnRegister(decode(challengeArray));
+      } catch (err) {
+        const failure = 'DEVICE_ERROR';
+        Sentry.captureException(err);
+        this.setState({
+          deviceFailure: failure,
+          hasBeenTapped: false,
         });
-    } else {
-      throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
+      }
+      return;
     }
+
+    throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
   }
 
   onTryAgain = () => {
