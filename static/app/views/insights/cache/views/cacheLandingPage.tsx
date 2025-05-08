@@ -103,7 +103,6 @@ export function CacheLandingPage() {
         'epm()',
         `${CACHE_MISS_RATE}()`,
         'sum(span.self_time)',
-        'time_spent_percentage()',
         `avg(${CACHE_ITEM_SIZE})`,
       ],
       sorts: [sort],
@@ -263,7 +262,7 @@ const addCustomMeta = (meta?: EventsMetaType) => {
 };
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
   kind: 'desc' as const,
 };
 

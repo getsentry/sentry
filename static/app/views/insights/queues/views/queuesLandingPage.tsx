@@ -28,7 +28,7 @@ import {
 import {ModuleName} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage(span.duration)' as const,
+  field: 'sum(span.duration)' as const,
   kind: 'desc' as const,
 };
 

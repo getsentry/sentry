@@ -19,7 +19,6 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import DatabaseSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryDurationChartWidget';
 import DatabaseSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryThroughputChartWidget';
 import {
@@ -97,7 +96,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         `${SpanFunction.EPM}()`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
         `${SpanFunction.HTTP_RESPONSE_COUNT}(5)`,
       ],
       enabled: Boolean(groupId),
@@ -122,7 +120,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         'epm()',
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-        'time_spent_percentage()',
         `${SpanFunction.HTTP_RESPONSE_COUNT}(5)`,
       ],
       sorts: [sort],
@@ -202,11 +199,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.['sum(span.self_time)']}
                       unit={DurationUnit.MILLISECOND}
-                      tooltip={getTimeSpentExplanation(
-                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        spanMetrics?.['time_spent_percentage()'],
-                        'db'
-                      )}
                       isLoading={areSpanMetricsLoading}
                     />
                   </ReadoutRibbon>
@@ -268,7 +260,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
 const DEFAULT_SORT = {
   kind: 'desc' as const,
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
 };
 
 const TRANSACTIONS_TABLE_ROW_COUNT = 25;
