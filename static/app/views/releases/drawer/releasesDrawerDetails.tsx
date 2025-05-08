@@ -81,7 +81,12 @@ function ReleasesDrawerContent({
                         },
                       }}
                     >
-                      <ProjectBadge project={releaseProject} hideName avatarSize={16} />
+                      <ProjectBadge
+                        project={releaseProject}
+                        hideName
+                        avatarSize={16}
+                        disableLink
+                      />
                     </SelectableProjectBadge>
                   ))}
                 </SelectableProjectBadges>
