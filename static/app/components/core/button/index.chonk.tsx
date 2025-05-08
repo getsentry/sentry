@@ -180,6 +180,10 @@ export function getChonkButtonStyles(
         display: 'none',
       },
 
+      '&:focus-visible': {
+        ...p.theme.focusRing,
+      },
+
       '> span:last-child': {
         transform: 'translateY(0px)',
       },
