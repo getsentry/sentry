@@ -28,6 +28,8 @@ jobs:
         with:
           node-version-file: '.volta.json'
 
+      - uses: pnpm/action-setup@v4
+
       - name: Install github-label-sync
         run: pnpm add github-label-sync@2.2.0
 

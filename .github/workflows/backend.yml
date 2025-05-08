@@ -52,6 +52,8 @@ jobs:
         with:
           node-version-file: '.volta.json'
 
+      - uses: pnpm/action-setup@v4
+
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup

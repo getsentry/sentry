@@ -74,6 +74,8 @@ jobs:
         with:
           node-version-file: '.volta.json'
 
+      - uses: pnpm/action-setup@v4
+
       - name: Step configurations
         id: config
         run: |
