@@ -12,7 +12,6 @@ import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelector
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -24,13 +23,7 @@ import {
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
-export function DeadRageClicksWidget({
-  query,
-  releases,
-}: {
-  query?: string;
-  releases?: Release[];
-}) {
+export function DeadRageClicksWidget({query}: {query?: string}) {
   const organization = useOrganization();
   const location = useLocation();
   const fullQuery = `!count_dead_clicks:0 ${query}`.trim();
@@ -46,7 +39,7 @@ export function DeadRageClicksWidget({
   const isEmpty = !isLoading && data.length === 0;
 
   if (isEmpty) {
-    return <SlowSSRWidget query={query} releases={releases} />;
+    return <SlowSSRWidget query={query} />;
   }
 
   const visualization = (

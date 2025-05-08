@@ -3,8 +3,6 @@ import {useEffect} from 'react';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
 import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
 import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
@@ -18,13 +16,6 @@ import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shar
 
 export function LaravelOverviewPage() {
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
-  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
-  const releases =
-    releasesWithDate?.map(({date, version}) => ({
-      timestamp: date,
-      version,
-    })) ?? [];
 
   useEffect(() => {
     trackAnalytics('laravel-insights.page-view', {
@@ -44,23 +35,22 @@ export function LaravelOverviewPage() {
             trafficSeriesName={t('Requests')}
             baseQuery={'span.op:http.server'}
             query={query}
-            releases={releases}
           />
         </WidgetGrid.Position1>
         <WidgetGrid.Position2>
-          <DurationWidget query={query} releases={releases} />
+          <DurationWidget query={query} />
         </WidgetGrid.Position2>
         <WidgetGrid.Position3>
           <IssuesWidget query={query} />
         </WidgetGrid.Position3>
         <WidgetGrid.Position4>
-          <JobsWidget query={query} releases={releases} />
+          <JobsWidget query={query} />
         </WidgetGrid.Position4>
         <WidgetGrid.Position5>
-          <QueriesWidget query={query} releases={releases} />
+          <QueriesWidget query={query} />
         </WidgetGrid.Position5>
         <WidgetGrid.Position6>
-          <CachesWidget query={query} releases={releases} />
+          <CachesWidget query={query} />
         </WidgetGrid.Position6>
       </WidgetGrid>
       <PathsTable handleAddTransactionFilter={setTransactionFilter} query={query} />

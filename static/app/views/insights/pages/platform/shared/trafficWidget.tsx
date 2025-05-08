@@ -4,7 +4,6 @@ import {useTheme} from '@emotion/react';
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -25,15 +24,14 @@ export function TrafficWidget({
   trafficSeriesName,
   baseQuery,
   query,
-  releases,
 }: {
   title: string;
   trafficSeriesName: string;
   baseQuery?: string;
   query?: string;
-  releases?: Release[];
 }) {
   const organization = useOrganization();
+  const releaseBubbleProps = useReleaseBubbleProps();
   const pageFilterChartParams = usePageFilterChartParams({granularity: 'spans-low'});
   const theme = useTheme();
 
@@ -79,7 +77,7 @@ export function TrafficWidget({
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         plottables,
-        ...useReleaseBubbleProps(releases),
+        ...releaseBubbleProps,
       }}
     />
   );

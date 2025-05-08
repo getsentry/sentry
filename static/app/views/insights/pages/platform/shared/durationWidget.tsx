@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -18,15 +17,10 @@ import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
-export function DurationWidget({
-  query,
-  releases,
-}: {
-  query?: string;
-  releases?: Release[];
-}) {
+export function DurationWidget({query}: {query?: string}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
+  const releaseBubbleProps = useReleaseBubbleProps();
 
   const fullQuery = `span.op:http.server ${query}`.trim();
 
@@ -57,7 +51,7 @@ export function DurationWidget({
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         plottables,
-        ...useReleaseBubbleProps(releases),
+        ...releaseBubbleProps,
       }}
     />
   );
