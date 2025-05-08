@@ -275,6 +275,8 @@ PARAMETERIZED_URL_REGEX = re.compile(
 """
 )  # Adapted from message.py
 
+FILE_EXTENSION_REGEX = re.compile(r"\.[a-z0-9]{2,6}$", re.I)
+
 # Finds dash-separated UUIDs. (Without dashes will be caught by
 # ASSET_HASH_REGEX).
 UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", re.I)
@@ -330,13 +332,18 @@ def parameterize_url_with_result(url: str) -> ParameterizedUrl:
 
     path_fragments = []
     path_params = []
-    for fragment in parsed_url.path.split("/"):
-        path_param = PARAMETERIZED_URL_REGEX.search(fragment)
-        if path_param:
-            path_fragments.append("*")
-            path_params.append(path_param.group())
-        else:
-            path_fragments.append(str(fragment))
+
+    # If the path ends with a file extension, do not parameterize it.
+    if FILE_EXTENSION_REGEX.search(parsed_url.path):
+        path_fragments.append(parsed_url.path)
+    else:
+        for fragment in parsed_url.path.split("/"):
+            path_param = PARAMETERIZED_URL_REGEX.search(fragment)
+            if path_param:
+                path_fragments.append("*")
+                path_params.append(path_param.group())
+            else:
+                path_fragments.append(str(fragment))
 
     query = parse_qs(parsed_url.query)
 
