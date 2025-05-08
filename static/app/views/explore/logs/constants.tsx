@@ -29,9 +29,8 @@ const AlwaysHiddenLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.ID,
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.ITEM_TYPE,
-  'project',
   'project.id',
-  'project_id', // these are all aliases that might show up
+  'project_id', // these are both aliases that might show up
 ];
 
 /**
