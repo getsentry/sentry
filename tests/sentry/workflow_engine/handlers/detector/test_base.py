@@ -9,7 +9,6 @@ from sentry.testutils.abstract import Abstract
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import (
     DataPacketEvaluationType,
-    DataPacketType,
     DetectorHandler,
     DetectorOccurrence,
     StatefulGroupingDetectorHandler,
@@ -72,7 +71,7 @@ class MockDetectorStateHandler(StatefulGroupingDetectorHandler[dict, int | None]
     def create_occurrence(
         self,
         evaluation_result: ProcessedDataConditionGroup,
-        data_packet: DataPacket[DataPacketType],
+        data_packet: DataPacket[dict],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         value = self.extract_value(data_packet)
@@ -111,8 +110,12 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 return data_packet.packet.get("value", 0)
 
             def create_occurrence(
-                self, value: DataPacketEvaluationType, priority: DetectorPriorityLevel
+                self,
+                evaluation_result: ProcessedDataConditionGroup,
+                data_packet: DataPacket[dict],
+                priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, dict[str, Any]]:
+                value = self.extract_value(data_packet)
                 return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
 
             def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
@@ -136,8 +139,12 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 }
 
             def create_occurrence(
-                self, value: DataPacketEvaluationType, priority: DetectorPriorityLevel
+                self,
+                evaluation_result: ProcessedDataConditionGroup,
+                data_packet: DataPacket[dict],
+                priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, dict[str, Any]]:
+                value = self.extract_value(data_packet)
                 return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
 
             def extract_value(self, data_packet: DataPacket[dict]) -> int:
