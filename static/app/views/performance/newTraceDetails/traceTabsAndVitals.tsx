@@ -17,14 +17,14 @@ function Placeholder() {
   return (
     <Container>
       <FlexBox>
-        <TraceHeaderComponents.StyledPlaceholder _width={75} _height={28} />
-        <TraceHeaderComponents.StyledPlaceholder _width={75} _height={28} />
-        <TraceHeaderComponents.StyledPlaceholder _width={75} _height={28} />
+        <StyledPlaceholder _width={75} _height={28} />
+        <StyledPlaceholder _width={75} _height={28} />
+        <StyledPlaceholder _width={75} _height={28} />
       </FlexBox>
       <FlexBox>
-        <TraceHeaderComponents.StyledPlaceholder _width={100} _height={28} />
-        <TraceHeaderComponents.StyledPlaceholder _width={100} _height={28} />
-        <TraceHeaderComponents.StyledPlaceholder _width={100} _height={28} />
+        <StyledPlaceholder _width={100} _height={28} />
+        <StyledPlaceholder _width={100} _height={28} />
+        <StyledPlaceholder _width={100} _height={28} />
       </FlexBox>
     </Container>
   );
@@ -54,10 +54,14 @@ export function TraceTabsAndVitals({
           ))}
         </StyledTabsList>
       </Tabs>
-      <p>Vitals</p>
+      <div>TODO: Vitals</div>
     </Container>
   );
 }
+
+const StyledPlaceholder = styled(TraceHeaderComponents.StyledPlaceholder)`
+  background-color: ${p => p.theme.purple100};
+`;
 
 const FlexBox = styled('div')`
   display: flex;
@@ -67,7 +71,6 @@ const FlexBox = styled('div')`
 
 const Container = styled(FlexBox)`
   justify-content: space-between;
-  margin-bottom: ${space(1)};
   container-type: inline-size;
 `;
 

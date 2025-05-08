@@ -45,9 +45,6 @@ export function TraceViewLogsDataProvider({
 export function TraceViewLogsSection() {
   const tableData = useLogsPageData();
   const hasTraceTabsUi = useHasTraceTabsUI();
-  if (!tableData?.logsData || tableData.logsData.data.length === 0) {
-    return null;
-  }
 
   if (hasTraceTabsUi) {
     return (

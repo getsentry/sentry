@@ -110,7 +110,6 @@ const VitalPillContainer = styled('div')`
   flex-grow: 1;
   max-width: 20%;
   height: 30px;
-  margin-bottom: ${space(1)};
 `;
 
 const VitalPillName = styled('div')<{status: PerformanceScore}>`

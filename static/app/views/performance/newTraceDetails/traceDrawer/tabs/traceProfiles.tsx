@@ -154,6 +154,11 @@ export function TraceProfiles({
             'span_id' in node.value ? node.value.span_id : node.value.event_id;
           const event = (
             <Fragment>
+              {node.value.project_slug && (
+                <PlatformIcon
+                  platform={projectLookup[node.value.project_slug] ?? 'default'}
+                />
+              )}
               <span>{node.value.op ?? '<unknown>'}</span> —{' '}
               <span className="TraceDescription" title={node.value.description}>
                 {node.value.description

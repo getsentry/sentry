@@ -1,6 +1,5 @@
 import type React from 'react';
 import {
-  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -767,7 +766,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   }
 
   return (
-    <Fragment>
+    <div>
       <TraceTypeWarnings
         tree={props.tree}
         traceSlug={props.traceSlug}
@@ -874,7 +873,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           />
         </TraceLinksNavigationContainer>
       )}
-    </Fragment>
+    </div>
   );
 }
 
@@ -886,7 +885,6 @@ const GrabberContainer = styled('div')`
   border-top: none;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   display: flex;
-  margin-bottom: ${space(2)};
 
   width: 100%;
   cursor: row-resize;
@@ -910,7 +908,7 @@ const TraceLinksNavigationContainer = styled('div')`
   flex-direction: row;
 
   &:not(:empty) {
-    margin: ${space(1)};
+    margin-top: ${space(2)};
   }
 `;
 
