@@ -152,13 +152,11 @@ describe('logsTableRow', () => {
     expect(hasNoWrapRecursive(logTableRow)).toBe(false);
 
     // Check that the attribute values are rendered
-    expect(screen.getByText(projects[0]!.id)).toBeInTheDocument();
+    expect(screen.queryByText(projects[0]!.id)).not.toBeInTheDocument();
     expect(screen.getByText('456')).toBeInTheDocument();
     expect(screen.getByText('7b91699f')).toBeInTheDocument();
 
     // Check that the attributes keys are rendered
-    expect(screen.getByTestId('tree-key-project.id')).toBeInTheDocument();
-    expect(screen.getByTestId('tree-key-project.id')).toHaveTextContent('id');
     expect(screen.getByTestId('tree-key-severity_number')).toBeInTheDocument();
     expect(screen.getByTestId('tree-key-severity_number')).toHaveTextContent(
       'severity_number'
