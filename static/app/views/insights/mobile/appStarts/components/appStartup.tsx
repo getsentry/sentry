@@ -30,12 +30,16 @@ import {getFreeTextFromQuery} from 'sentry/views/insights/mobile/screenload/comp
 import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
 import {transformReleaseEvents} from 'sentry/views/insights/mobile/screenload/utils';
+import type {MetricsProperty} from 'sentry/views/insights/types';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 const Y_AXES = [YAxis.COLD_START, YAxis.WARM_START];
-const Y_AXIS_COLS = [YAXIS_COLUMNS[YAxis.COLD_START], YAXIS_COLUMNS[YAxis.WARM_START]];
+const Y_AXIS_COLS: MetricsProperty[] = [
+  'avg(measurements.app_start_cold)',
+  'avg(measurements.app_start_warm)',
+] as const;
 
 type Props = {
   additionalFilters?: string[];
