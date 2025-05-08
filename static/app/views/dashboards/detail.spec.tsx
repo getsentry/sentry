@@ -623,10 +623,11 @@ describe('Dashboards > Detail', function () {
         {
           router,
           deprecatedRouterMocks: true,
+          organization: initialData.organization,
         }
       );
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
-      expect(mockReleases).toHaveBeenCalledTimes(2); // Called once when PageFiltersStore is initialized
+      expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
     it('hides add widget option', async function () {
