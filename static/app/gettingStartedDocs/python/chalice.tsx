@@ -77,7 +77,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[chalice]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[chalice]'}),
     },
   ],
   configure: (params: Params) => [
