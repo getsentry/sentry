@@ -38,13 +38,12 @@ class EvidenceData(Generic[DataPacketEvaluationType]):
 class DetectorOccurrence:
     issue_title: str
     subtitle: str
-    resource_id: str | None = None
     evidence_data: Mapping[str, Any] = dataclasses.field(default_factory=dict)
     evidence_display: Sequence[IssueEvidence] = dataclasses.field(default_factory=list)
     type: type[GroupType]
     level: str
     culprit: str
-    priority: int | None = None
+    resource_id: str | None = None
     assignee: Actor | None = None
 
     def to_issue_occurrence(
@@ -71,7 +70,7 @@ class DetectorOccurrence:
             detection_time=detection_time,
             level=self.level,
             culprit=self.culprit,
-            priority=self.priority or status,
+            priority=status,
             assignee=self.assignee,
         )
 

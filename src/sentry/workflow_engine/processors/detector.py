@@ -5,7 +5,7 @@ import logging
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils import metrics
-from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult
+from sentry.workflow_engine.handlers.detector.base import DetectorEvaluationResult
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.types import DetectorGroupKey, WorkflowEventData
 
