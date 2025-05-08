@@ -135,7 +135,9 @@ class TestWorklowEngineSerializer(TestCase):
             group=self.group, project=self.detector.project, date_started=self.incident.date_started
         )
         self.incident_group_open_period = IncidentGroupOpenPeriod.objects.create(
-            group_open_period=self.group_open_period, incident_id=self.incident.id
+            group_open_period=self.group_open_period,
+            incident_id=self.incident.id,
+            incident_identifier=self.incident.identifier,
         )
         Activity.objects.create_group_activity(
             group=self.group_open_period.group,
