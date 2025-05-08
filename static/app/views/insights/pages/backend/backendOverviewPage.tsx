@@ -2,23 +2,20 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -43,14 +40,8 @@ import {
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {
-  FRONTEND_PLATFORMS,
-  OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
-} from 'sentry/views/insights/pages/frontend/settings';
-import {
-  MOBILE_PLATFORMS,
-  OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
-} from 'sentry/views/insights/pages/mobile/settings';
+import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
+import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
@@ -62,11 +53,11 @@ import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/ne
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
+import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
+import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
-import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
-import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
@@ -93,50 +84,24 @@ function EAPBackendOverviewPage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
 
-  const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(
-    location,
-    withStaticFilters,
-    true
-  );
-  const searchBarEventView = eventView.clone();
-
-  // TODO - this should come from MetricsField / EAP fields
-  eventView.fields = [
-    {field: 'team_key_transaction'},
-    {field: 'http.method'},
-    {field: 'transaction'},
-    {field: 'span.op'},
-    {field: 'project'},
-    {field: 'tpm()'},
-    {field: 'p50()'},
-    {field: 'p95()'},
-    {field: 'failure_rate()'},
-    {field: 'apdex()'},
-    {field: 'count_unique(user)'},
-    {field: 'count_miserable(user)'},
-    {field: 'user_misery()'},
-  ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
+  const {query: searchBarQuery} = useLocationQuery({
+    fields: {
+      query: decodeScalar,
+    },
+  });
 
   const disallowedOps = [
     ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
   ];
 
-  const selectedFrontendProjects: Project[] = getSelectedProjectList(
-    selection.projects,
-    projects
-  ).filter((project): project is Project =>
-    Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
-  );
+  const {
+    otherProjects: selectedOtherProjects,
+    frontendProjects: selectedFrontendProjects,
+    mobileProjects: selectedMobileProjects,
+    backendProjects: selectedBackendProjects,
+  } = categorizeProjects(getSelectedProjectList(selection.projects, projects));
 
-  const selectedMobileProjects: Project[] = getSelectedProjectList(
-    selection.projects,
-    projects
-  ).filter((project): project is Project =>
-    Boolean(project?.platform && MOBILE_PLATFORMS.includes(project.platform))
-  );
-
-  const existingQuery = new MutableSearch(eventView.query);
+  const existingQuery = new MutableSearch(searchBarQuery);
   existingQuery.addOp('(');
   existingQuery.addOp('(');
   existingQuery.addFilterValues('!span.op', disallowedOps);
@@ -154,8 +119,6 @@ function EAPBackendOverviewPage() {
   existingQuery.addOp('OR');
   existingQuery.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
   existingQuery.addOp(')');
-
-  eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -186,8 +149,6 @@ function EAPBackendOverviewPage() {
       },
     });
   }
-
-  const searchBarQuery = getTransactionSearchQuery(location);
 
   const sorts: [ValidSort, ValidSort] = [
     {
@@ -221,6 +182,10 @@ function EAPBackendOverviewPage() {
     'api.performance.landing-table'
   );
 
+  const searchBarProjectsIds = [...selectedBackendProjects, ...selectedOtherProjects].map(
+    project => project.id
+  );
+
   return (
     <Feature
       features="performance-view"
@@ -244,7 +209,7 @@ function EAPBackendOverviewPage() {
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={searchBarEventView}
+                    projectIds={searchBarProjectsIds}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
