@@ -8,12 +8,13 @@ from typing import Any
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import options
+from sentry import audit_log, options
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.utils import metrics
+from sentry.utils.audit import create_system_audit_entry
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -43,9 +44,6 @@ def update_grouping_config_if_needed(project: Project, source: str) -> None:
             return
         else:
             cache.set(cache_key, "1", 60 * 5)
-
-        from sentry import audit_log
-        from sentry.utils.audit import create_system_audit_entry
 
         # This is when we will stop calculating the old hash in cases where we don't find the new
         # hash (which we do in an effort to preserve group continuity).
