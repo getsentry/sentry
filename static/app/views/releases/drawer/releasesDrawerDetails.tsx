@@ -48,7 +48,7 @@ interface ReleasesDrawerContentProps {
   project: Project;
   projectId: string | undefined;
   release: string;
-  releaseMeta: ReleaseMeta;
+  releaseMeta: ReleaseMeta | undefined;
 }
 
 function ReleasesDrawerContent({
@@ -345,6 +345,10 @@ const SelectableProjectBadges = styled('div')`
 const SelectableProjectBadge = styled(Link)`
   display: flex;
   cursor: pointer;
+
+  & img {
+    cursor: pointer;
+  }
 `;
 
 const HeaderToolbar = styled(Header)`
