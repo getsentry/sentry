@@ -43,10 +43,6 @@ function useAutofocus(autofocus: boolean, state: ListState<ParseResultToken>) {
       return; // already focused
     }
 
-    if (!state.selectionManager) {
-      return;
-    }
-
     state.selectionManager.setFocused(true);
     state.selectionManager.setFocusedKey(state.collection.getLastKey());
     autofocused.current = true;
