@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
@@ -13,7 +11,6 @@ import {
   fetchOrganizationByMember,
   fetchOrganizations,
 } from 'sentry/actionCreators/organizations';
-import CircleIndicator from 'sentry/components/circleIndicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -40,6 +37,8 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+
+import {AuthenticatorHeader} from './components/authenticatorHeader';
 
 type GetFieldsOpts = {
   authenticator: Authenticator;
@@ -432,23 +431,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
     return (
       <SentryDocumentTitle title={t('Security')}>
         <SettingsPageHeader
-          title={
-            <Fragment>
-              <span>{authenticator.name}</span>
-              <CircleIndicator
-                role="status"
-                aria-label={
-                  isActive
-                    ? t('Authentication Method Active')
-                    : t('Authentication Method Inactive')
-                }
-                enabled={isActive}
-                css={css`
-                  margin-left: 6px;
-                `}
-              />
-            </Fragment>
-          }
+          title={<AuthenticatorHeader name={authenticator.name} isActive={isActive} />}
           action={
             authenticator.isEnrolled &&
             authenticator.removeButton && (
