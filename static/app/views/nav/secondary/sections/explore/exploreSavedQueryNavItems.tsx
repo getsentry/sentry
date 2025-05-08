@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Reorder, useDragControls} from 'framer-motion';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {space} from 'sentry/styles/space';
@@ -92,15 +93,17 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
                 .filter(defined)}
             />
           </GrabHandleWrapper>
-          <StyledSecondaryNavItem
-            key={query.id}
-            to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
-            analyticsItemName="explore_starred_item"
-            showInteractionStateLayer={false}
-            isActive={id === query.id.toString()}
-          >
-            {query.name}
-          </StyledSecondaryNavItem>
+          <Tooltip title={query.name} position="top" showOnlyOnOverflow skipWrapper>
+            <StyledSecondaryNavItem
+              key={query.id}
+              to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
+              analyticsItemName="explore_starred_item"
+              showInteractionStateLayer={false}
+              isActive={id === query.id.toString()}
+            >
+              {query.name}
+            </StyledSecondaryNavItem>
+          </Tooltip>
           <StyledInteractionStateLayer
             isPressed={id === query.id.toString()}
             hasSelectedBackground={id === query.id.toString()}
