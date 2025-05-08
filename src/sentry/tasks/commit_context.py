@@ -190,7 +190,7 @@ def process_commit_context(
             )
 
             if installation and isinstance(installation, CommitContextIntegration):
-                installation.queue_comment_task_if_needed(project, commit, group_owner, group_id)
+                installation.queue_pr_comment_task_if_needed(project, commit, group_owner, group_id)
 
             ProjectOwnership.handle_auto_assignment(
                 project_id=project.id,

@@ -651,8 +651,8 @@ class PullRequestEventWebhook(APITestCase):
 
         assert_failure_metric(mock_record, error)
 
-    @patch("sentry.integrations.github.webhook.open_pr_comment_workflow.delay")
-    @patch("sentry.integrations.github.webhook.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.open_pr_comment_workflow.delay")
+    @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_opened(self, mock_record, mock_metrics, mock_delay):
         project = self.project  # force creation
