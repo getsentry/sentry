@@ -16,7 +16,6 @@ jobs:
       - name: Install Requirements
         run: |
           pip install -r requirements-dev-frozen.txt
-          pip install -r requirements-frozen.txt
 
       - name: Install Static Analysis Tools
         run: |
@@ -28,4 +27,9 @@ jobs:
           chmod +x overwatch-cli
 
       - name: Run Overwatch CLI
-        run: ./overwatch-cli --auth-token ${{ secrets.OVERWATCH_SENTRY_AUTH_TOKEN }} --organization-slug sentry python
+        run: |
+          ./overwatch-cli \
+            --auth-token ${{ secrets.OVERWATCH_SENTRY_AUTH_TOKEN }} \
+            --organization-slug sentry \
+            python
+            --workdir src/sentry
