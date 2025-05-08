@@ -1,5 +1,4 @@
-import type React from 'react';
-import {
+import React, {
   createContext,
   Fragment,
   useCallback,
@@ -24,11 +23,11 @@ import {IconSearch, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -50,10 +49,22 @@ interface Visualization {
   y_axes: string[];
 }
 
-function formatQueryTokens(result: any) {
+interface QueryTokensProps {
+  result: {
+    group_by?: string[];
+    query?: string;
+    sort?: string;
+    stats_period?: string;
+    visualization?: Array<{y_axes: string[]}>;
+  };
+}
+
+function QueryTokens({result}: QueryTokensProps) {
   const tokens = [];
 
-  const parsedQuery = parseQueryBuilderValue(result.query, getFieldDefinition);
+  const parsedQuery = result.query
+    ? parseQueryBuilderValue(result.query, getFieldDefinition)
+    : null;
   if (result.query && parsedQuery?.length) {
     tokens.push(
       <Token key="filter">
@@ -73,8 +84,8 @@ function formatQueryTokens(result: any) {
     tokens.push(
       <Token key="visualization">
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
-        {result.visualization.map((visualization: any, vIdx: number) =>
-          visualization.y_axes.map((y_axis: string) => (
+        {result.visualization.map((visualization, vIdx) =>
+          visualization.y_axes.map(y_axis => (
             <ExploreVisualizes key={`${vIdx}-${y_axis}`}>{y_axis}</ExploreVisualizes>
           ))
         )}
@@ -86,12 +97,13 @@ function formatQueryTokens(result: any) {
     tokens.push(
       <Token key="groupBy">
         <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
-        {result.group_by.map((groupBy: string) => (
+        {result.group_by.map(groupBy => (
           <ExploreGroupBys key={groupBy}>{groupBy}</ExploreGroupBys>
         ))}
       </Token>
     );
   }
+
   if (result.stats_period && result.stats_period.length > 0) {
     tokens.push(
       <Token key="statsPeriod">
@@ -100,6 +112,7 @@ function formatQueryTokens(result: any) {
       </Token>
     );
   }
+
   if (result.sort && result.sort.length > 0) {
     tokens.push(
       <Token key="sort">
@@ -109,7 +122,7 @@ function formatQueryTokens(result: any) {
     );
   }
 
-  return tokens;
+  return <React.Fragment>{tokens}</React.Fragment>;
 }
 
 export function AiQueryDrawer() {
@@ -121,6 +134,7 @@ export function AiQueryDrawer() {
   const pageFilters = usePageFilters();
   const {closeDrawer} = useDrawer();
   const openFeedbackForm = useFeedbackForm();
+  const navigate = useNavigate();
 
   const {mutate: submitQuery, isPending} = useMutation({
     mutationFn: async (query: string) => {
@@ -137,8 +151,7 @@ export function AiQueryDrawer() {
       return result;
     },
     onSuccess: result => {
-      const query_tokens = formatQueryTokens(result);
-      setResponse(query_tokens);
+      setResponse(<QueryTokens result={result} />);
       setRawResult(result);
     },
     onError: (error: Error) => {
@@ -204,9 +217,9 @@ export function AiQueryDrawer() {
       group_by_count: groupBy?.length ?? 0,
     });
 
-    browserHistory.push(url);
+    navigate(url, {replace: true, preventScrollReset: true});
     closeDrawer();
-  }, [rawResult, organization, pageFilters.selection, closeDrawer]);
+  }, [rawResult, organization, pageFilters.selection, closeDrawer, navigate]);
 
   return (
     <DrawerContainer>
@@ -362,9 +375,7 @@ const AiQueryHeader = styled('h4')`
 `;
 
 const StyledInputGroup = styled(InputGroup)`
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    max-width: 175px;
-  }
+  width: 100%;
 `;
 
 const HeaderContainer = styled('div')`
