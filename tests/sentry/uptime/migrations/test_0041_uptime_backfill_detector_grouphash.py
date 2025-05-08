@@ -17,8 +17,8 @@ from sentry.workflow_engine.models import DataSource, DataSourceDetector
 @pytest.mark.skip(reason="Causes problems in pipeline")
 class TestUptimeBackfillDetectorGrouphash(TestMigrations, UptimeTestCaseMixin):
     app = "uptime"
-    migrate_from = "0039_uptime_drop_project_subscription_uptime_status_db"
-    migrate_to = "0040_uptime_backfill_detector_grouphash"
+    migrate_from = "0040_uptime_backfill_detector_conditions"
+    migrate_to = "0041_uptime_backfill_detector_grouphash"
 
     def setup_before_migration(self, apps):
         self.proj_sub_no_hash = self.create_project_uptime_subscription(project=self.project)

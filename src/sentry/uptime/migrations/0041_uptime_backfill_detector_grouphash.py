@@ -89,7 +89,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("uptime", "0039_uptime_drop_project_subscription_uptime_status_db"),
+        ("uptime", "0040_uptime_backfill_detector_conditions"),
         ("workflow_engine", "0055_datasource_define_indexes"),
     ]
 
