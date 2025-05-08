@@ -6,6 +6,7 @@ from sentry.workflow_engine.endpoints.organization_workflow_group_history import
 
 from .organization_available_action_index import OrganizationAvailableActionIndexEndpoint
 from .organization_data_condition_index import OrganizationDataConditionIndexEndpoint
+from .organization_detector_index import OrganizationDetectorIndexEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
 from .organization_detector_workflow_details import OrganizationDetectorWorkflowDetailsEndpoint
 from .organization_detector_workflow_index import OrganizationDetectorWorkflowIndexEndpoint
@@ -44,6 +45,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^\/]+)/workflows/$",
         OrganizationWorkflowIndexEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/detectors/$",
+        OrganizationDetectorIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-detector-index",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/workflows/(?P<workflow_id>[^\/]+)/$",

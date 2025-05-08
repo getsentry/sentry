@@ -191,7 +191,7 @@ export function MultiQueryModeChart({
       ? projects[0]
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-  if (organization.features.includes('alerts-eap') && defined(yAxes[0])) {
+  if (defined(yAxes[0])) {
     items.push({
       key: 'create-alert',
       textValue: t('Create an Alert'),
@@ -215,34 +215,32 @@ export function MultiQueryModeChart({
     });
   }
 
-  if (organization.features.includes('dashboards-eap')) {
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-    items.push({
-      key: 'add-to-dashboard',
-      textValue: t('Add to Dashboard'),
-      label: (
-        <Feature
-          hookName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-        >
-          {t('Add to Dashboard')}
-        </Feature>
-      ),
-      disabled: disableAddToDashboard,
-      onAction: () => {
-        if (disableAddToDashboard) {
-          return undefined;
-        }
-        trackAnalytics('trace_explorer.save_as', {
-          save_type: 'dashboard',
-          ui_source: 'compare chart',
-          organization,
-        });
-        return addToDashboard();
-      },
-    });
-  }
+  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+  items.push({
+    key: 'add-to-dashboard',
+    textValue: t('Add to Dashboard'),
+    label: (
+      <Feature
+        hookName="feature-disabled:dashboards-edit"
+        features="organizations:dashboards-edit"
+        renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+      >
+        {t('Add to Dashboard')}
+      </Feature>
+    ),
+    disabled: disableAddToDashboard,
+    onAction: () => {
+      if (disableAddToDashboard) {
+        return undefined;
+      }
+      trackAnalytics('trace_explorer.save_as', {
+        save_type: 'dashboard',
+        ui_source: 'compare chart',
+        organization,
+      });
+      return addToDashboard();
+    },
+  });
 
   const DataPlottableConstructor =
     chartInfo.chartType === ChartType.LINE
