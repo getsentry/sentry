@@ -64,7 +64,7 @@ function ScrollToSectionLinks({
   tree,
   logs,
 }: {
-  logs: OurLogsResponseItem[];
+  logs: OurLogsResponseItem[] | undefined;
   rootEventResults: TraceRootEventQueryResults;
   tree: TraceTree;
 }) {

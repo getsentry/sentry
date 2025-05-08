@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
 import {TraceContextTags} from 'sentry/views/performance/newTraceDetails/traceContextTags';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
@@ -17,6 +17,7 @@ import {
   TraceViewLogsDataProvider,
   TraceViewLogsSection,
 } from 'sentry/views/performance/newTraceDetails/traceOurlogs';
+import {TraceSummarySection} from 'sentry/views/performance/newTraceDetails/traceSummary';
 import {TraceTabsAndVitals} from 'sentry/views/performance/newTraceDetails/traceTabsAndVitals';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
@@ -80,25 +81,28 @@ export function TraceView() {
   );
 }
 
+// We only load logs data here to determine if a trace has associated logs and use the first log
+// to represent only-logs traces. The embedded logs components fetch their own data and support
+// pagination.
 function useInitialLogsData() {
   const logsTableData = useLogsPageData();
-  const latchedDataRef = useRef<OurLogsResponseItem[]>([]);
+  const logsData = useRef<UseExploreLogsTableResult | undefined>(undefined);
 
   useEffect(() => {
-    if (logsTableData.logsData.data && !latchedDataRef.current.length) {
-      latchedDataRef.current = logsTableData.logsData.data;
+    if (logsTableData.logsData.data && !logsData.current?.data.length) {
+      logsData.current = logsTableData.logsData;
     }
   }, [logsTableData]);
 
-  return latchedDataRef.current;
+  return logsData.current;
 }
 
 function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
-  const logs = useInitialLogsData();
-  const hideTraceWaterfallIfEmpty = (logs?.length ?? 0) > 0;
+  const logsData = useInitialLogsData();
+  const hideTraceWaterfallIfEmpty = (logsData?.data.length ?? 0) > 0;
   const hasTraceTabsUI = useHasTraceTabsUI();
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
@@ -106,7 +110,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const tree = useTraceTree({traceSlug, trace, meta, replay: null});
   const rootEventResults = useTraceRootEvent({
     tree,
-    logs,
+    logs: logsData?.data,
     traceId: traceSlug,
   });
 
@@ -120,7 +124,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     tree,
     rootEventResults,
-    logs,
+    logs: logsData?.data,
   });
 
   const legacyTraceInnerContent = (
@@ -144,7 +148,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
         tree={tree}
         rootEventResults={rootEventResults}
         onScrollToNode={traceWaterfallScroll.onScrollToNode}
-        logs={logs}
+        logs={logsData?.data}
       />
     </FlexBox>
   );
@@ -184,7 +188,9 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
         <TraceProfiles tree={tree} onScrollToNode={traceWaterfallScroll.onScrollToNode} />
       ) : null}
       {currentTab === TraceLayoutTabKeys.LOGS ? <TraceViewLogsSection /> : null}
-      {currentTab === TraceLayoutTabKeys.SUMMARY ? <p>Summary</p> : null}
+      {currentTab === TraceLayoutTabKeys.SUMMARY ? (
+        <TraceSummarySection traceSlug={traceSlug} />
+      ) : null}
     </Fragment>
   );
 
@@ -203,7 +209,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               organization={organization}
               traceSlug={traceSlug}
               traceEventView={traceEventView}
-              logs={logs}
+              logs={logsData?.data}
             />
             <TraceInnerLayout>
               {hasTraceTabsUI ? traceInnerContent : legacyTraceInnerContent}
