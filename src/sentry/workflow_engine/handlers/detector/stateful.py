@@ -225,9 +225,10 @@ class StatefulGroupingDetectorHandler(
         if is_group_condition_met:
             # TODO - use the `_` as the condition to snapshot in the evidence data
             validated_condition_results: list[DetectorPriorityLevel] = [
-                result
-                for _, result in condition_results
-                if result is not None and isinstance(result, DetectorPriorityLevel)
+                condition_result
+                for _, condition_result in condition_results
+                if condition_result is not None
+                and isinstance(condition_result, DetectorPriorityLevel)
             ]
 
             new_status = max(new_status, *validated_condition_results)
