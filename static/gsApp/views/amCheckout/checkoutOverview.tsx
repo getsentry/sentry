@@ -189,7 +189,7 @@ class CheckoutOverview extends Component<Props> {
     title: string;
   }) {
     const {formData} = this.props;
-    const isEnabled = formData[enabledField];
+    const isEnabled = formData[enabledField as keyof CheckoutFormData];
 
     if (!isEnabled) {
       return null;
