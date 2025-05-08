@@ -26,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFieldDefinition} from 'sentry/utils/fields';
+import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -113,7 +114,6 @@ function formatQueryTokens(result: any) {
 
 export function AiQueryDrawer() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<React.ReactNode>(null);
   const [rawResult, setRawResult] = useState<any>(null);
   const api = useApi();
@@ -121,6 +121,41 @@ export function AiQueryDrawer() {
   const pageFilters = usePageFilters();
   const {closeDrawer} = useDrawer();
   const openFeedbackForm = useFeedbackForm();
+
+  const {mutate: submitQuery, isPending} = useMutation({
+    mutationFn: async (query: string) => {
+      const result = await api.requestPromise(
+        `/api/0/organizations/${organization.slug}/trace-explorer-ai/query/`,
+        {
+          method: 'POST',
+          data: {
+            natural_language_query: query,
+            project_ids: pageFilters.selection.projects,
+          },
+        }
+      );
+      return result;
+    },
+    onSuccess: result => {
+      const query_tokens = formatQueryTokens(result);
+      setResponse(query_tokens);
+      setRawResult(result);
+    },
+    onError: (error: Error) => {
+      addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
+    },
+  });
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!searchQuery.trim()) {
+        return;
+      }
+      submitQuery(searchQuery);
+    },
+    [searchQuery, submitQuery]
+  );
 
   const handleApply = useCallback(() => {
     if (!rawResult) {
@@ -135,13 +170,15 @@ export function AiQueryDrawer() {
       stats_period: statsPeriod,
     } = rawResult;
 
-    pageFilters.selection.datetime = {
-      start: pageFilters.selection.datetime.start,
-      end: pageFilters.selection.datetime.end,
-      period: statsPeriod,
-      utc: pageFilters.selection.datetime.utc,
+    const selection = {
+      ...pageFilters.selection,
+      datetime: {
+        start: pageFilters.selection.datetime.start,
+        end: pageFilters.selection.datetime.end,
+        period: statsPeriod,
+        utc: pageFilters.selection.datetime.utc,
+      },
     };
-
     const mode = groupBy.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
 
     const visualize =
@@ -152,7 +189,7 @@ export function AiQueryDrawer() {
 
     const url = getExploreUrl({
       organization,
-      selection: pageFilters.selection,
+      selection,
       query,
       visualize,
       groupBy,
@@ -171,48 +208,14 @@ export function AiQueryDrawer() {
     closeDrawer();
   }, [rawResult, organization, pageFilters.selection, closeDrawer]);
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!searchQuery.trim()) {
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        setIsLoading(true);
-        const result = await api.requestPromise(
-          `/api/0/organizations/${organization.slug}/trace-explorer-ai/query/`,
-          {
-            method: 'POST',
-            data: {
-              natural_language_query: searchQuery,
-              project_ids: pageFilters.selection.projects,
-            },
-          }
-        );
-        const query_tokens = formatQueryTokens(result);
-        setResponse(query_tokens);
-        setRawResult(result);
-      } catch (error) {
-        addErrorMessage(t('Failed to process AI query: %(error)s', {error}));
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [api, organization.slug, pageFilters.selection.projects, searchQuery]
-  );
-
   return (
     <DrawerContainer>
       <DrawerHeader hideBar />
       <StyledDrawerBody>
         <HeaderContainer>
           <StyledHeaderContainer>
-            <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
-              <AiQueryHeader>{t('Seer Says...')}</AiQueryHeader>
-              <FeatureBadge type="alpha" />
-            </div>
+            <AiQueryHeader>{t('Seer Says...')}</AiQueryHeader>
+            <FeatureBadge type="alpha" />
           </StyledHeaderContainer>
           <form onSubmit={handleSubmit}>
             <StyledInputGroup>
@@ -226,11 +229,11 @@ export function AiQueryDrawer() {
                 aria-label={t('Natural Language Query Input')}
                 placeholder={t('Enter your query')}
                 autoFocus
-                disabled={isLoading}
+                disabled={isPending}
               />
             </StyledInputGroup>
           </form>
-          {isLoading && (
+          {isPending && (
             <LoadingContainer>
               <LoadingIndicator />
             </LoadingContainer>
@@ -263,6 +266,8 @@ export function AiQueryDrawer() {
                           ['feedback.owner']: 'ml-ai',
                         },
                       });
+                    } else {
+                      addErrorMessage(t('Unable to open feedback form'));
                     }
                   }}
                 >
@@ -298,13 +303,7 @@ export function TraceExploreAiQueryContextProvider({
         },
       }
     );
-  }, [
-    client,
-    organization.features,
-    organization.id,
-    organization.slug,
-    pageFilters.selection.projects,
-  ]);
+  }, [client, organization.id, organization.slug, pageFilters.selection.projects]);
 
   return (
     <TraceExploreAiQueryContext.Provider

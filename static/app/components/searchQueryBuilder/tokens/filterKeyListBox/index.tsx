@@ -83,7 +83,7 @@ function FeedbackFooter() {
   const organization = useOrganization();
 
   const areAiFeaturesAllowed =
-    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
   if (!openForm) {
     return null;
