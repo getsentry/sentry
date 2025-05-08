@@ -24,14 +24,16 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {HighestCacheMissRateTransactionsWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 function isColumnNotFoundError(error: QueryError | null) {
   return error?.message === 'Column cache.hit was not found in metrics indexer';
 }
-export function CachesWidget({query}: {query?: string}) {
+export function CachesWidget() {
   const theme = useTheme();
   const organization = useOrganization();
+  const {query} = useTransactionNameQuery();
   const releaseBubbleProps = useReleaseBubbleProps();
   const pageFilterChartParams = usePageFilterChartParams();
 

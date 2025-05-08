@@ -19,7 +19,6 @@ import {PagesTable} from 'sentry/views/insights/pages/platform/shared/pagesTable
 import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 type View = 'api' | 'pages';
 type SpanOperation = 'pageload' | 'navigation';
@@ -74,8 +73,6 @@ export function NextJsOverviewPage({
     });
   }, [organization, activeView, spanOperationFilter]);
 
-  const {query, setTransactionFilter} = useTransactionNameQuery();
-
   return (
     <PlatformLandingPageLayout performanceType={performanceType}>
       <WidgetGrid>
@@ -84,20 +81,19 @@ export function NextJsOverviewPage({
             title={t('Traffic')}
             trafficSeriesName={t('Page views')}
             baseQuery={'span.op:[navigation,pageload]'}
-            query={query}
           />
         </WidgetGrid.Position1>
         <WidgetGrid.Position2>
-          <DurationWidget query={query} />
+          <DurationWidget />
         </WidgetGrid.Position2>
         <WidgetGrid.Position3>
-          <IssuesWidget query={query} />
+          <IssuesWidget />
         </WidgetGrid.Position3>
         <WidgetGrid.Position4>
-          <WebVitalsWidget query={query} />
+          <WebVitalsWidget />
         </WidgetGrid.Position4>
         <WidgetGrid.Position5>
-          <DeadRageClicksWidget query={query} />
+          <DeadRageClicksWidget />
         </WidgetGrid.Position5>
         <WidgetGrid.Position6>
           <SSRTreeWidget />
@@ -126,21 +122,10 @@ export function NextJsOverviewPage({
       </ControlsWrapper>
 
       {activeView === 'api' && (
-        <PathsTable
-          handleAddTransactionFilter={setTransactionFilter}
-          query={query}
-          showHttpMethodColumn={false}
-          showUsersColumn={false}
-        />
+        <PathsTable showHttpMethodColumn={false} showUsersColumn={false} />
       )}
 
-      {activeView === 'pages' && (
-        <PagesTable
-          spanOperationFilter={spanOperationFilter}
-          handleAddTransactionFilter={setTransactionFilter}
-          query={query}
-        />
-      )}
+      {activeView === 'pages' && <PagesTable spanOperationFilter={spanOperationFilter} />}
     </PlatformLandingPageLayout>
   );
 }

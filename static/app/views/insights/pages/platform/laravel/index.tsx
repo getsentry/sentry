@@ -12,7 +12,6 @@ import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/sh
 import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 export function LaravelOverviewPage() {
   const organization = useOrganization();
@@ -24,8 +23,6 @@ export function LaravelOverviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const {query, setTransactionFilter} = useTransactionNameQuery();
-
   return (
     <PlatformLandingPageLayout performanceType={'backend'}>
       <WidgetGrid>
@@ -34,26 +31,25 @@ export function LaravelOverviewPage() {
             title={t('Requests')}
             trafficSeriesName={t('Requests')}
             baseQuery={'span.op:http.server'}
-            query={query}
           />
         </WidgetGrid.Position1>
         <WidgetGrid.Position2>
-          <DurationWidget query={query} />
+          <DurationWidget />
         </WidgetGrid.Position2>
         <WidgetGrid.Position3>
-          <IssuesWidget query={query} />
+          <IssuesWidget />
         </WidgetGrid.Position3>
         <WidgetGrid.Position4>
-          <JobsWidget query={query} />
+          <JobsWidget />
         </WidgetGrid.Position4>
         <WidgetGrid.Position5>
-          <QueriesWidget query={query} />
+          <QueriesWidget />
         </WidgetGrid.Position5>
         <WidgetGrid.Position6>
-          <CachesWidget query={query} />
+          <CachesWidget />
         </WidgetGrid.Position6>
       </WidgetGrid>
-      <PathsTable handleAddTransactionFilter={setTransactionFilter} query={query} />
+      <PathsTable />
     </PlatformLandingPageLayout>
   );
 }
