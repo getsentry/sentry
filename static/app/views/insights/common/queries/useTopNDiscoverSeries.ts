@@ -159,7 +159,7 @@ const useTopNDiscoverSeries = <T extends string[]>(
       orderby: sort ? encodeSort(sort) : undefined,
       interval: eventView.interval,
       transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
-      samplingMode: shouldSetSamplingMode ? samplingMode : undefined,
+      sampling: shouldSetSamplingMode ? samplingMode : undefined,
     }),
     options: {
       enabled: options.enabled && defaultPageFilters.isReady,
