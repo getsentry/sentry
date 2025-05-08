@@ -116,7 +116,8 @@ class SentryTask(Task):
                 logger.exception(
                     "Task args contain unserializable objects",
                 )
-                raise
+                if should_complain:
+                    raise
 
         with metrics.timer("jobs.delay", instance=self.name):
             return Task.apply_async(self, *args, **kwargs)
