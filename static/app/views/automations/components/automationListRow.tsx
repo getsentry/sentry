@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -88,7 +89,7 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
 
   ${p =>
     p.disabled &&
-    `
+    css`
       ${CellWrapper} {
         opacity: 0.6;
       }

@@ -1,4 +1,5 @@
 import type {CSSProperties} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 type Props = {
@@ -54,7 +55,7 @@ const TextOverflow = styled(
   ${p => p.theme.overflowEllipsis}
   ${p =>
     p.ellipsisDirection === 'left' &&
-    `
+    css`
       direction: rtl;
       text-align: left;
     `};

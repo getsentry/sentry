@@ -63,9 +63,9 @@ const Name = styled('div')<{disabled: boolean}>`
 
   ${p =>
     p.disabled &&
-    `
-    color: ${p.theme.disabled};
-  `}
+    css`
+      color: ${p.theme.disabled};
+    `}
 `;
 
 const TitleWrapper = styled(Link)<{disabled: boolean}>`
@@ -76,12 +76,12 @@ const TitleWrapper = styled(Link)<{disabled: boolean}>`
 
   ${p =>
     !p.disabled &&
-    `
-    &:hover ${Name} {
-      color: ${p.theme.textColor};
-      text-decoration: underline;
-    }
-  `};
+    css`
+      &:hover ${Name} {
+        color: ${p.theme.textColor};
+        text-decoration: underline;
+      }
+    `};
 `;
 
 const DetailsWrapper = styled('div')`

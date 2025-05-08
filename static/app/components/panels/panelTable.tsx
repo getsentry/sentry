@@ -1,4 +1,5 @@
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -192,11 +193,11 @@ const PanelTableHeader = styled('div')<{sticky: boolean}>`
 
   ${p =>
     p.sticky &&
-    `
-    position: sticky;
-    top: 0;
-    z-index: ${p.theme.zIndex.initial};
-  `}
+    css`
+      position: sticky;
+      top: 0;
+      z-index: ${p.theme.zIndex.initial};
+    `}
 `;
 
 export {PanelTable, type PanelTableProps, PanelTableHeader};

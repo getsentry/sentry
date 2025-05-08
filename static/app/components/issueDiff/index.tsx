@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -188,9 +189,9 @@ const StyledIssueDiff = styled('div', {
 
   ${p =>
     p.loading &&
-    `
-        background-color: ${p.theme.background};
-        justify-content: center;
-        align-items: center;
-      `};
+    css`
+      background-color: ${p.theme.background};
+      justify-content: center;
+      align-items: center;
+    `};
 `;

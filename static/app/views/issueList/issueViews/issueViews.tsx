@@ -8,6 +8,7 @@ import {
   useReducer,
   useState,
 } from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {TabListState} from '@react-stately/tabs';
 import type {Orientation} from '@react-types/shared';
@@ -718,7 +719,7 @@ const TabsWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
 
   ${p =>
     p.orientation === 'vertical' &&
-    `
+    css`
       height: 100%;
       align-items: stretch;
     `};

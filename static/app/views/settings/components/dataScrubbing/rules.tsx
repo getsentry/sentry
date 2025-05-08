@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ConfirmDelete from 'sentry/components/confirmDelete';
@@ -84,10 +85,10 @@ const List = styled('ul')<{
   margin-bottom: 0 !important;
   ${p =>
     p.isDisabled &&
-    `
+    css`
       color: ${p.theme.gray200};
       background: ${p.theme.backgroundSecondary};
-  `}
+    `}
 `;
 
 const ListItem = styled('li')`

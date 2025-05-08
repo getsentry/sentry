@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -62,15 +63,15 @@ const LoadingBarSegment = styled('div')<{isActive?: boolean; isCompleted?: boole
   border: 1px solid ${p => p.theme.border};
   ${p =>
     p.isActive &&
-    `
-    background-color: ${p.theme.gray200};
-    animation: pulse 500ms ease-in-out infinite alternate-reverse;
-  `}
+    css`
+      background-color: ${p.theme.gray200};
+      animation: pulse 500ms ease-in-out infinite alternate-reverse;
+    `}
   ${p =>
     p.isCompleted &&
-    `
-    background-color: ${p.theme.gray200};
-  `}
+    css`
+      background-color: ${p.theme.gray200};
+    `}
 
   @keyframes pulse {
     0% {

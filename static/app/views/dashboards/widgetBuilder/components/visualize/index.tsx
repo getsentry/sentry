@@ -1,6 +1,7 @@
 import {Fragment, type ReactNode, useMemo, useState} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -888,17 +889,17 @@ export const AggregateCompactSelect = styled(CompactSelect)<{
 }>`
   ${p =>
     p.hasColumnParameter
-      ? `
-    width: fit-content;
-    left: 1px;
+      ? css`
+          width: fit-content;
+          left: 1px;
 
-    ${TriggerLabel} {
-      overflow: visible;
-    }
-  `
-      : `
-    width: 100%;
-  `}
+          ${TriggerLabel} {
+            overflow: visible;
+          }
+        `
+      : css`
+          width: 100%;
+        `}
 
   > button {
     width: 100%;
@@ -938,10 +939,10 @@ export const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
   & ${AggregateCompactSelect} button {
     ${p =>
       p.hasColumnParameter &&
-      `
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    `}
+      css`
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      `}
   }
 `;
 
