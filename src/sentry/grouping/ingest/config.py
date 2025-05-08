@@ -39,10 +39,10 @@ def update_grouping_config_if_needed(project: Project, source: str) -> None:
         return
 
     with locks.get(lock_key, duration=60, name="grouping-update-lock").acquire():
-        if cache.get(cache_key) is None:
-            cache.set(cache_key, "1", 60 * 5)
-        else:
+        if cache.get(cache_key) is not None:
             return
+        else:
+            cache.set(cache_key, "1", 60 * 5)
 
         from sentry import audit_log
         from sentry.utils.audit import create_system_audit_entry
