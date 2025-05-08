@@ -414,11 +414,12 @@ def devserver(
             """
                 )
 
-            from sentry.conf.types.kafka_definition import Topic
+            from sentry_kafka_schemas import list_topics
+
             from sentry.utils.batching_kafka_consumer import create_topics
             from sentry.utils.kafka_config import get_topic_definition
 
-            for topic in Topic:
+            for topic in list_topics():
                 topic_defn = get_topic_definition(topic)
                 create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
