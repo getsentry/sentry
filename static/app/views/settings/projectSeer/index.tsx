@@ -23,7 +23,24 @@ interface ProjectSeerProps {
 
 const THRESHOLD_MAP = ['off', 'low', 'medium', 'high', 'always'] as const;
 
-const autofixAutomatingTuningField: FieldObject = {
+export function formatSeerValue(value: string | undefined) {
+  switch (value) {
+    case 'off':
+      return t('Off');
+    case 'low':
+      return t('Low');
+    case 'medium':
+      return t('Medium');
+    case 'high':
+      return t('High');
+    case 'always':
+      return t('Always');
+    default:
+      return null;
+  }
+}
+
+export const autofixAutomatingTuningField = {
   name: 'autofixAutomationTuning',
   label: t('Automatically Fix Issues with Seer'),
   help: t(
@@ -38,20 +55,7 @@ const autofixAutomatingTuningField: FieldObject = {
     const numVal =
       typeof val === 'string' || val < 0 || val >= THRESHOLD_MAP.length ? 0 : val;
     const level = THRESHOLD_MAP[numVal];
-    switch (level) {
-      case 'off':
-        return t('Off');
-      case 'low':
-        return t('Low');
-      case 'medium':
-        return t('Medium');
-      case 'high':
-        return t('High');
-      case 'always':
-        return t('Always');
-      default:
-        return null;
-    }
+    return formatSeerValue(level);
   },
   getValue: (val: number): string => {
     return THRESHOLD_MAP[val]!;
@@ -59,7 +63,7 @@ const autofixAutomatingTuningField: FieldObject = {
   saveOnBlur: true,
   showTickLabels: true,
   saveMessage: t('Automatic Seer settings updated'),
-};
+} satisfies FieldObject;
 
 const seerFormGroups: JsonFormObject[] = [
   {

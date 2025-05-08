@@ -58,6 +58,11 @@ class GSBillingNavigationConfig extends Component<Props> {
         id: 'spike',
       },
       {
+        path: `${prefix}/seer/`,
+        title: t('Seer Automation'),
+        id: 'seer',
+      },
+      {
         path: `${prefix}/subscription/redeem-code/`,
         title: t('Redeem Promo Code'),
         id: 'promo',
