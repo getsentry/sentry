@@ -27,4 +27,4 @@ jobs:
           chmod +x overwatch-cli
 
       - name: Run Overwatch CLI
-        run: ./overwatch-cli --auth-token ${{ secrets.SENTRY_AUTH_TOKEN }} --organization-slug sentry python
+        run: ./overwatch-cli --auth-token ${{ secrets.OVERWATCH_SENTRY_AUTH_TOKEN }} --organization-slug sentry python
