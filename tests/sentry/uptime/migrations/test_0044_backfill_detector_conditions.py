@@ -1,4 +1,5 @@
 import pytest
+
 from sentry.testutils.cases import TestMigrations
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import get_detector

@@ -4,8 +4,8 @@ from django.db import migrations, router
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
-from sentry.utils.db import atomic_transaction
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.db import atomic_transaction
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
