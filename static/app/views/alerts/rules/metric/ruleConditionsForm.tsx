@@ -524,7 +524,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <SpanTagsProvider
               dataset={DiscoverDatasets.SPANS_EAP}
               enabled={
-                organization.features.includes('alerts-eap') &&
+                organization.features.includes('visibility-explore-view') &&
                 alertType === 'eap_metrics'
               }
             >

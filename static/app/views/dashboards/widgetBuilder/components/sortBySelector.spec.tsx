@@ -23,7 +23,9 @@ describe('WidgetBuilderSortBySelector', function () {
   let router: InjectedRouter<Record<string, string | undefined>, any>;
   beforeEach(function () {
     const setupOrg = initializeOrg({
-      organization: {features: ['global-views', 'open-membership', 'dashboards-eap']},
+      organization: {
+        features: ['global-views', 'open-membership', 'visibility-explore-view'],
+      },
       projects: [],
       router: {
         location: {
@@ -225,7 +227,9 @@ describe('WidgetBuilderSortBySelector', function () {
     });
 
     const setupOrg = initializeOrg({
-      organization: {features: ['global-views', 'open-membership', 'dashboards-eap']},
+      organization: {
+        features: ['global-views', 'open-membership', 'visibility-explore-view'],
+      },
       projects: [],
       router: {
         location: {

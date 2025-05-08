@@ -213,7 +213,7 @@ describe('Incident Rules Create', () => {
 
   it('does a 7 day query for confidence data on the EAP dataset', async () => {
     const {organization, project, router} = initializeOrg({
-      organization: {features: ['alerts-eap']},
+      organization: {features: ['visibility-explore-view']},
     });
 
     render(
