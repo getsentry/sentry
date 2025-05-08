@@ -423,7 +423,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable view hierarchies options
     manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables GCP token fetching instead of providing credentials
-    manager.add("organizations:gcp-bearer-token-authentication", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=False)
+    manager.add("organizations:gcp-bearer-token-authentication", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=False)
     # Enable admin features on the new explore page
     manager.add("organizations:visibility-explore-admin", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable equations feature on the new explore page
