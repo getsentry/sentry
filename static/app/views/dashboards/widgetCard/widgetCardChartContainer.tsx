@@ -6,6 +6,8 @@ import type {Location} from 'history';
 import type {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -58,6 +60,7 @@ type Props = {
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   tableItemLimit?: number;
+  timeToLoad?: number | null;
   windowWidth?: number;
 };
 
@@ -83,6 +86,7 @@ export function WidgetCardChartContainer({
   showConfidenceWarning,
   minTableColumnWidth,
   onDataFetchStart,
+  timeToLoad,
 }: Props) {
   const location = useLocation();
 
@@ -121,7 +125,7 @@ export function WidgetCardChartContainer({
               {typeof renderErrorMessage === 'function'
                 ? renderErrorMessage(errorMessage)
                 : null}
-              <LoadingScreen loading={loading} />
+              <LoadingScreen loading={loading} timeToLoad={timeToLoad} />
               <IssueWidgetCard
                 transformedResults={tableResults?.[0]!.data ?? []}
                 loading={loading}
@@ -174,6 +178,7 @@ export function WidgetCardChartContainer({
               sampleCount={sampleCount}
               minTableColumnWidth={minTableColumnWidth}
               isSampled={isSampled}
+              timeToLoad={timeToLoad}
             />
           </Fragment>
         );
@@ -186,17 +191,28 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
   justify-content: center;
   align-items: center;
 `;
 
-function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({
+  loading,
+  timeToLoad,
+}: {
+  loading: boolean;
+  timeToLoad?: number | null;
+}) {
   if (!loading) {
     return null;
   }
   return (
     <StyledTransparentLoadingMask visible={loading}>
       <LoadingIndicator mini />
+      {timeToLoad !== null && timeToLoad !== undefined && timeToLoad > 2000 && (
+        <p>{t('Turning data into pixels - almost ready')}</p>
+      )}
     </StyledTransparentLoadingMask>
   );
 }
