@@ -14,19 +14,19 @@ import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/ch
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
+import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useEventsStatsQuery} from 'sentry/views/insights/common/utils/useEventsStatsQuery';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensBarChart} from 'sentry/views/insights/mobile/screenload/components/charts/screenBarChart';
-import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {
   CHART_TITLES,
   OUTPUT_TYPE,
@@ -46,17 +46,22 @@ export enum YAxis {
 }
 
 type Props = {
-  yAxes: YAxis[];
   additionalFilters?: string[];
   chartHeight?: number;
 };
 
-export function ScreenCharts({yAxes, additionalFilters}: Props) {
+const yAxes = [YAxis.TTID, YAxis.TTFD, YAxis.COUNT];
+
+export function ScreenCharts({additionalFilters}: Props) {
   const theme = useTheme();
+  const useEap = useInsightsEap();
   const pageFilter = usePageFilters();
-  const location = useLocation();
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
-  const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
+  const yAxisCols = [
+    'avg(measurements.time_to_initial_display)',
+    'avg(measurements.time_to_full_display)',
+    'count()',
+  ] as const;
 
   const {
     primaryRelease,
@@ -75,6 +80,10 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
       query.addFilterValue('os.name', platform);
     }
 
+    if (useEap) {
+      query.addFilterValue('is_transaction', 'true');
+    }
+
     return appendReleaseFilters(query, primaryRelease, secondaryRelease);
   }, [
     additionalFilters,
@@ -82,6 +91,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     platform,
     primaryRelease,
     secondaryRelease,
+    useEap,
   ]);
 
   const {
@@ -151,22 +161,15 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     });
   }
 
-  const {data: deviceClassEvents, isPending: isDeviceClassEventsLoading} = useTableQuery({
-    eventView: EventView.fromNewQueryWithLocation(
-      {
-        name: '',
-        fields: ['device.class', 'release', ...yAxisCols],
-        orderby: yAxisCols[0],
-        yAxis: yAxisCols,
-        query: queryString,
-        dataset: DiscoverDatasets.METRICS,
-        version: 2,
-      },
-      location
-    ),
-    enabled: !isReleasesLoading,
-    referrer: 'api.starfish.mobile-device-breakdown',
-  });
+  const {data: deviceClassEvents, isPending: isDeviceClassEventsLoading} = useMetrics(
+    {
+      enabled: !isReleasesLoading,
+      search: queryString,
+      orderby: yAxisCols[0],
+      fields: ['device.class', 'release', ...yAxisCols],
+    },
+    'api.starfish.mobile-device-breakdown'
+  );
 
   if (isReleasesLoading) {
     return <LoadingContainer />;
