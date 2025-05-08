@@ -109,6 +109,21 @@ const restrictedImportPaths = [
     name: 'moment',
     message: 'Please import moment-timezone instead of moment',
   },
+  {
+    name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsLineChartWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsAreaChartWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -187,7 +202,8 @@ export default typescript.config([
     '**/*.benchmark.ts',
     '**/*.d.ts',
     '**/dist/**/*',
-    '**/tests/**/fixtures/**/*',
+    'tests/**/fixtures/**/*',
+    '!tests/js/**/*',
     '**/vendor/**/*',
     'build-utils/**/*',
     'config/chartcuterie/config.js',
@@ -804,6 +820,26 @@ export default typescript.config([
     },
   },
   {
+    name: 'files/insights-chart-widgets',
+    files: ['static/app/views/insights/common/components/widgets/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          // Allow these imports only in the above widgets directory in `files`
+          paths: restrictedImportPaths.filter(
+            ({name}) =>
+              ![
+                'sentry/views/insights/common/components/insightsLineChartWidget',
+                'sentry/views/insights/common/components/insightsAreaChartWidget',
+                'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+              ].includes(name)
+          ),
+        },
+      ],
+    },
+  },
+  {
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
@@ -921,10 +957,22 @@ export default typescript.config([
               message:
                 "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
             },
+            {
+              group: ['sentry/locale'],
+              message: 'Do not import locale into gsAdmin. No translations required.',
+            },
           ],
           paths: restrictedImportPaths,
         },
       ],
+    },
+  },
+  {
+    name: 'files/getsentry-test',
+    files: ['tests/js/getsentry-test/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      // Allow imports from gsApp into getsentry-test fixtures
+      'no-restricted-imports': 'off',
     },
   },
 ]);

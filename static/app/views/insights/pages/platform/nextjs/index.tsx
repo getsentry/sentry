@@ -9,18 +9,16 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {SlowSSRWidget} from 'sentry/views/insights/pages/platform/nextjs/slowSsrWidget';
+import {DeadRageClicksWidget} from 'sentry/views/insights/pages/platform/nextjs/deadRageClickWidget';
+import SSRTreeWidget from 'sentry/views/insights/pages/platform/nextjs/ssrTreeWidget';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
 import {PagesTable} from 'sentry/views/insights/pages/platform/shared/pagesTable';
 import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
+import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 type View = 'api' | 'pages';
 type SpanOperation = 'pageload' | 'navigation';
@@ -35,23 +33,12 @@ const spanOperationOptions: Array<SelectOption<SpanOperation>> = [
   {value: 'navigation', label: t('Navigations')},
 ];
 
-function PlaceholderWidget() {
-  return <Widget Title={<Widget.WidgetTitle title="Placeholder Widget" />} />;
-}
-
 export function NextJsOverviewPage({
   performanceType,
 }: {
   performanceType: 'backend' | 'frontend';
 }) {
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
-  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
-  const releases =
-    releasesWithDate?.map(({date, version}) => ({
-      timestamp: date,
-      version,
-    })) ?? [];
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -86,35 +73,31 @@ export function NextJsOverviewPage({
     });
   }, [organization, activeView, spanOperationFilter]);
 
-  const {query, setTransactionFilter} = useTransactionNameQuery();
-
   return (
     <PlatformLandingPageLayout performanceType={performanceType}>
       <WidgetGrid>
-        <RequestsContainer>
+        <WidgetGrid.Position1>
           <TrafficWidget
             title={t('Traffic')}
             trafficSeriesName={t('Page views')}
             baseQuery={'span.op:[navigation,pageload]'}
-            query={query}
-            releases={releases}
           />
-        </RequestsContainer>
-        <IssuesContainer>
-          <IssuesWidget query={query} />
-        </IssuesContainer>
-        <DurationContainer>
-          <DurationWidget query={query} releases={releases} />
-        </DurationContainer>
-        <WebVitalsContainer>
-          <WebVitalsWidget query={query} />
-        </WebVitalsContainer>
-        <QueriesContainer>
-          <SlowSSRWidget query={query} releases={releases} />
-        </QueriesContainer>
-        <CachesContainer>
-          <PlaceholderWidget />
-        </CachesContainer>
+        </WidgetGrid.Position1>
+        <WidgetGrid.Position2>
+          <DurationWidget />
+        </WidgetGrid.Position2>
+        <WidgetGrid.Position3>
+          <IssuesWidget />
+        </WidgetGrid.Position3>
+        <WidgetGrid.Position4>
+          <WebVitalsWidget />
+        </WidgetGrid.Position4>
+        <WidgetGrid.Position5>
+          <DeadRageClicksWidget />
+        </WidgetGrid.Position5>
+        <WidgetGrid.Position6>
+          <SSRTreeWidget />
+        </WidgetGrid.Position6>
       </WidgetGrid>
       <ControlsWrapper>
         <SegmentedControl
@@ -139,92 +122,13 @@ export function NextJsOverviewPage({
       </ControlsWrapper>
 
       {activeView === 'api' && (
-        <PathsTable
-          handleAddTransactionFilter={setTransactionFilter}
-          query={query}
-          showHttpMethodColumn={false}
-          showUsersColumn={false}
-        />
+        <PathsTable showHttpMethodColumn={false} showUsersColumn={false} />
       )}
 
-      {activeView === 'pages' && (
-        <PagesTable
-          spanOperationFilter={spanOperationFilter}
-          handleAddTransactionFilter={setTransactionFilter}
-          query={query}
-        />
-      )}
+      {activeView === 'pages' && <PagesTable spanOperationFilter={spanOperationFilter} />}
     </PlatformLandingPageLayout>
   );
 }
-
-const WidgetGrid = styled('div')`
-  display: grid;
-  gap: ${space(2)};
-  padding-bottom: ${space(2)};
-
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 180px 180px 300px 240px 300px 300px;
-  grid-template-areas:
-    'requests'
-    'duration'
-    'issues'
-    'web-vitals'
-    'queries'
-    'caches';
-
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 180px 300px 240px 300px;
-    grid-template-areas:
-      'requests duration'
-      'issues issues'
-      'web-vitals web-vitals'
-      'queries caches';
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 180px 180px 300px;
-    grid-template-areas:
-      'requests issues issues'
-      'duration issues issues'
-      'web-vitals queries caches';
-  }
-`;
-
-const RequestsContainer = styled('div')`
-  grid-area: requests;
-`;
-
-// TODO(aknaus): Remove css hacks and build custom IssuesWidget
-const IssuesContainer = styled('div')`
-  grid-area: issues;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr;
-  & > * {
-    min-width: 0;
-    overflow-y: auto;
-    margin-bottom: 0 !important;
-  }
-`;
-
-const DurationContainer = styled('div')`
-  grid-area: duration;
-`;
-
-const WebVitalsContainer = styled('div')`
-  grid-area: web-vitals;
-`;
-
-const QueriesContainer = styled('div')`
-  grid-area: queries;
-`;
-
-const CachesContainer = styled('div')`
-  grid-area: caches;
-`;
 
 const ControlsWrapper = styled('div')`
   display: flex;

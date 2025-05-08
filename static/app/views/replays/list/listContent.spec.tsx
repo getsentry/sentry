@@ -21,6 +21,7 @@ const mockUseDeadRageSelectors = jest.mocked(useDeadRageSelectors);
 mockUseDeadRageSelectors.mockReturnValue({
   isLoading: false,
   isError: false,
+  error: null,
   data: [],
   pageLinks: undefined,
 });

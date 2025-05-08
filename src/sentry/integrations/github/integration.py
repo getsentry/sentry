@@ -28,14 +28,23 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
+from sentry.integrations.github.tasks.utils import GithubAPIErrorType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import (
+    OPEN_PR_MAX_FILES_CHANGED,
+    OPEN_PR_MAX_LINES_CHANGED,
+    OPEN_PR_METRICS_BASE,
     CommitContextIntegration,
+    OpenPRCommentWorkflow,
     PRCommentWorkflow,
+    PullRequestFile,
+    PullRequestIssue,
+    _open_pr_comment_log,
 )
+from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
@@ -53,7 +62,8 @@ from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.snuba.referrer import Referrer
-from sentry.types.referrer_ids import GITHUB_PR_BOT_REFERRER
+from sentry.templatetags.sentry_helpers import small_count
+from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER, GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import determine_active_organization
@@ -340,6 +350,9 @@ class GitHubIntegration(
     def get_pr_comment_workflow(self) -> PRCommentWorkflow:
         return GitHubPRCommentWorkflow(integration=self)
 
+    def get_open_pr_comment_workflow(self) -> OpenPRCommentWorkflow:
+        return GitHubOpenPRCommentWorkflow(integration=self)
+
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\
 ## Suspect Issues
@@ -405,6 +418,220 @@ class GitHubPRCommentWorkflow(PRCommentWorkflow):
             ]
 
         return comment_data
+
+
+OPEN_PR_COMMENT_BODY_TEMPLATE = """\
+## 🔍 Existing Issues For Review
+Your pull request is modifying functions with the following pre-existing issues:
+
+{issue_tables}
+---
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+
+OPEN_PR_ISSUE_TABLE_TEMPLATE = """\
+📄 File: **{filename}**
+
+| Function | Unhandled Issue |
+| :------- | :----- |
+{issue_rows}"""
+
+OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
+<details>
+<summary><b>📄 File: {filename} (Click to Expand)</b></summary>
+
+| Function | Unhandled Issue |
+| :------- | :----- |
+{issue_rows}
+</details>"""
+
+OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
+
+
+class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
+    organization_option_key = "sentry:github_open_pr_bot"
+    referrer = Referrer.GITHUB_PR_COMMENT_BOT
+    referrer_id = GITHUB_OPEN_PR_BOT_REFERRER
+
+    def safe_for_comment(self, repo: Repository, pr: PullRequest) -> list[PullRequestFile]:
+        client = self.integration.get_client()
+        logger.info(
+            _open_pr_comment_log(
+                integration_name=self.integration.integration_name, suffix="check_safe_for_comment"
+            )
+        )
+        try:
+            pr_files = client.get_pullrequest_files(repo=repo.name, pull_number=pr.key)
+        except ApiError as e:
+            logger.info(
+                _open_pr_comment_log(
+                    integration_name=self.integration.integration_name, suffix="api_error"
+                )
+            )
+            if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(
+                        integration=self.integration.integration_name, key="api_error"
+                    ),
+                    tags={"type": GithubAPIErrorType.RATE_LIMITED.value, "code": e.code},
+                )
+            elif e.code == 404:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(
+                        integration=self.integration.integration_name, key="api_error"
+                    ),
+                    tags={"type": GithubAPIErrorType.MISSING_PULL_REQUEST.value, "code": e.code},
+                )
+            else:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(
+                        integration=self.integration.integration_name, key="api_error"
+                    ),
+                    tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
+                )
+                logger.exception(
+                    _open_pr_comment_log(
+                        integration_name=self.integration.integration_name,
+                        suffix="unknown_api_error",
+                    ),
+                    extra={"error": str(e)},
+                )
+            return []
+
+        changed_file_count = 0
+        changed_lines_count = 0
+        filtered_pr_files = []
+
+        patch_parsers = PATCH_PARSERS
+        # NOTE: if we are testing beta patch parsers, add check here
+
+        for file in pr_files:
+            filename = file["filename"]
+            # we only count the file if it's modified and if the file extension is in the list of supported file extensions
+            # we cannot look at deleted or newly added files because we cannot extract functions from the diffs
+            if file["status"] != "modified" or filename.split(".")[-1] not in patch_parsers:
+                continue
+
+            changed_file_count += 1
+            changed_lines_count += file["changes"]
+            filtered_pr_files.append(file)
+
+            if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(
+                        integration=self.integration.integration_name, key="rejected_comment"
+                    ),
+                    tags={"reason": "too_many_files"},
+                )
+                return []
+            if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(
+                        integration=self.integration.integration_name, key="rejected_comment"
+                    ),
+                    tags={"reason": "too_many_lines"},
+                )
+                return []
+
+        return filtered_pr_files
+
+    def get_pr_files(self, pr_files: list[dict[str, Any]]) -> list[PullRequestFile]:
+        # new files will not have sentry issues associated with them
+        # only fetch Python files
+        pullrequest_files = [
+            PullRequestFile(filename=file["filename"], patch=file["patch"])
+            for file in pr_files
+            if "patch" in file
+        ]
+
+        logger.info(
+            _open_pr_comment_log(
+                integration_name=self.integration.integration_name,
+                suffix="pr_filenames",
+            ),
+            extra={"count": len(pullrequest_files)},
+        )
+
+        return pullrequest_files
+
+    def get_pr_files_safe_for_comment(
+        self, repo: Repository, pr: PullRequest
+    ) -> list[PullRequestFile]:
+        pr_files = self.safe_for_comment(repo=repo, pr=pr)
+
+        if len(pr_files) == 0:
+            logger.info(
+                _open_pr_comment_log(
+                    integration_name=self.integration.integration_name,
+                    suffix="not_safe_for_comment",
+                ),
+                extra={"file_count": len(pr_files)},
+            )
+            metrics.incr(
+                OPEN_PR_METRICS_BASE.format(
+                    integration=self.integration.integration_name, key="error"
+                ),
+                tags={"type": "unsafe_for_comment"},
+            )
+            return []
+
+        return self.get_pr_files(pr_files)
+
+    def get_comment_data(self, comment_body: str) -> dict[str, Any]:
+        return {
+            "body": comment_body,
+        }
+
+    @staticmethod
+    def format_comment_url(url: str, referrer: str) -> str:
+        return url + "?referrer=" + referrer
+
+    @staticmethod
+    def format_open_pr_comment(issue_tables: list[str]) -> str:
+        return OPEN_PR_COMMENT_BODY_TEMPLATE.format(issue_tables="\n".join(issue_tables))
+
+    @staticmethod
+    def format_open_pr_comment_subtitle(title_length, subtitle):
+        # the title length + " " + subtitle should be <= 52
+        subtitle_length = OPEN_PR_ISSUE_DESCRIPTION_LENGTH - title_length - 1
+        return (
+            subtitle[: subtitle_length - 3] + "..." if len(subtitle) > subtitle_length else subtitle
+        )
+
+    def format_issue_table(
+        self,
+        diff_filename: str,
+        issues: list[PullRequestIssue],
+        patch_parsers: dict[str, Any],
+        toggle: bool,
+    ) -> str:
+        language_parser = patch_parsers.get(diff_filename.split(".")[-1], None)
+
+        if not language_parser:
+            return ""
+
+        issue_row_template = language_parser.issue_row_template
+
+        issue_rows = "\n".join(
+            [
+                issue_row_template.format(
+                    title=issue.title,
+                    subtitle=self.format_open_pr_comment_subtitle(len(issue.title), issue.subtitle),
+                    url=self.format_comment_url(issue.url, GITHUB_OPEN_PR_BOT_REFERRER),
+                    event_count=small_count(issue.event_count),
+                    function_name=issue.function_name,
+                    affected_users=small_count(issue.affected_users),
+                )
+                for issue in issues
+            ]
+        )
+
+        if toggle:
+            return OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE.format(
+                filename=diff_filename, issue_rows=issue_rows
+            )
+
+        return OPEN_PR_ISSUE_TABLE_TEMPLATE.format(filename=diff_filename, issue_rows=issue_rows)
 
 
 class GitHubIntegrationProvider(IntegrationProvider):

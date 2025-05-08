@@ -31,7 +31,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', function () {
   const organization = OrganizationFixture({
-    features: ['alerts-eap', 'dashboards-eap', 'dashboards-edit', 'explore-multi-query'],
+    features: ['alerts-eap', 'dashboards-eap', 'dashboards-edit'],
   });
 
   beforeEach(function () {

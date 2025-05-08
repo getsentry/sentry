@@ -3006,6 +3006,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert len(data) == 1
         assert data[0]["avg_compare(span.self_time, release, foo, bar)"] == -0.9
         assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {
+            "avg_compare(span.self_time, release, foo, bar)": "percentage",
+        }
+        assert meta["units"] == {
+            "avg_compare(span.self_time, release, foo, bar)": None,
+        }
 
     def test_avg_if_invalid_param(self):
         self.store_spans(
@@ -3126,6 +3132,60 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert len(data) == 1
         assert data[0]["count_scores(measurements.score.lcp)"] == 1
         assert data[0]["count_scores(measurements.score.total)"] == 3
+        assert meta["dataset"] == self.dataset
+
+    def test_count_scores_filter(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.03},
+                            "score.total": {"value": 0.43},
+                        },
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.total": {"value": 1.0},
+                            "score.ratio.lcp": {"value": 0.03},
+                        },
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.total": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 0.03},
+                        },
+                        "sentry_tags": {"transaction": "bar_transaction"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["count_scores(measurements.score.lcp)", "transaction"],
+                "query": "count_scores(measurements.score.lcp):>1",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["count_scores(measurements.score.lcp)"] == 2
+        assert data[0]["transaction"] == "foo_transaction"
         assert meta["dataset"] == self.dataset
 
     def test_time_spent_percentage(self):
@@ -4258,19 +4318,26 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 self.create_span(
                     {
                         "description": "foo",
-                        "sentry_tags": {"ttid": "ttid", "app_start_type": "cold"},
+                        "sentry_tags": {
+                            "ttid": "ttid",
+                            "app_start_type": "cold",
+                            "os.name": "Android",
+                        },
                     },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
                     {
                         "description": "foo",
-                        "sentry_tags": {"ttid": "ttid", "app_start_type": "warm"},
+                        "sentry_tags": {"ttid": "ttid", "app_start_type": "warm", "os.name": "iOS"},
                     },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"app_start_type": "cold"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"app_start_type": "cold", "os.name": "Android"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -4278,8 +4345,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         )
         response = self.do_request(
             {
-                "field": ["app_start_type", "ttid"],
+                "field": ["app_start_type", "ttid", "os.name"],
                 "query": "has:ttid",
+                "orderby": "app_start_type",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -4291,8 +4359,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert len(data) == 2
         assert data[0]["app_start_type"] == "cold"
         assert data[0]["ttid"] == "ttid"
+        assert data[0]["os.name"] == "Android"
         assert data[1]["app_start_type"] == "warm"
         assert data[1]["ttid"] == "ttid"
+        assert data[1]["os.name"] == "iOS"
 
         assert meta["dataset"] == self.dataset
         assert meta["dataset"] == self.dataset

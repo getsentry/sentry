@@ -2,7 +2,6 @@ import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -153,19 +152,17 @@ export function LogsTabContent({
               {t('Edit Table')}
             </Button>
           </FilterBarContainer>
-          <Feature features="organizations:traces-schema-hints">
-            <SchemaHintsSection>
-              <SchemaHintsList
-                supportedAggregates={[]}
-                numberTags={numberAttributes}
-                stringTags={stringAttributes}
-                isLoading={numberAttributesLoading || stringAttributesLoading}
-                exploreQuery={logsSearch.formatString()}
-                source={SchemaHintsSources.LOGS}
-                searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
-              />
-            </SchemaHintsSection>
-          </Feature>
+          <SchemaHintsSection>
+            <SchemaHintsList
+              supportedAggregates={[]}
+              numberTags={numberAttributes}
+              stringTags={stringAttributes}
+              isLoading={numberAttributesLoading || stringAttributesLoading}
+              exploreQuery={logsSearch.formatString()}
+              source={SchemaHintsSources.LOGS}
+              searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
+            />
+          </SchemaHintsSection>
           <LogsGraphContainer>
             <LogsGraph timeseriesResult={timeseriesResult} />
           </LogsGraphContainer>

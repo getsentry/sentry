@@ -267,7 +267,13 @@ export function EventGraph({
 
   const handleReleaseLineClick = useCallback(
     (release: ReleaseMetaBasic) => {
-      navigate(makeReleaseDrawerPathname({location, release: release.version}));
+      navigate(
+        makeReleaseDrawerPathname({
+          location,
+          release: release.version,
+          source: 'issue-details',
+        })
+      );
     },
     [location, navigate]
   );
@@ -429,7 +435,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.gray200,
+    inactiveColor: theme.isChonk ? theme.tokens.content.muted : theme.gray200,
   });
 
   const onLegendSelectChanged = useMemo(
@@ -599,7 +605,7 @@ const GraphWrapper = styled('div')`
 
 const SummaryContainer = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => (p.theme.isChonk ? space(0.75) : space(0.5))};
   flex-direction: column;
   margin: ${space(1)} ${space(0.25)} ${space(1)} 0;
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};

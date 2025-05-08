@@ -16,7 +16,7 @@ from sentry.grouping.component import (
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
-from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
+from sentry.grouping.enhancer import LATEST_VERSION, Enhancements, get_enhancements_version
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
@@ -122,7 +122,9 @@ class GroupingConfigLoader:
                     else derived_enhancements
                 )
             enhancements = Enhancements.from_rules_text(
-                enhancements_string, bases=[enhancements_base] if enhancements_base else []
+                enhancements_string,
+                bases=[enhancements_base] if enhancements_base else [],
+                version=get_enhancements_version(project, config_id),
             ).base64_string
         except InvalidEnhancerConfig:
             enhancements = get_default_enhancements()

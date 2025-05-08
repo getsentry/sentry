@@ -23,9 +23,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
+import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 type SortableField =
@@ -33,7 +35,8 @@ type SortableField =
   | 'count()'
   | 'failure_rate()'
   | 'sum(span.duration)'
-  | 'avg(span.duration)';
+  | 'avg(span.duration)'
+  | 'performance_score(measurements.score.total)';
 
 interface TableData {
   avgDuration: number;
@@ -43,6 +46,7 @@ interface TableData {
   projectID: number;
   spanOp: string;
   totalTime: number;
+  'performance_score(measurements.score.total)'?: number;
 }
 
 const errorRateColorThreshold = {
@@ -63,6 +67,11 @@ const getOrderBy = (field: string, order: 'asc' | 'desc') => {
 
 const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
+  {
+    key: 'performance_score(measurements.score.total)',
+    name: t('Perf Score'),
+    width: COL_WIDTH_UNDEFINED,
+  },
   {key: 'count()', name: t('Page Views'), width: 122},
   {key: 'failure_rate()', name: t('Error Rate'), width: 122},
   {key: 'sum(span.duration)', name: t('Total'), width: 110},
@@ -101,9 +110,7 @@ function useTableSortParams() {
 }
 
 interface PagesTableProps {
-  handleAddTransactionFilter: (value: string) => void;
   spanOperationFilter: 'pageload' | 'navigation';
-  query?: string;
 }
 
 const CURSOR_PARAM_NAMES: Record<PagesTableProps['spanOperationFilter'], string> = {
@@ -111,12 +118,9 @@ const CURSOR_PARAM_NAMES: Record<PagesTableProps['spanOperationFilter'], string>
   navigation: 'navigationCursor',
 };
 
-export function PagesTable({
-  spanOperationFilter,
-  query,
-  handleAddTransactionFilter,
-}: PagesTableProps) {
+export function PagesTable({spanOperationFilter}: PagesTableProps) {
   const location = useLocation();
+  const {query, setTransactionFilter} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams();
   const {sortField, sortOrder} = useTableSortParams();
   const currentCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
@@ -145,6 +149,7 @@ export function PagesTable({
         'count()',
         'sum(span.duration)',
         'avg(span.duration)',
+        'performance_score(measurements.score.total)',
         'project.id',
       ],
       limit: 10,
@@ -171,6 +176,8 @@ export function PagesTable({
       avgDuration: span['avg(span.duration)'],
       spanOp: span['span.op'],
       projectID: span['project.id'],
+      'performance_score(measurements.score.total)':
+        span['performance_score(measurements.score.total)'],
     }));
   }, [spansRequest.data]);
 
@@ -183,15 +190,27 @@ export function PagesTable({
 
   const renderBodyCell = useCallback(
     (column: GridColumnHeader<SortableField>, dataRow: TableData) => {
+      if (column.key === 'performance_score(measurements.score.total)') {
+        const score = dataRow['performance_score(measurements.score.total)'];
+        if (typeof score !== 'number') {
+          return <AlignRight>{' — '}</AlignRight>;
+        }
+        return (
+          <AlignCenter>
+            <PerformanceBadge score={Math.round(score * 100)} />
+          </AlignCenter>
+        );
+      }
+
       return (
         <BodyCell
           column={column}
           dataRow={dataRow}
-          handleAddTransactionFilter={handleAddTransactionFilter}
+          handleAddTransactionFilter={setTransactionFilter}
         />
       );
     },
-    [handleAddTransactionFilter]
+    [setTransactionFilter]
   );
 
   const pagesTablePageLinks = spansRequest.pageLinks;
@@ -341,4 +360,12 @@ const ColoredValue = styled('span')<{
 `;
 const CellExpander = styled('div')`
   width: 100vw;
+`;
+
+const AlignRight = styled('div')`
+  text-align: right;
+`;
+
+const AlignCenter = styled('div')`
+  text-align: center;
 `;

@@ -36,6 +36,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 const defaultProps = {
   canSelectGroups: true,
@@ -224,13 +225,13 @@ class IssuesGroupList extends Component<Props, State> {
         return renderEmptyMessage();
       }
       return (
-        <Panel>
+        <StyledPanel>
           <PanelBody>
             <EmptyStateWarning>
               <p>{t("There don't seem to be any events fitting the query.")}</p>
             </EmptyStateWarning>
           </PanelBody>
-        </Panel>
+        </StyledPanel>
       );
     }
 
@@ -241,7 +242,7 @@ class IssuesGroupList extends Component<Props, State> {
 
     return (
       <Fragment>
-        <PanelContainer>
+        <StyledPanel>
           <HeaderContainer>
             <SuperHeader disablePadding>
               <SuperHeaderLabel hideDivider>{t('Recommended Issues')}</SuperHeaderLabel>
@@ -283,7 +284,7 @@ class IssuesGroupList extends Component<Props, State> {
                   );
                 })}
           </PanelBody>
-        </PanelContainer>
+        </StyledPanel>
       </Fragment>
     );
   }
@@ -297,10 +298,6 @@ const GroupPlaceholder = styled('div')`
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.innerBorder};
   }
-`;
-
-const PanelContainer = styled(Panel)`
-  container-type: inline-size;
 `;
 
 const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
@@ -323,8 +320,9 @@ const HeaderContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.header};
 `;
 
-export function IssuesWidget({query = ''}: {query?: string}) {
+export function IssuesWidget() {
   const location = useLocation();
+  const {query} = useTransactionNameQuery();
   const queryWithDefault = new MutableSearch(['is:unresolved', 'event.type:error']);
   if (query) {
     queryWithDefault.setFilterValues('transaction', [query]);
@@ -355,7 +353,9 @@ export function IssuesWidget({query = ''}: {query?: string}) {
       : t('given timeframe');
 
     return (
-      <Panel style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+      <StyledPanel
+        style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}
+      >
         <PanelBody>
           <EmptyStateWarning>
             <p>
@@ -366,7 +366,7 @@ export function IssuesWidget({query = ''}: {query?: string}) {
             </p>
           </EmptyStateWarning>
         </PanelBody>
-      </Panel>
+      </StyledPanel>
     );
   }
 
@@ -382,3 +382,11 @@ export function IssuesWidget({query = ''}: {query?: string}) {
     />
   );
 }
+
+const StyledPanel = styled(Panel)`
+  min-width: 0;
+  overflow-y: auto;
+  margin-bottom: 0 !important;
+  height: 100%;
+  container-type: inline-size;
+`;

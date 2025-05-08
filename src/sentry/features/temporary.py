@@ -155,6 +155,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-search-snuba", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the new issue category mapping
     manager.add("organizations:issue-taxonomy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # When enabled, search bars in the application will immediately search the query is modified instead of waiting for the enter key
+    manager.add("organizations:ui-search-on-change", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:metric-issue-poc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("projects:metric-issue-creation", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:issue-open-periods", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -327,6 +329,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-session-health-tab-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    # Enable the split enhancements experiment
+    manager.add("organizations:run-split-enhancements", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable SAML2 Single-logout
     manager.add("organizations:sso-saml2-slo", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Show links and upsells to Insights modules
