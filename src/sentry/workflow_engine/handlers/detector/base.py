@@ -11,12 +11,15 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import Condition, DataConditionGroup, DataPacket, Detector
+from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
 DataPacketType = TypeVar("DataPacketType")
 DataPacketEvaluationType = TypeVar("DataPacketEvaluationType")
+
+# TODO - get more info about how this is used in issue platform
 EventData = dict[str, Any]
 
 
@@ -109,7 +112,7 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
     @abc.abstractmethod
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+    ) -> DetectorEvaluationResult | dict[DetectorGroupKey, DetectorEvaluationResult]:
         """
         This method is used to evaluate the data packet's value against the conditions on the detector.
         """
@@ -118,10 +121,9 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
     @abc.abstractmethod
     def create_occurrence(
         self,
-        value: DataPacketEvaluationType,
+        evaluation_result: ProcessedDataConditionGroup,
+        data_packet: DataPacketType,
         priority: DetectorPriorityLevel,
-        # data_packet: DataPacketType, # TODO - having access to all the data being evaluated seems good
-        # data_conditions: list[DataCondition], # TODO - list of the failing conditions might be nice
     ) -> tuple[DetectorOccurrence, EventData]:
         """
         This method provides the value that was evaluated against, the data packet that was

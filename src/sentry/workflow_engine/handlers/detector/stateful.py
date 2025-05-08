@@ -19,9 +19,13 @@ from sentry.workflow_engine.handlers.detector.base import (
     DataPacketType,
     DetectorEvaluationResult,
     DetectorHandler,
+    DetectorOccurrence,
 )
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
-from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
+from sentry.workflow_engine.processors.data_condition_group import (
+    ProcessedDataConditionGroup,
+    process_data_condition_group,
+)
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -51,7 +55,8 @@ class DetectorStateData:
 # TODO - refactor the `DetectorGroup` information out of this layer.
 class DetectorStateManager:
     """
-    Move the SQL + Redis state here, out of the `StatefulGroupingDetectorHandler`.
+    TODO - Fix the Grouping info here, and move it out of the manager if possible.
+    if not, refactor to have a base + a grouping base.
     """
 
     dedupe_updates: dict[DetectorGroupKey, int] = {}
@@ -241,6 +246,124 @@ class DetectorStateManager:
         return results
 
 
+class StatefulDetectorHandler(
+    Generic[DataPacketType, DataPacketEvaluationType],
+    DetectorHandler[DataPacketType, DataPacketEvaluationType],
+    abc.ABC,
+):
+    def __init__(self, detector: Detector):
+        super().__init__(detector)
+        # TODO - is `thresholds` good? (check evans pr)
+        if detector.config.get("thresholds"):
+            raise Exception(
+                "Stateful detectors are required to have `thresholds` set in the config"
+            )
+
+        self.state_manager = DetectorStateManager(detector)
+
+    def _get_issue_occurrence_or_status_change(
+        self, detector_occurrence: DetectorOccurrence
+    ) -> IssueOccurrence | StatusChangeMessage:
+        # TODO figure out if this is the right structure for collecting all the data.
+        pass
+
+    def _create_decorated_issue_occurrence(
+        self,
+        detector_occurrence: DetectorOccurrence,
+        evaluation_result: ProcessedDataConditionGroup,
+    ) -> IssueOccurrence:
+        """
+        Decorate the issue occurrence with the data from the detector's evaluation result.
+        """
+        return detector_occurrence.to_issue_occurrence(
+            occurrence_id=str(uuid4()),
+            project_id=self.detector.project_id,
+            status=detector_occurrence.priority,
+            detection_time=datetime.now(UTC),
+            additional_evidence_data=detector_occurrence.evidence_data,
+            fingerprint=[self.detector.id],
+        )
+
+    def _evaluation_detector_conditions(
+        self, value: DataPacketEvaluationType
+    ) -> tuple[ProcessedDataConditionGroup, DetectorPriorityLevel]:
+        """
+        Evaluate the detector.workflow_condition_group against the value in the data packet.
+
+        Returns a tuple of the condition evaluation and the new priority level.
+        """
+        new_priority = DetectorPriorityLevel.OK
+
+        condition_evaluation, _ = process_data_condition_group(self.condition_group.id, value)
+
+        if condition_evaluation.logic_result:
+            validated_condition_results: list[DetectorPriorityLevel] = [
+                condition_result.result
+                for condition_result in condition_evaluation.condition_results
+                if condition_result.result is not None
+                and isinstance(condition_result.result, DetectorPriorityLevel)
+            ]
+
+            new_priority = max(new_priority, *validated_condition_results)
+
+        return condition_evaluation, new_priority
+
+    def build_fingerprint(self, postfix: str | None) -> str:
+        """
+        Builds a fingerprint to uniquely identify a detected issue
+        """
+        if not postfix:
+            return f"{self.detector.id}"
+        return f"{self.detector.id}:{postfix}"
+
+    def create_resolve_message(self) -> StatusChangeMessage:
+        """
+        Create a resolve message for the detectors issue
+        """
+        return StatusChangeMessage(
+            fingerprint=self.build_fingerprint(),
+            project_id=self.detector.project_id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+        )
+
+    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> DetectorEvaluationResult:
+        """
+        This method evaluates the detector's conditions against the data packet's value.
+
+        If the conditions are met, it will call `create_occurrence` in the implmenting class
+        to create a detector occurrence.
+        """
+        detector_result: IssueOccurrence | StatusChangeMessage
+        value = self.extract_value(data_packet)
+        condition_evaluation, new_priority = self._evaluation_detector_conditions(value)
+        state = self.state_manager.get_state_data([None])[None]
+
+        if state.status == new_priority:
+            return None
+
+        if new_priority == DetectorPriorityLevel.OK:
+            detector_result = self.create_resolve_message()
+        else:
+            # TODO - think through this bit later, as it's a new feature
+            # get counter values for each state
+            # if counter values > detector.config.get("thresholds", {}).get(new_priority) then create occurrence
+            detector_occurrence, event_data = self.create_occurrence(
+                condition_evaluation, data_packet, new_priority
+            )
+            detector_result = self._create_decorated_issue_occurrence(
+                detector_occurrence, condition_evaluation
+            )
+
+        return DetectorEvaluationResult(
+            is_triggered=new_priority != DetectorPriorityLevel.OK,
+            priority=new_priority,
+            result=detector_result,
+            event_data=event_data,
+        )
+
+
+# TODO move to group.py?
 class StatefulGroupingDetectorHandler(
     Generic[DataPacketType, DataPacketEvaluationType],
     DetectorHandler[DataPacketType, DataPacketEvaluationType],
@@ -301,6 +424,8 @@ class StatefulGroupingDetectorHandler(
         all_state_data = self.state_manager.get_state_data(list(group_values.keys()))
         results = {}
         for group_key, group_value in group_values.items():
+            # invoke the stateful detector with the associated data. doesn't need the group key for evaluation
+            # results returned here will be then committed in bulk
             result = self.evaluate_group_key_value(
                 group_key, group_value, all_state_data[group_key], dedupe_value
             )
