@@ -5,6 +5,7 @@ import {PlatformIcon} from 'platformicons';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button';
 import {Select} from 'sentry/components/core/select';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   EventDrawerBody,
   EventDrawerContainer,
@@ -63,74 +64,86 @@ function ReleasesDrawerContent({
   return (
     <Fragment>
       <EventNavigator>
-        <HeaderToolbar>
-          <ReleaseWithPlatform>
-            <SelectableProjectBadges>
-              {releaseMeta?.projects?.map(releaseProject => (
-                <SelectableProjectBadge
-                  key={releaseProject.id}
-                  to={{
-                    pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      [ReleasesDrawerFields.RELEASE_PROJECT_ID]: releaseProject.id,
-                    },
-                  }}
-                >
-                  <PlatformIcon size={16} platform={releaseProject.platform} />
-                </SelectableProjectBadge>
-              ))}
-            </SelectableProjectBadges>
-            {formatVersion(release)}
-          </ReleaseWithPlatform>
+        <ErrorBoundary mini>
+          <HeaderToolbar>
+            <ReleaseWithPlatform>
+              <ErrorBoundary mini>
+                <SelectableProjectBadges>
+                  {releaseMeta?.projects?.map(releaseProject => (
+                    <SelectableProjectBadge
+                      key={releaseProject.id}
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          [ReleasesDrawerFields.RELEASE_PROJECT_ID]: releaseProject.id,
+                        },
+                      }}
+                    >
+                      <PlatformIcon size={16} platform={releaseProject.platform} />
+                    </SelectableProjectBadge>
+                  ))}
+                </SelectableProjectBadges>
+              </ErrorBoundary>
+              {formatVersion(release)}
+            </ReleaseWithPlatform>
 
-          <LinkButton
-            to={normalizeUrl({
-              pathname: makeReleasesPathname({
-                path: `/${encodeURIComponent(release)}/`,
-                organization,
-              }),
-              query: {
-                project: projectId,
-              },
-            })}
-            size="xs"
-            onClick={() => {
-              trackAnalytics('releases.drawer_view_full_details', {
-                organization: organization.id,
-                project_id: String(projectId),
-              });
-            }}
-          >
-            {t('View Full Details')}
-          </LinkButton>
-        </HeaderToolbar>
+            <LinkButton
+              to={normalizeUrl({
+                pathname: makeReleasesPathname({
+                  path: `/${encodeURIComponent(release)}/`,
+                  organization,
+                }),
+                query: {
+                  project: projectId,
+                },
+              })}
+              size="xs"
+              onClick={() => {
+                trackAnalytics('releases.drawer_view_full_details', {
+                  organization: organization.id,
+                  project_id: String(projectId),
+                });
+              }}
+            >
+              {t('View Full Details')}
+            </LinkButton>
+          </HeaderToolbar>
+        </ErrorBoundary>
       </EventNavigator>
 
       <EventDrawerBody>
         <div>
           <Title>{t('Details')}</Title>
           <Details>
-            <GeneralCard
-              isMetaError={isMetaError}
-              projectSlug={project?.slug}
-              release={release}
-              releaseMeta={releaseMeta}
-            />
+            <ErrorBoundary mini>
+              <GeneralCard
+                isMetaError={isMetaError}
+                projectSlug={project?.slug}
+                release={release}
+                releaseMeta={releaseMeta}
+              />
+            </ErrorBoundary>
 
-            <DeploysCard release={release} projectSlug={project?.slug} />
+            <ErrorBoundary mini>
+              <DeploysCard release={release} projectSlug={project?.slug} />
+            </ErrorBoundary>
           </Details>
 
           <Title>{t('New Issues')}</Title>
-          <NewIssues projectId={projectId} release={release} />
+          <ErrorBoundary mini>
+            <NewIssues projectId={projectId} release={release} />
+          </ErrorBoundary>
 
-          <CommitsFilesSection
-            isLoadingMeta={isLoadingMeta}
-            isMetaError={isMetaError}
-            releaseMeta={releaseMeta}
-            projectSlug={project?.slug}
-            release={release}
-          />
+          <ErrorBoundary mini>
+            <CommitsFilesSection
+              isLoadingMeta={isLoadingMeta}
+              isMetaError={isMetaError}
+              releaseMeta={releaseMeta}
+              projectSlug={project?.slug}
+              release={release}
+            />
+          </ErrorBoundary>
         </div>
       </EventDrawerBody>
     </Fragment>
@@ -263,33 +276,36 @@ export function ReleasesDrawerDetails({
   return (
     <EventDrawerContainer>
       <EventDrawerHeader>
-        <NavigationCrumbs crumbs={crumbs} />
+        <ErrorBoundary mini>
+          <NavigationCrumbs crumbs={crumbs} />
+        </ErrorBoundary>
       </EventDrawerHeader>
-      {showContent ? (
-        <ReleasesDrawerContent
-          release={release}
-          projectId={projectIdProp || projectId}
-          project={project}
-          releaseMeta={releaseMeta}
-          isMetaError={isMetaError}
-          isLoadingMeta={isLoadingMeta}
-        />
-      ) : isLoadingMeta ? (
-        <LoadingIndicator />
-      ) : showProjectSelect ? (
-        <EnsureSingleProject
-          releaseMeta={releaseMeta}
-          onProjectSelect={handleProjectSelect}
-        />
-      ) : project || isMetaError ? (
-        <EventDrawerBody>
-          <Alert type="error">{t('Release not found')}</Alert>
-        </EventDrawerBody>
-      ) : (
-        <EventDrawerBody>
-          <Alert type="error">{t('Project not found')}</Alert>
-        </EventDrawerBody>
-      )}
+
+      <ErrorBoundary>
+        {showContent ? (
+          <ReleasesDrawerContent
+            release={release}
+            projectId={projectIdProp || projectId}
+            project={project}
+            releaseMeta={releaseMeta}
+            isMetaError={isMetaError}
+            isLoadingMeta={isLoadingMeta}
+          />
+        ) : isLoadingMeta ? (
+          <LoadingIndicator />
+        ) : showProjectSelect ? (
+          <EnsureSingleProject
+            releaseMeta={releaseMeta}
+            onProjectSelect={handleProjectSelect}
+          />
+        ) : (
+          <EventDrawerBody>
+            <Alert type="error">
+              {project || isMetaError ? t('Release not found') : t('Project not found')}
+            </Alert>
+          </EventDrawerBody>
+        )}
+      </ErrorBoundary>
     </EventDrawerContainer>
   );
 }
