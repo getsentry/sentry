@@ -6,7 +6,6 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
-import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -2365,7 +2364,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
             dashboards={[]}
@@ -2389,7 +2387,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
             dashboards={[]}
@@ -2413,7 +2410,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
             dashboards={[]}
@@ -2437,7 +2433,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
             dashboards={[]}
@@ -2472,7 +2467,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
             dashboards={[]}
@@ -2520,7 +2514,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
             dashboards={[]}
@@ -2567,7 +2560,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
             dashboards={[]}
@@ -2623,7 +2615,6 @@ describe('Dashboards > Detail', function () {
         });
         render(
           <DashboardDetail
-            theme={ThemeFixture()}
             {...RouteComponentPropsFixture()}
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
