@@ -32,6 +32,7 @@ import {
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
 import FeedbackButtonTour from 'sentry/views/insights/sessions/components/tour/feedbackButtonTour';
+import {EAP_LOCAL_STORAGE_KEY} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -68,7 +69,7 @@ export function DomainViewHeader({
   const useEap = useInsightsEap();
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
   const [_, setIsEapEnabledLocalState] = useSyncedLocalStorageState(
-    'insights-modules-use-eap',
+    EAP_LOCAL_STORAGE_KEY,
     false
   );
 
