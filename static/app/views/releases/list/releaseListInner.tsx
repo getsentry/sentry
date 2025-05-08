@@ -12,14 +12,12 @@ import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {HealthStatsPeriodOption, type Release} from 'sentry/types/release';
 import {decodeScalar} from 'sentry/utils/queryString';
-// Using withSentryRouter only to facilitate converting ReleaseList from DeprecatedAsyncComponent
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 import ReleaseCard from 'sentry/views/releases/list/releaseCard';
 import ReleasesAdoptionChart from 'sentry/views/releases/list/releasesAdoptionChart';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
@@ -31,12 +29,10 @@ import {isMobileRelease} from 'sentry/views/releases/utils';
 interface Props {
   activeDisplay: ReleasesDisplayOption;
   loading: boolean;
-  location: Location;
   organization: Organization;
   releases: Release[];
   releasesPageLinks: any;
   reloading: boolean;
-  router: InjectedRouter;
   selectedProject: Project | undefined;
   selection: PageFilters;
   shouldShowQuickstart: boolean;
@@ -46,17 +42,17 @@ interface Props {
 function ReleaseListInner({
   activeDisplay,
   loading,
-  location,
   organization,
   releases,
   releasesPageLinks,
   reloading,
-  router,
   selectedProject,
   selection,
   shouldShowQuickstart,
   showReleaseAdoptionStages,
 }: Props) {
+  const router = useRouter();
+  const location = useLocation();
   const hasReleasesSetup = selectedProject?.features.includes('releases');
 
   const shouldShowLoadingIndicator =
@@ -134,7 +130,7 @@ function ReleaseListInner({
   );
 }
 
-export default withSentryRouter(ReleaseListInner);
+export default ReleaseListInner;
 
 function getQuery(location: Location) {
   const {query} = location.query;
