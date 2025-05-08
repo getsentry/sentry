@@ -1,5 +1,5 @@
-from sentry.integrations.slack.threads.activity_notifications import AssignedActivityNotification
 from sentry.models.activity import Activity
+from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 
