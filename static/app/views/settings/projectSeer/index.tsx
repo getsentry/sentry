@@ -21,7 +21,7 @@ interface ProjectSeerProps {
   project: Project;
 }
 
-const THRESHOLD_MAP = ['off', 'low', 'medium', 'high', 'always'] as const;
+export const SEER_THRESHOLD_MAP = ['off', 'low', 'medium', 'high', 'always'] as const;
 
 export function formatSeerValue(value: string | undefined) {
   switch (value) {
@@ -48,17 +48,17 @@ export const autofixAutomatingTuningField = {
   ),
   type: 'range',
   min: 0,
-  max: THRESHOLD_MAP.length - 1,
-  ticks: THRESHOLD_MAP.length - 1,
-  tickValues: THRESHOLD_MAP.map((_, i) => i),
+  max: SEER_THRESHOLD_MAP.length - 1,
+  ticks: SEER_THRESHOLD_MAP.length - 1,
+  tickValues: SEER_THRESHOLD_MAP.map((_, i) => i),
   formatLabel: (val: number | '') => {
     const numVal =
-      typeof val === 'string' || val < 0 || val >= THRESHOLD_MAP.length ? 0 : val;
-    const level = THRESHOLD_MAP[numVal];
+      typeof val === 'string' || val < 0 || val >= SEER_THRESHOLD_MAP.length ? 0 : val;
+    const level = SEER_THRESHOLD_MAP[numVal];
     return formatSeerValue(level);
   },
   getValue: (val: number): string => {
-    return THRESHOLD_MAP[val]!;
+    return SEER_THRESHOLD_MAP[val]!;
   },
   saveOnBlur: true,
   showTickLabels: true,
@@ -98,7 +98,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
       apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
       allowUndo
       initialData={{
-        autofixAutomationTuning: THRESHOLD_MAP.indexOf(
+        autofixAutomationTuning: SEER_THRESHOLD_MAP.indexOf(
           project.autofixAutomationTuning ?? 'off'
         ),
       }}

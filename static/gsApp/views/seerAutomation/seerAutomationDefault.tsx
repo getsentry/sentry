@@ -3,14 +3,17 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {autofixAutomatingTuningField} from 'sentry/views/settings/projectSeer';
+import {
+  autofixAutomatingTuningField,
+  SEER_THRESHOLD_MAP,
+} from 'sentry/views/settings/projectSeer';
 
 export function SeerAutomationDefault() {
   const organization = useOrganization();
 
   const orgDefaultAutomationTuning = {
     ...autofixAutomatingTuningField,
-    name: 'orgDefaultAutofixAutomationTuning',
+    name: 'defaultAutofixAutomationTuning',
     label: t('Default for new projects'),
   } satisfies FieldObject;
 
@@ -27,7 +30,9 @@ export function SeerAutomationDefault() {
       apiEndpoint={`/organizations/${organization.slug}/`}
       allowUndo
       initialData={{
-        orgDefaultAutofixAutomationTuning: 'off',
+        defaultAutofixAutomationTuning: SEER_THRESHOLD_MAP.indexOf(
+          organization.defaultAutofixAutomationTuning ?? 'off'
+        ),
       }}
     >
       <JsonForm forms={seerFormGroups} />
