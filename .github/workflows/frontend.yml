@@ -73,7 +73,7 @@ jobs:
 
       - name: tsc
         id: tsc
-        run: pnpm run tsc -p tsconfig.json
+        run: pnpm exec tsc -p tsconfig.json
 
   eslint:
     if: needs.files-changed.outputs.frontend_all == 'true'
@@ -109,7 +109,7 @@ jobs:
 
       - name: eslint
         id: eslint
-        run: pnpm lint:js
+        run: pnpm run lint:js
 
   frontend-jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
