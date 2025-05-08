@@ -16,7 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.identity.github import GitHubIdentityProvider, get_user_info
+from sentry.identity.github.provider import GitHubIdentityProvider
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -69,7 +69,7 @@ from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import determine_active_organization
 from sentry.web.helpers import render_to_response
 
-from .client import GitHubApiClient, GitHubBaseClient
+from .client import GitHubApiClient, GitHubBaseClient, GithubSetupApiClient
 from .issues import GitHubIssuesSpec
 from .repository import GitHubRepositoryProvider
 
@@ -203,7 +203,7 @@ class GitHubIntegration(
 
     # IntegrationInstallation methods
 
-    def is_rate_limited_error(self, exc: Exception) -> bool:
+    def is_rate_limited_error(self, exc: ApiError) -> bool:
         if exc.json and RATE_LIMITED_MESSAGE in exc.json.get("message", ""):
             metrics.incr("github.link_all_repos.rate_limited_error")
             return True
@@ -303,6 +303,8 @@ class GitHubIntegration(
         return True
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        if query is None:
+            query = ""
         resp = self.get_client().search_issues(query)
         assert isinstance(resp, dict)
         return resp
@@ -314,7 +316,7 @@ class GitHubIntegration(
         # Attempt to backfill the id if it does not exist
         if github_account_id is None:
             client: GitHubBaseClient = self.get_client()
-            installation_id: int = self.model.external_id
+            installation_id = self.model.external_id
             updated_installation_info: Mapping[str, Any] = client.get_installation_info(
                 installation_id
             )
@@ -385,7 +387,7 @@ class GitHubPRCommentWorkflow(PRCommentWorkflow):
             [
                 MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
                     title=issue.title,
-                    subtitle=self.format_comment_subtitle(issue.culprit),
+                    subtitle=self.format_comment_subtitle(issue.culprit or "unknown culprit"),
                     url=self.format_comment_url(issue.get_absolute_url(), self.referrer_id),
                 )
                 for issue in issues
@@ -404,7 +406,7 @@ class GitHubPRCommentWorkflow(PRCommentWorkflow):
     ) -> dict[str, Any]:
         enabled_copilot = features.has("organizations:gen-ai-features", organization)
 
-        comment_data = {
+        comment_data: dict[str, Any] = {
             "body": comment_body,
         }
         if enabled_copilot:
@@ -449,11 +451,12 @@ OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 
 class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
+    integration: GitHubIntegration
     organization_option_key = "sentry:github_open_pr_bot"
     referrer = Referrer.GITHUB_PR_COMMENT_BOT
     referrer_id = GITHUB_OPEN_PR_BOT_REFERRER
 
-    def safe_for_comment(self, repo: Repository, pr: PullRequest) -> list[PullRequestFile]:
+    def safe_for_comment(self, repo: Repository, pr: PullRequest) -> list[dict[str, Any]]:
         client = self.integration.get_client()
         logger.info(
             _open_pr_comment_log(
@@ -650,11 +653,10 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_client(self) -> GitHubBaseClient:
-        # XXX: This is very awkward behaviour as we're not passing the client an Integration
-        # object it expects. Instead we're passing the Installation object and hoping the client
-        # doesn't try to invoke any bad fields/attributes on it.
-        return GitHubApiClient(integration=self.integration_cls)
+    @property
+    def client(self) -> GithubSetupApiClient:
+        # The endpoints we need to hit at this step authenticate via JWT so no need for access token in client
+        return GithubSetupApiClient()
 
     def post_install(
         self,
@@ -690,13 +692,14 @@ class GitHubIntegrationProvider(IntegrationProvider):
         return [OAuthLoginView(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
-        client = self.get_client()
-        resp: Mapping[str, Any] = client.get_installation_info(installation_id)
+        resp: Mapping[str, Any] = self.client.get_installation_info(installation_id=installation_id)
         return resp
 
     def build_integration(self, state: Mapping[str, str]) -> IntegrationData:
         try:
-            installation = self.get_installation_info(state["installation_id"])
+            installation = self.get_installation_info(
+                state["installation_id"],
+            )
         except ApiError as api_error:
             if api_error.code == 404:
                 raise IntegrationError("The GitHub installation could not be found.")
@@ -808,8 +811,9 @@ class OAuthLoginView(PipelineView):
                     self.active_organization,
                     error_short=GitHubInstallationError.MISSING_TOKEN,
                 )
+            client = GithubSetupApiClient(access_token=payload["access_token"])
+            authenticated_user_info = client.get_user_info()
 
-            authenticated_user_info = get_user_info(payload["access_token"])
             if "login" not in authenticated_user_info:
                 lifecycle.record_failure(GitHubInstallationError.MISSING_LOGIN)
                 return error(
