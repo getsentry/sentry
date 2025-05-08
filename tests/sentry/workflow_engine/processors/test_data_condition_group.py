@@ -4,6 +4,8 @@ from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.processors.data_condition_group import (
+    ProcessedDataCondition,
+    ProcessedDataConditionGroup,
     evaluate_data_conditions,
     get_data_conditions_for_group,
     process_data_condition_group,
@@ -26,7 +28,12 @@ class TestProcessDataConditionGroup(TestCase):
         with mock.patch(
             "sentry.workflow_engine.processors.data_condition_group.logger"
         ) as mock_logger:
-            assert process_data_condition_group(1, 1) == ((False, []), [])
+            expected_result = ProcessedDataConditionGroup(logic_result=False, condition_results=[])
+            expected_remaining_conditions: list[DataCondition] = []
+            assert process_data_condition_group(1, 1) == (
+                expected_result,
+                expected_remaining_conditions,
+            )
             assert mock_logger.exception.call_args[0][0] == "DataConditionGroup does not exist"
 
     def test_process_data_condition_group__exists__fails(self):
@@ -35,7 +42,15 @@ class TestProcessDataConditionGroup(TestCase):
             condition_group=data_condition_group, type=Condition.GREATER, comparison=5
         )
 
-        assert process_data_condition_group(data_condition_group.id, 1) == ((False, []), [])
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=False,
+            condition_results=[],
+        )
+        expected_remaining_conditions: list[DataCondition] = []
+        assert process_data_condition_group(data_condition_group.id, 1) == (
+            expected_result,
+            expected_remaining_conditions,
+        )
 
     def test_process_data_condition_group__exists__passes(self):
         data_condition_group = self.create_data_condition_group()
@@ -45,10 +60,17 @@ class TestProcessDataConditionGroup(TestCase):
             comparison=5,
             condition_result=DetectorPriorityLevel.HIGH,
         )
-        assert process_data_condition_group(data_condition_group.id, 10) == (
-            (True, [(self.condition, DetectorPriorityLevel.HIGH)]),
-            [],
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=True,
+            condition_results=[
+                ProcessedDataCondition(
+                    logic_result=True,
+                    condition=self.condition,
+                    result=DetectorPriorityLevel.HIGH,
+                )
+            ],
         )
+        assert process_data_condition_group(data_condition_group.id, 10) == (expected_result, [])
 
 
 class TestEvaluationConditionCase(TestCase):
@@ -79,33 +101,69 @@ class TestEvaluationConditionCase(TestCase):
 
 class TestEvaluateConditionGroupTypeAny(TestEvaluationConditionCase):
     def test_evaluate_data_conditions__passes_all(self):
-        assert evaluate_data_conditions(
-            self.get_conditions_to_evaluate(10),
-            self.data_condition_group.logic_type,
-        ) == (
-            True,
-            [
-                (self.data_condition, DetectorPriorityLevel.HIGH),
-                (self.data_condition_two, DetectorPriorityLevel.LOW),
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=True,
+            condition_results=[
+                ProcessedDataCondition(
+                    logic_result=True,
+                    condition=self.data_condition,
+                    result=DetectorPriorityLevel.HIGH,
+                ),
+                ProcessedDataCondition(
+                    logic_result=True,
+                    condition=self.data_condition_two,
+                    result=DetectorPriorityLevel.LOW,
+                ),
             ],
         )
 
+        result = evaluate_data_conditions(
+            self.get_conditions_to_evaluate(10),
+            self.data_condition_group.logic_type,
+        )
+
+        assert result == expected_result
+
     def test_evaluate_data_conditions__passes_one(self):
-        assert evaluate_data_conditions(
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=True,
+            condition_results=[
+                ProcessedDataCondition(
+                    logic_result=True,
+                    condition=self.data_condition_two,
+                    result=DetectorPriorityLevel.LOW,
+                )
+            ],
+        )
+
+        result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(4),
             self.data_condition_group.logic_type,
-        ) == (True, [(self.data_condition_two, DetectorPriorityLevel.LOW)])
+        )
+
+        assert result == expected_result
 
     def test_evaluate_data_conditions__fails_all(self):
-        assert evaluate_data_conditions(
-            self.get_conditions_to_evaluate(1), self.data_condition_group.logic_type
-        ) == (False, [])
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=False,
+            condition_results=[],
+        )
+
+        result = evaluate_data_conditions(
+            self.get_conditions_to_evaluate(1),
+            self.data_condition_group.logic_type,
+        )
+
+        assert result == expected_result
 
     def test_evaluate_data_conditions__passes_without_conditions(self):
-        assert evaluate_data_conditions([], self.data_condition_group.logic_type) == (
-            True,
-            [],
+        result = evaluate_data_conditions([], self.data_condition_group.logic_type)
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=True,
+            condition_results=[],
         )
+
+        assert result == expected_result
 
 
 class TestEvaluateConditionGroupTypeAnyShortCircuit(TestEvaluationConditionCase):
@@ -116,22 +174,53 @@ class TestEvaluateConditionGroupTypeAnyShortCircuit(TestEvaluationConditionCase)
     def test_evaluate_data_conditions__passes_all(self):
         assert evaluate_data_conditions(
             self.get_conditions_to_evaluate(10), self.data_condition_group.logic_type
-        ) == (True, [(self.data_condition, DetectorPriorityLevel.HIGH)])
+        ) == ProcessedDataConditionGroup(
+            logic_result=True,
+            condition_results=[
+                ProcessedDataCondition(
+                    logic_result=True,
+                    condition=self.data_condition,
+                    result=DetectorPriorityLevel.HIGH,
+                )
+            ],
+        )
 
     def test_evaluate_data_conditions__passes_one(self):
-        assert evaluate_data_conditions(
+        result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(4),
             self.data_condition_group.logic_type,
-        ) == (True, [(self.data_condition_two, DetectorPriorityLevel.LOW)])
+        )
+
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=True,
+            condition_results=[
+                ProcessedDataCondition(
+                    logic_result=True,
+                    condition=self.data_condition_two,
+                    result=DetectorPriorityLevel.LOW,
+                )
+            ],
+        )
+        assert result == expected_result
 
     def test_evaluate_data_conditions__fails_all(self):
-        assert evaluate_data_conditions(
+        result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(1),
             self.data_condition_group.logic_type,
-        ) == (False, [])
+        )
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=False,
+            condition_results=[],
+        )
+        assert result == expected_result
 
     def test_evaluate_data_conditions__passes_without_conditions(self):
-        assert evaluate_data_conditions([], self.data_condition_group.logic_type) == (True, [])
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=True,
+            condition_results=[],
+        )
+        result = evaluate_data_conditions([], self.data_condition_group.logic_type)
+        assert result == expected_result
 
 
 class TestEvaluateConditionGroupTypeAll(TestEvaluationConditionCase):
@@ -140,31 +229,55 @@ class TestEvaluateConditionGroupTypeAll(TestEvaluationConditionCase):
         self.data_condition_group.logic_type = DataConditionGroup.Type.ALL
 
     def test_evaluate_data_conditions__passes_all(self):
-        assert evaluate_data_conditions(
+        result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(10), self.data_condition_group.logic_type
-        ) == (
-            True,
-            [
-                (self.data_condition, DetectorPriorityLevel.HIGH),
-                (self.data_condition_two, DetectorPriorityLevel.LOW),
+        )
+
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=True,
+            condition_results=[
+                ProcessedDataCondition(
+                    logic_result=True,
+                    condition=self.data_condition,
+                    result=DetectorPriorityLevel.HIGH,
+                ),
+                ProcessedDataCondition(
+                    logic_result=True,
+                    condition=self.data_condition_two,
+                    result=DetectorPriorityLevel.LOW,
+                ),
             ],
         )
+        assert result == expected_result
 
     def test_evaluate_data_conditions__passes_one(self):
-        assert evaluate_data_conditions(
+        result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(4), self.data_condition_group.logic_type
-        ) == (False, [])
+        )
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=False,
+            condition_results=[],
+        )
+        assert result == expected_result
 
     def test_evaluate_data_conditions__fails_all(self):
-        assert evaluate_data_conditions(
+        result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(1), self.data_condition_group.logic_type
-        ) == (False, [])
+        )
+
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=False,
+            condition_results=[],
+        )
+        assert result == expected_result
 
     def test_evaluate_data_conditions__passes_without_conditions(self):
-        assert evaluate_data_conditions([], self.data_condition_group.logic_type) == (
-            True,
-            [],
+        result = evaluate_data_conditions([], self.data_condition_group.logic_type)
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=True,
+            condition_results=[],
         )
+        assert result == expected_result
 
 
 class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
@@ -173,19 +286,36 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
         self.data_condition_group.logic_type = DataConditionGroup.Type.NONE
 
     def test_evaluate_data_conditions__all_conditions_pass__fails(self):
-        assert evaluate_data_conditions(
+        result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(10), self.data_condition_group.logic_type
-        ) == (False, [])
+        )
+
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=False,
+            condition_results=[],
+        )
+        assert result == expected_result
 
     def test_evaluate_data_conditions__one_condition_pass__fails(self):
-        assert evaluate_data_conditions(
+        result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(4), self.data_condition_group.logic_type
-        ) == (False, [])
+        )
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=False,
+            condition_results=[],
+        )
+        assert result == expected_result
 
     def test_evaluate_data_conditions__no_conditions_pass__passes(self):
-        assert evaluate_data_conditions(
+        result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(1), self.data_condition_group.logic_type
-        ) == (True, [])
+        )
+        expected_result = ProcessedDataConditionGroup(
+            logic_result=True,
+            condition_results=[],
+        )
+
+        assert result == expected_result
 
 
 class TestEvaluateConditionGroupWithSlowConditions(TestCase):
@@ -209,58 +339,69 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         )
 
     def test_basic_remaining_conditions(self):
-        (logic_result, condition_results), remaining_conditions = process_data_condition_group(
+        expected_condition_result = ProcessedDataCondition(
+            logic_result=True, condition=self.data_condition, result=True
+        )
+
+        group_evaluation, remaining_conditions = process_data_condition_group(
             self.data_condition_group.id,
             10,
             True,
         )
 
-        assert logic_result is True
-        assert condition_results == [(self.data_condition, True)]
+        assert group_evaluation.logic_result is True
+        assert (
+            group_evaluation.condition_results[0].condition.id
+            == expected_condition_result.condition.id
+        )
         assert remaining_conditions == [self.slow_condition]
 
     def test_basic_only_slow_conditions(self):
         self.data_condition.delete()
-        (logic_result, condition_results), remaining_conditions = process_data_condition_group(
+        group_evaluation, remaining_conditions = process_data_condition_group(
             self.data_condition_group.id,
             10,
             True,
         )
 
-        assert logic_result is False
-        assert condition_results == []
+        assert group_evaluation.logic_result is False
+        assert group_evaluation.condition_results == []
         assert remaining_conditions == [self.slow_condition]
 
     def test_execute_slow_conditions(self):
-        (logic_result, condition_results), remaining_conditions = process_data_condition_group(
+        group_evaluation, remaining_conditions = process_data_condition_group(
             self.data_condition_group,
             [10],
             False,
         )
 
-        assert logic_result is True
-        assert condition_results == [(self.slow_condition, True)]
+        assert group_evaluation.logic_result is True
+        assert group_evaluation.condition_results == [
+            ProcessedDataCondition(logic_result=True, condition=self.slow_condition, result=True)
+        ]
         assert remaining_conditions == []
 
     def test_short_circuit_with_all(self):
-        (logic_result, condition_results), remaining_conditions = process_data_condition_group(
+        group_evaluation, remaining_conditions = process_data_condition_group(
             self.data_condition_group.id,
             1,
             True,
         )
 
-        assert logic_result is False
-        assert condition_results == []
+        assert group_evaluation.logic_result is False
+        assert group_evaluation.condition_results == []
         assert remaining_conditions == []
 
     def test_short_circuit_with_any(self):
         self.data_condition_group.update(logic_type=DataConditionGroup.Type.ANY)
-        (logic_result, condition_results), remaining_conditions = process_data_condition_group(
+        group_evaluation, remaining_conditions = process_data_condition_group(
             self.data_condition_group.id,
             10,
             True,
         )
 
-        assert logic_result is True
-        assert condition_results == [(self.data_condition, True)]
+        assert group_evaluation.logic_result is True
+        assert group_evaluation.condition_results == [
+            ProcessedDataCondition(logic_result=True, condition=self.data_condition, result=True)
+        ]
         assert remaining_conditions == []

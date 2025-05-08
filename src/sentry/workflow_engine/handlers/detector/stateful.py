@@ -216,19 +216,16 @@ class StatefulGroupingDetectorHandler(
         # store these in `DetectorStateData.counter_updates`, but we don't have anywhere to set the required
         # thresholds at the moment. Probably should be a field on the Detector? Could also be on the condition
         # level, but usually we want to set this at a higher level.
-        # TODO 2: Validate that we will never have slow conditions here.
+        # -- we can store the thresholds on the detector.config -- seems like a field we could use for only stateful detectors
         new_status = DetectorPriorityLevel.OK
-        (is_group_condition_met, condition_results), _ = process_data_condition_group(
-            self.condition_group.id, value
-        )
+        processed_data_condition, _ = process_data_condition_group(self.condition_group.id, value)
 
-        if is_group_condition_met:
-            # TODO - use the `_` as the condition to snapshot in the evidence data
+        if processed_data_condition.logic_result:
             validated_condition_results: list[DetectorPriorityLevel] = [
-                condition_result
-                for _, condition_result in condition_results
-                if condition_result is not None
-                and isinstance(condition_result, DetectorPriorityLevel)
+                condition_result.result
+                for condition_result in processed_data_condition.condition_results
+                if condition_result.result is not None
+                and isinstance(condition_result.result, DetectorPriorityLevel)
             ]
 
             new_status = max(new_status, *validated_condition_results)
