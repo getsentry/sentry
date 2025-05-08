@@ -7,11 +7,11 @@ from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult, DetectorStateData
+from sentry.workflow_engine.handlers.detector import DetectorStateData
 from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.detector import process_detectors
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
 from tests.sentry.workflow_engine.handlers.detector.test_base import (
     BaseDetectorHandlerTest,
     MockDetectorStateHandler,

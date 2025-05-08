@@ -12,14 +12,15 @@ from sentry.issues.grouptype import (
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.workflow_engine.handlers.detector import (
-    DetectorEvaluationResult,
-    DetectorHandler,
-    DetectorOccurrence,
-)
+from sentry.workflow_engine.handlers.detector import DetectorHandler, DetectorOccurrence
 from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorSettings
+from sentry.workflow_engine.types import (
+    DetectorEvaluationResult,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+    DetectorSettings,
+)
 
 
 @region_silo_test
