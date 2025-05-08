@@ -3295,4 +3295,40 @@ describe('SearchQueryBuilder', function () {
       expect(await screen.findByText('foo bar baz')).toBeInTheDocument();
     });
   });
+
+  describe('autofocus', function () {
+    it('should autofocus with empty initial query', async function () {
+      const mockOnChange = jest.fn();
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          autoFocus
+          initialQuery=""
+          onChange={mockOnChange}
+          onSearch={mockOnSearch}
+        />
+      );
+      await waitFor(() => {
+        expect(getLastInput()).toHaveFocus();
+      });
+    });
+
+    it('should autofocus with non-empty initial query', async function () {
+      const mockOnChange = jest.fn();
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          autoFocus
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+          onSearch={mockOnSearch}
+        />
+      );
+      await waitFor(() => {
+        expect(getLastInput()).toHaveFocus();
+      });
+    });
+  });
 });
