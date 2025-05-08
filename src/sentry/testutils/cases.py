@@ -3140,6 +3140,12 @@ class UptimeTestCaseMixin:
         self.mock_resolve_rdap_provider_ctx.__exit__(None, None, None)
         self.mock_requests_get_ctx.__exit__(None, None, None)
 
+
+class _OptionalCheckResult(TypedDict, total=False):
+    region: str
+
+
+class UptimeTestCase(UptimeTestCaseMixin, TestCase):
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
@@ -3170,14 +3176,6 @@ class UptimeTestCaseMixin:
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
             **optional_fields,
         }
-
-
-class _OptionalCheckResult(TypedDict, total=False):
-    region: str
-
-
-class UptimeTestCase(UptimeTestCaseMixin, TestCase):
-    pass
 
 
 class IntegratedApiTestCase(BaseTestCase):
