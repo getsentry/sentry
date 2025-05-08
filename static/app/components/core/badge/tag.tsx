@@ -82,7 +82,6 @@ const TagPill = styled('div')<{
   height: 20px;
   border-radius: 20px;
   padding: 0 ${space(1)};
-  max-width: 166px;
 
   color: ${p => p.theme.tag[p.type].color};
   /* @TODO(jonasbadalic): We need to override button colors because they wrongly default to a blue color... */
