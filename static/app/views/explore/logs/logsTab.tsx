@@ -136,10 +136,7 @@ export function LogsTabContent({
               <DatePageFilter
                 defaultPeriod={defaultPeriod}
                 maxPickableDays={maxPickableDays}
-                relativeOptions={({arbitraryOptions}) => ({
-                  ...arbitraryOptions,
-                  ...relativeOptions,
-                })}
+                relativeOptions={relativeOptions}
               />
             </StyledPageFilterBar>
             <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
