@@ -779,11 +779,11 @@ def build_span_query(trace_id: str, spans_params: SnubaParams, query_spans: list
     return parents_query
 
 
-def pad_span_id(span: str | None) -> str | None:
+def pad_span_id(span: str | None) -> str:
     """Snuba might return the span id without leading 0s since they're stored as UInt64
     which means a span like 0011 gets converted to an int, then back so we'll get `11` instead"""
     if span is None:
-        return span
+        return "0" * 16
     return span.rjust(16, "0")
 
 
