@@ -9,6 +9,8 @@ type NavigationEventParameters = {
   'navigation.help_menu_opt_out_stacked_navigation_clicked': Record<string, unknown>;
   'navigation.primary_item_clicked': NavigationItemClicked;
   'navigation.secondary_item_clicked': NavigationItemClicked;
+  'navigation.tour_modal_dismissed': Record<string, unknown>;
+  'navigation.tour_modal_shown': Record<string, unknown>;
 };
 
 type NavigationEventKey = keyof NavigationEventParameters;
@@ -24,4 +26,6 @@ export const navigationAnalyticsEventMap: Record<NavigationEventKey, string | nu
     'Navigation: Help Menu Opt Out Chonk UI Clicked',
   'navigation.help_menu_opt_in_chonk_ui_clicked':
     'Navigation: Help Menu Opt In Chonk UI Clicked',
+  'navigation.tour_modal_shown': 'Navigation: Tour Modal Shown',
+  'navigation.tour_modal_dismissed': 'Navigation: Tour Modal Dismissed',
 };
