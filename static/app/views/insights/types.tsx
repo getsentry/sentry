@@ -81,9 +81,11 @@ export enum SpanFields {
   RAW_DOMAIN = 'raw_domain',
   PROJECT = 'project',
   MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
+  MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
   SPAN_DESCRIPTION = 'span.description',
   SPAN_GROUP = 'span.group',
   SPAN_OP = 'span.op',
+  RELEASE = 'release',
 }
 
 type WebVitalsMeasurements =
@@ -122,6 +124,7 @@ type SpanNumberFields =
   | SpanFields.FROZEN_FRAMES_RATE
   | SpanFields.SLOW_FRAMES_RATE
   | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
   | DiscoverNumberFields;
 
 type SpanStringFields =
@@ -183,6 +186,7 @@ export type Aggregate =
 type CounterConditionalAggregate =
   | `sum_if`
   | `avg_if`
+  | `count_if`
   | `p50_if`
   | `p75_if`
   | `p90_if`
@@ -298,6 +302,10 @@ export type EAPSpanResponse = {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
     [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string})`]: number;
+  } & {
+    [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
+  } & {
+    [Property in SpanFields as `count_if(${Property},${string})`]: number;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
