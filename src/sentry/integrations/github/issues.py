@@ -135,8 +135,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
-        owner, repo = default_repo.split("/")
-        labels = self.get_repo_labels(owner, repo) if default_repo else []
+        labels = []
+        if default_repo:
+            owner, repo = default_repo.split("/")
+            labels = self.get_repo_labels(owner, repo)
 
         autocomplete_url = reverse(
             "sentry-integration-github-search", args=[org.slug, self.model.id]
