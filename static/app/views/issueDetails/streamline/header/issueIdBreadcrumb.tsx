@@ -135,6 +135,8 @@ const ShortIdCopyable = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
+  /* hardcoded height avoids layout shift on button hover */
+  height: 36px;
   button[aria-haspopup] {
     display: block;
     opacity: 0;
