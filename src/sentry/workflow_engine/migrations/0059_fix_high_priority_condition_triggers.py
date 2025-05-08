@@ -34,14 +34,12 @@ def move_high_priority_conditions_to_triggers(
     ):
         for workflow in workflows:
             with transaction.atomic(router.db_for_write(Workflow)):
-                current_workflow = (
-                    Workflow.objects.select_for_update().filter(id=workflow.id).first()
-                )
+                workflow = Workflow.objects.select_for_update().filter(id=workflow.id).first()
 
-                if not current_workflow:
+                if not workflow:
                     continue
 
-                when_condition_group_id = current_workflow.when_condition_group_id
+                when_condition_group_id = workflow.when_condition_group_id
                 workflow_dcg = WorkflowDataConditionGroup.objects.filter(
                     workflow_id=workflow.id
                 ).first()
