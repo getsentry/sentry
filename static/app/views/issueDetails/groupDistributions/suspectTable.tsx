@@ -55,7 +55,7 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
 
   useEffect(() => {
     if (!isPending) {
-      trackAnalytics('flags.new_suspect_flags_found', {
+      trackAnalytics('flags.suspect_flags_v2_found', {
         numTotalFlags: displayFlags.length,
         numSuspectFlags: susFlags.length,
         organization,

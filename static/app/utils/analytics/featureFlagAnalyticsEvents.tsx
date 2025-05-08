@@ -22,16 +22,16 @@ export type FeatureFlagEventParameters = {
     direction: 'next' | 'prev';
     surface: string;
   };
-  'flags.new_suspect_flags_found': {
-    numSuspectFlags: number;
-    numTotalFlags: number;
-    threshold: number /* TODO: remove after suspect flags GA */;
-  };
   'flags.setup_sidebar_selection': {
     platform?: string;
     provider?: SdkProviderEnum;
   };
   'flags.sort_flags': {sortMethod: string};
+  'flags.suspect_flags_v2_found': {
+    numSuspectFlags: number;
+    numTotalFlags: number;
+    threshold: number /* TODO: remove after suspect flags GA */;
+  };
   'flags.table_rendered': {
     numFlags: number;
     orgSlug: string;
@@ -60,5 +60,5 @@ export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.view-all-clicked': 'Clicked View All Flags',
   'flags.view-setup-sidebar': 'Viewed Feature Flag Onboarding Sidebar',
   'flags.cta_read_more_clicked': 'Clicked Read More in Feature Flag CTA',
-  'flags.new_suspect_flags_found': 'New Suspect Flags Found',
+  'flags.suspect_flags_v2_found': 'Suspect Flags V2 Found',
 };
