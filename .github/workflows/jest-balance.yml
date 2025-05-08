@@ -23,7 +23,7 @@ jobs:
         id: nodemodulescache
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock', '.volta.json') }}
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'api-docs/pnpm-lock.yaml', '.volta.json') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
