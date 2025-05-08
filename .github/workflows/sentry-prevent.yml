@@ -31,5 +31,5 @@ jobs:
           ./overwatch-cli \
             --auth-token ${{ secrets.OVERWATCH_SENTRY_AUTH_TOKEN }} \
             --organization-slug sentry \
-            python
+            python \
             --workdir src/sentry
