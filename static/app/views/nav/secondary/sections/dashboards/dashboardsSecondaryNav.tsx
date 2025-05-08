@@ -30,12 +30,12 @@ export function DashboardsSecondaryNav() {
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.DASHBOARDS].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
-        <SecondaryNav.Section>
+        <SecondaryNav.Section id="dashboards-all">
           <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="dashboards_all">
-            {t('All')}
+            {t('All Dashboards')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <SecondaryNav.Section title={t('Starred Dashboards')}>
+        <SecondaryNav.Section id="dashboards-starred" title={t('Starred Dashboards')}>
           {starredDashboards.data?.map(dashboard => (
             <SecondaryNav.Item
               key={dashboard.id}

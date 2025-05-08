@@ -89,7 +89,11 @@ const getFields = ({
         </CodeContainer>
       ),
       () => (
-        <FieldGroup key="secret" label={t('Authenticator secret')}>
+        <FieldGroup
+          flexibleControlStateSize
+          key="secret"
+          label={t('Authenticator secret')}
+        >
           <TextCopyInput>{authenticator.secret ?? ''}</TextCopyInput>
         </FieldGroup>
       ),

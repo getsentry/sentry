@@ -38,7 +38,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
@@ -273,6 +273,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       if (opt.value === DataCategory.TRANSACTIONS) {
         return !organization.features.includes('spans-usage-tracking');
       }
+      if ([DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER].includes(opt.value)) {
+        return organization.features.includes('seer-billing');
+      }
       if ([DataCategory.LOG_BYTE, DataCategory.LOG_ITEM].includes(opt.value)) {
         return organization.features.includes('ourlogs-stats');
       }
@@ -349,7 +352,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             {
               estimateLink: (
                 <ExternalLink
-                  href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)} // TODO(continuous profiling): update link when docs are ready
+                  href={`${getPricingDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)}#how-can-i-estimate-usage-for-continuous-profiling-on-the-backend`}
                 />
               ),
             }

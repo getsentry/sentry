@@ -11,7 +11,6 @@ import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  QUERY_MODE,
   SAMPLING_MODE,
   type SamplingMode,
   useProgressiveQuery,
@@ -87,174 +86,6 @@ describe('useProgressiveQuery', function () {
         })
       );
     });
-
-    it('only queries the preflight and best effort once each in parallel mode', function () {
-      renderHook(
-        () =>
-          useProgressiveQuery({
-            queryHookImplementation: useMockHookImpl,
-            queryHookArgs: {enabled: true, query: 'test value'},
-            queryOptions: {queryMode: QUERY_MODE.PARALLEL},
-          }),
-        {
-          wrapper: createWrapper(
-            OrganizationFixture({
-              features: ['visibility-explore-progressive-loading'],
-            })
-          ),
-        }
-      );
-
-      // Test that the only change was to the sampling mode between requests
-      expect(mockRequestUrl).toHaveBeenNthCalledWith(
-        1,
-        '/test',
-        expect.objectContaining({
-          query: {samplingMode: SAMPLING_MODE.PREFLIGHT, query: 'test value'},
-        })
-      );
-      expect(mockRequestUrl).toHaveBeenNthCalledWith(
-        2,
-        '/test',
-        expect.objectContaining({
-          query: {samplingMode: SAMPLING_MODE.BEST_EFFORT, query: 'test value'},
-        })
-      );
-    });
-
-    it('can call the preflight and best effort requests serially', async function () {
-      renderHook(
-        () =>
-          useProgressiveQuery({
-            queryHookImplementation: useMockHookImpl,
-            queryHookArgs: {enabled: true, query: 'test value'},
-            queryOptions: {queryMode: QUERY_MODE.SERIAL},
-          }),
-        {
-          wrapper: createWrapper(
-            OrganizationFixture({
-              features: ['visibility-explore-progressive-loading'],
-            })
-          ),
-        }
-      );
-
-      // Test that the only change was to the sampling mode between requests
-      expect(mockRequestUrl).toHaveBeenCalledTimes(1);
-      expect(mockRequestUrl).toHaveBeenNthCalledWith(
-        1,
-        '/test',
-        expect.objectContaining({
-          query: {samplingMode: SAMPLING_MODE.PREFLIGHT, query: 'test value'},
-        })
-      );
-
-      await waitFor(() => {
-        expect(mockRequestUrl).toHaveBeenCalledTimes(2);
-      });
-      expect(mockRequestUrl).toHaveBeenNthCalledWith(
-        2,
-        '/test',
-        expect.objectContaining({
-          query: {samplingMode: SAMPLING_MODE.BEST_EFFORT, query: 'test value'},
-        })
-      );
-    });
-
-    it('does not trigger the best effort request if we withold best effort data and there is preflight data', function () {
-      mockRequestUrl = MockApiClient.addMockResponse({
-        url: '/test',
-        body: ['has', 'data'],
-        match: [
-          function (_url: string, options: Record<string, any>) {
-            return options.query.samplingMode === SAMPLING_MODE.PREFLIGHT;
-          },
-        ],
-      });
-      const mockBestEffortRequest = MockApiClient.addMockResponse({
-        url: '/test',
-        body: ['has', 'data'],
-        match: [
-          function (_url: string, options: Record<string, any>) {
-            return options.query.samplingMode === SAMPLING_MODE.BEST_EFFORT;
-          },
-        ],
-      });
-      renderHook(
-        () =>
-          useProgressiveQuery({
-            queryHookImplementation: useMockHookImpl,
-            queryHookArgs: {enabled: true, query: 'test value'},
-
-            // Use parallel mode to more easily test that the best effort request is not triggered
-            queryOptions: {withholdBestEffort: true},
-          }),
-        {
-          wrapper: createWrapper(
-            OrganizationFixture({
-              features: ['visibility-explore-progressive-loading'],
-            })
-          ),
-        }
-      );
-
-      expect(mockRequestUrl).toHaveBeenCalledTimes(1);
-      expect(mockBestEffortRequest).not.toHaveBeenCalled();
-    });
-
-    it('triggers the best effort request if the preflight request is empty and we want to withold the best effort request', async function () {
-      mockRequestUrl = MockApiClient.addMockResponse({
-        url: '/test',
-        body: [],
-        match: [
-          function (_url: string, options: Record<string, any>) {
-            return options.query.samplingMode === SAMPLING_MODE.PREFLIGHT;
-          },
-        ],
-      });
-      const mockBestEffortRequest = MockApiClient.addMockResponse({
-        url: '/test',
-        body: ['has', 'data'],
-        match: [
-          function (_url: string, options: Record<string, any>) {
-            return options.query.samplingMode === SAMPLING_MODE.BEST_EFFORT;
-          },
-        ],
-      });
-      renderHook(
-        () =>
-          useProgressiveQuery({
-            queryHookImplementation: useMockHookImpl,
-            queryHookArgs: {enabled: true, query: 'test value'},
-            queryOptions: {withholdBestEffort: true},
-          }),
-        {
-          wrapper: createWrapper(
-            OrganizationFixture({
-              features: ['visibility-explore-progressive-loading'],
-            })
-          ),
-        }
-      );
-
-      expect(mockRequestUrl).toHaveBeenCalledTimes(1);
-      expect(mockRequestUrl).toHaveBeenCalledWith(
-        '/test',
-        expect.objectContaining({
-          query: {samplingMode: SAMPLING_MODE.PREFLIGHT, query: 'test value'},
-        })
-      );
-
-      await waitFor(() => {
-        expect(mockBestEffortRequest).toHaveBeenCalledTimes(1);
-      });
-      expect(mockBestEffortRequest).toHaveBeenCalledWith(
-        '/test',
-        expect.objectContaining({
-          query: {samplingMode: SAMPLING_MODE.BEST_EFFORT, query: 'test value'},
-        })
-      );
-    });
   });
 
   describe('normal sampling mode', function () {
@@ -296,7 +127,7 @@ describe('useProgressiveQuery', function () {
         body: ['has', 'data'],
         match: [
           function (_url: string, options: Record<string, any>) {
-            return options.query.samplingMode === undefined;
+            return options.query.samplingMode === SAMPLING_MODE.HIGH_ACCURACY;
           },
         ],
       });
@@ -337,7 +168,7 @@ describe('useProgressiveQuery', function () {
       expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
         '/test',
         expect.objectContaining({
-          query: {query: 'test value'},
+          query: {samplingMode: SAMPLING_MODE.HIGH_ACCURACY, query: 'test value'},
         })
       );
     });

@@ -10,6 +10,7 @@ from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.project_management.metrics import (
     ProjectManagementActionType,
@@ -47,6 +48,9 @@ def create_link(
         - metadata: Optional Object. Can contain `display_name`.
     """
 
+    assert isinstance(
+        installation, IssueBasicIntegration
+    ), "Installation must be an IssueBasicIntegration to create a link"
     external_issue_key = installation.make_external_key(response)
 
     external_issue = ExternalIssue.objects.create(
@@ -70,11 +74,11 @@ def create_link(
 def build_description_workflow_engine_ui(
     event: GroupEvent,
     workflow_id: int,
-    installation: IntegrationInstallation,
+    installation: IssueBasicIntegration,
     generate_footer: Callable[[str], str],
 ) -> str:
     project = event.group.project
-    workflow_url = create_link_to_workflow(project.organization.id, workflow_id)
+    workflow_url = create_link_to_workflow(project.organization.id, str(workflow_id))
 
     description: str = installation.get_group_description(event.group, event) + generate_footer(
         workflow_url
@@ -85,7 +89,7 @@ def build_description_workflow_engine_ui(
 def build_description(
     event: GroupEvent,
     rule_id: int,
-    installation: IntegrationInstallation,
+    installation: IssueBasicIntegration,
     generate_footer: Callable[[str], str],
 ) -> str:
     """
@@ -129,6 +133,10 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             return
 
         installation = integration.get_installation(organization.id)
+
+        assert isinstance(
+            installation, IssueBasicIntegration
+        ), "Installation must be an IssueBasicIntegration to create a ticket"
         data["title"] = installation.get_group_title(event.group, event)
         if features.has("organizations:workflow-engine-ui-links", organization):
             workflow_id = data.get("workflow_id")

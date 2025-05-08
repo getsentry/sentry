@@ -1833,10 +1833,6 @@ function buildRoutes() {
         />
         {transactionSummaryRoutes}
         {traceViewRoute}
-        <Route
-          path="trends/"
-          component={make(() => import('sentry/views/performance/trends'))}
-        />
         {moduleRoutes}
       </Route>
       <Route path={`${BACKEND_LANDING_SUB_PATH}/`}>
@@ -1847,10 +1843,6 @@ function buildRoutes() {
         />
         {transactionSummaryRoutes}
         {traceViewRoute}
-        <Route
-          path="trends/"
-          component={make(() => import('sentry/views/performance/trends'))}
-        />
         {moduleRoutes}
       </Route>
       <Route path={`${MOBILE_LANDING_SUB_PATH}/`}>
@@ -1861,18 +1853,10 @@ function buildRoutes() {
         />
         {transactionSummaryRoutes}
         {traceViewRoute}
-        <Route
-          path="trends/"
-          component={make(() => import('sentry/views/performance/trends'))}
-        />
         {moduleRoutes}
       </Route>
       <Route path={`${AI_LANDING_SUB_PATH}/`}>
         {traceViewRoute}
-        <Route
-          path="trends/"
-          component={make(() => import('sentry/views/performance/trends'))}
-        />
         {moduleRoutes}
       </Route>
       <Route path="projects/" component={make(() => import('sentry/views/projects/'))}>
@@ -1888,10 +1872,6 @@ function buildRoutes() {
       withOrgPath
     >
       <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
-      <Route
-        path="trends/"
-        component={make(() => import('sentry/views/performance/trends'))}
-      />
       {transactionSummaryRoutes}
       <Route
         path="vitaldetail/"
@@ -2217,8 +2197,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueList/pages/errorsOutages'))}
       />
       <Route
-        path={`${IssueTaxonomy.REGRESSIONS}/`}
-        component={make(() => import('sentry/views/issueList/pages/regressions'))}
+        path={`${IssueTaxonomy.BREACHED_METRICS}/`}
+        component={make(() => import('sentry/views/issueList/pages/breachedMetrics'))}
       />
       <Route
         path={`${IssueTaxonomy.WARNINGS}/`}

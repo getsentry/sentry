@@ -296,6 +296,7 @@ export type IssueEventParameters = {
   'issue_views.add_view.saved_search_saved': {
     query: string;
   };
+  'issue_views.all_views.banner_dismissed': Record<string, unknown>;
   'issue_views.delete_view': {
     ownership: 'personal' | 'organization';
     surface: 'issue-views-list' | 'issue-view-details';
@@ -316,6 +317,7 @@ export type IssueEventParameters = {
   };
   'issue_views.renamed_view': Record<string, unknown>;
   'issue_views.reordered_views': Record<string, unknown>;
+  'issue_views.reset.clicked': Record<string, unknown>;
   'issue_views.save.clicked': Record<string, unknown>;
   'issue_views.save_as.clicked': Record<string, unknown>;
   'issue_views.save_as.created': {
@@ -505,6 +507,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.reordered_views': 'Issue Views: Views Reordered',
   'issue_views.add_view.clicked': 'Issue Views: Add View Clicked',
   'issue_views.save_as.clicked': 'Issue Views: Save As Clicked',
+  'issue_views.reset.clicked': 'Issue Views: Reset Clicked',
   'issue_views.save_as.created': 'Issue Views: Save As New View Created',
   'issue_views.save.clicked': 'Issue Views: Save Clicked',
   'issue_views.add_view.custom_query_saved':
@@ -514,6 +517,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Views: All Saved Searches Saved',
   'issue_views.add_view.recommended_view_saved': 'Issue Views: Recommended View Saved',
   'issue_views.add_view.banner_dismissed': 'Issue Views: Add View Banner Dismissed',
+  'issue_views.all_views.banner_dismissed': 'Issue Views: All Views Banner Dismissed',
   'issue_views.shared_view_opened': 'Issue Views: Shared View Opened',
   'issue_views.temp_view_discarded': 'Issue Views: Temporary View Discarded',
   'issue_views.temp_view_saved': 'Issue Views: Temporary View Saved',

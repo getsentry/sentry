@@ -90,10 +90,18 @@ func application(_ application: UIApplication,
         // Configure the profiler to start profiling when there is an active root span
         // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
         options.configureProfiling = {
-          $0.lifecycle = .trace
-          $0.sessionSampleRate = 1.0
+            $0.lifecycle = .trace
+            $0.sessionSampleRate = 1.0
         }`
               : ''
+        }${
+          params.isReplaySelected
+            ? `
+
+        // Record Session Replays for 100% of Errors and 10% of Sessions
+        options.sessionReplay.onErrorSampleRate = 1.0
+        options.sessionReplay.sessionSampleRate = 0.1`
+            : ''
         }
     }
 
@@ -135,10 +143,18 @@ struct SwiftUIApp: App {
             // Configure the profiler to start profiling when there is an active root span
             // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
             options.configureProfiling = {
-              $0.lifecycle = .trace
-              $0.sessionSampleRate = 1.0
+                $0.lifecycle = .trace
+                $0.sessionSampleRate = 1.0
             }`
                   : ''
+            }${
+              params.isReplaySelected
+                ? `
+
+            // Record Session Replays for 100% of Errors and 10% of Sessions
+            options.sessionReplay.onErrorSampleRate = 1.0
+            options.sessionReplay.sessionSampleRate = 0.1`
+                : ''
             }
         }
     }

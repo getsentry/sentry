@@ -2,7 +2,6 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -55,7 +54,6 @@ import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAg
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
@@ -67,31 +65,23 @@ import {Onboarding} from 'sentry/views/performance/onboarding';
 // eslint-disable-next-line no-restricted-imports
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-interface SpansTabOnboardingProps extends PickableDays {
+interface SpansTabOnboardingProps {
+  datePageFilterProps: PickableDays;
   organization: Organization;
   project: Project;
 }
 
 export function SpansTabOnboarding({
-  defaultPeriod,
-  maxPickableDays,
+  datePageFilterProps,
   organization,
   project,
-  relativeOptions,
 }: SpansTabOnboardingProps) {
   return (
     <Layout.Body>
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter
-          defaultPeriod={defaultPeriod}
-          maxPickableDays={maxPickableDays}
-          relativeOptions={({arbitraryOptions}) => ({
-            ...arbitraryOptions,
-            ...relativeOptions,
-          })}
-        />
+        <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <OnboardingContentSection>
         <Onboarding project={project} organization={organization} />
@@ -100,13 +90,11 @@ export function SpansTabOnboarding({
   );
 }
 
-interface SpanTabProps extends PickableDays {}
+interface SpanTabProps {
+  datePageFilterProps: PickableDays;
+}
 
-export function SpansTabContent({
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: SpanTabProps) {
+export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
   const organization = useOrganization();
@@ -115,11 +103,7 @@ export function SpansTabContent({
   return (
     <Fragment>
       <BodySearch>
-        <SpanTabSearchSection
-          defaultPeriod={defaultPeriod}
-          maxPickableDays={maxPickableDays}
-          relativeOptions={relativeOptions}
-        />
+        <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
       </BodySearch>
       <BodyContent>
         <SpanTabControlSection
@@ -127,8 +111,7 @@ export function SpansTabContent({
           controlSectionExpanded={controlSectionExpanded}
         />
         <SpanTabContentSection
-          maxPickableDays={maxPickableDays}
-          organization={organization}
+          maxPickableDays={datePageFilterProps.maxPickableDays}
           setControlSectionExpanded={setControlSectionExpanded}
           controlSectionExpanded={controlSectionExpanded}
         />
@@ -147,13 +130,11 @@ function useVisitExplore() {
   }, [id, visitQuery]);
 }
 
-interface SpanTabSearchSectionProps extends PickableDays {}
+interface SpanTabSearchSectionProps {
+  datePageFilterProps: PickableDays;
+}
 
-function SpanTabSearchSection({
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: SpanTabSearchSectionProps) {
+function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useExploreMode();
   const fields = useExploreFields();
   const query = useExploreQuery();
@@ -217,31 +198,22 @@ function SpanTabSearchSection({
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
-              <DatePageFilter
-                defaultPeriod={defaultPeriod}
-                maxPickableDays={maxPickableDays}
-                relativeOptions={({arbitraryOptions}) => ({
-                  ...arbitraryOptions,
-                  ...relativeOptions,
-                })}
-              />
+              <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
-            <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+            <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
           </FilterSection>
-          <Feature features="organizations:traces-schema-hints">
-            <StyledSchemaHintsSection>
-              <SchemaHintsList
-                supportedAggregates={
-                  mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
-                }
-                numberTags={numberTags}
-                stringTags={stringTags}
-                isLoading={numberTagsLoading || stringTagsLoading}
-                exploreQuery={query}
-                source={SchemaHintsSources.EXPLORE}
-              />
-            </StyledSchemaHintsSection>
-          </Feature>
+          <StyledSchemaHintsSection>
+            <SchemaHintsList
+              supportedAggregates={
+                mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+              }
+              numberTags={numberTags}
+              stringTags={stringTags}
+              isLoading={numberTagsLoading || stringTagsLoading}
+              exploreQuery={query}
+              source={SchemaHintsSources.EXPLORE}
+            />
+          </StyledSchemaHintsSection>
         </TourElement>
       </SearchQueryBuilderProvider>
     </Layout.Main>
@@ -284,13 +256,11 @@ function SpanTabControlSection({
 interface SpanTabContentSectionProps {
   controlSectionExpanded: boolean;
   maxPickableDays: PickableDays['maxPickableDays'];
-  organization: Organization;
   setControlSectionExpanded: (expanded: boolean) => void;
 }
 
 function SpanTabContentSection({
   maxPickableDays,
-  organization,
   controlSectionExpanded,
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
@@ -380,16 +350,6 @@ function SpanTabContentSection({
         ? spansTableResult.result.isPending
         : tracesTableResult.result.isPending;
 
-  const tableIsProgressivelyLoading =
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    (queryType === 'samples'
-      ? false // Samples mode won't show the progressive loading spinner
-      : queryType === 'aggregate'
-        ? // Only show the progressive spinner after the preflight query has been run
-          aggregatesTableResult.samplingMode === SAMPLING_MODE.PREFLIGHT &&
-          aggregatesTableResult.result.isFetched
-        : false);
-
   return (
     <ContentSection expanded={controlSectionExpanded}>
       <ChevronButton
@@ -427,7 +387,6 @@ function SpanTabContentSection({
           confidences={confidences}
           samplesTab={samplesTab}
           setSamplesTab={setSamplesTab}
-          isProgressivelyLoading={tableIsProgressivelyLoading}
         />
       </TourElement>
     </ContentSection>
@@ -455,10 +414,10 @@ function checkIsAllowedSelection(
 const BodySearch = styled(Layout.Body)`
   flex-grow: 0;
   border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${space(1)};
+  padding-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding-bottom: ${space(1)};
+    padding-bottom: ${space(2)};
   }
 `;
 
@@ -487,8 +446,8 @@ const ControlSection = styled('aside')<{expanded: boolean}>`
     ${p =>
       p.expanded
         ? css`
-            width: 338px; /* 300px for the toolbar + padding */
-            padding: ${space(1)} ${space(1)} ${space(1)} ${space(4)};
+            width: 343px; /* 300px for the toolbar + padding */
+            padding: ${space(2)} ${space(1.5)} ${space(1)} ${space(4)};
             border-right: 1px solid ${p.theme.border};
           `
         : css`
@@ -511,7 +470,7 @@ const ContentSection = styled('section')<{expanded: boolean}>`
     ${p =>
       p.expanded
         ? css`
-            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1)};
+            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1.5)};
           `
         : css`
             padding: ${space(1)} ${space(4)} ${space(3)} ${space(4)};
@@ -551,7 +510,7 @@ const ChevronButton = styled(Button)<{expanded: boolean}>`
   ${p =>
     p.expanded
       ? css`
-          margin-left: -9px;
+          margin-left: -13px;
         `
       : css`
           margin-left: -31px;
