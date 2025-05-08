@@ -63,6 +63,7 @@ export function LogsIssuesSection({
       ),
       {
         ariaLabel: 'logs drawer',
+        drawerKey: 'logs-issue-drawer',
       }
     );
   }, [group, event, project, openDrawer, organization, limitToTraceId]);
