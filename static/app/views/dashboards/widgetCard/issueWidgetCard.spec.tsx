@@ -78,7 +78,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     location: LocationFixture(),
     dashboard: DashboardFixture([widget]),
     organization,
-    router,
+    navigate: jest.fn(),
   });
 
   beforeEach(function () {

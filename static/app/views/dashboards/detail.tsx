@@ -50,6 +50,8 @@ import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -116,6 +118,7 @@ type Props = RouteComponentProps<RouteParams> & {
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   initialState: DashboardState;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   projects: Project[];
   route: PlainRoute;
@@ -251,7 +254,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboard: this.props.dashboard,
       organization: this.props.organization,
       location: this.props.location,
-      router: this.props.router,
+      navigate: this.props.navigate,
     }),
     isSavingDashboardFilters: false,
     isWidgetBuilderOpen: this.isRedesignedWidgetBuilder,
@@ -280,7 +283,7 @@ class DashboardDetail extends Component<Props, State> {
         widgetLegendState: new WidgetLegendSelectionState({
           organization: this.props.organization,
           location: this.props.location,
-          router: this.props.router,
+          navigate: this.props.navigate,
           dashboard: this.props.dashboard,
         }),
       });
@@ -1334,10 +1337,11 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-function DashboardDetailWithTheme(props: Props) {
+function DashboardDetailWithThemeAndNavigate(props: Omit<Props, 'theme' | 'navigate'>) {
   const theme = useTheme();
-  return <DashboardDetail {...props} theme={theme} />;
+  const navigate = useNavigate();
+  return <DashboardDetail {...props} theme={theme} navigate={navigate} />;
 }
 export default withPageFilters(
-  withProjects(withApi(withOrganization(DashboardDetailWithTheme)))
+  withProjects(withApi(withOrganization(DashboardDetailWithThemeAndNavigate)))
 );

@@ -22,6 +22,7 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import type {
   DashboardDetails,
@@ -99,6 +100,7 @@ function AddToDashboardModal({
   allowCreateNewDashboard = true,
 }: Props) {
   const api = useApi();
+  const navigate = useNavigate();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
   const [selectedDashboard, setSelectedDashboard] = useState<DashboardDetails | null>(
     null
@@ -240,7 +242,7 @@ function AddToDashboardModal({
 
   const widgetLegendState = new WidgetLegendSelectionState({
     location,
-    router,
+    navigate,
     organization,
     dashboard: selectedDashboard,
   });

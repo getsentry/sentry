@@ -1,8 +1,8 @@
 import type {Location} from 'history';
 
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {decodeList} from 'sentry/utils/queryString';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {type DashboardDetails, DisplayType, type Widget} from './types';
@@ -10,8 +10,8 @@ import {type DashboardDetails, DisplayType, type Widget} from './types';
 type Props = {
   dashboard: DashboardDetails | null;
   location: Location;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
-  router: InjectedRouter;
 };
 
 type LegendSelection = Record<string, boolean>;
@@ -25,18 +25,22 @@ class WidgetLegendSelectionState {
   dashboard: DashboardDetails | null;
   location: Location;
   organization: Organization;
-  router: InjectedRouter;
+  navigate: ReactRouter3Navigate;
 
   constructor(props: Props) {
     this.dashboard = props.dashboard;
     this.location = props.location;
     this.organization = props.organization;
-    this.router = props.router;
+    this.navigate = props.navigate;
   }
 
   // Updates legend param when a legend selection has been changed
   setWidgetSelectionState(selected: LegendSelection, widget: Widget) {
-    const [dashboard, location, router] = [this.dashboard, this.location, this.router];
+    const [dashboard, location, navigate] = [
+      this.dashboard,
+      this.location,
+      this.navigate,
+    ];
     const widgets = dashboard ? dashboard.widgets : [];
     let newLegendQuery: string[];
     if (!location.query.unselectedSeries && widgets) {
@@ -58,12 +62,16 @@ class WidgetLegendSelectionState {
         Object.values(selected).filter(value => value === false).length === 1;
 
       if (thisWidgetWithReleasesWasSelected || thisWidgetWithoutReleasesWasSelected) {
-        router.replace({
-          query: {
-            ...location.query,
-            unselectedSeries: newLegendQuery,
+        navigate(
+          {
+            ...location,
+            query: {
+              ...location.query,
+              unselectedSeries: newLegendQuery,
+            },
           },
-        });
+          {replace: true, preventScrollReset: true}
+        );
       }
     } else if (Array.isArray(location.query.unselectedSeries)) {
       let isInQuery = false;
@@ -83,30 +91,42 @@ class WidgetLegendSelectionState {
             ...location.query.unselectedSeries,
             this.encodeLegendQueryParam(widget, selected),
           ];
-      router.replace({
-        query: {
-          ...location.query,
-          unselectedSeries,
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            unselectedSeries,
+          },
         },
-      });
+        {replace: true, preventScrollReset: true}
+      );
     } else {
       if (location.query.unselectedSeries?.includes(widget.id!)) {
-        router.replace({
-          query: {
-            ...location.query,
-            unselectedSeries: [this.encodeLegendQueryParam(widget, selected)],
+        navigate(
+          {
+            ...location,
+            query: {
+              ...location.query,
+              unselectedSeries: [this.encodeLegendQueryParam(widget, selected)],
+            },
           },
-        });
+          {replace: true, preventScrollReset: true}
+        );
       } else {
-        router.replace({
-          query: {
-            ...location.query,
-            unselectedSeries: [
-              location.query.unselectedSeries,
-              this.encodeLegendQueryParam(widget, selected),
-            ],
+        navigate(
+          {
+            ...location,
+            query: {
+              ...location.query,
+              unselectedSeries: [
+                location.query.unselectedSeries,
+                this.encodeLegendQueryParam(widget, selected),
+              ],
+            },
           },
-        });
+          {replace: true, preventScrollReset: true}
+        );
       }
     }
   }
