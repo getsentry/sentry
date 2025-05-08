@@ -821,7 +821,6 @@ class OAuthLoginView(PipelineView):
                     error_short=GitHubInstallationError.MISSING_LOGIN,
                 )
 
-            pipeline.bind_state("user_access_token", payload["access_token"])
             pipeline.bind_state("github_authenticated_user", authenticated_user_info["login"])
             return pipeline.next_step()
 
