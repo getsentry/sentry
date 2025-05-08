@@ -2,11 +2,13 @@
 /* eslint import/no-nodejs-modules:0 */
 
 import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
-import rspack, {
-  type Configuration,
-  type OptimizationSplitChunksCacheGroup,
-  type RspackPluginInstance,
+import type {
+  Configuration,
+  DevServer,
+  OptimizationSplitChunksCacheGroup,
+  RspackPluginInstance,
 } from '@rspack/core';
+import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
 import CompressionPlugin from 'compression-webpack-plugin';
@@ -14,7 +16,6 @@ import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
 import path from 'node:path';
-import type {ProxyConfigArray} from 'webpack-dev-server';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 
@@ -190,7 +191,7 @@ const appConfig: Configuration = {
   },
   context: staticPrefix,
   experiments: {
-    // New experimental faster HMR https://github.com/web-infra-dev/rspack/releases/tag/v1.1.0-beta.0
+    // https://rspack.dev/config/experiments#experimentsincremental
     incremental: DEV_MODE,
     futureDefaults: true,
     css: true,
@@ -206,7 +207,6 @@ const appConfig: Configuration = {
         exclude: /\/node_modules\//,
         loader: 'builtin:swc-loader',
         options: {
-          sourceMap: true,
           jsc: {
             experimental: {
               plugins: [
@@ -224,7 +224,6 @@ const appConfig: Configuration = {
               syntax: 'typescript',
               tsx: true,
             },
-            target: 'es5', // this is a workaround because swc-emotion has a bug dealing with es5 tag template,see https://github.com/vercel/next.js/issues/38301
             transform: {
               react: {
                 runtime: 'automatic',
@@ -510,7 +509,7 @@ if (
 
     // If we're running siloed servers we also need to proxy
     // those requests to the right server.
-    let controlSiloProxy: ProxyConfigArray = [];
+    let controlSiloProxy: Required<DevServer['proxy']> = [];
     if (CONTROL_SILO_PORT) {
       // TODO(hybridcloud) We also need to use this URL pattern
       // list to select contro/region when making API requests in non-proxied
@@ -633,7 +632,7 @@ if (IS_UI_DEV_ONLY) {
           'Document-Policy': 'js-profiling',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
-        router: ({hostname}) => {
+        router: ({hostname}: {hostname: string}) => {
           const orgSlug = extractSlug(hostname);
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
         },
@@ -657,7 +656,7 @@ if (IS_UI_DEV_ONLY) {
         pathRewrite: {
           '^/region/[^/]*': '',
         },
-        router: req => {
+        router: (req: any) => {
           const regionPathPattern = /^\/region\/([^\/]+)/;
           const regionname = req.path.match(regionPathPattern);
           if (regionname) {
