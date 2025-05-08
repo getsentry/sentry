@@ -104,19 +104,19 @@ class SentryTask(Task):
         self._add_metadata(kwargs)
         # If there is a bad use of pickle create a sentry exception to be found and fixed later.
         # If this is running in tests, instead raise the exception and fail outright.
-        try:
-            good_use_of_pickle_or_bad_use_of_pickle(self, args, kwargs)
-        except TypeError:
-            if (
-                settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE
-                and self.name not in LEGACY_PICKLE_TASKS
-            ):
+        should_complain = (
+            settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE
+            and self.name not in LEGACY_PICKLE_TASKS
+        )
+        should_sample = random.random() <= settings.CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE
+        if should_complain or should_sample:
+            try:
+                good_use_of_pickle_or_bad_use_of_pickle(self, args, kwargs)
+            except TypeError:
+                logger.exception(
+                    "Task args contain unserializable objects",
+                )
                 raise
-            else:
-                if random.random() <= settings.CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE:
-                    logger.exception(
-                        "Task args contain unserializable objects",
-                    )
 
         with metrics.timer("jobs.delay", instance=self.name):
             return Task.apply_async(self, *args, **kwargs)
