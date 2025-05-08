@@ -7,8 +7,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -17,8 +15,9 @@ import {
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -40,10 +39,11 @@ import {OldMobileOverviewPage} from 'sentry/views/insights/pages/mobile/oldMobil
 import {
   DEFAULT_SORT,
   MOBILE_LANDING_TITLE,
-  MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
+import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
   generateGenericPerformanceEventView,
@@ -56,10 +56,7 @@ import {
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
-import {
-  getTransactionSearchQuery,
-  ProjectPerformanceType,
-} from 'sentry/views/performance/utils';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 function EAPMobileOverviewPage() {
   useOverviewPageTrackPageload();
@@ -82,16 +79,11 @@ function EAPMobileOverviewPage() {
     organization,
     true
   );
-  const searchBarEventView = eventView.clone();
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
-  const selectedMobileProjects: Project[] = getSelectedProjectList(
-    selection.projects,
-    projects
-  ).filter((project): project is Project =>
-    Boolean(project?.platform && MOBILE_PLATFORMS.includes(project.platform))
-  );
+  const {mobileProjects: selectedMobileProjects, otherProjects: selectedOtherProjects} =
+    categorizeProjects(getSelectedProjectList(selection.projects, projects));
 
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
@@ -177,7 +169,11 @@ function EAPMobileOverviewPage() {
     });
   }
 
-  const derivedQuery = getTransactionSearchQuery(location, eventView.query);
+  const {query: searchBarQuery} = useLocationQuery({
+    fields: {
+      query: decodeScalar,
+    },
+  });
 
   const sorts: [ValidSort, ValidSort] = [
     {
@@ -208,6 +204,10 @@ function EAPMobileOverviewPage() {
     'api.performance.landing-table'
   );
 
+  const searchBarProjectsIds = [...selectedMobileProjects, ...selectedOtherProjects].map(
+    project => project.id
+  );
+
   return (
     <Feature
       features="performance-view"
@@ -228,11 +228,11 @@ function EAPMobileOverviewPage() {
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
-                    eventView={searchBarEventView}
+                    projectIds={searchBarProjectsIds}
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery) ?? ''}
+                    query={getFreeTextFromQuery(searchBarQuery) ?? ''}
                   />
                 )}
               </ToolRibbon>
