@@ -4,7 +4,7 @@ import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDisco
 
 export function convertSeriesToTimeseries(series: DiscoverSeries): TimeSeries {
   return {
-    field: series.seriesName,
+    yAxis: series.seriesName,
     meta: {
       // This behavior is a little awkward. Normally `meta` shouldn't be missing, but we sometime return blank meta from helper hooks
       valueType: series.meta?.fields?.[series.seriesName] ?? null,

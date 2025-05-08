@@ -191,7 +191,7 @@ export function transformToSeriesMap(
     return processedResults
       .sort(([a], [b]) => a - b)
       .reduce((acc, [, series]) => {
-        acc[series.field] = [series];
+        acc[series.yAxis] = [series];
         return acc;
       }, {} as SeriesMap);
   }
@@ -237,7 +237,7 @@ export function convertEventsStatsToTimeSeriesData(
   const label = alias ?? (seriesName || FALLBACK_SERIES_NAME);
 
   const serie: TimeSeries = {
-    field: label,
+    yAxis: label,
     values: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
       timestamp: timestamp * 1000,
       value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),

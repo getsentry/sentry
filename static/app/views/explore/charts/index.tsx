@@ -107,7 +107,7 @@ export function ExploreCharts({
           //
           // We can't do this in top N mode as the series name uses the row
           // values instead of the aggregate function.
-          if (s.field === yAxis) {
+          if (s.yAxis === yAxis) {
             return {
               ...s,
               seriesName: formattedYAxes[i] ?? yAxis,
