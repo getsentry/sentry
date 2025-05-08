@@ -232,6 +232,22 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
     return connected_issues
 
 
+def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
+    project = group.project
+    option = project.get_option("sentry:autofix_automation_tuning")
+    if option == "off":
+        return False
+    elif option == "low":
+        return fixability_score >= 0.7
+    elif option == "medium":
+        return fixability_score >= 0.5
+    elif option == "high":
+        return fixability_score >= 0.3
+    elif option == "always":
+        return True
+    return False
+
+
 def _run_automation(
     group: Group,
     user: User | RpcUser | AnonymousUser,
@@ -251,10 +267,12 @@ def _run_automation(
         if not issue_summary.scores:
             return
 
-        if issue_summary.scores.fixability_score is not None:
-            group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+        if issue_summary.scores.fixability_score is None:
+            return
 
-        if issue_summary.scores.is_fixable:
+        group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+
+        if _is_issue_fixable(group, issue_summary.scores.fixability_score):
             with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
                 autofix_state = get_autofix_state(group_id=group.id)
 

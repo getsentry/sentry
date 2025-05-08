@@ -475,12 +475,6 @@ function shouldConfirm(
   }
 }
 
-export const HeaderDivider = styled(motion.div)`
-  background-color: ${p => p.theme.gray200};
-  width: 1px;
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
 const StickyActions = styled(Sticky)`
   z-index: ${p => p.theme.zIndex.issuesList.stickyHeader};
 

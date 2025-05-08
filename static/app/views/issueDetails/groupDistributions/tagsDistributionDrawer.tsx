@@ -1,9 +1,11 @@
 import {Fragment, useState} from 'react';
 
+import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {EventDrawerBody, EventNavigator} from 'sentry/components/events/eventDrawer';
+import SuspectTable from 'sentry/components/issues/suspect/suspectTable';
 import {IconSort} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -37,6 +39,9 @@ export default function TagsDistributionDrawer({
   const environments = useEnvironmentsFromUrl();
   const {tagKey} = useParams<{tagKey: string}>();
 
+  // If we're showing the suspect section at all
+  const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
+
   const [search, setSearch] = useState('');
 
   return (
@@ -55,31 +60,44 @@ export default function TagsDistributionDrawer({
             group={group}
             tagKey={tagKey}
           />
-        ) : (
-          <ButtonBar gap={1}>
-            <GroupDistributionsSearchInput
-              includeFeatureFlagsTab={includeFeatureFlagsTab}
-              search={search}
-              onChange={value => {
-                setSearch(value);
-                trackAnalytics('tags.drawer.action', {
-                  control: 'search',
-                  organization,
-                });
-              }}
-            />
-            {includeFeatureFlagsTab ? (
-              <Fragment>
-                <Tooltip title="Highlighted tags are shown first">
-                  <Button aria-label="" disabled size="xs" icon={<IconSort />} />
-                </Tooltip>
-                <TagFlagPicker setTab={setTab} tab={DrawerTab.TAGS} />
-              </Fragment>
-            ) : null}
-          </ButtonBar>
-        )}
+        ) : null}
       </EventNavigator>
       <EventDrawerBody>
+        {!tagKey && enableSuspectFlags ? (
+          <SuspectTable
+            debugSuspectScores={false}
+            environments={environments}
+            group={group}
+          />
+        ) : null}
+
+        {tagKey ? null : (
+          <Flex justify="space-between">
+            <TagFlagPicker setTab={setTab} tab={DrawerTab.TAGS} />
+
+            <ButtonBar gap={1}>
+              <GroupDistributionsSearchInput
+                includeFeatureFlagsTab={includeFeatureFlagsTab}
+                search={search}
+                onChange={value => {
+                  setSearch(value);
+                  trackAnalytics('tags.drawer.action', {
+                    control: 'search',
+                    organization,
+                  });
+                }}
+              />
+              {includeFeatureFlagsTab ? (
+                <Fragment>
+                  <Tooltip title="Highlighted tags are shown first">
+                    <Button aria-label="" disabled size="xs" icon={<IconSort />} />
+                  </Tooltip>
+                </Fragment>
+              ) : null}
+            </ButtonBar>
+          </Flex>
+        )}
+
         {tagKey ? (
           <TagDetailsDrawerContent group={group} />
         ) : (

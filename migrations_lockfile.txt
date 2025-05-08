@@ -27,6 +27,6 @@ social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0038_uptime_drop_project_subscription_uptime_status
+uptime: 0040_uptime_backfill_detector_conditions
 
-workflow_engine: 0055_datasource_define_indexes
+workflow_engine: 0058_add_inc_identifier_incidentgroupopenperiod

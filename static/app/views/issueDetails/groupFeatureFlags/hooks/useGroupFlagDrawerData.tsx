@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import {useGroupSuspectFlagScores} from 'sentry/components/issues/suspect/useGroupSuspectFlagScores';
 import type {Group} from 'sentry/types/group';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFeatureFlags';
-import {useGroupSuspectFlagScores} from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupSuspectFlagScores';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 interface SuspectGroupTag extends GroupTag {
@@ -76,8 +76,8 @@ export default function useGroupFlagDrawerData({
     }));
   }, [groupFlags, suspectScores]);
 
-  // Flatten all the tag values together into a big string.
-  // A perf improvement: here we iterate over all tags&values once, (N*M) then
+  // Flatten all the tag values together into a big string. This is meant as a
+  // perf improvement: here we iterate over all tags&values once, (N*M) then
   // later only iterate through each tag (N) as the search term changes.
   const tagValues = useMemo(
     () =>
@@ -111,6 +111,14 @@ export default function useGroupFlagDrawerData({
       return filteredFlags.toSorted(
         (a, b) => (b.suspect.score ?? 0) - (a.suspect.score ?? 0)
       );
+    }
+    if (sortBy === SortBy.DISTRIBUTION) {
+      const sorted = filteredFlags.toSorted((a, b) => {
+        const aTopPct = (a.topValues[0]?.count ?? 0) / a.totalValues;
+        const bTopPct = (b.topValues[0]?.count ?? 0) / b.totalValues;
+        return bTopPct - aTopPct;
+      });
+      return orderBy === OrderBy.HIGH_TO_LOW ? sorted : sorted.reverse();
     }
     return filteredFlags;
   }, [filteredFlags, orderBy, sortBy]);

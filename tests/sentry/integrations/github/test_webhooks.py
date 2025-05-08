@@ -651,9 +651,10 @@ class PullRequestEventWebhook(APITestCase):
 
         assert_failure_metric(mock_record, error)
 
-    @patch("sentry.integrations.github.webhook.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.open_pr_comment_workflow.delay")
+    @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_opened(self, mock_record, mock_metrics):
+    def test_opened(self, mock_record, mock_metrics, mock_delay):
         project = self.project  # force creation
         group = self.create_group(project=project, short_id=7)
 
@@ -688,6 +689,10 @@ class PullRequestEventWebhook(APITestCase):
         mock_metrics.incr.assert_called_with("github.open_pr_comment.queue_task")
 
         assert_success_metric(mock_record)
+
+        mock_delay.assert_called_with(
+            pr_id=pr.id,
+        )
 
     @patch("sentry.integrations.github.webhook.metrics")
     def test_opened_missing_option(self, mock_metrics):

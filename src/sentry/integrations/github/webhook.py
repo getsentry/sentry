@@ -24,18 +24,17 @@ from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.github.tasks.open_pr_comment import open_pr_comment_workflow
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -557,24 +556,13 @@ class PullRequestEventWebhook(GitHubWebhook):
                 },
             )
 
-            if action == "opened" and created:
-                if not OrganizationOption.objects.get_value(
-                    organization=organization,
-                    key="sentry:github_open_pr_bot",
-                    default=True,
-                ):
-                    logger.info(
-                        "github.open_pr_comment.option_missing",
-                        extra={"organization_id": organization.id},
-                    )
-                    return
-
-                metrics.incr("github.open_pr_comment.queue_task")
-                logger.info(
-                    "github.open_pr_comment.queue_task",
-                    extra={"pr_id": pr.id},
-                )
-                open_pr_comment_workflow.delay(pr_id=pr.id)
+            installation = integration.get_installation(organization_id=organization.id)
+            if (
+                action == "opened"
+                and created
+                and isinstance(installation, CommitContextIntegration)
+            ):
+                installation.queue_open_pr_comment_task_if_needed(pr=pr, organization=organization)
 
         except IntegrityError:
             pass

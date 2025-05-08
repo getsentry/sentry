@@ -696,7 +696,7 @@ export type EventEvidenceDisplay = {
   value: string;
 };
 
-export type EventOccurrence = {
+type EventOccurrence = {
   detectionTime: string;
   eventId: string;
   /**
