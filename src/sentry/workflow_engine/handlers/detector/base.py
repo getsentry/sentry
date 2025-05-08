@@ -48,6 +48,7 @@ class DetectorOccurrence:
     culprit: str
     resource_id: str | None = None
     assignee: Actor | None = None
+    priority: DetectorPriorityLevel | None = None
 
     def to_issue_occurrence(
         self,
@@ -73,7 +74,7 @@ class DetectorOccurrence:
             detection_time=detection_time,
             level=self.level,
             culprit=self.culprit,
-            priority=status,
+            priority=self.priority or status,
             assignee=self.assignee,
         )
 
@@ -100,7 +101,7 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
     @abc.abstractmethod
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> DetectorEvaluationResult | dict[DetectorGroupKey, DetectorEvaluationResult]:
+    ) -> dict[DetectorGroupKey, DetectorEvaluationResult] | None:
         """
         This method is used to evaluate the data packet's value against the conditions on the detector.
         """
@@ -110,7 +111,7 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
     def create_occurrence(
         self,
         evaluation_result: ProcessedDataConditionGroup,
-        data_packet: DataPacketType,
+        data_packet: DataPacket[DataPacketType],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
         """

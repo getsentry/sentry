@@ -10,14 +10,14 @@ if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
     from sentry.eventstore.models import GroupEvent
     from sentry.eventstream.base import GroupState
+    from sentry.issues.issue_occurrence import IssueOccurrence
+    from sentry.issues.status_change_message import StatusChangeMessage
     from sentry.models.environment import Environment
     from sentry.snuba.models import SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
     from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
-    from sentry.issues.issue_occurrence import IssueOccurrence
-    from sentry.issues.status_change_message import StatusChangeMessage
 
 T = TypeVar("T")
 
