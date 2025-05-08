@@ -26,10 +26,7 @@ import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDra
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {
-  ScreenCharts,
-  YAxis,
-} from 'sentry/views/insights/mobile/screenload/components/charts/screenCharts';
+import {ScreenCharts} from 'sentry/views/insights/mobile/screenload/components/charts/screenCharts';
 import {ScreenLoadEventSamples} from 'sentry/views/insights/mobile/screenload/components/eventSamples';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
@@ -165,7 +162,6 @@ export function ScreenLoadSpansContent() {
 
       <ErrorBoundary mini>
         <ScreenCharts
-          yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
           additionalFilters={[`transaction:${transactionName}`]}
           chartHeight={120}
         />

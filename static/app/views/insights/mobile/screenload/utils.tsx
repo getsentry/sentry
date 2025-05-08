@@ -4,9 +4,9 @@ import Color from 'color';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {YAxis} from 'sentry/views/insights/mobile/screenload/constants';
 import {YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
+import type {MetricsResponse} from 'sentry/views/insights/types';
 
 export function isCrossPlatform(project: Project) {
   return project.platform && ['react-native', 'flutter'].includes(project.platform);
@@ -81,7 +81,7 @@ export function transformDeviceClassEvents({
 }: {
   theme: Theme;
   yAxes: YAxis[];
-  data?: TableData;
+  data?: Array<Partial<MetricsResponse> & Pick<MetricsResponse, 'device.class'>>;
   primaryRelease?: string;
   secondaryRelease?: string;
 }): Record<string, Record<string, Series>> {
@@ -114,8 +114,8 @@ export function transformDeviceClassEvents({
   );
 
   if (defined(data)) {
-    data.data?.forEach(row => {
-      const deviceClass = row['device.class']!;
+    data?.forEach(row => {
+      const deviceClass = row['device.class'];
       const index = deviceClassIndex[deviceClass];
 
       const release = row.release;
@@ -127,7 +127,7 @@ export function transformDeviceClassEvents({
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           transformedData[YAXIS_COLUMNS[val]][release].data[index] = {
             name: deviceClass,
-            value: row[YAXIS_COLUMNS[val]],
+            value: row[YAXIS_COLUMNS[val] as keyof MetricsResponse],
             itemStyle: {
               color: isPrimary ? colors[0] : colors[1],
             },
