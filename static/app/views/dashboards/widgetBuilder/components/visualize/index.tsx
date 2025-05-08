@@ -129,16 +129,14 @@ export function getColumnOptions(
   columnFilterMethod: (
     option: SelectValue<FieldValue>,
     field?: QueryFieldValue
-  ) => boolean
+  ) => boolean,
+  filterOutIncompatibleResults?: boolean
 ) {
   const fieldValues = Object.values(fieldOptions);
   if (selectedField.kind !== FieldValueKind.FUNCTION || dataset === WidgetType.SPANS) {
-    return formatColumnOptions(
-      dataset,
-      fieldValues,
-      columnFilterMethod,
-      selectedField
-    ).sort(_sortFn);
+    return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField)
+      .filter(option => (filterOutIncompatibleResults ? !option.disabled : true))
+      .sort(_sortFn);
   }
 
   const fieldData = fieldValues.find(
