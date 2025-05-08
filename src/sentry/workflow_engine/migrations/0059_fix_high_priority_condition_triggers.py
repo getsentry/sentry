@@ -18,7 +18,6 @@ CHUNK_SIZE = 1000
 def move_high_priority_conditions_to_triggers(
     apps: Apps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
-    Rule = apps.get_model("sentry", "Rule")
     DataCondition = apps.get_model("workflow_engine", "DataCondition")
     Workflow = apps.get_model("workflow_engine", "Workflow")
     WorkflowDataConditionGroup = apps.get_model("workflow_engine", "WorkflowDataConditionGroup")
@@ -34,7 +33,7 @@ def move_high_priority_conditions_to_triggers(
         CHUNK_SIZE,
     ):
         for workflow in workflows:
-            with transaction.atomic(router.db_for_write(Rule)):
+            with transaction.atomic(router.db_for_write(Workflow)):
                 current_workflow = (
                     Workflow.objects.select_for_update().filter(id=workflow.id).first()
                 )
