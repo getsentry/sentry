@@ -1,5 +1,3 @@
-import type u2f from 'u2f-api';
-
 import type {Field} from 'sentry/components/forms/types';
 
 import type {ControlSiloOrganization} from './controlSiloOrganization';
@@ -91,11 +89,28 @@ export type Authenticator =
   | U2fAuthenticator
   | RecoveryAuthenticator;
 
+interface RegisterRequest {
+  appId: string;
+  challenge: string;
+  version: string;
+}
+
+interface SignRequest extends RegisterRequest {
+  keyHandle: string;
+}
+
+interface RegisteredKey {
+  appId: string;
+  keyHandle: string;
+  transports: Array<'bt' | 'ble' | 'nfc' | 'usb'>;
+  version: string;
+}
+
 export type ChallengeData = {
   // will have only authenticateRequest or registerRequest
-  authenticateRequests: u2f.SignRequest;
-  registerRequests: u2f.RegisterRequest;
-  registeredKeys: u2f.RegisteredKey[];
+  authenticateRequests: SignRequest;
+  registerRequests: RegisterRequest;
+  registeredKeys: RegisteredKey[];
   webAuthnAuthenticationData: string;
   // for WebAuthn register
   webAuthnRegisterData: string;
