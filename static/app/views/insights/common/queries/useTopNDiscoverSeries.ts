@@ -41,7 +41,7 @@ interface UseMetricsSeriesOptions<Fields> {
   interval?: string;
   overriddenRoute?: string;
   referrer?: string;
-  samplingMode?: SamplingMode | 'NONE';
+  samplingMode?: SamplingMode;
   search?: MutableSearch | string;
   sort?: Sort;
   // TODO: Remove string type and always require MutableSearch
@@ -159,8 +159,7 @@ const useTopNDiscoverSeries = <T extends string[]>(
       orderby: sort ? encodeSort(sort) : undefined,
       interval: eventView.interval,
       transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
-      sampling:
-        samplingMode === 'NONE' || !shouldSetSamplingMode ? undefined : samplingMode,
+      samplingMode: shouldSetSamplingMode ? samplingMode : undefined,
     }),
     options: {
       enabled: options.enabled && defaultPageFilters.isReady,
