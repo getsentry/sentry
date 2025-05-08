@@ -19,9 +19,13 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
-export const LogTableRow = styled(TableRow)`
+interface LogTableRowProps {
+  isClickable?: boolean;
+}
+
+export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   &:not(thead > &) {
-    cursor: pointer;
+    cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
     &:hover {
       background-color: ${p => p.theme.backgroundSecondary};

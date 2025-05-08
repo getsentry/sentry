@@ -20,7 +20,7 @@ import {
 } from 'sentry/views/explore/components/table';
 import {
   useLogsFields,
-  useLogsIsTableEditingFrozen,
+  useLogsIsTableFrozen,
   useLogsSearch,
   useLogsSortBys,
   useSetLogsCursor,
@@ -58,8 +58,7 @@ export function LogsTable({
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
-  const isTableEditingFrozen = useLogsIsTableEditingFrozen();
-  const hideTableBorder = !!isTableEditingFrozen;
+  const isTableFrozen = useLogsIsTableFrozen();
 
   const {data, isError, isPending, pageLinks, meta} = tableData;
 
@@ -84,7 +83,7 @@ export function LogsTable({
         ref={tableRef}
         styles={initialTableStyles}
         data-test-id="logs-table"
-        hideBorder={hideTableBorder}
+        hideBorder={isTableFrozen}
       >
         {showHeader ? (
           <TableHead>
@@ -113,10 +112,8 @@ export function LogsTable({
                     isFirst={index === 0}
                   >
                     <TableHeadCellContent
-                      onClick={
-                        isTableEditingFrozen ? undefined : () => setSortBys([{field}])
-                      }
-                      isFrozen={isTableEditingFrozen}
+                      onClick={isTableFrozen ? undefined : () => setSortBys([{field}])}
+                      isFrozen={isTableFrozen}
                     >
                       <Tooltip showOnlyOnOverflow title={headerLabel}>
                         {headerLabel}

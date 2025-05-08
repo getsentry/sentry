@@ -9,16 +9,21 @@ import {
   NavigationCrumbs,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
+import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
-import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {
+  TraceItemSearchQueryBuilder,
+  useSearchQueryBuilderProps,
+} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   useLogsSearch,
-  useSetLogsQuery,
+  useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
@@ -31,12 +36,24 @@ interface LogIssueDrawerProps {
   project: Project;
 }
 
-export function LogsIssueDrawer({event, project, group}: LogIssueDrawerProps) {
-  const setLogsQuery = useSetLogsQuery();
+export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
+  const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
   const tableData = useExploreLogsTable({});
-  const {attributes: stringTags} = useTraceItemAttributes('string');
-  const {attributes: numberTags} = useTraceItemAttributes('number');
+  const {attributes: stringAttributes} = useTraceItemAttributes('string');
+  const {attributes: numberAttributes} = useTraceItemAttributes('number');
+
+  const tracesItemSearchQueryBuilderProps = {
+    initialQuery: logsSearch.formatString(),
+    searchSource: 'ourlogs',
+    onSearch: (query: string) => setLogsSearch(new MutableSearch(query)),
+    numberAttributes,
+    stringAttributes,
+    itemType: TraceItemDataset.LOGS,
+  };
+  const searchQueryBuilderProps = useSearchQueryBuilderProps(
+    tracesItemSearchQueryBuilderProps
+  );
 
   return (
     <EventDrawerContainer>
@@ -57,17 +74,12 @@ export function LogsIssueDrawer({event, project, group}: LogIssueDrawerProps) {
         />
       </EventDrawerHeader>
       <EventDrawerBody>
-        <LogsTableContainer>
-          <TraceItemSearchQueryBuilder
-            initialQuery={logsSearch.formatString()}
-            searchSource="ourlogs"
-            onSearch={setLogsQuery}
-            numberAttributes={numberTags}
-            stringAttributes={stringTags}
-            itemType={TraceItemDataset.LOGS}
-          />
-          <LogsTable showHeader={false} allowPagination tableData={tableData} />
-        </LogsTableContainer>
+        <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+          <LogsTableContainer>
+            <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+            <LogsTable showHeader={false} allowPagination tableData={tableData} />
+          </LogsTableContainer>
+        </SearchQueryBuilderProvider>
       </EventDrawerBody>
     </EventDrawerContainer>
   );
