@@ -411,6 +411,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     const chartOptions = {
       autoHeightResize: shouldResize ?? true,
       useMultilineDate: true,
+      isGroupedByDate: true,
       grid: {
         left: 0,
         right: 4,
