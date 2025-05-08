@@ -28,6 +28,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {
   isAValidSort,
@@ -68,6 +69,7 @@ function EAPMobileOverviewPage() {
   const navigate = useNavigate();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
 
   const withStaticFilters = canUseMetricsData(organization);
 
@@ -189,6 +191,7 @@ function EAPMobileOverviewPage() {
     {
       search: existingQuery,
       sorts,
+      cursor,
       fields: [
         'is_starred_transaction',
         'transaction',

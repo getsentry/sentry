@@ -27,6 +27,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
   BackendOverviewTable,
@@ -83,6 +84,7 @@ function EAPBackendOverviewPage() {
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
 
   const {query: searchBarQuery} = useLocationQuery({
     fields: {
@@ -164,6 +166,7 @@ function EAPBackendOverviewPage() {
     {
       search: existingQuery,
       sorts,
+      cursor,
       fields: [
         'is_starred_transaction',
         'request.method',
