@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         id: dependencies
-        run: yarn install
+        run: pnpm install --frozen-lockfile
 
       # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers

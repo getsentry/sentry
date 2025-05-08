@@ -56,7 +56,7 @@ jobs:
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile --production
+        run: pnpm install --frozen-lockfile --production
 
       - run: |
           python3 -m tools.fast_editable --path .

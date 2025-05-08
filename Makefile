@@ -50,7 +50,7 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	yarn deref-api-docs
 
 watch-api-docs:
-	@cd api-docs/ && yarn install
+	@cd api-docs/ && pnpm install --frozen-lockfile
 	@cd api-docs/ && ts-node ./watch.ts
 
 diff-api-docs:
