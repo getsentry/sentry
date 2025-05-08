@@ -102,7 +102,7 @@ export function ScreenLoadSpansTable({
 
   const sort = decodeSorts(location.query[QueryParameterNames.SPANS_SORT])[0] ?? {
     kind: 'desc',
-    field: 'time_spent_percentage()',
+    field: 'sum(span.self_time)',
   };
 
   const {data, meta, isPending, pageLinks} = useSpanMetrics(
@@ -121,7 +121,6 @@ export function ScreenLoadSpansTable({
         'ttid_contribution_rate()',
         'ttfd_contribution_rate()',
         'count()',
-        'time_spent_percentage()',
         `sum(${SPAN_SELF_TIME})`,
       ],
     },
@@ -133,7 +132,7 @@ export function ScreenLoadSpansTable({
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': t('Total Count'),
     affects: hasTTFD ? t('Affects') : t('Affects TTID'),
-    'time_spent_percentage()': t('Total Time Spent'),
+    [`sum(${SPAN_SELF_TIME})`]: t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
       'Avg Duration (%s)',
       PRIMARY_RELEASE_ALIAS
@@ -365,7 +364,7 @@ export function ScreenLoadSpansTable({
           ...(organization.features.includes('insights-initial-modules')
             ? ['affects']
             : []),
-          ...['count()', 'time_spent_percentage()'],
+          ...['count()', `sum(${SPAN_SELF_TIME})`],
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
         })}
