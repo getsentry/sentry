@@ -300,13 +300,21 @@ class StatefulDetectorHandler(
         """
         Decorate the issue occurrence with the data from the detector's evaluation result.
         """
-        # TODO - create a snapshot of the data conditions in the evaluation_result
+        evidence_data = {
+            **detector_occurrence.evidence_data,
+            "detector_id": self.detector.id,
+            "value": new_priority,
+            "conditions": [
+                result.condition.get_snapshot() for result in evaluation_result.condition_results
+            ],
+        }
+
         return detector_occurrence.to_issue_occurrence(
             occurrence_id=str(uuid4()),
             project_id=self.detector.project_id,
             status=new_priority,
             detection_time=datetime.now(UTC),
-            additional_evidence_data=detector_occurrence.evidence_data,
+            additional_evidence_data=evidence_data,
             fingerprint=[self.build_fingerprint()],
         )
 
