@@ -54,7 +54,7 @@ export default function FeedbackWhatsNewBanner({className, style}: Props) {
       description={t(
         'Users can submit feedback anytime they’re having a problem with your app via our feedback widget.'
       )}
-      heading={t('Introducing the New User Feedback')}
+      heading={t('Introducing User Feedback')}
       icon={<IconBroadcast size="sm" />}
       image={replaysDeadRageBackground}
       title={t('What’s new')}
