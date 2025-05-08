@@ -29,7 +29,7 @@ export function SavedQueryEditMenu() {
       items={[
         {
           key: 'delete',
-          label: t('Delete View'),
+          label: t('Delete Query'),
           priority: 'danger',
           onAction: () => {
             confirmDeleteSavedQuery({

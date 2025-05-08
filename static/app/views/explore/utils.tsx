@@ -383,7 +383,7 @@ export function confirmDeleteSavedQuery({
   openConfirmModal({
     message: t('Are you sure you want to delete the query "%s"?', savedQuery.name),
     isDangerous: true,
-    confirmText: t('Delete View'),
+    confirmText: t('Delete Query'),
     priority: 'danger',
     onConfirm: handleDelete,
   });
