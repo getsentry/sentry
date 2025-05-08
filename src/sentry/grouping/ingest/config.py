@@ -31,10 +31,8 @@ def update_grouping_config_if_needed(project: Project, source: str) -> None:
     if current_config == DEFAULT_GROUPING_CONFIG or current_config == BETA_GROUPING_CONFIG:
         return
 
-    # Because the way the auto grouping upgrading happening is racy, we want to
-    # try to write the audit log entry and project option change just once.
-    # For this a cache key is used.  That's not perfect, but should reduce the
-    # risk significantly.
+    # We want to try to write the audit log entry and project option change just once, so we use a
+    # cache key to avoid raciness. It's not perfect, but it reduces the risk significantly.
     cache_key = f"grouping-config-update:{project.id}:{current_config}"
     lock_key = f"grouping-update-lock:{project.id}"
     if cache.get(cache_key) is not None:
@@ -54,7 +52,7 @@ def update_grouping_config_if_needed(project: Project, source: str) -> None:
         expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 
         changes: dict[str, str | int] = {"sentry:grouping_config": DEFAULT_GROUPING_CONFIG}
-        # If the current config is valid we will have a migration period
+        # If the current config is still valid, put the project into a migration period
         if current_config in CONFIGURATIONS.keys():
             changes.update(
                 {
