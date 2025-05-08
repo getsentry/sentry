@@ -223,9 +223,12 @@
     "typescript-eslint": "^8.26.0",
     "webpack-dev-server": "5.2.1"
   },
-  "resolutions": {
-    "react-mentions/@babel/runtime": "*",
-    "**/react-is": "19.1.0"
+  "pnpm": {
+    "overrides": {
+      "jest-runtime>cjs-module-lexer": "1.2.3",
+      "react-mentions>@babel/runtime": "7.26.10",
+      "react-is": "19.1.0"
+    }
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
