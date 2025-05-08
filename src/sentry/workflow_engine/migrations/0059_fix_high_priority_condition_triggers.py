@@ -4,6 +4,7 @@ from django.apps.registry import Apps
 from django.conf import settings
 from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.models import Prefetch
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils import redis
@@ -34,28 +35,37 @@ def move_high_priority_conditions_to_triggers(
     ):
         for workflow in workflows:
             with transaction.atomic(router.db_for_write(Workflow)):
-                workflow = Workflow.objects.select_for_update().filter(id=workflow.id).first()
+                workflow_dcg_prefetch = Prefetch(
+                    "workflowdataconditiongroup_set",
+                    queryset=WorkflowDataConditionGroup.objects.prefetch_related("condition_group"),
+                    to_attr="prefetched_wdcgs",
+                )
+
+                workflow = (
+                    Workflow.objects.select_for_update()
+                    .filter(id=workflow.id)
+                    .prefetch_related(workflow_dcg_prefetch)
+                    .first()
+                )
 
                 if not workflow:
                     continue
 
                 when_condition_group_id = workflow.when_condition_group_id
-                workflow_dcg = WorkflowDataConditionGroup.objects.filter(
-                    workflow_id=workflow.id
-                ).first()
+                workflow_dcgs = workflow.prefetched_wdcgs
 
-                if not when_condition_group_id or not workflow_dcg:
+                if not when_condition_group_id or not workflow_dcgs:
                     logger.info(
                         "Missing when or if condition group",
                         extra={
                             "workflow_id": workflow.id,
                             "when_condition_group_id": when_condition_group_id,
-                            "workflow_dcg": workflow_dcg,
+                            "workflow_dcg": workflow_dcgs,
                         },
                     )
                     continue
 
-                if_condition_group_id = workflow_dcg.condition_group_id
+                if_condition_group_id = workflow_dcgs[0].condition_group_id
 
                 high_priority_conditions = DataCondition.objects.filter(
                     type__in=("existing_high_priority_issue", "new_high_priority_issue"),
