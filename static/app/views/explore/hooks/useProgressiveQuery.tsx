@@ -1,5 +1,3 @@
-import useOrganization from 'sentry/utils/useOrganization';
-
 export const SAMPLING_MODE = {
   NORMAL: 'NORMAL',
   HIGH_ACCURACY: 'HIGHEST_ACCURACY',
@@ -39,18 +37,17 @@ interface QueryOptions<TQueryFn extends (...args: any[]) => any> {
 }
 
 /**
- * Warning: This hook is experimental and subject to change, and currently should
- * only be used with requests for spans RPC data.
+ * A hook used for querying spans data from EAP in stages.
  *
- * A hook that composes the behavior of progressively loading from a preflight
- * endpoint and a best effort endpoint for quicker feedback for queries.
+ * It first fires a query using `SAMPLING_MODE.NORMAL`, allowing EAP to make a
+ * decision around which tier data to query so that it returns within an acceptable
+ * amount of time.
  *
- * This hook is meant to be used as a wrapper where another hook is passed along.
- * The hook argument must accept `enabled` and `queryExtras` as arguments and
- * return `results` and `isFetched` to indicate when the query is complete.
- *
- * When the best effort request is complete, the results will always use the
- * best effort results and surface the fidelity of the response that is served.
+ * In the event that the first query succeeds but returned no data, check to see
+ * if EAP used a partial data scan to answer the query. If it did, that means there
+ * is the possibility scanning the full table will result in some data. Here, it
+ * fires another query using `SAMPLING_MODE.HIGH_ACCURACY`. This comes at the risk
+ * of possibly timing out for a chance to answer the query with an non empty response.
  */
 export function useProgressiveQuery<
   TQueryFn extends (...args: any[]) => ReturnType<TQueryFn>,
@@ -61,21 +58,10 @@ export function useProgressiveQuery<
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
   samplingMode?: SamplingMode;
 } {
-  const organization = useOrganization();
-  const canUseNormalSamplingMode = organization.features.includes(
-    'visibility-explore-progressive-loading-normal-sampling-mode'
-  );
-
-  const singleQueryResult = queryHookImplementation({
-    ...queryHookArgs,
-    enabled: queryHookArgs.enabled && !canUseNormalSamplingMode,
-  });
-
-  // This is the execution of the NORMAL -> HIGH_ACCURACY flow
   const normalSamplingModeRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: NORMAL_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: queryHookArgs.enabled && canUseNormalSamplingMode,
+    enabled: queryHookArgs.enabled,
   });
 
   let triggerHighAccuracy = false;
@@ -87,27 +73,18 @@ export function useProgressiveQuery<
   const highAccuracyRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: queryHookArgs.enabled && canUseNormalSamplingMode && triggerHighAccuracy,
+    enabled: queryHookArgs.enabled && triggerHighAccuracy,
   });
-  // End of NORMAL -> HIGH_ACCURACY flow
 
-  if (canUseNormalSamplingMode) {
-    if (
-      highAccuracyRequest?.result?.isFetching ||
-      highAccuracyRequest?.result?.isFetched
-    ) {
-      return {
-        ...highAccuracyRequest,
-        samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
-      };
-    }
-
+  if (highAccuracyRequest?.result?.isFetching || highAccuracyRequest?.result?.isFetched) {
     return {
-      ...normalSamplingModeRequest,
-      samplingMode: SAMPLING_MODE.NORMAL,
+      ...highAccuracyRequest,
+      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
     };
   }
 
-  // If neither of the sampling modes are available, return the single query result
-  return singleQueryResult;
+  return {
+    ...normalSamplingModeRequest,
+    samplingMode: SAMPLING_MODE.NORMAL,
+  };
 }

@@ -256,11 +256,7 @@ describe('Incident Rules Create', () => {
   });
 
   it('uses normal sampling for span alerts', async () => {
-    const {organization, project, router} = initializeOrg({
-      organization: {
-        features: ['visibility-explore-progressive-loading-normal-sampling-mode'],
-      },
-    });
+    const {organization, project, router} = initializeOrg();
 
     render(
       <TriggersChart

@@ -55,39 +55,6 @@ function createWrapper(org: Organization) {
 }
 
 describe('useProgressiveQuery', function () {
-  describe('Preflight -> Best Effort', function () {
-    let mockRequestUrl: jest.Mock;
-    beforeEach(function () {
-      mockRequestUrl = MockApiClient.addMockResponse({
-        url: '/test',
-        body: 'test',
-      });
-
-      jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
-    });
-
-    it('makes a single request when the feature flag is disabled', function () {
-      renderHook(
-        () =>
-          useProgressiveQuery({
-            queryHookImplementation: useMockHookImpl,
-            queryHookArgs: {enabled: true},
-          }),
-        {wrapper: createWrapper(OrganizationFixture())}
-      );
-
-      expect(mockRequestUrl).toHaveBeenCalledTimes(1);
-      expect(mockRequestUrl).toHaveBeenCalledWith(
-        '/test',
-        expect.objectContaining({
-          query: {
-            samplingMode: undefined,
-          },
-        })
-      );
-    });
-  });
-
   describe('normal sampling mode', function () {
     let mockNormalRequestUrl: jest.Mock;
     beforeEach(function () {
@@ -146,11 +113,7 @@ describe('useProgressiveQuery', function () {
             },
           }),
         {
-          wrapper: createWrapper(
-            OrganizationFixture({
-              features: ['visibility-explore-progressive-loading-normal-sampling-mode'],
-            })
-          ),
+          wrapper: createWrapper(OrganizationFixture()),
         }
       );
 
@@ -205,11 +168,7 @@ describe('useProgressiveQuery', function () {
             },
           }),
         {
-          wrapper: createWrapper(
-            OrganizationFixture({
-              features: ['visibility-explore-progressive-loading-normal-sampling-mode'],
-            })
-          ),
+          wrapper: createWrapper(OrganizationFixture()),
         }
       );
 

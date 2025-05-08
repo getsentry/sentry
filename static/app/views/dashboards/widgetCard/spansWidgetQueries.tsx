@@ -151,13 +151,7 @@ function SpansWidgetQueriesSingleRequestImpl({
         dashboardFilters={dashboardFilters}
         onDataFetched={onDataFetched}
         afterFetchSeriesData={afterFetchSeriesData}
-        samplingMode={
-          organization.features.includes(
-            'visibility-explore-progressive-loading-normal-sampling-mode'
-          )
-            ? SAMPLING_MODE.NORMAL
-            : undefined
-        }
+        samplingMode={SAMPLING_MODE.NORMAL}
       >
         {props =>
           children({

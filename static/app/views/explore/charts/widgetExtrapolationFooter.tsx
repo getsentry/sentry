@@ -4,7 +4,6 @@ import {IconArrow, IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import useOrganization from 'sentry/utils/useOrganization';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 export function WidgetExtrapolationFooter({
@@ -22,13 +21,7 @@ export function WidgetExtrapolationFooter({
   sampleCount: number;
   topEvents: number | undefined;
 }) {
-  const organization = useOrganization();
-  if (
-    ![DiscoverDatasets.SPANS_EAP, DiscoverDatasets.SPANS_EAP_RPC].includes(dataset) ||
-    organization.features.includes(
-      'visibility-explore-progressive-loading-normal-sampling-mode'
-    )
-  ) {
+  if (![DiscoverDatasets.SPANS_EAP, DiscoverDatasets.SPANS_EAP_RPC].includes(dataset)) {
     return (
       <ConfidenceFooter
         sampleCount={sampleCount}

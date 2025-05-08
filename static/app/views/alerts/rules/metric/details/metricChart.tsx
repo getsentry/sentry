@@ -453,10 +453,6 @@ export default function MetricChart({
     ]
   );
 
-  const isUsingNormalSamplingMode = organization.features.includes(
-    'visibility-explore-progressive-loading-normal-sampling-mode'
-  );
-
   const {data: eventStats, isLoading: isLoadingEventStats} = useMetricEventStats(
     {
       project,
@@ -464,7 +460,7 @@ export default function MetricChart({
       timePeriod,
       referrer: 'api.alerts.alert-rule-chart',
       samplingMode:
-        isUsingNormalSamplingMode && rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+        rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
           ? SAMPLING_MODE.NORMAL
           : undefined,
     },
