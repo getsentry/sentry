@@ -1,13 +1,13 @@
-from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
-from rest_framework import status
+from django.db.models import Count
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.bases import OrganizationAlertRulePermission, OrganizationEndpoint
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -15,10 +15,12 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
 from sentry.issues import grouptype
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
+from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
+from sentry.workflow_engine.models import Detector
 
 
 def get_detector_validator(
@@ -55,31 +57,24 @@ SORT_ATTRS = {
 
 @region_silo_endpoint
 @extend_schema(tags=["Workflows"])
-class ProjectDetectorIndexEndpoint(ProjectEndpoint):
+class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
 
     # TODO: We probably need a specific permission for detectors. Possibly specific detectors have different perms
     # too?
-    permission_classes = (ProjectAlertRulePermission,)
+    permission_classes = (OrganizationAlertRulePermission,)
 
     @extend_schema(
-        operation_id="Create a Detector",
+        operation_id="Fetch a Project's Detectors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            GlobalParams.PROJECT_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            DetectorParams.SORT,
         ],
-        request=PolymorphicProxySerializer(
-            "GenericDetectorSerializer",
-            serializers=[
-                gt.detector_settings.validator
-                for gt in grouptype.registry.all()
-                if gt.detector_settings and gt.detector_settings.validator
-            ],
-            resource_type_field_name=None,
-        ),
         responses={
             201: DetectorSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -88,24 +83,27 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request, project):
+    def get(self, request, organization):
         """
-        Create a Detector
-        ````````````````
-        Create a new detector for a project.
-
-        :param string name: The name of the detector
-        :param string detector_type: The type of detector to create
-        :param object data_source: Configuration for the data source
-        :param array data_conditions: List of conditions to trigger the detector
+        List an Organization's Detectors
+        `````````````````````````````
+        Return a list of detectors for a given organization.
         """
-        detector_type = request.data.get("detectorType")
-        if not detector_type:
-            raise ValidationError({"detectorType": ["This field is required."]})
+        projects = self.get_projects(request, organization)
+        queryset = Detector.objects.filter(
+            project_id__in=projects,
+        )
 
-        validator = get_detector_validator(request, project, detector_type)
-        if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+        sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_ATTRS)
+        if sort_by.db_field_name == "connected_workflows":
+            queryset = queryset.annotate(connected_workflows=Count("detectorworkflow"))
 
-        detector = validator.save()
-        return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)
+        queryset = queryset.order_by(*sort_by.db_order_by)
+
+        return self.paginate(
+            request=request,
+            paginator_cls=OffsetPaginator,
+            queryset=queryset,
+            order_by=sort_by.db_order_by,
+            on_results=lambda x: serialize(x, request.user),
+        )
