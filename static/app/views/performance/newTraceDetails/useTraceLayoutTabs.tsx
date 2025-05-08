@@ -3,9 +3,9 @@ import * as qs from 'query-string';
 
 import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 

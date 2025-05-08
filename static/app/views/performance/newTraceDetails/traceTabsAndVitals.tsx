@@ -2,10 +2,10 @@ import styled from '@emotion/styled';
 
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {space} from 'sentry/styles/space';
-import {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {TraceLayoutTabsConfig} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceLayoutTabsConfig} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
 type TraceTabsAndVitalsProps = {
   rootEventResults: TraceRootEventQueryResults;
