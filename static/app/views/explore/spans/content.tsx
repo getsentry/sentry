@@ -23,6 +23,8 @@ import {
   useExploreTitle,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {
   EXPLORE_SPANS_TOUR_GUIDE_KEY,
@@ -127,6 +129,7 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
   const prefersStackedNav = usePrefersStackedNav();
   const id = useExploreId();
   const title = useExploreTitle();
+  const {data: savedQuery} = useGetSavedQuery(id);
 
   return (
     <Layout.Header unified={prefersStackedNav}>
@@ -154,6 +157,7 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
             </LinkButton>
           )}
           <StarSavedQueryButton />
+          {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
           <FeedbackWidgetButton />
         </ButtonBar>
       </Layout.HeaderActions>
