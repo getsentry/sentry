@@ -254,7 +254,6 @@ class StatefulDetectorHandler(
 ):
     def __init__(self, detector: Detector):
         super().__init__(detector)
-        # TODO - is `thresholds` good? (check evans pr)
         # if detector.config.get("thresholds"):
         #     raise Exception(
         #         "Stateful detectors are required to have `thresholds` set in the config"
