@@ -2454,7 +2454,7 @@ function buildRoutes() {
         component={errorHandler(
           redirectDeprecatedProjectRoute(
             ({orgId, projectId}) =>
-              `/organizations/${orgId}/user-feedback/?project=${projectId}`
+              `/organizations/${orgId}/feedback/?project=${projectId}`
           )
         )}
       />
