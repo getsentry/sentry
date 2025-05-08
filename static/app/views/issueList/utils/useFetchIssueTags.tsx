@@ -7,6 +7,7 @@ import {
 } from 'sentry/components/deprecatedSmartSearchBar/types';
 import {
   getIssueTitleFromType,
+  ISSUE_CATEGORY_TO_DESCRIPTION,
   IssueCategory,
   PriorityLevel,
   type Tag,
@@ -290,7 +291,15 @@ function builtInIssuesFields({
             IssueCategory.HTTP_CLIENT,
             IssueCategory.FRONTEND,
             IssueCategory.MOBILE,
-          ]
+          ].map(value => ({
+            icon: null,
+            title: value,
+            name: value,
+            documentation: ISSUE_CATEGORY_TO_DESCRIPTION[value],
+            value,
+            type: ItemType.TAG_VALUE,
+            children: [],
+          }))
         : [
             IssueCategory.ERROR,
             IssueCategory.PERFORMANCE,
