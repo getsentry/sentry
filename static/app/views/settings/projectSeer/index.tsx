@@ -44,7 +44,7 @@ export const autofixAutomatingTuningField = {
   name: 'autofixAutomationTuning',
   label: t('Automatically Fix Issues with Seer'),
   help: t(
-    "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a High setting enables Seer to be more eager."
+    "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager."
   ),
   type: 'range',
   min: 0,
