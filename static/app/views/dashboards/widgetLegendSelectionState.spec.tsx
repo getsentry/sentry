@@ -63,7 +63,7 @@ describe('WidgetLegend functions util', () => {
         dashboard,
         location,
         organization,
-        router,
+        navigate: jest.fn(),
       });
     });
 
