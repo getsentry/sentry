@@ -655,6 +655,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     @property
     def client(self) -> GithubSetupApiClient:
+        # The endpoints we need to hit at this step authenticate via JWT so no need for access token in client
         return GithubSetupApiClient()
 
     def post_install(

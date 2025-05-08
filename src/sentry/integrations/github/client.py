@@ -90,7 +90,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
         """
         return self.get(f"/app/installations/{installation_id}")
 
-    def get_user_info(self):
+    def get_user_info(self) -> dict[str, Any]:
         return self.get("/user")
 
 
