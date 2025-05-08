@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 
 type Installation = {
   avatar_url: string;
-  github_organization: string;
+  github_account: string;
   installation_id: number;
 };
 
@@ -60,9 +60,9 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
             type="upload"
             uploadUrl={installation.avatar_url}
             size={16}
-            title={installation.github_organization}
+            title={installation.github_account}
           />
-          <span>{`${installation.github_organization}`}</span>
+          <span>{`${installation.github_account}`}</span>
         </OptionLabelWrapper>
       ),
     })

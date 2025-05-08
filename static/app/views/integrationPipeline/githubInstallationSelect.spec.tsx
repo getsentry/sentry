@@ -16,56 +16,29 @@ describe('GithubInstallationSelect', () => {
       screen.getByText('Install on an Existing Github Organization')
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Skip'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Skip'})).toBeEnabled();
-
     expect(screen.getByRole('button', {name: 'Install'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Install'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
 
     // Initial selection is None as no installation has been selected
     await userEvent.click(
       screen.getByRole('button', {
-        name: 'Choose Installation',
+        name: 'Integrate with a new GitHub organization',
       })
     );
 
     expect(screen.getByText('sentaur')).toBeInTheDocument();
     expect(screen.getByText('bufo-bot')).toBeInTheDocument();
-    expect(
-      screen.getByText('Install integration on a new GitHub organization')
-    ).toBeInTheDocument();
-  });
-
-  it('enables Install button after selecting an installation', async () => {
-    render(<GithubInstallationSelect installation_info={installation_info} />);
-
-    // Install button should be disabled initially
-    expect(screen.getByRole('button', {name: 'Install'})).toBeDisabled();
-
-    // Click the select dropdown
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'Choose Installation',
-      })
+    expect(screen.getAllByText('Integrate with a new GitHub organization')).toHaveLength(
+      2
     );
-
-    // Select an installation
-    await userEvent.click(screen.getByText('bufo-bot'));
-
-    // Install button should be enabled
-    expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
   });
 
-  it('redirects to setup page when clicking next', async () => {
+  it('redirects to setup page when clicking Install', async () => {
     render(<GithubInstallationSelect installation_info={installation_info} />);
-
-    // Install button should be disabled initially
-    expect(screen.getByRole('button', {name: 'Install'})).toBeDisabled();
-
     // Click the select dropdown
     await userEvent.click(
       screen.getByRole('button', {
-        name: 'Choose Installation',
+        name: 'Integrate with a new GitHub organization',
       })
     );
 
@@ -75,7 +48,7 @@ describe('GithubInstallationSelect', () => {
     // Install button should be enabled
     expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
 
-    // Click next
+    // Click Install
     await userEvent.click(screen.getByRole('button', {name: 'Install'}));
 
     expect(window.location.assign).toHaveBeenCalledWith(
@@ -85,22 +58,17 @@ describe('GithubInstallationSelect', () => {
     );
   });
 
-  it('redirects to setup page when selecting skip option', async () => {
+  it('redirects to setup page when selecting "skip"(integrate with a new GH org) option', async () => {
     render(<GithubInstallationSelect installation_info={installation_info} />);
 
     // Initial selection is None as no installation has been selected
     await userEvent.click(
       screen.getByRole('button', {
-        name: 'Choose Installation',
+        name: 'Integrate with a new GitHub organization',
       })
     );
 
-    // Select the new installation option
-    await userEvent.click(
-      screen.getByText('Install integration on a new GitHub organization')
-    );
-
-    // Click next
+    // Click Install
     await userEvent.click(screen.getByRole('button', {name: 'Install'}));
 
     expect(window.location.assign).toHaveBeenCalledWith(
