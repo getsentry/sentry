@@ -224,13 +224,13 @@ class IssuesGroupList extends Component<Props, State> {
         return renderEmptyMessage();
       }
       return (
-        <Panel>
+        <StyledPanel>
           <PanelBody>
             <EmptyStateWarning>
               <p>{t("There don't seem to be any events fitting the query.")}</p>
             </EmptyStateWarning>
           </PanelBody>
-        </Panel>
+        </StyledPanel>
       );
     }
 
@@ -241,7 +241,7 @@ class IssuesGroupList extends Component<Props, State> {
 
     return (
       <Fragment>
-        <PanelContainer>
+        <StyledPanel>
           <HeaderContainer>
             <SuperHeader disablePadding>
               <SuperHeaderLabel hideDivider>{t('Recommended Issues')}</SuperHeaderLabel>
@@ -283,7 +283,7 @@ class IssuesGroupList extends Component<Props, State> {
                   );
                 })}
           </PanelBody>
-        </PanelContainer>
+        </StyledPanel>
       </Fragment>
     );
   }
@@ -297,10 +297,6 @@ const GroupPlaceholder = styled('div')`
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.innerBorder};
   }
-`;
-
-const PanelContainer = styled(Panel)`
-  container-type: inline-size;
 `;
 
 const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
@@ -355,7 +351,9 @@ export function IssuesWidget({query = ''}: {query?: string}) {
       : t('given timeframe');
 
     return (
-      <Panel style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+      <StyledPanel
+        style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}
+      >
         <PanelBody>
           <EmptyStateWarning>
             <p>
@@ -366,7 +364,7 @@ export function IssuesWidget({query = ''}: {query?: string}) {
             </p>
           </EmptyStateWarning>
         </PanelBody>
-      </Panel>
+      </StyledPanel>
     );
   }
 
@@ -382,3 +380,11 @@ export function IssuesWidget({query = ''}: {query?: string}) {
     />
   );
 }
+
+const StyledPanel = styled(Panel)`
+  min-width: 0;
+  overflow-y: auto;
+  margin-bottom: 0 !important;
+  height: 100%;
+  container-type: inline-size;
+`;

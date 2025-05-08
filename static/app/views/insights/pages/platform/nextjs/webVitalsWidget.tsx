@@ -13,10 +13,10 @@ import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/w
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
-import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {getPreviousPeriod} from 'sentry/views/insights/pages/platform/nextjs/utils';
+import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 
