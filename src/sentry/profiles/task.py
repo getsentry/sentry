@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from base64 import b64decode, b64encode
 from copy import deepcopy
 from datetime import datetime, timezone
 from operator import itemgetter
@@ -9,9 +10,11 @@ from uuid import UUID
 
 import msgpack
 import sentry_sdk
+from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from django.conf import settings
 
 from sentry import features, options, quotas
+from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
@@ -36,7 +39,12 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import ingest_profiling_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
+from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import set_measurement
@@ -47,6 +55,38 @@ REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.
 MAX_DURATION_SAMPLE_V2 = 66000
 
 UI_PROFILE_PLATFORMS = {"cocoa", "android", "javascript"}
+
+
+def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
+    cluster_name = get_topic_definition(topic)["cluster"]
+    producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config.pop("compression.type", None)
+    producer_config.pop("message.max.bytes", None)
+    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+
+processed_profiles_producer = SingletonProducer(
+    lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES),
+    max_futures=settings.SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT,
+)
+
+profile_functions_producer = SingletonProducer(
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE),
+    max_futures=settings.SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT,
+)
+
+profile_chunks_producer = SingletonProducer(
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS),
+    max_futures=settings.SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT,
+)
+
+
+def decode_payload(encoded: str) -> dict[str, Any]:
+    return msgpack.unpackb(b64decode(encoded.encode("utf-8")), use_list=False)
+
+
+def encode_payload(message: dict[str, Any]) -> str:
+    return b64encode(msgpack.packb(message)).decode("utf-8")
 
 
 @instrumented_task(
@@ -60,10 +100,15 @@ UI_PROFILE_PLATFORMS = {"cocoa", "android", "javascript"}
     task_time_limit=60,
     task_acks_on_failure_or_timeout=False,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_profiling_tasks,
+        processing_deadline_duration=60,
+        retry=Retry(times=2),
+    ),
 )
 def process_profile_task(
     profile: Profile | None = None,
-    payload: Any = None,
+    payload: str | bytes | None = None,
     sampled: bool = True,
     **kwargs: Any,
 ) -> None:
@@ -71,7 +116,11 @@ def process_profile_task(
         return
 
     if payload:
-        message_dict = msgpack.unpackb(payload, use_list=False)
+        if isinstance(payload, str):  # It's been b64encoded for taskworker
+            message_dict = decode_payload(payload)
+        else:
+            message_dict = msgpack.unpackb(payload, use_list=False)
+
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
         assert profile is not None
@@ -1109,19 +1158,38 @@ def determine_profile_type(profile: Profile) -> EventType:
     raise UnknownProfileTypeException
 
 
-def track_latest_sdk(project: Project, profile: Profile) -> None:
-    event_type = determine_profile_type(profile)
-
+def determine_client_sdk(profile: Profile, event_type: EventType) -> tuple[str, str]:
     client_sdk = profile.get("client_sdk")
 
-    if not client_sdk:
-        raise UnknownClientSDKException
+    if client_sdk:
+        sdk_name = client_sdk.get("name")
+        sdk_version = client_sdk.get("version")
 
-    sdk_name = client_sdk.get("name")
-    sdk_version = client_sdk.get("version")
+        if sdk_name and sdk_version:
+            return sdk_name, sdk_version
 
-    if not sdk_name or not sdk_version:
-        raise UnknownClientSDKException
+    # some older sdks were sending the profile chunk without the
+    # sdk info, here we hard code a few and assign them a guaranteed
+    # outdated version
+    if event_type == EventType.PROFILE_CHUNK:
+        if profile["platform"] == "python":
+            return "sentry.python", "0.0.0"
+        elif profile["platform"] == "cocoa":
+            return "sentry.cocoa", "0.0.0"
+        elif profile["platform"] == "node":
+            # there are other node platforms but it's not straight forward
+            # to figure out which it is here so collapse them all into just node
+            return "sentry.javascript.node", "0.0.0"
+
+        # Other platforms do not have a version released where it sends
+        # a profile chunk without the client sdk info
+
+    raise UnknownClientSDKException
+
+
+def track_latest_sdk(project: Project, profile: Profile) -> None:
+    event_type = determine_profile_type(profile)
+    sdk_name, sdk_version = determine_client_sdk(profile, event_type)
 
     try:
         ProjectSDK.update_with_newest_version_or_create(

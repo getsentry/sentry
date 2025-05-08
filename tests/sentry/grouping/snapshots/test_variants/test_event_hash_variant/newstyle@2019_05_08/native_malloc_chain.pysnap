@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:33:33.475196+00:00'
+created: '2025-04-25T21:22:41.610667+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,19 +13,19 @@ app:
           frame (non app frame)
             function*
               "application_frame"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by the client)
             function*
               "malloc_zone_malloc"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by the client)
             function*
               "nanov2_malloc"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by the client)
             function*
               "nanov2_allocate"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by the client)
             function*
               "nanov2_allocate_from_block"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by the client)
             function*
               "nanov2_allocate_from_block.cold.1"
         type (ignored because exception is synthetic)

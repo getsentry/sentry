@@ -5,9 +5,10 @@ from datetime import datetime, timezone
 
 import sentry_sdk
 from django.db.models import F
+from django.forms import model_to_dict
 from django.utils import timezone as django_timezone
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.constants import InsightModules
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
@@ -35,8 +36,8 @@ from sentry.signals import (
     first_transaction_received,
     integration_added,
     member_invited,
-    member_joined,
     project_created,
+    project_transferred,
     transaction_processed,
 )
 from sentry.users.services.user import RpcUser
@@ -92,9 +93,6 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
         origin=origin,
         project_id=project.id,
         platform=project.platform,
-        updated_empty_state=features.has(
-            "organizations:issue-stream-empty-state", project.organization
-        ),
     )
 
     _, created = OrganizationOnboardingTask.objects.update_or_create(
@@ -367,14 +365,15 @@ def record_first_insight_span(project, module, **kwargs):
 first_insight_span_received.connect(record_first_insight_span, weak=False)
 
 
+# TODO (mifu67): update this to use the new org member invite model
 @member_invited.connect(weak=False, dispatch_uid="onboarding.record_member_invited")
 def record_member_invited(member, user, **kwargs):
-    OrganizationOnboardingTask.objects.record(
+    OrganizationOnboardingTask.objects.get_or_create(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,
-        user_id=user.id if user else None,
-        status=OnboardingTaskStatus.PENDING,
-        data={"invited_member_id": member.id},
+        defaults={
+            "status": OnboardingTaskStatus.COMPLETE,
+        },
     )
 
     analytics.record(
@@ -384,29 +383,6 @@ def record_member_invited(member, user, **kwargs):
         organization_id=member.organization_id,
         referrer=kwargs.get("referrer"),
     )
-
-
-@member_joined.connect(weak=False, dispatch_uid="onboarding.record_member_joined")
-def record_member_joined(organization_id: int, organization_member_id: int, **kwargs):
-    obj, created = OrganizationOnboardingTask.objects.get_or_create(
-        organization_id=organization_id,
-        task=OnboardingTask.INVITE_MEMBER,
-        defaults={
-            "status": OnboardingTaskStatus.COMPLETE,
-            "date_completed": django_timezone.now(),
-            "data": {"invited_member_id": organization_member_id},
-        },
-    )
-    if created:
-        # The task was just created and marked as complete, no need to do anything extra
-        return
-
-    if obj.status != OnboardingTaskStatus.COMPLETE:
-        # The task exists but is not complete, so we need to update it as complete
-        obj.status = OnboardingTaskStatus.COMPLETE
-        obj.date_completed = django_timezone.now()
-        obj.data = {"invited_member_id": organization_member_id}
-        obj.save()
 
 
 def _record_release_received(project, event, **kwargs):
@@ -600,3 +576,37 @@ def record_integration_added(
                     task=task_mapping[integration_type],
                     status=OnboardingTaskStatus.COMPLETE,
                 )
+
+
+@project_transferred.connect(weak=False, dispatch_uid="onboarding.record_project_transferred")
+def record_project_transferred(old_org_id: int, project: Project, **kwargs):
+
+    analytics.record(
+        "project.transferred",
+        old_organization_id=old_org_id,
+        new_organization_id=project.organization.id,
+        project_id=project.id,
+        platform=project.platform,
+    )
+
+    existing_tasks_in_old_org = OrganizationOnboardingTask.objects.filter(
+        organization_id=old_org_id,
+        task__in=OrganizationOnboardingTask.TRANSFERABLE_TASKS,
+    )
+
+    existing_tasks_in_new_org = set(
+        OrganizationOnboardingTask.objects.filter(
+            organization_id=project.organization.id
+        ).values_list("task", flat=True)
+    )
+
+    new_tasks = [
+        task for task in existing_tasks_in_old_org if task.task not in existing_tasks_in_new_org
+    ]
+
+    for task in new_tasks:
+        task_dict = model_to_dict(task, exclude=["id", "organization", "project"])
+        copied_task = OrganizationOnboardingTask(
+            **task_dict, organization=project.organization, project=project
+        )
+        copied_task.save()

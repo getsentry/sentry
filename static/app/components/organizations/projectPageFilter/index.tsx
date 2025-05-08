@@ -35,7 +35,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';
 
-export interface ProjectPageFilterProps
+interface ProjectPageFilterProps
   extends Partial<
     Omit<
       HybridFilterProps<number>,
@@ -277,7 +277,7 @@ export function ProjectPageFilter({
               to={
                 makeProjectsPathname({
                   path: `/${project.slug}/`,
-                  orgSlug: organization.slug,
+                  organization,
                 }) + `?project=${project.id}`
               }
               visible={isFocused}
@@ -303,7 +303,7 @@ export function ProjectPageFilter({
             />
           </Fragment>
         ),
-      };
+      } satisfies SelectOptionOrSection<number>;
     };
 
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
@@ -387,6 +387,7 @@ export function ProjectPageFilter({
     <HybridFilter
       {...selectProps}
       searchable
+      checkboxPosition="trailing"
       multiple={allowMultiple}
       options={options}
       value={value}
@@ -438,7 +439,7 @@ export function ProjectPageFilter({
 function shouldCloseOnInteractOutside(target: Element) {
   // Don't close select menu when clicking on power hovercard ("Requires Business Plan")
   const powerHovercard = document.querySelector("[data-test-id='power-hovercard']");
-  return !powerHovercard || !powerHovercard.contains(target);
+  return !powerHovercard?.contains(target);
 }
 
 function checkboxWrapper(

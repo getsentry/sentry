@@ -51,7 +51,7 @@ interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'projec
   eventRoute: LocationDescriptor;
 }
 
-export function GroupHeaderTabs({
+function GroupHeaderTabs({
   baseUrl,
   disabledTabs,
   eventRoute,

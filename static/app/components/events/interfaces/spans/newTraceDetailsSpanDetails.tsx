@@ -99,8 +99,8 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
   const profileId = props.event.contexts.profile?.profile_id || '';
   const issues = useMemo(() => {
-    return [...props.node.errors, ...props.node.occurences];
-  }, [props.node.errors, props.node.occurences]);
+    return [...props.node.errors, ...props.node.occurrences];
+  }, [props.node.errors, props.node.occurrences]);
 
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
@@ -299,7 +299,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanErrorMessage() {
-    const hasErrors = props.node.errors.size > 0 || props.node.occurences.size > 0;
+    const hasErrors = props.node.errors.size > 0 || props.node.occurrences.size > 0;
 
     if (!hasErrors || isGapSpan(props.node.value)) {
       return null;
@@ -687,7 +687,7 @@ const SpanIdTitle = styled('a')`
   }
 `;
 
-export function Row({
+function Row({
   title,
   keep,
   children,
@@ -727,7 +727,7 @@ export function Row({
   );
 }
 
-export function Tags({span}: {span: RawSpanType}) {
+function Tags({span}: {span: RawSpanType}) {
   const tags: Record<string, string> | undefined = span?.tags;
 
   if (!tags) {
@@ -765,13 +765,13 @@ const Flex = styled('div')`
   display: flex;
   align-items: center;
 `;
-export const ButtonGroup = styled('div')`
+const ButtonGroup = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
 `;
 
-export const ValueRow = styled('div')`
+const ValueRow = styled('div')`
   display: grid;
   grid-template-columns: auto min-content;
   gap: ${space(1)};
@@ -786,7 +786,7 @@ const StyledPre = styled('pre')`
   background-color: transparent !important;
 `;
 
-export const ButtonContainer = styled('div')`
+const ButtonContainer = styled('div')`
   padding: 8px 10px;
 `;
 

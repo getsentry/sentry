@@ -2,13 +2,13 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
-export interface TraceRovingTabIndexState {
+interface TraceRovingTabIndexState {
   index: number | null;
   items: number | null;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
 }
 
-export type TraceRovingTabIndexAction =
+type TraceRovingTabIndexAction =
   | {
       index: number | null;
       items: number;

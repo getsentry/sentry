@@ -233,7 +233,7 @@ export function addTeamToProject(
  * @param projectSlug Project Slug
  * @param teamSlug Team Slug
  */
-export function removeTeamFromProject(
+function removeTeamFromProject(
   api: Client,
   orgSlug: string,
   projectSlug: string,
@@ -281,21 +281,6 @@ export function changeProjectSlug(prev: string, next: string) {
 }
 
 /**
- * Send a sample event
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
- */
-export function sendSampleEvent(api: Client, orgSlug: string, projectSlug: string) {
-  const endpoint = `/projects/${orgSlug}/${projectSlug}/create-sample/`;
-
-  return api.requestPromise(endpoint, {
-    method: 'POST',
-  });
-}
-
-/**
  * Deletes a project
  *
  * @param api API Client
@@ -331,31 +316,6 @@ export function removeProject({
  */
 export function fetchProjectsCount(api: Client, orgSlug: string) {
   return api.requestPromise(`/organizations/${orgSlug}/projects-count/`);
-}
-
-/**
- * Check if there are any releases in the last 90 days.
- * Used for checking if project is using releases.
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectId Project Id
- */
-export async function fetchAnyReleaseExistence(
-  api: Client,
-  orgSlug: string,
-  projectId: number | string
-) {
-  const data = await api.requestPromise(`/organizations/${orgSlug}/releases/stats/`, {
-    method: 'GET',
-    query: {
-      statsPeriod: '90d',
-      project: projectId,
-      per_page: 1,
-    },
-  });
-
-  return data.length > 0;
 }
 
 function makeProjectTeamsQueryKey({

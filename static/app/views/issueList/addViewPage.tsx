@@ -9,7 +9,7 @@ import {Button, LinkButton} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {IconClose} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -266,7 +266,7 @@ function SearchSuggestionList({
               ) : null}
             </ScopeTagContainer>
             <QueryWrapper>
-              <FormattedQuery
+              <ProvidedFormattedQuery
                 query={suggestion.query}
                 fieldDefinitionGetter={getFieldDefinition}
                 filterKeys={filterKeys}

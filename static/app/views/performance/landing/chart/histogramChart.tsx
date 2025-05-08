@@ -6,12 +6,8 @@ import type {Location} from 'history';
 import type {BarChartProps} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
@@ -19,15 +15,11 @@ import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
-import {DoubleHeaderContainer} from 'sentry/views/performance/styles';
-
-import {getFieldOrBackup} from './utils';
 
 const NUM_BUCKETS = 50;
 const PRECISION = 0;
@@ -44,74 +36,6 @@ type Props = {
   backupField?: string;
   didReceiveMultiAxis?: (axisCounts: Record<string, number>) => void;
 };
-
-export function HistogramChart(props: Props) {
-  const {
-    location,
-    onFilterChange,
-    organization,
-    eventView,
-    field,
-    title,
-    titleTooltip,
-    didReceiveMultiAxis,
-    backupField,
-    usingBackupAxis,
-  } = props;
-
-  const _backupField = backupField ? [backupField] : [];
-
-  return (
-    <div>
-      <DoubleHeaderContainer>
-        <HeaderTitleLegend>
-          {title}
-          <QuestionTooltip position="top" size="sm" title={titleTooltip} />
-        </HeaderTitleLegend>
-      </DoubleHeaderContainer>
-      <HistogramQuery
-        location={location}
-        orgSlug={organization.slug}
-        eventView={eventView}
-        numBuckets={NUM_BUCKETS}
-        precision={PRECISION}
-        fields={[field, ..._backupField]}
-        dataFilter="exclude_outliers"
-        didReceiveMultiAxis={didReceiveMultiAxis}
-      >
-        {results => {
-          const _field = usingBackupAxis ? getFieldOrBackup(field, backupField) : field;
-          const isLoading = results.isLoading;
-          const isErrored = results.error !== null;
-          const chartData = results.histograms?.[_field];
-
-          if (isErrored) {
-            return (
-              <ErrorPanel height="250px">
-                <IconWarning color="gray300" size="lg" />
-              </ErrorPanel>
-            );
-          }
-
-          if (!chartData) {
-            return null;
-          }
-
-          return (
-            <Chart
-              isLoading={isLoading}
-              isErrored={isErrored}
-              chartData={chartData}
-              location={location}
-              onFilterChange={onFilterChange}
-              field={_field}
-            />
-          );
-        }}
-      </HistogramQuery>
-    </div>
-  );
-}
 
 type ChartProps = {
   field: string;

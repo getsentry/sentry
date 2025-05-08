@@ -5,12 +5,16 @@ import styled from '@emotion/styled';
 import Color from 'color';
 
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DeviceName} from 'sentry/components/deviceName';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
-import {backend, frontend} from 'sentry/data/platformCategories';
+import {
+  backend,
+  featureFlagDrawerPlatforms,
+  frontend,
+} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -50,7 +54,7 @@ type Segment = {
 };
 
 const bgColor = (index: number, theme: Theme) =>
-  Color(theme.chart.colors[4].at(index)).alpha(0.8).toString();
+  Color(theme.chart.getColorPalette(4).at(index)).alpha(0.8).toString();
 const getRoundedPercentage = (percentage: number) =>
   percentage < 0.5 ? '<1%' : `${Math.round(percentage)}%`;
 
@@ -159,11 +163,13 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   );
 }
 
-function IssueTagButton({
+function DistributionsDrawerButton({
   tags,
+  includeFeatureFlags,
   searchQuery,
   isScreenSmall,
 }: {
+  includeFeatureFlags: boolean;
   tags: GroupTag[];
   isScreenSmall?: boolean;
   searchQuery?: string;
@@ -171,13 +177,10 @@ function IssueTagButton({
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const organization = useOrganization();
-  const hasFlagsDistributions = organization.features.includes(
-    'feature-flag-distribution-flyout'
-  );
 
   if (tags.length === 0 || searchQuery || isScreenSmall) {
     return (
-      <VerticalIssueTagsButton
+      <VerticalDistributionsDrawerButton
         aria-label={t('View issue tag distributions')}
         size="xs"
         to={{
@@ -187,19 +190,19 @@ function IssueTagButton({
         replace
         disabled={tags.length === 0}
       >
-        {hasFlagsDistributions
+        {includeFeatureFlags
           ? tct('View[nbsp]All Tags[nbsp]&[nbsp]Flags', {
               nbsp: '\u00A0', // non-breaking space unicode character.
             })
           : tct('View All[nbsp]Tags', {
               nbsp: '\u00A0', // non-breaking space unicode character.
             })}
-      </VerticalIssueTagsButton>
+      </VerticalDistributionsDrawerButton>
     );
   }
 
   return (
-    <IssueTagsLink
+    <DistributionsDrawerLink
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
         query: location.query,
@@ -208,8 +211,8 @@ function IssueTagButton({
         trackAnalytics('issue_details.issue_tags_click', {organization});
       }}
     >
-      {hasFlagsDistributions ? t('View all tags and feature flags') : t('View all tags')}
-    </IssueTagsLink>
+      {includeFeatureFlags ? t('View all tags and feature flags') : t('View all tags')}
+    </DistributionsDrawerLink>
   );
 }
 
@@ -275,16 +278,21 @@ export default function IssueTagsPreview({
     return uniqueTags.slice(0, 4);
   }, [tags, project.platform, highlightTagKeys]);
 
+  const includeFeatureFlags =
+    featureFlagDrawerPlatforms.includes(project.platform ?? 'other') &&
+    organization.features.includes('feature-flag-distribution-flyout');
+
   if (
     searchQuery ||
     isScreenSmall ||
     (!isPending && !isHighlightPending && tagsToPreview.length === 0)
   ) {
     return (
-      <IssueTagButton
+      <DistributionsDrawerButton
         tags={tagsToPreview}
         searchQuery={searchQuery}
         isScreenSmall={isScreenSmall}
+        includeFeatureFlags={includeFeatureFlags}
       />
     );
   }
@@ -313,7 +321,10 @@ export default function IssueTagsPreview({
             <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
           ))}
         </TagsPreview>
-        <IssueTagButton tags={tagsToPreview} />
+        <DistributionsDrawerButton
+          tags={tagsToPreview}
+          includeFeatureFlags={includeFeatureFlags}
+        />
       </IssueTagPreviewSection>
     </Fragment>
   );
@@ -422,7 +433,7 @@ const LegendTitle = styled('div')`
   margin-bottom: ${space(0.75)};
 `;
 
-const IssueTagsLink = styled(Link)`
+const DistributionsDrawerLink = styled(Link)`
   color: ${p => p.theme.purple300};
   align-self: flex-start;
 
@@ -431,7 +442,7 @@ const IssueTagsLink = styled(Link)`
   }
 `;
 
-const VerticalIssueTagsButton = styled(LinkButton)`
+const VerticalDistributionsDrawerButton = styled(LinkButton)`
   display: block;
   flex: 0;
   margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};

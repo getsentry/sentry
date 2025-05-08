@@ -10,7 +10,6 @@ import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import Hook from 'sentry/components/hook';
@@ -23,6 +22,7 @@ import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
@@ -257,13 +257,13 @@ function App({children, params}: Props) {
           {renderOrganizationContextProvider(
             <AsyncSDKIntegrationContextProvider>
               <GlobalFeedbackForm>
-                <GlobalDrawer>
-                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                  <DemoToursProvider>
                     <GlobalModal onClose={handleModalClose} />
                     <Indicators className="indicators-container" />
                     <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                  </MainContainer>
-                </GlobalDrawer>
+                  </DemoToursProvider>
+                </MainContainer>
               </GlobalFeedbackForm>
             </AsyncSDKIntegrationContextProvider>
           )}

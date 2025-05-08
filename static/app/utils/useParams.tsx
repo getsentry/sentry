@@ -29,7 +29,9 @@ type ParamKeys =
   | 'memberId'
   | 'orgId'
   | 'projectId'
+  | 'regionName'
   | 'release'
+  | 'relocationUuid'
   | 'scrubbingId'
   | 'searchId'
   | 'sentryAppSlug'
@@ -38,6 +40,7 @@ type ParamKeys =
   | 'tagKey'
   | 'teamId'
   | 'traceSlug'
+  | 'userId'
   | 'viewId'
   | 'widgetIndex';
 

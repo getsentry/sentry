@@ -34,6 +34,7 @@ export interface LinkProps
    * Indicator if the link should be disabled
    */
   disabled?: boolean;
+  preventScrollReset?: ReactRouterLinkProps['preventScrollReset'];
   ref?: React.Ref<HTMLAnchorElement>;
   replace?: ReactRouterLinkProps['replace'];
   state?: ReactRouterLinkProps['state'];

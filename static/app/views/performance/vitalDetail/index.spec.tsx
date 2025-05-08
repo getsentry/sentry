@@ -229,6 +229,7 @@ describe('Performance > VitalDetail', function () {
     render(<TestComponent />, {
       router,
       organization: org,
+      deprecatedRouterMocks: true,
     });
 
     // It shows a search bar
@@ -256,6 +257,7 @@ describe('Performance > VitalDetail', function () {
     render(<TestComponent />, {
       router,
       organization: org,
+      deprecatedRouterMocks: true,
     });
 
     // Fill out the search box, and submit it.
@@ -294,6 +296,7 @@ describe('Performance > VitalDetail', function () {
     render(<TestComponent router={newRouter} />, {
       router: newRouter,
       organization: org,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -339,6 +342,7 @@ describe('Performance > VitalDetail', function () {
     render(<TestComponent router={newRouter} />, {
       router: newRouter,
       organization: org,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
@@ -385,6 +389,7 @@ describe('Performance > VitalDetail', function () {
     render(<TestComponent router={newRouter} />, {
       router: newRouter,
       organization: org,
+      deprecatedRouterMocks: true,
     });
 
     const button = screen.getByRole('button', {name: /web vitals: lcp/i});
@@ -410,6 +415,7 @@ describe('Performance > VitalDetail', function () {
     render(<TestComponent />, {
       router,
       organization: org,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText('Largest Contentful Paint')).toBeInTheDocument();
@@ -425,6 +431,7 @@ describe('Performance > VitalDetail', function () {
     render(<TestComponent />, {
       router,
       organization: org,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findAllByText(/Largest Contentful Paint/)).toHaveLength(2);
@@ -445,6 +452,7 @@ describe('Performance > VitalDetail', function () {
     render(<TestComponent router={newRouter} />, {
       router,
       organization: org,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findAllByText(/Cumulative Layout Shift/)).toHaveLength(2);
@@ -470,6 +478,7 @@ describe('Performance > VitalDetail', function () {
     render(<TestComponent router={newRouter} />, {
       router,
       organization: org,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findAllByText(/First Contentful Paint/)).toHaveLength(2);
@@ -495,6 +504,7 @@ describe('Performance > VitalDetail', function () {
     render(<TestComponent router={newRouter} />, {
       router,
       organization: org,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findAllByText(/First Input Delay/)).toHaveLength(2);

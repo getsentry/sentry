@@ -106,14 +106,14 @@ export type FetchEmbeddedChildrenState =
   | 'loading_embedded_transactions'
   | 'error_fetching_embedded_transactions';
 
-export type SpanGroupProps = {
+type SpanGroupProps = {
   isNestedSpanGroupExpanded: boolean;
   spanNestedGrouping: EnhancedSpan[] | undefined;
   toggleNestedSpanGroup: (() => void) | undefined;
   toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
 };
 
-export type SpanSiblingGroupProps = {
+type SpanSiblingGroupProps = {
   isLastSibling: boolean;
   occurrence: number;
   spanSiblingGrouping: EnhancedSpan[] | undefined;

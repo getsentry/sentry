@@ -95,7 +95,7 @@ export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLit
   transactions: U[];
 };
 
-export type TraceProps = {
+type TraceProps = {
   traceId: string;
   end?: string;
   start?: string;
@@ -104,7 +104,7 @@ export type TraceProps = {
 
 export type TraceRequestProps = DiscoverQueryProps & TraceProps;
 
-export type EmptyQuickTrace = {
+type EmptyQuickTrace = {
   trace: QuickTraceEvent[];
   type: 'empty' | 'missing';
   orphanErrors?: TraceError[];

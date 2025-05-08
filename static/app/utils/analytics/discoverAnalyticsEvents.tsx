@@ -68,7 +68,7 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
   'discover_v2.y_axis_change': {y_axis_value: string[]};
 };
 
-export type DiscoverEventKey = keyof DiscoverEventParameters;
+type DiscoverEventKey = keyof DiscoverEventParameters;
 
 export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.add_equation': 'Dicoverv2: Equation added',

@@ -1,5 +1,4 @@
 import type {Client} from 'sentry/api';
-import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EventsStats,
@@ -28,17 +27,6 @@ import GenericWidgetQueries from './genericWidgetQueries';
 
 type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
-
-export function getIsMetricsDataFromSeriesResponse(
-  result: SeriesResult
-): boolean | undefined {
-  const multiIsMetricsData = Object.values(result)
-    .map(({isMetricsData}) => isMetricsData)
-    // One non-metrics series will cause all of them to be marked as such
-    .reduce((acc, value) => (acc === false ? false : value), undefined);
-
-  return isMultiSeriesStats(result) ? multiIsMetricsData : result.isMetricsData;
-}
 
 type Props = {
   api: Client;

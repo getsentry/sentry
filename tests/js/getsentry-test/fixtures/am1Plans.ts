@@ -1,3 +1,5 @@
+import {type DataCategory} from 'sentry/types/core';
+
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
 
@@ -8,7 +10,7 @@ const AM1_CATEGORIES = [
   'attachments',
   'monitorSeats',
   'uptime',
-];
+] as DataCategory[];
 
 const AM1_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},

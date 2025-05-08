@@ -41,7 +41,6 @@ function NavigateToExternalLinkModal({Body, closeModal, Header, linkText}: Props
 }
 
 export default NavigateToExternalLinkModal;
-export {NavigateToExternalLinkModal};
 
 const ButtonContainer = styled('div')`
   display: flex;

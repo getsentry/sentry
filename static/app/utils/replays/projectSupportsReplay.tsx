@@ -24,7 +24,7 @@ export function projectCanLinkToReplay(
   _organization: Organization,
   project: undefined | MinimalProject
 ) {
-  if (!project || !project.platform) {
+  if (!project?.platform) {
     return false;
   }
   const supportedPlatforms = replayPlatforms;
@@ -35,7 +35,7 @@ export function projectCanLinkToReplay(
 }
 
 export function projectCanUpsellReplay(project: undefined | MinimalProject) {
-  if (!project || !project.platform) {
+  if (!project?.platform) {
     return false;
   }
   return (

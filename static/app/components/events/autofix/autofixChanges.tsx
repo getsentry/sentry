@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -28,11 +28,13 @@ import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type AutofixChangesProps = {
   groupId: string;
@@ -57,6 +59,12 @@ function AutofixRepoChange({
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 }) {
+  const changeDescriptionHtml = useMemo(() => {
+    return {
+      __html: singleLineRenderer(change.description),
+    };
+  }, [change.description]);
+
   return (
     <Content>
       <RepoChangesHeader>
@@ -74,9 +82,7 @@ function AutofixRepoChange({
             <div>
               <PullRequestTitle>{change.repo_name}</PullRequestTitle>
               <Title>{change.title}</Title>
-              <p
-                dangerouslySetInnerHTML={{__html: singleLineRenderer(change.description)}}
-              />
+              <p dangerouslySetInnerHTML={changeDescriptionHtml} />
             </div>
           </AutofixHighlightWrapper>
         </div>
@@ -222,12 +228,10 @@ export function AutofixChanges({
           <NoChangesPadding>
             <Alert.Container>
               <MarkdownAlert
-                dangerouslySetInnerHTML={{
-                  __html: marked(
-                    step.termination_reason ||
-                      t('Autofix had trouble applying its code changes.')
-                  ),
-                }}
+                text={
+                  step.termination_reason ||
+                  t('Autofix had trouble applying its code changes.')
+                }
               />
             </Alert.Container>
           </NoChangesPadding>
@@ -295,9 +299,7 @@ export function AutofixChanges({
                 </ButtonBar>
               )}
               {prsMade &&
-                (step.changes.length === 1 &&
-                step.changes[0] &&
-                step.changes[0].pull_request?.pr_url ? (
+                (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
                   <LinkButton
                     size="xs"
                     priority="primary"
@@ -341,6 +343,7 @@ export function AutofixChanges({
                       : null
                   }
                   isAgentComment
+                  blockName={t('Autofix is uncertain of the code changes...')}
                 />
               )}
             </AnimatePresence>
@@ -406,7 +409,7 @@ const RepoChangesHeader = styled('div')`
   grid-template-columns: 1fr auto;
 `;
 
-const MarkdownAlert = styled('div')`
+const MarkdownAlert = styled(MarkedText)`
   border: 1px solid ${p => p.theme.alert.warning.border};
   background-color: ${p => p.theme.alert.warning.backgroundLight};
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
@@ -440,17 +443,14 @@ const HeaderWrapper = styled('div')`
   padding-left: ${space(0.5)};
   padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
+  flex-wrap: wrap;
+  gap: ${space(1)};
 `;
 
 const HeaderIconWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  right: ${space(1)};
-  top: 5px;
 `;
 
 function CreatePRsButton({
@@ -469,6 +469,7 @@ function CreatePRsButton({
   const api = useApi();
   const queryClient = useQueryClient();
   const [hasClicked, setHasClicked] = useState(false);
+  const orgSlug = useOrganization().slug;
 
   // Reset hasClicked state and notify parent when isBusy goes from true to false
   useEffect(() => {
@@ -480,19 +481,22 @@ function CreatePRsButton({
 
   const {mutate: createPr} = useMutation({
     mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'create_pr',
-            repo_external_id: change.repo_external_id,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'create_pr',
+              repo_external_id: change.repo_external_id,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
       setHasClicked(true);
     },
     onError: () => {
@@ -514,7 +518,7 @@ function CreatePRsButton({
     <Button
       priority="primary"
       onClick={createPRs}
-      icon={hasClicked && <StyledLoadingIndicator size={14} mini />}
+      icon={hasClicked && <LoadingIndicator size={14} />}
       size="sm"
       busy={isBusy || hasClicked}
       disabled={isBusy || hasClicked}
@@ -543,6 +547,7 @@ function CreateBranchButton({
   const api = useApi();
   const queryClient = useQueryClient();
   const [hasClicked, setHasClicked] = useState(false);
+  const orgSlug = useOrganization().slug;
 
   // Reset hasClicked state and notify parent when isBusy goes from true to false
   useEffect(() => {
@@ -554,19 +559,22 @@ function CreateBranchButton({
 
   const {mutate: createBranch} = useMutation({
     mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'create_branch',
-            repo_external_id: change.repo_external_id,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'create_branch',
+              repo_external_id: change.repo_external_id,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
     },
     onError: () => {
       addErrorMessage(t('Failed to push to branches.'));
@@ -586,7 +594,7 @@ function CreateBranchButton({
   return (
     <Button
       onClick={pushToBranch}
-      icon={hasClicked && <StyledLoadingIndicator size={14} mini />}
+      icon={hasClicked && <LoadingIndicator size={14} />}
       size="sm"
       busy={isBusy || hasClicked}
       disabled={isBusy || hasClicked}

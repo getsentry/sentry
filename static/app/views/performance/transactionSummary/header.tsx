@@ -5,13 +5,13 @@ import type {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import {TabList} from 'sentry/components/tabs';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -182,6 +182,7 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
+  // Hard-code 90d for the replay tab to surface more interesting data.
   const {getReplayCountForTransaction} = useReplayCountForTransactions({
     statsPeriod: '90d',
   });

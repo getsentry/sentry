@@ -188,7 +188,7 @@ export function useTraceIssuesOnLoad(
     };
 
     const promise = options.event
-      ? IssuesTraceTree.ExpandToEvent(tree, options.event.eventID, expandOptions)
+      ? IssuesTraceTree.ExpandToEvent(tree, options.event, expandOptions)
       : Promise.resolve();
 
     promise

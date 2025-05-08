@@ -1,10 +1,11 @@
+import orjson
 import pytest
 import responses
 
 from fixtures.gitlab import GitLabTestCase
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
@@ -422,3 +423,100 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         with pytest.raises(IntegrationError):
             self.installation.after_link_issue(external_issue, data=data)
+
+    @responses.activate
+    def test_create_issue_missing_title(self):
+        """Test that an error is raised when title is missing"""
+        project_id = "10"
+        data_without_title = {
+            "project": project_id,
+            "description": "This is a test issue description",
+        }
+
+        with pytest.raises(IntegrationFormError):
+            self.installation.create_issue(data_without_title)
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_create_issue_title_too_long(self):
+        """Test that title is truncated when it exceeds max length"""
+        project_id = "10"
+        project_name = "getsentry/sentry"
+        issue_iid = "1"
+
+        long_title = "A" * 300  # Title longer than GITLAB_ISSUE_TITLE_MAX_LENGTH (255)
+        expected_truncated_title = "A" * 252 + "..."  # 255 - 3 chars for ellipsis
+
+        data_with_long_title = {
+            "project": project_id,
+            "title": long_title,
+            "description": "This is a test issue description",
+        }
+
+        responses.add(
+            responses.POST,
+            f"https://example.gitlab.com/api/v4/projects/{project_id}/issues",
+            json={
+                "id": 8,
+                "iid": issue_iid,
+                "title": expected_truncated_title,
+                "description": "This is a test issue description",
+                "web_url": f"https://example.gitlab.com/{project_name}/issues/{issue_iid}",
+            },
+            status=201,
+        )
+
+        responses.add(
+            responses.GET,
+            f"https://example.gitlab.com/api/v4/projects/{project_id}",
+            json={"path_with_namespace": project_name, "id": int(project_id)},
+        )
+
+        result = self.installation.create_issue(data_with_long_title)
+
+        assert len(responses.calls) == 2
+        request_data = orjson.loads(responses.calls[0].request.body)
+        assert request_data["title"] == expected_truncated_title
+        assert len(request_data["title"]) == 255
+
+        assert result["title"] == expected_truncated_title
+
+    @responses.activate
+    def test_create_issue_api_error(self):
+        """Test handling of API errors during issue creation"""
+        project_id = "10"
+        error_response = {"message": "Project not found"}
+
+        responses.add(
+            responses.POST,
+            f"https://example.gitlab.com/api/v4/projects/{project_id}/issues",
+            json=error_response,
+            status=404,
+        )
+
+        with pytest.raises(IntegrationError):
+            self.installation.create_issue(
+                {
+                    "project": project_id,
+                    "title": "Test Issue Title",
+                    "description": "This is a test issue description",
+                }
+            )
+
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == 404
+
+    @responses.activate
+    def test_create_issue_missing_project(self):
+        """Test that an error is raised when project is missing"""
+        with pytest.raises(IntegrationError) as excinfo:
+            self.installation.create_issue(
+                {
+                    "title": "Test Issue Title",
+                    "description": "This is a test issue description",
+                }
+            )
+
+        assert "project kwarg must be provided" in str(excinfo.value)
+        assert len(responses.calls) == 0

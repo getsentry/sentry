@@ -12,9 +12,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {logsPickableDays} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 function FeedbackButton() {
   const openForm = useFeedbackForm();
@@ -45,13 +45,23 @@ function FeedbackButton() {
 export default function LogsPage() {
   const organization = useOrganization();
   const {defaultPeriod, maxPickableDays, relativeOptions} =
-    limitMaxPickableDays(organization);
+    logsPickableDays(organization);
 
   const prefersStackedNav = usePrefersStackedNav();
 
   return (
     <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
-      <PageFiltersContainer maxPickableDays={maxPickableDays}>
+      <PageFiltersContainer
+        maxPickableDays={maxPickableDays}
+        defaultSelection={{
+          datetime: {
+            period: defaultPeriod,
+            start: null,
+            end: null,
+            utc: null,
+          },
+        }}
+      >
         <Layout.Page>
           <Layout.Header unified={prefersStackedNav}>
             <Layout.HeaderContent unified={prefersStackedNav}>

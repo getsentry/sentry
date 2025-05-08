@@ -34,6 +34,7 @@ type Props = {
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   dashboardFilters?: DashboardFilters;
+  disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
@@ -83,6 +84,7 @@ export function WidgetCardChartContainer({
   showConfidenceWarning,
   minTableColumnWidth,
   onDataFetchStart,
+  disableZoom,
 }: Props) {
   const location = useLocation();
 
@@ -113,6 +115,7 @@ export function WidgetCardChartContainer({
         timeseriesResultsTypes,
         confidence,
         sampleCount,
+        isSampled,
       }) => {
         if (widget.widgetType === WidgetType.ISSUE) {
           return (
@@ -143,6 +146,7 @@ export function WidgetCardChartContainer({
               ? renderErrorMessage(errorMessage)
               : null}
             <WidgetCardChart
+              disableZoom={disableZoom}
               timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
               errorMessage={errorMessage}
@@ -172,6 +176,7 @@ export function WidgetCardChartContainer({
               confidence={confidence}
               sampleCount={sampleCount}
               minTableColumnWidth={minTableColumnWidth}
+              isSampled={isSampled}
             />
           </Fragment>
         );
@@ -188,7 +193,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   align-items: center;
 `;
 
-export function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({loading}: {loading: boolean}) {
   if (!loading) {
     return null;
   }

@@ -16,7 +16,7 @@ export interface AreaChartProps extends Omit<BaseChartProps, 'series'> {
   stacked?: boolean;
 }
 
-export function transformToAreaSeries({
+function transformToAreaSeries({
   series,
   stacked,
   colors,

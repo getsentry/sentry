@@ -35,6 +35,7 @@ import {
   type DocsParams,
   ProductSolution,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import LegacyOnboardingPanel from 'sentry/components/onboardingPanel';
 import Panel from 'sentry/components/panels/panel';
@@ -494,6 +495,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
     productType: 'performance',
   });
 
+  const {isPending: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
+
   const doesNotSupportPerformance = project.platform
     ? withoutPerformanceSupport.has(project.platform)
     : false;
@@ -599,8 +603,8 @@ export function Onboarding({organization, project}: OnboardingProps) {
     isProfilingSelected: false,
     isReplaySelected: false,
     sourcePackageRegistries: {
-      isLoading: false,
-      data: undefined,
+      isLoading: isLoadingRegistry,
+      data: registryData,
     },
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
     newOrg: false,

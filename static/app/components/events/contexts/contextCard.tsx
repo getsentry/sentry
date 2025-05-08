@@ -41,7 +41,7 @@ interface ContextCardContentConfig {
   includeAliasInSubject?: boolean;
 }
 
-export interface ContextCardContentProps {
+interface ContextCardContentProps {
   item: KeyValueListDataItem;
   meta: Record<string, any>;
   alias?: string;

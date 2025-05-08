@@ -708,7 +708,7 @@ export function Row({
   );
 }
 
-export function Tags({span}: {span: RawSpanType}) {
+function Tags({span}: {span: RawSpanType}) {
   const tags: Record<string, string> | undefined = span?.tags;
 
   if (!tags) {

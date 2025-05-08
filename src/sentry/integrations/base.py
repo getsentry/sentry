@@ -120,6 +120,7 @@ class IntegrationFeatures(StrEnum):
     TICKET_RULES = "ticket-rules"
     STACKTRACE_LINK = "stacktrace-link"
     CODEOWNERS = "codeowners"
+    USER_MAPPING = "user-mapping"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -436,7 +437,8 @@ class IntegrationInstallation(abc.ABC):
         """
         raise NotImplementedError
 
-    def get_default_identity(self) -> RpcIdentity:
+    @cached_property
+    def default_identity(self) -> RpcIdentity:
         """For Integrations that rely solely on user auth for authentication."""
         try:
             org_integration = self.org_integration
@@ -501,7 +503,7 @@ class IntegrationInstallation(abc.ABC):
             self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
-    def is_rate_limited_error(self, exc: Exception) -> bool:
+    def is_rate_limited_error(self, exc: ApiError) -> bool:
         raise NotImplementedError
 
     @property

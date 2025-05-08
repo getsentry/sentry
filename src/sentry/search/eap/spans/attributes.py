@@ -21,7 +21,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
-from sentry.utils.validators import is_event_id, is_span_id
+from sentry.utils.validators import is_empty_string, is_event_id, is_span_id
 
 
 def validate_event_id(value: str | list[str]) -> bool:
@@ -45,7 +45,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="parent_span",
             internal_name="sentry.parent_span_id",
             search_type="string",
-            validator=is_span_id,
+            validator=[is_empty_string, is_span_id],
         ),
         ResolvedAttribute(
             public_alias="span.action",
@@ -91,6 +91,12 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="span.name",
+            internal_name="sentry.op",
+            search_type="string",
+            secondary_alias=True,
+        ),
+        ResolvedAttribute(
             public_alias="span.category",
             internal_name="sentry.category",
             search_type="string",
@@ -134,6 +140,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="transaction.span_id",
             internal_name="sentry.segment_id",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="transaction.event_id",
+            internal_name="sentry.event_id",
             search_type="string",
         ),
         ResolvedAttribute(
@@ -228,17 +239,17 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="second",
         ),
         ResolvedAttribute(
-            public_alias="mobile.frames_slow",
+            public_alias="mobile.slow_frames",
             internal_name="frames.slow",
             search_type="number",
         ),
         ResolvedAttribute(
-            public_alias="mobile.frames_frozen",
+            public_alias="mobile.frozen_frames",
             internal_name="frames.frozen",
             search_type="number",
         ),
         ResolvedAttribute(
-            public_alias="mobile.frames_total",
+            public_alias="mobile.total_frames",
             internal_name="frames.total",
             search_type="number",
         ),
@@ -313,7 +324,41 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.sampling_factor",
             search_type="number",
         ),
+        ResolvedAttribute(
+            public_alias="code.lineno",
+            internal_name="code.lineno",
+            search_type="number",
+        ),
         simple_sentry_field("browser.name"),
+        simple_sentry_field("device.family"),
+        simple_sentry_field("device.arch"),
+        simple_sentry_field("device.battery_level"),
+        simple_sentry_field("device.brand"),
+        simple_sentry_field("device.charging"),
+        simple_sentry_field("device.locale"),
+        simple_sentry_field("device.model_id"),
+        simple_sentry_field("device.name"),
+        simple_sentry_field("device.online"),
+        simple_sentry_field("device.orientation"),
+        simple_sentry_field("device.screen_density"),
+        simple_sentry_field("device.screen_dpi"),
+        simple_sentry_field("device.screen_height_pixels"),
+        simple_sentry_field("device.screen_width_pixels"),
+        simple_sentry_field("device.simulator"),
+        simple_sentry_field("device.uuid"),
+        simple_sentry_field("app.device"),
+        simple_sentry_field("device.model"),
+        simple_sentry_field("runtime"),
+        simple_sentry_field("runtime.name"),
+        simple_sentry_field("browser"),
+        simple_sentry_field("os"),
+        simple_sentry_field("os.rooted"),
+        simple_sentry_field("gpu.name"),
+        simple_sentry_field("gpu.vendor"),
+        simple_sentry_field("monitor.id"),
+        simple_sentry_field("monitor.slug"),
+        simple_sentry_field("request.url"),
+        simple_sentry_field("request.method"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
         simple_sentry_field("messaging.message.id"),
@@ -333,6 +378,9 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("user.id"),
         simple_sentry_field("user.ip"),
         simple_sentry_field("user.username"),
+        simple_sentry_field("os.name"),
+        simple_sentry_field("app_start_type"),
+        simple_sentry_field("ttid"),
         simple_measurements_field("app_start_cold", "millisecond"),
         simple_measurements_field("app_start_warm", "millisecond"),
         simple_measurements_field("frames_frozen"),

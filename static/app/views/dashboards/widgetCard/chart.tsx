@@ -83,8 +83,10 @@ type WidgetCardChartProps = Pick<
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   confidence?: Confidence;
+  disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
+  isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: string;
   noPadding?: boolean;
@@ -281,6 +283,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       confidence,
       showConfidenceWarning,
       sampleCount,
+      isSampled,
+      disableZoom,
     } = this.props;
 
     if (errorMessage) {
@@ -503,7 +507,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             : 0)
         : undefined;
     return (
-      <ChartZoom period={period} start={start} end={end} utc={utc}>
+      <ChartZoom period={period} start={start} end={end} utc={utc} disabled={disableZoom}>
         {zoomRenderProps => {
           return (
             <ReleaseSeries
@@ -552,6 +556,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                           confidence={confidence}
                           sampleCount={sampleCount}
                           topEvents={topEventsCountExcludingOther}
+                          isSampled={isSampled}
                         />
                       )}
                     </ChartWrapper>

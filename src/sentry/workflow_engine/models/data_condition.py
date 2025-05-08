@@ -47,6 +47,8 @@ class Condition(StrEnum):
     REAPPEARED_EVENT = "reappeared_event"
     TAGGED_EVENT = "tagged_event"
     ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
+    ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
+    ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
     ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
 
     # Event frequency conditions

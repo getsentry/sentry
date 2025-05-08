@@ -18,7 +18,7 @@ export function OrganizationHeader({organization}: Props) {
   const showEmployeeFeedbackButton = !showDevToolbar;
 
   useFeedbackInit();
-  useReplayInit({organization});
+  useReplayInit();
 
   return (
     <Fragment>

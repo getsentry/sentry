@@ -14,7 +14,7 @@ export function splitSeriesIntoCompleteAndIncomplete(
   const markedTimeserie = markDelayedData(timeSeries, delay);
 
   const [completeData, incompleteData] = partition(
-    markedTimeserie.data,
+    markedTimeserie.values,
     datum => !datum.delayed
   );
 
@@ -33,13 +33,13 @@ export function splitSeriesIntoCompleteAndIncomplete(
     completeData.length > 0
       ? {
           ...timeSeries,
-          data: completeData.map(discardDelayProperty),
+          values: completeData.map(discardDelayProperty),
         }
       : undefined,
     incompleteData.length > 0
       ? {
           ...timeSeries,
-          data: incompleteData.map(discardDelayProperty),
+          values: incompleteData.map(discardDelayProperty),
         }
       : undefined,
   ];
@@ -47,7 +47,7 @@ export function splitSeriesIntoCompleteAndIncomplete(
 
 function discardDelayProperty(
   datum: TimeSeriesItem
-): Omit<TimeSeries['data'][number], 'delayed'> {
+): Omit<TimeSeries['values'][number], 'delayed'> {
   const {delayed: _delayed, ...other} = datum;
   return other;
 }

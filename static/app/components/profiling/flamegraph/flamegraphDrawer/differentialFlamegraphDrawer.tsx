@@ -332,7 +332,7 @@ const Separator = styled('li')`
   transform: translateY(29%);
 `;
 
-export const ProfilingDetailsFrameTabs = styled('ul')`
+const ProfilingDetailsFrameTabs = styled('ul')`
   display: flex;
   list-style-type: none;
   padding: 0 ${space(1)};
@@ -343,7 +343,7 @@ export const ProfilingDetailsFrameTabs = styled('ul')`
   grid-area: tabs;
 `;
 
-export const ProfilingDetailsListItem = styled('li')<{
+const ProfilingDetailsListItem = styled('li')<{
   margin?: 'none';
   size?: 'sm';
 }>`

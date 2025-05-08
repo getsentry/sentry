@@ -59,7 +59,7 @@ async function renderModal({
     location: router.location,
     dashboard: DashboardFixture([widget], {id: 'new', title: 'Dashboard'}),
     organization,
-    router,
+    navigate: router.navigate,
   });
   const rendered = render(
     <div style={{padding: space(4)}}>
@@ -83,6 +83,7 @@ async function renderModal({
     {
       router,
       organization,
+      deprecatedRouterMocks: true,
     }
   );
   // Need to wait since WidgetViewerModal will make a request to events-meta
@@ -119,7 +120,7 @@ describe('Modals -> WidgetViewerModal', function () {
       location: initialData.router.location,
       dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
       organization: initialData.organization,
-      router: initialData.router,
+      navigate: jest.fn(),
     });
 
     MockApiClient.addMockResponse({

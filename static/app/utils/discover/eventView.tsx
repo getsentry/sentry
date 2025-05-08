@@ -65,6 +65,7 @@ export type MetaType = Record<string, any> & {
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
+  dataScanned?: 'full' | 'partial';
   discoverSplitDecision?: WidgetType;
   isMetricsData?: boolean;
   isMetricsExtractedData?: boolean;
@@ -144,7 +145,7 @@ export function isFieldSortable(
 
 const decodeFields = (location: Location): Field[] => {
   const {query} = location;
-  if (!query || !query.field) {
+  if (!query?.field) {
     return [];
   }
 
@@ -218,7 +219,7 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
 };
 
 export const decodeQuery = (location: Location): string => {
-  if (!location.query || !location.query.query) {
+  if (!location.query?.query) {
     return '';
   }
 
@@ -235,7 +236,7 @@ const decodeTeam = (value: string): 'myteams' | number => {
 };
 
 const decodeTeams = (location: Location): Array<'myteams' | number> => {
-  if (!location.query || !location.query.team) {
+  if (!location.query?.team) {
     return [];
   }
   const value = location.query.team;
@@ -245,7 +246,7 @@ const decodeTeams = (location: Location): Array<'myteams' | number> => {
 };
 
 export const decodeProjects = (location: Location): number[] => {
-  if (!location.query || !location.query.project) {
+  if (!location.query?.project) {
     return [];
   }
 
@@ -283,6 +284,7 @@ export type EventViewOptions = {
   dataset?: DiscoverDatasets;
   expired?: boolean;
   interval?: string;
+  multiSort?: boolean;
   utc?: string | boolean | undefined;
   yAxis?: string | string[] | undefined;
 };
@@ -308,6 +310,7 @@ class EventView {
   createdBy: User | undefined;
   additionalConditions: MutableSearch; // This allows views to always add additional conditions to the query to get specific data. It should not show up in the UI unless explicitly called.
   dataset?: DiscoverDatasets;
+  multiSort?: boolean;
 
   constructor(props: EventViewOptions) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
@@ -333,8 +336,12 @@ class EventView {
       }
     });
 
-    const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
-    sorts = sort ? [sort] : [];
+    if (props.multiSort) {
+      sorts = sorts.filter(currentSort => sortKeys.includes(currentSort.field));
+    } else {
+      const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
+      sorts = sort ? [sort] : [];
+    }
 
     const id = props.id !== null && props.id !== void 0 ? String(props.id) : void 0;
 
@@ -475,6 +482,7 @@ class EventView {
       expired: saved.expired,
       additionalConditions: new MutableSearch([]),
       dataset: saved.dataset,
+      multiSort: saved.multiSort,
     });
   }
 
@@ -812,6 +820,7 @@ class EventView {
       expired: this.expired,
       createdBy: this.createdBy,
       additionalConditions: this.additionalConditions.copy(),
+      multiSort: this.multiSort,
     });
   }
 
@@ -1211,13 +1220,8 @@ class EventView {
           this.dataset === DiscoverDatasets.SPANS_EAP_RPC
             ? DiscoverDatasets.SPANS_EAP
             : this.dataset,
-        useRpc: this.dataset === DiscoverDatasets.SPANS_EAP_RPC ? '1' : undefined,
       }
     ) as EventQuery & LocationQuery;
-
-    if (eventQuery.useRpc !== '1') {
-      delete eventQuery.useRpc;
-    }
 
     if (eventQuery.team && !eventQuery.team.length) {
       delete eventQuery.team;

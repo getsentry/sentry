@@ -3,8 +3,11 @@ import {Fragment} from 'react';
 import BadStackTraceExample from 'sentry-images/issue_details/bad-stack-trace-example.png';
 import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-example.png';
 
+import {Flex} from 'sentry/components/container/flex';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import storyBook from 'sentry/stories/storyBook';
+import {space} from 'sentry/styles/space';
 
 import {ContentSliderDiff} from '.';
 
@@ -26,8 +29,14 @@ export default storyBook('ContentSliderDiff', story => {
         </p>
         <div>
           <ContentSliderDiff.Header>
-            <ContentSliderDiff.BeforeLabel help="This is the before image" />
-            <ContentSliderDiff.AfterLabel help="This is the after image" />
+            <Flex align="center" gap={space(0.5)}>
+              Before
+              <QuestionTooltip title="This is the before image" size="xs" />
+            </Flex>
+            <Flex align="center" gap={space(0.5)}>
+              After
+              <QuestionTooltip title="This is the after image" size="xs" />
+            </Flex>
           </ContentSliderDiff.Header>
           <ContentSliderDiff.Body
             before={<img src={BadStackTraceExample} />}

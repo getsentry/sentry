@@ -3,11 +3,12 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
+import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {CommitRow} from 'sentry/components/commitRow';
 import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {CombinedBreadcrumbsAndLogsSection} from 'sentry/components/events/breadcrumbs/combinedBreadcrumbsAndLogsSection';
+import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -28,7 +29,7 @@ import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScree
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
-import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
+import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
@@ -48,6 +49,7 @@ import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
+import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
@@ -61,7 +63,7 @@ import {space} from 'sentry/styles/space';
 import type {Entry, EntryException, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -138,7 +140,11 @@ export function EventDetailsContent({
 
   return (
     <Fragment>
-      {hasStreamlinedUI && <HighlightsIconSummary event={event} group={group} />}
+      {hasStreamlinedUI && (
+        <ErrorBoundary mini>
+          <HighlightsIconSummary event={event} group={group} />
+        </ErrorBoundary>
+      )}
       {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} />
       )}
@@ -209,23 +215,20 @@ export function EventDetailsContent({
               lowerText.includes('langchain'))
           );
         }) ? (
-        <LazyLoad
-          LazyComponent={LLMMonitoringSection}
-          event={event}
-          organization={organization}
-        />
+        <LazyLoad LazyComponent={LLMMonitoringSection} />
       ) : null}
-      {!hasStreamlinedUI && group.issueCategory === IssueCategory.UPTIME && (
+      {!hasStreamlinedUI && group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeDataSection event={event} project={project} group={group} />
       )}
-      {!hasStreamlinedUI && group.issueCategory === IssueCategory.CRON && (
+      {!hasStreamlinedUI && group.issueType === IssueType.MONITOR_CHECK_IN_FAILURE && (
         <CronTimelineSection
           event={event}
           organization={organization}
           project={project}
         />
       )}
-      {event.contexts?.metric_alert?.alert_rule_id && (
+      {(event.contexts?.metric_alert?.alert_rule_id ||
+        event?.occurrence?.evidenceData?.alertId) && (
         <MetricIssuesSection
           organization={organization}
           group={group}
@@ -406,7 +409,10 @@ export function EventDetailsContent({
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
       )}
-      <CombinedBreadcrumbsAndLogsSection event={event} group={group} project={project} />
+      <BreadcrumbsDataSection event={event} group={group} project={project} />
+      <Feature features="ourlogs-enabled" organization={organization}>
+        <OurlogsSection event={event} group={group} project={project} />
+      </Feature>
       {hasStreamlinedUI &&
         event.contexts.trace?.trace_id &&
         organization.features.includes('performance-view') && (
@@ -434,7 +440,7 @@ export function EventDetailsContent({
       ) : null}
       <EventContexts group={group} event={event} />
       <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
-        <EventFeatureFlagList group={group} project={project} event={event} />
+        <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>
       <EventExtraData event={event} />
       <EventPackageData event={event} />

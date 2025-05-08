@@ -1,7 +1,6 @@
-import {createContext, useCallback, useContext} from 'react';
+import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -28,21 +27,35 @@ const Context = createContext<{
   onChange: () => {},
 });
 
-// TODO: this could be based on the values in CHART_MAP somehow... idk how to express that.
-type ChartProps = {project: Project};
-
 interface Props {
-  chartProps: ChartProps;
   index: number;
   view: DomainView;
 }
 
-export function ChartPlacementSlot({view, index, chartProps}: Props) {
+export function ChartPlacementSlot({view, index}: Props) {
   const organization = useOrganization();
 
-  const [chartsByIndex, setChartsByIndex] = useSyncedLocalStorageState<
+  const [chartsByIndexAnyName, setChartsByIndex] = useSyncedLocalStorageState<
     (typeof DEFAULT_LAYOUTS)[DomainView]
   >(`insights-sessions-layout-${organization.slug}-${view}`, DEFAULT_LAYOUTS[view]);
+
+  const chartsByIndex = useMemo(() => {
+    return chartsByIndexAnyName.map(name => {
+      // This is a proper chart name, we can just use it
+      if (name && PAGE_CHART_OPTIONS[view].includes(name)) {
+        return name;
+      }
+      // The chart was renamed, use the new name
+      if (name && CHART_RENAMES[name]) {
+        return CHART_RENAMES[name];
+      }
+      // The name wasn't found, so use the default if the index is valid.
+      // If `index` is invalid then we'll see the 'None' chart and the dropdown
+      // will still work to pick another
+      // This might cause the chart to be rendered twice on the screen
+      return PAGE_CHART_OPTIONS[view][index];
+    });
+  }, [chartsByIndexAnyName, index, view]);
 
   const chartOptions = PAGE_CHART_OPTIONS[view].map(opt => ({
     value: opt,
@@ -58,12 +71,12 @@ export function ChartPlacementSlot({view, index, chartProps}: Props) {
     [chartsByIndex, index, setChartsByIndex]
   );
 
-  const chartName = CHART_RENAMES[chartsByIndex[index] as string] ?? chartsByIndex[index];
+  const chartName = chartsByIndex[index];
   const Chart = chartName && CHART_MAP[chartName];
   if (Chart) {
     return (
       <Context value={{chartName, chartOptions, onChange}}>
-        <Chart {...chartProps} />
+        <Chart />
       </Context>
     );
   }

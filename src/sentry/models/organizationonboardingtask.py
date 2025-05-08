@@ -43,19 +43,6 @@ class OnboardingTaskStatus:
     SKIPPED = 3
 
 
-# NOTE: data fields for some event types are as follows:
-#
-#   FIRST_EVENT:      { 'platform':  'flask', }
-#   INVITE_MEMBER:    { 'invited_member': user.id, 'teams': [team.id] }
-#   SECOND_PLATFORM:  { 'platform': 'javascript' }
-#
-# NOTE: Currently the `PENDING` status is applicable for the following
-# onboarding tasks:
-#
-#   FIRST_EVENT:     User confirms that sdk has been installed
-#   INVITE_MEMBER:   Until the member has successfully joined org
-
-
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
@@ -172,6 +159,20 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.SESSION_REPLAY,
             OnboardingTask.REAL_TIME_NOTIFICATIONS,
             OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+        ]
+    )
+
+    # These are tasks that can be tightened to a project
+    TRANSFERABLE_TASKS = frozenset(
+        [
+            OnboardingTask.FIRST_PROJECT,
+            OnboardingTask.FIRST_EVENT,
+            OnboardingTask.SECOND_PLATFORM,
+            OnboardingTask.RELEASE_TRACKING,
+            OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
+            OnboardingTask.SESSION_REPLAY,
+            OnboardingTask.SOURCEMAPS,
         ]
     )
 

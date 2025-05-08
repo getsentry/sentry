@@ -4,9 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {space} from 'sentry/styles/space';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
 import SettingsNavigationGroupDeprecated from 'sentry/views/settings/components/settingsNavigationGroupDeprecated';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
@@ -44,9 +42,7 @@ function SettingsSecondaryNavigation({
 
   return (
     <SecondaryNav>
-      <SecondaryNav.Header>
-        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.SETTINGS].label}
-      </SecondaryNav.Header>
+      <SecondaryNav.Header />
       <SecondaryNav.Body>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
@@ -76,16 +72,24 @@ class SettingsNavigation extends Component<Props> {
   }
 
   render() {
-    const {navigationObjects, hooks, hookConfigs, stickyTop, ...otherProps} = this.props;
+    const {
+      navigationObjects,
+      hooks,
+      hookConfigs,
+      stickyTop,
+      organization,
+      ...otherProps
+    } = this.props;
     const navWithHooks = navigationObjects.concat(hookConfigs);
 
-    if (prefersStackedNav()) {
+    if (organization && prefersStackedNav(organization)) {
       return (
         <SettingsSecondaryNavigation
           navigationObjects={navigationObjects}
           hooks={hooks}
           hookConfigs={hookConfigs}
           stickyTop={stickyTop}
+          organization={organization}
           {...otherProps}
         />
       );
@@ -96,6 +100,7 @@ class SettingsNavigation extends Component<Props> {
         {navWithHooks.map(config => (
           <SettingsNavigationGroupDeprecated
             key={config.name}
+            organization={organization}
             {...otherProps}
             {...config}
           />

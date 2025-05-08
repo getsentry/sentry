@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:53.330340+00:00'
+created: '2025-04-25T21:22:39.288487+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,19 +10,19 @@ app:
     app*
       exception*
         stacktrace*
-          frame*
+          frame* (marked in-app by the client)
             filename*
               "server.php"
             context-line*
               "require_once __DIR__.'/public/index.php';"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "pipeline.php"
             function (ignored anonymous function)
               "class@anonymous\u0000/var/www/html/dummy.php0x7190ad3c35cf::run"
             context-line*
               "return $callable($passable);"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "pipeline.php"
             function*

@@ -127,7 +127,7 @@ const MOST_TIME_PERIODS: readonly TimePeriod[] = [
  * TimeWindow determines data available in TimePeriod
  * If TimeWindow is small, lower TimePeriod to limit data points
  */
-export const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
+const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
   [TimeWindow.ONE_MINUTE]: [
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
@@ -243,11 +243,10 @@ class TriggersChart extends PureComponent<Props, State> {
 
   componentDidMount() {
     const {aggregate, showTotalCount} = this.props;
-    if (showTotalCount && !isSessionAggregate(aggregate)) {
-      this.fetchTotalCount();
-    }
     if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
       this.fetchExtrapolationSampleCount();
+    } else if (showTotalCount && !isSessionAggregate(aggregate)) {
+      this.fetchTotalCount();
     }
   }
 
@@ -262,11 +261,10 @@ class TriggersChart extends PureComponent<Props, State> {
       !isEqual(prevProps.timeWindow, timeWindow) ||
       !isEqual(prevState.statsPeriod, statsPeriod)
     ) {
-      if (showTotalCount && !isSessionAggregate(aggregate)) {
-        this.fetchTotalCount();
-      }
       if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
         this.fetchExtrapolationSampleCount();
+      } else if (showTotalCount && !isSessionAggregate(aggregate)) {
+        this.fetchTotalCount();
       }
     }
   }
@@ -700,8 +698,6 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
-    const useRpc = dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
-
     const baseProps = {
       api,
       organization,
@@ -716,7 +712,6 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
-      useRpc,
     };
 
     return (
@@ -751,13 +746,9 @@ class TriggersChart extends PureComponent<Props, State> {
           {...baseProps}
           period={period}
           dataLoadedCallback={onDataLoaded}
-          // Span alerts only need to do a best effort request and do not need
-          // preflight requests. A user needs to see the highest fidelity data possible
-          // to set up the alert.
           sampling={
-            organization.features.includes('visibility-explore-progressive-loading') &&
             dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-              ? SAMPLING_MODE.BEST_EFFORT
+              ? SAMPLING_MODE.NORMAL
               : undefined
           }
         >

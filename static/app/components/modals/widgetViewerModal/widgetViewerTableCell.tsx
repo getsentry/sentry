@@ -4,11 +4,9 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 import trimStart from 'lodash/trimStart';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -30,10 +28,6 @@ import {
   isAggregateField,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {
-  eventDetailsRouteWithEventView,
-  generateEventSlug,
-} from 'sentry/utils/discover/urls';
 import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -273,52 +267,6 @@ export const renderGridBodyCell = ({
     );
   };
 
-export const renderPrependColumns =
-  ({
-    location,
-    organization,
-    tableData,
-    eventView,
-    theme,
-  }: Props & {eventView: EventView}) =>
-  (isHeader: boolean, dataRow?: any, rowIndex?: number): React.ReactNode[] => {
-    if (isHeader) {
-      return [
-        <PrependHeader key="header-event-id">
-          <SortLink
-            align="left"
-            title={t('event id')}
-            direction={undefined}
-            canSort={false}
-            generateSortLink={() => undefined}
-          />
-        </PrependHeader>,
-      ];
-    }
-    let value = dataRow.id;
-
-    if (tableData?.meta) {
-      const fieldRenderer = getFieldRenderer('id', tableData?.meta);
-      value = fieldRenderer(dataRow, {organization, location, theme});
-    }
-
-    const eventSlug = generateEventSlug(dataRow);
-
-    const target = eventDetailsRouteWithEventView({
-      organization,
-      eventSlug,
-      eventView,
-    });
-
-    return [
-      <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
-        <Link data-test-id="view-event" to={target}>
-          {value}
-        </Link>
-      </Tooltip>,
-    ];
-  };
-
 export const renderReleaseGridHeaderCell = ({
   location,
   widget,
@@ -381,8 +329,4 @@ export const renderReleaseGridHeaderCell = ({
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
-`;
-
-const PrependHeader = styled('span')`
-  color: ${p => p.theme.subText};
 `;

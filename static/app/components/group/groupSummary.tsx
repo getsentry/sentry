@@ -11,7 +11,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -90,7 +90,7 @@ export function useGroupSummary(
 
   const refresh = () => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/issues/${group.id}/summarize/`],
+      queryKey: makeGroupSummaryQueryKey(organization.slug, group.id),
       exact: false,
     });
     refetch();
@@ -140,10 +140,17 @@ export function GroupSummary({
   useEffect(() => {
     if (isFixable && !isPending && aiConfig.hasAutofix) {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(group.id),
+        queryKey: makeAutofixQueryKey(organization.slug, group.id),
       });
     }
-  }, [isFixable, isPending, aiConfig.hasAutofix, group.id, queryClient]);
+  }, [
+    isFixable,
+    isPending,
+    aiConfig.hasAutofix,
+    group.id,
+    queryClient,
+    organization.slug,
+  ]);
 
   const eventDetailsItems = [
     {
@@ -290,12 +297,10 @@ export function GroupSummary({
                     <CardContent>
                       {card.insightElement}
                       {card.insight && (
-                        <div
-                          dangerouslySetInnerHTML={{
-                            __html: marked(
-                              preview ? card.insight.replace(/\*\*/g, '') : card.insight
-                            ),
-                          }}
+                        <MarkedText
+                          text={
+                            preview ? card.insight.replace(/\*\*/g, '') : card.insight
+                          }
                         />
                       )}
                     </CardContent>

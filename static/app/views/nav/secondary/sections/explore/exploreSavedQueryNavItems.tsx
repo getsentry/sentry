@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Reorder, useDragControls} from 'framer-motion';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {space} from 'sentry/styles/space';
@@ -41,6 +42,8 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
 
   const reorderStarredSavedQueries = useReorderStarredSavedQueries();
 
+  const [isDragging, setIsDragging] = useState<number | null>(null);
+
   return (
     <Reorder.Group
       as="div"
@@ -55,9 +58,29 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
     >
       {savedQueries?.map(query => (
         <StyledReorderItem
+          grabbing={isDragging === query.id}
+          as="div"
+          dragConstraints={sectionRef}
+          dragElastic={0.03}
+          dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
+          // This style is a hack to fix a framer-motion bug that causes views to
+          // jump from the bottom of the nav bar to their correct positions
+          // upon scrolling down on the page and triggering a page navigation.
+          // See: https://github.com/motiondivision/motion/issues/2006
+          style={{
+            ...(isDragging
+              ? {}
+              : {
+                  originY: '0px',
+                }),
+          }}
           key={query.id}
           value={query}
+          onDragStart={() => {
+            setIsDragging(query.id);
+          }}
           onDragEnd={() => {
+            setIsDragging(null);
             reorderStarredSavedQueries(savedQueries);
           }}
         >
@@ -70,15 +93,17 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
                 .filter(defined)}
             />
           </GrabHandleWrapper>
-          <StyledSecondaryNavItem
-            key={query.id}
-            to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
-            analyticsItemName="explore_starred_item"
-            showInteractionStateLayer={false}
-            isActive={id === query.id.toString()}
-          >
-            {query.name}
-          </StyledSecondaryNavItem>
+          <Tooltip title={query.name} position="top" showOnlyOnOverflow skipWrapper>
+            <StyledSecondaryNavItem
+              key={query.id}
+              to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
+              analyticsItemName="explore_starred_item"
+              showInteractionStateLayer={false}
+              isActive={id === query.id.toString()}
+            >
+              {query.name}
+            </StyledSecondaryNavItem>
+          </Tooltip>
           <StyledInteractionStateLayer
             isPressed={id === query.id.toString()}
             hasSelectedBackground={id === query.id.toString()}
@@ -106,9 +131,11 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   width: 100%;
 `;
 
-const StyledReorderItem = styled(Reorder.Item)`
+const StyledReorderItem = styled(Reorder.Item, {
+  shouldForwardProp: prop => prop !== 'grabbing',
+})<{grabbing: boolean}>`
   position: relative;
-  background-color: transparent;
+  background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
   border-radius: ${p => p.theme.borderRadius};
   list-style: none;
   display: flex;

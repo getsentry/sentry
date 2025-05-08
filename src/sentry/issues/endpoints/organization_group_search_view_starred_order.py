@@ -35,7 +35,9 @@ class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
     def put(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:issue-view-sharing", organization, actor=request.user):
+        if not features.has(
+            "organizations:issue-stream-custom-views", organization, actor=request.user
+        ):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = GroupSearchViewStarredOrderSerializer(

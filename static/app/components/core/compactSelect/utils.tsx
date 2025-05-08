@@ -186,7 +186,7 @@ export function getHiddenOptions<Value extends SelectKey>(
  * selected, then this function selects all of them. If all of the options are selected,
  * then this function unselects all of them.
  */
-export function toggleOptions<Value extends SelectKey>(
+function toggleOptions<Value extends SelectKey>(
   optionKeys: Value[],
   selectionManager: SelectionManager
 ) {

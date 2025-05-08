@@ -7,6 +7,7 @@ from celery import Celery, Task, signals
 from celery.worker.request import Request
 from django.conf import settings
 from django.db import models
+from django.utils.safestring import SafeString
 
 from sentry.utils import metrics
 
@@ -42,8 +43,14 @@ def holds_bad_pickle_object(value, memo=None):
         )
     app_module = type(value).__module__
     if app_module.startswith(("sentry.", "getsentry.")):
-        return value, "do not pickle custom classes"
-
+        return value, "do not pickle application classes"
+    elif isinstance(value, SafeString):
+        # Django string wrappers json encode fine
+        return None
+    elif value is None:
+        return None
+    elif not isinstance(value, (dict, list, str, float, int, bool, tuple, frozenset)):
+        return value, "do not pickle stdlib classes"
     return None
 
 

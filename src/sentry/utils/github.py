@@ -16,7 +16,7 @@ class GitHubKeysPayload(BaseModel):
     public_keys: list[dict[str, Any]]
 
 
-def verify_signature(payload: str, signature: str, key_id: str, subpath: str) -> None:
+def verify_signature(payload: bytes, signature: str, key_id: str, subpath: str) -> None:
     if not payload or not signature or not key_id:
         raise ValueError("Invalid payload, signature, or key_id")
 
@@ -38,7 +38,7 @@ def verify_signature(payload: str, signature: str, key_id: str, subpath: str) ->
     try:
         # Decode the base64 signature to bytes
         signature_bytes = base64.b64decode(signature)
-        key.verify(signature_bytes, payload.encode(), ec.ECDSA(hashes.SHA256()))
+        key.verify(signature_bytes, payload, ec.ECDSA(hashes.SHA256()))
     except InvalidSignature:
         raise ValueError("Signature does not match payload")
     except binascii.Error:

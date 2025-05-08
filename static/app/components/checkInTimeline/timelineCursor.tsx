@@ -137,7 +137,7 @@ function useTimelineCursor<E extends HTMLElement>({
   return {cursorContainerRef: containerRef, timelineCursor};
 }
 
-const Cursor = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
+const Cursor = styled(motion.div)`
   pointer-events: none;
   background: ${p => p.theme.translucentBorder};
   width: 2px;

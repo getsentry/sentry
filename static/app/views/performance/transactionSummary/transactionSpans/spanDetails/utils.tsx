@@ -53,13 +53,7 @@ export function spanDetailsRouteWithQuery({
   };
 }
 
-export function generateQuerySummaryRoute({
-  base,
-  group,
-}: {
-  base: string;
-  group: string;
-}): string {
+function generateQuerySummaryRoute({base, group}: {base: string; group: string}): string {
   return `${base}/spans/span/${group}/`;
 }
 
@@ -91,7 +85,7 @@ export function querySummaryRouteWithQuery({
   };
 }
 
-export function generateResourceSummaryRoute({
+function generateResourceSummaryRoute({
   baseUrl,
   group,
 }: {

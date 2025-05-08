@@ -62,7 +62,7 @@ describe('Performance > Widgets > Query Batching', function () {
       body: {
         data: [
           {
-            'tpm()': 53.12,
+            'epm()': 53.12,
             'user_misery()': 0.023,
             'failure_rate()': 0.012,
           },
@@ -77,7 +77,7 @@ describe('Performance > Widgets > Query Batching', function () {
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
       body: {
-        'tpm()': {
+        'epm()': {
           data: [
             [
               1636822800,
@@ -173,7 +173,7 @@ describe('Performance > Widgets > Query Batching', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           ...BASIC_QUERY_PARAMS,
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
@@ -185,7 +185,7 @@ describe('Performance > Widgets > Query Batching', function () {
         query: expect.objectContaining({
           environment: ['prod'],
           statsPeriod: '7d',
-          field: ['tpm()'],
+          field: ['epm()'],
         }),
       })
     );
@@ -227,7 +227,7 @@ describe('Performance > Widgets > Query Batching', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           ...BASIC_QUERY_PARAMS,
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
@@ -268,7 +268,7 @@ describe('Performance > Widgets > Query Batching', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['tpm()', 'failure_rate()', 'user_misery()'],
+          field: ['epm()', 'failure_rate()', 'user_misery()'],
           statsPeriod: '7d',
         }),
       })
@@ -282,7 +282,7 @@ describe('Performance > Widgets > Query Batching', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           ...BASIC_QUERY_PARAMS,
-          yAxis: ['tpm()', 'failure_rate()', 'user_misery()'],
+          yAxis: ['epm()', 'failure_rate()', 'user_misery()'],
         }),
       })
     );
@@ -325,7 +325,7 @@ describe('Performance > Widgets > Query Batching', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           ...BASIC_QUERY_PARAMS,
-          yAxis: ['tpm()', 'failure_rate()', 'user_misery()'],
+          yAxis: ['epm()', 'failure_rate()', 'user_misery()'],
         }),
       })
     );
@@ -375,7 +375,7 @@ describe('Performance > Widgets > Query Batching', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           ...BASIC_QUERY_PARAMS,
-          yAxis: ['tpm()', 'failure_rate()', 'user_misery()'],
+          yAxis: ['epm()', 'failure_rate()', 'user_misery()'],
         }),
       })
     );

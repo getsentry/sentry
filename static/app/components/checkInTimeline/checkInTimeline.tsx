@@ -1,8 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import {Tooltip} from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
 
 import {getAggregateStatus} from './utils/getAggregateStatus';
@@ -30,7 +30,7 @@ interface CheckInTimelineConfig<Status extends string> {
   style?: React.CSSProperties;
 }
 
-export interface CheckInTimelineProps<Status extends string>
+interface CheckInTimelineProps<Status extends string>
   extends CheckInTimelineConfig<Status> {
   /**
    * Represents each check-in tick as bucketed check-in data.
@@ -100,7 +100,7 @@ export function CheckInTimeline<Status extends string>({
   );
 }
 
-export interface MockCheckInTimelineProps<Status extends string>
+interface MockCheckInTimelineProps<Status extends string>
   extends CheckInTimelineConfig<Status> {
   mockTimestamps: Date[];
   /**

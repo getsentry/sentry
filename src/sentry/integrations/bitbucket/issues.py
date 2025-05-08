@@ -16,6 +16,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 # Generated based on the response from the Bitbucket API
 # Example: {"type": "error", "error": {"message": "Repository has no issue tracker."}}
@@ -48,7 +49,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs
     ) -> list[dict[str, Any]]:
         kwargs["link_referrer"] = "bitbucket_integration"
 

@@ -358,10 +358,6 @@ const ChartsContainerItem = styled('div')`
   flex: 1;
 `;
 
-export const Spacer = styled('div')`
-  margin-top: ${space(3)};
-`;
-
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(1)};
 `;

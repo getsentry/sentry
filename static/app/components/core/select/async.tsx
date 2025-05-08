@@ -35,7 +35,7 @@ type State = {
 /**
  * Performs an API request to `url` to fetch the options
  */
-export class SelectAsyncControl extends Component<SelectAsyncControlProps> {
+class SelectAsyncControl extends Component<SelectAsyncControlProps> {
   static defaultProps = {
     placeholder: '--',
     defaultOptions: true,

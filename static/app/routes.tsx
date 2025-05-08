@@ -29,6 +29,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
+import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
@@ -526,6 +527,11 @@ function buildRoutes() {
         path="data-forwarding/"
         name={t('Data Forwarding')}
         component={make(() => import('sentry/views/settings/projectDataForwarding'))}
+      />
+      <Route
+        path="seer/"
+        name={t('Seer')}
+        component={make(() => import('sentry/views/settings/projectSeer/index'))}
       />
       <Route
         path="user-feedback/"
@@ -1090,9 +1096,7 @@ function buildRoutes() {
       />
       <Route
         path=":projectId/getting-started/"
-        component={make(
-          () => import('sentry/views/projectInstall/platformOrIntegration')
-        )}
+        component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
       />
     </Fragment>
   );
@@ -1829,10 +1833,6 @@ function buildRoutes() {
         />
         {transactionSummaryRoutes}
         {traceViewRoute}
-        <Route
-          path="trends/"
-          component={make(() => import('sentry/views/performance/trends'))}
-        />
         {moduleRoutes}
       </Route>
       <Route path={`${BACKEND_LANDING_SUB_PATH}/`}>
@@ -1843,10 +1843,6 @@ function buildRoutes() {
         />
         {transactionSummaryRoutes}
         {traceViewRoute}
-        <Route
-          path="trends/"
-          component={make(() => import('sentry/views/performance/trends'))}
-        />
         {moduleRoutes}
       </Route>
       <Route path={`${MOBILE_LANDING_SUB_PATH}/`}>
@@ -1857,18 +1853,10 @@ function buildRoutes() {
         />
         {transactionSummaryRoutes}
         {traceViewRoute}
-        <Route
-          path="trends/"
-          component={make(() => import('sentry/views/performance/trends'))}
-        />
         {moduleRoutes}
       </Route>
       <Route path={`${AI_LANDING_SUB_PATH}/`}>
         {traceViewRoute}
-        <Route
-          path="trends/"
-          component={make(() => import('sentry/views/performance/trends'))}
-        />
         {moduleRoutes}
       </Route>
       <Route path="projects/" component={make(() => import('sentry/views/projects/'))}>
@@ -1884,10 +1872,6 @@ function buildRoutes() {
       withOrgPath
     >
       <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
-      <Route
-        path="trends/"
-        component={make(() => import('sentry/views/performance/trends'))}
-      />
       {transactionSummaryRoutes}
       <Route
         path="vitaldetail/"
@@ -1924,6 +1908,14 @@ function buildRoutes() {
       />
     </Fragment>
   );
+
+  const logsChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/explore/logs'))} />
+      {traceViewRoute}
+    </Fragment>
+  );
+
   const tracesRoutes = (
     <Route
       path="/traces/"
@@ -1973,6 +1965,7 @@ function buildRoutes() {
 
   const exploreRoutes = (
     <Route path="/explore/" withOrgPath>
+      <IndexRoute component={make(() => import('sentry/views/explore/indexRedirect'))} />
       <Route path="profiling/" component={make(() => import('sentry/views/profiling'))}>
         {profilingChildRoutes}
       </Route>
@@ -1991,7 +1984,7 @@ function buildRoutes() {
       >
         {releasesChildRoutes}
       </Route>
-      <Route path="logs/" component={make(() => import('sentry/views/explore/logs'))} />
+      <Route path="logs/">{logsChildRoutes}</Route>
       <Route
         path="saved-queries/"
         component={make(() => import('sentry/views/explore/savedQueries'))}
@@ -2090,6 +2083,15 @@ function buildRoutes() {
           path="new/"
           component={make(() => import('sentry/views/codecov/tests/onboarding'))}
         />
+      </Route>
+      <Route path="tokens/">
+        <Route
+          component={make(() => import('sentry/views/codecov/tokens/tokensWrapper'))}
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/codecov/tokens/tokens'))}
+          />
+        </Route>
       </Route>
     </Fragment>
   );
@@ -2190,6 +2192,18 @@ function buildRoutes() {
   const issueRoutes = (
     <Route path="/issues/" withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route
+        path={`${IssueTaxonomy.ERRORS_AND_OUTAGES}/`}
+        component={make(() => import('sentry/views/issueList/pages/errorsOutages'))}
+      />
+      <Route
+        path={`${IssueTaxonomy.BREACHED_METRICS}/`}
+        component={make(() => import('sentry/views/issueList/pages/breachedMetrics'))}
+      />
+      <Route
+        path={`${IssueTaxonomy.WARNINGS}/`}
+        component={make(() => import('sentry/views/issueList/pages/warnings'))}
+      />
       <Route
         path="views/"
         component={make(

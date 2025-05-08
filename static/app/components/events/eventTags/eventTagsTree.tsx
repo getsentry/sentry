@@ -240,7 +240,7 @@ export const TreeColumn = styled('div')`
   }
 `;
 
-export const TreeLoadingIndicator = styled(LoadingIndicator)`
+const TreeLoadingIndicator = styled(LoadingIndicator)`
   grid-column: 1 /-1;
 `;
 

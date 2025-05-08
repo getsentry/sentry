@@ -62,7 +62,7 @@ export type TraceTabsReducerState = {
   tabs: Tab[];
 };
 
-export type TraceTabsReducerAction =
+type TraceTabsReducerAction =
   | {payload: TraceTabsReducerState; type: 'initialize tabs reducer'}
   | {
       payload: Tab['node'] | number;

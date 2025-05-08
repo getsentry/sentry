@@ -20,7 +20,6 @@ from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobowner import FileBlobOwner
-from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.tasks.assemble import (
     ArtifactBundlePostAssembler,
     AssembleResult,
@@ -232,7 +231,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 dist=dist,
                 checksum=total_checksum,
                 chunks=[blob1.checksum],
-                upload_as_artifact_bundle=True,
             )
 
             assert self.release.count_artifacts() == 0
@@ -300,7 +298,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             dist="android",
             checksum=total_checksum,
             chunks=[blob1.checksum],
-            upload_as_artifact_bundle=True,
         )
 
         files = File.objects.filter()
@@ -323,7 +320,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             dist="android",
             checksum=total_checksum,
             chunks=[blob1.checksum],
-            upload_as_artifact_bundle=True,
         )
 
         files = File.objects.filter()
@@ -343,7 +339,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             dist="android",
             checksum=total_checksum,
             chunks=[blob1.checksum],
-            upload_as_artifact_bundle=True,
         )
 
         files = File.objects.filter()
@@ -364,7 +359,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             dist="android",
             checksum=total_checksum,
             chunks=[blob1.checksum],
-            upload_as_artifact_bundle=True,
         )
 
         for debug_id in expected_debug_ids:
@@ -392,7 +386,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
                     dist="android",
                     checksum=total_checksum,
                     chunks=[blob1.checksum],
-                    upload_as_artifact_bundle=True,
                 )
 
         # Since we are uploading the same bundle 3 times, we expect that all of them will result with the same
@@ -440,7 +433,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 version=None,
                 checksum=total_checksum,
                 chunks=[blob1.checksum],
-                upload_as_artifact_bundle=True,
             )
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
@@ -475,7 +467,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 dist=dist,
                 checksum=total_checksum,
                 chunks=[blob1.checksum],
-                upload_as_artifact_bundle=True,
             )
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
@@ -515,7 +506,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 version=version,
                 checksum=total_checksum,
                 chunks=[blob1.checksum],
-                upload_as_artifact_bundle=True,
             )
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
@@ -552,7 +542,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 version=version,
                 checksum=total_checksum,
                 chunks=[blob1.checksum],
-                upload_as_artifact_bundle=True,
             )
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
@@ -603,7 +592,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             version=None,
             checksum=total_checksum,
             chunks=[blob1.checksum],
-            upload_as_artifact_bundle=True,
         )
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
@@ -642,7 +630,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             dist=dist,
             checksum=total_checksum_1,
             chunks=[blob1_1.checksum],
-            upload_as_artifact_bundle=True,
         )
 
         # Since the threshold is not surpassed we expect the system to not perform indexing.
@@ -664,7 +651,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             dist=dist,
             checksum=total_checksum_2,
             chunks=[blob1_2.checksum],
-            upload_as_artifact_bundle=True,
         )
 
         # Since the threshold is not surpassed we expect the system to not perform indexing.
@@ -686,7 +672,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             dist=dist,
             checksum=total_checksum_3,
             chunks=[blob1_3.checksum],
-            upload_as_artifact_bundle=True,
         )
 
         bundles = ArtifactBundle.objects.all()
@@ -696,59 +681,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             organization_id=self.organization.id,
             artifact_bundles=[(bundles[2], mock.ANY)],
         )
-
-    def test_artifacts_without_debug_ids(self):
-        bundle_file = self.create_artifact_bundle_zip(
-            org=self.organization.slug, release=self.release.version
-        )
-        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
-        total_checksum = sha1(bundle_file).hexdigest()
-
-        for min_files in (10, 1):
-            with self.options(
-                {
-                    "processing.release-archive-min-files": min_files,
-                }
-            ):
-                ReleaseFile.objects.filter(release_id=self.release.id).delete()
-
-                assert self.release.count_artifacts() == 0
-
-                assemble_artifacts(
-                    org_id=self.organization.id,
-                    version=self.release.version,
-                    checksum=total_checksum,
-                    chunks=[blob1.checksum],
-                    upload_as_artifact_bundle=False,
-                )
-
-                assert self.release.count_artifacts() == 2
-
-                status, details = get_assemble_status(
-                    AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
-                )
-                assert status == ChunkFileState.OK
-                assert details is None
-
-                if min_files == 1:
-                    # An archive was saved
-                    index = read_artifact_index(self.release, dist=None)
-                    assert index is not None
-                    archive_ident = index["files"]["~/index.js"]["archive_ident"]
-                    releasefile = ReleaseFile.objects.get(
-                        release_id=self.release.id, ident=archive_ident
-                    )
-                    # Artifact is the same as original bundle
-                    assert releasefile.file.size == len(bundle_file)
-                else:
-                    # Individual files were saved
-                    release_file = ReleaseFile.objects.get(
-                        organization_id=self.organization.id,
-                        release_id=self.release.id,
-                        name="~/index.js",
-                        dist_id=None,
-                    )
-                    assert release_file.file.headers == {"Sourcemap": "index.js.map"}
 
     def test_artifacts_invalid_org(self):
         bundle_file = self.create_artifact_bundle_zip(org="invalid", release=self.release.version)
@@ -760,11 +692,10 @@ class AssembleArtifactsTest(BaseAssembleTest):
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
-            upload_as_artifact_bundle=False,
         )
 
         status, details = get_assemble_status(
-            AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
 
@@ -778,11 +709,10 @@ class AssembleArtifactsTest(BaseAssembleTest):
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
-            upload_as_artifact_bundle=False,
         )
 
         status, details = get_assemble_status(
-            AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
 
@@ -796,40 +726,12 @@ class AssembleArtifactsTest(BaseAssembleTest):
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
-            upload_as_artifact_bundle=False,
         )
 
         status, details = get_assemble_status(
-            AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
-
-    @patch("sentry.tasks.assemble.update_artifact_index", side_effect=RuntimeError("foo"))
-    def test_failing_update(self, _):
-        bundle_file = self.create_artifact_bundle_zip(
-            org=self.organization.slug, release=self.release.version
-        )
-        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
-        total_checksum = sha1(bundle_file).hexdigest()
-
-        with self.options(
-            {
-                "processing.release-archive-min-files": 1,
-            }
-        ):
-            assemble_artifacts(
-                org_id=self.organization.id,
-                version=self.release.version,
-                checksum=total_checksum,
-                chunks=[blob1.checksum],
-                upload_as_artifact_bundle=False,
-            )
-
-            # Status is still OK:
-            status, details = get_assemble_status(
-                AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
-            )
-            assert status == ChunkFileState.OK
 
 
 @freeze_time("2023-05-31T10:00:00")

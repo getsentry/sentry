@@ -52,6 +52,8 @@ from sentry.signals import (
 from sentry.utils import metrics
 from sentry.utils.javascript import has_sourcemap
 
+UNKNOWN_DEFAULT_USER_ID = "unknown"
+
 DEFAULT_TAGS = frozenset(
     [
         "level",
@@ -196,7 +198,7 @@ def record_issue_assigned(project, group, user, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
     analytics.record(
         "issue.assigned",
         user_id=user_id,
@@ -227,7 +229,7 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
 
     analytics.record(
         "issue.resolved",
@@ -248,7 +250,7 @@ def record_issue_unresolved(project, user, group, transition_type, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
 
     analytics.record(
         "issue.unresolved",

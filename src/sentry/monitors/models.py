@@ -232,7 +232,7 @@ class Monitor(Model):
     check-in payloads. The slug can be changed.
     """
 
-    is_muted = models.BooleanField(default=False)
+    is_muted = models.BooleanField(default=False, db_default=False)
     """
     Monitor is operating normally but will not produce incidents or produce
     occurrences into the issues platform.
@@ -630,7 +630,7 @@ class MonitorEnvironment(Model):
     check-ins. It is denormalized for simplicity.
     """
 
-    is_muted = models.BooleanField(default=False)
+    is_muted = models.BooleanField(default=False, db_default=False)
     """
     Monitor environment is operating normally but will not produce incidents or produce
     occurrences into the issues platform.

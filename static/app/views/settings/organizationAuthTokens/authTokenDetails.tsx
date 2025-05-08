@@ -51,10 +51,7 @@ type UpdateTokenQueryVariables = {
   name: string;
 };
 
-export const makeFetchOrgAuthTokenKey = ({
-  orgSlug,
-  tokenId,
-}: FetchOrgAuthTokenParameters) =>
+const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
   [`/organizations/${orgSlug}/org-auth-tokens/${tokenId}/`] as const;
 
 function AuthTokenDetailsForm({
@@ -185,7 +182,7 @@ function AuthTokenDetailsForm({
   );
 }
 
-export function OrganizationAuthTokensDetails({params, organization}: Props) {
+function OrganizationAuthTokensDetails({params, organization}: Props) {
   const {tokenId} = params;
 
   const {

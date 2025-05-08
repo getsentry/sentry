@@ -57,14 +57,13 @@ function isProgressLog(
   return 'message' in item && 'timestamp' in item;
 }
 
-export function Step({
+function Step({
   step,
   groupId,
   runId,
   hasStepBelow,
   hasStepAbove,
   hasErroredStepBefore,
-  shouldCollapseByDefault,
   previousDefaultStepIndex,
   previousInsightCount,
   feedback,
@@ -73,7 +72,7 @@ export function Step({
   isChangesFirstAppearance,
 }: StepProps) {
   return (
-    <StepCard>
+    <StepCard id={`autofix-step-${step.id}`} data-step-type={step.type}>
       <ContentWrapper>
         <AnimatePresence initial={false}>
           <AnimationWrapper key="content" {...animationProps}>
@@ -91,7 +90,6 @@ export function Step({
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}
-                  shouldCollapseByDefault={shouldCollapseByDefault}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
@@ -163,7 +161,11 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
 
     // sugar coat common errors
     let customErrorMessage = '';
-    if (errorMessage.toLowerCase().includes('overloaded')) {
+    if (
+      errorMessage.toLowerCase().includes('overloaded') ||
+      errorMessage.toLowerCase().includes('no completion tokens') ||
+      errorMessage.toLowerCase().includes('exhausted')
+    ) {
       customErrorMessage = t(
         'The robots are having a moment. Our LLM provider is overloaded - please try again soon.'
       );

@@ -35,8 +35,8 @@ function ShareModal({currentTimeSec, Header, Body}: any) {
 
   return (
     <div>
-      <Header>
-        <h3>Share Replay</h3>
+      <Header closeButton>
+        <h3>{t('Share Replay')}</h3>
       </Header>
       <Body>
         <StyledTextCopyInput aria-label={t('Deeplink to current timestamp')} size="sm">
@@ -47,7 +47,7 @@ function ShareModal({currentTimeSec, Header, Body}: any) {
           <RadioGroup
             value={shareMode}
             choices={[
-              ['current', 'Share at current timestamp'],
+              ['current', t('Share at current timestamp')],
               [
                 'user',
                 <InputRow key="user">

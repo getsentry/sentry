@@ -21,14 +21,12 @@ import {
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
-import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {
-  ScreenCharts,
-  YAxis,
-} from 'sentry/views/insights/mobile/screenload/components/charts/screenCharts';
+import {ScreenCharts} from 'sentry/views/insights/mobile/screenload/components/charts/screenCharts';
 import {ScreenLoadEventSamples} from 'sentry/views/insights/mobile/screenload/components/eventSamples';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
@@ -82,6 +80,7 @@ function ScreenLoadSpans() {
 export function ScreenLoadSpansContent() {
   const router = useRouter();
   const location = useLocation<Query>();
+  const useEap = useInsightsEap();
 
   const {spanGroup, transaction: transactionName} = location.query;
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
@@ -113,7 +112,7 @@ export function ScreenLoadSpansContent() {
         <MobileMetricsRibbon
           dataset={DiscoverDatasets.METRICS}
           filters={[
-            'event.type:transaction',
+            useEap ? 'is_transaction:true' : 'event.type:transaction',
             'transaction.op:ui.load',
             `transaction:${transactionName}`,
           ]}
@@ -163,7 +162,6 @@ export function ScreenLoadSpansContent() {
 
       <ErrorBoundary mini>
         <ScreenCharts
-          yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
           additionalFilters={[`transaction:${transactionName}`]}
           chartHeight={120}
         />

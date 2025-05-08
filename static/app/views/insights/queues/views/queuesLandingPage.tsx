@@ -17,19 +17,18 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import QueuesLandingLatencyChartWidget from 'sentry/views/insights/common/components/widgets/queuesLandingLatencyChartWidget';
+import QueuesLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/queuesLandingThroughputChartWidget';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
-import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
 import {
   isAValidSort,
   QueuesTable,
 } from 'sentry/views/insights/queues/components/tables/queuesTable';
-import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage(span.duration)' as const,
+  field: 'sum(span.duration)' as const,
   kind: 'desc' as const,
 };
 
@@ -84,10 +83,10 @@ function QueuesLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.QUEUE}>
                 <ModuleLayout.Half>
-                  <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
+                  <QueuesLandingLatencyChartWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Half>
-                  <ThroughputChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
+                  <QueuesLandingThroughputChartWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Full>
                   <Flex>

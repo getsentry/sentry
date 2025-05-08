@@ -119,7 +119,9 @@ class Relocation(DefaultFieldsModelExisting):
     # Possible values are in the Provenance enum. The relocation pipeline has different behaviors
     # depending on the source of the relocation.
     provenance = models.SmallIntegerField(
-        choices=Provenance.get_choices(), default=Provenance.SELF_HOSTED
+        choices=Provenance.get_choices(),
+        default=Provenance.SELF_HOSTED,
+        db_default=Provenance.SELF_HOSTED,
     )
 
     # Possible values are in the Status enum.

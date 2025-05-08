@@ -8,9 +8,23 @@ import {space} from 'sentry/styles/space';
 // static/app/views/explore/multiQueryMode/queryConstructors/sortBy.tsx
 // and static/app/views/explore/multiQueryMode/queryConstructors/visualize.tsx
 // and not just for PageFilters as the name indicates.
-const PageFilterBar = styled('div')<{condensed?: boolean}>`
+interface PageFilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
+  condensed?: boolean;
+}
+
+const PageFilterBar = styled(({children, condensed, ...props}: PageFilterBarProps) => {
+  return (
+    <StyledPageFilterBar condensed={condensed} {...props}>
+      {children}
+    </StyledPageFilterBar>
+  );
+})``;
+
+const StyledPageFilterBar = styled('div')<{condensed?: boolean}>`
   ${p => (p.theme.isChonk ? chonkPageFilterBarStyles(p as any) : pageFilterBarStyles(p))}
 `;
+
+export default PageFilterBar;
 
 const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
   display: flex;
@@ -141,8 +155,6 @@ except in mobile */
   display: flex;
   position: relative;
 
-  height: ${p.theme.form.md.height};
-
   & button[aria-haspopup] {
     height: 100%;
     width: 100%;
@@ -153,7 +165,11 @@ except in mobile */
     display: none;
   }
 
-  & > div:first-child > button {
+  & > div > button:focus-visible {
+    z-index: 3;
+  }
+
+  & > div:first-child:not(:last-child) > button {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
   }
@@ -167,10 +183,8 @@ except in mobile */
     }
   }
 
-  & > div:last-child > button {
+  & > div:last-child:not(:first-child) > button {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
   }
 `;
-
-export default PageFilterBar;

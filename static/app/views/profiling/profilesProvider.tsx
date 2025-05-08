@@ -162,7 +162,7 @@ export function TransactionProfileProvider({
   return <ProfileContext value={profile}>{children}</ProfileContext>;
 }
 
-export interface ContinuousProfileQueryParams {
+interface ContinuousProfileQueryParams {
   end: string;
   profiler_id: string;
   start: string;

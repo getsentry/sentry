@@ -28,7 +28,7 @@ function SpanSummaryButton(props: Props) {
   const {event, organization, span} = props;
 
   const sentryTags = span.sentry_tags;
-  if (!sentryTags || !sentryTags.group) {
+  if (!sentryTags?.group) {
     return null;
   }
 

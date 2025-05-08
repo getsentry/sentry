@@ -81,7 +81,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
 
         self.check_object_permissions(request, query)
 
-        return Response(serialize(query), status=200)
+        return Response(serialize(query, request.user), status=200)
 
     @extend_schema(
         operation_id="Edit an Organization's Explore Saved Query",
@@ -103,6 +103,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
             return self.respond(status=404)
 
         self.check_object_permissions(request, query)
+
+        if query.prebuilt_id is not None:
+            return self.respond(status=400, message="Cannot modify prebuilt queries")
 
         try:
             params = self.get_filter_params(
@@ -147,6 +150,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
             return self.respond(status=404)
 
         self.check_object_permissions(request, query)
+
+        if query.prebuilt_id is not None:
+            return self.respond(status=400, message="Cannot delete prebuilt queries")
 
         query.delete()
 

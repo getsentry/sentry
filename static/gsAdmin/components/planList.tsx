@@ -12,7 +12,7 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {ANNUAL} from 'getsentry/constants';
-import type {BillingConfig, DataCategories, Plan, Subscription} from 'getsentry/types';
+import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 
@@ -48,7 +48,7 @@ function PlanList({
       // Get the category data using type assertion to allow string indexing
       const categories = subscription.categories as Record<string, {reserved?: number}>;
 
-      if (categories[category] && categories[category].reserved !== undefined) {
+      if (categories[category]?.reserved !== undefined) {
         const reservedValue = categories[category].reserved;
 
         return (
@@ -125,7 +125,10 @@ function PlanList({
           <StyledFormSection>
             <h4>Reserved Volumes</h4>
             {activePlan.checkoutCategories.map(category => {
-              const titleCategory = getPlanCategoryName({plan: activePlan, category});
+              const titleCategory = getPlanCategoryName({
+                plan: activePlan,
+                category,
+              });
               const reservedKey = `reserved${toTitleCase(category, {
                 allowInnerUpperCase: true,
               })}`;
@@ -134,9 +137,7 @@ function PlanList({
                   ? `${titleCategory} (GB)`
                   : titleCategory;
               const fieldValue = formModel.getValue(reservedKey);
-              const currentValueDisplay = getCurrentValueDisplay(
-                category as DataCategory
-              );
+              const currentValueDisplay = getCurrentValueDisplay(category);
               return (
                 <SelectFieldWrapper key={`test-${category}`}>
                   <SelectField
@@ -145,12 +146,12 @@ function PlanList({
                     name={reservedKey}
                     label={label}
                     value={fieldValue}
-                    options={(
-                      activePlan.planCategories[category as DataCategories] || []
-                    ).map((level: {events: {toLocaleString: () => any}}) => ({
-                      label: level.events.toLocaleString(),
-                      value: level.events,
-                    }))}
+                    options={(activePlan.planCategories[category] || []).map(
+                      (level: {events: {toLocaleString: () => any}}) => ({
+                        label: level.events.toLocaleString(),
+                        value: level.events,
+                      })
+                    )}
                     required
                   />
                   {currentValueDisplay}

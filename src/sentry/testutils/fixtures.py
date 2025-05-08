@@ -46,11 +46,12 @@ from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
+    create_detector_from_project_subscription,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -680,6 +681,10 @@ class Fixtures:
         # TODO: this is only needed during the ACI migration
         return Factories.create_alert_rule_workflow(*args, **kwargs)
 
+    def create_incident_group_open_period(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
+        return Factories.create_incident_group_open_period(*args, **kwargs)
+
     def create_workflow_data_condition_group(self, *args, **kwargs):
         return Factories.create_workflow_data_condition_group(*args, **kwargs)
 
@@ -705,6 +710,8 @@ class Fixtures:
         date_updated: None | datetime = None,
         trace_sampling: bool = False,
         region_slugs: list[str] | None = None,
+        uptime_status=UptimeStatus.OK,
+        uptime_status_update_date: datetime | None = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
@@ -712,6 +719,8 @@ class Fixtures:
             headers = []
         if region_slugs is None:
             region_slugs = []
+        if uptime_status_update_date is None:
+            uptime_status_update_date = timezone.now()
 
         subscription = Factories.create_uptime_subscription(
             type=type,
@@ -729,6 +738,8 @@ class Fixtures:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            uptime_status=uptime_status,
+            uptime_status_update_date=uptime_status_update_date,
         )
         for region_slug in region_slugs:
             self.create_uptime_subscription_region(subscription, region_slug)
@@ -760,12 +771,13 @@ class Fixtures:
             project = self.project
         if env is None:
             env = self.environment
-        if uptime_status_update_date is None:
-            uptime_status_update_date = timezone.now()
 
         if uptime_subscription is None:
-            uptime_subscription = self.create_uptime_subscription()
-        return Factories.create_project_uptime_subscription(
+            uptime_subscription = self.create_uptime_subscription(
+                uptime_status=uptime_status,
+                uptime_status_update_date=uptime_status_update_date,
+            )
+        monitor = Factories.create_project_uptime_subscription(
             project,
             env,
             uptime_subscription,
@@ -773,10 +785,13 @@ class Fixtures:
             mode,
             name,
             Actor.from_object(owner) if owner else None,
-            uptime_status,
-            uptime_status_update_date,
             id,
         )
+        # TODO(epurkhiser): Dual create a detector as well, can be removed
+        # once we completely remove ProjectUptimeSubscription
+        create_detector_from_project_subscription(monitor)
+
+        return monitor
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

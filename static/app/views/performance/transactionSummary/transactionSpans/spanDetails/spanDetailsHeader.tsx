@@ -152,7 +152,7 @@ const PercentileHeaderBodyWrapper = styled('div')`
   gap: ${space(3)};
 `;
 
-export const SpanLabelContainer = styled('div')`
+const SpanLabelContainer = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 

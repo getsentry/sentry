@@ -338,7 +338,14 @@ export function TimeRangeSelector({
           options={getOptions(items)}
           hideOptions={showAbsoluteSelector}
           value={start && end ? ABSOLUTE_OPTION_VALUE : (relative ?? '')}
-          onChange={handleChange}
+          onChange={option => {
+            const item = items.find(i => i.value === option.value);
+            if (item?.onClick) {
+              item.onClick();
+            } else {
+              handleChange(option);
+            }
+          }}
           // Keep menu open when clicking on absolute range option
           closeOnSelect={opt => opt.value !== ABSOLUTE_OPTION_VALUE}
           onClose={() => {

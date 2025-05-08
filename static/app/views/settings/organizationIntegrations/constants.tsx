@@ -3,7 +3,7 @@ export const NOT_INSTALLED = 'Not Installed';
 export const PENDING = 'Pending';
 export const DISABLED = 'Disabled';
 export const PENDING_DELETION = 'Pending Deletion';
-export const LEARN_MORE = 'Learn More';
+const LEARN_MORE = 'Learn More';
 
 export const COLORS = {
   [INSTALLED]: 'success',
