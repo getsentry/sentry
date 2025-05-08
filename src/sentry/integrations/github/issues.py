@@ -295,7 +295,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         return (("", "Unassigned"),) + users
 
-    def get_repo_labels(self, owner: str, repo: str) -> list[tuple[str, str]]:
+    def get_repo_labels(self, owner: str, repo: str) -> Any:
         client = self.get_client()
         try:
             response = client.get_labels(owner, repo)
