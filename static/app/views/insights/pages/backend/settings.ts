@@ -20,7 +20,7 @@ export const MODULES = [
 export const OVERVIEW_PAGE_ALLOWED_OPS = ['http.server'];
 
 export const DEFAULT_SORT: ValidSort = {
-  field: 'time_spent_percentage(span.duration)' satisfies EAPSpanProperty,
+  field: 'sum(span.duration)' satisfies EAPSpanProperty,
   kind: 'desc',
 };
 
