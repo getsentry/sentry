@@ -131,6 +131,10 @@ search_config: dict[str, FieldProtocol] = {
     "user.id": string_field("user_id"),
     "user.ip_address": NullableStringColumnField("ip_address_v4", parse_ipv4, SumOfIPv4Scalar),
     "user.username": string_field("user_name"),
+    "user.geo.city": string_field("user_geo_city"),
+    "user.geo.country_code": string_field("user_geo_country_code"),
+    "user.geo.region": string_field("user_geo_region"),
+    "user.geo.subdivision": string_field("user_geo_subdivision"),
     "viewed_by_id": IntegerColumnField("viewed_by_id", parse_int, SumOfIntegerIdScalar),
     "warning_ids": UUIDColumnField("warning_id", parse_uuid, SumOfUUIDScalar),
 }
