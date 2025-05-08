@@ -552,6 +552,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     requiresSso: bool
     rollbackEnabled: bool
     streamlineOnly: bool
+    defaultAutofixAutomationTuning: str
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
