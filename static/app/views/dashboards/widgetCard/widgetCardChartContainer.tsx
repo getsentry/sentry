@@ -34,6 +34,7 @@ type Props = {
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   dashboardFilters?: DashboardFilters;
+  disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
@@ -83,6 +84,7 @@ export function WidgetCardChartContainer({
   showConfidenceWarning,
   minTableColumnWidth,
   onDataFetchStart,
+  disableZoom,
 }: Props) {
   const location = useLocation();
 
@@ -144,6 +146,7 @@ export function WidgetCardChartContainer({
               ? renderErrorMessage(errorMessage)
               : null}
             <WidgetCardChart
+              disableZoom={disableZoom}
               timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
               errorMessage={errorMessage}
