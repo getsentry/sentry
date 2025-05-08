@@ -1,8 +1,12 @@
-import { UserFixture } from "sentry-fixture/user";
-import { GroupSearchView, GroupSearchViewVisibility } from "sentry/views/issueList/types";
-import { IssueSortOptions } from "sentry/views/issueList/utils";
+import {UserFixture} from 'sentry-fixture/user';
 
-export function GroupSearchViewFixture(params: Partial<GroupSearchView> = {}): GroupSearchView {
+import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {GroupSearchViewVisibility} from 'sentry/views/issueList/types';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+export function GroupSearchViewFixture(
+  params: Partial<GroupSearchView> = {}
+): GroupSearchView {
   return {
     id: '123',
     name: 'Test View',

@@ -35,6 +35,7 @@ from sentry.workflow_engine.models.data_condition import (
     SLOW_CONDITIONS,
     Condition,
 )
+from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
 from sentry.workflow_engine.processors.delayed_workflow import (
     DataConditionGroupEvent,
     DataConditionGroupGroups,
@@ -804,7 +805,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
 
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
     def test_fire_actions_for_groups__workflow_fire_history(self, mock_process):
-        mock_process.return_value = (True, []), []
+        mock_process.return_value = (
+            ProcessedDataConditionGroup(logic_result=True, condition_results=[]),
+            [],
+        )
 
         self.trigger_group_to_dcg_model[DataConditionHandler.Group.WORKFLOW_TRIGGER] = {
             self.workflow1_dcgs[0].id: self.workflow1.id,
@@ -828,12 +832,14 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         )
 
         wfh.refresh_from_db()
+        assert wfh.has_passed_filters is True
         assert wfh.has_fired_actions is True
 
         assert WorkflowFireHistory.objects.filter(
             workflow=self.workflow1,
             group_id=self.group1.id,
             event_id=self.event1.event_id,
+            has_passed_filters=True,
             has_fired_actions=True,
         ).exists()
 

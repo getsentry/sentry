@@ -67,6 +67,10 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
           label: t('Suspiciousness'),
           value: SortBy.SUSPICION,
         },
+        {
+          label: t('Distribution'),
+          value: SortBy.DISTRIBUTION,
+        },
       ]
     : [
         {
@@ -87,6 +91,10 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
         {
           label: t('High to Low'),
           value: OrderBy.HIGH_TO_LOW,
+        },
+        {
+          label: t('Low to High'),
+          value: OrderBy.LOW_TO_HIGH,
         },
       ]
     : [

@@ -2,6 +2,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryProps,
   useGenericDiscoverQuery,
@@ -40,8 +41,9 @@ interface UseMetricsSeriesOptions<Fields> {
   interval?: string;
   overriddenRoute?: string;
   referrer?: string;
-  samplingMode?: SamplingMode | 'NONE';
+  samplingMode?: SamplingMode;
   search?: MutableSearch | string;
+  sort?: Sort;
   // TODO: Remove string type and always require MutableSearch
   transformAliasToInputFormat?: boolean;
 }
@@ -141,6 +143,8 @@ const useTopNDiscoverSeries = <T extends string[]>(
     eventView.interval = interval;
   }
 
+  const sort = options.sort ?? eventView.sorts?.[0];
+
   const result = useGenericDiscoverQuery<MultiSeriesEventsStats, DiscoverQueryProps>({
     route: 'events-stats',
     eventView,
@@ -152,11 +156,10 @@ const useTopNDiscoverSeries = <T extends string[]>(
       topEvents: eventView.topEvents,
       excludeOther: 0,
       partial: 1,
-      orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
+      orderby: sort ? encodeSort(sort) : undefined,
       interval: eventView.interval,
       transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
-      sampling:
-        samplingMode === 'NONE' || !shouldSetSamplingMode ? undefined : samplingMode,
+      samplingMode: shouldSetSamplingMode ? samplingMode : undefined,
     }),
     options: {
       enabled: options.enabled && defaultPageFilters.isReady,

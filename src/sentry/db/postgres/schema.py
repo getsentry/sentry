@@ -1,7 +1,8 @@
+from django.contrib.postgres.constraints import ExclusionConstraint
 from django.db.backends.postgresql.schema import (
     DatabaseSchemaEditor as PostgresDatabaseSchemaEditor,
 )
-from django.db.models import Field
+from django.db.models import Field, Model
 from django.db.models.base import ModelBase
 from django_zero_downtime_migrations.backends.postgres.schema import (
     DatabaseSchemaEditorMixin,
@@ -56,6 +57,15 @@ def translate_unsafeoperation_exception(func):
             raise UnsafeOperationException(exc_str.format(*formatted_args))
 
     return inner
+
+
+class MakeBtreeGistSchemaEditor(PostgresDatabaseSchemaEditor):
+    """workaround for https://code.djangoproject.com/ticket/36374"""
+
+    def create_model(self, model: type[Model]) -> None:
+        if any(isinstance(c, ExclusionConstraint) for c in model._meta.constraints):
+            self.execute("CREATE EXTENSION IF NOT EXISTS btree_gist;")
+        super().create_model(model)
 
 
 class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDatabaseSchemaEditor):
@@ -130,7 +140,7 @@ class DatabaseSchemaEditorProxy:
     def schema_editor(self):
         if self._schema_editor is None:
             schema_editor_cls = (
-                SafePostgresDatabaseSchemaEditor if self.safe else PostgresDatabaseSchemaEditor
+                SafePostgresDatabaseSchemaEditor if self.safe else MakeBtreeGistSchemaEditor
             )
             schema_editor = schema_editor_cls(*self.args, **self.kwargs)
             schema_editor.__enter__()
