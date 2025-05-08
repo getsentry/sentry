@@ -511,7 +511,12 @@ function multiSelectTokenValue(
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
-      const values = tokenValue.items.map(item => item.value?.text ?? '');
+      const values = tokenValue.items.map(item => {
+        if (item?.value?.type === Token.VALUE_TEXT && item.value.contains) {
+          return item.value?.value ?? '';
+        }
+        return item.value?.text ?? '';
+      });
       const containsValue = values.includes(action.value);
       const newValues = containsValue
         ? values.filter(value => value !== action.value)

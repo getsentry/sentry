@@ -53,15 +53,18 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const items = token.value.items;
 
       if (items.length === 1 && items[0]!.value) {
+        const isContains =
+          items[0]!.value.type === Token.VALUE_TEXT ? items[0]!.value.contains : false;
+
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0]!.value, false)}
+            {formatFilterValue(items[0]!.value, isContains)}
           </FilterValueSingleTruncatedValue>
         );
       }
 
       const maxItems = size === 'small' ? 1 : 3;
-      const allContains = items.every(item => {
+      const allItemsContains = items.every(item => {
         if (item.value?.type === Token.VALUE_TEXT) {
           return item.value?.contains;
         }
@@ -74,7 +77,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
             <Fragment key={index}>
               <FilterMultiValueTruncated>
                 {/* @ts-expect-error TS(2345): Argument of type '{ type: Token.VALUE_NUMBER; valu... Remove this comment to see the full error message */}
-                {formatFilterValue(item.value, allContains)}
+                {formatFilterValue(item.value, allItemsContains)}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueOr> or </FilterValueOr>
@@ -92,12 +95,15 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
       );
     }
-    default:
+    default: {
+      const isContains =
+        token.value.type === Token.VALUE_TEXT ? token.value.contains : false;
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue(token.value, false)}
+          {formatFilterValue(token.value, isContains)}
         </FilterValueSingleTruncatedValue>
       );
+    }
   }
 }
 

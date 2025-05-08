@@ -861,7 +861,14 @@ export function SearchQueryBuilderValueCombobox({
         onExit={onCommit}
         inputValue={inputValue}
         filterValue={filterValue}
-        placeholder={canSelectMultipleValues ? '' : formatFilterValue(token.value)}
+        placeholder={
+          canSelectMultipleValues
+            ? ''
+            : formatFilterValue(
+                token.value,
+                token?.value?.type === Token.VALUE_TEXT ? token.value.contains : false
+              )
+        }
         token={token}
         inputLabel={t('Edit filter value')}
         onInputChange={e => setInputValue(e.target.value)}
