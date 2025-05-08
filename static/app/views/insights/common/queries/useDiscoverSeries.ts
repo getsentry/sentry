@@ -36,7 +36,7 @@ interface UseMetricsSeriesOptions<Fields> {
   interval?: string;
   overriddenRoute?: string;
   referrer?: string;
-  samplingMode?: SamplingMode | 'NONE';
+  samplingMode?: SamplingMode;
   search?: MutableSearch | string;
   // TODO: Remove string type and always require MutableSearch
   transformAliasToInputFormat?: boolean;
@@ -156,8 +156,7 @@ const useDiscoverSeries = <T extends string[]>(
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
-      sampling:
-        samplingMode === 'NONE' || !shouldSetSamplingMode ? undefined : samplingMode,
+      samplingMode: shouldSetSamplingMode ? samplingMode : undefined,
     }),
     options: {
       enabled: options.enabled && defaultPageFilters.isReady,
