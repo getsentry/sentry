@@ -39,14 +39,14 @@ class TestProcessDataConditionGroup(TestCase):
 
     def test_process_data_condition_group__exists__passes(self):
         data_condition_group = self.create_data_condition_group()
-        self.create_data_condition(
+        self.condition = self.create_data_condition(
             condition_group=data_condition_group,
             type=Condition.GREATER,
             comparison=5,
             condition_result=DetectorPriorityLevel.HIGH,
         )
         assert process_data_condition_group(data_condition_group.id, 10) == (
-            (True, [DetectorPriorityLevel.HIGH]),
+            (True, [(self.condition, DetectorPriorityLevel.HIGH)]),
             [],
         )
 
@@ -77,7 +77,6 @@ class TestEvaluationConditionCase(TestCase):
         return [(condition, value) for condition in self.conditions]
 
 
-# TODO - @saponifi3d - refactor these tests to use pytest.mark.paramaterize
 class TestEvaluateConditionGroupTypeAny(TestEvaluationConditionCase):
     def test_evaluate_data_conditions__passes_all(self):
         assert evaluate_data_conditions(
@@ -85,14 +84,17 @@ class TestEvaluateConditionGroupTypeAny(TestEvaluationConditionCase):
             self.data_condition_group.logic_type,
         ) == (
             True,
-            [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW],
+            [
+                (self.data_condition, DetectorPriorityLevel.HIGH),
+                (self.data_condition_two, DetectorPriorityLevel.LOW),
+            ],
         )
 
     def test_evaluate_data_conditions__passes_one(self):
         assert evaluate_data_conditions(
             self.get_conditions_to_evaluate(4),
             self.data_condition_group.logic_type,
-        ) == (True, [DetectorPriorityLevel.LOW])
+        ) == (True, [(self.data_condition_two, DetectorPriorityLevel.LOW)])
 
     def test_evaluate_data_conditions__fails_all(self):
         assert evaluate_data_conditions(
@@ -114,13 +116,13 @@ class TestEvaluateConditionGroupTypeAnyShortCircuit(TestEvaluationConditionCase)
     def test_evaluate_data_conditions__passes_all(self):
         assert evaluate_data_conditions(
             self.get_conditions_to_evaluate(10), self.data_condition_group.logic_type
-        ) == (True, [DetectorPriorityLevel.HIGH])
+        ) == (True, [(self.data_condition, DetectorPriorityLevel.HIGH)])
 
     def test_evaluate_data_conditions__passes_one(self):
         assert evaluate_data_conditions(
             self.get_conditions_to_evaluate(4),
             self.data_condition_group.logic_type,
-        ) == (True, [DetectorPriorityLevel.LOW])
+        ) == (True, [(self.data_condition_two, DetectorPriorityLevel.LOW)])
 
     def test_evaluate_data_conditions__fails_all(self):
         assert evaluate_data_conditions(
@@ -142,7 +144,10 @@ class TestEvaluateConditionGroupTypeAll(TestEvaluationConditionCase):
             self.get_conditions_to_evaluate(10), self.data_condition_group.logic_type
         ) == (
             True,
-            [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW],
+            [
+                (self.data_condition, DetectorPriorityLevel.HIGH),
+                (self.data_condition_two, DetectorPriorityLevel.LOW),
+            ],
         )
 
     def test_evaluate_data_conditions__passes_one(self):
@@ -211,7 +216,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         )
 
         assert logic_result is True
-        assert condition_results == [True]
+        assert condition_results == [(self.data_condition, True)]
         assert remaining_conditions == [self.slow_condition]
 
     def test_basic_only_slow_conditions(self):
@@ -234,7 +239,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         )
 
         assert logic_result is True
-        assert condition_results == [True]
+        assert condition_results == [(self.slow_condition, True)]
         assert remaining_conditions == []
 
     def test_short_circuit_with_all(self):
@@ -257,5 +262,5 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         )
 
         assert logic_result is True
-        assert condition_results == [True]
+        assert condition_results == [(self.data_condition, True)]
         assert remaining_conditions == []
