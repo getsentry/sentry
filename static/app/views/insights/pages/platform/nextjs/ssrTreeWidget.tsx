@@ -82,8 +82,7 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
       item['function.nextjs.component_type']
     );
 
-    // Empty paths are returned as ['/'] in the response -> ignore them
-    const fullPath = path.length === 1 && path[0] === '/' ? [] : [...path];
+    const fullPath = [...path];
     if (file) {
       fullPath.push(file);
     }
