@@ -175,23 +175,45 @@ class CheckoutOverview extends Component<Props> {
     );
   }
 
-  renderSeer() {
+  renderAdditionalFeature({
+    featureKey,
+    title,
+    description,
+    priceCents,
+    enabledField,
+  }: {
+    description: string;
+    enabledField: string;
+    featureKey: string;
+    priceCents: number;
+    title: string;
+  }) {
     const {formData} = this.props;
-    const {seerEnabled} = formData;
+    const isEnabled = formData[enabledField];
 
-    if (!seerEnabled) {
+    if (!isEnabled) {
       return null;
     }
 
     return (
-      <DetailItem key="seer" data-test-id="seer">
+      <DetailItem key={featureKey} data-test-id={featureKey}>
         <div>
-          <DetailTitle>{t('Seer: Sentry AI Enhancements')}</DetailTitle>
-          {t('Surface insights and propose solutions to fix bugs faster.')}
+          <DetailTitle>{title}</DetailTitle>
+          {description}
         </div>
-        <DetailPrice>{`${utils.displayPrice({cents: SEER_MONTHLY_PRICE_CENTS})}/mo`}</DetailPrice>
+        <DetailPrice>{`${utils.displayPrice({cents: priceCents})}/mo`}</DetailPrice>
       </DetailItem>
     );
+  }
+
+  renderSeer() {
+    return this.renderAdditionalFeature({
+      featureKey: 'seer',
+      title: t('Seer: Sentry AI Enhancements'),
+      description: t('Surface insights and propose solutions to fix bugs faster.'),
+      priceCents: SEER_MONTHLY_PRICE_CENTS,
+      enabledField: 'seerEnabled',
+    });
   }
 
   renderDetailItems = () => {
@@ -269,31 +291,16 @@ class CheckoutOverview extends Component<Props> {
       };
     }
 
-    let reservedTotal = utils.getReservedTotal({
+    const reservedTotal = utils.getReservedTotal({
       ...formData,
       plan: activePlan,
       ...discountData,
     });
 
-    let originalTotal = utils.getReservedTotal({
+    const originalTotal = utils.getReservedTotal({
       ...formData,
       plan: activePlan,
     });
-
-    // Add Seer budget to the total if it's enabled
-    if (formData.seerEnabled && formData.seerBudget) {
-      // Convert the display strings back to numbers for addition, then convert back to display strings
-      const reservedTotalValue = parseFloat(reservedTotal.replace(/,/g, ''));
-      const seerBudgetValue = formData.seerBudget / 100; // Convert cents to dollars
-      reservedTotal = utils.displayPrice({
-        cents: (reservedTotalValue + seerBudgetValue) * 100,
-      });
-
-      const originalTotalValue = parseFloat(originalTotal.replace(/,/g, ''));
-      originalTotal = utils.displayPrice({
-        cents: (originalTotalValue + seerBudgetValue) * 100,
-      });
-    }
 
     const billingInterval =
       discountInfo?.billingInterval === 'monthly' ? 'Months' : 'Years';
