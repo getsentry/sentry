@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
 import {TraceContextTags} from 'sentry/views/performance/newTraceDetails/traceContextTags';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
