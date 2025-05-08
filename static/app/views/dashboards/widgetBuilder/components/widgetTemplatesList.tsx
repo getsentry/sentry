@@ -20,6 +20,7 @@ import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
 interface WidgetTemplatesListProps {
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  setCustomizeFromLibrary: (customizeFromLibrary: boolean) => void;
   setIsPreviewDraggable: (isPreviewDraggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 }
@@ -28,6 +29,7 @@ function WidgetTemplatesList({
   onSave,
   setOpenWidgetTemplates,
   setIsPreviewDraggable,
+  setCustomizeFromLibrary,
 }: WidgetTemplatesListProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -97,6 +99,7 @@ function WidgetTemplatesList({
                       onClick={e => {
                         e.stopPropagation();
                         setOpenWidgetTemplates(false);
+                        setCustomizeFromLibrary(true);
                         // reset preview when customizing templates
                         setIsPreviewDraggable(false);
                         trackAnalytics(

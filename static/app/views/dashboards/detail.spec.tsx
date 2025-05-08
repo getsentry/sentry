@@ -2381,7 +2381,7 @@ describe('Dashboards > Detail', function () {
         await userEvent.click(
           await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
         );
-        expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+        expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
       });
 
       it('opens the widget builder library slideout when clicking add widget from widget library', async function () {
@@ -2405,7 +2405,7 @@ describe('Dashboards > Detail', function () {
         await userEvent.click(
           await screen.findByRole('menuitemradio', {name: 'From Widget Library'})
         );
-        expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
+        expect(await screen.findByText('Widget Library')).toBeInTheDocument();
       });
 
       it('opens the widget builder slideout when clicking add widget in edit mode', async function () {
@@ -2429,7 +2429,7 @@ describe('Dashboards > Detail', function () {
         await userEvent.click(
           await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
         );
-        expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+        expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
       });
 
       it('opens the widget builder library slideout when clicking add widget from widget library in edit mode', async function () {
@@ -2453,7 +2453,7 @@ describe('Dashboards > Detail', function () {
         await userEvent.click(
           await screen.findByRole('menuitemradio', {name: 'From Widget Library'})
         );
-        expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
+        expect(await screen.findByText('Widget Library')).toBeInTheDocument();
       });
 
       it('allows for editing a widget in edit mode', async function () {
@@ -2538,13 +2538,13 @@ describe('Dashboards > Detail', function () {
           await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
         );
 
-        expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+        expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
 
         await userEvent.click(screen.getByText('Add Widget'));
 
         // The widget builder is closed after the widget is updated
         await waitFor(() => {
-          expect(screen.queryByText('Create Custom Widget')).not.toBeInTheDocument();
+          expect(screen.queryByText('Custom Widget Builder')).not.toBeInTheDocument();
         });
 
         // The widget is added in the dashboard
@@ -2642,7 +2642,7 @@ describe('Dashboards > Detail', function () {
           await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
         );
 
-        expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+        expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
 
         await userEvent.click(
           await within(screen.getByTestId('widget-slideout')).findByText('Add Widget')
@@ -2650,7 +2650,7 @@ describe('Dashboards > Detail', function () {
 
         // The widget builder is closed after the widget is updated
         await waitFor(() => {
-          expect(screen.queryByText('Create Custom Widget')).not.toBeInTheDocument();
+          expect(screen.queryByText('Custom Widget Builder')).not.toBeInTheDocument();
         });
 
         // The update action is called with the new widget

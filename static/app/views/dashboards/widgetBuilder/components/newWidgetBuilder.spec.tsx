@@ -117,7 +117,7 @@ describe('NewWidgetBuiler', function () {
       }
     );
 
-    expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+    expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
 
     expect(await screen.findByLabelText('Close Widget Builder')).toBeInTheDocument();
 
@@ -270,7 +270,7 @@ describe('NewWidgetBuiler', function () {
       }
     );
 
-    expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
+    expect(await screen.findByText('Widget Library')).toBeInTheDocument();
 
     expect(await screen.findByText('Select a widget to preview')).toBeInTheDocument();
   });
