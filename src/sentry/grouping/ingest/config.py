@@ -45,13 +45,14 @@ def update_grouping_config_if_needed(project: Project, source: str) -> None:
         else:
             cache.set(cache_key, "1", 60 * 5)
 
-        # This is when we will stop calculating the old hash in cases where we don't find the new
-        # hash (which we do in an effort to preserve group continuity).
-        transition_expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-
         changes: dict[str, str | int] = {"sentry:grouping_config": DEFAULT_GROUPING_CONFIG}
+
         # If the current config is still valid, put the project into a migration period
         if current_config in CONFIGURATIONS.keys():
+            # This is when we will stop calculating the old hash in cases where we don't find the
+            # new hash (which we do in an effort to preserve group continuity).
+            transition_expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+
             changes.update(
                 {
                     "sentry:secondary_grouping_config": current_config,
