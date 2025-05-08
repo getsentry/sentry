@@ -247,45 +247,86 @@ function PlanSelect({
     );
   };
 
-  const renderSeer = () => {
+  const renderAdditionalFeature = ({
+    featureKey,
+    featureEnabled,
+    featureAvailable,
+    title,
+    description,
+    icon,
+    priceCents,
+    featureItems,
+    tooltipTitle,
+    isNew = false,
+    setFeatureEnabled,
+  }: {
+    description: string;
+    featureAvailable: boolean;
+    featureEnabled: boolean;
+    featureItems: string[];
+    featureKey: string;
+    icon: React.ReactNode;
+    priceCents: number;
+    setFeatureEnabled: (enabled: boolean) => void;
+    title: string;
+    tooltipTitle: string;
+    isNew?: boolean;
+  }) => {
     return (
-      hasSeerFeature && (
-        <StepFooter data-test-id="footer-seer">
-          <SeerContainer>
-            <SeerHeader>
-              <SeerIcon size="lg" />
-              Add Seer, our AI Agent
-              <FeatureBadge type="new" variant="badge" />
-            </SeerHeader>
-            <SeerDescription>Insights and solutions to fix bugs faster</SeerDescription>
+      featureAvailable && (
+        <StepFooter data-test-id={`footer-${featureKey}`}>
+          <FeatureContainer>
+            <FeatureHeader>
+              {icon}
+              {title}
+              {isNew && <FeatureBadge type="new" variant="badge" />}
+            </FeatureHeader>
+            <FeatureDescription>{description}</FeatureDescription>
             <FeatureList>
-              <FeatureItem>Root Cause Analysis</FeatureItem>
-              <FeatureItem>Autofix PRs</FeatureItem>
-              <FeatureItem>AI Issue Priority</FeatureItem>
+              {featureItems.map((item, index) => (
+                <FeatureItem key={index}>{item}</FeatureItem>
+              ))}
             </FeatureList>
             <ButtonWrapper>
               <Button
                 priority={'default'}
-                icon={seerIsEnabled ? <IconCheckmark /> : <IconAdd />}
+                icon={featureEnabled ? <IconCheckmark /> : <IconAdd />}
                 onClick={() => {
-                  setSeerIsEnabled(!seerIsEnabled);
-                  onUpdate({...formData, seerEnabled: !seerIsEnabled});
+                  // Update the UI state
+                  setFeatureEnabled(!featureEnabled);
+                  // Update the form data
+                  onUpdate({...formData, [`${featureKey}Enabled`]: !featureEnabled});
                 }}
-                data-test-id="seer-toggle-button"
+                data-test-id={`${featureKey}-toggle-button`}
               >
-                {seerIsEnabled
+                {featureEnabled
                   ? t('Added to plan')
-                  : t('%s/mo', utils.displayPrice({cents: SEER_MONTHLY_PRICE_CENTS}))}
+                  : t('%s/mo', utils.displayPrice({cents: priceCents}))}
               </Button>
             </ButtonWrapper>
             <div>
-              Extra usage requires PAYG{' '}
-              <QuestionTooltip size="xs" title={t('Additional Seer information.')} />
+              Extra usage requires PAYG <QuestionTooltip size="xs" title={tooltipTitle} />
             </div>
-          </SeerContainer>
+          </FeatureContainer>
         </StepFooter>
       )
     );
+  };
+
+  const renderSeer = () => {
+    return renderAdditionalFeature({
+      featureKey: 'seer',
+      featureEnabled: seerIsEnabled,
+      featureAvailable: hasSeerFeature,
+      title: 'Add Seer, our AI Agent',
+      description: 'Insights and solutions to fix bugs faster',
+      icon: <SeerIcon size="lg" />,
+      priceCents: SEER_MONTHLY_PRICE_CENTS,
+      featureItems: ['Root Cause Analysis', 'Autofix PRs', 'AI Issue Priority'],
+      tooltipTitle: t('Additional Seer information.'),
+      isNew: true,
+      setFeatureEnabled: setSeerIsEnabled,
+    });
   };
 
   const renderFooter = () => {
@@ -400,7 +441,7 @@ const FooterWarningWrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-const SeerHeader = styled('div')`
+const FeatureHeader = styled('div')`
   margin: 0;
   gap: ${space(1)};
   display: flex;
@@ -409,13 +450,13 @@ const SeerHeader = styled('div')`
   font-size: large;
 `;
 
-const SeerContainer = styled('div')`
+const FeatureContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
 `;
 
-const SeerDescription = styled('p')`
+const FeatureDescription = styled('p')`
   margin: 0;
   color: ${p => p.theme.subText};
 `;
