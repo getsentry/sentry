@@ -52,8 +52,18 @@ class TestGetNotificationMessageToSend(TestCase):
             user_id=self.user.id,
             data={"ignoreUntilEscalating": True},
         )
-        result = self.service._get_notification_message_to_send(activity=activity)
-        assert result == "admin@localhost archived BAR-1"
+        uuid = uuid4()
+        with mock.patch("uuid.uuid4", return_value=uuid):
+            result = self.service._get_notification_message_to_send(activity=activity)
+            group_link = self.group.get_absolute_url(
+                params={
+                    "referrer": "activity_notification",
+                    "notification_uuid": uuid,
+                }
+            )
+            assert (
+                result == f"admin@localhost archived <{group_link}|{self.group.qualified_short_id}>"
+            )
 
 
 @freeze_time("2025-01-01 00:00:00")
@@ -428,14 +438,23 @@ class TestNotifyAllThreadsForActivity(TestCase):
             instance=self.parent_notification_action,
         )
 
-        self.service.notify_all_threads_for_activity(activity=activity)
+        uuid = uuid4()
+        with mock.patch("uuid.uuid4", return_value=uuid):
+            self.service.notify_all_threads_for_activity(activity=activity)
+
+        group_link = self.group.get_absolute_url(
+            params={
+                "referrer": "activity_notification",
+                "notification_uuid": uuid,
+            }
+        )
 
         # Verify the notification action repository was used
         assert mock_send_notification.call_count == 1
         mock_send_notification.assert_called_with(
             channel_id=mock_get_channel_id.return_value,
             message_identifier=self.message_identifier,
-            notification_to_send="admin@localhost archived BAR-1",
+            notification_to_send=f"admin@localhost archived <{group_link}|{self.group.qualified_short_id}>",
             client=mock.ANY,
         )
 
