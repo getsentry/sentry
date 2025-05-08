@@ -13,6 +13,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python 3.13.1
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.1'
+
       - name: Install Requirements
         run: |
           pip install -r requirements-dev-frozen.txt
