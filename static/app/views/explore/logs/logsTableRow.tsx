@@ -198,7 +198,7 @@ export function LogRowContent({
           const value = dataRow[field];
 
           if (!defined(value)) {
-            return null;
+            return <LogTableBodyCell key={field} />;
           }
 
           const discoverColumn: TableColumn<keyof TableDataRow> = {
