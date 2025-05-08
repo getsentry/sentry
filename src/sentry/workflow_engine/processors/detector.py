@@ -49,7 +49,7 @@ def create_issue_occurrence_from_result(result: DetectorEvaluationResult):
 def process_detectors(
     data_packet: DataPacket, detectors: list[Detector]
 ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
-    results = []
+    results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] = []
 
     for detector in detectors:
         handler = detector.detector_handler
@@ -63,6 +63,9 @@ def process_detectors(
         )
 
         detector_results = handler.evaluate(data_packet)
+
+        if detector_results is None:
+            return results
 
         for result in detector_results.values():
             if result.result is not None:

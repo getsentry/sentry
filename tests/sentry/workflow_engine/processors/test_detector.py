@@ -598,7 +598,8 @@ class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
                         99,
                         {},
                     ),
-                    dedupe_value=100,
+                    100,
+                    DataPacket[dict](source_id="1234", packet={"id": "1234", "value": "1"}),
                 )
                 == expected_result
             )
@@ -614,7 +615,8 @@ class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
                         100,
                         {},
                     ),
-                    dedupe_value=100,
+                    100,
+                    DataPacket[dict](source_id="1234", packet={"id": "1234", "value": "1"}),
                 )
                 is None
             )
@@ -624,21 +626,21 @@ class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
 
     def test_status_change(self):
         handler = self.build_handler()
-        assert (
-            handler.evaluate_group_key_value(
+        result = handler.evaluate_group_key_value(
+            "group_key",
+            0,
+            DetectorStateData(
                 "group_key",
-                0,
-                DetectorStateData(
-                    "group_key",
-                    False,
-                    DetectorPriorityLevel.OK,
-                    1,
-                    {},
-                ),
-                dedupe_value=2,
-            )
-            is None
+                False,
+                DetectorPriorityLevel.OK,
+                1,
+                {},
+            ),
+            2,
+            DataPacket[dict](source_id="1234", packet={"id": "1234", "value": "1"}),
         )
+
+        assert result is None
         assert handler.evaluate_group_key_value(
             "group_key",
             0,
@@ -649,7 +651,8 @@ class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
                 1,
                 {},
             ),
-            dedupe_value=2,
+            2,
+            DataPacket[dict](source_id="1234", packet={"id": "1234", "value": "1"}),
         ) == DetectorEvaluationResult(
             "group_key",
             False,

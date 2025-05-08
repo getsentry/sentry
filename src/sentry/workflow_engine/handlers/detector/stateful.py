@@ -1,6 +1,5 @@
 import abc
 import dataclasses
-from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Generic
 from uuid import uuid4
@@ -71,11 +70,9 @@ class DetectorStateManager:
         self,
         detector: Detector,
         counter_names: list[str],
-        key_builder: Callable[[str, str], str] | None = None,
     ):
         self.detector = detector
         self.counter_names = counter_names
-        self.key_builder = key_builder
 
     def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int):
         self.dedupe_updates[group_key] = dedupe_value
@@ -125,11 +122,13 @@ class DetectorStateManager:
             for detector_state in self.detector.detectorstate_set.filter(query_filter)
         }
 
-    def _build_key(self, group_key: DetectorGroupKey, post_fix: str) -> str:
-        if self.key_builder and group_key:
-            return self.key_builder(group_key, post_fix)
+    def _build_key(self, group_key: DetectorGroupKey, postfix: str) -> str:
+        group_postfix = f"{group_key if group_key is not None else ''}"
 
-        return f"{self.detector.id}:{post_fix}"
+        if postfix:
+            group_postfix = f"{group_key if group_key is not None else ''}:{postfix}"
+
+        return f"{self.detector.id}:{group_postfix}"
 
     def commit_state_updates(self):
         self._bulk_commit_detector_state()
@@ -256,14 +255,24 @@ class StatefulDetectorHandler(
     def __init__(self, detector: Detector):
         super().__init__(detector)
         # TODO - is `thresholds` good? (check evans pr)
-        if detector.config.get("thresholds"):
-            raise Exception(
-                "Stateful detectors are required to have `thresholds` set in the config"
-            )
+        # if detector.config.get("thresholds"):
+        #     raise Exception(
+        #         "Stateful detectors are required to have `thresholds` set in the config"
+        #     )
 
-        self.state_manager = DetectorStateManager(detector)
+        counter_names = self.counter_names or []
+        self.state_manager = DetectorStateManager(detector, counter_names)
 
-    def build_fingerprint(self, postfix: str | None) -> str:
+    @property
+    @abc.abstractmethod
+    def counter_names(self) -> list[str]:
+        """
+        The names of the counters that this detector tracks. This is used to build the redis keys for
+        storing counter values.
+        """
+        pass
+
+    def build_fingerprint(self, postfix: str | None = None) -> str:
         """
         Builds a fingerprint to uniquely identify a detected issue
         """
@@ -299,18 +308,22 @@ class StatefulDetectorHandler(
             status=new_priority,
             detection_time=datetime.now(UTC),
             additional_evidence_data=detector_occurrence.evidence_data,
-            fingerprint=[self.detector.id],
+            fingerprint=[self.build_fingerprint()],
         )
 
     def _evaluation_detector_conditions(
         self, value: DataPacketEvaluationType
-    ) -> tuple[ProcessedDataConditionGroup, DetectorPriorityLevel]:
+    ) -> tuple[ProcessedDataConditionGroup | None, DetectorPriorityLevel]:
         """
         Evaluate the detector.workflow_condition_group against the value in the data packet.
 
         Returns a tuple of the condition evaluation and the new priority level.
         """
         new_priority = DetectorPriorityLevel.OK
+        if not self.condition_group:
+            metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
+            return None, new_priority
+
         condition_evaluation, _ = process_data_condition_group(self.condition_group.id, value)
 
         if condition_evaluation.logic_result:
@@ -325,7 +338,9 @@ class StatefulDetectorHandler(
 
         return condition_evaluation, new_priority
 
-    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> DetectorEvaluationResult:
+    def evaluate(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> dict[DetectorGroupKey, DetectorEvaluationResult] | None:
         """
         This method evaluates the detector's conditions against the data packet's value.
 
@@ -340,17 +355,17 @@ class StatefulDetectorHandler(
         condition_evaluation, new_priority = self._evaluation_detector_conditions(value)
         state = self.state_manager.get_state_data([None])[None]
 
-        if state.status == new_priority:
+        if state.status == new_priority or not condition_evaluation:
             return None
 
         # TODO - enqueue state update here
+        # TODO - enqueue threshold update
         # self.state_manager.enqueue_threshold_update(None, new_priority)
 
         if new_priority == DetectorPriorityLevel.OK:
             detector_result = self.create_resolve_message()
         else:
-            # TODO - think through this bit later, as it's a new feature
-            # get counter values for each state
+            # TODO - think through this bit later
             # thresholds = self.state_manager.get_thresholds(None)
             # if thresholds[new_priority] > detector.config.get("thresholds", {}).get(new_priority):
             # create the issue occurrence, otherwise we just needed the state update
@@ -361,29 +376,23 @@ class StatefulDetectorHandler(
                 detector_occurrence, condition_evaluation, new_priority
             )
 
-        return DetectorEvaluationResult(
-            is_triggered=new_priority != DetectorPriorityLevel.OK,
-            priority=new_priority,
-            result=detector_result,
-            event_data=event_data,
-        )
+        return {
+            None: DetectorEvaluationResult(
+                group_key=None,
+                is_triggered=new_priority != DetectorPriorityLevel.OK,
+                priority=new_priority,
+                result=detector_result,
+                event_data=event_data,
+            )
+        }
 
 
-# TODO move to group.py?
+# TODO move to grouping.py as GroupingDetectorHandler?
 class StatefulGroupingDetectorHandler(
     Generic[DataPacketType, DataPacketEvaluationType],
     StatefulDetectorHandler[DataPacketType, DataPacketEvaluationType],
     abc.ABC,
 ):
-    @property
-    @abc.abstractmethod
-    def counter_names(self) -> list[str]:
-        """
-        The names of the counters that this detector tracks. This is used to build the redis keys for
-        storing counter values.
-        """
-        pass
-
     @abc.abstractmethod
     def extract_group_values(
         self, data_packet: DataPacket[DataPacketType]
@@ -407,12 +416,13 @@ class StatefulGroupingDetectorHandler(
         """
         Builds a key for the given group key. This is used to store the state of the detector in Redis.
         """
-        group_postfix = "{':' + group_key if group_key is not None else ''}"
+        group_postfix = f"{group_key if group_key is not None else ''}"
 
         if postfix:
-            group_postfix = "{':' + group_key if group_key is not None else ''}:{postfix}"
+            group_postfix = f"{group_key if group_key is not None else ''}:{postfix}"
 
-        return self.build_fingerprint(group_postfix)
+        fingerprint = self.build_fingerprint(group_postfix)
+        return fingerprint
 
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
@@ -435,7 +445,11 @@ class StatefulGroupingDetectorHandler(
             # invoke the stateful detector with the associated data. doesn't need the group key for evaluation
             # results returned here will be then committed in bulk
             result = self.evaluate_group_key_value(
-                group_key, group_value, all_state_data[group_key], dedupe_value, data_packet
+                group_key,
+                group_value,
+                all_state_data[group_key],
+                dedupe_value,
+                data_packet,
             )
             if result:
                 results[result.group_key] = result
@@ -469,13 +483,13 @@ class StatefulGroupingDetectorHandler(
             return None
 
         new_status = DetectorPriorityLevel.OK
-        processed_data_condition, _ = self._evaluation_detector_conditions(value)
+        processed_data_condition, new_status = self._evaluation_detector_conditions(value)
 
         # TODO - add upate for the thresholds here...
         # self.state_manager.update_thresholds(group_key, new_status)
         self.state_manager.enqueue_counter_update(group_key, {})
 
-        if state_data.status == new_status:
+        if state_data.status == new_status or not processed_data_condition:
             return None
 
         is_triggered = new_status != DetectorPriorityLevel.OK
@@ -485,13 +499,16 @@ class StatefulGroupingDetectorHandler(
         result: StatusChangeMessage | IssueOccurrence
 
         if new_status == DetectorPriorityLevel.OK:
-            # If we've determined that we're now ok, we just want to resolve the issue
-            result = self.create_resolve_message()
+            result = StatusChangeMessage(
+                fingerprint=self.build_group_fingerprint(group_key),
+                project_id=self.detector.project_id,
+                new_status=GroupStatus.RESOLVED,
+                new_substatus=None,
+            )
         else:
             detector_occurrence, event_data = self.create_occurrence(
                 processed_data_condition, data_packet, new_status
             )
-
             evidence_data = {
                 **detector_occurrence.evidence_data,
                 "detector_id": self.detector.id,
@@ -503,7 +520,7 @@ class StatefulGroupingDetectorHandler(
                 status=new_status,
                 detection_time=datetime.now(UTC),
                 additional_evidence_data=evidence_data,
-                fingerprint=self.build_fingerprint(group_key),
+                fingerprint=self.build_group_fingerprint(group_key),
             )
             event_data["timestamp"] = result.detection_time
             event_data["project_id"] = result.project_id
