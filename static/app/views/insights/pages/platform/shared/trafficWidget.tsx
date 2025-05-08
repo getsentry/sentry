@@ -18,21 +18,21 @@ import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/la
 import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 export function TrafficWidget({
   title,
   trafficSeriesName,
   baseQuery,
-  query,
 }: {
   title: string;
   trafficSeriesName: string;
   baseQuery?: string;
-  query?: string;
 }) {
   const organization = useOrganization();
   const releaseBubbleProps = useReleaseBubbleProps();
   const pageFilterChartParams = usePageFilterChartParams({granularity: 'spans-low'});
+  const {query} = useTransactionNameQuery();
   const theme = useTheme();
 
   const fullQuery = `${baseQuery} ${query}`.trim();
