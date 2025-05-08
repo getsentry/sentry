@@ -114,6 +114,11 @@ def mock_expected_response(
             "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
             "version": kwargs.pop("sdk_version", "6.18.1"),
         },
+        "ota_updates": {
+            "channel": kwargs.pop("ota_updates_channel", "test-channel"),
+            "runtime_version": kwargs.pop("ota_updates_runtime_version", "test-runtime-version"),
+            "update_id": kwargs.pop("ota_updates_update_id", "test-update-id"),
+        },
         "user": {
             "id": kwargs.pop("user_id", "123"),
             "display_name": kwargs.pop("user_display_name", "username"),

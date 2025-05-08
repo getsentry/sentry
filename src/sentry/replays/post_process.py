@@ -40,6 +40,12 @@ class UserResponseType(TypedDict, total=False):
     display_name: str | None
 
 
+class OTAUpdatesResponseType(TypedDict, total=False):
+    channel: str | None
+    runtime_version: str | None
+    update_id: str | None
+
+
 @extend_schema_serializer(exclude_fields=["info_ids", "warning_ids"])
 class ReplayDetailsResponse(TypedDict, total=False):
     id: str
@@ -53,6 +59,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     os: OSResponseType
     browser: BrowserResponseType
     device: DeviceResponseType
+    ota_updates: OTAUpdatesResponseType
     is_archived: bool | None
     urls: list[str] | None
     clicks: list[dict[str, Any]]
@@ -150,6 +157,11 @@ def generate_normalized_output(response: list[dict[str, Any]]) -> Generator[Repl
             "model": item.pop("device_model", None),
             "family": item.pop("device_family", None),
         }
+        ret_item["ota_updates"] = {
+            "channel": item.pop("ota_updates_channel", None),
+            "runtime_version": item.pop("ota_updates_runtime_version", None),
+            "update_id": item.pop("ota_updates_update_id", None),
+        }
 
         item.pop("agg_urls", None)
         ret_item["urls"] = item.pop("urls_sorted", None)
@@ -218,6 +230,7 @@ def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
         "os": {"name": None, "version": None},
         "browser": {"name": None, "version": None},
         "device": {"name": None, "brand": None, "model": None, "family": None},
+        "ota_updates": {"channel": None, "runtime_version": None, "update_id": None},
         "urls": None,
         "activity": None,
         "count_dead_clicks": None,

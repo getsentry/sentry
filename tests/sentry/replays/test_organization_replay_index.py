@@ -1070,7 +1070,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "os": {"name": None, "version": None},
                     "browser": {"name": None, "version": None},
                     "device": {"name": None, "brand": None, "model": None, "family": None},
-                    # "ota_updates": {"channel": None, "runtime_version": None, "update_id": None}, # Q: should this be here?
+                    "ota_updates": {"channel": None, "runtime_version": None, "update_id": None},
                     "urls": None,
                     "started_at": None,
                     "count_errors": None,
