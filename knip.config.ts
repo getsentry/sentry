@@ -2,7 +2,7 @@ import type {KnipConfig} from 'knip';
 
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
-  'static/{app,gsApp,gsAdmin}/{index,init}.tsx',
+  'static/app/index.tsx',
   // dynamic imports _not_ recognized by knip
   'static/app/bootstrap/{index,initializeMain}.tsx',
   'static/gsApp/initializeBundleMetrics.tsx',
@@ -25,15 +25,11 @@ const productionEntryPoints = [
 const testingEntryPoints = [
   // benchmarks are opt-in for development
   'static/app/**/*.benchmark.{js,mjs,ts,tsx}',
-  // jest entry points
-  '{static,tests}/**/*.{spec,test}.{js,mjs,ts,tsx}',
   // jest uses this
   'tests/js/test-balancer/index.js',
 ];
 
 const storyBookEntryPoints = [
-  // stories are entries for storybook
-  'static/app/**/*.stories.{js,mjs,ts,tsx}',
   // our storybook implementation is here
   'static/app/stories/storyBook.tsx',
   // custom webpack loaders for stories
@@ -46,12 +42,9 @@ const config: KnipConfig = {
     ...testingEntryPoints,
     ...storyBookEntryPoints,
   ],
-  jest: true,
+  storybook: true,
   project: [
-    'static/app/**/*.{js,mjs,ts,tsx}!',
-    'static/gsAdmin/**/*.{js,mjs,ts,tsx}!',
-    'static/gsApp/**/*.{js,mjs,ts,tsx}!',
-    'static/images/**/*.svg!',
+    'static/**/*.{js,mjs,ts,tsx}!',
     'tests/js/**/*.{js,mjs,ts,tsx}',
     // exclude this directory because it's how you set up mocks in jest (https://jestjs.io/docs/manual-mocks)
     '!static/{app,gsApp}/**/__mocks__/**',
