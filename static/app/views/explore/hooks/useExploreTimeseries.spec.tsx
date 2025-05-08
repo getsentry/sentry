@@ -76,11 +76,7 @@ describe('useExploreTimeseries', () => {
           enabled: true,
         }),
       {
-        wrapper: createWrapper(
-          OrganizationFixture({
-            features: ['visibility-explore-progressive-loading-normal-sampling-mode'],
-          })
-        ),
+        wrapper: createWrapper(OrganizationFixture()),
       }
     );
 
