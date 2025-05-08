@@ -183,7 +183,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   ) : null;
 }
 
-export function ReleaseHighlight({
+function ReleaseHighlight({
   releaseTag,
   organization,
   projectSlug,
@@ -216,11 +216,7 @@ export function ReleaseHighlight({
   );
 }
 
-export function EnvironmentHighlight({
-  environmentTag,
-}: {
-  environmentTag: EventTag | undefined;
-}) {
+function EnvironmentHighlight({environmentTag}: {environmentTag: EventTag | undefined}) {
   if (!environmentTag) {
     return null;
   }

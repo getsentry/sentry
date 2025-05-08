@@ -31,7 +31,7 @@ export const ONE_WEEK = 10080;
 export const FORTY_EIGHT_HOURS = 2880;
 export const TWENTY_FOUR_HOURS = 1440;
 export const SIX_HOURS = 360;
-export const THREE_HOURS = 180;
+const THREE_HOURS = 180;
 export const ONE_HOUR = 60;
 export const FIVE_MINUTES = 5;
 

@@ -126,7 +126,7 @@ const PriorityLabel = styled(IssueStreamHeaderLabel)`
   width: 64px;
 `;
 
-export const AssigneeLabel = styled(IssueStreamHeaderLabel)`
+const AssigneeLabel = styled(IssueStreamHeaderLabel)`
   width: 66px;
 `;
 

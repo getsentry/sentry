@@ -1,11 +1,6 @@
 import type {Measurement} from 'sentry/types/event';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {
-  MOBILE_VITAL_DETAILS,
-  WEB_VITAL_DETAILS,
-} from 'sentry/utils/performance/vitals/constants';
-import type {Vital} from 'sentry/utils/performance/vitals/types';
-import {
   isEAPMeasurements,
   isEAPMeasurementValue,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
@@ -68,15 +63,6 @@ const MEASUREMENT_THRESHOLDS = {
   [WebVital.LCP.replace('measurements.', '')]: 4000,
   [MobileVital.TIME_TO_INITIAL_DISPLAY.replace('measurements.', '')]: 2000,
 };
-
-export const TRACE_MEASUREMENT_LOOKUP: Record<string, Vital> = {};
-
-for (const key in {...MOBILE_VITAL_DETAILS, ...WEB_VITAL_DETAILS}) {
-  TRACE_MEASUREMENT_LOOKUP[key.replace('measurements.', '')] = {
-    ...MOBILE_VITAL_DETAILS[key as keyof typeof MOBILE_VITAL_DETAILS],
-    ...WEB_VITAL_DETAILS[key as keyof typeof WEB_VITAL_DETAILS],
-  };
-}
 
 function traceMeasurementToTimestamp(
   start_timestamp: number,

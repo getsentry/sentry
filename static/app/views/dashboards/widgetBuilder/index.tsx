@@ -46,5 +46,4 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
   );
 }
 
-export type {WidgetBuilderProps};
 export default WidgetBuilderContainer;

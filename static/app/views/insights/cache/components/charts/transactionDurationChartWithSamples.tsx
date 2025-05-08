@@ -46,7 +46,7 @@ export function TransactionDurationChartWithSamples({samples}: Props) {
   );
 }
 
-export const useTransactionDurationSeries = ({transaction}: {transaction: string}) => {
+const useTransactionDurationSeries = ({transaction}: {transaction: string}) => {
   const useEap = useInsightsEap();
 
   const metricsResult = useMetricsSeries(

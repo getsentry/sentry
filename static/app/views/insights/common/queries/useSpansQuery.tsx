@@ -205,7 +205,7 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
   };
 }
 
-export function useWrappedDiscoverTimeseriesQuery<T>(
+function useWrappedDiscoverTimeseriesQuery<T>(
   props: WrappedDiscoverTimeseriesQueryProps
 ) {
   const {isReady} = usePageFilters();
@@ -215,7 +215,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>(
   });
 }
 
-export function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
+function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
   props: WrappedDiscoverTimeseriesQueryProps
 ) {
   return useWrappedDiscoverTimeseriesQueryBase<T>(props);
@@ -305,7 +305,7 @@ export function useWrappedDiscoverQuery<T>(props: WrappedDiscoverQueryProps<T>) 
   return useWrappedDiscoverQueryBase({...props, pageFiltersReady});
 }
 
-export function useWrappedDiscoverQueryWithoutPageFilters<T>(
+function useWrappedDiscoverQueryWithoutPageFilters<T>(
   props: WrappedDiscoverQueryProps<T>
 ) {
   return useWrappedDiscoverQueryBase({...props, pageFiltersReady: true});

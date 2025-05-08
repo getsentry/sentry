@@ -56,7 +56,7 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanIndexedField.NORMALIZED_DESCRIPTION,
 ];
 
-export const SENTRY_SPAN_NUMBER_TAGS: string[] = SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS;
+export const SENTRY_SPAN_NUMBER_TAGS: string[] = [...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS];
 
 export const SENTRY_LOG_STRING_TAGS: string[] = [
   OurLogKnownFieldKey.TRACE_ID,

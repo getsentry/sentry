@@ -21,13 +21,13 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-export interface SpanInsight {
+interface SpanInsight {
   explanation: string;
   spanId: string;
   spanOp: string;
 }
 
-export interface TraceSummaryData {
+interface TraceSummaryData {
   anomalousSpans: SpanInsight[];
   keyObservations: string;
   performanceCharacteristics: string;
@@ -44,7 +44,7 @@ const makeTraceSummaryQueryKey = (
   {method: 'POST', data: {traceSlug}},
 ];
 
-export function useTraceSummary(traceSlug: string) {
+function useTraceSummary(traceSlug: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const queryKey = makeTraceSummaryQueryKey(organization.slug, traceSlug);
