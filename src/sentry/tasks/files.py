@@ -25,7 +25,7 @@ MAX_RETRIES = 5
         namespace=deletion_tasks,
         retry=Retry(
             times=MAX_RETRIES,
-            on=[DatabaseError, IntegrityError],
+            on=(DatabaseError, IntegrityError),
         ),
     ),
 )
@@ -47,7 +47,7 @@ def delete_file_region(path, checksum, **kwargs):
         namespace=deletion_control_tasks,
         retry=Retry(
             times=MAX_RETRIES,
-            on=[DatabaseError, IntegrityError],
+            on=(DatabaseError, IntegrityError),
         ),
     ),
 )
