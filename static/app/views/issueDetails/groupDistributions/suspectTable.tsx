@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -10,8 +11,10 @@ import {IconSentry} from 'sentry/icons/iconSentry';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
 import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
 
@@ -25,6 +28,8 @@ const SUSPECT_SCORE_LOCAL_STATE_KEY = 'flag-drawer-suspicion-score-threshold';
 const SUSPECT_SCORE_THRESHOLD = 7;
 
 export default function SuspectTable({debugSuspectScores, environments, group}: Props) {
+  const organization = useOrganization();
+
   const [threshold, setThreshold] = useLocalStorageState(
     SUSPECT_SCORE_LOCAL_STATE_KEY,
     SUSPECT_SCORE_THRESHOLD
@@ -46,6 +51,19 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
     </Flex>
   ) : null;
 
+  const susFlags = displayFlags.filter(flag => (flag.suspect.score ?? 0) > threshold);
+
+  useEffect(() => {
+    if (!isPending) {
+      trackAnalytics('flags.suspect_flags_v2_found', {
+        numTotalFlags: displayFlags.length,
+        numSuspectFlags: susFlags.length,
+        organization,
+        threshold,
+      });
+    }
+  }, [isPending, organization, displayFlags.length, susFlags.length, threshold]);
+
   if (isPending) {
     return (
       <Alert type="muted">
@@ -57,8 +75,6 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
       </Alert>
     );
   }
-
-  const susFlags = displayFlags.filter(flag => (flag.suspect.score ?? 0) > threshold);
 
   if (!susFlags.length) {
     return (
