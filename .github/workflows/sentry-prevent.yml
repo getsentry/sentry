@@ -16,6 +16,7 @@ jobs:
       - name: Install Requirements
         run: |
           pip install -r requirements-dev-frozen.txt
+          pip install -r requirements-frozen.txt
 
       - name: Install Static Analysis Tools
         run: |
