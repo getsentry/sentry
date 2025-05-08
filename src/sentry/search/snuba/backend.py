@@ -39,6 +39,7 @@ from sentry.search.snuba.executors import (
     PostgresSnubaQueryExecutor,
     TrendsSortWeights,
 )
+from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.users.models.user import User
 from sentry.utils import metrics
@@ -248,6 +249,51 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
             project__in=projects,
         ).values_list("group_id", flat=True),
     )
+
+
+def seer_actionability_filter(trigger_values: list[float]) -> Q:
+    """
+    Converts float thresholds for the Seer fixability score into a query of ranges:
+    - "low" -> [0.0, low threshold]
+    - "medium" -> (low threshold, high threshold]
+    - "high" -> (high threshold, 1.0]
+    """
+    q_objects = []
+
+    low_threshold = FixabilityScoreThresholds.LOW.value
+    medium_threshold_marker = FixabilityScoreThresholds.MEDIUM.value
+    high_threshold = FixabilityScoreThresholds.HIGH.value
+
+    processed_terms = set()
+
+    for val in trigger_values:
+        if val == low_threshold and "low" not in processed_terms:
+            q_objects.append(
+                Q(seer_fixability_score__gte=0.0, seer_fixability_score__lte=low_threshold)
+            )
+            processed_terms.add("low")
+        elif val == medium_threshold_marker and "medium" not in processed_terms:
+            q_objects.append(
+                Q(
+                    seer_fixability_score__gt=low_threshold,
+                    seer_fixability_score__lte=high_threshold,
+                )
+            )
+            processed_terms.add("medium")
+        elif val == high_threshold and "high" not in processed_terms:
+            q_objects.append(
+                Q(seer_fixability_score__gt=high_threshold, seer_fixability_score__lte=1.0)
+            )
+            processed_terms.add("high")
+
+    if not q_objects:
+        return Q(id=None)
+
+    # Combine with OR
+    final_q = q_objects[0]
+    for i in range(1, len(q_objects)):
+        final_q |= q_objects[i]
+    return final_q
 
 
 _side_query_pool = ThreadPoolExecutor(max_workers=10)
@@ -739,6 +785,8 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
             "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
+            "issue.seer_actionability": QCallbackCondition(seer_actionability_filter),
+            "issue.seer_last_run": ScalarCondition("seer_autofix_last_triggered"),
         }
 
         message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)

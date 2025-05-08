@@ -922,6 +922,8 @@ SKIP_SNUBA_FIELDS = frozenset(
         "issue.category",
         "issue.priority",
         "issue.type",
+        "issue.seer_actionability",
+        "issue.seer_last_run",
     )
 )
 
