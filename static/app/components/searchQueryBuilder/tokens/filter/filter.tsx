@@ -55,12 +55,18 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       if (items.length === 1 && items[0]!.value) {
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0]!.value)}
+            {formatFilterValue(items[0]!.value, false)}
           </FilterValueSingleTruncatedValue>
         );
       }
 
       const maxItems = size === 'small' ? 1 : 3;
+      const allContains = items.every(item => {
+        if (item.value?.type === Token.VALUE_TEXT) {
+          return item.value?.contains;
+        }
+        return false;
+      });
 
       return (
         <FilterValueList>
@@ -68,7 +74,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
             <Fragment key={index}>
               <FilterMultiValueTruncated>
                 {/* @ts-expect-error TS(2345): Argument of type '{ type: Token.VALUE_NUMBER; valu... Remove this comment to see the full error message */}
-                {formatFilterValue(item.value)}
+                {formatFilterValue(item.value, allContains)}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueOr> or </FilterValueOr>
@@ -89,7 +95,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     default:
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue(token.value)}
+          {formatFilterValue(token.value, false)}
         </FilterValueSingleTruncatedValue>
       );
   }

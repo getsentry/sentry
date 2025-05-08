@@ -92,19 +92,23 @@ export function unescapeTagValue(value: string): string {
   return value.replace(/\\"/g, '"');
 }
 
-export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): string {
+export function formatFilterValue(
+  token: TokenResult<Token.FILTER>['value'],
+  allContains: boolean
+): string {
   switch (token.type) {
     case Token.VALUE_TEXT: {
       if (!token.value) {
         return token.text;
       }
 
-      if (token.contains) {
-        const newToken = token.text.slice(1, -1);
-        return token.quoted ? unescapeTagValue(newToken) : newToken;
+      if (allContains) {
+        return token.quoted ? unescapeTagValue(token.value) : token.text.slice(1, -1);
       }
 
-      return token.quoted ? unescapeTagValue(token.value) : token.text;
+      return token.quoted
+        ? unescapeTagValue(token.contains ? `*${token.value}*` : token.value)
+        : token.text;
     }
     case Token.VALUE_RELATIVE_DATE:
       return t('%s', `${token.value}${token.unit} ago`);
