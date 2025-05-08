@@ -344,7 +344,7 @@ function CreateProject() {
 
     if (alertRules?.length === 0) {
       return {
-        alertSetting: String(RuleAction.CREATE_ALERT_LATER),
+        alertSetting: RuleAction.CREATE_ALERT_LATER,
       };
     }
 
@@ -353,7 +353,7 @@ function CreateProject() {
       alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventUniqueUserFrequencyCondition')
     ) {
       return {
-        alertSetting: String(RuleAction.CUSTOMIZED_ALERTS),
+        alertSetting: RuleAction.CUSTOMIZED_ALERTS,
         interval: String(alertRules?.[0]!.conditions?.[0]!.interval),
         threshold: String(alertRules?.[0]!.conditions?.[0]!.value),
         metric: alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition')
@@ -363,7 +363,7 @@ function CreateProject() {
     }
 
     return {
-      alertSetting: String(RuleAction.DEFAULT_ALERT),
+      alertSetting: RuleAction.DEFAULT_ALERT,
     };
   }, [autoFill, gettingStartedWithProjectContext.project?.alertRules]);
 
@@ -394,7 +394,6 @@ function CreateProject() {
           <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
           <IssueAlertOptions
             {...alertFrequencyDefaultValues}
-            platformLanguage={platform?.language as SupportedLanguages}
             onChange={updatedData => setAlertRuleConfig(updatedData)}
             notificationProps={notificationProps}
           />

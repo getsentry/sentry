@@ -585,7 +585,7 @@ describe('Dashboards > Detail', function () {
 
       // Enter edit mode.
       await userEvent.click(await screen.findByRole('button', {name: 'Edit Dashboard'}));
-      expect(await screen.findByRole('button', {name: 'Add widget'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Add Widget'})).toBeInTheDocument();
     });
 
     it('shows top level release filter', async function () {
@@ -2339,7 +2339,6 @@ describe('Dashboards > Detail', function () {
               'dashboards-edit',
               'discover-query',
               'performance-discover-dataset-selector',
-              'dashboards-widget-builder-redesign',
             ],
           }),
         });

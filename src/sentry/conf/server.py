@@ -3151,6 +3151,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
     "taskworker": "default",
+    "taskworker-ingest": "default",
     "snuba-ourlogs": "default",
 }
 
@@ -3333,6 +3334,7 @@ SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
+SEER_HISTORICAL_ANOMALY_DETECTION_TIMEOUT = 10
 
 SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
     f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/detect"

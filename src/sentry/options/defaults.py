@@ -2356,6 +2356,13 @@ register(
 
 # END: SDK Crash Detection
 
+# Whether to add the full stack trace to Python errors.
+register(
+    "sentry_sdk.add_full_stack",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     # Lists the shared resource ids we want to account usage for.
     "shared_resources_accounting_enabled",
@@ -2542,6 +2549,15 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Rate at which to run split enhancements and compare the results to the default enhancements
+register(
+    "grouping.split_enhancements.sample_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "metrics.sample-list.sample-rate",
     type=Float,
@@ -3288,6 +3304,11 @@ register(
 )
 register(
     "taskworker.telemetry-experience.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.ingest.attachments.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -50,6 +50,59 @@ class ProjectDetectorIndexGetTest(ProjectDetectorIndexBaseTest):
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert len(response.data) == 0
 
+    def test_invalid_sort_by(self):
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"sortBy": "general_malaise"},
+        )
+        assert "sortBy" in response.data
+
+    def test_sort_by_name(self):
+        detector = self.create_detector(
+            project_id=self.project.id, name="A Test Detector", type=MetricIssue.slug
+        )
+        detector_2 = self.create_detector(
+            project_id=self.project.id, name="B Test Detector 2", type=MetricIssue.slug
+        )
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"sortBy": "-name"}
+        )
+        assert [d["name"] for d in response.data] == [
+            detector_2.name,
+            detector.name,
+        ]
+
+    def test_sort_by_connected_workflows(self):
+        workflow = self.create_workflow(
+            organization_id=self.organization.id,
+        )
+        workflow_2 = self.create_workflow(
+            organization_id=self.organization.id,
+        )
+        detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+        )
+        detector_2 = self.create_detector(
+            project_id=self.project.id, name="Test Detector 2", type=MetricIssue.slug
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.create_detector_workflow(detector=detector, workflow=workflow_2)
+        response1 = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"sortBy": "-connectedWorkflows"}
+        )
+        assert [d["name"] for d in response1.data] == [
+            detector.name,
+            detector_2.name,
+        ]
+        response2 = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"sortBy": "connectedWorkflows"}
+        )
+        assert [d["name"] for d in response2.data] == [
+            detector_2.name,
+            detector.name,
+        ]
+
 
 @region_silo_test
 class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):

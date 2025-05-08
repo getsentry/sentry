@@ -51,7 +51,6 @@ export function TrafficWidget({
           yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
           partial: 1,
           query: fullQuery,
-          useRpc: 1,
           referrer: Referrer.REQUESTS_CHART,
         },
       },
@@ -140,7 +139,7 @@ export function TrafficWidget({
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Requests'),
+                title,
                 children: <ModalChartContainer>{visualization}</ModalChartContainer>,
               });
             }}

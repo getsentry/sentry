@@ -6,5 +6,5 @@ __all__ = [
     "StatefulGroupingDetectorHandler",
 ]
 
-from .base import DetectorEvaluationResult, DetectorHandler, DetectorOccurrence, DetectorStateData
-from .stateful import StatefulGroupingDetectorHandler
+from .base import DetectorEvaluationResult, DetectorHandler, DetectorOccurrence
+from .stateful import DetectorStateData, StatefulGroupingDetectorHandler
