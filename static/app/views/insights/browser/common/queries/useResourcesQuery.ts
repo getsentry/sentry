@@ -8,7 +8,7 @@ import type {ModuleFilters} from 'sentry/views/insights/browser/resources/utils/
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import type {ValidSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {
   SPAN_DOMAIN,
@@ -21,8 +21,6 @@ const {
   USER_GEO_SUBREGION,
   NORMALIZED_DESCRIPTION,
 } = SpanMetricsField;
-
-const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 type Props = {
   referrer: string;
@@ -89,7 +87,6 @@ export const useResourcesQuery = ({
         SPAN_GROUP,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         'project.id',
-        `${TIME_SPENT_PERCENTAGE}()`,
         `sum(${SPAN_SELF_TIME})`,
       ],
     },
