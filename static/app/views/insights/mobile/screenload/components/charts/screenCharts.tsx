@@ -3,28 +3,23 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {getInterval} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
 import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useTopNMetricsMultiSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverMultiSeries';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {useEventsStatsQuery} from 'sentry/views/insights/common/utils/useEventsStatsQuery';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensBarChart} from 'sentry/views/insights/mobile/screenload/components/charts/screenBarChart';
 import {
@@ -53,9 +48,8 @@ type Props = {
 const yAxes = [YAxis.TTID, YAxis.TTFD, YAxis.COUNT];
 
 export function ScreenCharts({additionalFilters}: Props) {
-  const theme = useTheme();
   const useEap = useInsightsEap();
-  const pageFilter = usePageFilters();
+  const theme = useTheme();
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
   const yAxisCols = [
     'avg(measurements.time_to_initial_display)',
@@ -71,7 +65,7 @@ export function ScreenCharts({additionalFilters}: Props) {
 
   const queryString = useMemo(() => {
     const query = new MutableSearch([
-      'event.type:transaction',
+      useEap ? 'is_transaction:true' : 'event.type:transaction',
       'transaction.op:ui.load',
       ...(additionalFilters ?? []),
     ]);
@@ -95,31 +89,22 @@ export function ScreenCharts({additionalFilters}: Props) {
   ]);
 
   const {
-    data: series,
+    data: releaseSeriesArray,
     isPending: isSeriesLoading,
     error: seriesError,
-  } = useEventsStatsQuery({
-    eventView: EventView.fromNewQueryWithPageFilters(
-      {
-        name: '',
-        fields: ['release', ...yAxisCols],
-        topEvents: '2',
-        yAxis: [...yAxisCols],
-        query: queryString,
-        dataset: DiscoverDatasets.METRICS,
-        version: 2,
-        interval: getInterval(
-          pageFilter.selection.datetime,
-          STARFISH_CHART_INTERVAL_FIDELITY
-        ),
-      },
-      pageFilter.selection
-    ),
-    enabled: !isReleasesLoading,
-    // TODO: Change referrer
-    referrer: 'api.starfish.mobile-screen-series',
-    initialData: {},
-  });
+  } = useTopNMetricsMultiSeries(
+    {
+      fields: ['release'],
+      topN: 2,
+      yAxis: [
+        'avg(measurements.time_to_initial_display)',
+        'avg(measurements.time_to_full_display)',
+        'count()',
+      ],
+      search: queryString,
+    },
+    'api.starfish.mobile-screen-series'
+  );
 
   useEffect(() => {
     if (defined(primaryRelease) || isReleasesLoading) {
@@ -133,30 +118,30 @@ export function ScreenCharts({additionalFilters}: Props) {
     transformedReleaseSeries[YAXIS_COLUMNS[val]] = {};
   });
 
-  if (defined(series)) {
-    Object.keys(series).forEach(release => {
-      const isPrimary = release === primaryRelease;
+  const ttidSeries: Series[] = [];
+  const ttfdSeries: Series[] = [];
+  const countSeries: Series[] = [];
 
-      Object.keys(series[release]!).forEach(yAxis => {
-        const label = release;
-        if (yAxis in transformedReleaseSeries) {
-          const data =
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            series[release]![yAxis]?.data.map((datum: any) => {
-              return {
-                name: datum[0] * 1000,
-                value: datum[1][0].count,
-              } as SeriesDataUnit;
-            }) ?? [];
-
-          const colors = theme.chart.getColorPalette(3);
-          const color = isPrimary ? colors[0] : colors[1];
-          transformedReleaseSeries[yAxis]![release] = {
-            seriesName: formatVersion(label, true),
-            color,
-            data,
-          };
-        }
+  if (defined(releaseSeriesArray)) {
+    releaseSeriesArray.forEach(release => {
+      const releaseName = release.name;
+      const isPrimary = releaseName === primaryRelease;
+      const colors = theme.chart.getColorPalette(3);
+      const color = isPrimary ? colors[0] : colors[1];
+      ttidSeries.push({
+        ...release.data['avg(measurements.time_to_initial_display)'],
+        color,
+        seriesName: formatVersion(releaseName, true),
+      });
+      ttfdSeries.push({
+        ...release.data['avg(measurements.time_to_full_display)'],
+        color,
+        seriesName: formatVersion(releaseName, true),
+      });
+      countSeries.push({
+        ...release.data['count()'],
+        color,
+        seriesName: formatVersion(releaseName, true),
       });
     });
   }
@@ -240,9 +225,7 @@ export function ScreenCharts({additionalFilters}: Props) {
                 >
                   <Chart
                     height={80}
-                    data={Object.values(
-                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[0]!]]!
-                    )}
+                    data={ttidSeries}
                     loading={isSeriesLoading}
                     grid={{
                       left: '0',
@@ -308,9 +291,7 @@ export function ScreenCharts({additionalFilters}: Props) {
                 >
                   <Chart
                     height={80}
-                    data={Object.values(
-                      transformedReleaseSeries[YAXIS_COLUMNS[yAxes[1]!]]!
-                    )}
+                    data={ttfdSeries}
                     loading={isSeriesLoading}
                     grid={{
                       left: '0',
@@ -351,7 +332,7 @@ export function ScreenCharts({additionalFilters}: Props) {
               }
             >
               <Chart
-                data={Object.values(transformedReleaseSeries[YAXIS_COLUMNS[yAxes[2]!]]!)}
+                data={countSeries}
                 height={245}
                 loading={isSeriesLoading}
                 grid={{
