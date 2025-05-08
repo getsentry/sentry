@@ -665,6 +665,27 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert response.status_code == 200, response.content
 
+    def test_count_unique_nans(self):
+        self.store_span(
+            self.create_span(start_ts=self.two_days_ago + timedelta(minutes=1)),
+            is_eap=self.is_eap,
+        )
+        response = self._do_request(
+            data={
+                "field": ["count_unique(foo)"],
+                "yAxis": ["count_unique(foo)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "excludeOther": 1,
+                "partial": 1,
+                "per_page": 50,
+                "interval": "1d",
+                "statsPeriod": "7d",
+                "transformAliasToInputFormat": 1,
+            },
+        )
+        assert response.status_code == 200, response.content
+
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
     is_eap = True

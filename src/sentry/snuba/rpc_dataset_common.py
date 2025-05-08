@@ -61,8 +61,8 @@ def process_timeseries_list(timeseries_list: list[TimeSeries]) -> ProcessedTimes
         for index, data_point in enumerate(timeseries.data_points):
             result.timeseries[index][label] = process_value(data_point.data)
             result.confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
-            result.sampling_rate[index][label] = data_point.avg_sampling_rate
-            result.sample_count[index][label] = data_point.sample_count
+            result.sampling_rate[index][label] = process_value(data_point.avg_sampling_rate)
+            result.sample_count[index][label] = process_value(data_point.sample_count)
 
     return result
 
