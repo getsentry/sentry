@@ -8856,10 +8856,10 @@ kleur@^3.0.3:
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-3.0.3.tgz#a79c9ecc86ee1ce3fa6206d1216c501f147fc07e"
   integrity sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==
 
-knip@^5.55.0:
-  version "5.55.0"
-  resolved "https://registry.yarnpkg.com/knip/-/knip-5.55.0.tgz#f2d13e3ee2edd38a038e3222d7e06c4ec5fa570a"
-  integrity sha512-PScNN+e7NDdaLlRufDFqOVkngH+F9/IxtCnpQqZ5Ws9xqPhQGRxgIxGTVkR88/re2p1wNXtqCUFP6xfQSnp+Vw==
+knip@^5.55.1:
+  version "5.55.1"
+  resolved "https://registry.yarnpkg.com/knip/-/knip-5.55.1.tgz#8eb293935623274ea62962041a921ba6ac06b3d6"
+  integrity sha512-NYXjgGrXgMdabUKCP2TlBH/e83m9KnLc1VLyWHUtoRrCEJ/C15YtbafrpTvm3td+jE4VdDPgudvXT1IMtCx8lw==
   dependencies:
     "@nodelib/fs.walk" "^1.2.3"
     enhanced-resolve "^5.18.1"
