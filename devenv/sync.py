@@ -169,11 +169,10 @@ Then, use it to run sync this one time.
                 # then py in the next batch.
                 "javascript dependencies (1/1)",
                 (
-                    "yarn",
+                    "pnpm",
                     "install",
                     "--frozen-lockfile",
-                    "--no-progress",
-                    "--non-interactive",
+                    "--reporter=append-only",
                 ),
                 {
                     "NODE_ENV": "development",

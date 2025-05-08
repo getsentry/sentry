@@ -56,7 +56,7 @@ jobs:
         # conflicting deps when running scripts locally
         # see: https://github.com/getsentry/sentry/pull/32328/files
         run: |
-          yarn add ts-node && make build-api-docs
+        pnpm add ts-node && make build-api-docs
 
       - name: Build RPC method schema
         if: steps.changes.outputs.api_docs == 'true'

@@ -104,7 +104,7 @@ jobs:
           CODECOV_ENABLE_BA: ${{ needs.files-changed.outputs.frontend_all == 'true'}}
           GH_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          yarn build-acceptance
+          pnpm run build-acceptance
 
       - name: Build chartcuterie configuration module
         run: |

@@ -71,7 +71,7 @@ jobs:
 
       - name: tsc
         id: tsc
-        run: yarn tsc -p tsconfig.json
+        run: pnpm run tsc -p tsconfig.json
 
   eslint:
     if: needs.files-changed.outputs.frontend_all == 'true'
@@ -105,7 +105,7 @@ jobs:
 
       - name: eslint
         id: eslint
-        run: yarn run lint:js
+        run: pnpm lint:js
 
   frontend-jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
@@ -162,9 +162,9 @@ jobs:
           DEBUG_PRINT_LIMIT: 0
         run: |
           if [ ${{ github.ref }} = 'refs/heads/master' ]; then
-            yarn test-ci --forceExit --coverage
+            pnpm run test-ci --forceExit --coverage
           else
-            yarn test-ci --forceExit
+            pnpm run test-ci --forceExit
           fi
 
       # We only upload coverage data for FE changes since it conflicts with

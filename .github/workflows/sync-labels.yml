@@ -29,11 +29,11 @@ jobs:
           node-version-file: '.volta.json'
 
       - name: Install github-label-sync
-        run: yarn global add github-label-sync@2.2.0
+        run: pnpm add github-label-sync@2.2.0
 
       - name: Run github-label-sync
         run: |
-          github-label-sync \
+          pnpm exec github-label-sync \
             --access-token ${{ secrets.GITHUB_TOKEN }} \
             --labels .github/labels.yml \
             ${{ github.event_name == 'pull_request' && '--dry-run' || '' }} \

@@ -30,4 +30,4 @@ jobs:
       - name: ESLint
         env:
           SENTRY_DETECT_DEPRECATIONS: 1
-        run: yarn lint:js
+        run: pnpm run lint:js
