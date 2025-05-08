@@ -1556,6 +1556,7 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
+    from sentry.seer.seer_setup import get_seer_org_acknowledgement
     from sentry.tasks.autofix import start_seer_automation
 
     event = job["event"]
@@ -1564,6 +1565,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
         "projects:trigger-issue-summary-on-alerts", group.project
     ):
+        return
+
+    seer_enabled = get_seer_org_acknowledgement(group.organization.id)
+    if not seer_enabled:
         return
 
     start_seer_automation.delay(group.id)
