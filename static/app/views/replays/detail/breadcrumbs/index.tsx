@@ -7,6 +7,7 @@ import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
@@ -27,7 +28,7 @@ const cellMeasurer = {
   minHeight: 53,
 };
 
-function Breadcrumbs() {
+export default function Breadcrumbs() {
   const {currentTime, replay} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
 
@@ -110,7 +111,7 @@ function Breadcrumbs() {
   };
 
   return (
-    <FluidHeight>
+    <FluidHeight style={{paddingTop: space(1)}}>
       <FilterLoadingIndicator isLoading={isFetchingExtractions}>
         <BreadcrumbFilters frames={frames} {...filterProps} />
       </FilterLoadingIndicator>
@@ -159,5 +160,3 @@ function Breadcrumbs() {
     </FluidHeight>
   );
 }
-
-export default Breadcrumbs;

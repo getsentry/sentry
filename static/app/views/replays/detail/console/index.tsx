@@ -1,4 +1,4 @@
-import {memo, useMemo, useRef, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
 
@@ -7,6 +7,7 @@ import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
@@ -25,7 +26,7 @@ const cellMeasurer = {
   minHeight: 24,
 };
 
-function Console() {
+export default function Console() {
   const {currentTime, replay} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
@@ -97,7 +98,7 @@ function Console() {
   };
 
   return (
-    <FluidHeight>
+    <FluidHeight style={{paddingTop: space(1)}}>
       <ConsoleFilters frames={frames} {...filterProps} />
       <TabItemContainer data-test-id="replay-details-console-tab">
         {frames ? (
@@ -144,5 +145,3 @@ function Console() {
     </FluidHeight>
   );
 }
-
-export default memo(Console);

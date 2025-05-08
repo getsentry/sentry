@@ -11,6 +11,7 @@ import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflow
 import {SplitPanel} from 'sentry/components/replays/virtualizedGrid/splitPanel';
 import useDetailsSplit from 'sentry/components/replays/virtualizedGrid/useDetailsSplit';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
@@ -40,7 +41,7 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function NetworkList() {
+export default function NetworkList() {
   const organization = useOrganization();
   const {currentTime, replay} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
@@ -168,7 +169,7 @@ function NetworkList() {
   };
 
   return (
-    <FluidHeight>
+    <FluidHeight style={{paddingTop: space(1)}}>
       <FilterLoadingIndicator isLoading={!replay}>
         <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       </FilterLoadingIndicator>
@@ -242,5 +243,3 @@ function NetworkList() {
     </FluidHeight>
   );
 }
-
-export default NetworkList;
