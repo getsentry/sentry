@@ -45,7 +45,7 @@ let JEST_TESTS: string[] | undefined;
 // to reexec itself here
 if (CI && !process.env.JEST_LIST_TESTS_INNER) {
   try {
-    const stdout = execFileSync('yarn', ['-s', 'jest', '--listTests', '--json'], {
+    const stdout = execFileSync('pnpm', ['exec', 'jest', '--listTests', '--json'], {
       stdio: 'pipe',
       encoding: 'utf-8',
       env: {...process.env, JEST_LIST_TESTS_INNER: '1'},

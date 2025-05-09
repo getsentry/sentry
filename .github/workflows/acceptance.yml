@@ -74,6 +74,8 @@ jobs:
         with:
           node-version-file: '.volta.json'
 
+      - uses: pnpm/action-setup@v4
+
       - name: Step configurations
         id: config
         run: |
@@ -91,11 +93,11 @@ jobs:
         id: nodemodulescache
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock', '.volta.json') }}
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'api-docs/pnpm-lock.yaml', '.volta.json') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: webpack
         env:
@@ -104,7 +106,7 @@ jobs:
           CODECOV_ENABLE_BA: ${{ needs.files-changed.outputs.frontend_all == 'true'}}
           GH_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          yarn build-acceptance
+          pnpm run build-acceptance
 
       - name: Build chartcuterie configuration module
         run: |
