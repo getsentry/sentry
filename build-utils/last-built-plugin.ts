@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type webpack from 'webpack';
+import type {Compiler} from 'webpack';
 
 type Options = {
   basePath: string;
@@ -15,7 +15,7 @@ class LastBuiltPlugin {
     this.isWatchMode = false;
   }
 
-  apply(compiler: webpack.Compiler) {
+  apply(compiler: Compiler) {
     compiler.hooks.watchRun.tapAsync('LastBuiltPlugin', (_, callback) => {
       this.isWatchMode = true;
       callback();
