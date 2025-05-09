@@ -204,6 +204,8 @@ function buildRoutes() {
       />
       <Redirect from="/account/" to="/settings/account/details/" />
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
+      {/* Add redirect from old user feedback to new feedback */}
+      <Redirect from="/user-feedback/" to="/feedback/" />
       {/* TODO: remove share/issue orgless url */}
       <Route
         path="/share/issue/:shareId/"
@@ -1745,20 +1747,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.APP_START]}/`}>
-        <IndexRoute
-          component={make(
-            () =>
-              import('sentry/views/insights/mobile/appStarts/views/appStartsLandingPage')
-          )}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () => import('sentry/views/insights/mobile/appStarts/views/screenSummaryPage')
-          )}
-        />
-      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
         <IndexRoute
           component={make(
@@ -2345,6 +2333,7 @@ function buildRoutes() {
         <Redirect from="members/:memberId/" to="/settings/:orgId/members/:memberId/" />
         <Redirect from="rate-limits/" to="/settings/:orgId/rate-limits/" />
         <Redirect from="repos/" to="/settings/:orgId/repos/" />
+        <Redirect from="user-feedback/" to="/organizations/:orgId/feedback/" />
       </Route>
     </Fragment>
   );
@@ -2451,7 +2440,7 @@ function buildRoutes() {
         component={errorHandler(
           redirectDeprecatedProjectRoute(
             ({orgId, projectId}) =>
-              `/organizations/${orgId}/user-feedback/?project=${projectId}`
+              `/organizations/${orgId}/feedback/?project=${projectId}`
           )
         )}
       />

@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect} from 'react';
+import {useCallback, useLayoutEffect, useState} from 'react';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -31,13 +31,19 @@ export const LOGS_FIELDS_KEY = 'logsFields';
 
 interface LogsPageParams {
   readonly analyticsPageSource: LogsAnalyticsPageSource;
+  readonly blockRowExpanding: boolean | undefined;
   readonly cursor: string;
   readonly fields: string[];
-  readonly isTableEditingFrozen: boolean | undefined;
+  readonly isTableFrozen: boolean | undefined;
   readonly search: MutableSearch;
+  /**
+   * On frozen pages (like the issues page), we don't want to store the search in the URL
+   * Instead, use a useState in the context, so that it's dropped if you navigate away or refresh.
+   */
+  readonly setSearchForFrozenPages: (val: MutableSearch) => void;
   readonly sortBys: Sort[];
   /**
-   * The base search, which doesn't appear in the URL or the search bar, used for adding traceid etc..
+   * The base search, which doesn't appear in the URL or the search bar, used for adding traceid etc.
    */
   readonly baseSearch?: MutableSearch;
   /**
@@ -57,7 +63,8 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
 export interface LogsPageParamsProviderProps {
   analyticsPageSource: LogsAnalyticsPageSource;
   children: React.ReactNode;
-  isOnEmbeddedView?: boolean;
+  blockRowExpanding?: boolean;
+  isTableFrozen?: boolean;
   limitToProjectIds?: number[];
   limitToSpanId?: string;
   limitToTraceId?: string;
@@ -68,12 +75,17 @@ export function LogsPageParamsProvider({
   limitToTraceId,
   limitToSpanId,
   limitToProjectIds,
-  isOnEmbeddedView,
+  blockRowExpanding,
+  isTableFrozen,
   analyticsPageSource,
 }: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
-  const search = new MutableSearch(logsQuery);
+
+  // on embedded pages with search bars, use a useState instead of a URL parameter
+  const [searchForFrozenPages, setSearchForFrozenPages] = useState(new MutableSearch(''));
+
+  const search = isTableFrozen ? searchForFrozenPages : new MutableSearch(logsQuery);
   let baseSearch: MutableSearch | undefined = undefined;
   if (limitToSpanId && limitToTraceId) {
     baseSearch = baseSearch ?? new MutableSearch('');
@@ -83,15 +95,12 @@ export function LogsPageParamsProvider({
     baseSearch = baseSearch ?? new MutableSearch('');
     baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
   }
-  const isTableEditingFrozen = isOnEmbeddedView;
-  const fields = isTableEditingFrozen
-    ? defaultLogFields()
-    : getLogFieldsFromLocation(location);
-  const sortBys = isTableEditingFrozen
+  const fields = isTableFrozen ? defaultLogFields() : getLogFieldsFromLocation(location);
+  const sortBys = isTableFrozen
     ? [logsTimestampDescendingSortBy]
     : getLogSortBysFromLocation(location, fields);
   const pageFilters = usePageFilters();
-  const projectIds = isOnEmbeddedView
+  const projectIds = isTableFrozen
     ? (limitToProjectIds ?? [-1])
     : pageFilters.selection.projects;
   // TODO we should handle environments in a similar way to projects - otherwise page filters might break embedded views
@@ -103,9 +112,11 @@ export function LogsPageParamsProvider({
       value={{
         fields,
         search,
+        setSearchForFrozenPages,
         sortBys,
         cursor,
-        isTableEditingFrozen,
+        isTableFrozen,
+        blockRowExpanding,
         baseSearch,
         projectIds,
         analyticsPageSource,
@@ -133,7 +144,7 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_QUERY_KEY, pageParams.search?.formatString());
   updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
-  if (!pageParams.isTableEditingFrozen) {
+  if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
   }
   return target;
@@ -183,29 +194,29 @@ export function useLogsBaseSearch(): MutableSearch | undefined {
   return baseSearch;
 }
 
-export function useSetLogsQuery() {
-  const setPageParams = useSetLogsPageParams();
-  return useCallback(
-    (query: string) => {
-      setPageParams({search: new MutableSearch(query)});
-    },
-    [setPageParams]
-  );
-}
-
 export function useSetLogsSearch() {
   const setPageParams = useSetLogsPageParams();
-  return useCallback(
+  const {setSearchForFrozenPages, isTableFrozen} = useLogsPageParams();
+  const setPageParamsCallback = useCallback(
     (search: MutableSearch) => {
       setPageParams({search});
     },
     [setPageParams]
   );
+  if (isTableFrozen) {
+    return setSearchForFrozenPages;
+  }
+  return setPageParamsCallback;
 }
 
-export function useLogsIsTableEditingFrozen() {
-  const {isTableEditingFrozen} = useLogsPageParams();
-  return isTableEditingFrozen;
+export function useLogsIsTableFrozen() {
+  const {isTableFrozen} = useLogsPageParams();
+  return !!isTableFrozen;
+}
+
+export function useLogsBlockRowExpanding() {
+  const {blockRowExpanding} = useLogsPageParams();
+  return !!blockRowExpanding;
 }
 
 export function usePersistedLogsPageParams() {
