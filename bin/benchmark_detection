@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+# isort: skip_file
+
+from sentry.runner import configure
+
+configure()
+import time
+import sentry_sdk
+from sentry.issues.detection import http_within_sql_transaction, http_within_sql_transaction_native
+from sentry.testutils.performance_issues.event_generators import create_span  # noqa
+
+sentry_sdk.init(None)
+
+
+def main():
+    spans = [create_span("http.client", 1000, "GET https://example.com/") for _ in range(0, 200)]
+    spans[99] = create_span("db", 100, "BEGIN")
+    spans[199] = create_span("db", 100, "COMMIT")  # last span, no early exit
+
+    count = 100_000
+
+    generated = http_within_sql_transaction()
+
+    start = time.perf_counter()
+    for _ in range(0, count):
+        generated(spans)
+    elapsed = time.perf_counter() - start
+
+    ops = count * len(spans)
+    print("Generated:")  # noqa
+    print(f"{ops:,} ops")  # noqa
+    print(f"{elapsed:.3f} s")  # noqa
+    print(f"{ops/elapsed:,.2f} ops/s")  # noqa
+    print()  # noqa
+
+    native = http_within_sql_transaction_native()
+    start = time.perf_counter()
+    for _ in range(0, count):
+        native(spans)
+    elapsed = time.perf_counter() - start
+
+    ops = count * len(spans)
+    print("Native:")  # noqa
+    print(f"{ops:,} ops")  # noqa
+    print(f"{elapsed:.3f} s")  # noqa
+    print(f"{ops/elapsed:,.2f} ops/s")  # noqa
+
+
+if __name__ == "__main__":
+    main()
