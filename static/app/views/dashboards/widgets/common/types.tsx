@@ -21,6 +21,10 @@ type AttributeValueUnit = DataUnit | null;
 type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;
 export type TimeSeriesMeta = {
+  /**
+   * Difference between the timestamps of the datapoints, in milliseconds
+   */
+  interval: number;
   valueType: TimeSeriesValueType;
   valueUnit: TimeSeriesValueUnit;
   isOther?: boolean;
@@ -36,9 +40,9 @@ export type TimeSeriesItem = {
 };
 
 export type TimeSeries = {
-  field: string;
   meta: TimeSeriesMeta;
   values: TimeSeriesItem[];
+  yAxis: string;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   sampleCount?: AccuracyStats<number>;

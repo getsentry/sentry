@@ -92,7 +92,7 @@ describe('Dashboards > WidgetCard', function () {
     location: LocationFixture(),
     dashboard: DashboardFixture([multipleQueryWidget]),
     organization,
-    router,
+    navigate: jest.fn(),
   });
 
   beforeEach(function () {

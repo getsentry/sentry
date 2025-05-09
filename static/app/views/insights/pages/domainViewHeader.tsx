@@ -14,6 +14,7 @@ import {TabList} from 'sentry/components/tabs';
 import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness, IconLab} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -26,6 +27,7 @@ import {
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   isModuleConsideredNew,
   isModuleEnabled,
@@ -67,6 +69,7 @@ export function DomainViewHeader({
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
   const [isNextJsInsightsEnabled] = useIsNextJsInsightsEnabled();
   const useEap = useInsightsEap();
+  const {view} = useDomainViewFilters();
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
   const [_, setIsEapEnabledLocalState] = useSyncedLocalStorageState(
     EAP_LOCAL_STORAGE_KEY,
@@ -76,6 +79,20 @@ export function DomainViewHeader({
   const toggleUseEap = () => {
     const newState = !useEap;
     setIsEapEnabledLocalState(newState);
+    trackAnalytics('insights.eap.toggle', {
+      organization,
+      isEapEnabled: newState,
+      page: selectedModule || 'overview',
+      view,
+    });
+
+    navigate({
+      ...location,
+      query: {
+        ...location.query,
+        useEap: newState ? '1' : '0',
+      },
+    });
   };
 
   const crumbs: Crumb[] = [
