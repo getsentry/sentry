@@ -3,7 +3,7 @@ import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export function TimeSeriesFixture(params: Partial<TimeSeries> = {}): TimeSeries {
   return {
-    field: 'eps()',
+    yAxis: 'eps()',
     meta: {
       valueType: 'rate',
       valueUnit: RateUnit.PER_SECOND,
