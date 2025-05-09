@@ -27,7 +27,7 @@ CONFIGS_TO_DEPRECATE = set(CONFIGURATIONS.keys()) - {
 }
 
 
-def update_grouping_config_if_needed(project: Project, source: str) -> None:
+def update_or_set_grouping_config_if_needed(project: Project, source: str) -> None:
     current_config = project.get_option("sentry:grouping_config")
 
     if current_config == BETA_GROUPING_CONFIG:
