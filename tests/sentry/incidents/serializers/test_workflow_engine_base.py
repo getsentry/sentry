@@ -16,10 +16,13 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_resolve_threshold_data_condition,
 )
 from sentry.workflow_engine.models import ActionGroupStatus, IncidentGroupOpenPeriod
+from sentry.silo.base import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 @freeze_time("2024-12-11 03:21:34")
 class TestWorklowEngineSerializer(TestCase):
+    @assume_test_silo_mode(SiloMode.REGION)
     def setUp(self) -> None:
         self.now = timezone.now()
         self.alert_rule = self.create_alert_rule()

@@ -2,7 +2,7 @@ from copy import deepcopy
 from datetime import timedelta
 from functools import cached_property
 from unittest.mock import patch
-
+from django.utils import timezone
 import orjson
 import pytest
 import responses
@@ -52,12 +52,9 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction, AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import DataCondition
-from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
-    assert_alert_rule_migrated,
-    assert_alert_rule_resolve_trigger_migrated,
-    assert_alert_rule_trigger_action_migrated,
-    assert_alert_rule_trigger_migrated,
-)
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import WorkflowEngineDetectorSerializer
+from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
+from sentry.models.projectteam import ProjectTeam
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -164,8 +161,7 @@ class AlertRuleIndexBase(AlertRuleBase):
             }
         ]
 
-
-class AlertRuleListEndpointTest(AlertRuleIndexBase):
+class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorklowEngineSerializer):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule()
@@ -175,6 +171,16 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
             resp = self.get_success_response(self.organization.slug)
 
         assert resp.data == serialize([alert_rule])
+
+    def test_workflow_engine_serializer(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.login_as(self.user)
+
+        with self.feature("organizations:incidents"), self.feature("organizations:workflow-engine-rule-serializers"):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data[0] == serialize(self.detector, self.user, WorkflowEngineDetectorSerializer())
 
     def test_no_feature(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -195,7 +201,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
 
 
 @freeze_time()
-class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
+class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase, TestWorklowEngineSerializer):
     method = "post"
 
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -230,6 +236,23 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    def test_workflow_engine_serializer(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.login_as(self.user)
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view", "organizations:workflow-engine-rule-serializers"]),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **self.alert_rule_dict,
+            )
+
+        assert resp.data[0] == serialize(self.detector, self.user, WorkflowEngineDetectorSerializer())
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_create_alert_rule_aci(self):
