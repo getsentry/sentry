@@ -34,6 +34,7 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
+    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
@@ -551,6 +552,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     requiresSso: bool
     rollbackEnabled: bool
     streamlineOnly: bool
+    defaultAutofixAutomationTuning: str
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -696,6 +698,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ),
             "rollbackEnabled": bool(
                 obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
+            ),
+            "defaultAutofixAutomationTuning": obj.get_option(
+                "sentry:default_autofix_automation_tuning",
+                DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
             ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [

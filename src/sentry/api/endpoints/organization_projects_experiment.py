@@ -17,7 +17,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.endpoints.team_projects import ProjectPostSerializer
+from sentry.api.endpoints.team_projects import ProjectPostSerializer, apply_default_project_settings
 from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectSummarySerializer
@@ -201,6 +201,9 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
                 event=audit_log.get_event_id("PROJECT_ADD"),
                 data={**project.get_audit_log_data()},
             )
+
+        apply_default_project_settings(organization, project)
+
         project_created.send_robust(
             project=project,
             user=request.user,
