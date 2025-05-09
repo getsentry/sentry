@@ -85,14 +85,6 @@ export function DomainViewHeader({
       page: selectedModule || 'overview',
       view,
     });
-
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        useEap: newState ? '1' : '0',
-      },
-    });
   };
 
   const crumbs: Crumb[] = [
