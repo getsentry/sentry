@@ -1,8 +1,11 @@
+import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {space} from 'sentry/styles/space';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceLayoutTabsConfig} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
@@ -36,6 +39,23 @@ export function TraceTabsAndVitals({
   tree,
 }: TraceTabsAndVitalsProps) {
   const {tabOptions, currentTab, onTabChange} = tabsConfig;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>();
+
+  const onResize = useCallback(() => {
+    if (!containerRef.current) {
+      return;
+    }
+    setContainerWidth(containerRef.current.clientWidth);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [containerRef.current]);
+
+  useResizeObserver({ref: containerRef, onResize});
+
+  // Set initial width
+  useLayoutEffect(() => {
+    onResize();
+  }, [onResize]);
 
   if (rootEventResults.isLoading || tree.type === 'loading') {
     return <Placeholder />;
@@ -46,7 +66,7 @@ export function TraceTabsAndVitals({
   }
 
   return (
-    <Container>
+    <Container ref={containerRef}>
       <Tabs value={currentTab} onChange={onTabChange}>
         <StyledTabsList hideBorder variant="floating">
           {tabOptions.map(tab => (
@@ -54,7 +74,11 @@ export function TraceTabsAndVitals({
           ))}
         </StyledTabsList>
       </Tabs>
-      <div>TODO: Vitals</div>
+      <TraceContextVitals
+        rootEventResults={rootEventResults}
+        tree={tree}
+        containerWidth={containerWidth}
+      />
     </Container>
   );
 }
@@ -71,7 +95,6 @@ const FlexBox = styled('div')`
 
 const Container = styled(FlexBox)`
   justify-content: space-between;
-  container-type: inline-size;
 `;
 
 const StyledTabsList = styled(TabList)`
