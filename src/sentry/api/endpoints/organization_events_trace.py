@@ -94,6 +94,7 @@ SnubaError = TypedDict(
         "project.id": int,
         "tags[level]": str,
         "timestamp": str,
+        "timestamp_ms": str | None,
         "title": str,
         "trace.span": str | None,
         "trace.transaction": str | None,
@@ -667,6 +668,7 @@ def query_trace_data(
             "project",
             "project.id",
             "timestamp",
+            "timestamp_ms",
             "trace.span",
             "transaction",
             "issue",
@@ -986,6 +988,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
     @staticmethod
     def serialize_error(event: SnubaError) -> TraceError:
+        timestamp = datetime.fromisoformat(event["timestamp"]).timestamp()
+        if "timestamp_ms" in event and event["timestamp_ms"] is not None:
+            timestamp = datetime.fromisoformat(event["timestamp_ms"]).timestamp()
+
         return {
             "event_id": event["id"],
             "issue_id": event["issue.id"],
@@ -995,7 +1001,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             "title": event["title"],
             "level": event["tags[level]"],
             "message": event["message"],
-            "timestamp": datetime.fromisoformat(event["timestamp"]).timestamp(),
+            "timestamp": timestamp,
             "event_type": "error",
             "generation": 0,
         }

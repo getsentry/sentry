@@ -401,6 +401,13 @@ class SnubaEventStream(SnubaProtocolEventStream):
         if headers is None:
             headers = {}
 
+        if event_type == EventStreamEventType.Error:
+            # error events now have a timestamp_ms field, this does not exist on the nodestore event
+            # but instead should be derived from the datetime field on regular Snuba processing.
+            # Since here we insert it using the eventstream API we need to add it manually
+            if "datetime" in extra_data[0]:
+                extra_data[0]["timestamp_ms"] = extra_data[0]["datetime"]
+
         data = (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
 
         entity = "events"
