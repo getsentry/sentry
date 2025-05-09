@@ -137,25 +137,6 @@ export function WidgetCardChartContainer({
         sampleCount,
         isSampled,
       }) => {
-        if (widget.widgetType === WidgetType.ISSUE) {
-          return (
-            <Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <LoadingScreen loading={loading} />
-              <IssueWidgetCard
-                transformedResults={tableResults?.[0]!.data ?? []}
-                loading={loading}
-                errorMessage={errorMessage}
-                widget={widget}
-                location={location}
-                selection={selection}
-              />
-            </Fragment>
-          );
-        }
-
         // Bind timeseries to widget for ability to control each widget's legend individually
         const modifiedTimeseriesResults =
           WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
@@ -168,6 +149,25 @@ export function WidgetCardChartContainer({
               tableResults,
               widget.displayType
             );
+
+        if (widget.widgetType === WidgetType.ISSUE) {
+          return (
+            <Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorOrEmptyMessage)
+                : null}
+              <LoadingScreen loading={loading} />
+              <IssueWidgetCard
+                transformedResults={tableResults?.[0]!.data ?? []}
+                loading={loading}
+                errorMessage={errorOrEmptyMessage}
+                widget={widget}
+                location={location}
+                selection={selection}
+              />
+            </Fragment>
+          );
+        }
 
         return (
           <Fragment>
