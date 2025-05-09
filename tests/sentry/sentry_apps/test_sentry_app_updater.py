@@ -131,10 +131,10 @@ class TestUpdater(TestCase):
             ],
         )
         updater.run(self.user)
-        assert set(sentry_app.events) == expand_events(["issue"])
+        assert sentry_app.events == expand_events(["issue"])
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.filter(application_id=sentry_app.application_id)[0]
-        assert set(service_hook.events) == expand_events(["issue"])
+        assert service_hook.events == expand_events(["issue"])
 
     def test_updates_webhook_url(self):
         sentry_app = self.create_sentry_app(
@@ -150,7 +150,7 @@ class TestUpdater(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=sentry_app.application_id)
         assert service_hook.url == "http://example.com/hooks"
-        assert set(service_hook.events) == expand_events(["event.alert"])
+        assert service_hook.events == expand_events(["event.alert"])
 
     def test_updates_redirect_url(self):
         self.updater.redirect_url = "http://example.com/finish-setup"
@@ -212,7 +212,7 @@ class TestUpdater(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=internal_app.application_id)
         assert service_hook.url == "https://sentry.io/hook"
-        assert set(service_hook.events) == expand_events(["issue"])
+        assert service_hook.events == expand_events(["issue"])
 
     def test_delete_service_hook_on_update(self):
         self.create_project(organization=self.org)
