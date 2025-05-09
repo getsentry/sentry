@@ -154,7 +154,7 @@ ERR_INTEGRATION_INVALID_INSTALLATION = _(
 
 class GithubInstallationInfo(TypedDict):
     installation_id: str
-    github_organization: str
+    github_account: str
     avatar_url: str
 
 
@@ -830,7 +830,7 @@ class OAuthLoginView(PipelineView):
             self.client = GithubSetupApiClient(access_token=payload["access_token"])
             authenticated_user_info = self.client.get_user_info()
 
-            if self.active_user_organization.organization is not None and features.has(
+            if self.active_user_organization is not None and features.has(
                 "organizations:github-multi-org",
                 organization=self.active_user_organization.organization,
                 actor=request.user,
@@ -891,23 +891,19 @@ class GitHubInstallation(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             self.active_user_organization = determine_active_organization(request)
+            error_page = self.check_pending_integration_deletion(request=request)
+            if error_page is not None:
+                lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
+                return error_page
 
-            if self.active_user_organization.organization is not None and features.has(
+            if self.active_user_organization is not None and features.has(
                 "organizations:github-multi-org",
                 organization=self.active_user_organization.organization,
                 actor=request.user,
             ):
                 chosen_installation_id = pipeline.fetch_state("chosen_installation")
-                if chosen_installation_id is not None:
-                    error_page = self.check_pending_integration_deletion(
-                        request=request, installation_id=chosen_installation_id
-                    )
-                    if error_page is not None:
-                        lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
-                        return error_page
-
-                    pipeline.bind_state("installation_id", chosen_installation_id)
-                    return pipeline.next_step()
+                pipeline.bind_state("installation_id", chosen_installation_id)
+                return pipeline.next_step()
 
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")
@@ -926,13 +922,6 @@ class GitHubInstallation(PipelineView):
                 ),
             )
 
-            if self.active_user_organization:
-                error_page = self.check_pending_integration_deletion(
-                    request=request, installation_id=installation_id
-                )
-                if error_page is not None:
-                    lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
-                    return error_page
             try:
                 # We want to limit GitHub integrations to 1 organization
                 installations_exist = OrganizationIntegration.objects.filter(
@@ -974,9 +963,9 @@ class GitHubInstallation(PipelineView):
 
             return pipeline.next_step()
 
-    def check_pending_integration_deletion(
-        self, request: HttpRequest, installation_id: int
-    ) -> HttpResponse | None:
+    def check_pending_integration_deletion(self, request: HttpRequest) -> HttpResponse | None:
+        if self.active_user_organization is None:
+            return None
         # We want to wait until the scheduled deletions finish or else the
         # post install to migrate repos do not work.
         integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
@@ -999,7 +988,7 @@ class GithubOrganizationSelection(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         self.active_user_organization = determine_active_organization(request)
 
-        if self.active_user_organization.organization is None or not features.has(
+        if self.active_user_organization is None or not features.has(
             "organizations:github-multi-org",
             organization=self.active_user_organization.organization,
             actor=request.user,
