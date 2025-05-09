@@ -702,7 +702,7 @@ export class TokenConverter {
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
-      contains,
+      ...(typeof contains === 'boolean' ? {contains} : {}),
     };
   };
 
