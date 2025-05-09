@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import type {eventWithTime} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {type Duration, duration} from 'moment-timezone';
 
@@ -45,6 +46,7 @@ import {
   isMetaFrame,
   isPaintFrame,
   isTouchEndFrame,
+  isTouchMoveFrame,
   isTouchStartFrame,
   isWebVitalFrame,
   NodeType,
@@ -495,9 +497,14 @@ export default class ReplayReader {
 
   getRRWebFrames = () => this._sortedRRWebEvents;
 
+  clampNextFrame = (currEvent: eventWithTime, nextEvent: eventWithTime) => {
+    nextEvent.timestamp = Math.max(nextEvent.timestamp, currEvent.timestamp + 750);
+  };
+
   getRRWebFramesWithSnapshots = memoize(() => {
     const eventsWithSnapshots: RecordingFrame[] = [];
     const events = this._sortedRRWebEvents;
+
     events.forEach((e, index) => {
       // For taps, sometimes the timestamp difference between TouchStart
       // and TouchEnd is too small. This clamps the tap to a min time
@@ -505,7 +512,19 @@ export default class ReplayReader {
       if (isTouchStartFrame(e) && index < events.length - 2) {
         const nextEvent = events[index + 1]!;
         if (isTouchEndFrame(nextEvent)) {
-          nextEvent.timestamp = Math.max(nextEvent.timestamp, e.timestamp + 500);
+          this.clampNextFrame(e, nextEvent);
+        }
+
+        // Do the same thing if the next event is a TouchMove
+        if (isTouchMoveFrame(nextEvent)) {
+          this.clampNextFrame(e, nextEvent);
+
+          if (index < events.length - 3) {
+            const nextNextEvent = events[index + 2]!;
+            if (isTouchEndFrame(nextNextEvent)) {
+              this.clampNextFrame(nextEvent, nextNextEvent);
+            }
+          }
         }
       }
       eventsWithSnapshots.push(e);
