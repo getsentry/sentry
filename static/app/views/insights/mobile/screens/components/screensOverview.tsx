@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -56,7 +56,7 @@ const getQueryString = (
   return queryString;
 };
 
-const transactionMetricsFields: MetricsProperty[] = [
+const transactionMetricsFields = [
   SpanMetricsField.PROJECT_ID,
   SpanMetricsField.TRANSACTION,
   `count()`,
@@ -64,7 +64,7 @@ const transactionMetricsFields: MetricsProperty[] = [
   'avg(measurements.app_start_warm)',
   `avg(measurements.time_to_initial_display)`,
   `avg(measurements.time_to_full_display)`,
-] satisfies MetricsProperty[];
+] as const satisfies MetricsProperty[];
 
 const spanMetricsFields = [
   SpanMetricsField.PROJECT_ID,
@@ -72,14 +72,15 @@ const spanMetricsFields = [
   `division(mobile.slow_frames,mobile.total_frames)`,
   `division(mobile.frozen_frames,mobile.total_frames)`,
   `avg(mobile.frames_delay)`,
-] satisfies SpanMetricsProperty[];
+] as const satisfies SpanMetricsProperty[];
 
 export function ScreensOverview() {
   const navigate = useNavigate();
   const location = useLocation();
   const {selection} = usePageFilters();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
-  const [visibleScreens, setVisibleScreens] = useState<string[]>([]);
+  const [hasVisibleScreens, setHasVisibleScreens] = useState<boolean>(false);
+  const visibleScreensRef = useRef<string[]>([]);
   const sortedBy = decodeScalar(location.query.sort);
   const sort = (sortedBy && decodeSorts([sortedBy])[0]) || DEFAULT_SORT;
   const sortField = sort?.field;
@@ -95,7 +96,7 @@ export function ScreensOverview() {
   );
   const visibleScreenQuery = getQueryString(
     location,
-    visibleScreens,
+    visibleScreensRef.current,
     isProjectCrossPlatform ? selectedPlatform : undefined
   );
 
@@ -117,8 +118,6 @@ export function ScreensOverview() {
 
   const spanMetricsSorts = isSpanPrimary ? [sort] : [];
   const metricsSorts = isSpanPrimary ? [] : [sort];
-
-  const hasVisibleScreens = visibleScreens.length > 0;
 
   const spanMetricsResult = useSpanMetrics(
     {
@@ -163,7 +162,8 @@ export function ScreensOverview() {
           screens.push(String(row.transaction));
         }
       });
-      setVisibleScreens(screens);
+      visibleScreensRef.current = screens;
+      setHasVisibleScreens(screens.length > 0);
     }
   }, [primaryData]);
 
