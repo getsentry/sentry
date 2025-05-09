@@ -1740,23 +1740,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}>
-        <IndexRoute
-          component={make(
-            () =>
-              import(
-                'sentry/views/insights/mobile/screenload/views/screenloadLandingPage'
-              )
-          )}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () =>
-              import('sentry/views/insights/mobile/screenload/views/screenLoadSpansPage')
-          )}
-        />
-      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.UPTIME]}/`}>
         <IndexRoute
           component={make(() => import('sentry/views/insights/uptime/views/overview'))}
