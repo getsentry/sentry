@@ -152,6 +152,7 @@ export function ExploreCharts({
       return {
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
+        stack: visualize.stack,
         label: visualize.label,
         yAxes: visualize.yAxes,
         formattedYAxes,
@@ -318,7 +319,7 @@ export function ExploreCharts({
                     return new DataPlottableConstructor(timeSeries, {
                       delay: INGESTION_DELAY,
                       color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
-                      stack: 'all',
+                      stack: chartInfo.stack,
                     });
                   })}
                   legendSelection={{
