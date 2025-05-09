@@ -2176,6 +2176,10 @@ export enum ReplayFieldKey {
   SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
   URL = 'url',
+  USER_GEO_CITY = 'user.geo.city',
+  USER_GEO_COUNTRY_CODE = 'user.geo.country_code',
+  USER_GEO_REGION = 'user.geo.region',
+  USER_GEO_SUBDIVISION = 'user.geo.subdivision',
   VIEWED_BY_ME = 'viewed_by_me',
 }
 
@@ -2239,6 +2243,10 @@ export const REPLAY_FIELDS = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  ReplayFieldKey.USER_GEO_CITY,
+  ReplayFieldKey.USER_GEO_COUNTRY_CODE,
+  ReplayFieldKey.USER_GEO_REGION,
+  ReplayFieldKey.USER_GEO_SUBDIVISION,
   ReplayFieldKey.VIEWED_BY_ME,
 ];
 
@@ -2345,6 +2353,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.USER_GEO_CITY]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_CITY],
+  [ReplayFieldKey.USER_GEO_COUNTRY_CODE]:
+    EVENT_FIELD_DEFINITIONS[FieldKey.GEO_COUNTRY_CODE],
+  [ReplayFieldKey.USER_GEO_REGION]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_REGION],
+  [ReplayFieldKey.USER_GEO_SUBDIVISION]:
+    EVENT_FIELD_DEFINITIONS[FieldKey.GEO_SUBDIVISION],
   [ReplayFieldKey.VIEWED_BY_ME]: {
     desc: t('Whether you have seen this replay before. Alias of seen_by_me (true/false)'),
     kind: FieldKind.FIELD,
