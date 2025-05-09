@@ -254,3 +254,5 @@ export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
 ]);
 
 export const INGESTION_DELAY = 90;
+
+export const EAP_LOCAL_STORAGE_KEY = 'insights-modules-use-eap';
