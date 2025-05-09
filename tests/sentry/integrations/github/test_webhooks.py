@@ -519,11 +519,10 @@ class PushEventWebhookTest(APITestCase):
 
         assert response.status_code == 204
 
-        repos = Repository.objects.all().order_by("date_added")
+        repos = Repository.objects.all()
         assert len(repos) == 2
 
-        assert repos[0].organization_id == self.organization.id
-        assert repos[1].organization_id == org2.id
+        assert {self.organization.id, org2.id} == {repo.organization_id for repo in repos}
         for repo in repos:
             assert repo.external_id == "35129377"
             assert repo.provider == "integrations:github"
