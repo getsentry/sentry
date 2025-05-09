@@ -121,6 +121,7 @@ export function getExploreUrlFromSavedQueryUrl({
       (savedQuery.query[0].groupby?.length ?? 0) === 0
         ? ['']
         : savedQuery.query[0].groupby,
+    sort: savedQuery.query[0].orderby,
     query: savedQuery.query[0].query,
     title: savedQuery.name,
     mode: savedQuery.query[0].mode,
