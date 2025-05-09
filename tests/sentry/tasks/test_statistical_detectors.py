@@ -52,7 +52,7 @@ from sentry.utils.snuba import SnubaTSResult
 
 @pytest.fixture
 def timestamp():
-    return datetime(2023, 8, 1, 12, 7, 42, 521000, tzinfo=UTC)
+    return str(datetime(2023, 8, 1, 12, 7, 42, 521000, tzinfo=UTC))
 
 
 @pytest.fixture
@@ -222,39 +222,6 @@ def test_detect_transaction_trends_options(
 
     with override_options(options):
         detect_transaction_trends([project.organization_id], [project.id], timestamp)
-    assert query_transactions.called == (task_enabled and option_enabled)
-
-
-@pytest.mark.parametrize(
-    ["task_enabled", "option_enabled"],
-    [
-        pytest.param(True, True, id="both enabled"),
-        pytest.param(False, False, id="both disabled"),
-        pytest.param(True, False, id="option disabled"),
-        pytest.param(False, True, id="task disabled"),
-    ],
-)
-@mock.patch("sentry.tasks.statistical_detectors.query_transactions")
-@django_db_all
-def test_detect_transaction_trends_options_with_str_datetime(
-    query_transactions,
-    task_enabled,
-    option_enabled,
-    timestamp,
-    project,
-):
-    ProjectOption.objects.set_value(
-        project=project,
-        key="sentry:performance_issue_settings",
-        value={InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: option_enabled},
-    )
-
-    options = {
-        "statistical_detectors.enable": task_enabled,
-    }
-
-    with override_options(options):
-        detect_transaction_trends([project.organization_id], [project.id], str(timestamp))
     assert query_transactions.called == (task_enabled and option_enabled)
 
 
