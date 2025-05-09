@@ -134,3 +134,4 @@ uptime_tasks = taskregistry.create_namespace("uptime", app_feature="crons")
 
 # Namespaces for testing taskworker tasks
 exampletasks = taskregistry.create_namespace(name="examples")
+test_tasks = taskregistry.create_namespace(name="test")
