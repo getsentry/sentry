@@ -112,7 +112,7 @@ repos:
         name: eslint
         language: system
         files: \.(ts|js|tsx|jsx|mjs)$
-        entry: ./node_modules/.bin/eslint --config ./eslint-pre-commit.config.mjs --quiet --fix
+        entry: ./node_modules/.bin/eslint --config ./eslint-pre-commit.config.mjs --report-unused-disable-directives-severity off --quiet --fix
 
       - id: stylelint
         name: stylelint

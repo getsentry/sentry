@@ -6,6 +6,7 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   LogsPageDataProvider,
@@ -14,7 +15,7 @@ import {
 import {
   LogsPageParamsProvider,
   useLogsSearch,
-  useSetLogsQuery,
+  useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
@@ -34,7 +35,7 @@ export function TraceViewLogsDataProvider({
 }: UseTraceViewLogsDataProps) {
   return (
     <LogsPageParamsProvider
-      isOnEmbeddedView
+      isTableFrozen
       limitToTraceId={traceSlug}
       analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
     >
@@ -45,6 +46,7 @@ export function TraceViewLogsDataProvider({
 
 export function TraceViewLogsSection() {
   const tableData = useLogsPageData();
+  const logsSearch = useLogsSearch();
   const hasTraceTabsUi = useHasTraceTabsUI();
 
   if (hasTraceTabsUi) {
@@ -53,6 +55,13 @@ export function TraceViewLogsSection() {
         <LogsSectionContent tableData={tableData.logsData} />
       </LogsContentWrapper>
     );
+  }
+
+  if (
+    !tableData?.logsData ||
+    (tableData.logsData.data.length === 0 && logsSearch.isEmpty())
+  ) {
+    return null;
   }
 
   return (
@@ -70,7 +79,7 @@ export function TraceViewLogsSection() {
 
 function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult}) {
   const organization = useOrganization();
-  const setLogsQuery = useSetLogsQuery();
+  const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
 
   return (
@@ -82,7 +91,7 @@ function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult})
         getTagValues={() => new Promise<string[]>(() => [])}
         initialQuery={logsSearch.formatString()}
         searchSource="ourlogs"
-        onSearch={setLogsQuery}
+        onSearch={query => setLogsSearch(new MutableSearch(query))}
       />
       <TableContainer>
         <LogsTable tableData={tableData} showHeader={false} />
