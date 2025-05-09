@@ -57,7 +57,7 @@ function ScreenLoadSpans() {
     <Layout.Page>
       <PageAlertProvider>
         <MobileHeader
-          module={ModuleName.SCREEN_LOAD}
+          module={ModuleName.MOBILE_VITALS}
           headerTitle={transactionName}
           headerActions={isProjectCrossPlatform && <PlatformSelector />}
           breadcrumbs={[

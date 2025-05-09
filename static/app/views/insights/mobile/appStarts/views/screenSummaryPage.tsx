@@ -11,7 +11,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -32,7 +31,6 @@ import AppStartWidgets from 'sentry/views/insights/mobile/appStarts/components/w
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 type Query = {
@@ -50,18 +48,13 @@ type Query = {
 export function ScreenSummary() {
   const location = useLocation<Query>();
   const {transaction: transactionName} = location.query;
-  const organization = useOrganization();
-
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
 
   return (
     <Layout.Page>
       <PageAlertProvider>
         <MobileHeader
-          hideDefaultTabs={isMobileScreensEnabled}
-          module={
-            isMobileScreensEnabled ? ModuleName.MOBILE_VITALS : ModuleName.APP_START
-          }
+          hideDefaultTabs
+          module={ModuleName.MOBILE_VITALS}
           headerTitle={transactionName}
           breadcrumbs={[
             {

@@ -9,12 +9,9 @@ import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
-import {SUMMARY_PAGE_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
@@ -26,12 +23,8 @@ type Props = {
 
 function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
-  const screenRenderingModuleUrl = useModuleURL(ModuleName.SCREEN_RENDERING);
 
-  const organization = useOrganization();
   const location = useLocation();
-
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
 
   const columnNameMap = {
     transaction: t('Screen'),
@@ -67,11 +60,7 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
         transaction: row.transaction,
       });
 
-      const link = isMobileScreensEnabled
-        ? normalizeUrl(`${moduleURL}/details/?${queryString}`)
-        : normalizeUrl(
-            `${screenRenderingModuleUrl}/${SUMMARY_PAGE_BASE_URL}/?${queryString}`
-          );
+      const link = normalizeUrl(`${moduleURL}/details/?${queryString}`);
 
       return (
         <Fragment>

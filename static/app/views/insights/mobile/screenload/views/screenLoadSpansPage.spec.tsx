@@ -23,7 +23,7 @@ function mockResponses(organization: Organization, project: Project) {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/performance/mobile/screens/spans/',
+    pathname: '/organizations/org-slug/insights/mobile/mobile-vitals/details/',
     query: {
       project: project.id,
       transaction: 'MainActivity',
@@ -104,7 +104,11 @@ describe('Screen Summary', function () {
         hasInsightsScreenLoad: true,
       });
       organization = OrganizationFixture({
-        features: ['insights-initial-modules', 'insights-entry-points'],
+        features: [
+          'insights-initial-modules',
+          'insights-entry-points',
+          'insights-addon-modules',
+        ],
       });
       mockResponses(organization, project);
       localStorage.clear();
@@ -198,7 +202,11 @@ describe('Screen Summary', function () {
     beforeEach(function () {
       const project = ProjectFixture({platform: 'android', hasInsightsScreenLoad: true});
       organization = OrganizationFixture({
-        features: ['insights-initial-modules', 'insights-entry-points'],
+        features: [
+          'insights-initial-modules',
+          'insights-entry-points',
+          'insights-addon-modules',
+        ],
       });
       mockResponses(organization, project);
       localStorage.clear();

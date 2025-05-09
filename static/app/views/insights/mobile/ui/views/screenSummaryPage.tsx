@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -19,7 +18,6 @@ import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/s
 import {SamplesTables} from 'sentry/views/insights/mobile/common/components/tables/samplesTables';
 import {SpanOperationTable} from 'sentry/views/insights/mobile/ui/components/tables/spanOperationTable';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Query = {
@@ -35,16 +33,13 @@ type Query = {
 
 function ScreenSummary() {
   const location = useLocation<Query>();
-  const organization = useOrganization();
   const {transaction: transactionName} = location.query;
-
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
 
   return (
     <Layout.Page>
       <PageAlertProvider>
         <MobileHeader
-          hideDefaultTabs={isMobileScreensEnabled}
+          hideDefaultTabs
           module={ModuleName.MOBILE_VITALS}
           headerTitle={transactionName}
           breadcrumbs={[
