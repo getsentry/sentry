@@ -58,14 +58,14 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
       label: (
         <OptionLabelWrapper>
           {installation.installation_id === '-1' ? (
+            <IconAdd />
+          ) : (
             <StyledAvatar
               type="upload"
               uploadUrl={installation.avatar_url}
               size={16}
               title={installation.github_account}
             />
-          ) : (
-            <IconAdd />
           )}
           <span>{`${installation.github_account}`}</span>
         </OptionLabelWrapper>
