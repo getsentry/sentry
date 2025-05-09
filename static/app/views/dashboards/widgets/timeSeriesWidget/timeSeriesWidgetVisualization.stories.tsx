@@ -39,7 +39,7 @@ import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidge
 
 const sampleDurationTimeSeriesP50: TimeSeries = {
   ...sampleDurationTimeSeries,
-  field: 'p50(span.duration)',
+  yAxis: 'p50(span.duration)',
   values: sampleDurationTimeSeries.values.map(datum => {
     return {
       ...datum,
@@ -50,7 +50,7 @@ const sampleDurationTimeSeriesP50: TimeSeries = {
 
 const sampleDurationTimeSeriesP75: TimeSeries = {
   ...sampleDurationTimeSeries,
-  field: 'p75(span.duration)',
+  yAxis: 'p75(span.duration)',
   values: sampleDurationTimeSeries.values.map(datum => {
     return {
       ...datum,
@@ -340,12 +340,12 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line({
                   ...sampleThroughputTimeSeries,
-                  field: 'equation|spm() + 1',
+                  yAxis: 'equation|spm() + 1',
                   meta: NULL_META,
                 }),
                 new Line({
                   ...sampleDurationTimeSeries,
-                  field: 'custom_aggregate()',
+                  yAxis: 'custom_aggregate()',
                   meta: NULL_META,
                 }),
               ]}
@@ -357,7 +357,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line({
                   ...sampleThroughputTimeSeries,
-                  field: 'equation|spm() + 1',
+                  yAxis: 'equation|spm() + 1',
                   meta: {
                     ...sampleThroughputTimeSeries.meta,
                     valueType: 'number',
@@ -366,7 +366,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                 }),
                 new Line({
                   ...sampleDurationTimeSeries,
-                  field: 'custom_aggregate()',
+                  yAxis: 'custom_aggregate()',
                   meta: NULL_META,
                 }),
               ]}
@@ -378,7 +378,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line({
                   ...sampleDurationTimeSeries,
-                  field: 'custom_agg(duration)',
+                  yAxis: 'custom_agg(duration)',
                   meta: {
                     ...sampleThroughputTimeSeries.meta,
                     valueType: 'number',
@@ -387,7 +387,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                 }),
                 new Line({
                   ...sampleDurationTimeSeriesP50,
-                  field: 'custom_agg2(duration)',
+                  yAxis: 'custom_agg2(duration)',
                   meta: {
                     ...sampleThroughputTimeSeries.meta,
                     valueType: 'integer',
@@ -396,7 +396,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                 }),
                 new Line({
                   ...sampleThroughputTimeSeries,
-                  field: 'custom_agg3(duration)',
+                  yAxis: 'custom_agg3(duration)',
                   meta: {
                     ...sampleThroughputTimeSeries.meta,
                     valueType: 'duration',
@@ -438,7 +438,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
     // Create a very similar series, but with a different unit to demonstrate automatic scaling
     const secondsSeries: TimeSeries = {
-      field: 'p99(span.self_time)',
+      yAxis: 'p99(span.self_time)',
       values: sampleDurationTimeSeries.values.map(datum => {
         return {
           ...datum,
@@ -734,7 +734,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
     const timeSeries: TimeSeries = {
       ...sampleThroughputTimeSeries,
-      field: 'error_rate()',
+      yAxis: 'error_rate()',
       meta: {
         ...sampleThroughputTimeSeries.meta,
         valueType: 'rate',
@@ -918,7 +918,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line({
                   ...sampleThroughputTimeSeries,
-                  field: 'error_rate()',
+                  yAxis: 'error_rate()',
                 }),
               ]}
               releases={releases}
@@ -930,7 +930,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line({
                   ...sampleThroughputTimeSeries,
-                  field: 'error_rate()',
+                  yAxis: 'error_rate()',
                 }),
               ]}
               showReleaseAs="bubble"

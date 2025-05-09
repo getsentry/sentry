@@ -40,9 +40,9 @@ export type TimeSeriesItem = {
 };
 
 export type TimeSeries = {
-  field: string;
   meta: TimeSeriesMeta;
   values: TimeSeriesItem[];
+  yAxis: string;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   sampleCount?: AccuracyStats<number>;

@@ -192,7 +192,7 @@ export function transformToSeriesMap(
     return processedResults
       .sort(([a], [b]) => a - b)
       .reduce((acc, [, series]) => {
-        acc[series.field] = [series];
+        acc[series.yAxis] = [series];
         return acc;
       }, {} as SeriesMap);
   }
@@ -245,7 +245,7 @@ export function convertEventsStatsToTimeSeriesData(
   const interval = getTimeSeriesInterval(values);
 
   const serie: TimeSeries = {
-    field: label,
+    yAxis: label,
     values,
     meta: {
       valueType: seriesData.meta?.fields?.[seriesName]!,
