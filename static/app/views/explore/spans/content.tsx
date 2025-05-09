@@ -1,28 +1,22 @@
 import type {ReactNode} from 'react';
-import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
-import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
+import {TraceExploreAiQueryProvider} from 'sentry/views/explore/components/traceExploreAiQueryProvider';
 import {
   PageParamsProvider,
   useExploreDataset,
@@ -38,7 +32,6 @@ import {
   ORDERED_EXPLORE_SPANS_TOUR,
   useExploreSpansTourModal,
 } from 'sentry/views/explore/spans/tour';
-import {useExploreSpansTour} from 'sentry/views/explore/spans/tour';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -48,14 +41,13 @@ export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
 
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} =
-    limitMaxPickableDays(organization);
+  const datePageFilterProps = limitMaxPickableDays(organization);
 
   const onboardingProject = useOnboardingProject();
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
-      <PageFiltersContainer maxPickableDays={maxPickableDays}>
+      <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
         <Layout.Page>
           <SpansTabWrapper>
             <SpansTabHeader organization={organization} />
@@ -63,16 +55,10 @@ export function ExploreContent() {
               <SpansTabOnboarding
                 organization={organization}
                 project={onboardingProject}
-                defaultPeriod={defaultPeriod}
-                maxPickableDays={maxPickableDays}
-                relativeOptions={relativeOptions}
+                datePageFilterProps={datePageFilterProps}
               />
             ) : (
-              <SpansTabContent
-                defaultPeriod={defaultPeriod}
-                maxPickableDays={maxPickableDays}
-                relativeOptions={relativeOptions}
-              />
+              <SpansTabContent datePageFilterProps={datePageFilterProps} />
             )}
           </SpansTabWrapper>
         </Layout.Page>
@@ -86,7 +72,9 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
       <PageParamsProvider>
-        <ExploreTagsProvider>{children}</ExploreTagsProvider>
+        <TraceExploreAiQueryProvider>
+          <ExploreTagsProvider>{children}</ExploreTagsProvider>
+        </TraceExploreAiQueryProvider>
       </PageParamsProvider>
     </SpansTabTourProvider>
   );
@@ -169,85 +157,9 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
             </LinkButton>
           )}
           <StarSavedQueryButton />
-          <ActionsButton organization={organization} />
+          <FeedbackWidgetButton />
         </ButtonBar>
       </Layout.HeaderActions>
     </Layout.Header>
   );
 }
-
-interface ActionsButtonProps {
-  organization: Organization;
-}
-
-function ActionsButton({organization}: ActionsButtonProps) {
-  const {startTour, isRegistered} = useExploreSpansTour();
-  const openForm = useFeedbackForm();
-
-  const location = useLocation();
-  const navigate = useNavigate();
-  const switchToOldTraceExplorer = useCallback(() => {
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        view: 'trace',
-      },
-    });
-  }, [location, navigate]);
-
-  const items = [
-    {
-      key: 'take-tour',
-      label: t('Take a tour'),
-      hidden: !isRegistered,
-      onAction: () => {
-        trackAnalytics('explore.spans.tour.started', {organization, method: 'dropdown'});
-        startTour();
-      },
-    },
-    {
-      key: 'give-feedback',
-      label: t('Give feedback on the UI'),
-      hidden: !openForm,
-      onAction: () => {
-        openForm?.({
-          messagePlaceholder: t('Tell us what you think about the new UI'),
-          tags: {
-            ['feedback.source']: 'explore.spans',
-            ['feedback.owner']: 'explore',
-          },
-        });
-      },
-    },
-    {
-      key: 'switch-to-old-ui',
-      label: t('Switch to old trace explore'),
-      hidden: !organization.features.includes('visibility-explore-admin'),
-      onAction: switchToOldTraceExplorer,
-    },
-  ];
-
-  return (
-    <DropdownMenu
-      trigger={triggerProps => (
-        <StyledDropdownButton
-          {...triggerProps}
-          size="sm"
-          aria-label={t('See Explore Spans Actions')}
-        >
-          <IconMegaphone />
-        </StyledDropdownButton>
-      )}
-      items={items}
-      position="bottom-end"
-    />
-  );
-}
-
-const StyledDropdownButton = styled(DropdownButton)`
-  color: ${p => p.theme.button.primary.background};
-  :hover {
-    color: ${p => p.theme.button.primary.background};
-  }
-`;

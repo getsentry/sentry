@@ -288,12 +288,12 @@ def get_groups_to_fire(
                 ]
                 conditions_to_evaluate.append((condition, query_values))
 
-            passes, _ = evaluate_data_conditions(conditions_to_evaluate, action_match)
+            evaluation = evaluate_data_conditions(conditions_to_evaluate, action_match)
             if (
-                passes and workflow_id is None
+                evaluation.logic_result and workflow_id is None
             ):  # TODO: detector trigger passes. do something like create issue
                 pass
-            elif passes:
+            elif evaluation.logic_result:
                 groups_to_fire[group_id].add(dcg)
 
     return groups_to_fire
@@ -440,6 +440,8 @@ def fire_actions_for_groups(
                 "workflow_ids": [workflow.id for workflow in workflows],
                 "actions": filtered_actions,
                 "event_data": event_data,
+                "group_id": group.id,
+                "event_id": event_data.event.event_id,
             },
         )
 
@@ -502,7 +504,11 @@ def process_delayed_workflows(
 
     logger.info(
         "delayed_workflow.workflows",
-        extra={"data": workflow_event_dcg_data, "workflows": set(dcg_to_workflow.values())},
+        extra={
+            "data": workflow_event_dcg_data,
+            "workflows": set(dcg_to_workflow.values()),
+            "project_id": project_id,
+        },
     )
 
     # Get unique query groups to query Snuba
@@ -531,7 +537,7 @@ def process_delayed_workflows(
     }
     logger.info(
         "delayed_workflow.condition_group_results",
-        extra={"condition_group_results": serialized_results},
+        extra={"condition_group_results": serialized_results, "project_id": project_id},
     )
 
     # Evaluate DCGs
@@ -545,7 +551,7 @@ def process_delayed_workflows(
 
     logger.info(
         "delayed_workflow.groups_to_fire",
-        extra={"groups_to_dcgs": groups_to_dcgs},
+        extra={"groups_to_dcgs": groups_to_dcgs, "project_id": project_id},
     )
 
     dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(

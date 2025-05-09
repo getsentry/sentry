@@ -1,6 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -20,7 +21,7 @@ interface ProjectSeerProps {
   project: Project;
 }
 
-const THRESHOLD_MAP = ['off', 'low', 'medium', 'high'] as const;
+const THRESHOLD_MAP = ['off', 'low', 'medium', 'high', 'always'] as const;
 
 const autofixAutomatingTuningField: FieldObject = {
   name: 'autofixAutomationTuning',
@@ -46,8 +47,10 @@ const autofixAutomatingTuningField: FieldObject = {
         return t('Medium');
       case 'high':
         return t('High');
+      case 'always':
+        return t('Always');
       default:
-        return t('Off');
+        return null;
     }
   },
   getValue: (val: number): string => {
@@ -68,6 +71,8 @@ const seerFormGroups: JsonFormObject[] = [
 function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+
+  const canWriteProject = hasEveryAccess(['project:write'], {organization, project});
 
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
@@ -95,7 +100,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
       }}
       onSubmitSuccess={handleSubmitSuccess}
     >
-      <JsonForm forms={seerFormGroups} />
+      <JsonForm forms={seerFormGroups} disabled={!canWriteProject} />
     </Form>
   );
 }

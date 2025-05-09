@@ -13,7 +13,6 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -82,7 +81,6 @@ export function ExploreCharts({
   dataset,
 }: ExploreChartsProps) {
   const theme = useTheme();
-  const organization = useOrganization();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
@@ -204,11 +202,7 @@ export function ExploreCharts({
 
           if (chartInfo.loading) {
             const loadingMessage =
-              organization.features.includes(
-                'visibility-explore-progressive-loading-normal-sampling-mode'
-              ) &&
-              timeseriesResult.isFetching &&
-              samplingMode === SAMPLING_MODE.HIGH_ACCURACY
+              timeseriesResult.isFetching && samplingMode === SAMPLING_MODE.HIGH_ACCURACY
                 ? t(
                     "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
                   )
@@ -225,24 +219,6 @@ export function ExploreCharts({
                   />
                 }
                 revealActions="always"
-                Footer={
-                  organization.features.includes(
-                    'visibility-explore-progressive-loading'
-                  ) &&
-                  !organization.features.includes(
-                    'visibility-explore-progressive-loading-normal-sampling-mode'
-                  ) && (
-                    <WidgetExtrapolationFooter
-                      samplingMode={undefined}
-                      sampleCount={0}
-                      isSampled={null}
-                      confidence={undefined}
-                      topEvents={undefined}
-                      dataScanned={undefined}
-                      dataset={dataset}
-                    />
-                  )
-                }
               />
             );
           }
@@ -360,7 +336,6 @@ export function ExploreCharts({
                     topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
                   }
                   dataScanned={chartInfo.dataScanned}
-                  samplingMode={samplingMode}
                   dataset={dataset}
                 />
               }

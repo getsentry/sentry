@@ -48,6 +48,7 @@ export default function ReleaseDropdownFilter({version}: {version: string}) {
                     location,
                     release: version,
                     projectId: location?.query.project,
+                    source: 'replay-tags',
                   })
                 : makeReleasesPathname({
                     organization,
@@ -70,6 +71,7 @@ export default function ReleaseDropdownFilter({version}: {version: string}) {
           aria-label={t('Actions')}
           icon={<IconEllipsis size="xs" />}
           size="zero"
+          className="invisible-button"
         />
       )}
     />

@@ -5,7 +5,6 @@ import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   confidence?: Confidence;
@@ -16,23 +15,10 @@ type Props = {
 };
 
 export function ConfidenceFooter(props: Props) {
-  const organization = useOrganization();
-  const normalSamplingModeEnabled = organization.features.includes(
-    'visibility-explore-progressive-loading-normal-sampling-mode'
-  );
-  return (
-    <Container>{confidenceMessage({...props, normalSamplingModeEnabled})}</Container>
-  );
+  return <Container>{confidenceMessage(props)}</Container>;
 }
 
-function confidenceMessage({
-  sampleCount,
-  confidence,
-  topEvents,
-  isSampled,
-  dataScanned,
-  normalSamplingModeEnabled,
-}: Props & {normalSamplingModeEnabled: boolean}) {
+function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Props) {
   const isTopN = defined(topEvents) && topEvents > 1;
   if (!defined(sampleCount)) {
     return isTopN
@@ -42,24 +28,10 @@ function confidenceMessage({
 
   const noSampling = defined(isSampled) && !isSampled;
 
-  const partialScanTooltip = <_PartialScanTooltip />;
   const lowAccuracyFullSampleCount = <_LowAccuracyFullTooltip noSampling={noSampling} />;
   const sampleCountComponent = <Count value={sampleCount} />;
-  const showPartialScanMessage = dataScanned === 'partial' && !normalSamplingModeEnabled;
-
   if (confidence === 'low') {
     if (isTopN) {
-      if (showPartialScanMessage) {
-        return tct(
-          'Top [topEvents] groups based on [tooltip:[sampleCountComponent] samples (Max. Limit)]',
-          {
-            topEvents,
-            tooltip: partialScanTooltip,
-            sampleCountComponent,
-          }
-        );
-      }
-
       return tct(
         'Top [topEvents] groups based on [tooltip:[sampleCountComponent] samples]',
         {
@@ -70,13 +42,6 @@ function confidenceMessage({
       );
     }
 
-    if (showPartialScanMessage) {
-      return tct('Based on [tooltip:[sampleCountComponent] samples (Max. Limit)]', {
-        tooltip: partialScanTooltip,
-        sampleCountComponent,
-      });
-    }
-
     return tct('Based on [tooltip:[sampleCountComponent] samples]', {
       tooltip: lowAccuracyFullSampleCount,
       sampleCountComponent,
@@ -84,26 +49,8 @@ function confidenceMessage({
   }
 
   if (isTopN) {
-    if (showPartialScanMessage) {
-      return tct(
-        'Top [topEvents] groups based on [tooltip:[sampleCountComponent] samples (Max. Limit)]',
-        {
-          topEvents,
-          tooltip: partialScanTooltip,
-          sampleCountComponent,
-        }
-      );
-    }
-
     return tct('Top [topEvents] groups based on [sampleCountComponent] samples', {
       topEvents,
-      sampleCountComponent,
-    });
-  }
-
-  if (showPartialScanMessage) {
-    return tct('Based on [tooltip:[sampleCountComponent] samples (Max. Limit)]', {
-      tooltip: partialScanTooltip,
       sampleCountComponent,
     });
   }
@@ -138,27 +85,6 @@ function _LowAccuracyFullTooltip({
         </div>
       }
       disabled={noSampling}
-      maxWidth={270}
-      showUnderline
-    >
-      {children}
-    </Tooltip>
-  );
-}
-
-function _PartialScanTooltip({children}: {children?: React.ReactNode}) {
-  return (
-    <Tooltip
-      title={
-        <div>
-          {t('We could not scan all available data due to time or resource limits.')}
-          <br />
-          <br />
-          {t(
-            'Try reducing your time range or removing filters to get more accurate trends.'
-          )}
-        </div>
-      }
       maxWidth={270}
       showUnderline
     >

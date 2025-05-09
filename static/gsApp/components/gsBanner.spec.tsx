@@ -1481,7 +1481,7 @@ describe('GSBanner Overage Alerts', function () {
 
     expect(
       await screen.findByTestId(
-        'overage-banner-error-transaction-replay-attachment-monitorSeat'
+        'overage-banner-error-transaction-attachment-replay-monitorSeat'
       )
     ).toBeInTheDocument();
 
@@ -1601,7 +1601,7 @@ describe('GSBanner Overage Alerts', function () {
 
     expect(
       await screen.findByTestId(
-        'overage-banner-error-transaction-replay-attachment-monitorSeat-span-profileDuration'
+        'overage-banner-error-transaction-attachment-replay-span-monitorSeat-profileDuration'
       )
     ).toBeInTheDocument();
 
@@ -2035,6 +2035,8 @@ describe('GSBanner Overage Alerts', function () {
         attachments: MetricHistoryFixture({usageExceeded: true}),
         monitorSeats: MetricHistoryFixture({usageExceeded: true}),
         uptime: MetricHistoryFixture({usageExceeded: true}),
+        seerAutofix: MetricHistoryFixture({usageExceeded: true}),
+        seerScanner: MetricHistoryFixture({usageExceeded: true}),
       },
       canSelfServe: true,
     });
@@ -2047,7 +2049,7 @@ describe('GSBanner Overage Alerts', function () {
 
     expect(
       await screen.findByTestId(
-        'overage-banner-error-transaction-attachment-monitorSeat-span-uptime'
+        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime-seerAutofix-seerScanner'
       )
     ).toBeInTheDocument();
   });
@@ -2085,6 +2087,8 @@ describe('GSBanner Overage Alerts', function () {
         attachments: MetricHistoryFixture({sentUsageWarning: true}),
         monitorSeats: MetricHistoryFixture({sentUsageWarning: true}),
         uptime: MetricHistoryFixture({sentUsageWarning: true}),
+        seerAutofix: MetricHistoryFixture({sentUsageWarning: true}),
+        seerScanner: MetricHistoryFixture({sentUsageWarning: true}),
       },
       canSelfServe: true,
     });
@@ -2097,8 +2101,193 @@ describe('GSBanner Overage Alerts', function () {
 
     expect(
       await screen.findByTestId(
-        'overage-banner-error-transaction-attachment-monitorSeat-span-uptime'
+        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime-seerAutofix-seerScanner'
       )
     ).toBeInTheDocument();
+  });
+
+  it('checks prompts for all billed categories on plan', async function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+    });
+    subscription.categories = {
+      ...subscription.categories,
+      // TODO(Seer): remove this after seer has been added to the fixtures
+      // tests that seer is not included in prompts before launch even
+      // though isBilledCategory is true
+      seerAutofix: MetricHistoryFixture({usageExceeded: true}),
+      seerScanner: MetricHistoryFixture({usageExceeded: true}),
+    };
+    const promptsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
+    await act(tick);
+
+    const overagePrompts = [];
+    const warningPrompts = [];
+    const productTrialPrompts = [];
+    for (const category of [
+      'errors',
+      'attachments',
+      'replays',
+      'spans',
+      'monitor_seats',
+      'profile_duration',
+      'profile_duration_ui',
+      'uptime',
+    ]) {
+      overagePrompts.push(`${category}_overage_alert`);
+      warningPrompts.push(`${category}_warning_alert`);
+      if (
+        ['profile_duration', 'replays', 'spans', 'profile_duration_ui'].includes(category)
+      ) {
+        productTrialPrompts.push(`${category}_product_trial_alert`);
+      }
+    }
+
+    expect(promptsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/prompts-activity/`,
+      expect.objectContaining({
+        query: {
+          feature: [
+            'deactivated_member_alert',
+            ...overagePrompts,
+            ...warningPrompts,
+            ...productTrialPrompts,
+          ],
+          organization_id: organization.id,
+        },
+      })
+    );
+  });
+
+  // TODO(Seer): remove this test after seer has been added to the fixtures
+  it('checks prompts for all billed categories on plan with seer', async function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+    });
+    subscription.planDetails.categories = [
+      ...subscription.planDetails.categories,
+      DataCategory.SEER_AUTOFIX,
+      DataCategory.SEER_SCANNER,
+    ];
+    const promptsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
+    await act(tick);
+
+    const overagePrompts = [];
+    const warningPrompts = [];
+    const productTrialPrompts = [];
+    for (const category of [
+      'errors',
+      'attachments',
+      'replays',
+      'spans',
+      'monitor_seats',
+      'profile_duration',
+      'profile_duration_ui',
+      'uptime',
+      'seer_autofix',
+      'seer_scanner',
+    ]) {
+      overagePrompts.push(`${category}_overage_alert`);
+      warningPrompts.push(`${category}_warning_alert`);
+      if (
+        [
+          'profile_duration',
+          'replays',
+          'spans',
+          'profile_duration_ui',
+          'seer_autofix',
+          'seer_scanner',
+        ].includes(category)
+      ) {
+        productTrialPrompts.push(`${category}_product_trial_alert`);
+      }
+    }
+
+    expect(promptsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/prompts-activity/`,
+      expect.objectContaining({
+        query: {
+          feature: [
+            'deactivated_member_alert',
+            ...overagePrompts,
+            ...warningPrompts,
+            ...productTrialPrompts,
+          ],
+          organization_id: organization.id,
+        },
+      })
+    );
+  });
+
+  it('does not show banner for non-billed categories', async function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_t',
+      categories: {
+        // this would never happen in practice, but we're asserting that we properly filter out non-billed categories
+        logBytes: MetricHistoryFixture({usageExceeded: true}),
+        logItems: MetricHistoryFixture({usageExceeded: true}),
+        profileChunks: MetricHistoryFixture({usageExceeded: true}),
+      },
+    });
+    subscription.planDetails.categories = [
+      ...subscription.planDetails.categories,
+      DataCategory.LOG_BYTE,
+      DataCategory.LOG_ITEM,
+      DataCategory.PROFILE_CHUNKS,
+    ];
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const promptsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+    });
+
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
+
+    const {container} = render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
+
+    await act(tick);
+    expect(container).toBeEmptyDOMElement();
+    const lastCall = promptsMock.mock.lastCall;
+    const nonBilledOveragePrompts = [
+      'log_bytes_overage_alert',
+      'log_items_overage_alert',
+      'profile_chunks_overage_alert',
+    ];
+    expect(
+      (lastCall[1].query.feature as string[]).some(prompt =>
+        nonBilledOveragePrompts.includes(prompt)
+      )
+    ).toBe(false);
   });
 });
