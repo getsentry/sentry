@@ -2,11 +2,12 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconChevron, IconCode, IconFile, IconProject} from 'sentry/icons';
+import {IconChevron, IconCode, IconCopy, IconFile, IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventsStats} from 'sentry/types/organization';
@@ -196,13 +197,21 @@ function TreeWidgetVisualization({tree}: {tree: TreeContainer}) {
       <HeaderCell>{t('Path')}</HeaderCell>
       <HeaderCell>{t('Avg Duration')}</HeaderCell>
       {tree.children.toSorted(sortTreeChildren).map((item, index) => {
-        return <TreeNodeRenderer key={index} item={item} />;
+        return <TreeNodeRenderer key={index} item={item} currentPath={[]} indent={0} />;
       })}
     </TreeGrid>
   );
 }
 
-function TreeNodeRenderer({item, indent = 0}: {item: TreeNode; indent?: number}) {
+function TreeNodeRenderer({
+  item,
+  indent = 0,
+  currentPath,
+}: {
+  currentPath: string[];
+  item: TreeNode;
+  indent?: number;
+}) {
   const theme = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -245,6 +254,17 @@ function TreeNodeRenderer({item, indent = 0}: {item: TreeNode; indent?: number})
             <IconProject color="subText" size="xs" />
           )}
           <TextOverflow>{item.name}</TextOverflow>
+          {item.type === 'file' && (
+            <IconCopy
+              onClick={() => {
+                const fullPath = [...currentPath, item.name].join('/');
+                navigator.clipboard.writeText(fullPath);
+                addSuccessMessage(t('Copied path'));
+              }}
+              style={{cursor: 'pointer', color: theme.subText}}
+              size="xs"
+            />
+          )}
         </PathWrapper>
       </div>
       <div>{'–'}</div>
@@ -252,7 +272,12 @@ function TreeNodeRenderer({item, indent = 0}: {item: TreeNode; indent?: number})
         item.children
           .toSorted(sortTreeChildren)
           .map((child, index) => (
-            <TreeNodeRenderer key={index} item={child} indent={indent + 1} />
+            <TreeNodeRenderer
+              key={index}
+              item={child}
+              indent={indent + 1}
+              currentPath={[...currentPath, item.name]}
+            />
           ))}
     </Fragment>
   );
