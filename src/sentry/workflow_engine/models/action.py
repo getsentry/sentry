@@ -72,7 +72,6 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         return action_handler_registry.get(action_type)
 
     def trigger(self, event_data: WorkflowEventData, detector: Detector) -> None:
-        # get the handler for the action type
         logger.info(
             "workflow_engine.action.trigger",
             extra={
