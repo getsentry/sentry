@@ -70,6 +70,10 @@ class TaskNamespace:
         """
         return name in self._registered_tasks
 
+    def tasks(self) -> list[Task[Any, Any]]:
+        """Get a list of all tasks registered in this namespace"""
+        return list(self._registered_tasks.values())
+
     @property
     def topic(self) -> Topic:
         return self.router.route_namespace(self.name)
@@ -217,6 +221,10 @@ class TaskRegistry:
         assert hasattr(router, "route_namespace")
 
         return router
+
+    def namespaces(self) -> list[TaskNamespace]:
+        """Return all registered namespaces."""
+        return list(self._namespaces.values())
 
     def contains(self, name: str) -> bool:
         return name in self._namespaces
