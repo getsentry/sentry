@@ -71,7 +71,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
   {key: 'avg(span.duration)', name: t('AVG'), width: 90},
   {key: 'p95(span.duration)', name: t('P95'), width: 90},
-  {key: 'sum(span.duration)', name: t('Total'), width: 90},
+  {key: 'sum(span.duration)', name: t('Time Spent'), width: 90},
   {key: 'count_unique(user)', name: t('Users'), width: 90},
 ];
 
