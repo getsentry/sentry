@@ -28,6 +28,10 @@ export type TimeSeriesMeta = {
   valueType: TimeSeriesValueType;
   valueUnit: TimeSeriesValueUnit;
   isOther?: boolean;
+  /**
+   * For a top N request, the order is the position of this `TimeSeries` within the respective yAxis.
+   */
+  order?: number;
 };
 
 export type TimeSeriesItem = {
