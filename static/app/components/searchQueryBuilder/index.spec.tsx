@@ -924,7 +924,8 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('can add parens by typing', async function () {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      const mockOnChange = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
 
       await userEvent.click(getLastInput());
       await userEvent.keyboard('(');
@@ -932,6 +933,40 @@ describe('SearchQueryBuilder', function () {
       expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
 
       expect(getLastInput()).toHaveFocus();
+
+      // Should not commit changes until blur
+      expect(mockOnChange).not.toHaveBeenCalled();
+
+      await userEvent.click(document.body);
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('(', expect.anything());
+      });
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('can add parens after text', async function () {
+      const mockOnChange = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo(');
+
+      // Should separate into free text "foo" and left paren token
+      expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
+      expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
+
+      expect(getLastInput()).toHaveFocus();
+
+      // Should not commit changes until blur
+      expect(mockOnChange).not.toHaveBeenCalled();
+
+      await userEvent.click(document.body);
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('foo (', expect.anything());
+      });
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
     });
 
     it('focuses the correct text input after typing boolean operators', async function () {

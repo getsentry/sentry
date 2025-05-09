@@ -8,12 +8,14 @@ from typing import Any
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import options
+from sentry import audit_log, options
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.locks import locks
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.utils import metrics
+from sentry.utils.audit import create_system_audit_entry
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -25,42 +27,50 @@ CONFIGS_TO_DEPRECATE = set(CONFIGURATIONS.keys()) - {
 }
 
 
-def update_grouping_config_if_needed(project: Project, source: str) -> None:
+def update_or_set_grouping_config_if_needed(project: Project, source: str) -> None:
     current_config = project.get_option("sentry:grouping_config")
-    new_config = DEFAULT_GROUPING_CONFIG
 
-    if current_config == new_config or current_config == BETA_GROUPING_CONFIG:
+    if current_config == BETA_GROUPING_CONFIG:
         return
 
-    # Because the way the auto grouping upgrading happening is racy, we want to
-    # try to write the audit log entry and project option change just once.
-    # For this a cache key is used.  That's not perfect, but should reduce the
-    # risk significantly.
+    if current_config == DEFAULT_GROUPING_CONFIG:
+        # If the project's current config comes back as the default one, it might be because that's
+        # actually what's set in the database for that project, or it might be relying on the
+        # default value of that project option. In the latter case, we can use this upgrade check as
+        # a chance to set it. (We want projects to have their own record of the config they're
+        # using, so that when we introduce a new one, we know to transition them.)
+        project_option_exists = ProjectOption.objects.filter(
+            key="sentry:grouping_config", project_id=project.id
+        ).exists()
+
+        if project_option_exists:
+            return
+
+    # We want to try to write the audit log entry and project option change just once, so we use a
+    # cache key to avoid raciness. It's not perfect, but it reduces the risk significantly.
     cache_key = f"grouping-config-update:{project.id}:{current_config}"
     lock_key = f"grouping-update-lock:{project.id}"
     if cache.get(cache_key) is not None:
         return
 
     with locks.get(lock_key, duration=60, name="grouping-update-lock").acquire():
-        if cache.get(cache_key) is None:
-            cache.set(cache_key, "1", 60 * 5)
-        else:
+        if cache.get(cache_key) is not None:
             return
+        else:
+            cache.set(cache_key, "1", 60 * 5)
 
-        from sentry import audit_log
-        from sentry.utils.audit import create_system_audit_entry
+        changes: dict[str, str | int] = {"sentry:grouping_config": DEFAULT_GROUPING_CONFIG}
 
-        # This is when we will stop calculating the old hash in cases where we don't find the new
-        # hash (which we do in an effort to preserve group continuity).
-        expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+        # If the current config is out of date but still valid, start a transition period
+        if current_config != DEFAULT_GROUPING_CONFIG and current_config in CONFIGURATIONS.keys():
+            # This is when we will stop calculating the old hash in cases where we don't find the
+            # new hash (which we do in an effort to preserve group continuity).
+            transition_expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 
-        changes: dict[str, str | int] = {"sentry:grouping_config": new_config}
-        # If the current config is valid we will have a migration period
-        if current_config in CONFIGURATIONS.keys():
             changes.update(
                 {
                     "sentry:secondary_grouping_config": current_config,
-                    "sentry:secondary_grouping_expiry": expiry,
+                    "sentry:secondary_grouping_expiry": transition_expiry,
                 }
             )
 
@@ -73,11 +83,25 @@ def update_grouping_config_if_needed(project: Project, source: str) -> None:
             event=audit_log.get_event_id("PROJECT_EDIT"),
             data={**changes, **project.get_audit_log_data()},
         )
-        metrics.incr(
-            "grouping.config_updated",
-            sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
-            tags={"current_config": current_config, "source": source},
-        )
+
+        if current_config == DEFAULT_GROUPING_CONFIG:
+            metrics.incr(
+                "grouping.default_config_set",
+                sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+                tags={
+                    "source": source,
+                    "reason": "new_project" if not project.first_event else "backfill",
+                },
+            )
+        else:
+            metrics.incr(
+                "grouping.outdated_config_updated",
+                sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+                tags={
+                    "source": source,
+                    "current_config": current_config,
+                },
+            )
 
 
 def is_in_transition(project: Project) -> bool:

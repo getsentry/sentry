@@ -105,7 +105,7 @@ export function ExploreCharts({
           //
           // We can't do this in top N mode as the series name uses the row
           // values instead of the aggregate function.
-          if (s.field === yAxis) {
+          if (s.yAxis === yAxis) {
             return {
               ...s,
               seriesName: formattedYAxes[i] ?? yAxis,
@@ -152,6 +152,7 @@ export function ExploreCharts({
       return {
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
+        stack: visualize.stack,
         label: visualize.label,
         yAxes: visualize.yAxes,
         formattedYAxes,
@@ -318,7 +319,7 @@ export function ExploreCharts({
                     return new DataPlottableConstructor(timeSeries, {
                       delay: INGESTION_DELAY,
                       color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
-                      stack: 'all',
+                      stack: chartInfo.stack,
                     });
                   })}
                   legendSelection={{
