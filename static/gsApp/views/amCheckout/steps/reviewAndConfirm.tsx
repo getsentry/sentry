@@ -10,13 +10,13 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
-import {SEER_MONTHLY_PRICE_CENTS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {SEER_MONTHLY_PRICE_CENTS} from 'getsentry/constants';
 import type {PreviewData, Subscription} from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
 import {loadStripe} from 'getsentry/utils/stripe';

@@ -5,14 +5,17 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {Tag} from 'sentry/components/core/badge/tag';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {SEER_MONTHLY_PRICE_CENTS} from 'sentry/constants';
 import {IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
-import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
+import {
+  PAYG_BUSINESS_DEFAULT,
+  PAYG_TEAM_DEFAULT,
+  SEER_MONTHLY_PRICE_CENTS,
+} from 'getsentry/constants';
 import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
 import {formatReservedWithUnits, isBizPlanFamily} from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';

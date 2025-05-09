@@ -4,12 +4,11 @@ import styled from '@emotion/styled';
 import {Tag} from 'sentry/components/core/badge/tag';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {SEER_MONTHLY_PRICE_CENTS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
-import {ANNUAL, MONTHLY} from 'getsentry/constants';
+import {ANNUAL, MONTHLY, SEER_MONTHLY_PRICE_CENTS} from 'getsentry/constants';
 import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';

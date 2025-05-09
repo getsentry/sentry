@@ -11,13 +11,13 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {SEER_MONTHLY_PRICE_CENTS} from 'sentry/constants';
 import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 
+import {SEER_MONTHLY_PRICE_CENTS} from 'getsentry/constants';
 import {type Plan, PlanTier} from 'getsentry/types';
 import {
   getBusinessPlanOfTier,
