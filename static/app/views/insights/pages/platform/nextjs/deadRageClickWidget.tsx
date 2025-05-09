@@ -16,6 +16,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {SlowSSRWidget} from 'sentry/views/insights/pages/platform/nextjs/slowSsrWidget';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {
   SelectorLink,
   transformSelectorQuery,
@@ -23,9 +24,10 @@ import {
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
-export function DeadRageClicksWidget({query}: {query?: string}) {
-  const organization = useOrganization();
+export function DeadRageClicksWidget() {
   const location = useLocation();
+  const organization = useOrganization();
+  const {query} = useTransactionNameQuery();
   const fullQuery = `!count_dead_clicks:0 ${query}`.trim();
 
   const {isLoading, error, data} = useDeadRageSelectors({
@@ -120,7 +122,7 @@ function DeadRageClickWidgetVisualization({items}: {items: DeadRageSelectorItem[
 DeadRageClickWidgetVisualization.LoadingPlaceholder =
   TimeSeriesWidgetVisualization.LoadingPlaceholder;
 
-export function ProjectInfo({id}: {id: number}) {
+function ProjectInfo({id}: {id: number}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === id.toString());
   const platform = project?.platform;

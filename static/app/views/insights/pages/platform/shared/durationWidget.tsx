@@ -16,9 +16,11 @@ import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/la
 import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
-export function DurationWidget({query}: {query?: string}) {
+export function DurationWidget() {
   const organization = useOrganization();
+  const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams();
   const releaseBubbleProps = useReleaseBubbleProps();
 

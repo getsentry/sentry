@@ -217,8 +217,6 @@ export const SPAN_FUNCTIONS = [
   'failure_rate',
 ] as const;
 
-export const WEB_VITAL_FUNCTIONS = ['performance_score', 'count_scores'] as const;
-
 type BreakpointCondition = 'less' | 'greater';
 
 type RegressionFunctions = [
@@ -231,7 +229,7 @@ type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
-type WebVitalsFunctions = (typeof WEB_VITAL_FUNCTIONS)[number];
+type WebVitalsFunctions = 'performance_score' | 'count_scores';
 
 export type SpanMetricsResponse = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
@@ -545,6 +543,7 @@ export enum MetricsFields {
   TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
   TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
   RELEASE = 'release',
+  DEVICE_CLASS = 'device.class',
 }
 
 type MetricsNumberFields =
@@ -580,7 +579,8 @@ type MetricsStringFields =
   | MetricsFields.USER_DISPLAY
   | MetricsFields.PROFILE_ID
   | MetricsFields.RELEASE
-  | MetricsFields.TIMESTAMP;
+  | MetricsFields.TIMESTAMP
+  | MetricsFields.DEVICE_CLASS;
 
 export type MetricsResponse = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
@@ -628,6 +628,8 @@ enum DiscoverFields {
   SCORE_RATIO_CLS = 'measurements.score.ratio.cls',
   SCORE_RATIO_TTFB = 'measurements.score.ratio.ttfb',
   SCORE_RATIO_INP = 'measurements.score.ratio.inp',
+  MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
+  MEASUREMENTS_TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
 }
 
 export type MetricsProperty = keyof MetricsResponse;
@@ -655,7 +657,9 @@ type DiscoverNumberFields =
   | DiscoverFields.SCORE_RATIO_FCP
   | DiscoverFields.SCORE_RATIO_CLS
   | DiscoverFields.SCORE_RATIO_TTFB
-  | DiscoverFields.SCORE_RATIO_INP;
+  | DiscoverFields.SCORE_RATIO_INP
+  | DiscoverFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
+  | DiscoverFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY;
 
 type DiscoverStringFields =
   | DiscoverFields.ID

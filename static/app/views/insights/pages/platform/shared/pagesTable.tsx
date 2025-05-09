@@ -27,6 +27,7 @@ import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/componen
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 type SortableField =
@@ -66,14 +67,14 @@ const getOrderBy = (field: string, order: 'asc' | 'desc') => {
 
 const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
+  {key: 'count()', name: t('Page Views'), width: 122},
+  {key: 'failure_rate()', name: t('Error Rate'), width: 122},
+  {key: 'sum(span.duration)', name: t('Time Spent'), width: 110},
   {
     key: 'performance_score(measurements.score.total)',
     name: t('Perf Score'),
     width: COL_WIDTH_UNDEFINED,
   },
-  {key: 'count()', name: t('Page Views'), width: 122},
-  {key: 'failure_rate()', name: t('Error Rate'), width: 122},
-  {key: 'sum(span.duration)', name: t('Total'), width: 110},
 ];
 
 function isSortField(value: string): value is SortableField {
@@ -109,9 +110,7 @@ function useTableSortParams() {
 }
 
 interface PagesTableProps {
-  handleAddTransactionFilter: (value: string) => void;
   spanOperationFilter: 'pageload' | 'navigation';
-  query?: string;
 }
 
 const CURSOR_PARAM_NAMES: Record<PagesTableProps['spanOperationFilter'], string> = {
@@ -119,12 +118,9 @@ const CURSOR_PARAM_NAMES: Record<PagesTableProps['spanOperationFilter'], string>
   navigation: 'navigationCursor',
 };
 
-export function PagesTable({
-  spanOperationFilter,
-  query,
-  handleAddTransactionFilter,
-}: PagesTableProps) {
+export function PagesTable({spanOperationFilter}: PagesTableProps) {
   const location = useLocation();
+  const {query, setTransactionFilter} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams();
   const {sortField, sortOrder} = useTableSortParams();
   const currentCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
@@ -210,11 +206,11 @@ export function PagesTable({
         <BodyCell
           column={column}
           dataRow={dataRow}
-          handleAddTransactionFilter={handleAddTransactionFilter}
+          handleAddTransactionFilter={setTransactionFilter}
         />
       );
     },
-    [handleAddTransactionFilter]
+    [setTransactionFilter]
   );
 
   const pagesTablePageLinks = spansRequest.pageLinks;

@@ -45,7 +45,7 @@ type OpStats = {
 
 const TOP_N_SPANS = 4;
 
-export type OpBreakdownType = OpStats[];
+type OpBreakdownType = OpStats[];
 
 type Props = {
   event: Event | AggregateEventTransaction;

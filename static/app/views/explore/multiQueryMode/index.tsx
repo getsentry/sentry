@@ -25,7 +25,7 @@ export default function MultiQueryMode() {
 
   return (
     <Feature
-      features="explore-multi-query"
+      features="visibility-explore-view"
       organization={organization}
       renderDisabled={NoAccess}
     >
