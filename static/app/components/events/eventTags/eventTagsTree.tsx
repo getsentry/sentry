@@ -63,7 +63,7 @@ function addToTagTree({
 
   // Ignore tags with 0, or >4 branches, as well as sequential dots (e.g. 'some..tag')
   if (hasInvalidBranchCount || hasInvalidBranchSequence) {
-    tree[tag.key] = {value: tag.value, subtree: {}, meta: tag?.meta, originalTag};
+    tree[tag.key] = {value: tag.value, subtree: {}, meta: originalTag?.meta, originalTag};
     return tree;
   }
   // E.g. 'device.model.version'
