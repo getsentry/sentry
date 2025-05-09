@@ -105,7 +105,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   },
 };
 
-function Trace({replay}: {replay: undefined | ReplayRecord}) {
+export default function Trace({replay}: {replay: undefined | ReplayRecord}) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {
@@ -291,5 +291,3 @@ const TraceViewWaterfallWrapper = styled('div')`
   flex-direction: column;
   height: 100%;
 `;
-
-export default Trace;

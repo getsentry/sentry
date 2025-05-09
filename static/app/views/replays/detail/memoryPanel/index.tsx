@@ -49,6 +49,7 @@ export default function MemoryPanel() {
 }
 
 const Grid = styled('div')`
+  padding-top: ${space(1)};
   display: grid;
   grid-template-rows: 1fr 1fr;
   grid-template-columns: 1fr;
