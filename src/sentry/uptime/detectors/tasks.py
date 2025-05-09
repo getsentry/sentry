@@ -120,6 +120,9 @@ def process_detection_bucket(bucket: str):
 @instrumented_task(
     name="sentry.uptime.detectors.tasks.process_organization_url_ranking",
     queue="uptime",
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+    ),
 )
 def process_organization_url_ranking(organization_id: int):
     org = Organization.objects.get_from_cache(id=organization_id)

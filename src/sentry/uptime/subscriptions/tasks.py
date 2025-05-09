@@ -209,6 +209,9 @@ def subscription_checker(**kwargs):
 @instrumented_task(
     name="sentry.uptime.tasks.broken_monitor_checker",
     queue="uptime",
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+    ),
 )
 def broken_monitor_checker(**kwargs):
     """
