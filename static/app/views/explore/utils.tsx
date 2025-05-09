@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import {openConfirmModal} from 'sentry/components/confirm';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBusiness} from 'sentry/icons/iconBusiness';
@@ -121,6 +122,7 @@ export function getExploreUrlFromSavedQueryUrl({
       (savedQuery.query[0].groupby?.length ?? 0) === 0
         ? ['']
         : savedQuery.query[0].groupby,
+    sort: savedQuery.query[0].orderby,
     query: savedQuery.query[0].query,
     title: savedQuery.name,
     mode: savedQuery.query[0].mode,
@@ -371,3 +373,19 @@ const UpsellFooterHook = HookOrDefault({
   hookName: 'component:explore-date-range-query-limit-footer',
   defaultComponent: () => undefined,
 });
+
+export function confirmDeleteSavedQuery({
+  handleDelete,
+  savedQuery,
+}: {
+  handleDelete: () => void;
+  savedQuery: SavedQuery;
+}) {
+  openConfirmModal({
+    message: t('Are you sure you want to delete the query "%s"?', savedQuery.name),
+    isDangerous: true,
+    confirmText: t('Delete Query'),
+    priority: 'danger',
+    onConfirm: handleDelete,
+  });
+}
