@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {NoAccess} from 'sentry/components/noAccess';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -12,6 +13,10 @@ import {SeerAutomationProjectList} from './seerAutomationProjectList';
 
 function SeerAutomationRoot() {
   const organization = useOrganization();
+  if (!organization.features.includes('trigger-autofix-on-issue-summary')) {
+    return <NoAccess />;
+  }
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
