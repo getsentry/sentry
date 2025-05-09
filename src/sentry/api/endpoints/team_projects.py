@@ -26,7 +26,6 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.models.organization import Organization
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.seer.similarity.utils import project_is_seer_eligible
@@ -189,15 +188,8 @@ class TeamProjectsEndpoint(TeamEndpoint):
         if team.organization.flags.disable_member_project_creation and not (
             request.access.has_scope("org:write")
         ):
-            requester_admin_teams = set(
-                OrganizationMemberTeam.objects.filter(
-                    organizationmember__user_id=request.user.id,
-                    organizationmember__organization=team.organization,
-                    role="admin",
-                ).values_list("team__id", flat=True)
-            )
             # Only allow project creation if the user is an admin of the team
-            if team.id not in requester_admin_teams:
+            if not request.access.has_team_scope(team, "team:admin"):
                 return Response({"detail": DISABLED_FEATURE_ERROR_STRING}, status=403)
 
         result = serializer.validated_data
