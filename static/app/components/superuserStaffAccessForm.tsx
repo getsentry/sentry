@@ -9,7 +9,7 @@ import {Button} from 'sentry/components/core/button';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import U2fContainer from 'sentry/components/u2f/u2fContainer';
+import {WebAuthn} from 'sentry/components/webAuthn';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -17,7 +17,13 @@ import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
 import withApi from 'sentry/utils/withApi';
 
-type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
+interface WebAuthnParams {
+  challenge: string;
+  response: string;
+  isSuperuserModal?: boolean;
+  superuserAccessCategory?: string;
+  superuserReason?: string;
+}
 
 type Props = {
   api: Client;
@@ -111,7 +117,7 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
     }
   };
 
-  handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
+  handleWebAuthn = async (data: WebAuthnParams) => {
     const {api} = this.props;
 
     if (!this.props.hasStaff) {
@@ -206,10 +212,10 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
                   {errorType}
                 </Alert>
               )}
-              <U2fContainer
+              <WebAuthn
+                mode="sudo"
                 authenticators={authenticators}
-                displayMode="sudo"
-                onTap={this.handleU2fTap}
+                onWebAuthn={this.handleWebAuthn}
               />
             </React.Fragment>
           )
@@ -234,10 +240,10 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
             )}
             {showAccessForms && <Hook name="component:superuser-access-category" />}
             {!showAccessForms && (
-              <U2fContainer
+              <WebAuthn
+                mode="sudo"
                 authenticators={authenticators}
-                displayMode="sudo"
-                onTap={this.handleU2fTap}
+                onWebAuthn={this.handleWebAuthn}
               />
             )}
           </Form>

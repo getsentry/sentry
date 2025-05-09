@@ -149,7 +149,7 @@ describe('processInitQueue', function () {
           container: '#u2f-sign-container',
           name: 'renderReact',
           props: {
-            displayMode: 'signin',
+            mode: 'signin',
           },
         },
       ];
@@ -157,9 +157,9 @@ describe('processInitQueue', function () {
       render(<div id="u2f-sign-container" />);
       processInitQueue();
 
-      // U2F is not supported in the test environment
+      // WebAuthn is not supported in the test environment
       expect(
-        await screen.findByText(/Unfortunately your browser does not support U2F/)
+        await screen.findByText(/Your browser does not support WebAuthn/)
       ).toBeInTheDocument();
     });
 
