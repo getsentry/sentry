@@ -33,6 +33,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 
 import {MAX_FUNCTIONS} from './constants';
 import {
@@ -53,6 +54,7 @@ interface FunctionTrendsWidgetProps {
   trendType: TrendType;
   cursorName?: string;
   header?: ReactNode;
+  onDataState?: (dataState: DataState) => void;
   userQuery?: string;
   widgetHeight?: string;
 }
@@ -64,6 +66,7 @@ export function FunctionTrendsWidget({
   trendType,
   widgetHeight,
   userQuery,
+  onDataState,
 }: FunctionTrendsWidgetProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -118,6 +121,20 @@ export function FunctionTrendsWidget({
   const hasTrends = (trendsQuery.data?.length || 0) > 0;
   const isLoading = trendsQuery.isPending;
   const isError = trendsQuery.isError;
+
+  useEffect(() => {
+    if (onDataState) {
+      if (isLoading) {
+        onDataState('loading');
+      } else if (isError) {
+        onDataState('errored');
+      } else if (hasTrends) {
+        onDataState('populated');
+      } else {
+        onDataState('empty');
+      }
+    }
+  }, [onDataState, hasTrends, isLoading, isError]);
 
   return (
     <WidgetContainer height={widgetHeight}>

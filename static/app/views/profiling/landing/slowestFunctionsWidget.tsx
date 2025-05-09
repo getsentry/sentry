@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -41,6 +41,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 import {getProfileTargetId} from 'sentry/views/profiling/utils';
 
 import {MAX_FUNCTIONS} from './constants';
@@ -64,6 +65,7 @@ interface SlowestFunctionsWidgetProps<F extends BreakdownFunction> {
   breakdownFunction: F;
   cursorName?: string;
   header?: ReactNode;
+  onDataState?: (dataState: DataState) => void;
   userQuery?: string;
   widgetHeight?: string;
 }
@@ -74,6 +76,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   header,
   userQuery,
   widgetHeight,
+  onDataState,
 }: SlowestFunctionsWidgetProps<F>) {
   const location = useLocation();
   const organization = useOrganization();
@@ -161,6 +164,20 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     topEvents: functionsData.length,
     enabled: totalsQuery.isFetched && hasFunctions,
   });
+
+  useEffect(() => {
+    if (onDataState) {
+      if (isLoading) {
+        onDataState('loading');
+      } else if (isError) {
+        onDataState('errored');
+      } else if (hasFunctions) {
+        onDataState('populated');
+      } else {
+        onDataState('empty');
+      }
+    }
+  }, [onDataState, hasFunctions, isLoading, isError]);
 
   return (
     <WidgetContainer height={widgetHeight}>

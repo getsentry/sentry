@@ -10,6 +10,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 
 import {FunctionTrendsWidget} from './functionTrendsWidget';
 import {SlowestFunctionsWidget} from './slowestFunctionsWidget';
@@ -31,6 +32,7 @@ interface LandingWidgetSelectorProps {
   cursorName: string;
   defaultWidget: WidgetOption;
   storageKey: string;
+  onDataState?: (dataState: DataState) => void;
   widgetHeight?: string;
 }
 
@@ -38,6 +40,7 @@ export function LandingWidgetSelector({
   cursorName,
   defaultWidget,
   storageKey,
+  onDataState,
   widgetHeight,
 }: LandingWidgetSelectorProps) {
   const router = useRouter();
@@ -91,6 +94,7 @@ export function LandingWidgetSelector({
           trendType="regression"
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
     case 'improved functions':
@@ -102,6 +106,7 @@ export function LandingWidgetSelector({
           trendType="improvement"
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
     case 'slowest functions avg':
@@ -112,6 +117,7 @@ export function LandingWidgetSelector({
           header={header}
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
     case 'slowest functions p50':
@@ -122,6 +128,7 @@ export function LandingWidgetSelector({
           header={header}
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
     case 'slowest functions p95':
@@ -132,6 +139,7 @@ export function LandingWidgetSelector({
           header={header}
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
     case 'slowest functions p99':
@@ -142,6 +150,7 @@ export function LandingWidgetSelector({
           header={header}
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
     case 'slowest functions':
@@ -153,6 +162,7 @@ export function LandingWidgetSelector({
           header={header}
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
   }

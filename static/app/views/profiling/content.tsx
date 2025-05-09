@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useReducer, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -43,6 +43,8 @@ import {Onboarding} from 'sentry/views/profiling/onboarding';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
+import type {DataState} from './useLandingAnalytics';
+import {useLandingAnalytics} from './useLandingAnalytics';
 
 const LEFT_WIDGET_CURSOR = 'leftCursor';
 const RIGHT_WIDGET_CURSOR = 'rightCursor';
@@ -62,94 +64,44 @@ function decodeTab(tab: unknown): 'flamegraph' | 'transactions' {
   return validateTab(tab) ? tab : 'transactions';
 }
 
-type DataState = 'loading' | 'errored' | 'empty' | 'populated';
-
-type DataLoaded = {
-  flamegraphData: DataState;
-  transactionsTableData: DataState;
-  widget1Data: DataState;
-  widget2Data: DataState;
-};
-
-type DataStateAction = {
-  dataKey: keyof DataLoaded;
-  dataState: DataState;
-};
-
-function dataLoadedReducer(state: DataLoaded, action: DataStateAction) {
-  return {
-    ...state,
-    [action.dataKey]: action.dataState,
-  };
-}
-
-function useLandingAnalytics() {
-  const organization = useOrganization();
-
-  const [dataLoaded, dispatch] = useReducer(dataLoadedReducer, {
-    flamegraphData: 'loading',
-    transactionsTableData: 'loading',
-    widget1Data: 'loading',
-    widget2Data: 'loading',
-  });
-
-  const dispatchedAnalytics = useRef(false);
-
-  const dataState: DataState = useMemo(() => {
-    // if any thing on the page loads with data,
-    // we consider the page populated
-    if (
-      dataLoaded.flamegraphData === 'populated' ||
-      dataLoaded.transactionsTableData === 'populated' ||
-      dataLoaded.widget1Data === 'populated' ||
-      dataLoaded.widget2Data === 'populated'
-    ) {
-      return 'populated';
-    }
-
-    // if any thing on the page is still loading,
-    // we should wait before deciding the page is empty/errored
-    if (
-      dataLoaded.flamegraphData === 'loading' ||
-      dataLoaded.transactionsTableData === 'loading' ||
-      dataLoaded.widget1Data === 'loading' ||
-      dataLoaded.widget2Data === 'loading'
-    ) {
-      return 'loading';
-    }
-
-    // if everything on the page errors, we consider it errored
-    if (
-      dataLoaded.flamegraphData === 'errored' &&
-      dataLoaded.transactionsTableData === 'errored' &&
-      dataLoaded.widget1Data === 'errored' &&
-      dataLoaded.widget2Data === 'errored'
-    ) {
-      return 'errored';
-    }
-
-    return 'empty';
-  }, [dataLoaded]);
-
-  useEffect(() => {
-    if (!dispatchedAnalytics.current && dataState !== 'loading') {
-      dispatchedAnalytics.current = true;
-      trackAnalytics('profiling_views.landing', {
-        organization,
-        data: dataState,
-      });
-    }
-  }, [dataState, organization]);
-
-  return dispatch;
-}
-
 export default function ProfilingContent({location}: ProfilingContentProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  useLandingAnalytics();
+  const dispatchDataState = useLandingAnalytics();
+  const updateWidget1DataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'widget1Data',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+  const updateWidget2DataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'widget2Data',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+  const updateFlamegraphDataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'flamegraphData',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+  const updateTransactionsTableDataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'transactionsTableData',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
 
   const showOnboardingPanel = useMemo(() => {
     return shouldShowProfilingOnboardingPanel(selection, projects);
@@ -159,6 +111,16 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
 
   const onTabChange = useCallback(
     (newTab: 'flamegraph' | 'transactions') => {
+      // make sure to reset the state of the tabs
+      dispatchDataState({
+        dataKey: 'flamegraphData',
+        dataState: 'pending',
+      });
+      dispatchDataState({
+        dataKey: 'transactionsTableData',
+        dataState: 'pending',
+      });
+
       trackAnalytics('profiling_views.landing.tab_change', {
         organization,
       });
@@ -170,7 +132,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
         },
       });
     },
-    [location, organization]
+    [dispatchDataState, location, organization]
   );
 
   return (
@@ -207,12 +169,14 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                         widgetHeight="410px"
                         defaultWidget="slowest functions"
                         storageKey="profiling-landing-widget-0"
+                        onDataState={updateWidget1DataState}
                       />
                       <LandingWidgetSelector
                         cursorName={RIGHT_WIDGET_CURSOR}
                         widgetHeight="410px"
                         defaultWidget="regressed functions"
                         storageKey="profiling-landing-widget-1"
+                        onDataState={updateWidget2DataState}
                       />
                     </WidgetsContainer>
                   )}
@@ -243,9 +207,13 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                     </Tabs>
                   </div>
                   {tab === 'flamegraph' ? (
-                    <FlamegraphTab />
+                    <FlamegraphTab onDataState={updateFlamegraphDataState} />
                   ) : (
-                    <TransactionsTab location={location} selection={selection} />
+                    <TransactionsTab
+                      location={location}
+                      selection={selection}
+                      onDataState={updateTransactionsTableDataState}
+                    />
                   )}
                 </Fragment>
               )}
@@ -257,12 +225,16 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
   );
 }
 
-interface TabbedContentProps {
+interface ProfilingTabProps {
+  onDataState?: (dataState: DataState) => void;
+}
+
+interface TabbedContentProps extends ProfilingTabProps {
   location: Location;
   selection: PageFilters;
 }
 
-function TransactionsTab({location, selection}: TabbedContentProps) {
+function TransactionsTab({onDataState, location, selection}: TabbedContentProps) {
   const query = decodeScalar(location.query.query, '');
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {
@@ -298,6 +270,24 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
 
   const transactionsError =
     transactions.status === 'error' ? formatError(transactions.error) : '';
+
+  const hasData = (transactions.data?.data?.length || 0) > 0;
+  const isLoading = transactions.isPending;
+  const isError = transactions.isError;
+
+  useEffect(() => {
+    if (onDataState) {
+      if (isLoading) {
+        onDataState('loading');
+      } else if (isError) {
+        onDataState('errored');
+      } else if (hasData) {
+        onDataState('populated');
+      } else {
+        onDataState('empty');
+      }
+    }
+  }, [onDataState, hasData, isLoading, isError]);
 
   return (
     <Fragment>
@@ -335,11 +325,11 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
   );
 }
 
-function FlamegraphTab() {
+function FlamegraphTab({onDataState}: ProfilingTabProps) {
   return (
     <LandingAggregateFlamegraphSizer>
       <LandingAggregateFlamegraphContainer>
-        <LandingAggregateFlamegraph />
+        <LandingAggregateFlamegraph onDataState={onDataState} />
       </LandingAggregateFlamegraphContainer>
     </LandingAggregateFlamegraphSizer>
   );
