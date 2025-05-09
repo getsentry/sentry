@@ -118,6 +118,11 @@ function UpgradeOrTrialButton({
     return null;
   }
 
+  // Additionally, don't show request upgrade CTAs to managed plans
+  if (!subscription.canSelfServe && action === 'upgrade') {
+    return null;
+  }
+
   if (action === 'trial') {
     if (hasAccess) {
       // admin with trial available
@@ -159,6 +164,12 @@ function UpgradeOrTrialButton({
       </Button>
     );
   }
+
+  // Hide the Request Upgrade button for managed plans
+  if (subscription.isManaged) {
+    return null;
+  }
+
   return (
     <Button onClick={handleRequest} busy={busy} priority={buttonPriority} {...props}>
       {childComponent || t('Request Upgrade')}
