@@ -136,6 +136,7 @@ export type TracingEventParameters = {
   };
   'trace_explorer.add_span_condition': Record<string, unknown>;
   'trace_explorer.compare_queries': Record<string, unknown>;
+  'trace_explorer.delete_query': Record<string, unknown>;
   'trace_explorer.open_in_issues': Record<string, unknown>;
   'trace_explorer.open_trace': {
     source: 'trace explorer' | 'new explore';
@@ -243,4 +244,5 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace_explorer.compare_queries': 'Trace Explorer: Compare',
   'trace_explorer.save_query_modal': 'Trace Explorer: Save Query Modal',
   'trace_explorer.star_query': 'Trace Explorer: Star Query',
+  'trace_explorer.delete_query': 'Trace Explorer: Delete Query',
 };
