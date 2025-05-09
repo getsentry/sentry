@@ -176,7 +176,8 @@ export function transformToSeriesMap(
         return convertEventsStatsToTimeSeriesData(
           hasMultipleYAxes ? seriesOrGroupName : yAxis[0]!,
           result[seriesOrGroupName]!,
-          hasMultipleYAxes ? undefined : seriesOrGroupName
+          hasMultipleYAxes ? undefined : seriesOrGroupName,
+          hasMultipleYAxes ? undefined : result[seriesOrGroupName]!.order
         );
       }
     );
@@ -212,12 +213,13 @@ export function transformToSeriesMap(
 
   return processedResults
     .sort(([, orderA], [, orderB]) => orderA - orderB)
-    .reduce((acc, [groupName, , groupData]) => {
+    .reduce((acc, [groupName, groupOrder, groupData]) => {
       Object.keys(groupData).forEach(seriesName => {
         const [, series] = convertEventsStatsToTimeSeriesData(
           seriesName,
           groupData[seriesName]!,
-          groupName
+          groupName,
+          groupOrder
         );
 
         if (acc[seriesName]) {
@@ -233,7 +235,8 @@ export function transformToSeriesMap(
 export function convertEventsStatsToTimeSeriesData(
   seriesName: string,
   seriesData: EventsStats,
-  alias?: string
+  alias?: string,
+  order?: number
 ): [number, TimeSeries] {
   const label = alias ?? (seriesName || FALLBACK_SERIES_NAME);
 
@@ -257,6 +260,10 @@ export function convertEventsStatsToTimeSeriesData(
     samplingRate: seriesData.meta?.accuracy?.samplingRate,
     dataScanned: seriesData.meta?.dataScanned,
   };
+
+  if (defined(order)) {
+    serie.meta.order = order;
+  }
 
   return [seriesData.order ?? 0, serie];
 }
