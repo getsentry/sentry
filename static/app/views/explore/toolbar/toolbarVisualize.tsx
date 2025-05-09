@@ -29,8 +29,9 @@ import {
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 
 import {
+  ToolbarFooter,
+  ToolbarFooterButton,
   ToolbarHeader,
-  ToolbarHeaderButton,
   ToolbarLabel,
   ToolbarRow,
   ToolbarSection,
@@ -84,16 +85,6 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
         >
           <ToolbarLabel>{t('Visualize')}</ToolbarLabel>
         </Tooltip>
-        <Tooltip title={t('Add a new chart')}>
-          <ToolbarHeaderButton
-            size="zero"
-            icon={<IconAdd />}
-            onClick={addChart}
-            aria-label={t('Add Chart')}
-            borderless
-            disabled={visualizes.length >= MAX_VISUALIZES}
-          />
-        </Tooltip>
       </ToolbarHeader>
       <div>
         {visualizes.map((visualize, group) => {
@@ -130,6 +121,19 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
           );
         })}
       </div>
+      <ToolbarFooter>
+        <ToolbarFooterButton
+          borderless
+          size="zero"
+          icon={<IconAdd />}
+          onClick={addChart}
+          priority="link"
+          aria-label={t('Add Chart')}
+          disabled={visualizes.length >= MAX_VISUALIZES}
+        >
+          {t('Add Chart')}
+        </ToolbarFooterButton>
+      </ToolbarFooter>
     </StyledToolbarSection>
   );
 }
