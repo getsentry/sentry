@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -142,12 +142,6 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
     }
     return navigationColumnOrder;
   });
-
-  useEffect(() => {
-    setColumnOrder(
-      spanOperationFilter === 'pageload' ? pageloadColumnOrder : navigationColumnOrder
-    );
-  }, [spanOperationFilter]);
 
   const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
     navigate({

@@ -125,7 +125,12 @@ export function NextJsOverviewPage({
         <PathsTable showHttpMethodColumn={false} showUsersColumn={false} />
       )}
 
-      {activeView === 'pages' && <PagesTable spanOperationFilter={spanOperationFilter} />}
+      {activeView === 'pages' && (
+        <PagesTable
+          key={spanOperationFilter + 'Table'}
+          spanOperationFilter={spanOperationFilter}
+        />
+      )}
     </PlatformLandingPageLayout>
   );
 }
