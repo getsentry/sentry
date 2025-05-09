@@ -126,10 +126,9 @@ export function NextJsOverviewPage({
       )}
 
       {activeView === 'pages' && (
-        <PagesTable
-          key={spanOperationFilter + 'Table'}
-          spanOperationFilter={spanOperationFilter}
-        />
+        // Render the PagesTable component with a unique key, which forces the rerender
+        // of column order when the user switches between navigations and pageloads
+        <PagesTable key={spanOperationFilter} spanOperationFilter={spanOperationFilter} />
       )}
     </PlatformLandingPageLayout>
   );
