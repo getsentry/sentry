@@ -70,7 +70,8 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
 
-    def is_detection_allowed_for_system(self) -> bool:
+    @classmethod
+    def is_detection_allowed_for_system(cls) -> bool:
         # Defer to the issue platform for whether to create issues
         # See https://develop.sentry.dev/backend/issue-platform/#releasing-your-issue-type
         return True
