@@ -652,6 +652,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "user.ip:127.0.0.1",
                 "user.ip:[127.0.0.1, 10.0.4.4]",
                 "!user.ip:[127.1.1.1, 10.0.4.4]",
+                'user.geo.city:"San Francisco"',
+                "user.geo.country_code:USA",
+                'user.geo.region:"United States"',
+                "user.geo.subdivision:California",
+                'user.geo.city:"San Francisco" AND user.geo.country_code:USA AND user.geo.region:"United States" AND user.geo.subdivision:California',
                 "sdk.name:sentry.javascript.react",
                 "os.name:macOS",
                 "os.version:15",
@@ -761,6 +766,12 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "seen_by_me:false",
                 "user.email:[user2@example.com]",
                 "!user.email:[username@example.com, user2@example.com]",
+                '!user.geo.city:"San Francisco"',
+                "!user.geo.country_code:USA",
+                '!user.geo.region:"United States"',
+                "!user.geo.subdivision:California",
+                'user.geo.city:"San Francisco" AND !user.geo.country_code:USA',
+                '!user.geo.subdivision:California OR !user.geo.region:"United States"',
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
