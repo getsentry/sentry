@@ -60,13 +60,13 @@ class MismatchType(Enum):
 
 
 def get_time_window_for_interval(interval: int):
-    if interval in [60, 300, 600]:
+    if interval == 60:
         return timedelta(days=1)
 
     if interval == 24 * 60 * 60:
         return timedelta(days=14)
 
-    return timedelta(days=3)
+    return timedelta(days=7)
 
 
 class TSResultForComparison(TypedDict):
