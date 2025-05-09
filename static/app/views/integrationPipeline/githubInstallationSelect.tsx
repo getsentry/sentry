@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -24,13 +24,21 @@ type GithubInstallationProps = {
 export function GithubInstallationSelect({installation_info}: GithubInstallationProps) {
   const [installationID, setInstallationID] = useState<SelectKey>(-1);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [installationInfo, setInstallationInfo] =
+    useState<Installation[]>(installation_info);
 
-  // Add an option for users to install on a new GH organization
-  installation_info.push({
-    installation_id: '-1',
-    github_account: 'Install integration on a new GitHub organization',
-    avatar_url: '',
-  });
+  useEffect(() => {
+    // Add an option for users to install on a new GH organization
+    const optionsWithSkip = [
+      ...installation_info,
+      {
+        installation_id: '-1',
+        github_account: 'Integrate with a new GitHub organization',
+        avatar_url: '',
+      },
+    ];
+    setInstallationInfo(optionsWithSkip);
+  }, [installation_info]);
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
     e.preventDefault();
@@ -59,7 +67,7 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
     setInstallationID(value);
   };
 
-  const selectOptions = installation_info.map(
+  const selectOptions = installationInfo.map(
     (installation): SelectOption<SelectKey> => ({
       value: installation.installation_id,
       label: (
