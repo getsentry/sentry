@@ -12,7 +12,6 @@ import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -50,7 +49,6 @@ import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
-import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
 import LeftNavViewsHeader from 'sentry/views/issueList/leftNavViewsHeader';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
@@ -1095,38 +1093,26 @@ function IssueListOverview({
   return (
     <NewTabContextProvider>
       <Layout.Page>
-        {prefersStackedNav && (
+        {prefersStackedNav ? (
           <LeftNavViewsHeader
             selectedProjectIds={selection.projects}
             title={title}
             description={titleDescription}
           />
+        ) : (
+          <IssueListHeader
+            organization={organization}
+            query={query}
+            sort={sort}
+            queryCount={queryCount}
+            queryCounts={queryCounts}
+            realtimeActive={realtimeActive}
+            router={router}
+            displayReprocessingTab={showReprocessingTab}
+            selectedProjectIds={selection.projects}
+            onRealtimeChange={onRealtimeChange}
+          />
         )}
-        {!prefersStackedNav &&
-          (organization.features.includes('issue-stream-custom-views') &&
-          !organization.features.includes('enforce-stacked-navigation') ? (
-            <ErrorBoundary message={'Failed to load custom tabs'} mini>
-              <IssueViewsIssueListHeader
-                router={router}
-                selectedProjectIds={selection.projects}
-                realtimeActive={realtimeActive}
-                onRealtimeChange={onRealtimeChange}
-              />
-            </ErrorBoundary>
-          ) : (
-            <IssueListHeader
-              organization={organization}
-              query={query}
-              sort={sort}
-              queryCount={queryCount}
-              queryCounts={queryCounts}
-              realtimeActive={realtimeActive}
-              router={router}
-              displayReprocessingTab={showReprocessingTab}
-              selectedProjectIds={selection.projects}
-              onRealtimeChange={onRealtimeChange}
-            />
-          ))}
         <StyledBody>
           <StyledMain>
             <IssuesDataConsentBanner source="issues" />
