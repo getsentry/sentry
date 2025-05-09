@@ -219,7 +219,6 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
 
     /* Apply to all scrollable children */
     * {
-      overflow: hidden !important;
       scrollbar-width: none;
 
       &::-webkit-scrollbar {

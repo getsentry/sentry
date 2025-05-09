@@ -63,7 +63,7 @@ export function FeatureFlagCTAContent({
           </LinkButton>
         </ActionButton>
       </BannerContent>
-      <BannerIllustration src={onboardingInstall} alt={t('Install')} />
+      <BannerIllustration src={onboardingInstall} alt="" />
     </Fragment>
   );
 }
@@ -194,19 +194,18 @@ const BannerContent = styled('div')`
 `;
 
 const BannerIllustration = styled('img')`
-  height: 100%;
   object-fit: contain;
   max-width: 30%;
-  margin-right: 10px;
-  margin-bottom: -${space(2)};
-  padding: ${space(2)};
+  min-width: 150px;
+  padding-inline: ${space(2)};
+  padding-top: ${space(2)};
+  align-self: flex-end;
 `;
 
 export const BannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  margin: ${space(1)} 0;
   background: linear-gradient(
     90deg,
     ${p => p.theme.backgroundSecondary}00 0%,
@@ -218,6 +217,15 @@ export const BannerWrapper = styled('div')`
   align-items: flex-end;
   justify-content: space-between;
   gap: ${space(1)};
+
+  container-name: bannerWrapper;
+  container-type: inline-size;
+
+  @container bannerWrapper (max-width: 400px) {
+    img {
+      display: none;
+    }
+  }
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`
