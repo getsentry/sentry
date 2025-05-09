@@ -223,7 +223,7 @@ describe('OrganizationSettingsForm', function () {
     });
   });
 
-  it('disables hideAiFeatures toggle and shows tooltip for DE region', function () {
+  it('shows hideAiFeatures togglefor DE region', function () {
     // Mock the region util to return DE region
     jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
       name: 'de',
@@ -246,6 +246,6 @@ describe('OrganizationSettingsForm', function () {
     );
 
     const toggle = screen.getByRole('checkbox', {name: 'Enable Generative AI features'});
-    expect(toggle).toBeDisabled();
+    expect(toggle).toBeEnabled();
   });
 });
