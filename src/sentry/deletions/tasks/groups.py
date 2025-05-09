@@ -20,7 +20,13 @@ from sentry.taskworker.retry import Retry
     max_retries=MAX_RETRIES,
     acks_late=True,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=deletion_tasks, retry=Retry(times=MAX_RETRIES)),
+    taskworker_config=TaskworkerConfig(
+        namespace=deletion_tasks,
+        retry=Retry(
+            times=MAX_RETRIES,
+            delay=60 * 5,
+        ),
+    ),
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
