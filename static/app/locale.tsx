@@ -304,6 +304,7 @@ function mark<T extends React.ReactNode>(node: T): T {
     _store: {},
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   proxy.toString = () => '✅' + node + '✅';
   // TODO(TS): Should proxy be created using `React.createElement`?
   return proxy as any as T;

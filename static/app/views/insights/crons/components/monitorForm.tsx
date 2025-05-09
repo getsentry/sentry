@@ -527,6 +527,7 @@ function MonitorForm({
                   const selectedAssignee = form.current.getValue('alertRule.targets');
                   // Check for falsey value or empty array value
 
+                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
                   const disabled = !selectedAssignee || !selectedAssignee.toString();
 
                   return (

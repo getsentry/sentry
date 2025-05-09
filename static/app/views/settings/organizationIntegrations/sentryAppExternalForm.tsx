@@ -428,6 +428,7 @@ class SentryAppExternalForm extends Component<Props, State> {
           // If the field is a SelectAsync, we need to preserve the label since the next time it's rendered,
           // we can't be sure the options will contain this selection
           if (stateOption?.value === value) {
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
             savedSetting.label = `${stateOption?.label}`;
           }
           return savedSetting;
