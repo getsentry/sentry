@@ -27,11 +27,16 @@ CONFIGS_TO_DEPRECATE = set(CONFIGURATIONS.keys()) - {
 }
 
 
-def update_or_set_grouping_config_if_needed(project: Project, source: str) -> None:
+def update_or_set_grouping_config_if_needed(project: Project, source: str) -> str:
+    """
+    Ensure that the given project has its grouping config set to the current default. Will create a
+    `ProjectOption` record for any project missing one. Returns a string indicating what it did, for
+    use by scripts.
+    """
     current_config = project.get_option("sentry:grouping_config")
 
     if current_config == BETA_GROUPING_CONFIG:
-        return
+        return "skipped - beta config"
 
     if current_config == DEFAULT_GROUPING_CONFIG:
         # If the project's current config comes back as the default one, it might be because that's
@@ -44,18 +49,18 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> No
         ).exists()
 
         if project_option_exists:
-            return
+            return "skipped - up-to-date record exists"
 
     # We want to try to write the audit log entry and project option change just once, so we use a
     # cache key to avoid raciness. It's not perfect, but it reduces the risk significantly.
     cache_key = f"grouping-config-update:{project.id}:{current_config}"
     lock_key = f"grouping-update-lock:{project.id}"
     if cache.get(cache_key) is not None:
-        return
+        return "skipped - race condition"
 
     with locks.get(lock_key, duration=60, name="grouping-update-lock").acquire():
         if cache.get(cache_key) is not None:
-            return
+            return "skipped - race condition"
         else:
             cache.set(cache_key, "1", 60 * 5)
 
@@ -93,6 +98,7 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> No
                     "reason": "new_project" if not project.first_event else "backfill",
                 },
             )
+            outcome = "record created"
         else:
             metrics.incr(
                 "grouping.outdated_config_updated",
@@ -102,6 +108,9 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> No
                     "current_config": current_config,
                 },
             )
+            outcome = "record updated"
+
+        return outcome
 
 
 def is_in_transition(project: Project) -> bool:
