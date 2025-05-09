@@ -390,7 +390,12 @@ function SearchQueryBuilderInputInternal({
           }
 
           if (option.type === 'raw-search') {
-            dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: option.value});
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: option.value,
+              shouldCommitQuery: true,
+            });
             resetInputValue();
 
             // Because the query does not change until a subsequent render,
@@ -405,6 +410,7 @@ function SearchQueryBuilderInputInternal({
               tokens: [token],
               text: replaceFocusedWord(inputValue, selectionIndex, option.textValue),
               focusOverride: calculateNextFocusForInsertedToken(item),
+              shouldCommitQuery: true,
             });
             resetInputValue();
             return;
@@ -422,6 +428,7 @@ function SearchQueryBuilderInputInternal({
               getFieldDefinition
             ),
             focusOverride: calculateNextFocusForFilter(state),
+            shouldCommitQuery: false,
           });
           resetInputValue();
           const selectedKey = filterKeys[value];
@@ -446,6 +453,7 @@ function SearchQueryBuilderInputInternal({
               currentFocusedKey: item.key.toString(),
               value,
             }),
+            shouldCommitQuery: false,
           });
           resetInputValue();
         }}
@@ -458,6 +466,7 @@ function SearchQueryBuilderInputInternal({
               currentFocusedKey: item.key.toString(),
               value,
             }),
+            shouldCommitQuery: true,
           });
           resetInputValue();
 
@@ -467,7 +476,12 @@ function SearchQueryBuilderInputInternal({
         }}
         onExit={() => {
           if (inputValue !== token.value.trim()) {
-            dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: inputValue});
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: inputValue,
+              shouldCommitQuery: false,
+            });
             resetInputValue();
           }
         }}
@@ -490,6 +504,7 @@ function SearchQueryBuilderInputInternal({
               tokens: [token],
               text: e.target.value,
               focusOverride: calculateNextFocusForInsertedToken(item),
+              shouldCommitQuery: false,
             });
             resetInputValue();
             return;
@@ -513,6 +528,7 @@ function SearchQueryBuilderInputInternal({
                 getFieldDefinition
               ),
               focusOverride: calculateNextFocusForFilter(state),
+              shouldCommitQuery: false,
             });
             resetInputValue();
             trackAnalytics('search.key_manually_typed', {

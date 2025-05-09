@@ -69,7 +69,7 @@ function useApplyFocusOverride(state: ListState<ParseResultToken>) {
 function Grid(props: GridProps) {
   const ref = useRef<HTMLDivElement>(null);
   const selectionKeyHandlerRef = useRef<HTMLInputElement>(null);
-  const {size} = useSearchQueryBuilder();
+  const {size, dispatch} = useSearchQueryBuilder();
   const state = useListState<ParseResultToken>({
     ...props,
     selectionBehavior: 'replace',
@@ -100,6 +100,13 @@ function Grid(props: GridProps) {
       {...gridProps}
       ref={ref}
       style={size === 'small' ? undefined : {paddingRight: props.actionBarWidth + 12}}
+      onBlur={e => {
+        if (ref.current?.contains(e.relatedTarget as Node)) {
+          return;
+        }
+
+        dispatch({type: 'COMMIT_QUERY'});
+      }}
     >
       <SelectionKeyHandler ref={selectionKeyHandlerRef} state={state} undo={undo} />
       {[...state.collection].map(item => {
