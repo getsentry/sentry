@@ -344,6 +344,7 @@ class ChartZoom extends Component<Props> {
         utc,
         start,
         end,
+        isGroupedByDate: true,
         ...props,
       });
     }

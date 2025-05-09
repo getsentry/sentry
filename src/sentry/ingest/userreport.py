@@ -5,12 +5,13 @@ import random
 import uuid
 from datetime import datetime, timedelta
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, router
 from django.utils import timezone
 
 from sentry import eventstore, options
+from sentry.api.exceptions import BadRequest
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
@@ -61,9 +62,14 @@ def save_userreport(
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
             )
+            if (
+                source == FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
+                or source == FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+            ):
+                raise PermissionDenied()
             return None
 
-        should_filter, metrics_reason, outcomes_reason = validate_user_report(
+        should_filter, metrics_reason, display_reason = validate_user_report(
             report, project.id, source=source
         )
         if should_filter:
@@ -76,12 +82,17 @@ def save_userreport(
                 project_id=project.id,
                 key_id=None,
                 outcome=Outcome.INVALID,
-                reason=outcomes_reason,
+                reason=display_reason,
                 timestamp=start_time,
                 event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
             )
+            if (
+                source == FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
+                or source == FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+            ):
+                raise BadRequest(display_reason)
             return None
 
         # XXX(dcramer): enforce case insensitivity by coercing this to a lowercase string
@@ -207,7 +218,7 @@ def validate_user_report(
 
     Reformatting: strips whitespace from comments and dashes from event_id.
 
-    Returns a tuple of (should_filter, metrics_reason, outcomes_reason). XXX: ensure metrics and outcome reasons have bounded cardinality.
+    Returns a tuple of (should_filter, metrics_reason, display_reason). XXX: ensure metrics and outcome reasons have bounded cardinality.
 
     At the moment we do not raise validation errors.
     """
