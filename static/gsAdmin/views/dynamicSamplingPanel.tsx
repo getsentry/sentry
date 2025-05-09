@@ -355,6 +355,7 @@ function DynamicSamplingRulesTable({
         impact: evaluateRuleImpact(rule),
       };
     })
+
     .filter(row => Object.values(row).join().toLowerCase().includes(searchQuery));
 
   return (

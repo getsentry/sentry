@@ -8,7 +8,7 @@ import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper'
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import type {Field, FieldValue} from 'sentry/components/forms/types';
+import type {Field, FieldValue, OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import withApi from 'sentry/utils/withApi';
@@ -417,7 +417,7 @@ class SentryAppExternalForm extends Component<Props, State> {
     );
   };
 
-  handleAlertRuleSubmit = (formData: any, onSubmitSuccess: any) => {
+  handleAlertRuleSubmit: OnSubmitCallback = (formData, onSubmitSuccess) => {
     const {sentryAppInstallationUuid} = this.props;
     if (this.model.validateForm()) {
       onSubmitSuccess({

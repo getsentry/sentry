@@ -34,7 +34,7 @@ export type CategoryOption = {
   yAxisMinInterval: number;
 } & SelectValue<DataCategory>;
 
-export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
+export const CHART_OPTIONS_DATACATEGORY = [
   ...Object.values(DATA_CATEGORY_INFO)
     .filter(categoryInfo => categoryInfo.statsInfo.showExternalStats)
     .map(categoryInfo => ({
@@ -43,7 +43,7 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
       disabled: false,
       yAxisMinInterval: categoryInfo.statsInfo.yAxisMinInterval,
     })),
-];
+] satisfies CategoryOption[];
 
 export enum ChartDataTransform {
   CUMULATIVE = 'cumulative',

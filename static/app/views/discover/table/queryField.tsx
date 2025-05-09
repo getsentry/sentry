@@ -553,7 +553,9 @@ class _QueryField extends Component<Props> {
           />
         );
       }
-      throw new Error(`Unknown parameter type encountered for ${this.props.fieldValue}`);
+      throw new Error(
+        `Unknown parameter type encountered for ${JSON.stringify(this.props.fieldValue)}`
+      );
     });
 
     if (skipParameterPlaceholder) {

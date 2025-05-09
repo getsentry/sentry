@@ -91,9 +91,7 @@ function RadioGroup<C extends string>({
                 aria-label={name?.toString()}
                 disabled={disabled}
                 checked={value === id}
-                onChange={(e: React.FormEvent<HTMLInputElement>) =>
-                  !disabled && onChange(id, e)
-                }
+                onChange={e => !disabled && onChange(id, e)}
               />
               <RadioLineText disabled={disabled}>{name}</RadioLineText>
               {description && (

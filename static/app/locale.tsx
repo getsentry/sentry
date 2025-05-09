@@ -244,7 +244,7 @@ function parseComponentTemplate(template: string): ParsedTemplate {
 function renderTemplate(
   template: ParsedTemplate,
   components: ComponentMap
-): React.ReactNode {
+): React.JSX.Element {
   let idx = 0;
 
   function renderGroup(name: string, id: string) {
@@ -406,7 +406,7 @@ function gettextComponentTemplate(
   components: ComponentMap
 ): React.JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components) as React.JSX.Element);
+  return mark(renderTemplate(parsedTemplate, components));
 }
 
 /**

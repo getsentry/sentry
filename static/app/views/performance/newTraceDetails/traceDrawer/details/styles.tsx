@@ -826,6 +826,7 @@ function KeyValueAction({
         location,
         projectIds,
         rowKey,
+
         rowValue.toString(),
         TraceDrawerActionKind.INCLUDE
       ),
@@ -838,6 +839,7 @@ function KeyValueAction({
         location,
         projectIds,
         rowKey,
+
         rowValue.toLocaleString(),
         TraceDrawerActionKind.EXCLUDE
       ),
@@ -868,6 +870,7 @@ function KeyValueAction({
           location,
           projectIds,
           rowKey,
+
           rowValue.toString(),
           TraceDrawerActionKind.GREATER_THAN
         ),
@@ -880,6 +883,7 @@ function KeyValueAction({
           location,
           projectIds,
           rowKey,
+
           rowValue.toString(),
           TraceDrawerActionKind.LESS_THAN
         ),
@@ -904,6 +908,7 @@ function KeyValueAction({
         traceAnalytics.trackExploreSearch(
           organization,
           rowKey,
+
           rowValue.toString(),
           key as TraceDrawerActionKind,
           'drawer'

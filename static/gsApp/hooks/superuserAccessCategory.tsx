@@ -45,7 +45,7 @@ const Span = styled('span')`
   font-size: 18px;
 `;
 
-type SuperuserAccessCategories = [string, React.ReactNode];
+type SuperuserAccessCategories = [string, string];
 
 const EngineeringCategories: SuperuserAccessCategories[] = [
   ['development', 'Development'],

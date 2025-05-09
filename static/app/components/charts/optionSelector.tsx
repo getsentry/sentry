@@ -55,7 +55,9 @@ function OptionSelector({
   const mappedOptions = useMemo(() => {
     return options.map(opt => ({
       ...opt,
+
       textValue: String(opt.label),
+
       label: <Truncate value={String(opt.label)} maxLength={60} expandDirection="left" />,
     }));
   }, [options]);

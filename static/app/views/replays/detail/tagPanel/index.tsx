@@ -1,4 +1,3 @@
-import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -53,7 +52,7 @@ function TagPanel() {
   const {items} = filterProps;
 
   const generateUrl = useCallback(
-    (name: string, value: ReactNode): LocationDescriptor => ({
+    (name: string, value: string): LocationDescriptor => ({
       pathname: makeReplaysPathname({
         path: '/',
         organization,

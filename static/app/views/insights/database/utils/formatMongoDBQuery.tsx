@@ -71,6 +71,7 @@ export function formatMongoDBQuery(query: string, command: string) {
 
 function jsonEntryToToken(key: string, value: JSONValue, isBold?: boolean) {
   const tokenString = jsonToTokenizedString(value, key);
+
   return stringToToken(tokenString, `${key}:${value}`, isBold);
 }
 
