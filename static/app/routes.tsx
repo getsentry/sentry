@@ -17,7 +17,6 @@ import AuthLayout from 'sentry/views/auth/layout';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
-import {SUMMARY_PAGE_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
@@ -1725,55 +1724,6 @@ function buildRoutes() {
           path="details/"
           component={make(
             () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
-          )}
-        />
-      </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_RENDERING]}/`}>
-        <IndexRoute
-          component={make(
-            () =>
-              import(
-                'sentry/views/insights/mobile/screenRendering/screenRenderingLandingPage'
-              )
-          )}
-        />
-        <Route
-          path={`${SUMMARY_PAGE_BASE_URL}/`}
-          component={make(
-            () =>
-              import(
-                'sentry/views/insights/mobile/screenRendering/screenRenderingSummaryPage'
-              )
-          )}
-        />
-      </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/insights/mobile/ui/views/uiLandingPage')
-          )}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () => import('sentry/views/insights/mobile/ui/views/screenSummaryPage')
-          )}
-        />
-      </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}>
-        <IndexRoute
-          component={make(
-            () =>
-              import(
-                'sentry/views/insights/mobile/screenload/views/screenloadLandingPage'
-              )
-          )}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () =>
-              import('sentry/views/insights/mobile/screenload/views/screenLoadSpansPage')
           )}
         />
       </Route>

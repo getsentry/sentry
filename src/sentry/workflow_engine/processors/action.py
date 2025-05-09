@@ -87,6 +87,7 @@ def update_workflow_fire_histories(
     logger.info(
         "workflow_engine.workflow_fire_history.update",
         extra={
+            "actions": [action.id for action in actions_to_fire],
             "workflow_ids": list(fired_workflows),
             "group_id": event_data.event.group_id,
             "event_id": event_data.event.event_id,
