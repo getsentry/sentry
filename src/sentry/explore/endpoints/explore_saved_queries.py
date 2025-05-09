@@ -123,7 +123,7 @@ PREBUILT_SAVED_QUERIES = [
     },
     {
         "prebuilt_id": 4,
-        "prebuilt_version": 1,
+        "prebuilt_version": 2,
         "name": "Worst Pageloads",
         "dataset": "spans",
         "query": [
@@ -135,6 +135,7 @@ PREBUILT_SAVED_QUERIES = [
                     "span.duration",
                     "transaction",
                     "timestamp",
+                    "measurements.lcp",
                 ],
                 "query": "span.op:pageload measurements.lcp:>0ms",
                 "mode": "samples",
@@ -145,7 +146,7 @@ PREBUILT_SAVED_QUERIES = [
                     },
                     {
                         "chartType": 1,
-                        "yAxes": ["p75(span.duration)", "p90(span.duration)"],
+                        "yAxes": ["p75(measurements.lcp)", "p90(measurements.lcp)"],
                     },
                 ],
                 "orderby": "-measurements.lcp",

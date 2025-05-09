@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
@@ -313,10 +314,10 @@ const StyledPanelTable = styled(PanelTable)<{hasTypeColumn: boolean}>`
     );
   ${p =>
     p.hasTypeColumn &&
-    `
-  grid-template-columns:
-    minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
-    minmax(74px, max-content);
+    css`
+      grid-template-columns:
+        minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
+        minmax(74px, max-content);
     `}
 `;
 

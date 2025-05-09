@@ -1,15 +1,15 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import SpansWidgetQueries from './spansWidgetQueries';
 
 describe('spansWidgetQueries', () => {
+  const {organization} = initializeOrg();
   const api = new MockApiClient();
   let widget = WidgetFixture();
   const selection = PageFiltersFixture();
@@ -127,23 +127,18 @@ describe('spansWidgetQueries', () => {
     });
 
     render(
-      <OrganizationContext.Provider
-        value={OrganizationFixture({
-          features: ['visibility-explore-progressive-loading-normal-sampling-mode'],
-        })}
+      <SpansWidgetQueries
+        api={api}
+        widget={widget}
+        selection={{
+          ...selection,
+          datetime: {period: '24hr', end: null, start: null, utc: null},
+        }}
+        dashboardFilters={{}}
       >
-        <SpansWidgetQueries
-          api={api}
-          widget={widget}
-          selection={{
-            ...selection,
-            datetime: {period: '24hr', end: null, start: null, utc: null},
-          }}
-          dashboardFilters={{}}
-        >
-          {({timeseriesResults}) => <div>{timeseriesResults?.[0]?.data?.[0]?.value}</div>}
-        </SpansWidgetQueries>
-      </OrganizationContext.Provider>
+        {({timeseriesResults}) => <div>{timeseriesResults?.[0]?.data?.[0]?.value}</div>}
+      </SpansWidgetQueries>,
+      {organization}
     );
 
     expect(await screen.findByText('1')).toBeInTheDocument();
@@ -186,23 +181,18 @@ describe('spansWidgetQueries', () => {
     });
 
     render(
-      <OrganizationContext.Provider
-        value={OrganizationFixture({
-          features: ['visibility-explore-progressive-loading-normal-sampling-mode'],
-        })}
+      <SpansWidgetQueries
+        api={api}
+        widget={widget}
+        selection={{
+          ...selection,
+          datetime: {period: '24hr', end: null, start: null, utc: null},
+        }}
+        dashboardFilters={{}}
       >
-        <SpansWidgetQueries
-          api={api}
-          widget={widget}
-          selection={{
-            ...selection,
-            datetime: {period: '24hr', end: null, start: null, utc: null},
-          }}
-          dashboardFilters={{}}
-        >
-          {({tableResults}) => <div>{tableResults?.[0]?.data?.[0]?.a}</div>}
-        </SpansWidgetQueries>
-      </OrganizationContext.Provider>
+        {({tableResults}) => <div>{tableResults?.[0]?.data?.[0]?.a}</div>}
+      </SpansWidgetQueries>,
+      {organization}
     );
 
     expect(await screen.findByText('normal mode')).toBeInTheDocument();
