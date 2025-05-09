@@ -16,8 +16,8 @@ import {IconBusiness, IconLab} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
@@ -34,6 +34,7 @@ import {
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
 import FeedbackButtonTour from 'sentry/views/insights/sessions/components/tour/feedbackButtonTour';
+import {EAP_LOCAL_STORAGE_KEY} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -64,29 +65,25 @@ export function DomainViewHeader({
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
-  const navigate = useNavigate();
   const moduleURLBuilder = useModuleURLBuilder();
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
   const [isNextJsInsightsEnabled] = useIsNextJsInsightsEnabled();
   const useEap = useInsightsEap();
   const {view} = useDomainViewFilters();
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
+  const [_, setIsEapEnabledLocalState] = useSyncedLocalStorageState(
+    EAP_LOCAL_STORAGE_KEY,
+    false
+  );
 
   const toggleUseEap = () => {
     const newState = !useEap;
+    setIsEapEnabledLocalState(newState);
     trackAnalytics('insights.eap.toggle', {
       organization,
       isEapEnabled: newState,
       page: selectedModule || 'overview',
       view,
-    });
-
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        useEap: newState ? '1' : '0',
-      },
     });
   };
 
