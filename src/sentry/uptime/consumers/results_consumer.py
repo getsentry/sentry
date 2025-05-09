@@ -153,9 +153,7 @@ def has_reached_status_threshold(
 
 
 def try_check_and_update_regions(
-    subscription: UptimeSubscription,
-    result: CheckResult,
-    regions: list[UptimeSubscriptionRegion],
+    subscription: UptimeSubscription, regions: list[UptimeSubscriptionRegion]
 ):
     """
     This method will check if regions have been added or removed from our region configuration,
@@ -411,7 +409,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             return
 
         if should_run_region_checks(subscription, result):
-            try_check_and_update_regions(subscription, result, subscription_regions)
+            try_check_and_update_regions(subscription, subscription_regions)
 
         detector = get_detector(subscription)
 
