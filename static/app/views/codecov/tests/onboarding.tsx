@@ -6,6 +6,7 @@ import TestPreOnboardingPage from 'sentry/views/codecov/tests/preOnboarding';
 export default function TestsOnboardingPage() {
   return (
     <LayoutGap>
+      <p>Test Analytics Onboarding</p>
       <TestPreOnboardingPage />
     </LayoutGap>
   );
