@@ -169,7 +169,7 @@ def dispatch_performance_projects(
                 args=[
                     [],
                     projects,
-                    timestamp,
+                    str(timestamp),
                 ],
                 countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
             )
@@ -183,7 +183,7 @@ def dispatch_performance_projects(
             args=[
                 [],
                 projects,
-                timestamp,
+                str(timestamp),
             ],
             countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
         )
