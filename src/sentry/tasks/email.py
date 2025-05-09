@@ -9,6 +9,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import notifications_control_tasks, notifications_tasks
+from sentry.taskworker.retry import Retry
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import send_messages
@@ -57,6 +58,9 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=notifications_tasks,
+        retry=Retry(
+            delay=60 * 5,
+        ),
     ),
 )
 def send_email(message: EmailMultiAlternatives | dict[str, Any]) -> None:
@@ -73,6 +77,9 @@ def send_email(message: EmailMultiAlternatives | dict[str, Any]) -> None:
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=notifications_control_tasks,
+        retry=Retry(
+            delay=60 * 5,
+        ),
     ),
 )
 def send_email_control(message: EmailMultiAlternatives | dict[str, Any]) -> None:

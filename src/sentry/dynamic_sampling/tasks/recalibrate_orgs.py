@@ -54,7 +54,10 @@ from sentry.taskworker.retry import Retry
     taskworker_config=TaskworkerConfig(
         namespace=telemetry_experience_tasks,
         processing_deadline_duration=1 * 60 + 5,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
@@ -99,7 +102,10 @@ def recalibrate_orgs(context: TaskContext) -> None:
     taskworker_config=TaskworkerConfig(
         namespace=telemetry_experience_tasks,
         processing_deadline_duration=6 * 60 + 5,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
 @dynamic_sampling_task
@@ -183,7 +189,10 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
     taskworker_config=TaskworkerConfig(
         namespace=telemetry_experience_tasks,
         processing_deadline_duration=2 * 60 + 5,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)

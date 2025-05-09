@@ -37,7 +37,13 @@ def get_payload_v0(event):
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
 )
 @retry
 def process_service_hook(servicehook_id, event, **kwargs):

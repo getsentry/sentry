@@ -101,7 +101,10 @@ class ProjectTransactionsTotals(TypedDict, total=True):
     taskworker_config=TaskworkerConfig(
         namespace=telemetry_experience_tasks,
         processing_deadline_duration=6 * 60 + 5,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
@@ -164,7 +167,10 @@ def boost_low_volume_transactions(context: TaskContext) -> None:
     taskworker_config=TaskworkerConfig(
         namespace=telemetry_experience_tasks,
         processing_deadline_duration=4 * 60 + 5,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
 @dynamic_sampling_task

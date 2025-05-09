@@ -82,6 +82,7 @@ def handle_invalid_identity(identity, commit_failure=False):
         processing_deadline_duration=60 * 15 + 5,
         retry=Retry(
             times=5,
+            delay=60 * 5,
         ),
     ),
 )

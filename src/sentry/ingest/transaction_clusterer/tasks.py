@@ -48,7 +48,10 @@ CLUSTERING_TIMEOUT_PER_PROJECT = 0.3
     max_retries=5,  # copied from release monitor
     taskworker_config=TaskworkerConfig(
         namespace=performance_tasks,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
 def spawn_clusterers(**kwargs: Any) -> None:
@@ -73,7 +76,10 @@ def spawn_clusterers(**kwargs: Any) -> None:
     taskworker_config=TaskworkerConfig(
         namespace=performance_tasks,
         processing_deadline_duration=int(PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2),
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
 def cluster_projects(project_ids: Sequence[int]) -> None:

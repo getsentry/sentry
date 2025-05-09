@@ -488,6 +488,7 @@ def cleanup_redis_buffer(
         processing_deadline_duration=60,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )

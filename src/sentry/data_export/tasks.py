@@ -51,6 +51,7 @@ logger = logging.getLogger(__name__)
         namespace=export_tasks,
         retry=Retry(
             times=3,
+            delay=60,
         ),
     ),
 )

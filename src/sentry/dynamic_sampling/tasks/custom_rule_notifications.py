@@ -39,7 +39,10 @@ MIN_SAMPLES_FOR_NOTIFICATION = 10
     taskworker_config=TaskworkerConfig(
         namespace=telemetry_experience_tasks,
         processing_deadline_duration=1 * 60 + 5,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
@@ -196,7 +199,10 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: list[int]) -
     taskworker_config=TaskworkerConfig(
         namespace=telemetry_experience_tasks,
         processing_deadline_duration=3 * 60 + 5,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
 @dynamic_sampling_task

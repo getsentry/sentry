@@ -730,7 +730,10 @@ def refresh_check_state(org_id):
     taskworker_config=TaskworkerConfig(
         namespace=telemetry_experience_tasks,
         processing_deadline_duration=TASK_SOFT_LIMIT_IN_SECONDS + 5,
-        retry=Retry(times=1),
+        retry=Retry(
+            times=1,
+            delay=5,
+        ),
     ),
 )
 def run_compatibility_check_async(org_id):

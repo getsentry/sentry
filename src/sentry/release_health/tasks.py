@@ -51,7 +51,12 @@ def monitor_release_adoption(**kwargs) -> None:
     default_retry_delay=5,
     max_retries=5,
     taskworker_config=TaskworkerConfig(
-        namespace=release_health_tasks, retry=Retry(times=5, on=(Exception,))
+        namespace=release_health_tasks,
+        retry=Retry(
+            times=5,
+            on=(Exception,),
+            delay=5,
+        ),
     ),
 )
 def process_projects_with_sessions(org_id, project_ids) -> None:
