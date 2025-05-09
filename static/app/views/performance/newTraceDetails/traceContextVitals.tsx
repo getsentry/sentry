@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Theme, useTheme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {MobileVital, WebVital} from 'sentry/utils/fields';
+import type {MobileVital, WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital, Vital as VitalDetails} from 'sentry/utils/performance/vitals/types';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -74,6 +74,7 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
 
   const primaryVitalsCount = getPrimaryVitalsCount(
     vitalsToDisplay,
+    tree.vital_types.has('web') ? 'web' : 'mobile',
     containerWidth,
     theme
   );
@@ -245,6 +246,7 @@ const SecondaryVitalsCountContainer = styled('div')`
 
 function getPrimaryVitalsCount(
   primaryVitals: WebVital[] | MobileVital[],
+  type: 'web' | 'mobile',
   containerWidth: number | undefined,
   theme: Theme
 ) {
@@ -259,6 +261,10 @@ function getPrimaryVitalsCount(
   }
 
   if (containerWidth > parseInt(theme.breakpoints.small, 10)) {
+    if (type === 'web') {
+      return totalCount;
+    }
+
     return 3;
   }
 
