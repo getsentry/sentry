@@ -419,6 +419,14 @@ class DetectorParams:
         description="The ID of the detector you'd like to query.",
     )
 
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="An optional search query for filtering detectors.",
+    )
+
     SORT = OpenApiParameter(
         name="sortBy",
         location="query",
