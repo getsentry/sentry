@@ -105,11 +105,6 @@ function CronsOverview() {
 
   const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
 
-  // TODO(epurkhiser): Remove once we've restricted history to 30days in the backend
-  const maxPickableDays = organization.features.includes('crons-30-days-ui')
-    ? 30
-    : undefined;
-
   return (
     <Fragment>
       <CronsListPageHeader organization={organization} />
@@ -165,7 +160,7 @@ function CronsOverview() {
             <PageFilterBar>
               <ProjectPageFilter resetParamsOnChange={['cursor']} />
               <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-              <DatePageFilter maxPickableDays={maxPickableDays} />
+              <DatePageFilter maxPickableDays={30} />
             </PageFilterBar>
             <SearchBar
               query={decodeScalar(qs.parse(location.search)?.query, '')}
