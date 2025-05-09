@@ -266,6 +266,7 @@ class IntegrationPipelineViewType(StrEnum):
     # GitHub
     OAUTH_LOGIN = "oauth_login"
     GITHUB_INSTALLATION = "github_installation"
+    ORGANIZATION_SELECTION = "organization_selection"
 
     # Bitbucket
     VERIFY_INSTALLATION = "verify_installation"
