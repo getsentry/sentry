@@ -163,6 +163,7 @@ def _process_suspect_commits(
         namespace=issues_tasks,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )
