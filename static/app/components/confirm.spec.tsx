@@ -132,7 +132,7 @@ describe('Confirm', function () {
     expect(clickEvent.stopPropagation).toHaveBeenCalled();
   });
 
-  describe('onConfirmAsync', function () {
+  describe('async onConfirm', function () {
     it('should not close the modal until the promise is resolved', async function () {
       jest.useFakeTimers();
       const onConfirmAsync = jest.fn().mockImplementation(
@@ -143,7 +143,7 @@ describe('Confirm', function () {
       );
 
       render(
-        <Confirm message="Are you sure?" onConfirmAsync={onConfirmAsync}>
+        <Confirm message="Are you sure?" onConfirm={onConfirmAsync}>
           <button>Confirm?</button>
         </Confirm>
       );
@@ -180,7 +180,7 @@ describe('Confirm', function () {
       );
 
       render(
-        <Confirm message="Are you sure?" onConfirmAsync={onConfirmAsync}>
+        <Confirm message="Are you sure?" onConfirm={onConfirmAsync}>
           <button>Confirm?</button>
         </Confirm>
       );
@@ -205,6 +205,7 @@ describe('Confirm', function () {
       // Should show error message and not close the modal
       await screen.findByText(/something went wrong/i);
       expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
     });
   });
 });

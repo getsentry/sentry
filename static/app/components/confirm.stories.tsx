@@ -105,18 +105,17 @@ export default storyBook('Confirm', story => {
     </Fragment>
   ));
 
-  story('Async Confimations', () => {
+  story('Async Confirmations', () => {
     return (
       <Fragment>
         <p>
-          If you pass an async function to{' '}
-          <JSXProperty name="onConfirmAsync" value={Function} />, the modal will not close
-          until the promise is resolved. This is useful if you have actions that require a
-          endpoint to respond before the modal can be closed, such as when confirming the
-          deletion of the page you are on.
+          If you pass a promise to <JSXProperty name="onConfirm" value={Function} />, the
+          modal will not close until the promise is resolved. This is useful if you have
+          actions that require a endpoint to respond before the modal can be closed, such
+          as when confirming the deletion of the page you are on.
         </p>
         <Confirm
-          onConfirmAsync={() => new Promise(resolve => setTimeout(resolve, 1000))}
+          onConfirm={() => new Promise(resolve => setTimeout(resolve, 1000))}
           header="Are you sure?"
           message="This confirmation takes 1 second to complete"
         >
@@ -127,7 +126,7 @@ export default storyBook('Confirm', story => {
           network errors.
         </p>
         <Confirm
-          onConfirmAsync={() => new Promise((_, reject) => setTimeout(reject, 1000))}
+          onConfirm={() => new Promise((_, reject) => setTimeout(reject, 1000))}
           header="Are you sure?"
           message="This confirmation will error"
           errorMessage="Custom error message"

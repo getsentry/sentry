@@ -101,12 +101,11 @@ export type OpenConfirmOptions = {
   onClose?: () => void;
   /**
    * Callback when user confirms
+   *
+   * If you pass a promise, the modal will not close until it resolves.
+   * To customize the error message in case of rejection, pass the `errorMessage` prop.
    */
-  onConfirm?: () => void;
-  /**
-   * Prevents the modal from closing until the promise is resolved
-   */
-  onConfirmAsync?: () => Promise<unknown>;
+  onConfirm?: () => void | Promise<void>;
   /**
    * Callback function when user is in the confirming state called when the
    * confirm modal is opened
@@ -231,7 +230,6 @@ type ModalProps = ModalRenderProps &
     | 'header'
     | 'isDangerous'
     | 'onConfirm'
-    | 'onConfirmAsync'
     | 'onCancel'
     | 'disableConfirmButton'
     | 'onRender'
@@ -252,7 +250,6 @@ function ConfirmModal({
   disableConfirmButton,
   onCancel,
   onConfirm,
-  onConfirmAsync,
   renderMessage,
   message,
   errorMessage = t('Something went wrong. Please try again.'),
@@ -278,21 +275,22 @@ function ConfirmModal({
       return;
     }
 
+    isConfirmingRef.current = true;
     setShouldDisableConfirmButton(true);
 
-    if (onConfirmAsync) {
+    if (onConfirm) {
       try {
-        await onConfirmAsync();
+        await onConfirm();
       } catch (error) {
         setIsError(true);
+        setShouldDisableConfirmButton(disableConfirmButton ?? false);
         return;
+      } finally {
+        isConfirmingRef.current = false;
       }
-    } else if (onConfirm) {
-      onConfirm();
     }
 
     confirmCallbackRef.current();
-    isConfirmingRef.current = true;
     closeModal();
   };
 
