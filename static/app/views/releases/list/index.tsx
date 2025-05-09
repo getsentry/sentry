@@ -141,6 +141,7 @@ export default function ReleasesList() {
   const {
     data: releases = [],
     isPending: isReleasesPending,
+    isRefetching: isReleasesRefetching,
     error: releasesError,
     getResponseHeader: getReleasesResponseHeader,
   } = useApiQuery<Release[]>(
@@ -150,7 +151,7 @@ export default function ReleasesList() {
       activeSort,
       activeStatus,
     }),
-    {staleTime: 30000}
+    {staleTime: Infinity, placeholderData: prev => prev}
   );
 
   useEffect(() => {
@@ -309,7 +310,6 @@ export default function ReleasesList() {
               selectedProject={selectedProject}
               selection={selection}
             />
-
             <ReleasesPageFilterBar condensed>
               <DemoTourElement
                 id={DemoTourStep.RELEASES_COMPARE}
@@ -356,7 +356,7 @@ export default function ReleasesList() {
               </SortAndFilterWrapper>
             )}
 
-            {!isReleasesPending &&
+            {!(isReleasesPending || isReleasesRefetching) &&
               activeStatus === ReleasesStatusOption.ARCHIVED &&
               !!releases?.length && <ReleaseArchivedNotice multi />}
 
@@ -369,7 +369,7 @@ export default function ReleasesList() {
                 organization={organization}
                 releases={releases}
                 releasesPageLinks={releasesPageLinks}
-                reloading={isReleasesPending}
+                reloading={isReleasesRefetching}
                 selectedProject={selectedProject}
                 selection={selection}
                 shouldShowQuickstart={shouldShowQuickstart}
