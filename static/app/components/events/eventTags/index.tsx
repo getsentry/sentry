@@ -5,7 +5,7 @@ import EventTagCustomBanner from 'sentry/components/events/eventTags/eventTagCus
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {TagFilter} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import type {Event, EventTag} from 'sentry/types/event';
+import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -15,7 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 type Props = {
   event: Event;
   projectSlug: Project['slug'];
-  filteredTags?: EventTag[];
+  filteredTags?: EventTagWithMeta[];
   tagFilter?: TagFilter;
 };
 
@@ -100,12 +100,7 @@ export function EventTags({
 
   return (
     <Fragment>
-      <EventTagsTree
-        event={event}
-        meta={meta}
-        projectSlug={projectSlug}
-        tags={filtered}
-      />
+      <EventTagsTree event={event} projectSlug={projectSlug} tags={filtered} />
       {hasCustomTagsBanner && <EventTagCustomBanner />}
     </Fragment>
   );
