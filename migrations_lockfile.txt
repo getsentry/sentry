@@ -5,7 +5,7 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-explore: 0003_add_prebuilt_column_to_explore_saved_queries
+explore: 0004_add_explore_last_visited_table
 
 feedback: 0004_index_together
 
@@ -21,12 +21,12 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0883_delete_orphaned_users_without_emails
+sentry: 0883_delete_incident_snapshot_tables_pt1
 
 social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0040_uptime_backfill_detector_conditions
+uptime: 0041_uptime_backfill_detector_grouphash
 
 workflow_engine: 0060_backfill_metric_alert_resolution_action_filters

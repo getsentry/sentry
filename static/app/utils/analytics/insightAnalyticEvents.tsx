@@ -1,4 +1,5 @@
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 export type InsightEventParameters = {
   'insight.app_start.select_start_type': {type: string};
@@ -40,6 +41,11 @@ export type InsightEventParameters = {
   'insight.vital.overview.toggle_tab': {tab: string};
   'insight.vital.select_browser_value': {browsers: string[]};
   'insight.vital.vital_sidebar_opened': {vital: string};
+  'insights.eap.toggle': {
+    isEapEnabled: boolean;
+    page: ModuleName | 'overview';
+    view: DomainView | undefined;
+  };
   'insights.page_loads.overview': {domain: DomainView | undefined; platforms: string[]};
   'insights.session_health_tour.dismissed': Record<string, unknown>;
 };
@@ -89,4 +95,5 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.general.select_region_value': 'Insights: Select value in region selector',
   'insight.general.create_alert': 'Insights: Create Alert clicked',
   'insights.session_health_tour.dismissed': 'Insights: Session Health Tour Dismissed',
+  'insights.eap.toggle': 'Insights: EAP Toggle',
 };

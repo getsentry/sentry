@@ -195,7 +195,10 @@ def group_was_recently_resolved(group: Group) -> bool:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=60 * 5,
+        ),
     ),
 )
 @retry(exclude=(Integration.DoesNotExist,))
