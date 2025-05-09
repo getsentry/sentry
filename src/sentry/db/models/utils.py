@@ -106,3 +106,186 @@ class Creator(Generic[FieldSetType, FieldGetType]):
 
     def __set__(self, obj: Model, value: Any) -> None:
         obj.__dict__[self.field.name] = self.field.to_python(value)
+
+
+import enum
+import io
+import typing
+import uuid
+from dataclasses import dataclass
+
+from cryptography.fernet import Fernet
+
+
+class KeyStatus(enum.IntEnum):
+    DISABLED = 0
+    ACTIVE = 1
+
+
+STATUS_BINARY_SIZE = 1  # 1 byte used to represent status
+KEY_ID_LENGTH = 16  # 16 bytes == 128 bits == uuid4
+KEY_LENGTH = 44  # 44 bytes -  URL-safe base64 encoded fernet key
+
+
+@dataclass
+class Key:
+    status: KeyStatus
+    key_id: bytes
+    key: bytes
+
+
+class KeysetHandler:
+    def __init__(self):
+        self._keyset: dict[bytes, Key] = {}
+
+    def load(self, io_stream: typing.BinaryIO) -> None:
+        """
+        TODO: include file version in the stream - for future compatibility
+        Load keyset from io stream.
+        Keys are loaded in the following format, from the beginning of the stream:
+        - status (1 byte)
+        - key_id (16 bytes)
+        - key (44 bytes)
+        --------------------------------
+        | status | key_id   | key       |
+        --------------------------------
+        | 1 byte | 16 bytes | 44 bytes  |
+        --------------------------------
+        """
+        while True:
+            status_as_bytes = io_stream.read(STATUS_BINARY_SIZE)
+            if not status_as_bytes:  # EOF: read returned empty bytes
+                break
+
+            if len(status_as_bytes) < STATUS_BINARY_SIZE:
+                raise ValueError("Malformed keyset file: incomplete status read.")
+
+            status = KeyStatus(int.from_bytes(status_as_bytes, "big"))
+
+            key_id = io_stream.read(KEY_ID_LENGTH)
+            if len(key_id) < KEY_ID_LENGTH:
+                raise ValueError("Malformed keyset file: incomplete key_id read.")
+
+            key_value = io_stream.read(KEY_LENGTH)  # Renamed variable for clarity
+            if len(key_value) < KEY_LENGTH:
+                raise ValueError("Malformed keyset file: incomplete key read.")
+
+            self.add_key(Key(status, key_id, key_value))
+
+    def save(self, io_stream: io.BytesIO) -> None:
+        """
+        Save keyset to io stream.
+        Keys are saved in the following format:
+        - status (1 byte)
+        - key_id (16 bytes)
+        - key (44 bytes)
+        """
+        for key in self._keyset.values():
+            io_stream.write(key.status.value.to_bytes(STATUS_BINARY_SIZE, "big"))
+            io_stream.write(key.key_id)
+            io_stream.write(key.key)
+
+    def add_key(self, key: Key) -> None:
+        """
+        Add key to keyset
+        """
+        self._keyset[key.key_id] = key
+
+    def _delete_key(self, key_id: str) -> None:
+        """
+        Caution: This method will delete key from keyset.
+        This operation is irreversible.
+
+        If you only want to disable key, use disable_key method instead.
+        """
+        del self._keyset[key_id]
+
+    def get_key(self, key_id: bytes) -> Key:
+        """
+        Get key from keyset
+        """
+        if key_id not in self._keyset:
+            raise ValueError(f"Key {key_id} not found")
+
+        return self._keyset[key_id]
+
+    @staticmethod
+    def generate_key() -> Key:
+        """
+        Generate key
+        """
+        key_id = uuid.uuid4().bytes
+        fernet_key = Fernet.generate_key()
+        return Key(key_id=key_id, key=fernet_key, status=KeyStatus.ACTIVE)
+
+    def promote_key(self, key_id: bytes) -> None:
+        """
+        Promote key to active. Primary key is the first key in the keyset.
+        """
+        if key_id not in self._keyset:
+            raise ValueError(f"Key {key_id} not found")
+
+        key_to_promote = self.get_key(key_id)
+        if key_to_promote.status != KeyStatus.ACTIVE:
+            raise ValueError(f"Key {key_id} is not active")
+
+        # update keyset by making key_to_promote the first key in the dict
+        updated_keyset = {key_id: key_to_promote}
+        updated_keyset.update(self._keyset)
+        self._keyset = updated_keyset
+
+    def encrypt(self, data: bytes) -> bytes:
+        """
+        Encrypt data
+        """
+        primary_key = self._get_primary_key()
+        if primary_key is None:
+            raise ValueError("No active key found")
+
+        fernet = Fernet(primary_key.key)
+        return primary_key.key_id + fernet.encrypt(data)  # format: key_id + encrypted_data
+
+    def decrypt(self, data: bytes) -> bytes:
+        """
+        Decrypt data
+        """
+        key_id, data = data[:KEY_ID_LENGTH], data[KEY_ID_LENGTH:]
+        key = self.get_key(key_id)
+        if key.status != KeyStatus.ACTIVE:
+            raise ValueError(f"Key {key_id} is not active")
+
+        fernet = Fernet(key.key)
+        return fernet.decrypt(data)
+
+    def activate_key(self, key_id: bytes) -> None:
+        """
+        Activate key
+        """
+        if key_id not in self._keyset:
+            raise ValueError(f"Key {key_id} not found")
+
+        self._change_key_status(key_id, KeyStatus.ACTIVE)
+
+    def disable_key(self, key_id: bytes) -> None:
+        """
+        Disable key
+        """
+        self._change_key_status(key_id, KeyStatus.DISABLED)
+
+    def _get_primary_key(self) -> Key | None:
+        """
+        First active key in a keyset is considered as the primary key
+        """
+        for key in self._keyset.values():
+            if key.status == KeyStatus.ACTIVE:
+                return key
+        return None
+
+    def _change_key_status(self, key_id: bytes, status: KeyStatus) -> None:
+        """
+        Change key status
+        """
+        if key_id not in self._keyset:
+            raise ValueError(f"Key {key_id} not found")
+
+        self._keyset[key_id].status = status

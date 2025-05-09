@@ -1,28 +1,30 @@
-import pickle
 from functools import lru_cache
 
-from cryptography.fernet import MultiFernet
 from django.db import models
+
+from sentry.db.models.utils import KeysetHandler
 
 __all__ = ("EncryptedStringField",)
 
 
 @lru_cache(maxsize=1)
-def _get_fernet_object() -> MultiFernet:
-    keys_path = "/tmp/multi_fernet.bin"
+def _get_keyset_handler() -> KeysetHandler:
+    keys_path = "/tmp/keyset.bin"
+    keyset_handler = KeysetHandler()
     with open(keys_path, "rb") as f:
-        unpickled_fernet = pickle.load(f)
-    return unpickled_fernet
+        keyset_handler.load(f)
+
+    return keyset_handler
 
 
 def _encrypt_value(value: str) -> bytes:
-    fernet = _get_fernet_object()
-    return fernet.encrypt(value.encode("utf-8"))
+    keyset_handler = _get_keyset_handler()
+    return keyset_handler.encrypt(value.encode("utf-8"))
 
 
 def _decrypt_value(value: bytes) -> str:
-    fernet = _get_fernet_object()
-    return fernet.decrypt(value).decode("utf-8")
+    keyset_handler = _get_keyset_handler()
+    return keyset_handler.decrypt(value).decode("utf-8")
 
 
 class EncryptedStringField(models.BinaryField):
