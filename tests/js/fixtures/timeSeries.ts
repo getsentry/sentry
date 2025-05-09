@@ -7,6 +7,7 @@ export function TimeSeriesFixture(params: Partial<TimeSeries> = {}): TimeSeries 
     meta: {
       valueType: 'rate',
       valueUnit: RateUnit.PER_SECOND,
+      interval: 1_800_000, // 30 minutes
     },
     values: [
       {

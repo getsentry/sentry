@@ -5,6 +5,7 @@ export const sampleScoreTimeSeries: TimeSeries = {
   meta: {
     valueType: 'score',
     valueUnit: null,
+    interval: 1_800_000, // 30 minutes
   },
   values: [
     {
