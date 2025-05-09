@@ -205,31 +205,16 @@ describe('ExploreToolbar', function () {
       'span.self_time',
     ]);
 
-    // try adding an overlay
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
-    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'avg(span.duration)'], 'A'),
-    ]);
-
     // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'avg(span.duration)'], 'A'),
-      new Visualize(['count(span.duration)'], 'B'),
-    ]);
-
-    // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.duration)'], 'A'),
+      new Visualize(['avg(span.self_time)'], 'A'),
       new Visualize(['count(span.duration)'], 'B'),
     ]);
 
     // delete second chart
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
-    expect(visualizes).toEqual([new Visualize(['avg(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
 
     // only one left so we hide the delete button
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
@@ -266,10 +251,8 @@ describe('ExploreToolbar', function () {
       'timestamp',
     ]); // default
 
-    let input: HTMLElement;
-
     // try changing the field
-    input = within(section).getByRole('combobox', {
+    const input = within(section).getByRole('combobox', {
       name: 'Select an attribute',
     });
     await userEvent.click(input);
@@ -296,39 +279,16 @@ describe('ExploreToolbar', function () {
 
     expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
 
-    // try adding an overlay
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
-    input = within(section)
-      .getAllByRole('combobox', {
-        name: 'Select an attribute',
-      })
-      .at(-1)!;
-    await userEvent.click(input);
-    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    await userEvent.keyboard('{Escape}');
-    await userEvent.click(within(section).getByText('Visualize'));
-
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'count(span.self_time)'], 'A'),
-    ]);
-
     // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'count(span.self_time)'], 'A'),
-      new Visualize(['count(span.duration)'], 'B'),
-    ]);
-
-    // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
-    expect(visualizes).toEqual([
-      new Visualize(['count(span.self_time)'], 'A'),
+      new Visualize(['avg(span.self_time)'], 'A'),
       new Visualize(['count(span.duration)'], 'B'),
     ]);
 
     // delete second chart
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
-    expect(visualizes).toEqual([new Visualize(['count(span.self_time)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
 
     // only one left so cant be deleted
     expect(within(section).getByLabelText('Remove Overlay')).toBeDisabled();
