@@ -103,8 +103,10 @@ class ServiceHookPayloadMatcher:
     def __init__(self, event: Event):
         self.event = event
 
-    def __eq__(self, other: str) -> bool:
+    def __eq__(self, other: Any) -> bool:
         assert isinstance(other, str), "other should be a string"
+        assert self.event.group
+
         payload = json.loads(other)
         assert payload["event"]["id"] == self.event.event_id
         assert payload["group"]["id"] == str(self.event.group.id)
