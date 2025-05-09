@@ -106,7 +106,10 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
         open_period_activities = []
         incident_activity_id = "-1"  # temp until we add lookup table
-        incident_identifier = "-1"  # temp until we add a column
+        incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
+            group_open_period=open_period
+        )
+        incident_identifier = str(incident_group_open_period.incident_identifier)
 
         # if we are here we have both IncidentActivityType.CREATED and IncidentActivityType.DETECTED
         created = {
@@ -258,8 +261,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         date_closed = obj.date_ended.replace(second=0, microsecond=0) if obj.date_ended else None
         return {
             "id": str(incident_group_open_period.incident_id),
-            "identifier": "-1",
-            # TODO this ^ isn't the same thing, it's Incident.identifier which we need to add to IncidentGroupOpenPeriod
+            "identifier": str(incident_group_open_period.incident_identifier),
             "organizationId": str(obj.project.organization.id),
             "projects": attrs["projects"],
             "alertRule": attrs["alert_rule"],

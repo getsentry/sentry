@@ -24,7 +24,7 @@ class TestDetectorSerializer(TestWorklowEngineSerializer):
         super().setUp()
         self.add_warning_trigger()
         self.add_incident_data()
-        self.incident_identifier = "-1"  # temp and wrong
+        self.incident_identifier = str(self.incident_group_open_period.incident_identifier)
         self.incident_expected = {
             "id": str(self.incident_group_open_period.incident_id),
             "identifier": self.incident_identifier,
