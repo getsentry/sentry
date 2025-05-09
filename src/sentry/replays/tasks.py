@@ -29,6 +29,7 @@ from sentry.utils.pubsub import KafkaPublisher
         namespace=replays_tasks,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )
@@ -51,6 +52,7 @@ def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) ->
         namespace=replays_tasks,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )

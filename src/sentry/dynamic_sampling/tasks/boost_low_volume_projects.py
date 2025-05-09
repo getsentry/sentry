@@ -99,7 +99,7 @@ OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, Dec
     taskworker_config=TaskworkerConfig(
         namespace=telemetry_experience_tasks,
         processing_deadline_duration=10 * 60 + 5,
-        retry=Retry(times=5),
+        retry=Retry(times=5, delay=5),
     ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
@@ -178,7 +178,7 @@ def partition_by_measure(
     taskworker_config=TaskworkerConfig(
         namespace=telemetry_experience_tasks,
         processing_deadline_duration=3 * 60 + 5,
-        retry=Retry(times=5),
+        retry=Retry(times=5, delay=5),
     ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
@@ -228,7 +228,7 @@ def boost_low_volume_projects_of_org_with_query(
     taskworker_config=TaskworkerConfig(
         namespace=telemetry_experience_tasks,
         processing_deadline_duration=3 * 60 + 5,
-        retry=Retry(times=5),
+        retry=Retry(times=5, delay=5),
     ),
 )
 @dynamic_sampling_task

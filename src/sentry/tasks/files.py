@@ -26,6 +26,7 @@ MAX_RETRIES = 5
         retry=Retry(
             times=MAX_RETRIES,
             on=(DatabaseError, IntegrityError),
+            delay=60 * 5,
         ),
     ),
 )
@@ -48,6 +49,7 @@ def delete_file_region(path, checksum, **kwargs):
         retry=Retry(
             times=MAX_RETRIES,
             on=(DatabaseError, IntegrityError),
+            delay=60 * 5,
         ),
     ),
 )
@@ -77,6 +79,7 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
         namespace=deletion_tasks,
         retry=Retry(
             times=MAX_RETRIES,
+            delay=60 * 5,
         ),
     ),
 )
@@ -98,6 +101,7 @@ def delete_unreferenced_blobs_region(blob_ids):
         namespace=deletion_control_tasks,
         retry=Retry(
             times=MAX_RETRIES,
+            delay=60 * 5,
         ),
     ),
 )
