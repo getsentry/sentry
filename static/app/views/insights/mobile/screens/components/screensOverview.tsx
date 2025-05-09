@@ -19,7 +19,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {getFreeTextFromQuery} from 'sentry/views/insights/mobile/screenload/components/screensView';
 import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
@@ -228,3 +227,17 @@ export function ScreensOverview() {
 const Container = styled('div')`
   padding-top: ${space(1)};
 `;
+
+const getFreeTextFromQuery = (query: string) => {
+  const conditions = new MutableSearch(query);
+  const transactionValues = conditions.getFilterValues('transaction');
+  if (transactionValues.length) {
+    return transactionValues[0];
+  }
+  if (conditions.freeText.length > 0) {
+    // raw text query will be wrapped in wildcards in generatePerformanceEventView
+    // so no need to wrap it here
+    return conditions.freeText.join(' ');
+  }
+  return '';
+};
