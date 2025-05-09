@@ -8,6 +8,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
@@ -234,13 +235,17 @@ function EnhancedUsageStatsOrganization({
 }: EnhancedUsageStatsOrganizationProps) {
   const project = projects.find(p => p.id === `${projectIds[0]}`);
   const endpointQueryDatetime = getEndpointQueryDatetime(dataDatetime);
-  const endpointQuery = getEndpointQuery({
-    dataDatetime,
-    organization,
-    projectIds,
-    dataCategoryApiName,
-    endpointQueryDatetime,
-  });
+  const endpointQuery = useMemo(
+    () =>
+      getEndpointQuery({
+        dataDatetime,
+        organization,
+        projectIds,
+        dataCategoryApiName,
+        endpointQueryDatetime,
+      }),
+    [dataDatetime, organization, projectIds, dataCategoryApiName, endpointQueryDatetime]
+  );
 
   const dataCategoryInfo = Object.values(DATA_CATEGORY_INFO).find(
     info => info.plural === dataCategory
@@ -249,6 +254,7 @@ function EnhancedUsageStatsOrganization({
   /** Limitation on frontend calculation of spikes to prevent intervals that are not 1h */
   const hasAccurateSpikes = getSeriesApiInterval(dataDatetime) === REQUIRED_INTERVAL;
 
+  const projectWithSpikeProjectionOptionQueryEnabled = isSingleProject && !!project;
   const projectWithSpikeProjectionOption = useApiQuery<Project[]>(
     [
       // This endpoint refetches the specific project with an added query for the SP option
@@ -260,9 +266,10 @@ function EnhancedUsageStatsOrganization({
         },
       },
     ],
-    {staleTime: 0, enabled: isSingleProject && !!project}
+    {staleTime: Infinity, enabled: projectWithSpikeProjectionOptionQueryEnabled}
   );
 
+  const spikesListQueryEnabled = isSingleProject && !!project;
   const spikesList = useApiQuery<SpikesList>(
     [
       // Get all the spikes in the time period
@@ -273,9 +280,10 @@ function EnhancedUsageStatsOrganization({
         },
       },
     ],
-    {staleTime: 0, enabled: isSingleProject && !!project}
+    {staleTime: Infinity, enabled: spikesListQueryEnabled}
   );
 
+  const spikeThresholdsQueryEnabled = isSingleProject && !!project && hasAccurateSpikes;
   const spikeThresholds = useApiQuery<SpikeThresholds>(
     [
       // Only fetch spike thresholds if the interval is 1h
@@ -287,7 +295,7 @@ function EnhancedUsageStatsOrganization({
         },
       },
     ],
-    {staleTime: 0, enabled: isSingleProject && !!project && hasAccurateSpikes}
+    {staleTime: Infinity, enabled: spikeThresholdsQueryEnabled}
   );
 
   useEffect(() => {
@@ -331,39 +339,57 @@ function EnhancedUsageStatsOrganization({
       clientDiscard={clientDiscard}
     >
       {usageStats => {
-        const loading = hasAccurateSpikes
-          ? usageStats.orgStats.isLoading ||
-            projectWithSpikeProjectionOption.isLoading ||
-            spikesList.isLoading ||
-            spikeThresholds.isLoading
-          : usageStats.orgStats.isLoading ||
-            projectWithSpikeProjectionOption.isLoading ||
-            spikesList.isLoading;
+        const loadingStatuses = [usageStats.orgStats.isPending];
+        const errorStatuses = [usageStats.orgStats.error];
 
-        const error = hasAccurateSpikes
-          ? usageStats.orgStats.error ||
-            projectWithSpikeProjectionOption.error ||
-            spikesList.error ||
-            spikeThresholds.error
-          : usageStats.orgStats.error ||
-            projectWithSpikeProjectionOption.error ||
-            spikesList.error;
+        if (projectWithSpikeProjectionOptionQueryEnabled) {
+          loadingStatuses.push(projectWithSpikeProjectionOption.isPending);
+          errorStatuses.push(projectWithSpikeProjectionOption.error);
+        }
+        if (spikesListQueryEnabled) {
+          loadingStatuses.push(spikesList.isPending);
+          errorStatuses.push(spikesList.error);
+        }
+        if (spikeThresholdsQueryEnabled) {
+          loadingStatuses.push(spikeThresholds.isPending);
+          errorStatuses.push(spikeThresholds.error);
+        }
+
+        const loading = loadingStatuses.some(status => status);
+        const error = errorStatuses.find(defined) ?? null;
 
         const shouldRenderRangeAlert = !loading && isSingleProject && !hasAccurateSpikes;
 
-        const storedSpikes = hasAccurateSpikes
-          ? getSpikeDetails({
-              loading,
-              spikeThresholds: spikeThresholds.data,
-              spikesList: spikesList.data,
-              orgStats: usageStats.orgStats.data,
-            })
-          : getStoredDefaultSpikes({
-              loading,
-              spikesList: spikesList.data,
-            });
+        const storedSpikes: SpikeDetails[] = [];
+        let newSpikeThresholds: SpikeThresholds | undefined = undefined;
 
-        const newSpikeThresholds = hasAccurateSpikes ? spikeThresholds.data : undefined;
+        if (isSingleProject) {
+          if (hasAccurateSpikes) {
+            const spikeDetailsLoading: boolean[] = [usageStats.orgStats.isPending];
+            if (spikeThresholdsQueryEnabled) {
+              spikeDetailsLoading.push(spikeThresholds.isPending);
+            }
+            if (spikesListQueryEnabled) {
+              spikeDetailsLoading.push(spikesList.isPending);
+            }
+            storedSpikes.push(
+              ...getSpikeDetails({
+                loading: spikeDetailsLoading.some(status => status),
+                spikeThresholds: spikeThresholds.data,
+                spikesList: spikesList.data,
+                orgStats: usageStats.orgStats.data,
+              })
+            );
+            newSpikeThresholds = spikeThresholds.data;
+          } else {
+            storedSpikes.push(
+              ...getStoredDefaultSpikes({
+                loading: spikesList.isPending,
+                spikesList: spikesList.data,
+              })
+            );
+          }
+        }
 
         // don't count ongoing spikes
         const categorySpikes = (storedSpikes || ([] as SpikeDetails[])).filter(
