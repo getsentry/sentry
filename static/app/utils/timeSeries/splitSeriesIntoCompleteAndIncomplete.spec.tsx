@@ -16,7 +16,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
 
   it('Does not split a series with all complete data', () => {
     const serie: TimeSeries = {
-      field: 'p99(span.duration)',
+      yAxis: 'p99(span.duration)',
       values: [
         {
           value: 90,
@@ -34,6 +34,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       meta: {
         valueType: 'duration',
         valueUnit: DurationUnit.MILLISECOND,
+        interval: 1 * 1000,
       },
     };
 
@@ -62,7 +63,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
 
   it('Does not split a series with all incomplete data', () => {
     const serie: TimeSeries = {
-      field: 'p99(span.duration)',
+      yAxis: 'p99(span.duration)',
       values: [
         {
           value: 90,
@@ -84,6 +85,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       meta: {
         valueType: 'duration',
         valueUnit: DurationUnit.MILLISECOND,
+        interval: 5 * 1000,
       },
     };
 
@@ -116,7 +118,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
 
   it('Splits a series with partial incomplete data', () => {
     const serie: TimeSeries = {
-      field: 'p99(span.duration)',
+      yAxis: 'p99(span.duration)',
       values: [
         {
           value: 100,
@@ -142,6 +144,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       meta: {
         valueType: 'duration',
         valueUnit: DurationUnit.MILLISECOND,
+        interval: 1 * 60 * 1000,
       },
     };
 
@@ -185,7 +188,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
     // The time buckets are an hour long. The ingestion delay is 90s. The last buckets should be marked incomplete.
 
     const serie: TimeSeries = {
-      field: 'p99(span.duration)',
+      yAxis: 'p99(span.duration)',
       values: [
         {
           value: 110,
@@ -207,6 +210,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       meta: {
         valueType: 'duration',
         valueUnit: DurationUnit.MILLISECOND,
+        interval: 1 * 60 * 60 * 1000,
       },
     };
 
