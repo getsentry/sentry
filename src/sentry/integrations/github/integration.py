@@ -902,8 +902,9 @@ class GitHubInstallation(PipelineView):
                 actor=request.user,
             ):
                 chosen_installation_id = pipeline.fetch_state("chosen_installation")
-                pipeline.bind_state("installation_id", chosen_installation_id)
-                return pipeline.next_step()
+                if chosen_installation_id is not None:
+                    pipeline.bind_state("installation_id", chosen_installation_id)
+                    return pipeline.next_step()
 
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")
@@ -1001,6 +1002,15 @@ class GithubOrganizationSelection(PipelineView):
             installation_info = pipeline.fetch_state("existing_installation_info") or []
             if len(installation_info) == 0:
                 return pipeline.next_step()
+
+            # add an option for users to install on a new GH organization
+            installation_info.append(
+                {
+                    "installation_id": "-1",
+                    "github_account": "Install integration on a new GitHub organization",
+                    "avatar_url": "https://raw.githubusercontent.com/getsentry/sentry/526f08eeaafa3a830f70671ad473afd7b9b05a0f/src/sentry/static/sentry/images/logos/sentry-avatar.png",
+                }
+            )
 
             if "chosen_installation_id" in request.GET:
                 chosen_installation_id = request.GET["chosen_installation_id"]

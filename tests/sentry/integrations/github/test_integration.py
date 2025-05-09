@@ -1289,6 +1289,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "github_account": "bufo-bot",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
             },
+            {
+                "installation_id": "-1",
+                "github_account": "Install integration on a new GitHub organization",
+                "avatar_url": "https://raw.githubusercontent.com/getsentry/sentry/526f08eeaafa3a830f70671ad473afd7b9b05a0f/src/sentry/static/sentry/images/logos/sentry-avatar.png",
+            },
         ]
 
         resp = self.client.get(self.init_path)
