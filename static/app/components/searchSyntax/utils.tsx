@@ -327,6 +327,7 @@ export function stringifyToken(token: TokenResult<Token>): string {
     case Token.LOGIC_BOOLEAN:
       return token.value;
     case Token.VALUE_TEXT_LIST: {
+      // so we use text here because it's the original text from the token, this seems to handle cases where the text is quoted
       const textListItems = token.items
         .map(item => item.value?.text ?? '')
         .filter(text => text.length > 0);
@@ -359,7 +360,8 @@ export function stringifyToken(token: TokenResult<Token>): string {
     case Token.KEY_EXPLICIT_STRING_FLAG:
       return `flags[${token.key.value},string]`;
     case Token.VALUE_TEXT:
-      return token.quoted ? `"${token.value}"` : token.value;
+      // so i changed this to return the text to mimic the behavior of VALUE_TEXT_LIST where we return the text
+      return token.text;
     case Token.VALUE_RELATIVE_DATE:
       return `${token.sign}${token.value}${token.unit}`;
     case Token.VALUE_BOOLEAN:

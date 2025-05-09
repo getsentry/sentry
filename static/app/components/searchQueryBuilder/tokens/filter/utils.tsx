@@ -1,10 +1,10 @@
+import {TermOperatorNew} from 'sentry/components/searchQueryBuilder/types';
 import {
   type AggregateFilter,
   allOperators,
   FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
-  type TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -36,11 +36,21 @@ export function isAggregateFilterToken(
 
 export function getValidOpsForFilter(
   filterToken: TokenResult<Token.FILTER>
-): readonly TermOperator[] {
+): readonly TermOperatorNew[] {
   const fieldDefinition = getFieldDefinition(filterToken.key.text);
+  const isTextFilter =
+    filterToken.filter === FilterType.TEXT || filterToken.filter === FilterType.TEXT_IN;
 
   if (fieldDefinition?.allowComparisonOperators) {
-    return allOperators;
+    const validOps = new Set<TermOperatorNew>(
+      allOperators as unknown as TermOperatorNew[]
+    );
+
+    if (isTextFilter && fieldDefinition?.allowWildcard === false) {
+      validOps.delete(TermOperatorNew.CONTAINS);
+    }
+
+    return [...validOps];
   }
 
   // If the token is invalid we want to use the possible expected types as our filter type
@@ -56,10 +66,15 @@ export function getValidOpsForFilter(
   const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes.flat()])];
 
   // Find all valid operations
-  const validOps = new Set<TermOperator>(
+  const validOps = new Set<TermOperatorNew>(
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
+
+  // Special case for text, add contains operator
+  if (isTextFilter && fieldDefinition?.allowWildcard !== false) {
+    validOps.add(TermOperatorNew.CONTAINS);
+  }
 
   return [...validOps];
 }
@@ -77,14 +92,23 @@ export function unescapeTagValue(value: string): string {
   return value.replace(/\\"/g, '"');
 }
 
-export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): string {
+export function formatFilterValue(
+  token: TokenResult<Token.FILTER>['value'],
+  allContains: boolean
+): string {
   switch (token.type) {
     case Token.VALUE_TEXT: {
       if (!token.value) {
         return token.text;
       }
 
-      return token.quoted ? unescapeTagValue(token.value) : token.text;
+      if (allContains) {
+        return token.quoted ? unescapeTagValue(token.value) : token.text.slice(1, -1);
+      }
+
+      return token.quoted
+        ? unescapeTagValue(token.contains ? `*${token.value}*` : token.value)
+        : token.text;
     }
     case Token.VALUE_RELATIVE_DATE:
       return t('%s', `${token.value}${token.unit} ago`);

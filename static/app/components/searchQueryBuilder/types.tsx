@@ -25,3 +25,15 @@ export type CallbackSearchState = {
   parsedQuery: ParseResult | null;
   queryIsValid: boolean;
 };
+
+// TODO: @nsdeschenes - Rename to something more descriptive/better
+export enum TermOperatorNew {
+  DEFAULT = '',
+  GREATER_THAN_EQUAL = '>=',
+  LESS_THAN_EQUAL = '<=',
+  GREATER_THAN = '>',
+  LESS_THAN = '<',
+  EQUAL = '=',
+  NOT_EQUAL = '!=',
+  CONTAINS = 'contains',
+}
