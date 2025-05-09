@@ -99,6 +99,21 @@ class EventMatcher:
         return matching_id
 
 
+class ServiceHookPayloadMatcher:
+    def __init__(self, event: Event):
+        self.event = event
+
+    def __eq__(self, other: str) -> bool:
+        assert isinstance(other, str), "other should be a string"
+        payload = json.loads(other)
+        assert payload["event"]["id"] == self.event.event_id
+        assert payload["group"]["id"] == str(self.event.group.id)
+        assert "url" in payload["group"]
+        assert "tags" in payload["event"]
+        assert "project" in payload
+        return True
+
+
 class BasePostProgressGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def create_event(self, data, project_id, assert_no_errors=True):
@@ -518,7 +533,10 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
             )
 
         mock_process_service_hook.delay.assert_called_once_with(
-            servicehook_id=hook.id, event=EventMatcher(event)
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            event=EventMatcher(event),
+            payload=ServiceHookPayloadMatcher(event),
         )
 
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
@@ -547,7 +565,10 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
             )
 
         mock_process_service_hook.delay.assert_called_once_with(
-            servicehook_id=hook.id, event=EventMatcher(event)
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            event=EventMatcher(event),
+            payload=ServiceHookPayloadMatcher(event),
         )
 
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
