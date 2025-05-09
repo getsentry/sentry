@@ -615,11 +615,16 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
         # If the future comes from a rule with a UI component form in the schema, append the issue alert payload
         # TODO(ecosystem): We need to change this payload format after alerts create issues
         id = f.rule.id
+
         # if we are using the new workflow engine, we need to use the legacy rule id
-        if features.has("organizations:workflow-engine-trigger-actions", event.group.organization):
-            id = get_key_from_rule_data(f.rule, "legacy_rule_id")
-        elif features.has("organizations:workflow-engine-ui-links", event.group.organization):
-            id = get_key_from_rule_data(f.rule, "workflow_id")
+        # Ignore test notifications
+        if int(id) != -1:
+            if features.has("organizations:workflow-engine-ui-links", event.group.organization):
+                id = get_key_from_rule_data(f.rule, "workflow_id")
+            elif features.has(
+                "organizations:workflow-engine-trigger-actions", event.group.organization
+            ):
+                id = get_key_from_rule_data(f.rule, "legacy_rule_id")
 
         settings = f.kwargs.get("schema_defined_settings")
         if settings:

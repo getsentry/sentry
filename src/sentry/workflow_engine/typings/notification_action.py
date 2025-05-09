@@ -710,7 +710,7 @@ class SentryAppFormConfigDataBlob(DataBlob):
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SentryAppFormConfigDataBlob:
         if not isinstance(data.get("name"), str) or not isinstance(
-            data.get("value"), (str, type(None))
+            data.get("value"), (str, type(None), int)
         ):
             raise ValueError("Sentry app config must contain name and value keys")
         return cls(name=data["name"], value=data["value"], label=data.get("label"))
