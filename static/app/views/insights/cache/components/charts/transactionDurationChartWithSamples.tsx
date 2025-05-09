@@ -4,6 +4,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import type {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
+// TODO(release-drawer): Only used in cache/components/samplePanel
+// eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {
@@ -44,7 +46,7 @@ export function TransactionDurationChartWithSamples({samples}: Props) {
   );
 }
 
-export const useTransactionDurationSeries = ({transaction}: {transaction: string}) => {
+const useTransactionDurationSeries = ({transaction}: {transaction: string}) => {
   const useEap = useInsightsEap();
 
   const metricsResult = useMetricsSeries(

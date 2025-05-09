@@ -13,7 +13,10 @@ const WidgetLegendNameEncoderDecoder = {
   },
 
   // change timeseries names to SeriesName:widgetID
-  modifyTimeseriesNames(widget: Widget, timeseriesResults?: Series[]) {
+  modifyTimeseriesNames(
+    widget: Widget,
+    timeseriesResults?: Series[]
+  ): Series[] | undefined {
     if (!timeseriesResults) {
       return undefined;
     }

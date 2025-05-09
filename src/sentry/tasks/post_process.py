@@ -72,7 +72,7 @@ class PostProcessJob(TypedDict, total=False):
     has_escalated: bool
 
 
-def _get_service_hooks(project_id):
+def _get_service_hooks(project_id: int) -> list[tuple[int, list[str]]]:
     from sentry.sentry_apps.models.servicehook import ServiceHook
 
     cache_key = f"servicehooks:1:{project_id}"
@@ -1180,7 +1180,7 @@ def process_service_hooks(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.sentry_apps.tasks.service_hooks import process_service_hook
+    from sentry.sentry_apps.tasks.service_hooks import get_payload_v0, process_service_hook
 
     event, has_alert = job["event"], job["has_alert"]
 
@@ -1189,10 +1189,17 @@ def process_service_hooks(job: PostProcessJob) -> None:
         if has_alert:
             allowed_events.add("event.alert")
 
-        if allowed_events:
-            for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-                if any(e in allowed_events for e in events):
-                    process_service_hook.delay(servicehook_id=servicehook_id, event=event)
+        # TODO: when we have multiple service hook versions, this will need to change.
+        payload = json.dumps(get_payload_v0(event))
+
+        for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
+            if any(e in allowed_events for e in events):
+                process_service_hook.delay(
+                    servicehook_id=servicehook_id,
+                    project_id=event.project_id,
+                    event=event,
+                    payload=payload,
+                )
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:
@@ -1555,6 +1562,25 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
             first_flag_received.send_robust(project=project, sender=Project)
 
 
+def kick_off_seer_automation(job: PostProcessJob) -> None:
+    from sentry.seer.seer_setup import get_seer_org_acknowledgement
+    from sentry.tasks.autofix import start_seer_automation
+
+    event = job["event"]
+    group = event.group
+
+    if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
+        "projects:trigger-issue-summary-on-alerts", group.project
+    ):
+        return
+
+    seer_enabled = get_seer_org_acknowledgement(group.organization.id)
+    if not seer_enabled:
+        return
+
+    start_seer_automation.delay(group.id)
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
@@ -1565,6 +1591,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_commits,
         handle_owner_assignment,
         handle_auto_assignment,
+        kick_off_seer_automation,
         process_rules,
         process_workflow_engine,
         process_service_hooks,

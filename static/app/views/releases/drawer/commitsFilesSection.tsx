@@ -58,7 +58,7 @@ export function CommitsFilesSection({
   return (
     <Tabs disabled={isError}>
       <TabListWithSpace>
-        <TabList.Item key="commits">
+        <TabList.Item key="commits" textValue={t('Commits')}>
           <TitleWithBadge>
             <span>{t('Commits')}</span>
             <Badge type="default">
@@ -70,7 +70,7 @@ export function CommitsFilesSection({
             </Badge>
           </TitleWithBadge>
         </TabList.Item>
-        <TabList.Item key="files">
+        <TabList.Item key="files" textValue={t('File Changes')}>
           <TitleWithBadge>
             <span>{t('File Changes')}</span>
             <Badge type="default">

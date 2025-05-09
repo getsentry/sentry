@@ -64,6 +64,7 @@ def run_escalating_forecast() -> None:
         namespace=issues_tasks,
         retry=Retry(
             times=3,
+            delay=60,
         ),
     ),
 )

@@ -31,7 +31,9 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
+from sentry.locks import locks
 from sentry.search.utils import tokenize_query
+from sentry.utils.locking import UnableToAcquireLock
 
 PREBUILT_SAVED_QUERIES = [
     {
@@ -121,7 +123,7 @@ PREBUILT_SAVED_QUERIES = [
     },
     {
         "prebuilt_id": 4,
-        "prebuilt_version": 1,
+        "prebuilt_version": 2,
         "name": "Worst Pageloads",
         "dataset": "spans",
         "query": [
@@ -133,6 +135,7 @@ PREBUILT_SAVED_QUERIES = [
                     "span.duration",
                     "transaction",
                     "timestamp",
+                    "measurements.lcp",
                 ],
                 "query": "span.op:pageload measurements.lcp:>0ms",
                 "mode": "samples",
@@ -143,7 +146,7 @@ PREBUILT_SAVED_QUERIES = [
                     },
                     {
                         "chartType": 1,
-                        "yAxes": ["p75(span.duration)", "p90(span.duration)"],
+                        "yAxes": ["p75(measurements.lcp)", "p90(measurements.lcp)"],
                     },
                 ],
                 "orderby": "-measurements.lcp",
@@ -298,18 +301,24 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
-        if features.has(
-            "organizations:performance-default-explore-queries", organization, actor=request.user
-        ):
-            try:
+        try:
+            lock = locks.get(
+                f"explore:sync_prebuilt_queries:{organization.id}:{request.user.id}",
+                duration=10,
+                name="sync_prebuilt_queries",
+            )
+            with lock.acquire():
                 # Adds prebuilt queries to the database if they don't exist.
                 # Updates them if they are outdated.
                 # Deletes old prebuilt queries from the database if they should no longer exist.
                 # Stars prebuilt queries for the user if it is the first time they are being fetched by the user.
                 sync_prebuilt_queries(organization)
                 sync_prebuilt_queries_starred(organization, request.user.id)
-            except Exception as err:
-                sentry_sdk.capture_exception(err)
+        except UnableToAcquireLock:
+            # Another process is already syncing the prebuilt queries. We can skip syncing this time.
+            pass
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
 
         queryset = (
             ExploreSavedQuery.objects.filter(organization=organization)

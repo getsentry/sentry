@@ -40,16 +40,11 @@ from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
     ExploreSavedQuery,
+    ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
 )
-from sentry.incidents.models.incident import (
-    IncidentActivity,
-    IncidentSnapshot,
-    IncidentTrigger,
-    PendingIncidentSnapshot,
-    TimeSeriesSnapshot,
-)
+from sentry.incidents.models.incident import IncidentActivity, IncidentTrigger
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -528,26 +523,10 @@ class ExhaustiveFixtures(Fixtures):
             comment=f"hello {slug}",
             user_id=owner_id,
         )
-        IncidentSnapshot.objects.create(
-            incident=incident,
-            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
-                start=timezone.now() - timedelta(hours=24),
-                end=timezone.now(),
-                values=[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]],
-                period=1,
-            ),
-            unique_users=1,
-            total_events=1,
-        )
         IncidentTrigger.objects.create(
             incident=incident,
             alert_rule_trigger=trigger,
             status=1,
-        )
-
-        # *Snapshot
-        PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=timezone.now() + timedelta(hours=4)
         )
 
         # Dashboard
@@ -727,6 +706,13 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             explore_saved_query=explore_saved_query,
             position=0,
+        )
+
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=org,
+            user_id=owner_id,
+            explore_saved_query=explore_saved_query,
+            last_visited=timezone.now(),
         )
 
         InsightsStarredSegment.objects.create(

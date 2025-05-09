@@ -79,6 +79,7 @@ import {
   DEFAULT_CHANGE_TIME_WINDOW,
   DEFAULT_COUNT_TIME_WINDOW,
   DEFAULT_DYNAMIC_TIME_WINDOW,
+  getTimeWindowOptions,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
 import {
@@ -884,13 +885,19 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
     let updateState = {};
+    const {timeWindow, dataset} = this.state;
+    const supportedTimeWindows = getTimeWindowOptions(dataset, value).map(
+      windows => windows.value
+    );
     switch (value) {
       case AlertRuleComparisonType.DYNAMIC:
         updateState = {
           comparisonType: value,
           comparisonDelta: undefined,
           thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
-          timeWindow: DEFAULT_DYNAMIC_TIME_WINDOW,
+          timeWindow: supportedTimeWindows.includes(timeWindow)
+            ? timeWindow
+            : DEFAULT_DYNAMIC_TIME_WINDOW,
           sensitivity: AlertRuleSensitivity.MEDIUM,
           seasonality: AlertRuleSeasonality.AUTO,
         };
@@ -900,7 +907,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           comparisonType: value,
           comparisonDelta: DEFAULT_CHANGE_COMP_DELTA,
           thresholdType: AlertRuleThresholdType.ABOVE,
-          timeWindow: DEFAULT_CHANGE_TIME_WINDOW,
+          timeWindow: supportedTimeWindows.includes(timeWindow)
+            ? timeWindow
+            : DEFAULT_CHANGE_TIME_WINDOW,
           sensitivity: undefined,
           seasonality: undefined,
         };
@@ -910,7 +919,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           comparisonType: value,
           comparisonDelta: undefined,
           thresholdType: AlertRuleThresholdType.ABOVE,
-          timeWindow: DEFAULT_COUNT_TIME_WINDOW,
+          timeWindow: supportedTimeWindows.includes(timeWindow)
+            ? timeWindow
+            : DEFAULT_COUNT_TIME_WINDOW,
           sensitivity: undefined,
           seasonality: undefined,
         };

@@ -1,4 +1,5 @@
 import type React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Body, Grid} from 'sentry/components/gridEditable/styles';
@@ -35,7 +36,7 @@ const _TableWrapper = styled(Body)`
 const _Table = styled(Grid)<{height?: string | number; scrollable?: boolean}>`
   ${p =>
     p.scrollable &&
-    `
-    overflow-y: auto;
-  `}
+    css`
+      overflow-y: auto;
+    `}
 `;
