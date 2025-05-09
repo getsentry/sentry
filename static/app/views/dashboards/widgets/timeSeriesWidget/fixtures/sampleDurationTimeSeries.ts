@@ -2,10 +2,11 @@ import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export const sampleDurationTimeSeries: TimeSeries = {
-  field: 'p99(span.duration)',
+  yAxis: 'p99(span.duration)',
   meta: {
     valueType: 'duration',
     valueUnit: DurationUnit.MILLISECOND,
+    interval: 1_800_000, // 30 minutes
   },
   values: [
     {
