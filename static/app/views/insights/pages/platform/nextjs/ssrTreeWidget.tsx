@@ -247,7 +247,7 @@ function TreeNodeRenderer({item, indent = 0}: {item: TreeNode; indent?: number})
           <TextOverflow>{item.name}</TextOverflow>
         </PathWrapper>
       </div>
-      <div>{'–'}</div>
+      <div>{}</div>
       {!isCollapsed &&
         item.children
           .toSorted(sortTreeChildren)
