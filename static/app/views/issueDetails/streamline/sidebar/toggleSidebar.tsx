@@ -36,13 +36,14 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
           sidebar_open: !isSidebarOpen,
           org_streamline_only: organization.streamlineOnly ?? undefined,
         }}
-      >
-        {theme.isChonk ? (
-          <IconChevron direction={direction} isDouble size="xs" />
-        ) : (
-          <StyledIconChevron direction={direction} isDouble size="xs" />
-        )}
-      </ToggleButton>
+        icon={
+          theme.isChonk ? (
+            <IconChevron direction={direction} isDouble size="xs" />
+          ) : (
+            <StyledIconChevron direction={direction} isDouble size="xs" />
+          )
+        }
+      />
     </ToggleContainer>
   );
 }

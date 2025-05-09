@@ -361,7 +361,13 @@ function SpanTabContentSection({
         aria-label={controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')}
         expanded={controlSectionExpanded}
         size="xs"
-        icon={<IconDoubleChevron direction={controlSectionExpanded ? 'left' : 'right'} />}
+        icon={
+          <IconChevron
+            isDouble
+            direction={controlSectionExpanded ? 'left' : 'right'}
+            size="xs"
+          />
+        }
         onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
       />
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
@@ -395,15 +401,6 @@ function SpanTabContentSection({
         />
       </TourElement>
     </ContentSection>
-  );
-}
-
-function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
-  return (
-    <DoubleChevronWrapper>
-      <IconChevron style={{marginRight: `-3px`}} {...props} />
-      <IconChevron style={{marginLeft: `-3px`}} {...props} />
-    </DoubleChevronWrapper>
   );
 }
 
@@ -525,9 +522,10 @@ const ChevronButton = withChonk(
   chonkStyled(Button)<{expanded: boolean}>`
     margin-bottom: ${space(1)};
     display: none;
+    margin-left: ${p => (p.expanded ? '-13px' : '-31px')};
 
     @media (min-width: ${p => p.theme.breakpoints.medium}) {
-      display: ${p => (p.theme.isChonk ? 'inline-flex' : 'block')};
+      display: inline-flex;
     }
 
     &::after {
@@ -535,21 +533,8 @@ const ChevronButton = withChonk(
       border-top-left-radius: 0px;
       border-bottom-left-radius: 0px;
     }
-
-    ${p =>
-      p.expanded
-        ? css`
-            margin-left: -13px;
-          `
-        : css`
-            margin-left: -31px;
-          `}
   `
 );
-
-const DoubleChevronWrapper = styled('div')`
-  display: flex;
-`;
 
 const StyledSchemaHintsSection = styled(SchemaHintsSection)`
   margin-top: ${space(1)};
