@@ -53,6 +53,22 @@ class ExternalTeamTest(APITestCase):
             "integrationId": str(self.integration.id),
         }
 
+    def test_my_ignore_camelcase_teamid(self):
+        other_team = self.create_team(organization=self.organization)
+        data = {
+            "externalName": "@getsentry/ecosystem",
+            "provider": "github",
+            "integrationId": self.integration.id,
+            "_teamId": other_team.id,
+        }
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.get_error_response(
+                self.organization.slug, self.team.slug, status_code=400, **data
+            )
+        assert response.data == {
+            "_teamId": "_teamId collides with team_id, please pass only one value"
+        }
+
     def test_without_feature_flag(self):
         data = {
             "externalName": "@getsentry/ecosystem",
