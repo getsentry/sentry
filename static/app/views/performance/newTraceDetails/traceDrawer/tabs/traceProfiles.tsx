@@ -6,7 +6,6 @@ import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
@@ -56,10 +55,7 @@ export function TraceProfiles({
       if ('profiler_id' in profile) {
         traceAnalytics.trackViewContinuousProfile(organization);
       } else {
-        trackAnalytics('profiling_views.go_to_flamegraph', {
-          organization,
-          source: 'performance.trace_view',
-        });
+        traceAnalytics.trackViewTransactionProfile(organization);
       }
     },
     [organization]

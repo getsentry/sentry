@@ -257,12 +257,10 @@ function TransactionsTable(props: Props) {
 
 function getProfileAnalyticsHandler(organization: Organization, referrer?: string) {
   return () => {
-    let source: any;
-    if (referrer === 'performance.transactions_summary') {
-      source = 'performance.transactions_summary.overview';
-    } else {
-      source = 'discover.transactions_table';
-    }
+    const source =
+      referrer === 'performance.transactions_summary'
+        ? ('performance.transactions_summary.overview' as const)
+        : ('discover.transactions_table' as const);
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
       source,

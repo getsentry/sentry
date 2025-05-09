@@ -144,7 +144,7 @@ class TransactionDetail extends Component<Props> {
     function handleOnClick() {
       trackAnalytics('profiling_views.go_to_flamegraph', {
         organization,
-        source: 'performance.trace_view',
+        source: 'performance.trace_view.details',
       });
     }
 
