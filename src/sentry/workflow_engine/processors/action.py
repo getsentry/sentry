@@ -11,6 +11,7 @@ from django.utils import timezone
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -185,11 +186,12 @@ def get_notification_plugins_for_org(organization: Organization) -> list[PluginS
 
 def get_integration_services(organization_id: int) -> dict[int, list[tuple[int, str]]]:
     """
-    Get all Pagerduty services and OpsGenie teams for an organization's integrations.
+    Get all Pagerduty services and Opsgenie teams for an organization's integrations.
     """
 
     org_ints = integration_service.get_organization_integrations(
-        organization_id=organization_id, providers=["opsgenie", "pagerduty"]
+        organization_id=organization_id,
+        providers=[IntegrationProviderSlug.PAGERDUTY, IntegrationProviderSlug.OPSGENIE],
     )
 
     services: dict[int, list[tuple[int, str]]] = defaultdict(list)

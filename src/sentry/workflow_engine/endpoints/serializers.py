@@ -95,7 +95,7 @@ class ActionHandlerSerializer(Serializer):
             for i in integrations:
                 i_result = {"id": str(i["integration"].id), "name": i["integration"].name}
                 if i["services"]:
-                    i_result["services"] = [{"id": s[0], "name": s[1]} for s in i["services"]]
+                    i_result["services"] = [{"id": id, "name": name} for id, name in i["services"]]
                 integrations_result.append(i_result)
             result["integrations"] = integrations_result
 
