@@ -123,17 +123,6 @@ def create_metric_alert(
         return Response({"uuid": client.uuid}, status=202)
     else:
         alert_rule = serializer.save()
-        if features.has("organizations:workflow-engine-rule-serializers", organization):
-            try:
-                detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
-                resp = Response(
-                    serialize(detector, request.user, WorkflowEngineDetectorSerializer()),
-                    status=status.HTTP_201_CREATED,
-                )
-            except Detector.DoesNotExist:
-                # print("no detector cause we didn't dual write you dum dum")
-                return Response(status=status.HTTP_404_NOT_FOUND)
-            return resp
         return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
 
@@ -178,7 +167,6 @@ class AlertRuleIndexMixin(Endpoint):
                 on_results=lambda x: serialize(x, request.user),
                 default_per_page=25,
             )
-
         response[ALERT_RULES_COUNT_HEADER] = len(alert_rules)
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
         return response

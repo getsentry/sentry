@@ -9,6 +9,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -29,6 +30,9 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
     DetailedAlertRuleSerializer,
 )
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+    WorkflowEngineDetectorSerializer,
+)
 from sentry.incidents.logic import (
     AlreadyDeletedError,
     delete_alert_rule,
@@ -47,7 +51,6 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
-from sentry.incidents.endpoints.serializers.workflow_engine_detector import WorkflowEngineDetectorSerializer
 from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
@@ -66,9 +69,16 @@ def fetch_alert_rule(
     if features.has("organizations:workflow-engine-rule-serializers", organization):
         try:
             detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
-            resp = Response(serialize(detector, request.user, WorkflowEngineDetectorSerializer(expand=expand, prepare_component_fields=True)))
+            resp = Response(
+                serialize(
+                    detector,
+                    request.user,
+                    WorkflowEngineDetectorSerializer(expand=expand, prepare_component_fields=True),
+                )
+            )
         except Detector.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+        return resp
 
     serialized_rule = serialize(
         alert_rule,
@@ -97,7 +107,7 @@ def update_alert_rule(
     request: Request, organization: Organization, alert_rule: AlertRule
 ) -> Response:
     data = request.data
-    validator = DrfAlertRuleSerializer(
+    serializer = DrfAlertRuleSerializer(
         context={
             "organization": organization,
             "access": request.access,
@@ -111,9 +121,9 @@ def update_alert_rule(
         data=data,
         partial=True,
     )
-    if validator.is_valid():
+    if serializer.is_valid():
         try:
-            trigger_sentry_app_action_creators_for_incidents(validator.validated_data)
+            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
         except SentryAppBaseError as e:
             return e.response_from_exception()
 
@@ -131,13 +141,9 @@ def update_alert_rule(
             # The user has requested a new Slack channel and we tell the client to check again in a bit
             return Response({"uuid": client.uuid}, status=202)
         else:
-            validator = validator.save()
-            # TODO what is this even, need to convert to Detector stuff
-            if features.has("organizations:workflow-engine-rule-serializers", organization):
-                return Response(serialize(validator, request.user, WorkflowEngineDetectorSerializer()), status=status.HTTP_200_OK)
-            return Response(serialize(validator, request.user), status=status.HTTP_200_OK)
+            return Response(serialize(serializer.save(), request.user), status=status.HTTP_200_OK)
 
-    return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 def remove_alert_rule(
