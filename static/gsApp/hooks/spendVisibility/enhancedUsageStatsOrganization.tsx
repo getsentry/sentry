@@ -266,7 +266,11 @@ function EnhancedUsageStatsOrganization({
         },
       },
     ],
-    {staleTime: Infinity, enabled: projectWithSpikeProjectionOptionQueryEnabled}
+    {
+      staleTime: Infinity,
+      retry: false,
+      enabled: projectWithSpikeProjectionOptionQueryEnabled,
+    }
   );
 
   const spikesListQueryEnabled = isSingleProject && !!project;
@@ -280,7 +284,7 @@ function EnhancedUsageStatsOrganization({
         },
       },
     ],
-    {staleTime: Infinity, enabled: spikesListQueryEnabled}
+    {staleTime: Infinity, retry: false, enabled: spikesListQueryEnabled}
   );
 
   const spikeThresholdsQueryEnabled = isSingleProject && !!project && hasAccurateSpikes;
@@ -295,7 +299,7 @@ function EnhancedUsageStatsOrganization({
         },
       },
     ],
-    {staleTime: Infinity, enabled: spikeThresholdsQueryEnabled}
+    {staleTime: Infinity, retry: false, enabled: spikeThresholdsQueryEnabled}
   );
 
   useEffect(() => {
