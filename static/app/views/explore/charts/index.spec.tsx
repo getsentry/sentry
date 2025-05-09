@@ -16,7 +16,7 @@ describe('ExploreCharts', () => {
         {
           values: [{timestamp: 1729796400000, value: 123.0}],
           yAxis: 'count(span.duration)',
-          meta: {valueType: 'duration', valueUnit: DurationUnit.MILLISECOND},
+          meta: {valueType: 'duration', valueUnit: DurationUnit.MILLISECOND, interval: 0},
         },
       ],
     };
