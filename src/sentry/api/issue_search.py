@@ -251,14 +251,10 @@ def convert_seer_actionability_value(
     """Convert high, medium, and low to fixability score thresholds"""
     results: list[float] = []
     for fixable in value:
-        if fixable == "high":
-            results.append(FixabilityScoreThresholds.HIGH.value)
-        elif fixable == "medium":
-            results.append(FixabilityScoreThresholds.MEDIUM.value)
-        elif fixable == "low":
-            results.append(FixabilityScoreThresholds.LOW.value)
-        else:
+        fixability_score_threshold = FixabilityScoreThresholds.from_str(fixable)
+        if not fixability_score_threshold:
             raise InvalidSearchQuery(f"Invalid fixable value of '{fixable}'")
+        results.append(fixability_score_threshold.value)
     return results
 
 

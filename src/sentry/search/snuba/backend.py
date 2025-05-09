@@ -258,42 +258,26 @@ def seer_actionability_filter(trigger_values: list[float]) -> Q:
     - "medium" -> (low threshold, high threshold]
     - "high" -> (high threshold, 1.0]
     """
-    q_objects = []
+    query = Q()
 
-    low_threshold = FixabilityScoreThresholds.LOW.value
-    medium_threshold_marker = FixabilityScoreThresholds.MEDIUM.value
-    high_threshold = FixabilityScoreThresholds.HIGH.value
-
-    processed_terms = set()
-
-    for val in trigger_values:
-        if val == low_threshold and "low" not in processed_terms:
-            q_objects.append(
-                Q(seer_fixability_score__gte=0.0, seer_fixability_score__lte=low_threshold)
+    for val in set(trigger_values):
+        if val == FixabilityScoreThresholds.LOW.value:
+            query |= Q(
+                seer_fixability_score__gte=0.0,
+                seer_fixability_score__lte=FixabilityScoreThresholds.LOW.value,
             )
-            processed_terms.add("low")
-        elif val == medium_threshold_marker and "medium" not in processed_terms:
-            q_objects.append(
-                Q(
-                    seer_fixability_score__gt=low_threshold,
-                    seer_fixability_score__lte=high_threshold,
-                )
+        elif val == FixabilityScoreThresholds.MEDIUM.value:
+            query |= Q(
+                seer_fixability_score__gt=FixabilityScoreThresholds.LOW.value,
+                seer_fixability_score__lte=FixabilityScoreThresholds.HIGH.value,
             )
-            processed_terms.add("medium")
-        elif val == high_threshold and "high" not in processed_terms:
-            q_objects.append(
-                Q(seer_fixability_score__gt=high_threshold, seer_fixability_score__lte=1.0)
+        elif val == FixabilityScoreThresholds.HIGH.value:
+            query |= Q(
+                seer_fixability_score__gt=FixabilityScoreThresholds.HIGH.value,
+                seer_fixability_score__lte=1.0,
             )
-            processed_terms.add("high")
 
-    if not q_objects:
-        return Q(id=None)
-
-    # Combine with OR
-    final_q = q_objects[0]
-    for i in range(1, len(q_objects)):
-        final_q |= q_objects[i]
-    return final_q
+    return query
 
 
 _side_query_pool = ThreadPoolExecutor(max_workers=10)
