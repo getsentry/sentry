@@ -35,6 +35,7 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     createdBy: UserSerializerResponse
     starred: bool
     position: int | None
+    isPrebuilt: bool
 
 
 @register(ExploreSavedQuery)
@@ -47,6 +48,7 @@ class ExploreSavedQueryModelSerializer(Serializer):
                 explore_saved_query__in=item_list,
                 user_id=user.id,
                 organization=item_list[0].organization if item_list else None,
+                starred=True,
             ).values_list("explore_saved_query_id", "position")
         )
 
@@ -96,6 +98,7 @@ class ExploreSavedQueryModelSerializer(Serializer):
             "createdBy": attrs.get("created_by"),
             "starred": attrs.get("starred"),
             "position": attrs.get("position"),
+            "isPrebuilt": obj.prebuilt_id is not None,
         }
 
         for key in query_keys:

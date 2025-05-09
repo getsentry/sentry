@@ -20,7 +20,6 @@ import {
   useSpanMetrics,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {getFreeTextFromQuery} from 'sentry/views/insights/mobile/screenload/components/screensView';
 import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {DEFAULT_SORT} from 'sentry/views/insights/mobile/screens/settings';
@@ -234,3 +233,17 @@ export function ScreensOverview() {
 const Container = styled('div')`
   padding-top: ${space(1)};
 `;
+
+const getFreeTextFromQuery = (query: string) => {
+  const conditions = new MutableSearch(query);
+  const transactionValues = conditions.getFilterValues('transaction');
+  if (transactionValues.length) {
+    return transactionValues[0];
+  }
+  if (conditions.freeText.length > 0) {
+    // raw text query will be wrapped in wildcards in generatePerformanceEventView
+    // so no need to wrap it here
+    return conditions.freeText.join(' ');
+  }
+  return '';
+};

@@ -8,7 +8,6 @@ import type {ResponseMeta} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -267,7 +266,7 @@ function ReservedBudgetData({customer, reservedBudget}: ReservedBudgetProps) {
 
   const budgetName = getReservedBudgetDisplayName({
     plan: customer.planDetails,
-    categories,
+    categories: categories as DataCategory[],
     hadCustomDynamicSampling: shouldUseDsNames,
     shouldTitleCase: true,
   });
@@ -325,12 +324,13 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
             return (
               <Fragment key={`test-ondemand-${category}`}>
                 <small>
-                  {`${getPlanCategoryName({plan: customer.planDetails, category})}: `}
+                  {`${getPlanCategoryName({
+                    plan: customer.planDetails,
+                    category,
+                  })}: `}
                   {`${displayPriceWithCents({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudgets.usedSpends[category] ?? 0,
                   })} / ${displayPriceWithCents({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudgets.budgets[category] ?? 0,
                   })}`}
                 </small>
@@ -674,7 +674,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                           )
                         }
                       >
-                        {tct('Allow Trial', {categoryName})}
+                        Allow Trial
                       </Button>
                       <Button
                         size="xs"
@@ -685,7 +685,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                           )
                         }
                       >
-                        {tct('Start Trial', {categoryName})}
+                        Start Trial
                       </Button>
                       <Button
                         size="xs"
@@ -696,7 +696,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                           )
                         }
                       >
-                        {tct('Stop Trial', {categoryName})}
+                        Stop Trial
                       </Button>
                     </TrialActions>
                   </DetailLabel>

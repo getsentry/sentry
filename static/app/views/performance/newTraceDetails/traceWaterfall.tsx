@@ -18,7 +18,6 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {IconGrabbable} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -36,11 +35,8 @@ import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingRedu
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {
-  DEFAULT_TRACE_VIEW_PREFERENCES,
-  loadTraceViewPreferences,
-} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 import type {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
@@ -88,7 +84,6 @@ import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
 const MIN_HEIGHT = 150;
-const DEFAULT_HEIGHT = 330;
 const MAX_HEIGHT = 1500;
 
 const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
@@ -100,7 +95,7 @@ export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
   organization: Organization;
   replay: ReplayRecord | null;
-  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  rootEventResults: TraceRootEventQueryResults;
   source: string;
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
@@ -712,24 +707,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
   ]);
 
-  const [height, setHeight] = useState(DEFAULT_HEIGHT);
-
-  const preferences = useMemo(
-    () =>
-      loadTraceViewPreferences('trace-view-preferences') ||
-      DEFAULT_TRACE_VIEW_PREFERENCES,
-    []
+  const [height, setHeight] = useState(
+    clampHeight(traceState.preferences.drawer.sizes['trace grid height'])
   );
 
-  useEffect(() => {
-    const loadedHeight = preferences.drawer.sizes['trace grid height'];
-
-    if (traceGridRef && typeof loadedHeight !== 'undefined') {
-      const newHeight = clampHeight(loadedHeight);
-      setHeight(newHeight);
-      traceGridRef.style.setProperty('--panel-height', `${loadedHeight}px`);
-    }
-  }, [preferences.drawer.sizes, traceGridRef]);
   const handleMouseDown = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
@@ -794,7 +775,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         />
         <TraceActionsMenu
           traceSlug={props.traceSlug}
-          rootEventResults={props.rootEvent}
+          rootEventResults={props.rootEventResults}
           traceEventView={props.traceEventView}
         />
         <TracePreferencesDropdown
@@ -807,7 +788,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           onMissingInstrumentationChange={onMissingInstrumentationChange}
         />
       </TraceToolbar>
-      <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
+      <TraceGrid
+        layout={traceState.preferences.layout}
+        ref={setTraceGridRef}
+        minHeight={height}
+      >
         <DemoTourElement
           id={DemoTourStep.PERFORMANCE_SPAN_TREE}
           title={t('Trace Waterfall')}
@@ -887,6 +872,7 @@ const TraceToolbar = styled('div')`
 
 export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
+  minHeight: number;
 }>`
   --info: ${p => p.theme.purple400};
   --warning: ${p => p.theme.yellow300};
@@ -898,7 +884,7 @@ export const TraceGrid = styled('div')<{
   --profile: ${p => p.theme.purple300};
   --autogrouped: ${p => p.theme.blue300};
   --occurence: ${p => p.theme.blue300};
-  --panel-height: ${DEFAULT_HEIGHT}px;
+  --panel-height: ${p => p.minHeight}px;
 
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};

@@ -27,6 +27,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.groupassignee import GroupAssignee
         from sentry.models.groupbookmark import GroupBookmark
         from sentry.models.groupemailthread import GroupEmailThread
+        from sentry.models.groupopenperiod import GroupOpenPeriod
         from sentry.models.grouprelease import GroupRelease
         from sentry.models.grouprulestatus import GroupRuleStatus
         from sentry.models.groupseen import GroupSeen
@@ -47,6 +48,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
         from sentry.snuba.models import QuerySubscription
         from sentry.uptime.models import ProjectUptimeSubscription
+        from sentry.workflow_engine.models import Detector
 
         relations: list[BaseRelation] = [
             # ProjectKey gets revoked immediately, in bulk
@@ -55,6 +57,8 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
 
         # in bulk
         for m1 in (
+            # GroupOpenPeriod should be deleted before Activity
+            GroupOpenPeriod,
             Activity,
             AlertRuleProjects,
             EnvironmentProject,
@@ -104,6 +108,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
                 {"snuba_query__subscriptions__project": instance},
             )
         )
+        relations.append(ModelRelation(Detector, {"project_id": instance.id}))
 
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected

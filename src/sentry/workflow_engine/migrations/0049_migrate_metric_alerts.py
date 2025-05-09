@@ -8,11 +8,13 @@ from typing import Any
 import sentry_sdk
 from attr import dataclass
 from django.apps.registry import Apps
+from django.conf import settings
 from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from jsonschema import ValidationError, validate
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils import redis
 from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
@@ -94,6 +96,7 @@ ACTION_TYPE_TO_STRING = {
     AlertRuleTriggerActionType.SLACK.value: "Slack",
     AlertRuleTriggerActionType.MSTEAMS.value: "Microsoft Teams",
     AlertRuleTriggerActionType.OPSGENIE.value: "Opsgenie",
+    AlertRuleTriggerActionType.DISCORD.value: "Discord",
 }
 
 
@@ -439,6 +442,8 @@ def _get_action_description(apps: Apps, action: Any) -> str:
             elif action.target_type == ActionTarget.TEAM.value:
                 action_target_team = target
                 return "Email #" + action_target_team.slug
+        else:
+            return "Email [removed]"
     elif action.type == AlertRuleTriggerActionType.SENTRY_APP.value:
         return f"Notify {action.target_display}"
 
@@ -761,8 +766,12 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
     DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
     Workflow = apps.get_model("workflow_engine", "Workflow")
 
+    backfill_key = "backfill_workflow_engine_metric_alerts"
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+    progress_id = int(redis_client.get(backfill_key) or 0)
+
     # MAIN MIGRATION LOOP STARTS HERE
-    for organization in RangeQuerySetWrapper(Organization.objects.all()):
+    for organization in RangeQuerySetWrapper(Organization.objects.filter(id__gt=progress_id)):
         organization_id = organization.id
 
         with transaction.atomic(router.db_for_write(AlertRule)):
@@ -871,6 +880,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                     )
                     sentry_sdk.capture_exception(e)
                     continue
+        redis_client.set(backfill_key, organization_id, ex=60 * 60 * 24 * 7)
 
 
 class Migration(CheckedMigration):

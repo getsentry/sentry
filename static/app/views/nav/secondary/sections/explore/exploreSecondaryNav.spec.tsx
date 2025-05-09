@@ -7,11 +7,7 @@ import {NavContextProvider} from 'sentry/views/nav/context';
 describe('ExploreSecondaryNav', () => {
   const {organization} = initializeOrg({
     organization: {
-      features: [
-        'performance-trace-explorer',
-        'performance-view',
-        'performance-default-explore-queries',
-      ],
+      features: ['performance-trace-explorer', 'performance-view'],
     },
   });
 
@@ -48,10 +44,5 @@ describe('ExploreSecondaryNav', () => {
     );
 
     expect(screen.getByText('Traces')).toBeInTheDocument();
-
-    expect(screen.getByText('All Transactions')).toBeInTheDocument();
-    expect(screen.getByText('DB Latency')).toBeInTheDocument();
-    expect(screen.getByText('Slow HTTP Requests')).toBeInTheDocument();
-    expect(screen.getByText('Worst Pageloads')).toBeInTheDocument();
   });
 });

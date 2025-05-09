@@ -8,7 +8,8 @@ const performanceConfig: IssueCategoryConfigMapping = {
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {
-        enabled: true,
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
       },
       deleteAndDiscard: {
         enabled: false,
@@ -202,33 +203,15 @@ const performanceConfig: IssueCategoryConfigMapping = {
       linksByPlatform: {},
     },
   },
-  [IssueType.PERFORMANCE_DURATION_REGRESSION]: {
-    pages: {
-      landingPage: Tab.DETAILS,
-      events: {enabled: true},
-      openPeriods: {enabled: false},
-      checkIns: {enabled: false},
-      uptimeChecks: {enabled: false},
-      attachments: {enabled: false},
-      userFeedback: {enabled: false},
-      replays: {enabled: false},
-      tagsTab: {enabled: false},
-    },
-    discover: {enabled: false},
-    regression: {enabled: true},
-    performanceDurationRegression: {enabled: true},
-    stats: {enabled: false},
-    tags: {enabled: false},
-    // We show the regression summary instead
-    spanEvidence: {enabled: false},
-  },
   [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: {
     actions: {
       archiveUntilOccurrence: {
-        enabled: true,
+        enabled: false,
+        disabledReason: t('Not yet supported for regression issues'),
       },
       delete: {
-        enabled: true,
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
       },
       deleteAndDiscard: {
         enabled: false,
@@ -335,40 +318,6 @@ const performanceConfig: IssueCategoryConfigMapping = {
       linksByPlatform: {},
     },
   },
-  [IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL]: {
-    resources: {
-      description: t(
-        'The main (or UI) thread in a mobile app is responsible for handling all user interaction and needs to be able to respond to gestures and taps in real time. If a long-running operation blocks the main thread, the app becomes unresponsive, impacting the quality of the user experience. To learn more, read our documentation:'
-      ),
-      links: [
-        {
-          text: t('Frame Drop'),
-          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/frame-drop/',
-        },
-      ],
-      linksByPlatform: {},
-    },
-  },
-  [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: {
-    pages: {
-      landingPage: Tab.DETAILS,
-      events: {enabled: false},
-      openPeriods: {enabled: false},
-      uptimeChecks: {enabled: false},
-      checkIns: {enabled: false},
-      attachments: {enabled: false},
-      userFeedback: {enabled: false},
-      replays: {enabled: false},
-      tagsTab: {enabled: false},
-    },
-    discover: {enabled: false},
-    regression: {enabled: true},
-    profilingDurationRegression: {enabled: true},
-    // We show the regression summary instead
-    spanEvidence: {enabled: false},
-    stats: {enabled: false},
-    tags: {enabled: false},
-  },
   [IssueType.PROFILE_FUNCTION_REGRESSION]: {
     actions: {
       archiveUntilOccurrence: {
@@ -376,7 +325,8 @@ const performanceConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for regression issues'),
       },
       delete: {
-        enabled: true,
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
       },
       deleteAndDiscard: {
         enabled: false,

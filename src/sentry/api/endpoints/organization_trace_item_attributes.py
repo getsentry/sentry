@@ -62,9 +62,13 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
 
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
-    item_type = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=True)
-    attribute_type = serializers.ChoiceField(["string", "number"], required=True)
-    substring_match = serializers.CharField(required=False)
+    itemType = serializers.ChoiceField(
+        [e.value for e in SupportedTraceItemType], required=True, source="item_type"
+    )
+    attributeType = serializers.ChoiceField(
+        ["string", "number"], required=True, source="attribute_type"
+    )
+    substringMatch = serializers.CharField(required=False, source="substring_match")
     query = serializers.CharField(required=False)
 
 
@@ -171,7 +175,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             intersecting_attributes_filter=filter,
         )
 
-        rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+        with handle_query_errors():
+            rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
         paginator = ChainPaginator(
             [

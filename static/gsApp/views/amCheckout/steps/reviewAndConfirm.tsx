@@ -16,6 +16,7 @@ import {space} from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {SEER_MONTHLY_PRICE_CENTS} from 'getsentry/constants';
 import type {PreviewData, Subscription} from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
 import {loadStripe} from 'getsentry/utils/stripe';
@@ -143,6 +144,8 @@ function ReviewAndConfirm({
     );
   }
 
+  const hasSeerFeature = organization.features.includes('seer-billing');
+
   return (
     <Panel>
       <StepHeader
@@ -162,6 +165,8 @@ function ReviewAndConfirm({
             cardActionError={state.cardActionError}
             hasPartnerMigrationFeature={hasPartnerMigrationFeature}
             subscription={subscription}
+            formData={formData}
+            hasSeerFeature={hasSeerFeature}
           />
         </StyledPanelBody>
       )}
@@ -221,7 +226,7 @@ function ReviewAndConfirmHeader({
   const {effectiveAt} = previewData;
   const effectiveNow = new Date(effectiveAt).getTime() <= Date.now() + 3600;
 
-  let subText;
+  let subText: React.ReactNode;
   if (subscription.isSelfServePartner) {
     subText = tct(
       'These changes will apply [applyDate], and you will be billed by [partnerName] monthly for any recurring subscription fees and incurred [budgetType] fees.',
@@ -247,7 +252,14 @@ function ReviewAndConfirmHeader({
   );
 }
 
-function ReviewAndConfirmItems({previewData}: Pick<State, 'previewData'>) {
+function ReviewAndConfirmItems({
+  previewData,
+  formData,
+  hasSeerFeature,
+}: Pick<State, 'previewData'> & {
+  formData: StepPropsWithApi['formData'];
+  hasSeerFeature: boolean;
+}) {
   if (!previewData) {
     return null;
   }
@@ -289,6 +301,15 @@ function ReviewAndConfirmItems({previewData}: Pick<State, 'previewData'>) {
           <div>{`${displayPrice({cents: -creditApplied})}`}</div>
         </PreviewItem>
       )}
+
+      {hasSeerFeature && formData.seerEnabled && (
+        <PreviewItem key="seer">
+          <Title>
+            <div>{t('Seer AI Agent')}</div>
+          </Title>
+          <div>{`${displayPrice({cents: SEER_MONTHLY_PRICE_CENTS})}`}</div>
+        </PreviewItem>
+      )}
     </PreviewItems>
   );
 }
@@ -300,8 +321,12 @@ function ReviewAndConfirmBody({
   previewData,
   hasPartnerMigrationFeature,
   subscription,
+  formData,
+  hasSeerFeature,
 }: Pick<State, 'cardActionError' | 'loading' | 'loadError' | 'previewData'> & {
+  formData: StepPropsWithApi['formData'];
   hasPartnerMigrationFeature: boolean;
+  hasSeerFeature: boolean;
   subscription: Subscription;
 }) {
   if (loading) {
@@ -335,10 +360,18 @@ function ReviewAndConfirmBody({
           <Alert type="error">{cardActionError}</Alert>
         </Alert.Container>
       )}
-      <ReviewAndConfirmItems previewData={previewData} />
+      <ReviewAndConfirmItems
+        previewData={previewData}
+        formData={formData}
+        hasSeerFeature={hasSeerFeature}
+      />
       <PreviewTotal>
         <div>{t('Total due')}</div>
-        <div>{`${displayPrice({cents: previewData.billedAmount})}`}</div>
+        <div>{`${displayPrice({
+          cents:
+            previewData.billedAmount +
+            (hasSeerFeature && formData.seerEnabled ? SEER_MONTHLY_PRICE_CENTS : 0),
+        })}`}</div>
       </PreviewTotal>
     </Preview>
   );

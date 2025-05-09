@@ -28,12 +28,11 @@ import PlanFeature from 'getsentry/components/features/planFeature';
 import withSubscription from 'getsentry/components/withSubscription';
 import {AllocationTargetTypes} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
+import {displayPlanName, isAmEnterprisePlan} from 'getsentry/utils/billing';
 import {
-  displayPlanName,
   getCategoryInfoFromPlural,
-  isAmEnterprisePlan,
-} from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+  getPlanCategoryName,
+} from 'getsentry/utils/dataCategory';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
@@ -75,12 +74,13 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
   }, [selectedMetric]);
 
   const supportedCategories = planDetails.categories.filter(
-    category => getCategoryInfoFromPlural(category as DataCategory)?.canAllocate
+    category => getCategoryInfoFromPlural(category)?.canAllocate
   );
 
   const period = useMemo<Date[]>(() => {
     const {onDemandPeriodStart, onDemandPeriodEnd} = subscription;
-    let start, end;
+    let start: Date;
+    let end: Date;
     if (viewNextPeriod) {
       // NOTE: this is hacky and not a proper representation of the actual subscription periods.
       // There's currently no better way to get billing periods though, so for now we just

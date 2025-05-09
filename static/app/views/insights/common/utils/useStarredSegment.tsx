@@ -34,25 +34,25 @@ export function useStarredSegment({initialIsStarred, projectId, segmentName}: Pr
     segment_name: segmentName,
   };
 
-  const onError = () => {
-    addErrorMessage(t('Failed to star transaction'));
+  const onError = (message: string) => {
+    addErrorMessage(message);
     setIsStarred(!isStarred);
   };
 
-  const onSuccess = () => {
-    addSuccessMessage(t('Transaction starred'));
+  const onSuccess = (message: string) => {
+    addSuccessMessage(message);
   };
 
   const {mutate: starTransaction, ...starTransactionResult} = useMutation({
     mutationFn: () => api.requestPromise(url, {method: 'POST', data}),
-    onSuccess,
-    onError,
+    onSuccess: () => onSuccess(t('Transaction starred')),
+    onError: () => onError(t('Failed to star transaction')),
   });
 
   const {mutate: unstarTransaction, ...unstarTransactionResult} = useMutation({
     mutationFn: () => api.requestPromise(url, {method: 'DELETE', data}),
-    onSuccess,
-    onError,
+    onSuccess: () => onSuccess(t('Transaction unstarred')),
+    onError: () => onError(t('Failed to unstar transaction')),
   });
 
   const isPending =

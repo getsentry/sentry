@@ -2,6 +2,7 @@ from unittest import mock
 from uuid import uuid4
 
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.types import SupportedTraceItemType
@@ -22,10 +23,10 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
     def do_request(self, query=None, features=None, **kwargs):
         if query is None:
             query = {}
-        if "item_type" not in query:
-            query["item_type"] = self.item_type.value
-        if "attribute_type" not in query:
-            query["attribute_type"] = "string"
+        if "itemType" not in query:
+            query["itemType"] = self.item_type.value
+        if "attributeType" not in query:
+            query["attributeType"] = "string"
 
         if features is None:
             features = self.feature_flags
@@ -46,14 +47,16 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert response.status_code == 404, response.content
 
     def test_invalid_item_type(self):
-        response = self.do_request(query={"item_type": "invalid"})
+        response = self.do_request(query={"itemType": "invalid"})
         assert response.status_code == 400, response.content
-        assert "item_type" in response.data
-        assert response.data["item_type"][0].code == "invalid_choice"
-        assert '"invalid" is not a valid choice.' in str(response.data["item_type"][0])
+        assert response.data == {
+            "itemType": [
+                ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
+            ],
+        }
 
     def test_no_projects(self):
-        response = self.do_request(query={"item_type": SupportedTraceItemType.LOGS.value})
+        response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data == []
 
@@ -82,7 +85,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         self.store_ourlogs(logs)
 
         # Test with empty prefix (should return all attributes)
-        response = self.do_request(query={"substring_match": ""})
+        response = self.do_request(query={"substringMatch": ""})
         assert response.status_code == 200, response.content
 
         keys = {item["key"] for item in response.data}
@@ -95,7 +98,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "severity" in keys
 
         # With a prefix only match the attributes that start with "tes"
-        response = self.do_request(query={"substring_match": "tes"})
+        response = self.do_request(query={"substringMatch": "tes"})
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
         assert len(keys) == 3
@@ -177,14 +180,16 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 404, response.content
 
     def test_invalid_item_type(self):
-        response = self.do_request(query={"item_type": "invalid"})
+        response = self.do_request(query={"itemType": "invalid"})
         assert response.status_code == 400, response.content
-        assert "item_type" in response.data
-        assert response.data["item_type"][0].code == "invalid_choice"
-        assert '"invalid" is not a valid choice.' in str(response.data["item_type"][0])
+        assert response.data == {
+            "itemType": [
+                ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
+            ],
+        }
 
     def test_no_projects(self):
-        response = self.do_request(query={"item_type": SupportedTraceItemType.LOGS.value})
+        response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data == []
 
@@ -207,7 +212,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         response = self.do_request(
             {
-                "attribute_type": "string",
+                "attributeType": "string",
             }
         )
         assert response.status_code == 200, response.data
@@ -248,7 +253,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         response = self.do_request(
             {
-                "attribute_type": "number",
+                "attributeType": "number",
             }
         )
         assert response.status_code == 200, response.data
@@ -288,10 +293,10 @@ class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTes
         if query is None:
             query = {}
 
-        if "item_type" not in query:
-            query["item_type"] = self.item_type.value
-        if "attribute_type" not in query:
-            query["attribute_type"] = "string"
+        if "itemType" not in query:
+            query["itemType"] = self.item_type.value
+        if "attributeType" not in query:
+            query["attributeType"] = "string"
 
         if features is None:
             features = self.feature_flags
@@ -313,6 +318,20 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
     def test_no_feature(self):
         response = self.do_request(features={}, key="test.attribute")
         assert response.status_code == 404, response.content
+
+    def test_invalid_item_type(self):
+        response = self.do_request(query={"itemType": "invalid"})
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "itemType": [
+                ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
+            ],
+        }
+
+    def test_no_projects(self):
+        response = self.do_request()
+        assert response.status_code == 200, response.content
+        assert response.data == []
 
     def test_attribute_values(self):
         logs = [
@@ -358,14 +377,16 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 404, response.content
 
     def test_invalid_item_type(self):
-        response = self.do_request(query={"item_type": "invalid"})
+        response = self.do_request(query={"itemType": "invalid"})
         assert response.status_code == 400, response.content
-        assert "item_type" in response.data
-        assert response.data["item_type"][0].code == "invalid_choice"
-        assert '"invalid" is not a valid choice.' in str(response.data["item_type"][0])
+        assert response.data == {
+            "itemType": [
+                ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
+            ],
+        }
 
     def test_no_projects(self):
-        response = self.do_request(query={"item_type": SupportedTraceItemType.LOGS.value})
+        response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data == []
 
@@ -483,7 +504,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
 
         key = "transaction"
 
-        response = self.do_request(query={"substring_match": "b"}, key=key)
+        response = self.do_request(query={"substringMatch": "b"}, key=key)
         assert response.status_code == 200, response.data
         assert response.data == [
             {
@@ -523,7 +544,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
 
         key = "transaction"
 
-        response = self.do_request(query={"substring_match": r"\*b"}, key=key)
+        response = self.do_request(query={"substringMatch": r"\*b"}, key=key)
         assert response.status_code == 200, response.data
         assert response.data == [
             {
@@ -613,7 +634,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
 
         key = "tag"
 
-        response = self.do_request(query={"substring_match": "b"}, key=key)
+        response = self.do_request(query={"substringMatch": "b"}, key=key)
         assert response.status_code == 200, response.data
         assert response.data == [
             {
@@ -654,7 +675,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
 
         key = "tag"
 
-        response = self.do_request(query={"substring_match": r"\*b"}, key=key)
+        response = self.do_request(query={"substringMatch": r"\*b"}, key=key)
         assert response.status_code == 200, response.data
         assert response.data == [
             {
@@ -757,7 +778,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 },
             ]
 
-            response = self.do_request(query={"substring_match": "ba"}, features=features, key=key)
+            response = self.do_request(query={"substringMatch": "ba"}, features=features, key=key)
             assert response.status_code == 200, response.data
             assert sorted(response.data, key=lambda v: v["value"]) == [
                 {
@@ -809,7 +830,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-        response = self.do_request(query={"substring_match": "99"}, features=features, key=key)
+        response = self.do_request(query={"substringMatch": "99"}, features=features, key=key)
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=lambda v: v["value"]) == [
             {
@@ -875,7 +896,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
-        response = self.do_request(query={"substring_match": "in"}, key="span.status")
+        response = self.do_request(query={"substringMatch": "in"}, key="span.status")
         assert response.status_code == 200, response.data
         assert response.data == [
             {

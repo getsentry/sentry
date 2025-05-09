@@ -29,9 +29,9 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useDiscoverOrEap,
+  useEAPSpans,
   useMetrics,
   useSpanMetrics,
   useSpansIndexed,
@@ -42,16 +42,20 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
+import type {
+  MetricsQueryFilters,
+  SpanIndexedQueryFilters,
+  SpanIndexedResponse,
+  SpanMetricsQueryFilters,
+  SpanQueryFilters,
+} from 'sentry/views/insights/types';
 import {
   MetricsFields,
-  type MetricsQueryFilters,
   ModuleName,
+  SpanFields,
   SpanFunction,
   SpanIndexedField,
-  type SpanIndexedQueryFilters,
-  type SpanIndexedResponse,
   SpanMetricsField,
-  type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
@@ -114,7 +118,6 @@ export function CacheSamplePanel() {
         fields: [
           `${SpanFunction.EPM}()`,
           `${SpanFunction.CACHE_MISS_RATE}()`,
-          `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
           `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
           `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`,
         ],
@@ -123,15 +126,7 @@ export function CacheSamplePanel() {
     );
 
   const {data: transactionDurationData, isPending: isTransactionDurationLoading} =
-    useMetrics(
-      {
-        search: MutableSearch.fromQueryObject({
-          transaction: query.transaction,
-        } satisfies MetricsQueryFilters),
-        fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
-      },
-      Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
-    );
+    useTransactionDuration({transaction: query.transaction});
 
   const sampleFilters: SpanIndexedQueryFilters = {
     ...BASE_FILTERS,
@@ -249,8 +244,7 @@ export function CacheSamplePanel() {
     refetchCacheMisses();
   };
 
-  const avg =
-    transactionDurationData?.[0]?.[`avg(${MetricsFields.TRANSACTION_DURATION})`] ?? 0;
+  const avg = transactionDurationData?.[0]?.[`avg(${SpanFields.SPAN_DURATION})`] ?? 0;
 
   const samplesPlottable = useMemo(() => {
     // Create a `TabularData` object from multiple datasets. This requires
@@ -324,11 +318,7 @@ export function CacheSamplePanel() {
 
               <MetricReadout
                 title={DataTitles[`avg(${MetricsFields.TRANSACTION_DURATION})`]}
-                value={
-                  transactionDurationData?.[0]?.[
-                    `avg(${MetricsFields.TRANSACTION_DURATION})`
-                  ]
-                }
+                value={transactionDurationData?.[0]?.[`avg(${SpanFields.SPAN_DURATION})`]}
                 unit={DurationUnit.MILLISECOND}
                 isLoading={isTransactionDurationLoading}
               />
@@ -346,9 +336,6 @@ export function CacheSamplePanel() {
                 title={DataTitles.timeSpent}
                 value={cacheTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
-                tooltip={getTimeSpentExplanation(
-                  cacheTransactionMetrics?.[0]?.['time_spent_percentage()']!
-                )}
                 isLoading={areCacheTransactionMetricsFetching}
               />
             </ReadoutRibbon>
@@ -448,3 +435,38 @@ const CACHE_STATUS_OPTIONS = [
     label: t('Miss'),
   },
 ];
+
+const useTransactionDuration = ({transaction}: {transaction: string}) => {
+  const useEap = useInsightsEap();
+
+  const metricsResult = useMetrics(
+    {
+      enabled: !useEap && Boolean(transaction),
+      search: MutableSearch.fromQueryObject({
+        transaction,
+      } satisfies MetricsQueryFilters),
+      fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
+    },
+    Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
+  );
+
+  const eapResult = useEAPSpans(
+    {
+      search: MutableSearch.fromQueryObject({
+        transaction,
+        is_transaction: 'true',
+      } satisfies SpanQueryFilters),
+      fields: [`avg(${SpanFields.SPAN_DURATION})`],
+    },
+    Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
+  );
+
+  const result = useEap ? eapResult : metricsResult;
+  const finalData: Array<{[`avg(span.duration)`]: number}> = useEap
+    ? eapResult.data
+    : metricsResult.data.map(row => ({
+        'avg(span.duration)': row[`avg(${MetricsFields.TRANSACTION_DURATION})`],
+      }));
+
+  return {...result, data: finalData};
+};

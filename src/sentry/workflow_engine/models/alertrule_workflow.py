@@ -1,3 +1,4 @@
+from django.db import models
 from django.db.models import CheckConstraint, Q
 
 from sentry.backup.scopes import RelocationScope
@@ -33,5 +34,15 @@ class AlertRuleWorkflow(DefaultFieldsModel):
                 condition=Q(rule_id__isnull=False, alert_rule_id__isnull=True)
                 | Q(rule_id__isnull=True, alert_rule_id__isnull=False),
                 name="rule_or_alert_rule_workflow",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["rule_id"],
+                name="idx_arw_rule_id",
+            ),
+            models.Index(
+                fields=["alert_rule_id"],
+                name="idx_arw_alert_rule_id",
             ),
         ]

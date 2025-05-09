@@ -8,12 +8,16 @@ import {NoAccess} from 'sentry/components/noAccess';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
+import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
+import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export default function MultiQueryMode() {
@@ -23,9 +27,12 @@ export default function MultiQueryMode() {
 
   const prefersStackedNav = usePrefersStackedNav();
 
+  const id = getIdFromLocation(location);
+  const {data: savedQuery} = useGetSavedQuery(id);
+
   return (
     <Feature
-      features="explore-multi-query"
+      features="visibility-explore-view"
       organization={organization}
       renderDisabled={NoAccess}
     >
@@ -62,6 +69,7 @@ export default function MultiQueryMode() {
                 </LinkButton>
               )}
               <StarSavedQueryButton />
+              {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
               <FeedbackWidgetButton />
             </ButtonBar>
           </Layout.HeaderActions>

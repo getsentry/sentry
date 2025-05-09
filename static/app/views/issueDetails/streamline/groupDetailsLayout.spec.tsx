@@ -88,7 +88,7 @@ describe('GroupDetailsLayout', () => {
       body: {committers: []},
     });
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: false,

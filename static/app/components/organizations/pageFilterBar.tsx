@@ -1,4 +1,3 @@
-import {Children, cloneElement, Fragment, isValidElement} from 'react';
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -14,17 +13,6 @@ interface PageFilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const PageFilterBar = styled(({children, condensed, ...props}: PageFilterBarProps) => {
-  if (Children.count(children) <= 1) {
-    if (isValidElement(children)) {
-      if (children.type !== Fragment) {
-        return cloneElement(children, props);
-      }
-      return children;
-    }
-
-    return children;
-  }
-
   return (
     <StyledPageFilterBar condensed={condensed} {...props}>
       {children}
@@ -177,7 +165,11 @@ except in mobile */
     display: none;
   }
 
-  & > div:first-child > button {
+  & > div > button:focus-visible {
+    z-index: 3;
+  }
+
+  & > div:first-child:not(:last-child) > button {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
   }
@@ -191,7 +183,7 @@ except in mobile */
     }
   }
 
-  & > div:last-child > button {
+  & > div:last-child:not(:first-child) > button {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
   }

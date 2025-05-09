@@ -1,4 +1,6 @@
+import logging
 from datetime import datetime, timedelta
+from typing import TypedDict
 
 from django.db.models import DurationField, ExpressionWrapper, F, IntegerField, Value
 from django.db.models.fields.json import KeyTextTransform
@@ -25,7 +27,14 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import WorkflowEventData
 
+logger = logging.getLogger(__name__)
+
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
+
+
+class WorkflowFireHistoryUpdates(TypedDict):
+    has_passed_filters: bool
+    has_fired_actions: bool
 
 
 def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action], group: Group):
@@ -64,7 +73,9 @@ def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action
 
 
 def update_workflow_fire_histories(
-    actions_to_fire: BaseQuerySet[Action], event_data: WorkflowEventData
+    actions_to_fire: BaseQuerySet[Action],
+    event_data: WorkflowEventData,
+    updates: WorkflowFireHistoryUpdates,
 ) -> int:
     # Update WorkflowFireHistory objects for workflows with actions to fire
     fired_workflows = set(
@@ -73,11 +84,23 @@ def update_workflow_fire_histories(
         ).values_list("workflow_id", flat=True)
     )
 
+    logger.info(
+        "workflow_engine.workflow_fire_history.update",
+        extra={
+            "actions": [action.id for action in actions_to_fire],
+            "workflow_ids": list(fired_workflows),
+            "group_id": event_data.event.group_id,
+            "event_id": event_data.event.event_id,
+            "has_passed_filters": updates["has_passed_filters"],
+            "has_fired_actions": updates["has_fired_actions"],
+        },
+    )
+
     updated_rows = WorkflowFireHistory.objects.filter(
         workflow_id__in=fired_workflows,
         group=event_data.event.group,
         event_id=event_data.event.event_id,
-    ).update(has_fired_actions=True)
+    ).update(**updates)
 
     return updated_rows
 
@@ -90,6 +113,9 @@ def filter_recently_fired_workflow_actions(
     actions = Action.objects.filter(
         dataconditiongroupaction__condition_group__in=filtered_action_groups
     ).distinct()
+
+    wfh_updates = WorkflowFireHistoryUpdates(has_passed_filters=True, has_fired_actions=False)
+    update_workflow_fire_histories(actions, event_data, wfh_updates)
     group = event_data.event.group
 
     now = timezone.now()
@@ -115,7 +141,8 @@ def filter_recently_fired_workflow_actions(
     actions_without_statuses_ids = {action.id for action in actions_without_statuses}
     filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
 
-    update_workflow_fire_histories(filtered_actions, event_data)
+    wfh_updates["has_fired_actions"] = True
+    update_workflow_fire_histories(filtered_actions, event_data, wfh_updates)
 
     return filtered_actions
 

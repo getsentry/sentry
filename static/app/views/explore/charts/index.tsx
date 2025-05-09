@@ -13,7 +13,6 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -29,7 +28,10 @@ import type {
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  SAMPLING_MODE,
+  type SamplingMode,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {
@@ -79,7 +81,6 @@ export function ExploreCharts({
   dataset,
 }: ExploreChartsProps) {
   const theme = useTheme();
-  const organization = useOrganization();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
@@ -104,7 +105,7 @@ export function ExploreCharts({
           //
           // We can't do this in top N mode as the series name uses the row
           // values instead of the aggregate function.
-          if (s.field === yAxis) {
+          if (s.yAxis === yAxis) {
             return {
               ...s,
               seriesName: formattedYAxes[i] ?? yAxis,
@@ -151,6 +152,7 @@ export function ExploreCharts({
       return {
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
+        stack: visualize.stack,
         label: visualize.label,
         yAxes: visualize.yAxes,
         formattedYAxes,
@@ -200,31 +202,24 @@ export function ExploreCharts({
           );
 
           if (chartInfo.loading) {
+            const loadingMessage =
+              timeseriesResult.isFetching && samplingMode === SAMPLING_MODE.HIGH_ACCURACY
+                ? t(
+                    "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
+                  )
+                : undefined;
             return (
               <Widget
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
-                Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
-                revealActions="always"
-                Footer={
-                  organization.features.includes(
-                    'visibility-explore-progressive-loading'
-                  ) &&
-                  !organization.features.includes(
-                    'visibility-explore-progressive-loading-normal-sampling-mode'
-                  ) && (
-                    <WidgetExtrapolationFooter
-                      samplingMode={undefined}
-                      sampleCount={0}
-                      isSampled={null}
-                      confidence={undefined}
-                      topEvents={undefined}
-                      dataScanned={undefined}
-                      dataset={dataset}
-                    />
-                  )
+                Visualization={
+                  <TimeSeriesWidgetVisualization.LoadingPlaceholder
+                    loadingMessage={loadingMessage}
+                    expectMessage
+                  />
                 }
+                revealActions="always"
               />
             );
           }
@@ -324,7 +319,7 @@ export function ExploreCharts({
                     return new DataPlottableConstructor(timeSeries, {
                       delay: INGESTION_DELAY,
                       color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
-                      stack: 'all',
+                      stack: chartInfo.stack,
                     });
                   })}
                   legendSelection={{
@@ -342,7 +337,6 @@ export function ExploreCharts({
                     topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
                   }
                   dataScanned={chartInfo.dataScanned}
-                  samplingMode={samplingMode}
                   dataset={dataset}
                 />
               }
@@ -374,5 +368,4 @@ const ChartLabel = styled('div')`
 
 const ChartTitle = styled('div')`
   display: flex;
-  margin-left: ${space(2)};
 `;

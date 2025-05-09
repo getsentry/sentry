@@ -99,7 +99,6 @@ def get_stacktrace_config(
             platform=ctx["platform"],
             sdk_name=ctx["sdk_name"],
             code_mapping=config,
-            organization=organization,
         )
         result["src_path"] = src_path
         if not src_path:

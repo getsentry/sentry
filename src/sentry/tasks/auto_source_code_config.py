@@ -18,6 +18,7 @@ from sentry.taskworker.retry import Retry
         namespace=issues_tasks,
         retry=Retry(
             times=3,
+            delay=60 * 10,
         ),
     ),
 )

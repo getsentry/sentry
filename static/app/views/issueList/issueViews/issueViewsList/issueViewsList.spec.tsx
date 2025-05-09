@@ -14,7 +14,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import IssueViewsList from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsList';
 
 const organization = OrganizationFixture({
-  features: ['issue-view-sharing'],
+  features: ['enforce-stacked-navigation'],
 });
 
 describe('IssueViewsList', function () {
@@ -60,6 +60,10 @@ describe('IssueViewsList', function () {
           stars: 7,
         }),
       ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
     });
   });
 

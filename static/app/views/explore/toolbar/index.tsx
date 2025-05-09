@@ -11,7 +11,6 @@ import {
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
 import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
-import {ToolbarSuggestedQueries} from 'sentry/views/explore/toolbar/toolbarSuggestedQueries';
 import {ToolbarVisualize} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 type Extras = 'equations';
@@ -40,7 +39,6 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
         setSorts={setSortBys}
       />
       <ToolbarSaveAs />
-      <ToolbarSuggestedQueries />
     </Container>
   );
 }

@@ -37,6 +37,11 @@ export type TracingEventParameters = {
   'trace.explorer.schema_hints_drawer': {
     drawer_open: boolean;
   };
+  'trace.explorer.table_pagination': {
+    direction: string;
+    num_results: number;
+    type: 'samples' | 'traces' | 'aggregates';
+  };
   'trace.load.empty_state': {
     source: TraceWaterFallSource;
   };
@@ -131,6 +136,7 @@ export type TracingEventParameters = {
   };
   'trace_explorer.add_span_condition': Record<string, unknown>;
   'trace_explorer.compare_queries': Record<string, unknown>;
+  'trace_explorer.delete_query': Record<string, unknown>;
   'trace_explorer.open_in_issues': Record<string, unknown>;
   'trace_explorer.open_trace': {
     source: 'trace explorer' | 'new explore';
@@ -184,6 +190,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
     'Improved Trace Explorer: Schema Hints Click Events',
   'trace.explorer.schema_hints_drawer':
     'Improved Trace Explorer: Schema Hints Drawer Events',
+  'trace.explorer.table_pagination': 'Trace Explorer Table Pagination',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
@@ -237,4 +244,5 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace_explorer.compare_queries': 'Trace Explorer: Compare',
   'trace_explorer.save_query_modal': 'Trace Explorer: Save Query Modal',
   'trace_explorer.star_query': 'Trace Explorer: Star Query',
+  'trace_explorer.delete_query': 'Trace Explorer: Delete Query',
 };

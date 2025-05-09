@@ -13,7 +13,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isFieldSortable, type MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -23,6 +23,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import type {Row} from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 import type {ModuleName} from 'sentry/views/insights/types';
+
+export type TableData = {
+  data: Array<Record<string, string | number>>;
+  meta?: MetaType;
+};
 
 type Props = {
   columnNameMap: Record<string, string>;

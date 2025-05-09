@@ -2,7 +2,6 @@ import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -43,14 +42,10 @@ import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
+import type {PickableDays} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-type LogsTabProps = {
-  defaultPeriod: DefaultPeriod;
-  maxPickableDays: MaxPickableDays;
-  relativeOptions: Record<string, React.ReactNode>;
-};
+type LogsTabProps = PickableDays;
 
 export function LogsTabContent({
   defaultPeriod,
@@ -141,10 +136,7 @@ export function LogsTabContent({
               <DatePageFilter
                 defaultPeriod={defaultPeriod}
                 maxPickableDays={maxPickableDays}
-                relativeOptions={({arbitraryOptions}) => ({
-                  ...arbitraryOptions,
-                  ...relativeOptions,
-                })}
+                relativeOptions={relativeOptions}
               />
             </StyledPageFilterBar>
             <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
@@ -157,19 +149,17 @@ export function LogsTabContent({
               {t('Edit Table')}
             </Button>
           </FilterBarContainer>
-          <Feature features="organizations:traces-schema-hints">
-            <SchemaHintsSection>
-              <SchemaHintsList
-                supportedAggregates={[]}
-                numberTags={numberAttributes}
-                stringTags={stringAttributes}
-                isLoading={numberAttributesLoading || stringAttributesLoading}
-                exploreQuery={logsSearch.formatString()}
-                source={SchemaHintsSources.LOGS}
-                searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
-              />
-            </SchemaHintsSection>
-          </Feature>
+          <SchemaHintsSection>
+            <SchemaHintsList
+              supportedAggregates={[]}
+              numberTags={numberAttributes}
+              stringTags={stringAttributes}
+              isLoading={numberAttributesLoading || stringAttributesLoading}
+              exploreQuery={logsSearch.formatString()}
+              source={SchemaHintsSources.LOGS}
+              searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
+            />
+          </SchemaHintsSection>
           <LogsGraphContainer>
             <LogsGraph timeseriesResult={timeseriesResult} />
           </LogsGraphContainer>

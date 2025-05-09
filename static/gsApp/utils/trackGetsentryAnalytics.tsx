@@ -92,6 +92,7 @@ type GetsentryEventParameters = {
   } & Checkout;
   // no sub here
   'checkout.upgrade': {
+    // TODO(data categories): check if these can be parsed
     attachments?: number;
     errors?: number;
     monitorSeats?: number;

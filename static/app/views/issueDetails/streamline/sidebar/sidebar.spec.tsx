@@ -52,7 +52,7 @@ describe('StreamlinedSidebar', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: false,
@@ -64,7 +64,7 @@ describe('StreamlinedSidebar', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/autofix/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
       body: {steps: []},
     });
 
@@ -75,6 +75,11 @@ describe('StreamlinedSidebar', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+      method: 'POST',
+      body: {whatsWrong: 'Test summary'},
     });
 
     mockExternalIssues = MockApiClient.addMockResponse({

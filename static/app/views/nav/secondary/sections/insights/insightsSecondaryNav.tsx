@@ -2,8 +2,6 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {LinkButton} from 'sentry/components/core/button';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -35,8 +33,6 @@ import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
-import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
 export function InsightsSecondaryNav() {
   const organization = useOrganization();
@@ -45,8 +41,6 @@ export function InsightsSecondaryNav() {
   const isProjectDetailsRedirectActive = useIsProjectDetailsRedirectActive();
 
   const {projects} = useProjects();
-
-  useReleasesDrawer();
 
   const [starredProjects, nonStarredProjects] = useMemo(() => {
     return partition(projects, project => project.isBookmarked);
@@ -70,7 +64,7 @@ export function InsightsSecondaryNav() {
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.INSIGHTS].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
-        <SecondaryNav.Section>
+        <SecondaryNav.Section id="insights-main">
           <SecondaryNav.Item
             isActive={
               !isProjectDetailsRedirectActive &&
@@ -104,45 +98,7 @@ export function InsightsSecondaryNav() {
             {AI_SIDEBAR_LABEL}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <SecondaryNav.Section
-          title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
-          trailingItems={
-            <AddProjectButtonLink
-              to={makeProjectsPathname({
-                path: '/new/',
-                orgSlug: organization.slug,
-              })}
-              icon={<IconAdd />}
-              size="zero"
-              borderless
-              aria-label={t('Add Project')}
-              analyticsEventKey="navigation.add_project_clicked"
-              analyticsEventName="Navigation: Add Project Clicked"
-            />
-          }
-        >
-          {projectsToDisplay.map(project => (
-            <SecondaryNav.Item
-              key={project.id}
-              to={{
-                pathname: `${baseUrl}/projects/${project.slug}/`,
-                search: '?source=sidebar',
-              }}
-              isActive={
-                isProjectDetailsRedirectActive
-                  ? isProjectSelectedExclusively(project)
-                  : undefined
-              }
-              leadingItems={
-                <StyledProjectIcon
-                  projectPlatforms={project.platform ? [project.platform] : ['default']}
-                />
-              }
-              analyticsItemName="insights_project_starred"
-            >
-              {project.slug}
-            </SecondaryNav.Item>
-          ))}
+        <SecondaryNav.Section id="insights-projects-all">
           <SecondaryNav.Item
             to={`${baseUrl}/projects/`}
             end
@@ -151,6 +107,35 @@ export function InsightsSecondaryNav() {
             {t('All Projects')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
+        {projectsToDisplay.length > 0 ? (
+          <SecondaryNav.Section
+            id="insights-starred-projects"
+            title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
+          >
+            {projectsToDisplay.map(project => (
+              <SecondaryNav.Item
+                key={project.id}
+                to={{
+                  pathname: `${baseUrl}/projects/${project.slug}/`,
+                  search: '?source=sidebar',
+                }}
+                isActive={
+                  isProjectDetailsRedirectActive
+                    ? isProjectSelectedExclusively(project)
+                    : undefined
+                }
+                leadingItems={
+                  <StyledProjectIcon
+                    projectPlatforms={project.platform ? [project.platform] : ['default']}
+                  />
+                }
+                analyticsItemName="insights_project_starred"
+              >
+                {project.slug}
+              </SecondaryNav.Item>
+            ))}
+          </SecondaryNav.Section>
+        ) : null}
       </SecondaryNav.Body>
     </SecondaryNav>
   );
@@ -158,10 +143,4 @@ export function InsightsSecondaryNav() {
 
 const StyledProjectIcon = styled(ProjectIcon)`
   margin-right: ${space(0.75)};
-`;
-
-const AddProjectButtonLink = styled(LinkButton)`
-  padding: ${space(0.5)};
-  margin-right: -${space(0.5)};
-  color: ${p => p.theme.subText};
 `;

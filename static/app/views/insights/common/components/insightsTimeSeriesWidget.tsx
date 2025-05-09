@@ -79,10 +79,10 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             : Bars;
 
       return new PlottableDataConstructor(timeSeries, {
-        color: serie.color ?? COMMON_COLORS(theme)[timeSeries.field],
+        color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
         delay: INGESTION_DELAY,
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
-        alias: props.aliases?.[timeSeries.field],
+        alias: props.aliases?.[timeSeries.yAxis],
       });
     }),
   };
@@ -154,30 +154,32 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {props.description && (
               <Widget.WidgetDescription description={props.description} />
             )}
-            <Button
-              size="xs"
-              aria-label={t('Open Full-Screen View')}
-              borderless
-              icon={<IconExpand />}
-              onClick={() => {
-                openInsightChartModal({
-                  title: props.title,
-                  children: (
-                    <ModalChartContainer>
-                      <TimeSeriesWidgetVisualization
-                        id={props.id}
-                        {...visualizationProps}
-                        {...enableReleaseBubblesProps}
-                        onZoom={() => {}}
-                        legendSelection={props.legendSelection}
-                        onLegendSelectionChange={props.onLegendSelectionChange}
-                        releases={releases ?? []}
-                      />
-                    </ModalChartContainer>
-                  ),
-                });
-              }}
-            />
+            {props.loaderSource !== 'releases-drawer' && (
+              <Button
+                size="xs"
+                aria-label={t('Open Full-Screen View')}
+                borderless
+                icon={<IconExpand />}
+                onClick={() => {
+                  openInsightChartModal({
+                    title: props.title,
+                    children: (
+                      <ModalChartContainer>
+                        <TimeSeriesWidgetVisualization
+                          id={props.id}
+                          {...visualizationProps}
+                          {...enableReleaseBubblesProps}
+                          onZoom={() => {}}
+                          legendSelection={props.legendSelection}
+                          onLegendSelectionChange={props.onLegendSelectionChange}
+                          releases={releases ?? []}
+                        />
+                      </ModalChartContainer>
+                    ),
+                  });
+                }}
+              />
+            )}
           </Widget.WidgetToolbar>
         }
       />

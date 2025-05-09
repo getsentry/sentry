@@ -30,15 +30,20 @@ function Projects({projects, logs, tree}: Props) {
     [dispatch]
   );
 
-  const projectSlugs = useMemo(() => {
+  const projectSlugs: string[] = useMemo(() => {
     if (logs && logs.length > 0 && tree.shape === TraceShape.EMPTY_TRACE) {
-      // Create a map of project IDs to slugs once
+      // Get unique project slugs in a single pass
       const projectIdToSlug = new Map(projects.map(p => [p.id, p.slug]));
 
-      // Get unique project IDs and map to slugs in one pass
       return Array.from(
-        new Set(logs.map(log => projectIdToSlug.get(log[OurLogKnownFieldKey.PROJECT_ID])))
-      ).filter(defined);
+        new Set(
+          logs
+            .map(({[OurLogKnownFieldKey.PROJECT_ID]: projectId}) =>
+              projectIdToSlug.get(String(projectId))
+            )
+            .filter(defined)
+        )
+      );
     }
 
     // If there are no logs, or the trace is not empty, use the projects from the tree

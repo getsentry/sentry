@@ -106,7 +106,7 @@ export function getChonkButtonStyles(
       display: 'inherit',
       alignItems: 'inherit',
       justifyContent: 'inherit',
-      flex: 'inherit',
+      flex: '1',
       gap: 'inherit',
 
       whiteSpace: 'nowrap',
@@ -178,6 +178,10 @@ export function getChonkButtonStyles(
       },
       '&::after': {
         display: 'none',
+      },
+
+      '&:focus-visible': {
+        ...p.theme.focusRing,
       },
 
       '> span:last-child': {

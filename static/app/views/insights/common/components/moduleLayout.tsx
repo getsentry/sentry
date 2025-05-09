@@ -12,6 +12,10 @@ export const Third = styled('div')`
   grid-column: span 4;
 `;
 
+export const TwoThirds = styled('div')`
+  grid-column: span 8;
+`;
+
 export const Half = styled('div')`
   grid-column: span 12;
 

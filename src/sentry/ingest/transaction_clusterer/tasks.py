@@ -48,17 +48,20 @@ CLUSTERING_TIMEOUT_PER_PROJECT = 0.3
     max_retries=5,  # copied from release monitor
     taskworker_config=TaskworkerConfig(
         namespace=performance_tasks,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
 def spawn_clusterers(**kwargs: Any) -> None:
     """Look for existing transaction name sets in redis and spawn clusterers for each"""
     with sentry_sdk.start_span(op="txcluster_spawn"):
         project_count = 0
-        project_iter = redis.get_active_projects(ClustererNamespace.TRANSACTIONS)
+        project_iter = redis.get_active_project_ids(ClustererNamespace.TRANSACTIONS)
         while batch := list(islice(project_iter, PROJECTS_PER_TASK)):
             project_count += len(batch)
-            cluster_projects.delay(batch)
+            cluster_projects.delay(project_ids=batch)
 
         metrics.incr("txcluster.spawned_projects", amount=project_count, sample_rate=1.0)
 
@@ -73,10 +76,14 @@ def spawn_clusterers(**kwargs: Any) -> None:
     taskworker_config=TaskworkerConfig(
         namespace=performance_tasks,
         processing_deadline_duration=int(PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2),
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
-def cluster_projects(projects: Sequence[Project]) -> None:
+def cluster_projects(project_ids: Sequence[int]) -> None:
+    projects = Project.objects.get_many_from_cache(project_ids)
     pending = set(projects)
     num_clustered = 0
     try:
