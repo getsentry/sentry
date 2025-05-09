@@ -41,7 +41,11 @@ export function TraceContextPanel({
 
   return (
     <Container>
-      <TraceContextVitals rootEventResults={rootEventResults} tree={tree} logs={logs} />
+      <TraceContextVitals
+        rootEventResults={rootEventResults}
+        tree={tree}
+        containerWidth={undefined}
+      />
       {hasTags && rootEventResults.data && (
         <ContextRow>
           <FoldSection
