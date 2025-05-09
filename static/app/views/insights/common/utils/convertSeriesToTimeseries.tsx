@@ -19,7 +19,7 @@ export function convertSeriesToTimeseries(series: DiscoverSeries): TimeSeries {
   const interval = getTimeSeriesInterval(values);
 
   return {
-    field: series.seriesName,
+    yAxis: series.seriesName,
     values,
     meta: {
       // This behavior is a little awkward. Normally `meta` shouldn't be missing, but we sometime return blank meta from helper hooks

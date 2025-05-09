@@ -1,7 +1,7 @@
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export const sampleScoreTimeSeries: TimeSeries = {
-  field: 'performance_score(measurements.score.lcp)',
+  yAxis: 'performance_score(measurements.score.lcp)',
   meta: {
     valueType: 'score',
     valueUnit: null,
