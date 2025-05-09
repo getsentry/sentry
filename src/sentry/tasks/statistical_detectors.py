@@ -333,10 +333,13 @@ class FunctionRegressionDetector(RegressionDetector):
     ),
 )
 def detect_transaction_trends(
-    _org_ids: list[int], project_ids: list[int], start: datetime, *args, **kwargs
+    _org_ids: list[int], project_ids: list[int], start: datetime | str, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    if isinstance(start, str):
+        start = datetime.fromisoformat(start)
 
     EndpointRegressionDetector.configure_tags()
 
