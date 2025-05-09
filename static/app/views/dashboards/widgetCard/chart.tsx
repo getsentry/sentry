@@ -543,7 +543,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                             // Override default datazoom behaviour for updating Global Selection Header
                             ...(onZoom ? {onDataZoom: onZoom} : {}),
                             legend,
-                            series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
+                            series: [
+                              ...series,
+                              // only add release series if there is series data
+                              ...(series?.length > 0
+                                ? (modifiedReleaseSeriesResults ?? [])
+                                : []),
+                            ],
                             onLegendSelectChanged,
                             ref,
                           }),
