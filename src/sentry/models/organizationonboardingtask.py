@@ -39,6 +39,8 @@ class OnboardingTask:
 
 class OnboardingTaskStatus:
     COMPLETE = 1
+    # deprecated - no longer used
+    PENDING = 2
     SKIPPED = 3
 
 
