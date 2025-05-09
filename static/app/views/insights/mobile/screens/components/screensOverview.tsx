@@ -202,22 +202,20 @@ export function ScreensOverview() {
   const loading = primaryLoading || (hasVisibleScreens && secondaryLoading);
   return (
     <Container>
-      {!loading && (
-        <SearchBar
-          onSearch={search => {
-            navigate({
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                cursor: undefined,
-                query: String(search).trim() || undefined,
-              },
-            });
-          }}
-          query={getFreeTextFromQuery(derivedQuery)}
-          placeholder={t('Search for Screen')}
-        />
-      )}
+      <SearchBar
+        onSearch={search => {
+          navigate({
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              cursor: undefined,
+              query: String(search).trim() || undefined,
+            },
+          });
+        }}
+        query={getFreeTextFromQuery(derivedQuery)}
+        placeholder={t('Search for Screen')}
+      />
       <Container>
         <ScreensOverviewTable
           eventView={primaryEventView}
