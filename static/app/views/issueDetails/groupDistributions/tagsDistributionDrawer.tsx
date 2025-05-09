@@ -1,12 +1,13 @@
 import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {EventDrawerBody, EventNavigator} from 'sentry/components/events/eventDrawer';
 import SuspectTable from 'sentry/components/issues/suspect/suspectTable';
 import {IconSort} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -72,7 +73,7 @@ export default function TagsDistributionDrawer({
         ) : null}
 
         {tagKey ? null : (
-          <Flex justify="space-between">
+          <StickyControls>
             <TagFlagPicker setTab={setTab} tab={DrawerTab.TAGS} />
 
             <ButtonBar gap={1}>
@@ -95,7 +96,7 @@ export default function TagsDistributionDrawer({
                 </Fragment>
               ) : null}
             </ButtonBar>
-          </Flex>
+          </StickyControls>
         )}
 
         {tagKey ? (
@@ -113,3 +114,14 @@ export default function TagsDistributionDrawer({
     </Fragment>
   );
 }
+
+const StickyControls = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  position: sticky;
+  top: -${space(2)};
+  margin-block: -${space(2)};
+  padding-block: ${space(2)};
+  background: ${p => p.theme.background};
+  z-index: 1;
+`;

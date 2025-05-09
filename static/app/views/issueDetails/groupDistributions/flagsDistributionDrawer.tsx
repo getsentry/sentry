@@ -142,7 +142,7 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
         ) : null}
 
         {tagKey ? null : (
-          <Flex justify="space-between">
+          <StickyControls>
             <TagFlagPicker setTab={setTab} tab={DrawerTab.FEATURE_FLAGS} />
 
             <ButtonBar gap={1}>
@@ -179,7 +179,7 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
                 sortByOptions={sortByOptions}
               />
             </ButtonBar>
-          </Flex>
+          </StickyControls>
         )}
 
         {tagKey ? (
@@ -202,6 +202,14 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
     </Fragment>
   );
 }
+
+const StickyControls = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: ${p => p.theme.background};
+`;
 
 const Label = styled('label')`
   display: flex;
