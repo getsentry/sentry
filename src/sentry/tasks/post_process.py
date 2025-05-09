@@ -665,7 +665,6 @@ def run_post_process_job(job: PostProcessJob) -> None:
     ):
         metrics.incr(
             "post_process.skipped_feature_disabled",
-            sample_rate=1.0,
             tags={"issue_type": group_event.group.issue_type.slug},
         )
         return
