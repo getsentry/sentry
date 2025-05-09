@@ -696,12 +696,13 @@ export class TokenConverter {
     items: [{separator: '', value: item1}, ...items.map(listJoiner)],
   });
 
-  tokenValueText = (value: string, quoted: boolean) => {
+  tokenValueText = (value: string, quoted: boolean, contains?: boolean) => {
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
+      ...(typeof contains === 'boolean' ? {contains} : {}),
     };
   };
 
@@ -771,6 +772,14 @@ export class TokenConverter {
    */
   predicateParenGroup = (): boolean => {
     return !this.config.flattenParenGroups;
+  };
+
+  /**
+   * When enableContainsCheck is enabled, the parser will check for the contains
+   * flag in text values. i.e. `*value*`
+   */
+  enableContainsCheck = (): boolean => {
+    return !!this.config.enableContainsCheck;
   };
 
   /**
@@ -1362,6 +1371,10 @@ export type SearchConfig = {
    * Text filter keys we allow to have operators
    */
   textOperatorKeys: Set<string>;
+  /**
+   * When true, the parser will check for the contains flag in text values
+   */
+  enableContainsCheck?: boolean;
   /**
    * When true, the parser will not parse paren groups and will return individual paren tokens
    */

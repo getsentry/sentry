@@ -83,6 +83,7 @@ export function parseQueryBuilderValue(
   return collapseTextTokens(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
+      enableContainsCheck: false,
       disallowFreeText: options?.disallowFreeText,
       getFilterTokenWarning: options?.getFilterTokenWarning,
       validateKeys: options?.disallowUnsupportedFilters,

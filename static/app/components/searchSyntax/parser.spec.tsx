@@ -105,7 +105,7 @@ describe('searchSyntax/parser', function () {
 
   Object.entries(testData).map(([name, cases]) =>
     describe(`${name}`, () => {
-      cases.map(c => registerTestCase(c, {parse: true}));
+      cases.map(c => registerTestCase(c, {parse: true, enableContainsCheck: false}));
     })
   );
 
@@ -358,6 +358,63 @@ describe('searchSyntax/parser', function () {
         }),
         expect.objectContaining({type: Token.SPACES}),
       ]);
+    });
+  });
+
+  describe('enableContainsCheck', () => {
+    it('sets contains to false when not wrapped in `*`', function () {
+      const result = parseSearch('foo:bar', {
+        enableContainsCheck: true,
+      });
+
+      expect(result).toHaveLength(3);
+
+      const bar = result?.[1] as TokenResult<Token.FILTER>;
+      expect(bar.value).toEqual(expect.objectContaining({contains: false}));
+    });
+
+    it('sets contains to true when wrapped in `*`', function () {
+      const result = parseSearch('foo:*bar*', {
+        enableContainsCheck: true,
+      });
+
+      expect(result).toHaveLength(3);
+
+      const bar = result?.[1] as TokenResult<Token.FILTER>;
+      expect(bar.value).toEqual(expect.objectContaining({contains: true}));
+    });
+
+    it('sets contains to true when quoted', function () {
+      const result = parseSearch('foo:"*bar*"', {
+        enableContainsCheck: true,
+      });
+
+      expect(result).toHaveLength(3);
+
+      const bar = result?.[1] as TokenResult<Token.FILTER>;
+      expect(bar.value).toEqual(expect.objectContaining({contains: true}));
+    });
+
+    it('spaces', function () {
+      const result = parseSearch('foo:"* *"', {
+        enableContainsCheck: true,
+      });
+
+      expect(result).toHaveLength(3);
+
+      const bar = result?.[1] as TokenResult<Token.FILTER>;
+      expect(bar.value).toEqual(expect.objectContaining({contains: true}));
+    });
+
+    it('just asterisks', function () {
+      const result = parseSearch('foo:**', {
+        enableContainsCheck: true,
+      });
+
+      expect(result).toHaveLength(3);
+
+      const bar = result?.[1] as TokenResult<Token.FILTER>;
+      expect(bar.value).toEqual(expect.objectContaining({contains: true}));
     });
   });
 });
