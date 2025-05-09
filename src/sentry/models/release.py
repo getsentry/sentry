@@ -7,6 +7,7 @@ from typing import ClassVar, Literal, TypedDict
 
 import orjson
 import sentry_sdk
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models, router
 from django.db.models import Case, F, Func, Sum, When
 from django.utils import timezone
@@ -18,7 +19,6 @@ from sentry_relay.processing import parse_release
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
-    ArrayField,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -214,7 +214,7 @@ class Release(Model):
     # materialized stats
     commit_count = BoundedPositiveIntegerField(null=True, default=0)
     last_commit_id = BoundedBigIntegerField(null=True)
-    authors = ArrayField(null=True)
+    authors = ArrayField(models.TextField(), default=list, null=True)
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
 
