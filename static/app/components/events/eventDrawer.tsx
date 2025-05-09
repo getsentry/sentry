@@ -64,6 +64,17 @@ export const EventNavigator = styled('div')`
   box-shadow: ${p => p.theme.translucentBorder} 0 1px;
 `;
 
+export const EventStickyControls = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  position: sticky;
+  top: -${space(2)};
+  margin-block: -${space(2)};
+  padding-block: ${space(2)};
+  background: ${p => p.theme.background};
+  z-index: 1;
+`;
+
 export const EventDrawerBody = styled(DrawerBody)`
   overflow: auto;
   overscroll-behavior: contain;
