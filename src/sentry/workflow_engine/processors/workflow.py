@@ -96,6 +96,16 @@ def enqueue_workflow(
         value=value,
     )
 
+    logger.info(
+        "workflow_engine.enqueue_workflow",
+        extra={
+            "workflow": workflow.id,
+            "group_id": event.group_id,
+            "event_id": event.event_id,
+            "delayed_conditions": [condition.id for condition in delayed_conditions],
+        },
+    )
+
 
 def evaluate_workflow_triggers(
     workflows: set[Workflow], event_data: WorkflowEventData
@@ -249,6 +259,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             logger.info(
                 "workflow_engine.process_workflows.triggered_workflows",
                 extra={
+                    "group_id": event_data.event.group_id,
+                    "event_id": event_data.event.event_id,
                     "event_data": asdict(event_data),
                     "event_environment_id": environment.id,
                     "triggered_workflows": [workflow.id for workflow in triggered_workflows],
@@ -268,6 +280,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         logger.info(
             "workflow_engine.process_workflows.actions (all)",
             extra={
+                "group_id": event_data.event.group_id,
+                "event_id": event_data.event.event_id,
                 "workflow_ids": [workflow.id for workflow in triggered_workflows],
                 "action_ids": [action.id for action in actions],
                 "detector_type": detector.type,
@@ -290,6 +304,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         logger.info(
             "workflow_engine.process_workflows.triggered_actions (batch)",
             extra={
+                "group_id": event_data.event.group_id,
+                "event_id": event_data.event.event_id,
                 "workflow_ids": [workflow.id for workflow in triggered_workflows],
                 "action_ids": [action.id for action in actions],
                 "detector_type": detector.type,
