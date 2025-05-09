@@ -1,8 +1,7 @@
 import {lazy} from 'react';
 
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
-
-import useToolbarRoute from '../hooks/useToolbarRoute';
+import useToolbarRoute from 'sentry/components/devtoolbar/hooks/useToolbarRoute';
 
 const PanelAlerts = lazy(() => import('./alerts/alertsPanel'));
 const PanelFeedback = lazy(() => import('./feedback/feedbackPanel'));

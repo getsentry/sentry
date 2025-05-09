@@ -8,9 +8,6 @@ from sentry.integrations.slack.utils.errors import (
 )
 from sentry.integrations.utils.metrics import EventLifecycle
 
-SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.issue_alert.success"
-SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.issue_alert.failure"
-
 # Webhooks
 SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC = (
     "sentry.integrations.slack.event_endpoint.success"

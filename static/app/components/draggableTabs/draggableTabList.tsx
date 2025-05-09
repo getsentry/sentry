@@ -20,8 +20,8 @@ import {useTabListState} from '@react-stately/tabs';
 import type {Node} from '@react-types/shared';
 import {motion, Reorder} from 'framer-motion';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {type BaseTabProps, Tab} from 'sentry/components/tabs/tab';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
@@ -403,7 +403,7 @@ function BaseDraggableTabList({
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
-export interface DraggableTabListProps
+interface DraggableTabListProps
   extends AriaTabListOptions<DraggableTabListItemProps>,
     TabListStateOptions<DraggableTabListItemProps> {
   onReorder: (newOrder: Array<Node<DraggableTabListItemProps>>) => void;
@@ -530,7 +530,7 @@ const ReorderGroup = styled(Reorder.Group<Node<DraggableTabListItemProps>>)`
 
 const AddViewButton = styled(Button)`
   display: flex;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: normal;
   border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   padding: ${space(1)} ${space(1)};

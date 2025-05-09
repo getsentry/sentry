@@ -6,6 +6,9 @@ from sentry.rules.conditions.event_frequency import (
     STANDARD_INTERVALS,
     percent_increase,
 )
+from sentry.workflow_engine.handlers.condition.event_attribute_handler import (
+    EventAttributeConditionHandler,
+)
 from sentry.workflow_engine.handlers.condition.tagged_event_handler import (
     TaggedEventConditionHandler,
 )
@@ -17,8 +20,8 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionResu
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
 class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
-    type = DataConditionHandler.Type.ACTION_FILTER
-    filter_group = DataConditionHandler.FilterGroup.FREQUENCY
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.FREQUENCY
 
     comparison_json_schema = {
         "type": "object",
@@ -27,7 +30,12 @@ class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
             "value": {"type": "integer", "minimum": 0},
             "filters": {
                 "type": "array",
-                "items": TaggedEventConditionHandler.comparison_json_schema,
+                "items": {
+                    "anyOf": [
+                        TaggedEventConditionHandler.comparison_json_schema,
+                        EventAttributeConditionHandler.comparison_json_schema,
+                    ],
+                },
             },
         },
         "required": ["interval", "value"],
@@ -44,8 +52,8 @@ class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
 class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
-    type = DataConditionHandler.Type.ACTION_FILTER
-    filter_group = DataConditionHandler.FilterGroup.FREQUENCY
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.FREQUENCY
 
     comparison_json_schema = {
         "type": "object",
@@ -55,7 +63,12 @@ class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
             "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
             "filters": {
                 "type": "array",
-                "items": TaggedEventConditionHandler.comparison_json_schema,
+                "items": {
+                    "anyOf": [
+                        TaggedEventConditionHandler.comparison_json_schema,
+                        EventAttributeConditionHandler.comparison_json_schema,
+                    ],
+                },
             },
         },
         "required": ["interval", "value", "comparison_interval"],
@@ -72,6 +85,8 @@ class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
 # Percent sessions values must be between 0-100 (%)
 @condition_handler_registry.register(Condition.PERCENT_SESSIONS_COUNT)
 class PercentSessionsCountHandler(EventFrequencyCountHandler):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.FREQUENCY
     comparison_json_schema = {
         "type": "object",
         "properties": {
@@ -79,7 +94,12 @@ class PercentSessionsCountHandler(EventFrequencyCountHandler):
             "value": {"type": "number", "minimum": 0, "maximum": 100},
             "filters": {
                 "type": "array",
-                "items": TaggedEventConditionHandler.comparison_json_schema,
+                "items": {
+                    "anyOf": [
+                        TaggedEventConditionHandler.comparison_json_schema,
+                        EventAttributeConditionHandler.comparison_json_schema,
+                    ],
+                },
             },
         },
         "required": ["interval", "value"],
@@ -90,6 +110,8 @@ class PercentSessionsCountHandler(EventFrequencyCountHandler):
 # This percent value can be > 100 (%)
 @condition_handler_registry.register(Condition.PERCENT_SESSIONS_PERCENT)
 class PercentSessionsPercentHandler(EventFrequencyPercentHandler):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.FREQUENCY
     comparison_json_schema = {
         "type": "object",
         "properties": {
@@ -98,7 +120,12 @@ class PercentSessionsPercentHandler(EventFrequencyPercentHandler):
             "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
             "filters": {
                 "type": "array",
-                "items": TaggedEventConditionHandler.comparison_json_schema,
+                "items": {
+                    "anyOf": [
+                        TaggedEventConditionHandler.comparison_json_schema,
+                        EventAttributeConditionHandler.comparison_json_schema,
+                    ],
+                },
             },
         },
         "required": ["interval", "value", "comparison_interval"],

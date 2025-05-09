@@ -1,4 +1,4 @@
-import {Dataset} from '../types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 /**
  * Currently we can tell if an alert is a crash free alert by the dataset,

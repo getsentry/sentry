@@ -5,6 +5,9 @@ import styled from '@emotion/styled';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   LogsPageDataProvider,
   useLogsPageData,
@@ -12,13 +15,15 @@ import {
 import {
   LogsPageParamsProvider,
   useLogsSearch,
-  useSetLogsQuery,
+  useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 
-export type UseTraceViewLogsDataProps = {
+type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
   traceSlug: string;
 };
@@ -28,45 +33,56 @@ export function TraceViewLogsDataProvider({
   children,
 }: UseTraceViewLogsDataProps) {
   return (
-    <LogsPageParamsProvider isOnEmbeddedView limitToTraceId={traceSlug}>
+    <LogsPageParamsProvider
+      isTableFrozen
+      limitToTraceId={traceSlug}
+      analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+    >
       <LogsPageDataProvider>{children}</LogsPageDataProvider>
     </LogsPageParamsProvider>
   );
 }
 
 export function TraceViewLogsSection() {
-  return (
-    <InterimSection
-      key="logs"
-      type={SectionKey.LOGS}
-      title={t('Logs')}
-      data-test-id="logs-data-section"
-      initialCollapse={false}
-    >
-      <LogsSectionContent />
-    </InterimSection>
-  );
-}
-
-function LogsSectionContent() {
-  const setLogsQuery = useSetLogsQuery();
-  const logsSearch = useLogsSearch();
   const tableData = useLogsPageData();
-  if (!tableData?.logsData) {
+  const logsSearch = useLogsSearch();
+  if (
+    !tableData?.logsData ||
+    (tableData.logsData.data.length === 0 && logsSearch.isEmpty())
+  ) {
     return null;
   }
   return (
+    <FoldSection
+      sectionKey={TraceContextSectionKeys.LOGS as string as SectionKey}
+      title={t('Logs')}
+      data-test-id="logs-data-section"
+      initialCollapse={false}
+      disableCollapsePersistence
+    >
+      <LogsSectionContent tableData={tableData.logsData} />
+    </FoldSection>
+  );
+}
+
+function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult}) {
+  const organization = useOrganization();
+  const setLogsSearch = useSetLogsSearch();
+  const logsSearch = useLogsSearch();
+
+  return (
     <Fragment>
       <SearchQueryBuilder
+        searchOnChange={organization.features.includes('ui-search-on-change')}
         placeholder={t('Search logs for this event')}
         filterKeys={{}}
         getTagValues={() => new Promise<string[]>(() => [])}
         initialQuery={logsSearch.formatString()}
         searchSource="ourlogs"
-        onSearch={setLogsQuery}
+        onSearch={query => setLogsSearch(new MutableSearch(query))}
       />
       <TableContainer>
-        <LogsTable tableData={tableData.logsData} />
+        <LogsTable tableData={tableData} showHeader={false} />
       </TableContainer>
     </Fragment>
   );

@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
@@ -53,10 +54,12 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     enabled: mode === Mode.SAMPLES,
   });
 
-  const {timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
+  const {result: timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
     index,
     enabled: true,
   });
+
+  const [interval] = useChartInterval();
 
   useCompareAnalytics({
     aggregatesTableResult,
@@ -65,6 +68,8 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     spansTableResult,
     timeseriesResult,
     queryType: mode === Mode.AGGREGATE ? 'aggregate' : 'samples',
+    interval,
+    isTopN: mode === Mode.AGGREGATE,
   });
 
   return (

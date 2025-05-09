@@ -3,7 +3,6 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -114,9 +113,7 @@ describe('ReleaseIssues', function () {
   });
 
   it('can switch issue filters', async function () {
-    const {router} = initializeOrg();
-
-    const {rerender} = render(<ReleaseIssues {...props} />, {router});
+    const {rerender} = render(<ReleaseIssues {...props} />);
 
     // New
     expect(await screen.findByRole('radio', {name: 'New Issues 0'})).toBeChecked();
@@ -176,9 +173,7 @@ describe('ReleaseIssues', function () {
       body: [GroupFixture({id: '123'})],
     });
 
-    const {router} = initializeOrg();
-
-    render(<ReleaseIssues {...props} />, {router});
+    render(<ReleaseIssues {...props} />);
 
     await userEvent.click(screen.getByRole('radio', {name: /New Issues/}));
 

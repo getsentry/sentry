@@ -19,6 +19,7 @@ from sentry.integrations.tasks.sync_status_inbound import (
 )
 from sentry.integrations.utils.sync import where_should_sync
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.project import Project
@@ -84,15 +85,14 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                 result.append(output)
         return "\n\n".join(result)
 
-    def get_feedback_issue_body(self, event: GroupEvent) -> str:
+    def get_feedback_issue_body(self, occurrence: IssueOccurrence) -> str:
         messages = []
         others = []
-        if event.occurrence:
-            for evidence in event.occurrence.evidence_display:
-                if evidence.name == "message":
-                    messages.append(evidence)
-                else:
-                    others.append(evidence)
+        for evidence in occurrence.evidence_display:
+            if evidence.name == "message":
+                messages.append(evidence)
+            else:
+                others.append(evidence)
 
         body = ""
         for message in messages:
@@ -133,7 +133,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
             and group.issue_category == GroupCategory.FEEDBACK
         ):
             body = ""
-            body = self.get_feedback_issue_body(event)
+            body = self.get_feedback_issue_body(event.occurrence)
             output.extend([body])
         else:
             body = self.get_group_body(group, event)
@@ -143,7 +143,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs
     ) -> list[dict[str, Any]]:
         """
         These fields are used to render a form for the user,
@@ -243,7 +243,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                     user_id=user.id, value=new_user_defaults, **user_option_key
                 )
 
-    def get_defaults(self, project: Project, user: User):
+    def get_defaults(self, project: Project, user: User | RpcUser):
         project_defaults = (
             {}
             if not self.org_integration

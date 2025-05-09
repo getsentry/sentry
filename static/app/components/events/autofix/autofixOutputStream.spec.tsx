@@ -16,7 +16,7 @@ describe('AutofixOutputStream', () => {
     (addSuccessMessage as jest.Mock).mockClear();
     (addErrorMessage as jest.Mock).mockClear();
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
     });
   });
@@ -105,7 +105,7 @@ describe('AutofixOutputStream', () => {
 
   it('shows error message when user interruption fails', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
       statusCode: 500,
     });

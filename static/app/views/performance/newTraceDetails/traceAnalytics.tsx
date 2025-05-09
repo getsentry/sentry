@@ -10,7 +10,7 @@ import {TraceShape, type TraceTree} from './traceModels/traceTree';
 
 export type TraceWaterFallSource = 'trace_view' | 'replay_details' | 'issue_details';
 
-const {info, fmt} = Sentry._experiment_log;
+const {info, fmt} = Sentry.logger;
 
 const trackTraceMetadata = (
   tree: TraceTree,

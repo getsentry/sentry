@@ -19,6 +19,7 @@ FRONTEND = {
     "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
+    "javascript-tanstackstart-react",
     "javascript-astro",
     "unity",
 }

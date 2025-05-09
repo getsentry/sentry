@@ -73,7 +73,7 @@ const SectionHeading = styled('div')`
 
 const Count = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const Empty = styled('div')`

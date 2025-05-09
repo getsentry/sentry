@@ -1,5 +1,3 @@
-import type {ModuleName} from 'webpack-cli';
-
 import {useLocation} from 'sentry/utils/useLocation';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -23,10 +21,6 @@ const domainViews = [
 export type DomainViewFilters = {
   isInDomainView?: boolean;
   view?: DomainView;
-};
-
-export type Filters = {
-  module?: ModuleName;
 };
 
 export const useDomainViewFilters = () => {

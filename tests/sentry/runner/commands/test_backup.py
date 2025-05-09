@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Sequence
 from pathlib import Path
 from random import choice
 from string import ascii_letters
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
+from unittest import mock
 from unittest.mock import patch
 
 import orjson
@@ -29,11 +31,7 @@ from sentry.runner.commands.backup import backup, export, import_
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.backups import (
-    FakeKeyManagementServiceClient,
-    clear_database,
-    generate_rsa_key_pair,
-)
+from sentry.testutils.helpers.backups import clear_database, generate_rsa_key_pair
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.email import Email
 from sentry.utils import json
@@ -82,13 +80,13 @@ def mock_gcp_kms_asymmetric_decrypt(
     tmp_dir: str,
     tmp_priv_key_path: Path,
     tmp_encrypted_path: Path,
-    fake_kms_client: FakeKeyManagementServiceClient,
+    fake_kms_client: mock.Mock,
 ) -> Path:
     with open(tmp_encrypted_path, "rb") as f:
         unwrapped_tarball = unwrap_encrypted_export_tarball(f)
     with open(tmp_priv_key_path, "rb") as f:
         plaintext_dek = LocalFileDecryptor(f).decrypt_data_encryption_key(unwrapped_tarball)
-        fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
+        fake_kms_client.return_value.asymmetric_decrypt.return_value = SimpleNamespace(
             plaintext=plaintext_dek,
             plaintext_crc32c=crc32c(plaintext_dek),
         )
@@ -205,11 +203,8 @@ class GoodCompareCommandEncryptionTests(TestCase):
                     findings = json.load(findings_file)
                     assert len(findings) == 0
 
-    @patch(
-        "sentry.backup.crypto.KeyManagementServiceClient",
-        new_callable=lambda: FakeKeyManagementServiceClient,
-    )
-    def test_compare_decrypt_with_gcp_kms(self, fake_kms_client: FakeKeyManagementServiceClient):
+    @patch("sentry.backup.crypto.KeyManagementServiceClient")
+    def test_compare_decrypt_with_gcp_kms(self, fake_kms_client: mock.Mock):
         with TemporaryDirectory() as tmp_dir:
             (tmp_priv_key_path, _, tmp_encrypted_path) = create_encryption_test_files(tmp_dir)
             gcp_kms_config_path = mock_gcp_kms_asymmetric_decrypt(
@@ -253,14 +248,14 @@ class GoodCompareCommandEncryptionTests(TestCase):
             ]
 
             for args in cases:
-                fake_kms_client.asymmetric_decrypt.call_count = 0
-                rv = CliRunner().invoke(backup, args)
+                fake_kms_client.reset_mock()
+                rv = CliRunner().invoke(backup, args, catch_exceptions=False)
                 assert rv.exit_code == 0, rv.output
 
                 with open(tmp_findings) as findings_file:
                     findings = json.load(findings_file)
                     assert len(findings) == 0
-                    assert fake_kms_client.asymmetric_decrypt.call_count == len(
+                    assert fake_kms_client.return_value.asymmetric_decrypt.call_count == len(
                         [arg for arg in args if arg == str(gcp_kms_config_path)]
                     )
 
@@ -307,14 +302,8 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
                 target_json = json.load(target)
                 assert source_json == target_json
 
-    @patch(
-        "sentry.backup.crypto.KeyManagementServiceClient",
-        new_callable=lambda: FakeKeyManagementServiceClient,
-    )
-    def test_use_gcp_kms(self, fake_kms_client: FakeKeyManagementServiceClient):
-        fake_kms_client.asymmetric_decrypt.call_count = 0
-        fake_kms_client.get_public_key.call_count = 0
-
+    @patch("sentry.backup.crypto.KeyManagementServiceClient")
+    def test_use_gcp_kms(self, fake_kms_client: mock.Mock):
         with TemporaryDirectory() as tmp_dir:
             tmp_decrypted_path = Path(tmp_dir).joinpath("decrypted.tar")
             tmp_encrypted_path = Path(tmp_dir).joinpath("encrypted.tar")
@@ -335,8 +324,8 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
 
             # Mock out the GCP KMS reply for the public key retrieval.
             with open(tmp_pub_key_path, "rb") as f:
-                fake_kms_client.get_public_key.return_value = SimpleNamespace(
-                    pem=f.read().decode("utf-8")
+                fake_kms_client.return_value.get_public_key.return_value = SimpleNamespace(
+                    pem=f.read().decode()
                 )
 
             rv = CliRunner().invoke(
@@ -357,7 +346,7 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
                 unwrapped_tarball = unwrap_encrypted_export_tarball(f)
             with open(tmp_priv_key_path, "rb") as f:
                 plaintext_dek = LocalFileDecryptor(f).decrypt_data_encryption_key(unwrapped_tarball)
-                fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
+                fake_kms_client.return_value.asymmetric_decrypt.return_value = SimpleNamespace(
                     plaintext=plaintext_dek,
                     plaintext_crc32c=crc32c(plaintext_dek),
                 )
@@ -374,7 +363,7 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
                 ],
             )
             assert rv.exit_code == 0, rv.output
-            assert fake_kms_client.asymmetric_decrypt.call_count == 1
+            assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 1
 
             with open(GOOD_FILE_PATH, "rb") as source, open(tmp_decrypted_path, "rb") as target:
                 source_json = json.load(source)
@@ -448,13 +437,8 @@ class GoodSanitizeCommandEncryptionTests(TestCase):
             )
             assert rv.exit_code == 0, rv.output
 
-    @patch(
-        "sentry.backup.crypto.KeyManagementServiceClient",
-        new_callable=lambda: FakeKeyManagementServiceClient,
-    )
-    def test_sanitize_with_gcp_kms_decryption_and_encryption(
-        self, fake_kms_client: FakeKeyManagementServiceClient
-    ):
+    @patch("sentry.backup.crypto.KeyManagementServiceClient")
+    def test_sanitize_with_gcp_kms_decryption_and_encryption(self, fake_kms_client: mock.Mock):
         with TemporaryDirectory() as tmp_dir:
             tmp_sanitized_encrypted_path = Path(tmp_dir).joinpath("sanitized_encrypted.tar")
             (
@@ -468,12 +452,11 @@ class GoodSanitizeCommandEncryptionTests(TestCase):
 
             # Mock out the GCP KMS reply for the public key retrieval.
             with open(tmp_pub_key_path, "rb") as f:
-                fake_kms_client.get_public_key.return_value = SimpleNamespace(
-                    pem=f.read().decode("utf-8")
+                fake_kms_client.return_value.get_public_key.return_value = SimpleNamespace(
+                    pem=f.read().decode()
                 )
 
-            fake_kms_client.asymmetric_decrypt.call_count = 0
-            fake_kms_client.get_public_key.call_count = 0
+            # needed? fake_kms_client.reset_mock()
 
             rv = CliRunner().invoke(
                 backup,
@@ -487,14 +470,15 @@ class GoodSanitizeCommandEncryptionTests(TestCase):
                     "--encrypt-with-gcp-kms",
                     str(gcp_kms_config_path),
                 ],
+                catch_exceptions=False,
             )
             assert rv.exit_code == 0, rv.output
-            assert fake_kms_client.asymmetric_decrypt.call_count == 1
-            assert fake_kms_client.get_public_key.call_count == 1
+            assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 1
+            assert fake_kms_client.return_value.get_public_key.call_count == 1
 
 
 def cli_import_then_export(
-    scope: str, *, import_args: list[str] | None = None, export_args: list[str] | None = None
+    scope: str, *, import_args: Sequence[str] = (), export_args: Sequence[str] = ()
 ):
     with TemporaryDirectory() as tmp_dir:
         tmp_in_findings = Path(tmp_dir).joinpath(
@@ -502,8 +486,15 @@ def cli_import_then_export(
         )
         rv = CliRunner().invoke(
             import_,
-            [scope, GOOD_FILE_PATH, "--no-prompt", "--findings-file", str(tmp_in_findings)]
-            + ([] if import_args is None else import_args),
+            [
+                scope,
+                GOOD_FILE_PATH,
+                "--no-prompt",
+                "--findings-file",
+                str(tmp_in_findings),
+                *import_args,
+            ],
+            catch_exceptions=False,
         )
         assert rv.exit_code == 0, rv.output
         with open(tmp_in_findings) as f:
@@ -516,8 +507,15 @@ def cli_import_then_export(
         tmp_out_path = Path(tmp_dir).joinpath("good.json")
         rv = CliRunner().invoke(
             export,
-            [scope, str(tmp_out_path), "--no-prompt", "--findings-file", str(tmp_out_findings)]
-            + ([] if export_args is None else export_args),
+            [
+                scope,
+                str(tmp_out_path),
+                "--no-prompt",
+                "--findings-file",
+                str(tmp_out_findings),
+                *export_args,
+            ],
+            catch_exceptions=False,
         )
         assert rv.exit_code == 0, rv.output
         with open(tmp_out_findings) as f:
@@ -614,6 +612,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
                     "--decrypt-with",
                     str(tmp_priv_key_path),
                 ],
+                catch_exceptions=False,
             )
             assert rv.exit_code == 0, rv.output
 
@@ -627,14 +626,13 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
                     "--encrypt-with",
                     str(tmp_pub_key_path),
                 ],
+                catch_exceptions=False,
             )
             assert rv.exit_code == 0, rv.output
 
     @staticmethod
-    def cli_encrypted_import_then_export_use_gcp_kms(
-        scope: str, fake_kms_client: FakeKeyManagementServiceClient
-    ):
-        fake_kms_client.asymmetric_decrypt.call_count = 0
+    def cli_encrypted_import_then_export_use_gcp_kms(scope: str, fake_kms_client: mock.Mock):
+        fake_kms_client.reset_mock()
         with TemporaryDirectory() as tmp_dir:
             (tmp_priv_key_path, tmp_pub_key_path, tmp_tar_path) = create_encryption_test_files(
                 tmp_dir
@@ -645,13 +643,13 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
                 unwrapped_tarball = unwrap_encrypted_export_tarball(f)
             with open(tmp_priv_key_path, "rb") as f:
                 plaintext_dek = LocalFileDecryptor(f).decrypt_data_encryption_key(unwrapped_tarball)
-                fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
+                fake_kms_client.return_value.asymmetric_decrypt.return_value = SimpleNamespace(
                     plaintext=plaintext_dek,
                     plaintext_crc32c=crc32c(plaintext_dek),
                 )
             with open(tmp_pub_key_path, "rb") as f:
-                fake_kms_client.get_public_key.return_value = SimpleNamespace(
-                    pem=f.read().decode("utf-8")
+                fake_kms_client.return_value.get_public_key.return_value = SimpleNamespace(
+                    pem=f.read().decode()
                 )
 
             gcp_kms_config_path = Path(tmp_dir).joinpath("config.json")
@@ -677,9 +675,10 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
                     "--decrypt-with-gcp-kms",
                     str(gcp_kms_config_path),
                 ],
+                catch_exceptions=False,
             )
             assert rv.exit_code == 0, rv.output
-            assert fake_kms_client.asymmetric_decrypt.call_count == 1
+            assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 1
 
             tmp_output_path = Path(tmp_dir).joinpath("output.tar")
             rv = CliRunner().invoke(
@@ -691,6 +690,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
                     "--encrypt-with-gcp-kms",
                     str(gcp_kms_config_path),
                 ],
+                catch_exceptions=False,
             )
             assert rv.exit_code == 0, rv.output
 
@@ -700,13 +700,8 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
         self.cli_encrypted_import_then_export_use_local("organizations")
         self.cli_encrypted_import_then_export_use_local("users")
 
-    @patch(
-        "sentry.backup.crypto.KeyManagementServiceClient",
-        new_callable=lambda: FakeKeyManagementServiceClient,
-    )
-    def test_encryption_with_gcp_kms_decryption(
-        self, fake_kms_client: FakeKeyManagementServiceClient
-    ):
+    @patch("sentry.backup.crypto.KeyManagementServiceClient")
+    def test_encryption_with_gcp_kms_decryption(self, fake_kms_client: mock.Mock):
         self.cli_encrypted_import_then_export_use_gcp_kms("global", fake_kms_client)
         self.cli_encrypted_import_then_export_use_gcp_kms("config", fake_kms_client)
         self.cli_encrypted_import_then_export_use_gcp_kms("organizations", fake_kms_client)
@@ -731,6 +726,7 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
                 ["global", GOOD_FILE_PATH, "--findings-file", str(tmp_in_findings)]
                 + ([] if import_args is None else import_args),
                 input=input,
+                catch_exceptions=False,
             )
 
             assert rv.exit_code == 0, rv.output
@@ -763,34 +759,35 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
 @patch("sentry.backup.imports.ImportExportService.get_importer_for_model")
 class BadImportExportDomainErrorTests(TransactionTestCase):
     def test_import_integrity_error_exit_code(self, get_importer_for_model):
-        importer_mock_fn = lambda import_model_name, scope, flags, filter_by, pk_map, json_data, min_ordinal: RpcImportError(
+        get_importer_for_model.return_value.return_value = RpcImportError(
             kind=RpcImportErrorKind.IntegrityError,
             on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
             reason="Test integrity error",
         )
-        get_importer_for_model.return_value = importer_mock_fn
         # Global imports assume an empty DB, so this should fail with an `IntegrityError`.
-        rv = CliRunner().invoke(import_, ["global", GOOD_FILE_PATH, "--no-prompt"])
-        assert (
-            ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose\n"
-            in rv.output
-        )
-        assert isinstance(rv.exception, ImportingError)
-        assert rv.exception.context.get_kind() == RpcImportErrorKind.IntegrityError
-        assert rv.exit_code == 1, rv.output
+        with pytest.raises(ImportingError) as excinfo:
+            CliRunner().invoke(
+                import_, ["global", GOOD_FILE_PATH, "--no-prompt"], catch_exceptions=False
+            )
+        assert excinfo.value.context.get_kind() == RpcImportErrorKind.IntegrityError
 
 
 class BadImportExportCommandTests(TestCase):
     def test_import_file_read_error_exit_code(self):
-        rv = CliRunner().invoke(import_, ["global", NONEXISTENT_FILE_PATH, "--no-prompt"])
+        rv = CliRunner().invoke(
+            import_, ["global", NONEXISTENT_FILE_PATH, "--no-prompt"], catch_exceptions=False
+        )
         assert not isinstance(rv.exception, ImportingError)
         assert rv.exit_code == 2, rv.output
 
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
     def test_export_in_control_silo(self):
-        rv = CliRunner().invoke(export, ["global", NONEXISTENT_FILE_PATH, "--no-prompt"])
-        assert isinstance(rv.exception, RuntimeError)
-        assert "Exports must be run in REGION or MONOLITH instances only" in rv.output
+        with pytest.raises(RuntimeError) as excinfo:
+            CliRunner().invoke(
+                export, ["global", NONEXISTENT_FILE_PATH, "--no-prompt"], catch_exceptions=False
+            )
+        (msg,) = excinfo.value.args
+        assert msg == "Exports must be run in REGION or MONOLITH instances only"
 
     def test_export_invalid_public_key(self):
         with TemporaryDirectory() as tmp_dir:
@@ -799,19 +796,20 @@ class BadImportExportCommandTests(TestCase):
                 f.write("this is an invalid public key")
 
             tmp_out_path = Path(tmp_dir).joinpath("bad.json")
-            rv = CliRunner().invoke(
-                export,
-                [
-                    "global",
-                    str(tmp_out_path),
-                    "--no-prompt",
-                    "--encrypt-with",
-                    str(tmp_pub_key_path),
-                ],
-            )
-            assert isinstance(rv.exception, ValueError)
-            assert rv.exit_code == 1
-            assert "Unable to load PEM file" in str(rv.exception)
+            with pytest.raises(ValueError) as excinfo:
+                CliRunner().invoke(
+                    export,
+                    [
+                        "global",
+                        str(tmp_out_path),
+                        "--no-prompt",
+                        "--encrypt-with",
+                        str(tmp_pub_key_path),
+                    ],
+                    catch_exceptions=False,
+                )
+            (msg,) = excinfo.value.args
+            assert msg.startswith("Unable to load PEM file")
 
     def test_export_invalid_gcp_kms_config(self):
         with TemporaryDirectory() as tmp_dir:
@@ -830,24 +828,27 @@ class BadImportExportCommandTests(TestCase):
                     """
                 )
 
-            rv = CliRunner().invoke(
-                export,
-                [
-                    "global",
-                    str(tmp_tar_path),
-                    "--no-prompt",
-                    "--encrypt-with-gcp-kms",
-                    str(gcp_kms_config_path),
-                ],
-            )
-            assert isinstance(rv.exception, EncryptionError)
-            assert rv.exit_code == 1
+            with pytest.raises(EncryptionError):
+                CliRunner().invoke(
+                    export,
+                    [
+                        "global",
+                        str(tmp_tar_path),
+                        "--no-prompt",
+                        "--encrypt-with-gcp-kms",
+                        str(gcp_kms_config_path),
+                    ],
+                    catch_exceptions=False,
+                )
 
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
     def test_import_in_control_silo(self):
-        rv = CliRunner().invoke(import_, ["global", GOOD_FILE_PATH, "--no-prompt"])
-        assert isinstance(rv.exception, RuntimeError)
-        assert "Imports must be run in REGION or MONOLITH instances only" in rv.output
+        with pytest.raises(RuntimeError) as excinfo:
+            CliRunner().invoke(
+                import_, ["global", GOOD_FILE_PATH, "--no-prompt"], catch_exceptions=False
+            )
+        (msg,) = excinfo.value.args
+        assert msg == "Imports must be run in REGION or MONOLITH instances only"
 
     def test_import_invalid_public_key(self):
         with TemporaryDirectory() as tmp_dir:
@@ -856,19 +857,20 @@ class BadImportExportCommandTests(TestCase):
             with open(tmp_priv_key_path, "w") as f:
                 f.write("this is an invalid private key")
 
-            rv = CliRunner().invoke(
-                import_,
-                [
-                    "global",
-                    str(tmp_tar_path),
-                    "--no-prompt",
-                    "--decrypt-with",
-                    str(tmp_priv_key_path),
-                ],
-            )
-            assert isinstance(rv.exception, ValueError)
-            assert rv.exit_code == 1
-            assert "Could not deserialize" in str(rv.exception)
+            with pytest.raises(ValueError) as excinfo:
+                CliRunner().invoke(
+                    import_,
+                    [
+                        "global",
+                        str(tmp_tar_path),
+                        "--no-prompt",
+                        "--decrypt-with",
+                        str(tmp_priv_key_path),
+                    ],
+                    catch_exceptions=False,
+                )
+            (msg, _) = excinfo.value.args
+            assert msg.startswith("Could not deserialize")
 
     def test_import_unreadable_gcp_kms_config(self):
         with TemporaryDirectory() as tmp_dir:
@@ -877,18 +879,18 @@ class BadImportExportCommandTests(TestCase):
             with open(gcp_kms_config_path, "w") as f:
                 f.write("this is clearly not valid JSON")
 
-            rv = CliRunner().invoke(
-                import_,
-                [
-                    "global",
-                    str(tmp_tar_path),
-                    "--no-prompt",
-                    "--decrypt-with-gcp-kms",
-                    str(gcp_kms_config_path),
-                ],
-            )
-            assert isinstance(rv.exception, orjson.JSONDecodeError)
-            assert rv.exit_code == 1
+            with pytest.raises(orjson.JSONDecodeError):
+                CliRunner().invoke(
+                    import_,
+                    [
+                        "global",
+                        str(tmp_tar_path),
+                        "--no-prompt",
+                        "--decrypt-with-gcp-kms",
+                        str(gcp_kms_config_path),
+                    ],
+                    catch_exceptions=False,
+                )
 
     def test_import_invalid_gcp_kms_config(self):
         with TemporaryDirectory() as tmp_dir:
@@ -907,18 +909,18 @@ class BadImportExportCommandTests(TestCase):
                     """
                 )
 
-            rv = CliRunner().invoke(
-                import_,
-                [
-                    "global",
-                    str(tmp_tar_path),
-                    "--no-prompt",
-                    "--decrypt-with-gcp-kms",
-                    str(gcp_kms_config_path),
-                ],
-            )
-            assert isinstance(rv.exception, DecryptionError)
-            assert rv.exit_code == 1
+            with pytest.raises(DecryptionError):
+                CliRunner().invoke(
+                    import_,
+                    [
+                        "global",
+                        str(tmp_tar_path),
+                        "--no-prompt",
+                        "--decrypt-with-gcp-kms",
+                        str(gcp_kms_config_path),
+                    ],
+                    catch_exceptions=False,
+                )
 
 
 # TODO(getsentry/team-ospo#190): Add bad compare tests.

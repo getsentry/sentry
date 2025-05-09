@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
-import {Tooltip} from 'sentry/components/tooltip';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {

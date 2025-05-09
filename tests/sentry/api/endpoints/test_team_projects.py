@@ -67,6 +67,8 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert project.slug == "bar"
         assert project.platform == "python"
         assert project.teams.first() == self.team
+        assert response.data["teams"] is not None
+        assert response.data["teams"][0]["id"] == str(self.team.id)
 
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
@@ -353,6 +355,27 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             project=python_project, key="sentry:builtin_symbol_sources"
         )
         assert "electron" not in symbol_sources
+
+    def test_builtin_symbol_sources_unity(self):
+        """
+        Test that project option for builtin symbol sources contains ["unity"] when creating
+        a Unity project, but uses defaults for other platforms.
+        """
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="unity-app",
+            slug="unity-app",
+            platform="unity",
+            status_code=201,
+        )
+
+        unity_project = Project.objects.get(id=response.data["id"])
+        assert unity_project.platform == "unity"
+        symbol_sources = ProjectOption.objects.get_value(
+            project=unity_project, key="sentry:builtin_symbol_sources"
+        )
+        assert symbol_sources == ["unity"]
 
     @patch("sentry.api.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
     def test_create_project_with_origin(self, create_audit_entry):

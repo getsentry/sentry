@@ -14,7 +14,7 @@ import {
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import QueryList from 'sentry/views/discover/queryList';
 
 jest.mock('sentry/actionCreators/modal');
@@ -25,7 +25,6 @@ describe('Discover > QueryList', function () {
   let organization: ReturnType<typeof OrganizationFixture>;
   let deleteMock: jest.Mock;
   let duplicateMock: jest.Mock;
-  let queryChangeMock: jest.Mock;
   let updateHomepageMock: jest.Mock;
   let eventsStatsMock: jest.Mock;
 
@@ -77,7 +76,6 @@ describe('Discover > QueryList', function () {
       pathname: '/organizations/org-slug/discover/queries/',
       query: {cursor: '0:1:1', statsPeriod: '14d'},
     });
-    queryChangeMock = jest.fn();
   });
 
   afterEach(() => {
@@ -93,9 +91,11 @@ describe('Discover > QueryList', function () {
         savedQuerySearchQuery="no matches"
         pageLinks=""
         renderPrebuilt={false}
-        onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('No saved queries match that filter')).toBeInTheDocument();
@@ -110,9 +110,11 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries}
         renderPrebuilt
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() => {
@@ -153,10 +155,12 @@ describe('Discover > QueryList', function () {
         savedQueries={[]}
         renderPrebuilt
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() => {
@@ -214,9 +218,11 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries}
         renderPrebuilt
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() => {
@@ -250,10 +256,12 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries}
         pageLinks=""
         renderPrebuilt={false}
-        onQueryChange={queryChangeMock}
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -271,7 +279,6 @@ describe('Discover > QueryList', function () {
     });
 
     expect(duplicateMock).toHaveBeenCalled();
-    expect(queryChangeMock).toHaveBeenCalled();
   });
 
   it('can delete and trigger change callback', async function () {
@@ -283,9 +290,11 @@ describe('Discover > QueryList', function () {
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const card = screen.getAllByTestId(/card-*/).at(1);
@@ -293,10 +302,6 @@ describe('Discover > QueryList', function () {
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
     await userEvent.click(withinCard.getByText('Delete Query'));
-
-    await waitFor(() => {
-      expect(queryChangeMock).toHaveBeenCalled();
-    });
 
     expect(deleteMock).toHaveBeenCalled();
   });
@@ -310,10 +315,12 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries}
         pageLinks=""
         renderPrebuilt={false}
-        onQueryChange={queryChangeMock}
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
@@ -332,10 +339,12 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -345,7 +354,6 @@ describe('Discover > QueryList', function () {
     await userEvent.click(withinCard.getByText('Delete Query'));
 
     expect(deleteMock).toHaveBeenCalled();
-    expect(queryChangeMock).not.toHaveBeenCalled();
 
     await waitFor(() => {
       expect(router.push).toHaveBeenCalledWith({
@@ -367,10 +375,12 @@ describe('Discover > QueryList', function () {
         organization={featuredOrganization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
-        onQueryChange={queryChangeMock}
         renderPrebuilt={false}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -399,9 +409,11 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
         renderPrebuilt={false}
-        onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -439,9 +451,11 @@ describe('Discover > QueryList', function () {
         savedQueries={[savedQueryWithMultiYAxis]}
         pageLinks=""
         renderPrebuilt={false}
-        onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const chart = await screen.findByTestId('area-chart');
@@ -465,9 +479,11 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByTestId('menu-trigger'));
@@ -500,19 +516,25 @@ describe('Discover > QueryList', function () {
             }),
           ]}
           pageLinks=""
-          onQueryChange={queryChangeMock}
           location={location}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       const contextMenu = await screen.findByTestId('menu-trigger');
       expect(contextMenu).toBeInTheDocument();
 
-      expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+      ).not.toBeInTheDocument();
 
       await userEvent.click(contextMenu);
 
-      const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+      const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+        name: 'Add to Dashboard',
+      });
 
       await userEvent.click(addToDashboardMenuItem);
 
@@ -528,20 +550,12 @@ describe('Discover > QueryList', function () {
                   aggregates: ['count()'],
                   columns: ['test'],
                   conditions: '',
-                  fields: ['test', 'count()', 'count()'],
+                  fields: ['test'],
                   name: '',
                   orderby: 'test',
                 },
               ],
             },
-            widgetAsQueryParams: expect.objectContaining({
-              defaultTableColumns: ['test', 'count()'],
-              defaultTitle: 'Saved query #1',
-              defaultWidgetQuery:
-                'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
-              displayType: DisplayType.AREA,
-              source: DashboardWidgetSource.DISCOVERV2,
-            }),
           })
         );
       });
@@ -567,19 +581,25 @@ describe('Discover > QueryList', function () {
             }),
           ]}
           pageLinks=""
-          onQueryChange={queryChangeMock}
           location={location}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       const contextMenu = await screen.findByTestId('menu-trigger');
       expect(contextMenu).toBeInTheDocument();
 
-      expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+      ).not.toBeInTheDocument();
 
       await userEvent.click(contextMenu);
 
-      const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+      const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+        name: 'Add to Dashboard',
+      });
 
       await userEvent.click(addToDashboardMenuItem);
 
@@ -594,7 +614,7 @@ describe('Discover > QueryList', function () {
                   aggregates: ['count()'],
                   columns: [],
                   conditions: '',
-                  fields: ['count()'],
+                  fields: [],
                   name: '',
                   // Orderby gets dropped because ordering only applies to
                   // Top-N and tables
@@ -602,14 +622,6 @@ describe('Discover > QueryList', function () {
                 },
               ],
             },
-            widgetAsQueryParams: expect.objectContaining({
-              defaultTableColumns: ['test', 'count()'],
-              defaultTitle: 'Saved query #1',
-              defaultWidgetQuery:
-                'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
-              displayType: DisplayType.AREA,
-              source: DashboardWidgetSource.DISCOVERV2,
-            }),
           })
         );
       });
@@ -636,19 +648,25 @@ describe('Discover > QueryList', function () {
           }),
         ]}
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const contextMenu = await screen.findByTestId('menu-trigger');
     expect(contextMenu).toBeInTheDocument();
 
-    expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).not.toBeInTheDocument();
 
     await userEvent.click(contextMenu);
 
-    const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+    const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+      name: 'Add to Dashboard',
+    });
 
     await userEvent.click(addToDashboardMenuItem);
 
@@ -664,7 +682,7 @@ describe('Discover > QueryList', function () {
                 aggregates: ['count()'],
                 columns: [],
                 conditions: '',
-                fields: ['count()'],
+                fields: [],
                 name: '',
                 orderby: '',
               },
@@ -672,17 +690,6 @@ describe('Discover > QueryList', function () {
             title: 'Saved query #1',
             widgetType: 'transaction-like',
           },
-          widgetAsQueryParams: expect.objectContaining({
-            cursor: '0:1:1',
-            dataset: 'transaction-like',
-            defaultTableColumns: ['test', 'count()'],
-            defaultTitle: 'Saved query #1',
-            defaultWidgetQuery:
-              'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
-            displayType: 'area',
-            source: 'discoverv2',
-            statsPeriod: '14d',
-          }),
         })
       );
     });

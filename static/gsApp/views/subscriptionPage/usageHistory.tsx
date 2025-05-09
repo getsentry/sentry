@@ -2,8 +2,8 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,21 +17,25 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
-import {GIGABYTE, UNLIMITED, UNLIMITED_ONDEMAND} from 'getsentry/constants';
+import {
+  GIGABYTE,
+  RESERVED_BUDGET_QUOTA,
+  UNLIMITED,
+  UNLIMITED_ONDEMAND,
+} from 'getsentry/constants';
 import type {
   BillingHistory,
   BillingMetricHistory,
   Plan,
   Subscription,
 } from 'getsentry/types';
-import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode} from 'getsentry/types';
 import {
   formatReservedWithUnits,
   formatUsageWithUnits,
@@ -45,10 +49,9 @@ import {StripedTable} from './styles';
 import SubscriptionHeader from './subscriptionHeader';
 import {trackSubscriptionView} from './utils';
 
-type Props = {
-  organization: Organization;
+interface Props extends RouteComponentProps<unknown, unknown> {
   subscription: Subscription;
-} & RouteComponentProps<unknown, unknown>;
+}
 
 function usagePercentage(usage: number, prepaid: number | null): string {
   if (prepaid === null || prepaid === 0) {
@@ -82,7 +85,8 @@ function getCategoryDisplay({
     : displayName;
 }
 
-function UsageHistory({organization, subscription}: Props) {
+function UsageHistory({subscription}: Props) {
+  const organization = useOrganization();
   const location = useLocation();
 
   useEffect(() => {
@@ -191,7 +195,7 @@ function UsageHistoryRow({history, subscription}: RowProps) {
         <thead>
           <tr>
             <th>
-              {subscription.planTier === PlanTier.AM3
+              {subscription.planDetails.budgetTerm === 'pay-as-you-go'
                 ? t('Pay-as-you-go Spend')
                 : history.onDemandBudgetMode === OnDemandBudgetMode.PER_CATEGORY
                   ? t('On-Demand Spend (Per-Category)')
@@ -228,10 +232,9 @@ function UsageHistoryRow({history, subscription}: RowProps) {
   // Only display categories with billing metric history
   const sortedCategories = sortCategories(categories);
 
-  const hasGifts =
-    Object.values(DataCategory).filter(c => {
-      return !!categories[c]?.free;
-    }).length > 0;
+  const hasGifts = Object.values(DataCategory).some(c => {
+    return !!categories[c]?.free;
+  });
 
   return (
     <StyledPanelItem>
@@ -333,12 +336,14 @@ function UsageHistoryRow({history, subscription}: RowProps) {
                       </td>
                     )}
                     <td>
-                      {usagePercentage(
-                        metricHistory.category === DataCategory.ATTACHMENTS
-                          ? metricHistory.usage / GIGABYTE
-                          : metricHistory.usage,
-                        metricHistory.prepaid
-                      )}
+                      {metricHistory.reserved === RESERVED_BUDGET_QUOTA
+                        ? 'N/A'
+                        : usagePercentage(
+                            metricHistory.category === DataCategory.ATTACHMENTS
+                              ? metricHistory.usage / GIGABYTE
+                              : metricHistory.usage,
+                            metricHistory.prepaid
+                          )}
                     </td>
                   </tr>
                 ))}
@@ -351,7 +356,7 @@ function UsageHistoryRow({history, subscription}: RowProps) {
   );
 }
 
-export default withOrganization(withSubscription(UsageHistory));
+export default withSubscription(UsageHistory);
 
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;

@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
@@ -15,21 +14,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-
-import type {TraceTree} from '../traceModels/traceTree';
-
-export function fetchTrace(
-  api: Client,
-  params: {
-    orgSlug: string;
-    query: string;
-    traceId: string;
-  }
-): Promise<TraceSplitResults<TraceFullDetailed>> {
-  return api.requestPromise(
-    `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
-  );
-}
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {TRACE_FORMAT_PREFERENCE_KEY} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 const DEFAULT_TIMESTAMP_LIMIT = 10_000;
 const DEFAULT_LIMIT = 1_000;
@@ -47,14 +34,12 @@ export function getTraceQueryParams(
   pageEnd?: string;
   pageStart?: string;
   statsPeriod?: string;
-  trace_format?: string;
 } {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
   const demo = decodeScalar(normalizedParams.demo);
-  const trace_format = decodeScalar(normalizedParams.trace_format);
   const timestamp = options.timestamp ?? decodeScalar(normalizedParams.timestamp);
   let limit = options.limit ?? decodeScalar(normalizedParams.limit);
   if (typeof limit === 'string') {
@@ -88,7 +73,6 @@ export function getTraceQueryParams(
     timestamp: timestamp?.toString(),
     targetId,
     useSpans: 1,
-    trace_format,
   };
   for (const key in queryParams) {
     if (
@@ -212,11 +196,13 @@ export function useTrace(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.limit, options.timestamp, query.trace_format]);
 
-  const {trace_format, ...queryParamsWithoutTraceFormat} = queryParams;
-
   const isDemoMode = Boolean(queryParams.demo);
+  const [storedTraceFormat] = useSyncedLocalStorageState(
+    TRACE_FORMAT_PREFERENCE_KEY,
+    'non-eap'
+  );
   const isEAPEnabled =
-    organization.features.includes('trace-spans-format') && trace_format !== 'non-eap';
+    organization.features.includes('trace-spans-format') && storedTraceFormat === 'eap';
   const hasValidTrace = Boolean(options.traceSlug && organization.slug);
 
   const demoTrace = useDemoTrace(queryParams.demo, organization);
@@ -224,7 +210,7 @@ export function useTrace(
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
       `/organizations/${organization.slug}/events-trace/${options.traceSlug ?? ''}/`,
-      {query: queryParamsWithoutTraceFormat},
+      {query: queryParams},
     ],
     {
       staleTime: Infinity,
@@ -235,7 +221,7 @@ export function useTrace(
   const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
     [
       `/organizations/${organization.slug}/trace/${options.traceSlug ?? ''}/`,
-      {query: {...queryParamsWithoutTraceFormat, project: -1}},
+      {query: {...queryParams, project: -1}},
     ],
     {
       staleTime: Infinity,

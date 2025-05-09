@@ -1,11 +1,11 @@
 import type {Query} from 'history';
 
 import type {EventTag} from 'sentry/types/event';
+import {
+  type FieldKey,
+  ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS,
+} from 'sentry/utils/fields';
 import {appendTagCondition} from 'sentry/utils/queryString';
-
-export function intcomma(x: number): string {
-  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
 
 /**
  * Replaces slug special chars with a space
@@ -92,6 +92,22 @@ export function isWebpackChunkLoadingError(error: Error): boolean {
   );
 }
 
+/**
+ * If a tag conflicts with a reserved keyword, change it to `tags[key]:value`
+ */
+export function escapeIssueTagKey(key: string) {
+  // Environment and project should be handled by the page filter
+  if (key === 'environment' || key === 'project') {
+    return key;
+  }
+
+  if (ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS.has(key as FieldKey)) {
+    return `tags[${key}]`;
+  }
+
+  return key;
+}
+
 export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
   const query = {...prevQuery};
 
@@ -124,7 +140,7 @@ export function generateOrgSlugUrl(orgSlug: any) {
 /**
  * Encodes given object into url-friendly format
  */
-export function urlEncode(object: {[key: string]: any}): string {
+export function urlEncode(object: Record<string, any>): string {
   return Object.keys(object)
     .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
     .join('&');

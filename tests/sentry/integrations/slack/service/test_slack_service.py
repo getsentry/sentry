@@ -12,10 +12,11 @@ from sentry.integrations.repository.notification_action import NotificationActio
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.service import ActionDataError, RuleDataError, SlackService
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.activity import Activity
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -23,6 +24,8 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.workflow_engine.models import Action
 
 
 class TestGetNotificationMessageToSend(TestCase):
@@ -102,7 +105,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 metadata={"access_token": "xoxb-access-token"},
             )
 
-        self.action = self.create_action(config={"target_identifier": self.channel_id})
+        self.action = self.create_action()
 
         self.parent_notification_action = NotificationMessage.objects.create(
             message_identifier=self.message_identifier,
@@ -274,6 +277,65 @@ class TestNotifyAllThreadsForActivity(TestCase):
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification"
     )
+    def test_handle_parent_notification_with_open_period_model_open_period_model(
+        self, mock_get_channel_id, mock_send_notification, mock_record
+    ) -> None:
+        group = self.create_group(type=UptimeDomainCheckFailure.type_id)
+
+        activity = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_IGNORED.value,
+            user_id=self.user.id,
+            data={"ignoreUntilEscalating": True},
+        )
+
+        rule_fire_history = RuleFireHistory.objects.create(
+            project=self.project,
+            rule=self.rule,
+            group=group,
+            event_id=456,
+            notification_uuid=str(uuid4()),
+        )
+
+        # Create two parent notifications with different open periods
+        NotificationMessage.objects.create(
+            id=123,
+            date_added=timezone.now(),
+            message_identifier=self.message_identifier,
+            rule_action_uuid=self.rule_action_uuid,
+            rule_fire_history=rule_fire_history,
+            open_period_start=timezone.now() - timedelta(minutes=1),
+        )
+
+        # Create a new open period
+        latest_open_period = get_latest_open_period(self.group)
+
+        parent_notification_2_message = NotificationMessage.objects.create(
+            id=124,
+            date_added=timezone.now(),
+            message_identifier=self.message_identifier,
+            rule_action_uuid=self.rule_action_uuid,
+            rule_fire_history=rule_fire_history,
+            open_period_start=latest_open_period.date_started if latest_open_period else None,
+        )
+
+        self.service.notify_all_threads_for_activity(activity=activity)
+
+        # Verify only one notification was handled
+        assert mock_send_notification.call_count == 1
+        # Verify it was the newer notification
+        mock_send_notification.assert_called_once()
+        assert mock_get_channel_id.call_args.args[0].id == parent_notification_2_message.id
+
+    @with_feature("organizations:slack-threads-refactor-uptime")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch(
+        "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
+    )
+    @mock.patch(
+        "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification"
+    )
     def test_handle_parent_notification_with_open_period_uptime_resolved(
         self, mock_get_channel_id, mock_send_notification, mock_record
     ) -> None:
@@ -342,7 +404,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
             self.service.notify_all_threads_for_activity(activity=self.activity)
             mock_notify.assert_called_once()
 
-    @with_feature("organizations:workflow-engine-notification-action")
+    @with_feature("organizations:workflow-engine-trigger-actions")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
@@ -383,7 +445,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
 
     @with_feature(
         {
-            "organizations:workflow-engine-notification-action": True,
+            "organizations:workflow-engine-trigger-actions": True,
             "organizations:slack-threads-refactor-uptime": True,
         }
     )
@@ -504,7 +566,14 @@ class TestSlackServiceMethods(TestCase):
             rule_fire_history=self.slack_rule_fire_history,
         )
 
-        self.action = self.create_action(config={"target_identifier": self.channel_id})
+        self.action = self.create_action(
+            type=Action.Type.SLACK,
+            config={
+                "target_identifier": self.channel_id,
+                "target_type": ActionTarget.SPECIFIC,
+                "target_display": "#test-notifications",
+            },
+        )
 
         self.parent_notification_action = NotificationActionNotificationMessage(
             id=123,

@@ -24,6 +24,7 @@ from sentry.shared_integrations.exceptions import IntegrationError, IntegrationP
 from sentry.silo.base import SiloMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.utils import metrics
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.web.helpers import render_to_response
 
 __all__ = ["IntegrationPipeline"]
@@ -213,6 +214,7 @@ class IntegrationPipeline(Pipeline):
                 # If the external_id is already used for a different user then throw an error
                 # otherwise we have the same user with a new external id
                 # and we update the identity with the new external_id and identity data
+                incr_rollback_metrics(Identity)
                 try:
                     matched_identity = Identity.objects.get(
                         idp=idp, external_id=identity["external_id"]

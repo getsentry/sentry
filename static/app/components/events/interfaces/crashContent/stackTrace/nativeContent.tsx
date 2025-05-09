@@ -1,16 +1,7 @@
-import {cloneElement, Fragment, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import StacktracePlatformIcon from 'sentry/components/events/interfaces/crashContent/stackTrace/platformIcon';
-import Panel from 'sentry/components/panels/panel';
-import {t} from 'sentry/locale';
-import type {Event, Frame} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {PlatformKey} from 'sentry/types/project';
-import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
-
-import NativeFrame from '../../nativeFrame';
+import NativeFrame from 'sentry/components/events/interfaces/nativeFrame';
 import {
   findImageForAddress,
   getHiddenFrameIndices,
@@ -18,24 +9,43 @@ import {
   isRepeatedFrame,
   parseAddress,
   stackTracePlatformIcon,
-} from '../../utils';
+} from 'sentry/components/events/interfaces/utils';
+import Panel from 'sentry/components/panels/panel';
+import type {Event, Frame} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
+
+import {OmittedFrames} from './omittedFrames';
+import StacktracePlatformIcon from './platformIcon';
+
+function isFrameUsedForGrouping(
+  frame: Frame,
+  groupingCurrentLevel: Group['metadata']['current_level']
+): boolean {
+  const {minGroupingLevel} = frame;
+
+  if (groupingCurrentLevel === undefined || minGroupingLevel === undefined) {
+    return false;
+  }
+
+  return minGroupingLevel <= groupingCurrentLevel;
+}
 
 type Props = {
   data: StacktraceType;
   event: Event;
+  newestFirst: boolean;
   platform: PlatformKey;
   className?: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
-  hiddenFrameCount?: number;
   hideIcon?: boolean;
   includeSystemFrames?: boolean;
   inlined?: boolean;
   isHoverPreviewed?: boolean;
-  isShowFramesToggleExpanded?: boolean;
-  isSubFrame?: boolean;
   maxDepth?: number;
   meta?: Record<any, any>;
-  newestFirst?: boolean;
 };
 
 export function NativeContent({
@@ -52,44 +62,43 @@ export function NativeContent({
   maxDepth,
   meta,
 }: Props) {
-  const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
-  const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
-  const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
+  const frames = data.frames ?? [];
 
-  const {frames = [], framesOmitted, registers} = data;
+  const frameIsVisible = useCallback(
+    (frame: Frame, nextFrame: Frame) => {
+      return (
+        includeSystemFrames ||
+        frame.inApp ||
+        nextFrame?.inApp ||
+        // the last non-app frame
+        (!frame.inApp && !nextFrame) ||
+        isFrameUsedForGrouping(frame, groupingCurrentLevel)
+      );
+    },
+    [includeSystemFrames, groupingCurrentLevel]
+  );
 
-  function frameIsVisible(frame: Frame, nextFrame: Frame) {
-    return (
-      includeSystemFrames ||
-      frame.inApp ||
-      nextFrame?.inApp ||
-      // the last non-app frame
-      (!frame.inApp && !nextFrame) ||
-      isFrameUsedForGrouping(frame)
-    );
-  }
-
-  function setInitialFrameMap(): {[frameIndex: number]: boolean} {
-    const indexMap = {};
-    (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
+  function setInitialFrameMap(): Record<number, boolean> {
+    const indexMap: Record<number, boolean> = {};
+    frames.forEach((frame, frameIdx) => {
+      const nextFrame = frames[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         indexMap[frameIdx] = false;
       }
     });
     return indexMap;
   }
 
-  function getInitialFrameCounts(): {[frameIndex: number]: number} {
+  const [toggleFrameMap, setToggleFrameMap] = useState(() => setInitialFrameMap());
+
+  function getInitialFrameCounts(): Record<number, number> {
     let count = 0;
-    const countMap = {};
-    (data.frames ?? []).forEach((frame, frameIdx) => {
+    const countMap: Record<number, number> = {};
+    frames.forEach((frame, frameIdx) => {
       const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         countMap[frameIdx] = count;
         count = 0;
       } else {
@@ -99,26 +108,6 @@ export function NativeContent({
       }
     });
     return countMap;
-  }
-
-  function isFrameUsedForGrouping(frame: Frame) {
-    const {minGroupingLevel} = frame;
-
-    if (groupingCurrentLevel === undefined || minGroupingLevel === undefined) {
-      return false;
-    }
-
-    return minGroupingLevel <= groupingCurrentLevel;
-  }
-
-  function handleToggleAddresses(mouseEvent: React.MouseEvent<SVGElement>) {
-    mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
-    setShowingAbsoluteAddresses(!showingAbsoluteAddresses);
-  }
-
-  function handleToggleFunctionName(mouseEvent: React.MouseEvent<SVGElement>) {
-    mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
-    setShowCompleteFunctionName(!showCompleteFunctionName);
   }
 
   const handleToggleFrames = (
@@ -133,16 +122,6 @@ export function NativeContent({
     }));
   };
 
-  function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
-    return t(
-      'Frames %d until %d were omitted and not available.',
-      firstFrameOmitted,
-      lastFrameOmitted
-    );
-  }
-
-  const firstFrameOmitted = framesOmitted?.[0] ?? null;
-  const lastFrameOmitted = framesOmitted?.[1] ?? null;
   const lastFrameIndex = getLastFrameIndex(frames);
   const frameCountMap = getInitialFrameCounts();
   const hiddenFrameIndices: number[] = getHiddenFrameIndices({
@@ -150,8 +129,6 @@ export function NativeContent({
     toggleFrameMap,
     frameCountMap,
   });
-
-  let nRepeats = 0;
 
   const maxLengthOfAllRelativeAddresses = frames.reduce(
     (maxLengthUntilThisPoint, frame) => {
@@ -185,18 +162,13 @@ export function NativeContent({
       const prevFrame = frames[frameIndex - 1];
       const nextFrame = frames[frameIndex + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
-
-      if (repeatedFrame) {
-        nRepeats++;
-      }
-
-      const isUsedForGrouping = isFrameUsedForGrouping(frame);
+      const isLastFrame = frameIndex === frames.length - 1;
 
       if (
         (frameIsVisible(frame, nextFrame) && !repeatedFrame) ||
         hiddenFrameIndices.includes(frameIndex)
       ) {
-        const frameProps = {
+        const frameProps: React.ComponentProps<typeof NativeFrame> = {
           event,
           frame,
           prevFrame,
@@ -205,9 +177,6 @@ export function NativeContent({
             ? false
             : lastFrameIndex === frameIndex && frameIndex === 0,
           platform,
-          timesRepeated: nRepeats,
-          showingAbsoluteAddress: showingAbsoluteAddresses,
-          onAddressToggle: handleToggleAddresses,
           onShowFramesToggle: (e: React.MouseEvent<HTMLElement>) => {
             handleToggleFrames(e, frameIndex);
           },
@@ -217,27 +186,22 @@ export function NativeContent({
             address: frame.instructionAddr,
           }),
           maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
-          registers: {},
-          includeSystemFrames,
-          onFunctionNameToggle: handleToggleFunctionName,
-          showCompleteFunctionName,
+          registers: isLastFrame ? data.registers : null,
           hiddenFrameCount: frameCountMap[frameIndex],
           isHoverPreviewed,
-          isShowFramesToggleExpanded: toggleFrameMap[frameIndex],
+          isShowFramesToggleExpanded: toggleFrameMap[frameIndex] ?? false,
           isSubFrame: hiddenFrameIndices.includes(frameIndex),
           isFirstInAppFrame: firstInAppFrameIndex === frameIndex,
-          isUsedForGrouping,
+          isUsedForGrouping: isFrameUsedForGrouping(frame, groupingCurrentLevel),
           frameMeta: meta?.frames?.[frameIndex],
           registersMeta: meta?.registers,
         };
 
-        nRepeats = 0;
-
-        if (frameIndex === firstFrameOmitted) {
+        if (frameIndex === data.framesOmitted?.[0]) {
           return (
             <Fragment key={frameIndex}>
               <NativeFrame {...frameProps} />
-              {renderOmittedFrames(firstFrameOmitted, lastFrameOmitted)}
+              <OmittedFrames omittedFrames={data.framesOmitted} />
             </Fragment>
           );
         }
@@ -245,32 +209,24 @@ export function NativeContent({
         return <NativeFrame key={frameIndex} {...frameProps} />;
       }
 
-      if (!repeatedFrame) {
-        nRepeats = 0;
-      }
-
-      if (frameIndex !== firstFrameOmitted) {
+      if (frameIndex !== data.framesOmitted?.[0]) {
         return null;
       }
 
-      return renderOmittedFrames(firstFrameOmitted, lastFrameOmitted);
+      return <OmittedFrames key={frameIndex} omittedFrames={data.framesOmitted} />;
     })
-    .filter(frame => !!frame) as React.ReactElement[];
-
-  const wrapperClassName = `traceback ${
-    includeSystemFrames ? 'full-traceback' : 'in-app-traceback'
-  } ${className}`;
-
-  if (convertedFrames.length > 0 && registers) {
-    const lastFrame = convertedFrames.length - 1;
-    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame]!, {
-      registers,
-    });
-  }
+    .filter((frame): frame is React.ReactElement => !!frame);
 
   if (defined(maxDepth)) {
     convertedFrames = convertedFrames.slice(-maxDepth);
   }
+  if (newestFirst) {
+    convertedFrames = convertedFrames.toReversed();
+  }
+
+  const wrapperClassName = `traceback ${
+    includeSystemFrames ? 'full-traceback' : 'in-app-traceback'
+  } ${className}`;
 
   return (
     <Wrapper>
@@ -284,9 +240,7 @@ export function NativeContent({
         data-test-id="native-stack-trace-content"
         hideIcon={hideIcon}
       >
-        <Frames data-test-id="stack-trace">
-          {newestFirst ? [...convertedFrames].reverse() : convertedFrames}
-        </Frames>
+        <Frames data-test-id="stack-trace">{convertedFrames}</Frames>
       </ContentPanel>
     </Wrapper>
   );
@@ -302,6 +256,6 @@ const ContentPanel = styled(Panel)<{hideIcon?: boolean}>`
   overflow: hidden;
 `;
 
-export const Frames = styled('ul')`
+const Frames = styled('ul')`
   list-style: none;
 `;

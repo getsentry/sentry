@@ -393,7 +393,7 @@ class GetRulesToFireTest(TestCase):
         self.group1: Group = self.create_group(self.project)
         self.group2: Group = self.create_group(self.project)
 
-        self.condition_group_results: dict[UniqueConditionQuery, dict[int, int]] = {
+        self.condition_group_results: dict[UniqueConditionQuery, dict[int, int | float]] = {
             UniqueConditionQuery(
                 cls_id=TEST_RULE_SLOW_CONDITION["id"],
                 interval=TEST_RULE_SLOW_CONDITION["interval"],
@@ -1145,6 +1145,37 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         assert len(rule_fire_histories) == 1
         assert (percent_comparison_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
+
+    def test_apply_delayed_event_frequency_percent_condition_fires_on_small_value(self):
+        event_frequency_percent_condition_2 = self.create_event_frequency_condition(
+            interval="1h", id="EventFrequencyPercentCondition", value=0.1
+        )
+
+        self.project_three = self.create_project(organization=self.organization)
+        # 1 event / 600 sessions ~= 0.17%
+        self._make_sessions(600, project=self.project_three)
+
+        percent_comparison_rule = self.create_project_rule(
+            project=self.project_three,
+            condition_data=[event_frequency_percent_condition_2],
+        )
+
+        event5 = self.create_event(self.project_three.id, FROZEN_TIME, "group-6")
+        assert event5.group
+
+        buffer.backend.push_to_sorted_set(
+            key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_three.id
+        )
+        self.push_to_hash(
+            self.project_three.id, percent_comparison_rule.id, event5.group.id, event5.event_id
+        )
+        apply_delayed(self.project_three.id)
+
+        assert RuleFireHistory.objects.filter(
+            rule__in=[percent_comparison_rule],
+            project=self.project_three,
+        ).exists()
+        self.assert_buffer_cleared(project_id=self.project_three.id)
 
     def test_apply_delayed_event_frequency_percent_comparison_interval(self):
         """

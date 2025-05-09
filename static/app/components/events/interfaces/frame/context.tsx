@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
+import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,13 +15,12 @@ import type {
 } from 'sentry/types/integrations';
 import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-
-import {parseAssembly} from '../utils';
 
 import {Assembly} from './assembly';
 import ContextLineNumber from './contextLineNumber';
@@ -33,7 +33,7 @@ type Props = {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   event: Event;
   frame: Frame;
-  registers: {[key: string]: string};
+  registers: StacktraceType['registers'];
   className?: string;
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
@@ -196,7 +196,7 @@ function Context({
 
       {hasContextRegisters && (
         <FrameRegisters
-          registers={registers}
+          registers={registers!}
           meta={registersMeta}
           deviceArch={event.contexts?.device?.arch}
         />

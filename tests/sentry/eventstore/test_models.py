@@ -369,14 +369,14 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             },
         }
 
-        enhancement = Enhancements.from_config_string(
+        enhancements = Enhancements.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group
             """,
         )
         grouping_config: GroupingConfig = {
-            "enhancements": enhancement.dumps(),
+            "enhancements": enhancements.base64_string,
             "id": DEFAULT_GROUPING_CONFIG,
         }
 

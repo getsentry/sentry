@@ -1,19 +1,16 @@
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanIndexedField} from 'sentry/views/insights/types';
-
-const {SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN} = SpanIndexedField;
+import {
+  useEAPSpans,
+  useSpansIndexed,
+} from 'sentry/views/insights/common/queries/useDiscover';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {SpanFields, SpanIndexedField} from 'sentry/views/insights/types';
 
 type Options = {
+  referrer: string;
   enabled?: boolean;
   limit?: number;
   queryConditions?: string[];
-  referrer?: string;
   sorts?: Sort[];
 };
 
@@ -24,55 +21,42 @@ export const useIndexedResourcesQuery = ({
   referrer,
   enabled = true,
 }: Options) => {
-  const pageFilters = usePageFilters();
-  const location = useLocation();
-  const {slug: orgSlug} = useOrganization();
+  const useEap = useInsightsEap();
 
-  // TODO - we should be using metrics data here
-  const eventView = EventView.fromNewQueryWithPageFilters(
+  const eapResult = useEAPSpans(
     {
       fields: [
-        `any(id)`,
-        'project',
-        'span.group',
-        RAW_DOMAIN,
-        SPAN_DESCRIPTION,
-        `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`,
+        SpanFields.PROJECT,
+        SpanFields.SPAN_GROUP,
+        SpanFields.RAW_DOMAIN,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH,
       ],
-      name: 'Indexed Resource Query',
-      query: queryConditions.join(' '),
-      version: 2,
-      dataset: DiscoverDatasets.SPANS_INDEXED,
+      limit,
+      sorts,
+      search: queryConditions.join(' '),
+      enabled: enabled && useEap,
     },
-    pageFilters.selection
+    referrer
   );
 
-  if (sorts) {
-    eventView.sorts = sorts;
-  }
-
-  const result = useDiscoverQuery({
-    eventView,
-    limit,
-    location,
-    orgSlug,
-    referrer,
-    options: {
-      enabled,
-      refetchOnWindowFocus: false,
+  const spanIndexedResult = useSpansIndexed(
+    {
+      fields: [
+        'any(id)',
+        SpanIndexedField.PROJECT,
+        SpanIndexedField.SPAN_GROUP,
+        SpanIndexedField.RAW_DOMAIN,
+        SpanIndexedField.SPAN_DESCRIPTION,
+        SpanIndexedField.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH,
+      ],
+      limit,
+      sorts,
+      search: queryConditions.join(' '),
+      enabled: enabled && !useEap,
     },
-  });
+    referrer
+  );
 
-  const data =
-    result?.data?.data.map(row => ({
-      project: row.project as string,
-      'transaction.id': row['transaction.id'] as string,
-      [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION]?.toString(),
-      [RAW_DOMAIN]: row[RAW_DOMAIN]?.toString(),
-      'measurements.http.response_content_length': row[
-        `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`
-      ] as number,
-    })) ?? [];
-
-  return {...result, data};
+  return useEap ? eapResult : spanIndexedResult;
 };

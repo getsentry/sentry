@@ -51,11 +51,25 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                 "additionalProperties": False,
             }
 
+            error_messages = {
+                "version": 'The version field cannot be empty and cannot contain any "/" characters.',
+                "dist": "The dist field must be a string.",
+                "projects": "The projects field is required and must be provided as an array of strings.",
+                "checksum": "The checksum field is required and must be a 40-character hexadecimal string.",
+                "chunks": "The chunks field is required and must be provided as an array of 40-character hexadecimal strings.",
+            }
+
             try:
                 data = orjson.loads(request.body)
                 jsonschema.validate(data, schema)
             except jsonschema.ValidationError as e:
-                return Response({"error": str(e).splitlines()[0]}, status=400)
+                error_message = e.message
+                # Get the field from the path if available
+                if e.path:
+                    if field := e.path[0]:
+                        error_message = error_messages.get(str(field), error_message)
+
+                return Response({"error": error_message}, status=400)
             except Exception:
                 return Response({"error": "Invalid json body"}, status=400)
 
@@ -149,7 +163,6 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                         "dist": dist,
                         "checksum": checksum,
                         "chunks": chunks,
-                        "upload_as_artifact_bundle": True,
                     }
                 )
 

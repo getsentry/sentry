@@ -30,21 +30,9 @@ from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
-from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processing.processor import is_condition_slow
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
-from sentry.utils import metrics
-
-
-def send_confirmation_notification(rule: Rule, new: bool, changed: dict | None = None):
-    for action in rule.data.get("actions", ()):
-        action_inst = instantiate_action(rule, action)
-        action_inst.send_confirmation_notification(
-            rule=rule,
-            new=new,
-            changed=changed,
-        )
 
 
 def clean_rule_data(data):
@@ -889,13 +877,5 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             duplicate_rule=duplicate_rule,
             wizard_v3=wizard_v3,
         )
-        if features.has(
-            "organizations:rule-create-edit-confirm-notification", project.organization
-        ):
-            send_confirmation_notification(rule=rule, new=True)
-            metrics.incr(
-                "rule_confirmation.create.notification.sent",
-                skip_internal=False,
-            )
 
         return Response(serialize(rule, request.user))

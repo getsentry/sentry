@@ -2,7 +2,7 @@ import {Component} from 'react';
 import type {Location} from 'history';
 
 import type {Client, RequestOptions} from 'sentry/api';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import Pagination from 'sentry/components/pagination';
 import {IconSearch} from 'sentry/icons';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -230,7 +230,7 @@ class ResultGrid extends Component<Props, State> {
   }
 
   get query() {
-    return (this.props.location?.query ?? {}) as {[k: string]: string};
+    return (this.props.location?.query ?? {}) as Record<string, string>;
   }
 
   remountComponent() {
@@ -388,7 +388,5 @@ class ResultGrid extends Component<Props, State> {
     );
   }
 }
-
-export {ResultGrid};
 
 export default withApi(ResultGrid);

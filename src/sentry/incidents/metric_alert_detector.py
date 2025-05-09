@@ -11,7 +11,9 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDetectorTypeValidator,
-    NumericComparisonConditionValidator,
+)
+from sentry.workflow_engine.endpoints.validators.base.data_condition import (
+    AbstractDataConditionValidator,
 )
 from sentry.workflow_engine.models import DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
@@ -22,17 +24,53 @@ from sentry.workflow_engine.types import (
 )
 
 
-class MetricAlertComparisonConditionValidator(NumericComparisonConditionValidator):
+class MetricAlertComparisonConditionValidator(
+    AbstractDataConditionValidator[float, DetectorPriorityLevel]
+):
     supported_conditions = frozenset((Condition.GREATER, Condition.LESS))
     supported_condition_results = frozenset(
         (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM)
     )
-    condition_group_id = serializers.IntegerField(required=True)
-    id = serializers.IntegerField(required=False)
+
+    def validate_type(self, value: str) -> Condition:
+        try:
+            type = Condition(value)
+        except ValueError:
+            type = None
+
+        if type not in self.supported_conditions:
+            raise serializers.ValidationError(f"Unsupported type {value}")
+
+        return type
+
+    def validate_comparison(self, value: float | int | str) -> float:
+        try:
+            value = float(value)
+        except ValueError:
+            raise serializers.ValidationError("A valid number is required.")
+
+        return value
+
+    def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
+        try:
+            result = DetectorPriorityLevel(int(value))
+        except ValueError:
+            result = None
+
+        if result not in self.supported_condition_results:
+            raise serializers.ValidationError("Unsupported condition result")
+
+        return result
 
 
 class MetricAlertConditionGroupValidator(BaseDataConditionGroupValidator):
-    conditions = MetricAlertComparisonConditionValidator(many=True)
+    conditions = serializers.ListField(required=True)
+
+    def validate_conditions(self, value):
+        MetricAlertComparisonConditionValidator(data=value, many=True).is_valid(
+            raise_exception=True
+        )
+        return value
 
 
 class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
@@ -51,6 +89,7 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
             raise serializers.ValidationError("Too many conditions")
         return attrs
 
+    # TODO - @saponifi3d - we can make this more generic and move it into the base Detector
     def update_data_conditions(self, instance: Detector, data_conditions: list[DataConditionType]):
         """
         Update the data condition if it already exists, create one if it does not
@@ -116,6 +155,7 @@ class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):
             event_types=data_source.get("event_types", [event_type for event_type in event_types]),
         )
 
+    # TODO - @saponifi3d - we can make this more generic and move it into the base Detector
     def update(self, instance: Detector, validated_data: dict[str, Any]):
         instance.name = validated_data.get("name", instance.name)
         instance.type = validated_data.get("detector_type", instance.group_type).slug

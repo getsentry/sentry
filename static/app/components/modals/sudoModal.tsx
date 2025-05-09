@@ -1,9 +1,14 @@
-import {Fragment, useContext, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {
+  getBoostrapTeamsQueryOptions,
+  getBootstrapOrganizationQueryOptions,
+  getBootstrapProjectsQueryOptions,
+} from 'sentry/bootstrap/bootstrapRequests';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import SecretField from 'sentry/components/forms/fields/secretField';
@@ -16,11 +21,12 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
+import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {OrganizationLoaderContext} from 'sentry/views/organizationContext';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
@@ -30,10 +36,8 @@ type DefaultProps = {
 };
 
 type State = {
-  authenticators: Authenticator[];
   error: boolean;
   errorType: string;
-  isLoading: boolean;
   showAccessForms: boolean;
   superuserAccessCategory: string;
   superuserReason: string;
@@ -64,62 +68,42 @@ function SudoModal({
 }: Props) {
   const user = useUser();
   const navigate = useNavigate();
+  const params = useParams<{orgId?: string}>();
+  const location = useLocation();
   const api = useApi();
   const [state, setState] = useState<State>({
-    authenticators: [] as Authenticator[],
     error: false,
     errorType: '',
     showAccessForms: true,
     superuserAccessCategory: '',
     superuserReason: '',
-    isLoading: true,
   });
 
-  const {
-    authenticators,
-    error,
-    errorType,
-    showAccessForms,
-    superuserAccessCategory,
-    superuserReason,
-  } = state;
+  const {error, errorType, showAccessForms, superuserAccessCategory, superuserReason} =
+    state;
 
-  const {bootstrapIsPending} = useContext(OrganizationLoaderContext);
-  const location = useLocation();
+  const orgSlug = params.orgId ?? null;
+  // We have to wait for these requests to finish before we can sudo, otherwise
+  // we'll overwrite the session cookie with a stale one.
+  // Not sharing the bootstrap hooks to avoid mutating the store.
+  const {isFetching: isOrganizationFetching} = useQuery(
+    getBootstrapOrganizationQueryOptions(orgSlug)
+  );
+  const {isFetching: isTeamsFetching} = useQuery(getBoostrapTeamsQueryOptions(orgSlug));
+  const {isFetching: isProjectsFetching} = useQuery(
+    getBootstrapProjectsQueryOptions(orgSlug)
+  );
+  const bootstrapIsPending =
+    isOrganizationFetching || isTeamsFetching || isProjectsFetching;
 
-  useEffect(() => {
-    const getAuthenticators = async () => {
-      // We have to wait for these requests to finish before we can sudo, otherwise
-      // we'll overwrite the session cookie with a stale one.
-      if (bootstrapIsPending) {
-        return;
-      }
-
-      try {
-        // Await all preload requests
-        await Promise.allSettled(Object.values(window.__sentry_preload ?? {}));
-      } catch {
-        // ignore errors
-      }
-
-      // Fetch authenticators after preload requests to avoid overwriting session cookie
-      try {
-        const fetchedAuthenticators = await api.requestPromise('/authenticators/');
-        setState(prevState => ({
-          ...prevState,
-          authenticators: fetchedAuthenticators ?? [],
-          isLoading: false,
-        }));
-      } catch {
-        setState(prevState => ({
-          ...prevState,
-          isLoading: false,
-        }));
-      }
-    };
-
-    getAuthenticators();
-  }, [api, bootstrapIsPending]);
+  const {data: authenticators = [], isLoading: isAuthenticatorsLoading} = useApiQuery<
+    Authenticator[]
+  >(['/authenticators/'], {
+    // Fetch authenticators after preload requests to avoid overwriting session cookie
+    enabled: !bootstrapIsPending,
+    staleTime: 0,
+    retry: false,
+  });
 
   const handleSubmitCOPS = () => {
     setState(prevState => ({
@@ -235,7 +219,7 @@ function SudoModal({
       return null;
     }
 
-    if (state.isLoading) {
+    if (isAuthenticatorsLoading || bootstrapIsPending) {
       return <LoadingIndicator />;
     }
 
@@ -343,7 +327,9 @@ function SudoModal({
 
   return (
     <Fragment>
-      <Header closeButton={closeButton}>{t('Confirm Password to Continue')}</Header>
+      <Header closeButton={closeButton}>
+        <h4>{t('Confirm Password to Continue')}</h4>
+      </Header>
       <Body>{renderBodyContent()}</Body>
     </Fragment>
   );

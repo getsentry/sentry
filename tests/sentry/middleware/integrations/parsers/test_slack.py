@@ -62,12 +62,12 @@ class SlackRequestParserTest(TestCase):
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/slack/commands/",
-            status=201,
+            status=status.HTTP_201_CREATED,
             body=b"region_response",
         )
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 201
+        assert response.status_code == status.HTTP_201_CREATED
         assert response.content == b"region_response"
         assert len(responses.calls) == 1
         assert_no_webhook_payloads()
@@ -81,7 +81,7 @@ class SlackRequestParserTest(TestCase):
         )
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 401
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.content == b"error_response"
         assert len(responses.calls) == 2
         assert_no_webhook_payloads()
@@ -103,7 +103,7 @@ class SlackRequestParserTest(TestCase):
         # Passes through to control silo
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
@@ -132,14 +132,13 @@ class SlackRequestParserTest(TestCase):
         )
         assert response.status_code == status.HTTP_200_OK
 
-    @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
-    @patch.object(
-        SlackRequestParser,
-        "get_regions_from_organizations",
-        side_effect=OrganizationIntegration.DoesNotExist(),
+    @patch(
+        "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
+        return_value=True,
     )
+    @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
     def test_skips_async_response_if_org_integration_missing(
-        self, mock_slack_task, mock_get_regions
+        self, mock_slack_task, mock_signing_secret
     ):
         response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
         data = {

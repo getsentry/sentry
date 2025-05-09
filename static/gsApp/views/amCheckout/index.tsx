@@ -16,6 +16,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {QueryClient} from 'sentry/utils/queryClient';
@@ -27,11 +28,16 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
-import {ANNUAL, MONTHLY} from 'getsentry/constants';
+import {
+  ANNUAL,
+  MONTHLY,
+  PAYG_BUSINESS_DEFAULT,
+  PAYG_TEAM_DEFAULT,
+} from 'getsentry/constants';
 import {
   type BillingConfig,
   CheckoutType,
-  type DataCategories,
+  type EventBucket,
   OnDemandBudgetMode,
   type OnDemandBudgets,
   type Plan,
@@ -46,6 +52,7 @@ import {
   hasPerformance,
   isAmPlan,
   isBizPlanFamily,
+  isNewPayingCustomer,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
@@ -62,7 +69,7 @@ import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudget
 import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
 import PlanSelect from 'getsentry/views/amCheckout/steps/planSelect';
 import ReviewAndConfirm from 'getsentry/views/amCheckout/steps/reviewAndConfirm';
-import SetBudgetAndReserves from 'getsentry/views/amCheckout/steps/setBudgetAndReserves';
+import SetPayAsYouGo from 'getsentry/views/amCheckout/steps/setPayAsYouGo';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
@@ -248,15 +255,16 @@ class AMCheckout extends Component<Props, State> {
     if (subscription.isSelfServePartner) {
       if (hasActiveVCFeature(organization)) {
         // Don't allow VC customers to choose Annual plans
-        return [PlanSelect, SetBudgetAndReserves, ReviewAndConfirm];
+        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm];
       }
-      return [PlanSelect, SetBudgetAndReserves, ContractSelect, ReviewAndConfirm];
+      return [PlanSelect, SetPayAsYouGo, AddDataVolume, ContractSelect, ReviewAndConfirm];
     }
 
     // Display for AM3 tiers and above
     return [
       PlanSelect,
-      SetBudgetAndReserves,
+      SetPayAsYouGo,
+      AddDataVolume,
       ContractSelect,
       AddPaymentMethod,
       AddBillingDetails,
@@ -371,7 +379,7 @@ class AMCheckout extends Component<Props, State> {
    * If not available on current tier, use the default plan.
    */
   getInitialData(billingConfig: BillingConfig): CheckoutFormData {
-    const {subscription} = this.props;
+    const {subscription, checkoutTier, organization} = this.props;
     const {onDemandMaxSpend, planDetails} = subscription;
 
     const initialPlan = this.getInitialPlan(billingConfig);
@@ -385,11 +393,10 @@ class AMCheckout extends Component<Props, State> {
     // Default to the max event volume per category based on either
     // the current reserved volume or the current reserved price.
     const reserved = Object.fromEntries(
-      Object.entries(planDetails.planCategories)
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      (Object.entries(planDetails.planCategories) as Array<[DataCategory, EventBucket[]]>)
         .filter(([category, _]) => initialPlan.planCategories[category])
         .map(([category, eventBuckets]) => {
-          const currentHistory = subscription.categories[category as DataCategories];
+          const currentHistory = subscription.categories[category];
           // When introducing a new category before backfilling, the reserved value from the billing metric
           // history is not available, so we default to 0.
           let events = currentHistory?.reserved || 0;
@@ -398,7 +405,6 @@ class AMCheckout extends Component<Props, State> {
             const price = getBucket({events, buckets: eventBuckets}).price;
             const eventsByPrice = getBucket({
               price,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               buckets: initialPlan.planCategories[category],
             }).events;
             events = Math.max(events, eventsByPrice);
@@ -426,6 +432,20 @@ class AMCheckout extends Component<Props, State> {
       ...(onDemandMaxSpend > 0 && {onDemandMaxSpend}),
       onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
     };
+
+    if (
+      isNewPayingCustomer(subscription, organization) &&
+      checkoutTier === PlanTier.AM3
+    ) {
+      // TODO(isabella): Test if this behavior works as expected on older tiers
+      data.onDemandMaxSpend = isBizPlanFamily(initialPlan)
+        ? PAYG_BUSINESS_DEFAULT
+        : PAYG_TEAM_DEFAULT;
+      data.onDemandBudget = {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: data.onDemandMaxSpend,
+      };
+    }
 
     return this.getValidData(initialPlan, data);
   }
@@ -507,10 +527,7 @@ class AMCheckout extends Component<Props, State> {
         ...analyticsParams,
         cents: validData.onDemandMaxSpend || 0,
       });
-    } else if (
-      (checkoutTier === PlanTier.AM3 && this.state.currentStep === 3) ||
-      (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 4)
-    ) {
+    } else if (this.state.currentStep === 4) {
       trackGetsentryAnalytics('checkout.change_contract', analyticsParams);
     }
 

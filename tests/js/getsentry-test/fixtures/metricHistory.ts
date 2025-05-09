@@ -14,15 +14,13 @@ const ORDERED_CATEGORIES = [
 export function MetricHistoryFixture(
   params: Partial<BillingMetricHistory>
 ): BillingMetricHistory {
-  const order = params.category
-    ? ORDERED_CATEGORIES.indexOf(params.category as DataCategory)
-    : 1;
+  const order = params.category ? ORDERED_CATEGORIES.indexOf(params.category) : 1;
   return {
     category: DataCategory.ERRORS,
     free: 0,
     onDemandBudget: 0,
     onDemandSpendUsed: 0,
-    onDemandCpe: 0,
+    paygCpe: 0,
     onDemandQuantity: 0,
     sentUsageWarning: false,
     softCapType: null,

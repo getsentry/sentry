@@ -161,7 +161,7 @@ def create_incident(
             IncidentProject.objects.bulk_create(incident_projects)
             # `bulk_create` doesn't send `post_save` signals, so we manually fire them here.
             for incident_project in incident_projects:
-                post_save.send(
+                post_save.send_robust(
                     sender=type(incident_project), instance=incident_project, created=True
                 )
 
@@ -404,6 +404,7 @@ def get_metric_issue_aggregates(
                 offset=0,
                 limit=1,
                 referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+                sampling_mode=None,
                 config=SearchResolverConfig(
                     auto_fields=True,
                 ),
@@ -716,10 +717,12 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
                 action.alert_rule_trigger = trigger
                 action.save()
 
-    # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
-    tasks.auto_resolve_snapshot_incidents.apply_async(
-        kwargs={"alert_rule_id": alert_rule_snapshot.id}, countdown=3
-    )
+        transaction.on_commit(
+            lambda: tasks.auto_resolve_snapshot_incidents.apply_async(
+                kwargs={"alert_rule_id": alert_rule_snapshot.id},
+            ),
+            using=router.db_for_write(Incident),
+        )
 
 
 def update_alert_rule(
@@ -770,7 +773,6 @@ def update_alert_rule(
     :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
-    from sentry.workflow_engine.migration_helpers.alert_rule import dual_update_migrated_alert_rule
 
     snuba_query = _unpack_snuba_query(alert_rule)
     organization = _unpack_organization(alert_rule)
@@ -907,8 +909,6 @@ def update_alert_rule(
 
         with transaction.atomic(router.db_for_write(AlertRule)):
             alert_rule.update(**updated_fields)
-            # if an exception occurs in this helper, don't catch it so we can see the full stack trace
-            dual_update_migrated_alert_rule(alert_rule, updated_fields)
 
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
@@ -1014,7 +1014,7 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
 
 
 def delete_alert_rule(
-    alert_rule: AlertRule, user: RpcUser | None = None, ip_address: str | None = None
+    alert_rule: AlertRule, user: User | RpcUser | None = None, ip_address: str | None = None
 ) -> None:
     """
     Marks an alert rule as deleted and fires off a task to actually delete it.
@@ -1115,10 +1115,6 @@ def update_alert_rule_trigger(
     alert rule
     :return: The updated AlertRuleTrigger
     """
-    from sentry.workflow_engine.migration_helpers.alert_rule import (
-        dual_update_migrated_alert_rule_trigger,
-    )
-
     if (
         AlertRuleTrigger.objects.filter(alert_rule=trigger.alert_rule, label=label)
         .exclude(id=trigger.id)
@@ -1137,8 +1133,6 @@ def update_alert_rule_trigger(
 
     with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         if updated_fields:
-            # exceptions from this helper are purposely uncaught
-            dual_update_migrated_alert_rule_trigger(trigger, updated_fields)
             trigger.update(**updated_fields)
 
     return trigger
@@ -1156,8 +1150,6 @@ def get_triggers_for_alert_rule(alert_rule: AlertRule) -> QuerySet[AlertRuleTrig
 
 
 def _trigger_incident_triggers(incident: Incident) -> None:
-    from sentry.incidents.tasks import handle_trigger_action
-
     incident_triggers = IncidentTrigger.objects.filter(incident=incident)
     triggers = get_triggers_for_alert_rule(incident.alert_rule)
     actions = deduplicate_trigger_actions(triggers=list(triggers))
@@ -1168,16 +1160,30 @@ def _trigger_incident_triggers(incident: Incident) -> None:
 
         for action in actions:
             for project in incident.projects.all():
-                transaction.on_commit(
-                    handle_trigger_action.s(
-                        action_id=action.id,
-                        incident_id=incident.id,
-                        project_id=project.id,
-                        method="resolve",
-                        new_status=IncidentStatus.CLOSED.value,
-                    ).delay,
-                    router.db_for_write(AlertRuleTrigger),
+                _schedule_trigger_action(
+                    action_id=action.id,
+                    incident_id=incident.id,
+                    project_id=project.id,
+                    method="resolve",
+                    new_status=IncidentStatus.CLOSED.value,
                 )
+
+
+def _schedule_trigger_action(
+    action_id: int, incident_id: int, project_id: int, method: str, new_status: int
+) -> None:
+    from sentry.incidents.tasks import handle_trigger_action
+
+    transaction.on_commit(
+        lambda: handle_trigger_action.delay(
+            action_id=action_id,
+            incident_id=incident_id,
+            project_id=project_id,
+            method=method,
+            new_status=new_status,
+        ),
+        using=router.db_for_write(AlertRuleTrigger),
+    )
 
 
 def _sort_by_priority_list(triggers: Collection[AlertRuleTrigger]) -> list[AlertRuleTrigger]:
@@ -1367,9 +1373,6 @@ def update_alert_rule_trigger_action(
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return:
     """
-    from sentry.workflow_engine.migration_helpers.alert_rule import (
-        dual_update_migrated_alert_rule_trigger_action,
-    )
 
     updated_fields: dict[str, Any] = {}
     if type is not None:
@@ -1423,8 +1426,6 @@ def update_alert_rule_trigger_action(
 
     with transaction.atomic(router.db_for_write(AlertRuleTriggerAction)):
         trigger_action.update(**updated_fields)
-        # exceptions from this helper are purposely left uncaught
-        dual_update_migrated_alert_rule_trigger_action(trigger_action, updated_fields)
     return trigger_action
 
 
@@ -1852,7 +1853,6 @@ def translate_aggregate_field(
 # TODO(Ecosystem): Convert to using get_filtered_actions
 def get_slack_actions_with_async_lookups(
     organization: Organization,
-    user: RpcUser | None,
     data: Mapping[str, Any],
 ) -> list[Mapping[str, Any]]:
     """Return Slack trigger actions that require async lookup"""
@@ -1867,7 +1867,6 @@ def get_slack_actions_with_async_lookups(
                     context={
                         "organization": organization,
                         "access": SystemAccess(),
-                        "user": user,
                         "input_channel_id": action.get("inputChannelId"),
                         "installations": app_service.installations_for_organization(
                             organization_id=organization.id
@@ -1893,10 +1892,10 @@ def get_slack_actions_with_async_lookups(
 
 def get_slack_channel_ids(
     organization: Organization,
-    user: RpcUser | None,
+    user: User | RpcUser | None,
     data: Mapping[str, Any],
 ) -> Mapping[str, Any]:
-    slack_actions = get_slack_actions_with_async_lookups(organization, user, data)
+    slack_actions = get_slack_actions_with_async_lookups(organization, data)
     mapped_slack_channels = {}
     for action in slack_actions:
         if not action["target_identifier"] in mapped_slack_channels:

@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/core/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -56,11 +55,7 @@ export function GroupBySelector({
   const organization = useOrganization();
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
-  const builderVersion = organization.features.includes(
-    'dashboards-widget-builder-redesign'
-  )
-    ? WidgetBuilderVersion.SLIDEOUT
-    : WidgetBuilderVersion.PAGE;
+  const builderVersion = WidgetBuilderVersion.SLIDEOUT;
 
   function handleAdd() {
     const newColumns =
@@ -129,9 +124,7 @@ export function GroupBySelector({
     }>(
       (acc, key) => {
         const value = fieldOptions[key]!;
-        const optionInColumnsIndex = columnFieldsAsString.findIndex(
-          column => column === value.value.meta.name
-        );
+        const optionInColumnsIndex = columnFieldsAsString.indexOf(value.value.meta.name);
         if (optionInColumnsIndex === -1) {
           acc.filteredFieldOptions[key] = value;
           return acc;
@@ -230,21 +223,11 @@ export function GroupBySelector({
           </DndContext>
         )}
       </StyledField>
-      {columns.length < GROUP_BY_LIMIT &&
-        (builderVersion === WidgetBuilderVersion.PAGE ? (
-          <AddGroupButton size="sm" icon={<IconAdd isCircled />} onClick={handleAdd}>
-            {t('Add Group')}
-          </AddGroupButton>
-        ) : (
-          <Button
-            size="sm"
-            priority="link"
-            onClick={handleAdd}
-            aria-label={t('Add Group')}
-          >
-            {t('+ Add Group')}
-          </Button>
-        ))}
+      {columns.length < GROUP_BY_LIMIT && (
+        <Button size="sm" priority="link" onClick={handleAdd} aria-label={t('Add Group')}>
+          {t('+ Add Group')}
+        </Button>
+      )}
     </Fragment>
   );
 }
@@ -270,10 +253,6 @@ function FieldValidationErrors(props: {
 
 const StyledField = styled(FieldGroup)`
   padding-bottom: ${space(1)};
-`;
-
-const AddGroupButton = styled(Button)`
-  width: min-content;
 `;
 
 const SortableQueryFields = styled('div')`

@@ -21,13 +21,13 @@ function createWrapper(organization: Organization) {
   return function ({children}: {children?: React.ReactNode}) {
     return (
       <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext.Provider value={organization}>
+        <OrganizationContext value={organization}>
           <PageParamsProvider>
             <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
               {children}
             </SpanTagsProvider>
           </PageParamsProvider>
-        </OrganizationContext.Provider>
+        </OrganizationContext>
       </QueryClientProvider>
     );
   };
@@ -40,7 +40,7 @@ describe('useSortByFields', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/spans/fields/`,
+      url: `/organizations/org-slug/trace-items/attributes/`,
       body: [],
     });
 

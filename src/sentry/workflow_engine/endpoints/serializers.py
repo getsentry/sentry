@@ -1,11 +1,15 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
-from sentry.utils import json
+from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -15,19 +19,106 @@ from sentry.workflow_engine.models import (
     Detector,
     Workflow,
     WorkflowDataConditionGroup,
+    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
-from sentry.workflow_engine.types import DataSourceTypeHandler
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
+from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, DataSourceTypeHandler
+
+
+class ActionSerializerResponse(TypedDict):
+    id: str
+    type: str
+    integration_id: int | None
+    data: dict
+    config: dict
 
 
 @register(Action)
 class ActionSerializer(Serializer):
-    def serialize(self, obj: Action, *args, **kwargs):
+    def serialize(self, obj: Action, *args, **kwargs) -> ActionSerializerResponse:
         return {
             "id": str(obj.id),
             "type": obj.type,
-            "data": json.dumps(obj.data),
+            "integration_id": obj.integration_id,
+            "data": obj.data,
+            "config": obj.config,
         }
+
+
+class SentryAppContext(TypedDict):
+    id: str
+    name: str
+    installationId: str
+    status: int
+    settings: NotRequired[dict[str, Any]]
+
+
+class ActionHandlerSerializerResponse(TypedDict):
+    type: str
+    handlerGroup: str
+    configSchema: dict
+    dataSchema: dict
+    sentryApp: NotRequired[SentryAppContext]
+    integrations: NotRequired[list]
+    services: NotRequired[list]
+
+
+@register(ActionHandler)
+class ActionHandlerSerializer(Serializer):
+    def transform_title(self, title: str) -> str:
+        if title in PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS:
+            return f"(Legacy) {title}"
+        return title
+
+    def serialize(
+        self,
+        obj: ActionHandler,
+        attrs: Mapping[str, Any],
+        user: Any,
+        **kwargs: Any,
+    ) -> ActionHandlerSerializerResponse:
+        action_type = kwargs.get("action_type")
+        if action_type is None:
+            raise ValueError("action_type is required")
+
+        result: ActionHandlerSerializerResponse = {
+            "type": action_type,
+            "handlerGroup": obj.group.value,
+            "configSchema": obj.config_schema,
+            "dataSchema": obj.data_schema,
+        }
+
+        integrations = kwargs.get("integrations")
+        if integrations:
+            result["integrations"] = [
+                {"id": str(integration.id), "name": integration.name}
+                for integration in integrations
+            ]
+
+        sentry_app_context = kwargs.get("sentry_app_context")
+        if sentry_app_context:
+            installation = sentry_app_context.installation
+            sentry_app: SentryAppContext = {
+                "id": str(installation.sentry_app.id),
+                "name": installation.sentry_app.name,
+                "installationId": str(installation.id),
+                "status": installation.sentry_app.status,
+            }
+            if sentry_app_context.component:
+                sentry_app["settings"] = sentry_app_context.component.app_schema.get("settings", {})
+            result["sentryApp"] = sentry_app
+
+        services = kwargs.get("services")
+        if services:
+            services_list = [
+                {"slug": service.slug, "name": self.transform_title(service.title)}
+                for service in services
+            ]
+            services_list.sort(key=lambda x: x["name"])
+            result["services"] = services_list
+
+        return result
 
 
 @register(DataSource)
@@ -75,9 +166,9 @@ class DataConditionSerializer(Serializer):
     def serialize(self, obj: DataCondition, *args, **kwargs) -> dict[str, Any]:
         return {
             "id": str(obj.id),
-            "condition": obj.type,
+            "type": obj.type,
             "comparison": obj.comparison,
-            "result": obj.condition_result,
+            "conditionResult": obj.condition_result,
         }
 
 
@@ -122,6 +213,35 @@ class DataConditionGroupSerializer(Serializer):
         }
 
 
+class DataConditionHandlerResponse(TypedDict):
+    type: str
+    handlerGroup: str
+    handlerSubgroup: NotRequired[str]
+    comparisonJsonSchema: dict
+
+
+@register(DataConditionHandler)
+class DataConditionHandlerSerializer(Serializer):
+    def serialize(
+        self,
+        obj: DataConditionHandler,
+        attrs: Mapping[str, Any],
+        user: Any,
+        **kwargs: Any,
+    ) -> DataConditionHandlerResponse:
+        condition_type = kwargs.get("condition_type")
+        if condition_type is None:
+            raise ValueError("condition_type is required")
+        result: DataConditionHandlerResponse = {
+            "type": condition_type,
+            "handlerGroup": obj.group.value,
+            "comparisonJsonSchema": obj.comparison_json_schema,
+        }
+        if hasattr(obj, "subgroup"):
+            result["handlerSubgroup"] = obj.subgroup.value
+        return result
+
+
 @register(Detector)
 class DetectorSerializer(Serializer):
     def get_attrs(
@@ -155,6 +275,10 @@ class DetectorSerializer(Serializer):
             for group, serialized in zip(condition_groups, serialize(condition_groups, user=user))
         }
 
+        workflows_map = defaultdict[int, list[str]](list)
+        for dw in DetectorWorkflow.objects.filter(detector__in=item_list):
+            workflows_map[dw.detector_id].append(str(dw.workflow_id))
+
         filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
         project_ids = [item.project_id for item in filtered_item_list]
 
@@ -175,6 +299,7 @@ class DetectorSerializer(Serializer):
             attrs[item]["condition_group"] = condition_group_map.get(
                 str(item.workflow_condition_group_id)
             )
+            attrs[item]["connected_workflows"] = workflows_map[item.id]
             if item.id in configs:
                 attrs[item]["config"] = configs[item.id]
             else:
@@ -188,6 +313,7 @@ class DetectorSerializer(Serializer):
             "projectId": str(obj.project_id),
             "name": obj.name,
             "type": obj.type,
+            "connectedWorkflows": attrs.get("connected_workflows"),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
@@ -235,6 +361,7 @@ class WorkflowSerializer(Serializer):
     def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
         return {
             "id": str(obj.id),
+            "name": str(obj.name),
             "organizationId": str(obj.organization_id),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
@@ -242,4 +369,59 @@ class WorkflowSerializer(Serializer):
             "actionFilters": attrs.get("actionFilters"),
             "environment": obj.environment.name if obj.environment else None,
             "config": obj.config,
+        }
+
+
+@dataclass(frozen=True)
+class WorkflowGroupHistory:
+    group: Group
+    count: int
+    last_triggered: datetime
+    event_id: str
+
+
+class WorkflowFireHistoryResponse(TypedDict):
+    group: BaseGroupSerializerResponse
+    count: int
+    lastTriggered: datetime
+    eventId: str
+
+
+class WorkflowGroupHistorySerializer(Serializer):
+    def get_attrs(
+        self, item_list: Sequence[WorkflowFireHistory], user: Any, **kwargs: Any
+    ) -> MutableMapping[Any, Any]:
+        serialized_groups = {
+            g["id"]: g for g in serialize([item.group for item in item_list], user)
+        }
+        return {
+            history: {"group": serialized_groups[str(history.group.id)]} for history in item_list
+        }
+
+    def serialize(
+        self, obj: WorkflowGroupHistory, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> WorkflowFireHistoryResponse:
+        return {
+            "group": attrs["group"],
+            "count": obj.count,
+            "lastTriggered": obj.last_triggered,
+            "eventId": obj.event_id,
+        }
+
+
+class DetectorWorkflowResponse(TypedDict):
+    id: str
+    detectorId: str
+    workflowId: str
+
+
+@register(DetectorWorkflow)
+class DetectorWorkflowSerializer(Serializer):
+    def serialize(
+        self, obj: DetectorWorkflow, attrs: Mapping[str, Any], user, **kwargs
+    ) -> DetectorWorkflowResponse:
+        return {
+            "id": str(obj.id),
+            "detectorId": str(obj.detector.id),
+            "workflowId": str(obj.workflow.id),
         }

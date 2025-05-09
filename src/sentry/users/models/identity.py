@@ -22,6 +22,7 @@ from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import ExternalProviders
 from sentry.users.services.user import RpcUser
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 if TYPE_CHECKING:
     from sentry.identity.base import Provider
@@ -102,6 +103,7 @@ class IdentityManager(BaseManager["Identity"]):
             if not created:
                 identity.update(**defaults)
         except IntegrityError:
+            incr_rollback_metrics(Identity)
             if not should_reattach:
                 raise
             return self.reattach(idp, external_id, user, defaults)

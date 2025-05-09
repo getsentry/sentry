@@ -19,11 +19,6 @@ describe('TeamSettings', function () {
   beforeEach(function () {
     TeamStore.reset();
     MockApiClient.clearMockResponses();
-    jest.spyOn(window.location, 'assign');
-  });
-
-  afterEach(function () {
-    jest.mocked(window.location.assign).mockRestore();
   });
 
   it('can change slug', async function () {
@@ -38,6 +33,7 @@ describe('TeamSettings', function () {
 
     render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     const input = screen.getByRole('textbox', {name: 'Team Slug'});
@@ -70,6 +66,7 @@ describe('TeamSettings', function () {
     render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
       organization,
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByTestId('button-remove-team')).toBeDisabled();
@@ -85,6 +82,7 @@ describe('TeamSettings', function () {
 
     render(<TeamSettings {...routerProps} params={{teamId: team.slug}} team={team} />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     // Click "Remove Team button
@@ -115,6 +113,7 @@ describe('TeamSettings', function () {
     render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
       organization,
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(

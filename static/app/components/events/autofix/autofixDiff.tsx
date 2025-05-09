@@ -1,26 +1,26 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {type Change, diffWords} from 'diff';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
-import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
+import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {
   type DiffLine,
   DiffLineType,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 type AutofixDiffProps = {
@@ -28,6 +28,7 @@ type AutofixDiffProps = {
   editable: boolean;
   groupId: string;
   runId: string;
+  isExpandable?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   repoId?: string;
@@ -190,6 +191,8 @@ function HunkHeader({lines, sectionHeader}: {lines: DiffLine[]; sectionHeader: s
 function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
+
   return useMutation({
     mutationFn: (params: {
       fileName: string;
@@ -197,22 +200,25 @@ function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
       lines: DiffLine[];
       repoId?: string;
     }) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'update_code_change',
-            repo_id: params.repoId ?? null,
-            hunk_index: params.hunkIndex,
-            lines: params.lines,
-            file_path: params.fileName,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'update_code_change',
+              repo_id: params.repoId ?? null,
+              hunk_index: params.hunkIndex,
+              lines: params.lines,
+              file_path: params.fileName,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when updating changes.'));
@@ -263,7 +269,7 @@ function DiffHunkContent({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [overlayRef]);
 
   const lineGroups = useMemo(() => {
     const groups: Array<{end: number; start: number; type: 'change' | DiffLineType}> = [];
@@ -452,7 +458,7 @@ function DiffHunkContent({
         : 's',
       linesWithChanges
         .slice(index, lineGroups.find(g => g.start === index)?.end)
-        .filter(l => l.line_type === DiffLineType.REMOVED).length > 0
+        .some(l => l.line_type === DiffLineType.REMOVED)
         ? t(' from line %s', getStartLineNumber(index, DiffLineType.REMOVED))
         : ''
     );
@@ -474,7 +480,7 @@ function DiffHunkContent({
       <HunkHeaderEmptySpace />
       <HunkHeader lines={lines} sectionHeader={header} />
       {linesWithChanges.map((line, index) => (
-        <Fragment key={index}>
+        <Fragment key={`${line.diff_line_no}-${index}`}>
           <LineNumber lineType={line.line_type}>{line.source_line_no}</LineNumber>
           <LineNumber lineType={line.line_type}>{line.target_line_no}</LineNumber>
           <DiffContent
@@ -490,7 +496,7 @@ function DiffHunkContent({
           >
             <DiffLineCode line={line} fileName={fileName} />
             {editable && lineGroups.some(group => index === group.start) && (
-              <ButtonGroup>
+              <ButtonGroup data-ignore-autofix-highlight="true">
                 <ActionButton
                   size="xs"
                   icon={<IconEdit size="xs" />}
@@ -509,68 +515,78 @@ function DiffHunkContent({
                 />
               </ButtonGroup>
             )}
-            {editingGroup === index && (
-              <EditOverlay ref={overlayRef}>
-                <OverlayHeader>
-                  <OverlayTitle
-                    dangerouslySetInnerHTML={{
-                      __html: singleLineRenderer(t('Editing `%s`', fileName)),
-                    }}
-                  />
-                </OverlayHeader>
-                <OverlayContent>
-                  <SectionTitle>{getDeletedLineTitle(index)}</SectionTitle>
-                  {linesWithChanges
-                    .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
-                    .filter(l => l.line_type === DiffLineType.REMOVED).length > 0 ? (
-                    <RemovedLines>
-                      {linesWithChanges
-                        .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
-                        .filter(l => l.line_type === DiffLineType.REMOVED)
-                        .map((l, i) => (
-                          <RemovedLine key={i}>{l.value}</RemovedLine>
-                        ))}
-                    </RemovedLines>
-                  ) : (
-                    <NoChangesMessage>
-                      {t('No lines are being deleted.')}
-                    </NoChangesMessage>
-                  )}
-                  <SectionTitle>{getNewLineTitle(index)}</SectionTitle>
-                  <TextAreaWrapper>
-                    <StyledTextArea
-                      value={editedContent}
-                      onChange={handleTextAreaChange}
-                      rows={5}
-                      autosize
-                      placeholder={
-                        editedLines.length === 0 ? t('No lines are being added...') : ''
-                      }
-                    />
-                    <ClearButton
-                      size="xs"
-                      onClick={handleClearChanges}
-                      aria-label={t('Clear changes')}
-                      icon={<IconDelete size="xs" />}
-                      title={t('Clear all new lines')}
-                    />
-                  </TextAreaWrapper>
-                </OverlayContent>
-                <OverlayFooter>
-                  <OverlayButtonGroup>
-                    <Button size="xs" onClick={handleCancelEdit}>
-                      {t('Cancel')}
-                    </Button>
-                    <Button size="xs" priority="primary" onClick={handleSaveEdit}>
-                      {t('Save')}
-                    </Button>
-                  </OverlayButtonGroup>
-                </OverlayFooter>
-              </EditOverlay>
-            )}
           </DiffContent>
         </Fragment>
       ))}
+      {editingGroup !== null &&
+        document.body &&
+        createPortal(
+          <EditOverlay
+            ref={overlayRef}
+            data-ignore-autofix-highlight="true"
+            data-overlay="true"
+          >
+            <OverlayHeader>
+              <OverlayTitle>
+                {t('Editing')} <code>{fileName}</code>
+              </OverlayTitle>
+            </OverlayHeader>
+            <OverlayContent>
+              <SectionTitle>{getDeletedLineTitle(editingGroup)}</SectionTitle>
+              {linesWithChanges
+                .slice(
+                  editingGroup,
+                  lineGroups.find(g => g.start === editingGroup)?.end! + 1
+                )
+                .some(l => l.line_type === DiffLineType.REMOVED) ? (
+                <RemovedLines>
+                  {linesWithChanges
+                    .slice(
+                      editingGroup,
+                      lineGroups.find(g => g.start === editingGroup)?.end! + 1
+                    )
+                    .filter(l => l.line_type === DiffLineType.REMOVED)
+                    .map((l, i) => (
+                      <RemovedLine key={i}>{l.value}</RemovedLine>
+                    ))}
+                </RemovedLines>
+              ) : (
+                <NoChangesMessage>{t('No lines are being deleted.')}</NoChangesMessage>
+              )}
+              <SectionTitle>{getNewLineTitle(editingGroup)}</SectionTitle>
+              <TextAreaWrapper>
+                <StyledTextArea
+                  value={editedContent}
+                  onChange={handleTextAreaChange}
+                  rows={5}
+                  autosize
+                  placeholder={
+                    editedLines.length === 0 ? t('No lines are being added...') : ''
+                  }
+                  autoFocus
+                />
+                <ClearButton
+                  size="xs"
+                  onClick={handleClearChanges}
+                  aria-label={t('Clear changes')}
+                  icon={<IconDelete size="xs" />}
+                  title={t('Clear all new lines')}
+                />
+              </TextAreaWrapper>
+            </OverlayContent>
+            <OverlayFooter>
+              <OverlayButtonGroup>
+                <Button size="xs" onClick={handleCancelEdit}>
+                  {t('Cancel')}
+                </Button>
+                <Button size="xs" priority="primary" onClick={handleSaveEdit}>
+                  {t('Save')}
+                </Button>
+              </OverlayButtonGroup>
+            </OverlayFooter>
+          </EditOverlay>,
+          document.body
+        )}
     </Fragment>
   );
 }
@@ -581,53 +597,41 @@ function FileDiff({
   runId,
   repoId,
   editable,
-  previousDefaultStepIndex,
-  previousInsightCount,
+  isExpandable,
 }: {
   editable: boolean;
   file: FilePatch;
   groupId: string;
+  isExpandable: boolean;
   runId: string;
-  previousDefaultStepIndex?: number;
-  previousInsightCount?: number;
   repoId?: string;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const selection = useTextSelection(containerRef);
 
   return (
     <FileDiffWrapper>
-      <FileHeader onClick={() => setIsExpanded(value => !value)}>
-        <InteractionStateLayer />
+      <FileHeader
+        isExpandable={isExpandable}
+        onClick={() => (isExpandable ? setIsExpanded(value => !value) : undefined)}
+      >
+        {isExpandable && <InteractionStateLayer />}
         <FileAddedRemoved>
           <FileAdded>+{file.added}</FileAdded>
           <FileRemoved>-{file.removed}</FileRemoved>
         </FileAddedRemoved>
         <FileName title={file.path}>{file.path}</FileName>
-        <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
-          aria-label={t('Toggle file diff')}
-          aria-expanded={isExpanded}
-          size="zero"
-          borderless
-        />
+        {isExpandable && (
+          <Button
+            icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+            aria-label={t('Toggle file diff')}
+            aria-expanded={isExpanded}
+            size="zero"
+            borderless
+          />
+        )}
       </FileHeader>
-      {selection && (
-        <AutofixHighlightPopup
-          selectedText={selection.selectedText}
-          referenceElement={selection.referenceElement}
-          groupId={groupId}
-          runId={runId}
-          stepIndex={previousDefaultStepIndex ?? 0}
-          retainInsightCardIndex={
-            previousInsightCount !== undefined && previousInsightCount >= 0
-              ? previousInsightCount - 1
-              : -1
-          }
-        />
-      )}
       {isExpanded && (
         <DiffContainer ref={containerRef}>
           {file.hunks.map(({section_header, source_start, lines}, index) => {
@@ -659,24 +663,36 @@ export function AutofixDiff({
   editable,
   previousDefaultStepIndex,
   previousInsightCount,
+  isExpandable = true,
 }: AutofixDiffProps) {
-  if (!diff || !diff.length) {
+  if (!diff?.length) {
     return null;
   }
 
   return (
     <DiffsColumn>
       {diff.map(file => (
-        <FileDiff
+        <AutofixHighlightWrapper
           key={file.path}
-          file={file}
           groupId={groupId}
           runId={runId}
-          repoId={repoId}
-          editable={editable}
-          previousDefaultStepIndex={previousDefaultStepIndex}
-          previousInsightCount={previousInsightCount}
-        />
+          stepIndex={previousDefaultStepIndex ?? 0}
+          retainInsightCardIndex={
+            previousInsightCount !== undefined && previousInsightCount >= 0
+              ? previousInsightCount - 1
+              : -1
+          }
+          displayName={`Diff for ${file.path}`}
+        >
+          <FileDiff
+            file={file}
+            groupId={groupId}
+            runId={runId}
+            repoId={repoId}
+            editable={editable}
+            isExpandable={isExpandable}
+          />
+        </AutofixHighlightWrapper>
       ))}
     </DiffsColumn>
   );
@@ -696,9 +712,10 @@ const FileDiffWrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
+  background-color: ${p => p.theme.background};
 `;
 
-const FileHeader = styled('div')`
+const FileHeader = styled('div')<{isExpandable?: boolean}>`
   position: relative;
   display: grid;
   align-items: center;
@@ -706,7 +723,7 @@ const FileHeader = styled('div')`
   gap: ${space(2)};
   background-color: ${p => p.theme.backgroundSecondary};
   padding: ${space(1)} ${space(2)};
-  cursor: pointer;
+  cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
 `;
 
 const FileAddedRemoved = styled('div')`
@@ -735,6 +752,7 @@ const DiffContainer = styled('div')`
   border-top: 1px solid ${p => p.theme.innerBorder};
   display: grid;
   grid-template-columns: auto auto 1fr;
+  overflow-x: auto;
 `;
 
 const HunkHeaderEmptySpace = styled('div')`
@@ -777,6 +795,7 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
+  overflow: visible;
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
@@ -807,7 +826,7 @@ const CodeDiff = styled('span')<{added?: boolean; removed?: boolean}>`
 const ButtonGroup = styled('div')`
   position: absolute;
   top: 0;
-  right: ${space(0.25)};
+  right: ${space(0.5)};
   display: flex;
 `;
 
@@ -830,16 +849,20 @@ const ActionButton = styled(Button)<{isHovered: boolean}>`
 const EditOverlay = styled('div')`
   position: fixed;
   bottom: ${space(2)};
+  left: 50%;
   right: ${space(2)};
-  left: calc(50% + ${space(2)});
   background: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  z-index: 1;
+  z-index: ${p => p.theme.zIndex.tooltip};
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 18rem);
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    left: ${space(2)};
+  }
 `;
 
 const OverlayHeader = styled('div')`
@@ -875,6 +898,8 @@ const RemovedLine = styled('div')`
   background-color: ${DIFF_COLORS.removedRow};
   color: ${p => p.theme.textColor};
   padding: ${space(0.25)} ${space(0.5)};
+  white-space: pre-wrap;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StyledTextArea = styled(TextArea)`

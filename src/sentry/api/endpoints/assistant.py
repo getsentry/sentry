@@ -1,4 +1,3 @@
-from copy import deepcopy
 from enum import Enum
 
 from django.db import IntegrityError
@@ -14,6 +13,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.assistant import manager
 from sentry.models.assistant import AssistantActivity
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 VALID_STATUSES = frozenset(("viewed", "dismissed", "restart"))
 
@@ -66,14 +66,15 @@ class AssistantEndpoint(Endpoint):
 
     def get(self, request: Request) -> Response:
         """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
-        guide_map = deepcopy(manager.all())
         seen_ids = set(
             AssistantActivity.objects.filter(user_id=request.user.id).values_list(
                 "guide_id", flat=True
             )
         )
 
-        return Response([{"guide": key, "seen": id in seen_ids} for key, id in guide_map.items()])
+        return Response(
+            [{"guide": key, "seen": id in seen_ids} for key, id in manager.all().items()]
+        )
 
     def put(self, request: Request):
         """Mark a guide as viewed or dismissed.
@@ -112,6 +113,7 @@ class AssistantEndpoint(Endpoint):
                     user_id=request.user.id, guide_id=guide_id, **fields
                 )
             except IntegrityError:
+                incr_rollback_metrics(AssistantActivity)
                 pass
 
         return HttpResponse(status=201)

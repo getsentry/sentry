@@ -2,8 +2,8 @@ import {type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from 
 import {Item} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
-import {getEscapedKey} from 'sentry/components/compactSelect/utils';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/filter/functionDescription';
@@ -220,7 +220,7 @@ export function SearchQueryBuilderParametersCombobox({
         onCommit();
       }
     },
-    [inputChanged, dispatch, onCommit, token]
+    [inputChanged, dispatch, token, onCommit]
   );
 
   const handleOptionSelected = useCallback(

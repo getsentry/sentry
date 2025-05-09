@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -146,6 +146,11 @@ const Wrapper = styled('div')`
   flex-direction: row;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
+
+  & button[aria-haspopup] {
+    height: 100%;
+    width: 100%;
+  }
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: grid;

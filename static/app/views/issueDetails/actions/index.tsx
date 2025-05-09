@@ -20,9 +20,9 @@ import {renderResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
   IconEllipsis,
-  IconLink,
   IconSubscribed,
   IconUnsubscribed,
+  IconUpload,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -102,16 +102,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     customCopy: {resolution: resolvedCopyCap},
     discover: discoverCap,
   } = config;
-
-  // Update the deleteCap to be enabled if the feature flag is present
-  const hasIssuePlatformDeletionUI = organization.features.includes(
-    'issue-platform-deletion-ui'
-  );
-  const updatedDeleteCap = {
-    ...deleteCap,
-    enabled: hasIssuePlatformDeletionUI || deleteCap.enabled,
-    disabledReason: hasIssuePlatformDeletionUI ? null : deleteCap.disabledReason,
-  };
 
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
@@ -469,7 +459,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         <Button
           size="sm"
           onClick={openShareModal}
-          icon={<IconLink />}
+          icon={<IconUpload />}
           aria-label={t('Share')}
           title={t('Share Issue')}
           analyticsEventKey="issue_details.share_action_clicked"
@@ -548,8 +538,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             priority: 'danger',
             label: t('Delete'),
             hidden: !hasDeleteAccess,
-            disabled: !updatedDeleteCap.enabled,
-            details: updatedDeleteCap.disabledReason,
+            disabled: !deleteCap.enabled,
+            details: deleteCap.disabledReason,
             onAction: openDeleteModal,
           },
           {

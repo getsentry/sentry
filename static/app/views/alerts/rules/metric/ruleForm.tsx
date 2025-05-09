@@ -1,4 +1,5 @@
 import type {ComponentProps, ReactNode} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -78,6 +79,7 @@ import {
   DEFAULT_CHANGE_TIME_WINDOW,
   DEFAULT_COUNT_TIME_WINDOW,
   DEFAULT_DYNAMIC_TIME_WINDOW,
+  getTimeWindowOptions,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
 import {
@@ -111,6 +113,7 @@ type Props = {
   projects: Project[];
   routes: PlainRoute[];
   rule: MetricRule;
+  theme: Theme;
   userTeamIds: string[];
   disableProjectSelector?: boolean;
   eventView?: EventView;
@@ -142,7 +145,7 @@ type State = {
   sensitivity: UnsavedMetricRule['sensitivity'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
-  triggerErrors: Map<number, {[fieldName: string]: string}>;
+  triggerErrors: Map<number, Record<string, string>>;
   triggers: Trigger[];
   chartError?: boolean;
   chartErrorMessage?: string;
@@ -882,14 +885,19 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
     let updateState = {};
+    const {timeWindow, dataset} = this.state;
+    const supportedTimeWindows = getTimeWindowOptions(dataset, value).map(
+      windows => windows.value
+    );
     switch (value) {
       case AlertRuleComparisonType.DYNAMIC:
-        this.fetchAnomalies();
         updateState = {
           comparisonType: value,
           comparisonDelta: undefined,
           thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
-          timeWindow: DEFAULT_DYNAMIC_TIME_WINDOW,
+          timeWindow: supportedTimeWindows.includes(timeWindow)
+            ? timeWindow
+            : DEFAULT_DYNAMIC_TIME_WINDOW,
           sensitivity: AlertRuleSensitivity.MEDIUM,
           seasonality: AlertRuleSeasonality.AUTO,
         };
@@ -899,7 +907,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           comparisonType: value,
           comparisonDelta: DEFAULT_CHANGE_COMP_DELTA,
           thresholdType: AlertRuleThresholdType.ABOVE,
-          timeWindow: DEFAULT_CHANGE_TIME_WINDOW,
+          timeWindow: supportedTimeWindows.includes(timeWindow)
+            ? timeWindow
+            : DEFAULT_CHANGE_TIME_WINDOW,
           sensitivity: undefined,
           seasonality: undefined,
         };
@@ -909,7 +919,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           comparisonType: value,
           comparisonDelta: undefined,
           thresholdType: AlertRuleThresholdType.ABOVE,
-          timeWindow: DEFAULT_COUNT_TIME_WINDOW,
+          timeWindow: supportedTimeWindows.includes(timeWindow)
+            ? timeWindow
+            : DEFAULT_COUNT_TIME_WINDOW,
           sensitivity: undefined,
           seasonality: undefined,
         };
@@ -917,7 +929,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       default:
         break;
     }
-    this.setState({...updateState, chartError: false, chartErrorMessage: undefined});
+    this.setState({...updateState, chartError: false, chartErrorMessage: undefined}, () =>
+      this.fetchAnomalies()
+    );
   };
 
   handleDeleteRule = async () => {
@@ -1004,7 +1018,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   async fetchAnomalies() {
     const {comparisonType, historicalData, currentData} = this.state;
-
     if (
       comparisonType !== AlertRuleComparisonType.DYNAMIC ||
       !(Array.isArray(currentData) && Array.isArray(historicalData)) ||
@@ -1033,10 +1046,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       organization_id: organization.id,
       project_id: project.id,
       config: {
-        time_period: timeWindow,
-        sensitivity,
         direction,
-        expected_seasonality: seasonality,
+        time_period: timeWindow,
+        sensitivity: sensitivity ?? AlertRuleSeasonality.AUTO,
+        expected_seasonality: seasonality ?? AlertRuleSensitivity.MEDIUM,
       },
       // remove historical data that overlaps with current dataset
       historical_data: historicalData.filter(
@@ -1127,7 +1140,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartError,
       chartErrorMessage,
       confidence,
-      isSampled,
     } = this.state;
 
     if (chartError) {
@@ -1175,7 +1187,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
       includeConfidence: alertType === 'eap_metrics',
       confidence,
-      isSampled,
+      theme: this.props.theme,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1445,7 +1457,7 @@ const AlertInfo = styled('div')`
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.formText};
+  background: ${p => p.theme.subText};
   height: ${space(1)};
   margin-right: ${space(0.5)};
 `;

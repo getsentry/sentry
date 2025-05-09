@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
@@ -15,7 +16,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import NewProviderForm from 'sentry/views/settings/featureFlags/changeTracking/newProviderForm';
 import NewSecretHandler from 'sentry/views/settings/featureFlags/changeTracking/newSecretHandler';
 
-export function OrganizationFeatureFlagsNewSecet() {
+function OrganizationFeatureFlagsNewSecet() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
   const [provider, setProvider] = useState<string>('');
   const organization = useOrganization();
@@ -66,4 +67,10 @@ export function OrganizationFeatureFlagsNewSecet() {
   );
 }
 
-export default OrganizationFeatureFlagsNewSecet;
+export default function OrganizationFeatureFlagsNewSecretRoute() {
+  return (
+    <AnalyticsArea name="feature_flag_org_settings">
+      <OrganizationFeatureFlagsNewSecet />
+    </AnalyticsArea>
+  );
+}

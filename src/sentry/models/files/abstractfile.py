@@ -19,11 +19,12 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
-from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model
+from sentry.db.models import JSONField, Model, WrappingU32IntegerField
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.abstractfileblobindex import AbstractFileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, AssembleChecksumMismatch, nooplogger
 from sentry.utils import metrics
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class ChunkedFileBlobIndexWrapper:
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_value, tb):
+    def __exit__(self, exc_type, exc_value, tb) -> None:
         self.close()
 
     def detach_tempfile(self):
@@ -58,7 +59,7 @@ class ChunkedFileBlobIndexWrapper:
         rv.seek(0)
         return rv
 
-    def _nextidx(self):
+    def _nextidx(self) -> None:
         assert not self.prefetched, "this makes no sense"
         old_file = self._curfile
         try:
@@ -76,7 +77,7 @@ class ChunkedFileBlobIndexWrapper:
     def size(self):
         return sum(i.blob.size for i in self._indexes)
 
-    def open(self):
+    def open(self) -> None:
         self.closed = False
         self.seek(0)
 
@@ -94,7 +95,7 @@ class ChunkedFileBlobIndexWrapper:
 
         mem = mmap.mmap(f.fileno(), size)
 
-        def fetch_file(offset, getfile):
+        def fetch_file(offset, getfile) -> None:
             with getfile() as sf:
                 while True:
                     chunk = sf.read(65535)
@@ -110,7 +111,7 @@ class ChunkedFileBlobIndexWrapper:
         mem.flush()
         self._curfile = f
 
-    def close(self):
+    def close(self) -> None:
         if self._curfile:
             self._curfile.close()
         self._curfile = None
@@ -220,7 +221,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     type = models.CharField(max_length=64)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
     headers: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
-    size = BoundedPositiveIntegerField(null=True)
+    size = WrappingU32IntegerField(null=True)
     checksum = models.CharField(max_length=40, null=True, db_index=True)
 
     class Meta:
@@ -262,7 +263,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         return FileObj(impl, self.name)
 
     @sentry_sdk.tracing.trace
-    def save_to(self, path):
+    def save_to(self, path) -> None:
         """Fetches the file and emplaces it at a certain location.  The
         write is done atomically to a tempfile first and then moved over.
         If the directory does not exist it is created.
@@ -356,6 +357,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
                 try:
                     self._create_blob_index(blob=blob, offset=offset)
                 except IntegrityError:
+                    incr_rollback_metrics(name="file_assemble_from_file_blob_ids")
                     # Most likely a `ForeignKeyViolation` like `SENTRY-11P5`, because
                     # the blob we want to link does not exist anymore
                     logger.exception("`FileBlob` disappeared trying to link `FileBlobIndex`")
@@ -384,7 +386,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     @sentry_sdk.tracing.trace
     def delete(self, *args, **kwargs):
         blob_ids = [blob.id for blob in self.blobs.all()]
-        super().delete(*args, **kwargs)
+        ret = super().delete(*args, **kwargs)
 
         # Wait to delete blobs. This helps prevent
         # races around frequently used blobs in debug images and release files.
@@ -394,3 +396,5 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             ),
             using=router.db_for_write(type(self)),
         )
+
+        return ret

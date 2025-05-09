@@ -1,7 +1,5 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   act,
@@ -22,22 +20,19 @@ import ProjectPerformance, {
 } from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
-  const org = OrganizationFixture({
-    features: ['performance-view', 'performance-issues-dev'],
-  });
+  const org = OrganizationFixture({features: ['performance-view']});
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock: jest.Mock;
   let postMock: jest.Mock;
   let deleteMock: jest.Mock;
 
-  const router = RouterFixture();
-  const routerProps = {
-    router,
-    location: LocationFixture(),
-    routes: router.routes,
-    route: router.routes[0]!,
-    routeParams: router.params,
+  const initialRouterConfig = {
+    routes: ['/organizations/:orgId/settings/projects/:projectId/performance/'],
+    location: {
+      pathname: `/organizations/${org.slug}/settings/projects/${project.slug}/performance/`,
+      query: {},
+    },
   };
 
   beforeEach(function () {
@@ -87,34 +82,26 @@ describe('projectPerformance', function () {
     });
   });
 
-  it('renders the fields', function () {
-    render(
-      <ProjectPerformance
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-        {...routerProps}
-      />
-    );
+  it('renders the fields', async function () {
+    render(<ProjectPerformance />, {
+      initialRouterConfig,
+    });
 
     expect(
-      screen.getByRole('textbox', {name: 'Response Time Threshold (ms)'})
+      await screen.findByRole('textbox', {name: 'Response Time Threshold (ms)'})
     ).toHaveValue('300');
 
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
   it('updates the field', async function () {
-    render(
-      <ProjectPerformance
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-        {...routerProps}
-      />
-    );
+    render(<ProjectPerformance />, {
+      initialRouterConfig,
+    });
 
-    const input = screen.getByRole('textbox', {name: 'Response Time Threshold (ms)'});
+    const input = await screen.findByRole('textbox', {
+      name: 'Response Time Threshold (ms)',
+    });
 
     await userEvent.clear(input);
     await userEvent.type(input, '400');
@@ -131,16 +118,11 @@ describe('projectPerformance', function () {
   });
 
   it('clears the data', async function () {
-    render(
-      <ProjectPerformance
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-        {...routerProps}
-      />
-    );
+    render(<ProjectPerformance />, {
+      initialRouterConfig,
+    });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Reset All'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Reset All'}));
     expect(deleteMock).toHaveBeenCalled();
   });
 
@@ -157,15 +139,11 @@ describe('projectPerformance', function () {
       method: 'PUT',
     });
 
-    render(
-      <ProjectPerformance
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-        {...routerProps}
-      />,
-      {organization: org}
-    );
+    render(<ProjectPerformance />, {
+      organization: org,
+
+      initialRouterConfig,
+    });
 
     expect(
       await screen.findByText('N+1 DB Queries Detection Enabled')
@@ -310,15 +288,11 @@ describe('projectPerformance', function () {
         method: 'PUT',
       });
 
-      render(
-        <ProjectPerformance
-          params={{projectId: project.slug}}
-          organization={org}
-          project={project}
-          {...routerProps}
-        />,
-        {organization: org}
-      );
+      render(<ProjectPerformance />, {
+        organization: org,
+
+        initialRouterConfig,
+      });
 
       expect(
         await screen.findByText('Performance Issues - Detector Threshold Settings')
@@ -379,15 +353,11 @@ describe('projectPerformance', function () {
       method: 'DELETE',
     });
 
-    render(
-      <ProjectPerformance
-        params={{projectId: project.slug}}
-        organization={org}
-        project={project}
-        {...routerProps}
-      />,
-      {organization: org}
-    );
+    render(<ProjectPerformance />, {
+      organization: org,
+
+      initialRouterConfig,
+    });
 
     const button = await screen.findByText('Reset All Thresholds');
     expect(button).toBeInTheDocument();

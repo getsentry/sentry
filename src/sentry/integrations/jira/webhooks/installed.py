@@ -1,4 +1,5 @@
 import sentry_sdk
+from django.db import router, transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -75,6 +76,9 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
             # Sync integration metadata from Jira. This must be executed *after*
             # the integration has been installed on Jira as the access tokens will
             # not work until then.
-            sync_metadata.apply_async(kwargs={"integration_id": integration.id}, countdown=10)
+            transaction.on_commit(
+                lambda: sync_metadata.delay(integration_id=integration.id),
+                using=router.db_for_write(integration.__class__),
+            )
 
             return self.respond()

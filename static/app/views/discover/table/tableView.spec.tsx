@@ -59,7 +59,10 @@ describe('TableView > CellActions', function () {
         title=""
         queryDataset={SavedQueryDatasets.TRANSACTIONS}
       />,
-      {router: context.router}
+      {
+        router: context.router,
+        deprecatedRouterMocks: true,
+      }
     );
   }
 
@@ -325,7 +328,7 @@ describe('TableView > CellActions', function () {
       'href',
       expect.stringMatching(
         new RegExp(
-          '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
+          '/organizations/org-slug/insights/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
         )
       )
     );
@@ -462,7 +465,10 @@ describe('TableView > CellActions', function () {
         measurementKeys={null}
         showTags={false}
         title=""
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
     expect(screen.getByText('222.3 KiB')).toBeInTheDocument();
     expect(screen.getByText('444.3 KB')).toBeInTheDocument();
@@ -504,7 +510,10 @@ describe('TableView > CellActions', function () {
         showTags={false}
         title=""
       />,
-      {router: initialData.router}
+      {
+        router: initialData.router,
+        deprecatedRouterMocks: true,
+      }
     );
     await userEvent.hover(screen.getByText('444.3 KB'));
     const buttons = screen.getAllByRole('button');

@@ -1,3 +1,4 @@
+import * as qs from 'query-string';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {EventFixture} from 'sentry-fixture/event';
@@ -19,12 +20,18 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types/group';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
+}));
+
+jest.mock('sentry/views/issueDetails/utils', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/utils'),
+  useHasStreamlinedUI: jest.fn(),
 }));
 
 describe('groupDetails', () => {
@@ -46,9 +53,7 @@ describe('groupDetails', () => {
   const initRouter = {
     location: {
       pathname: `/organizations/org-slug/issues/${group.id}/`,
-      query: {},
-      search: '?foo=bar',
-      hash: '#hash',
+      query: {project: group.project.id},
     },
     params: {
       groupId: group.id,
@@ -84,16 +89,23 @@ describe('groupDetails', () => {
   }
 
   const createWrapper = (init = defaultInit) => {
+    // Add project id to the url to skip over the _allp redirect
+    window.location.search = qs.stringify({project: group.project.id});
     return render(
       <GroupDetails {...init.routerProps}>
         <MockComponent />
       </GroupDetails>,
-      {organization: init.organization, router: init.router}
+      {
+        organization: init.organization,
+        router: init.router,
+        deprecatedRouterMocks: true,
+      }
     );
   };
 
   beforeEach(() => {
     mockNavigate = jest.fn();
+    jest.mocked(useHasStreamlinedUI).mockReturnValue(false);
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(defaultInit.organization);
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
@@ -163,6 +175,7 @@ describe('groupDetails', () => {
     GroupStore.reset();
     PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   it('renders', async function () {
@@ -229,7 +242,7 @@ describe('groupDetails', () => {
         ...initRouter,
         location: LocationFixture({
           ...initRouter.location,
-          query: {environment: 'staging'},
+          query: {environment: 'staging', project: group.project.id},
         }),
       },
     });
@@ -352,6 +365,7 @@ describe('groupDetails', () => {
   });
 
   it('does not refire for request with streamlined UI', async function () {
+    jest.mocked(useHasStreamlinedUI).mockReturnValue(true);
     // Bunch of mocks to load streamlined UI
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
@@ -390,8 +404,7 @@ describe('groupDetails', () => {
       url: `/organizations/${defaultInit.organization.slug}/sentry-app-components/`,
       body: [],
     });
-
-    const recommendedWithSearchMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       query: {
         query: 'foo:bar',
@@ -402,22 +415,10 @@ describe('groupDetails', () => {
         detail: 'No matching event',
       },
     });
-
-    createWrapper({
-      ...defaultInit,
-      router: {
-        ...defaultInit.router,
-        location: LocationFixture({
-          query: {
-            query: 'foo:bar',
-            streamline: '1',
-          },
-        }),
-      },
-    });
-
-    await waitFor(() => expect(recommendedWithSearchMock).toHaveBeenCalledTimes(1));
-
+    createWrapper();
+    expect(
+      await screen.findByText("We couldn't track down an event")
+    ).toBeInTheDocument();
     await waitFor(() => expect(mockNavigate).not.toHaveBeenCalled());
   });
 

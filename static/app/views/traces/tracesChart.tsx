@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -18,6 +18,7 @@ import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 import {areQueriesEmpty} from './utils';
 
 export function TracesChart() {
+  const theme = useTheme();
   const location = useLocation();
 
   const queries = useMemo(() => {
@@ -85,14 +86,16 @@ export function TracesChart() {
       if (!enabled[i] || error) {
         continue;
       }
+      const colors = theme.chart.getColorPalette(series.length);
       const data = series[i]!['count()'];
-      data.color = CHART_PALETTE[2][i];
+      data.color = colors[i];
       data.seriesName = `span ${i + 1}: ${queries[i] || t('All spans')}`;
       allData.push(data);
     }
 
     return allData;
   }, [
+    theme,
     enabled,
     queries,
     error,
@@ -117,7 +120,7 @@ export function TracesChart() {
           data={chartData}
           error={error}
           loading={seriesAreLoading}
-          chartColors={CHART_PALETTE[2]}
+          chartColors={theme.chart.getColorPalette(2)}
           type={ChartType.LINE}
           aggregateOutputFormat="number"
           showLegend
@@ -150,7 +153,6 @@ const useTraceCountSeries = ({
       search: new MutableSearch(query ?? ''),
       yAxis: ['count()'],
       interval: getInterval(pageFilters.selection.datetime, 'metrics'),
-      overriddenRoute: 'traces-stats',
       enabled,
     },
     'api.trace-explorer.stats'

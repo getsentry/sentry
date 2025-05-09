@@ -7,7 +7,6 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -148,6 +147,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       // Should have 5 roles
@@ -180,6 +180,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       // Remove our one team
@@ -207,6 +208,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
@@ -221,6 +223,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       // Should have one team enabled
@@ -261,6 +264,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(await screen.findByText('Add Team'));
@@ -309,6 +313,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       // Should have 4 roles
@@ -356,6 +361,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByTestId('member-status')).toHaveTextContent(
@@ -372,6 +378,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByTestId('member-status')).toHaveTextContent(
@@ -416,6 +423,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -432,6 +440,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       await screen.findAllByRole('radio');
@@ -546,6 +555,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -565,6 +575,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
       await expectButtonDisabled('You do not have permission to perform this action');
     });
@@ -578,6 +589,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
       await expectButtonDisabled('Not enrolled in two-factor authentication');
     });
@@ -598,6 +610,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
       renderGlobalModal();
 
@@ -622,6 +635,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
       await expectButtonDisabled(
         'Cannot be reset since user is in more than one organization'
@@ -642,6 +656,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
       await expectButtonDisabled(
         'Cannot be reset since two-factor is required for this organization'
@@ -704,6 +719,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       // Role info box is hidden
@@ -731,10 +747,10 @@ describe('OrganizationMemberDetail', function () {
           organization,
           router: {params: {memberId: testMember.id}},
         });
-        cleanup();
-        render(<OrganizationMemberDetail />, {
+        const {unmount} = render(<OrganizationMemberDetail />, {
           router,
           organization,
+          deprecatedRouterMocks: true,
         });
 
         // Role info box is showed
@@ -750,6 +766,7 @@ describe('OrganizationMemberDetail', function () {
         // Dropdown cannot be opened
         await selectEvent.openMenu(teamRoleSelect);
         expect(screen.queryAllByText('...')).toHaveLength(0);
+        unmount();
       }
 
       for (const role of [admin, manager, owner]) {
@@ -766,6 +783,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       // Dropdown has correct value set

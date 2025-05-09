@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -6,7 +7,6 @@ import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import Truncate from 'sentry/components/truncate';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {
   axisLabelFormatter,
@@ -23,33 +23,32 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
-import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {
-  createUnnamedTransactionsDiscoverTarget,
-  UNPARAMETERIZED_TRANSACTION,
-} from 'sentry/views/performance/utils';
-
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import {
   GrowLink,
   RightAlignedCell,
   Subtitle,
   WidgetEmptyStateWarning,
-} from '../components/selectableList';
-import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import {transformEventsRequestToStackedArea} from '../transforms/transformEventsToStackedBars';
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import {transformEventsRequestToStackedArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToStackedBars';
 import type {
   GenericPerformanceWidgetProps,
   PerformanceWidgetProps,
   QueryDefinition,
   WidgetDataResult,
-} from '../types';
+} from 'sentry/views/performance/landing/widgets/types';
 import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,
   QUERY_LIMIT_PARAM,
-} from '../utils';
+} from 'sentry/views/performance/landing/widgets/utils';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  createUnnamedTransactionsDiscoverTarget,
+  UNPARAMETERIZED_TRANSACTION,
+} from 'sentry/views/performance/utils';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
@@ -61,13 +60,14 @@ type ComponentData = React.ComponentProps<
 >;
 
 export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
+  const theme = useTheme();
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
   const {setPageError} = usePageAlert();
 
-  const colors = [...getChartColorPalette(5)].reverse();
+  const colors = [...theme.chart.getColorPalette(5)].reverse();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -154,6 +154,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...pick(prunedProvided, eventsRequestQueryProps)}
+              includeAllArgs={false}
               limit={5}
               includePrevious={false}
               includeTransformedData

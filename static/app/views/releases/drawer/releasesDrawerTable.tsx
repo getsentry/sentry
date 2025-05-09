@@ -1,20 +1,22 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
+import useQueryBasedSorting from 'sentry/components/gridEditable/useQueryBasedSorting';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
-import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -23,6 +25,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {
+  cleanReleaseCursors,
+  ReleasesDrawerFields,
+} from 'sentry/views/releases/drawer/utils';
 import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
 
 type ReleaseHealthItem = {
@@ -33,19 +39,18 @@ type ReleaseHealthItem = {
   release: string;
 };
 
-interface Props {
-  end: string;
-  onSelectRelease: (release: string, projectId: string) => void;
-  start: string;
+interface Props extends PageFilters {
+  onMouseOutRelease: (release: string) => void;
+  onMouseOverRelease: (release: string) => void;
 }
 
 type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error_count'>;
 type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
-  {key: 'release', name: 'release', width: 400},
-  {key: 'error_count', name: 'new issues'},
-  {key: 'date', name: 'created'},
+  {key: 'release', name: 'release', width: 320},
+  {key: 'error_count', name: 'new issues', width: 110},
+  {key: 'date', name: 'created', width: 200},
 ];
 
 /**
@@ -54,7 +59,14 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
  * can't re-use because this will eventually be a bit different,
  * especially with the in-drawer navigation.
  */
-export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
+export function ReleaseDrawerTable({
+  datetime,
+  environments,
+  projects,
+  onMouseOverRelease,
+  onMouseOutRelease,
+}: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -63,16 +75,10 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
-          ...Object.fromEntries(
-            Object.entries(location.query).filter(([key]) =>
-              ['project', 'environment'].includes(key)
-            )
-          ),
-          cursor: location.query.releaseCursor,
-          ...normalizeDateTimeParams({
-            start,
-            end,
-          }),
+          project: projects,
+          environment: environments,
+          cursor: location.query[ReleasesDrawerFields.LIST_CURSOR],
+          ...normalizeDateTimeParams(datetime),
           per_page: 15,
         },
       },
@@ -122,10 +128,18 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
         // Custom release renderer -- we want to keep navigation within drawer
         return (
           <ReleaseLink
-            to="#"
-            onClick={e => {
-              e.preventDefault();
-              onSelectRelease(String(value), String(dataRow.project_id));
+            onMouseOver={() => {
+              onMouseOverRelease(dataRow.release);
+            }}
+            onMouseOut={() => {
+              onMouseOutRelease(dataRow.release);
+            }}
+            to={{
+              query: {
+                ...cleanReleaseCursors(location.query),
+                [ReleasesDrawerFields.RELEASE]: value,
+                [ReleasesDrawerFields.RELEASE_PROJECT_ID]: dataRow.project_id,
+              },
             }}
           >
             <ProjectBadge project={dataRow.project} disableLink hideName />
@@ -135,7 +149,8 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
       }
 
       if (column.key === 'error_count') {
-        return (
+        const value = dataRow[column.key];
+        return value > 0 ? (
           <Tooltip title={t('Open in Issues')} position="auto-start">
             <GlobalSelectionLink
               to={getReleaseNewIssuesUrl(
@@ -144,9 +159,11 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
                 dataRow.release
               )}
             >
-              <Count value={dataRow[column.key]} />
+              <Count value={value} />
             </GlobalSelectionLink>
           </Tooltip>
+        ) : (
+          <Count value={value} />
         );
       }
       if (!meta?.fields) {
@@ -161,11 +178,12 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
             location,
             organization,
             unit: meta.units[column.key],
+            theme,
           })}
         </CellWrapper>
       );
     },
-    [organization, location, onSelectRelease]
+    [organization, location, onMouseOutRelease, onMouseOverRelease, theme]
   );
 
   const tableEmptyMessage = (
@@ -195,7 +213,7 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
         onCursor={(cursor, path, searchQuery) => {
           navigate({
             pathname: path,
-            query: {...searchQuery, releaseCursor: cursor},
+            query: {...searchQuery, [ReleasesDrawerFields.LIST_CURSOR]: cursor},
           });
         }}
       />

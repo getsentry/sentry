@@ -6,12 +6,17 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {PageFilters} from 'sentry/types/core';
-import type {
-  DashboardDetails,
-  DashboardListItem,
-  Widget,
+import {defined} from 'sentry/utils';
+import {TOP_N} from 'sentry/utils/discover/types';
+import type {QueryClient} from 'sentry/utils/queryClient';
+import {
+  type DashboardDetails,
+  type DashboardListItem,
+  DisplayType,
+  type Widget,
 } from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
+import {getResultsLimit} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 export function fetchDashboards(api: Client, orgSlug: string) {
   const promise: Promise<DashboardListItem[]> = api.requestPromise(
@@ -51,7 +56,7 @@ export function createDashboard(
       method: 'POST',
       data: {
         title,
-        widgets: widgets.map(widget => omit(widget, ['tempId'])),
+        widgets: widgets.map(widget => omit(widget, ['tempId'])).map(_enforceWidgetLimit),
         duplicate,
         projects,
         environment,
@@ -99,6 +104,7 @@ export function updateDashboardVisit(
 
 export async function updateDashboardFavorite(
   api: Client,
+  queryClient: QueryClient,
   orgId: string,
   dashboardId: string | string[],
   isFavorited: boolean
@@ -113,6 +119,12 @@ export async function updateDashboardFavorite(
         },
       }
     );
+    queryClient.invalidateQueries({
+      queryKey: [
+        `/organizations/${orgId}/dashboards/`,
+        {query: {filter: 'onlyFavorites'}},
+      ],
+    });
     addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
   } catch (response) {
     const errorResponse = response?.responseJSON ?? null;
@@ -162,7 +174,7 @@ export function updateDashboard(
     dashboard;
   const data = {
     title,
-    widgets: widgets.map(widget => omit(widget, ['tempId'])),
+    widgets: widgets.map(widget => omit(widget, ['tempId'])).map(_enforceWidgetLimit),
     projects,
     environment,
     period,
@@ -288,4 +300,37 @@ export function validateWidget(
   const widgetQuery = validateWidgetRequest(orgId, widget, selection);
   const promise: Promise<undefined> = api.requestPromise(widgetQuery[0], widgetQuery[1]);
   return promise;
+}
+
+/**
+ * Enforces a limit on the widget if it is a chart and has a grouping
+ *
+ * This ensures that widgets from previously created dashboards will have
+ * a limit applied properly when editing old dashboards that did not have
+ * this validation in place.
+ */
+function _enforceWidgetLimit(widget: Widget) {
+  if (
+    widget.displayType === DisplayType.TABLE ||
+    widget.displayType === DisplayType.BIG_NUMBER
+  ) {
+    return widget;
+  }
+
+  const hasColumns = widget.queries.some(query => query.columns.length > 0);
+  if (hasColumns && !defined(widget.limit)) {
+    // The default we historically assign for charts with a grouping is 5,
+    // continue using that default unless there are conditions which make 5
+    // too large to automatically apply.
+    const maxLimit = getResultsLimit(
+      widget.queries.length,
+      widget.queries[0]!.aggregates.length
+    );
+    return {
+      ...widget,
+      limit: Math.min(maxLimit, TOP_N),
+    };
+  }
+
+  return widget;
 }

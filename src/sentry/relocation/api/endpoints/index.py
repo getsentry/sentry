@@ -287,7 +287,7 @@ class RelocationIndexEndpoint(Endpoint):
         relocation_link_promo_code.send_robust(
             relocation_uuid=relocation.uuid, promo_code=promo_code, sender=self.__class__
         )
-        uploading_start.apply_async(args=[relocation.uuid, None, None])
+        uploading_start.apply_async(args=[str(relocation.uuid), None, None])
         try:
             analytics.record(
                 "relocation.created",

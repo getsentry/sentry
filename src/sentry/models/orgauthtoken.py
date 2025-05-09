@@ -73,7 +73,7 @@ class OrgAuthToken(ReplicatedControlModel):
     def get_audit_log_data(self):
         return {"name": self.name, "scopes": self.get_scopes()}
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> list[str]:
         return []
 
     def get_scopes(self):

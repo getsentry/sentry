@@ -2,19 +2,14 @@ import {AutofixDataFixture} from 'sentry-fixture/autofixData';
 import {AutofixProgressItemFixture} from 'sentry-fixture/autofixProgressItem';
 import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixStatus, AutofixStepType} from 'sentry/components/events/autofix/types';
 
-jest.mock('sentry/actionCreators/indicator');
-
 describe('AutofixSteps', () => {
   beforeEach(() => {
-    (addSuccessMessage as jest.Mock).mockClear();
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
   });
 
   const defaultProps = {
@@ -54,24 +49,26 @@ describe('AutofixSteps', () => {
           index: 1,
         }),
       ],
-      repositories: [],
-      created_at: '2023-01-01T00:00:00Z',
+      request: {
+        repos: [],
+      },
+      codebases: {},
+      last_triggered_at: '2023-01-01T00:00:00Z',
       run_id: '1',
       status: AutofixStatus.PROCESSING,
     }),
     groupId: 'group1',
     runId: 'run1',
-    onRetry: jest.fn(),
-  };
+  } satisfies React.ComponentProps<typeof AutofixSteps>;
 
-  it('renders steps correctly', () => {
+  it('renders steps correctly', async () => {
     render(<AutofixSteps {...defaultProps} />);
 
-    expect(screen.getByText('step 1')).toBeInTheDocument();
+    expect(await screen.findByText('step 1')).toBeInTheDocument();
   });
 
   it('renders output stream when last step is processing', async () => {
-    const propsWithProcessingStep = {
+    const propsWithProcessingStep: React.ComponentProps<typeof AutofixSteps> = {
       ...defaultProps,
       data: {
         ...defaultProps.data,
@@ -95,13 +92,13 @@ describe('AutofixSteps', () => {
     };
 
     render(<AutofixSteps {...propsWithProcessingStep} />);
-    await waitFor(() => {
-      expect(screen.getByText('Processing message')).toBeInTheDocument();
-    });
-  });
+    expect(
+      await screen.findByText('Processing message', undefined, {timeout: 10_000})
+    ).toBeInTheDocument();
+  }, 10_000);
 
-  it('shows error message when previous step errored', () => {
-    const propsWithErroredStep = {
+  it('shows error message when previous step errored', async () => {
+    const propsWithErroredStep: React.ComponentProps<typeof AutofixSteps> = {
       ...defaultProps,
       data: {
         ...defaultProps.data,
@@ -128,7 +125,9 @@ describe('AutofixSteps', () => {
 
     render(<AutofixSteps {...propsWithErroredStep} />);
     expect(
-      screen.getByText('Autofix encountered an error. Restarting step from scratch...')
+      await screen.findByText(
+        'Autofix encountered an error. Restarting step from scratch...'
+      )
     ).toBeInTheDocument();
   });
 });

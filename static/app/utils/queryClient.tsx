@@ -19,6 +19,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   defaultOptions: {
     queries: {
+      refetchOnReconnect: false,
       refetchOnWindowFocus: false,
     },
   },
@@ -276,13 +277,22 @@ export function useInfiniteApiQuery<TResponseData>({
 }
 
 type ApiMutationVariables<
-  Headers = Record<string, string>,
-  Query = Record<string, any>,
-  Data = Record<string, unknown>,
+  Headers extends Record<string, unknown> = Record<string, string>,
+  Query extends Record<string, unknown> = Record<string, any>,
+  Data extends Record<string, unknown> = Record<string, unknown>,
 > =
   | ['PUT' | 'POST' | 'DELETE', string]
-  | ['PUT' | 'POST' | 'DELETE', string, QueryKeyEndpointOptions<Headers, Query>]
-  | ['PUT' | 'POST' | 'DELETE', string, QueryKeyEndpointOptions<Headers, Query>, Data];
+  | [
+      'PUT' | 'POST' | 'DELETE',
+      string,
+      Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers'>,
+    ]
+  | [
+      'PUT' | 'POST' | 'DELETE',
+      string,
+      Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers'>,
+      Data,
+    ];
 
 /**
  * This method can be used as a default `mutationFn` with `useMutation` hook.

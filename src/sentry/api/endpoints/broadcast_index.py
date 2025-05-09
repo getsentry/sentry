@@ -20,6 +20,7 @@ from sentry.models.broadcast import Broadcast, BroadcastSeen
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.search.utils import tokenize_query
 from sentry.users.models.user import User
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger("sentry")
 
@@ -161,6 +162,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                     with transaction.atomic(using=router.db_for_write(BroadcastSeen)):
                         BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
                 except IntegrityError:
+                    incr_rollback_metrics(BroadcastSeen)
                     pass
 
         return self.respond(result)
@@ -200,6 +202,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                 with transaction.atomic(using=router.db_for_write(BroadcastSeen)):
                     BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
             except IntegrityError:
+                incr_rollback_metrics(BroadcastSeen)
                 pass
 
         return self.respond(self._serialize_objects(broadcast, request))

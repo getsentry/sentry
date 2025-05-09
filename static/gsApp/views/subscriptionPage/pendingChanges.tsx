@@ -11,10 +11,10 @@ import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import {type PendingOnDemandBudgets, PlanTier, type Subscription} from 'getsentry/types';
+import type {PendingOnDemandBudgets, Subscription} from 'getsentry/types';
 import {
+  displayBudgetName,
   formatReservedWithUnits,
-  getAmPlanTier,
   hasPerformance,
   isAm3DsPlan,
 } from 'getsentry/utils/billing';
@@ -77,23 +77,22 @@ class PendingChanges extends Component<Props> {
       if (nextOnDemandBudgets) {
         const pendingOnDemandBudgets = parseOnDemandBudgets(nextOnDemandBudgets);
         const currentOnDemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
-        const planTier = getAmPlanTier(pendingChanges.plan);
 
         if (!isOnDemandBudgetsEqual(pendingOnDemandBudgets, currentOnDemandBudgets)) {
           results.push(
             tct(
               '[budgetType] budget change from [currentOnDemandBudgets] to [nextOnDemandBudgets]',
               {
-                budgetType: planTier === PlanTier.AM3 ? 'Pay-as-you-go' : 'On-demand',
+                budgetType: displayBudgetName(pendingChanges.planDetails, {
+                  title: true,
+                }),
                 currentOnDemandBudgets: formatOnDemandBudget(
                   subscription.planDetails,
-                  subscription.planTier,
                   currentOnDemandBudgets,
                   subscription.planDetails.onDemandCategories
                 ),
                 nextOnDemandBudgets: formatOnDemandBudget(
-                  subscription.planDetails,
-                  planTier?.toString() || subscription.planTier,
+                  pendingChanges.planDetails,
                   nextOnDemandBudgets,
                   pendingChanges.planDetails.onDemandCategories
                 ),
@@ -109,8 +108,7 @@ class PendingChanges extends Component<Props> {
         this.getNestedValue<number>(subscription, 'onDemandMaxSpend') ?? 0;
       results.push(
         tct('[budgetType] spend change from [currentAmount] to [newAmount]', {
-          budgetType:
-            subscription.planTier === PlanTier.AM3 ? 'Pay-as-you-go' : 'On-demand',
+          budgetType: displayBudgetName(subscription.planDetails, {title: true}),
           newAmount: formatCurrency(nextOnDemandMaxSpend),
           currentAmount: formatCurrency(currentOnDemandMaxSpend),
         })
@@ -184,21 +182,21 @@ class PendingChanges extends Component<Props> {
     Object.values(DATA_CATEGORY_INFO)
       .filter(categoryInfo => categoryInfo.isBilledCategory)
       .forEach(categoryInfo => {
-        const plural = categoryInfo.plural;
+        const category = categoryInfo.plural as DataCategory;
         if (
-          this.hasChange(`reserved.${plural}`, `categories.${plural}.reserved`) &&
-          pendingChanges.reserved[plural] !== RESERVED_BUDGET_QUOTA
+          this.hasChange(`reserved.${category}`, `categories.${category}.reserved`) &&
+          pendingChanges.reserved[category] !== RESERVED_BUDGET_QUOTA
         ) {
           results.push(
             tct('Reserved [displayName] change to [quantity]', {
               displayName: getPlanCategoryName({
                 plan: pendingChanges.planDetails,
-                category: plural,
+                category,
                 capitalize: false,
               }),
               quantity: formatReservedWithUnits(
-                pendingChanges.reserved[plural] ?? null,
-                plural
+                pendingChanges.reserved[category] ?? null,
+                category
               ),
             })
           );
@@ -271,7 +269,7 @@ class PendingChanges extends Component<Props> {
 
     if (this.hasReservedBudgetChange()) {
       const reservedBudgetChanges = pendingChanges.reservedBudgets.map(budget => {
-        const budgetCategories = Object.keys(budget.categories);
+        const budgetCategories = Object.keys(budget.categories) as DataCategory[];
         const isSpansBudget =
           budgetCategories.length === 2 &&
           budgetCategories.includes(DataCategory.SPANS) &&
@@ -303,9 +301,7 @@ class PendingChanges extends Component<Props> {
     const {subscription} = this.props;
     const {pendingChanges} = subscription;
 
-    const results: {
-      [key: string]: React.ReactNode[];
-    } = {};
+    const results: Record<string, React.ReactNode[]> = {};
 
     if (!pendingChanges) {
       return results;

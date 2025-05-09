@@ -10,7 +10,6 @@ from django.test import override_settings
 from django.urls import get_resolver
 
 from sentry import options
-from sentry.app import env
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
@@ -61,13 +60,6 @@ def make_user_request_from_org_with_auth_identities(org=None):
 @request_factory
 def none_request() -> None:
     return None
-
-
-@pytest.fixture(autouse=True)
-def clear_env_request():
-    env.clear()
-    yield
-    env.clear()
 
 
 multiregion_client_config_test = control_silo_test(

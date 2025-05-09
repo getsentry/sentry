@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
@@ -29,6 +30,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
@@ -59,6 +61,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
 @region_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -234,6 +237,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                         relationship=GroupLink.Relationship.references,
                     )
             except IntegrityError as exc:
+                incr_rollback_metrics(GroupLink)
                 lifecycle.record_halt(exc)
                 return Response({"non_field_errors": ["That issue is already linked"]}, status=400)
 
@@ -316,6 +320,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                     relationship=GroupLink.Relationship.references,
                 )
         except IntegrityError:
+            incr_rollback_metrics(GroupLink)
             return Response({"detail": "That issue is already linked"}, status=400)
 
         if created:

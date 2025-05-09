@@ -14,7 +14,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {
   getApiQueryData,
   setApiQueryData,
@@ -30,7 +30,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 const PAGE_TITLE = t('User Auth Tokens');
 const API_TOKEN_QUERY_KEY = ['/api-tokens/'] as const;
 
-export function ApiTokens() {
+function ApiTokens() {
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -41,7 +41,7 @@ export function ApiTokens() {
     refetch,
   } = useApiQuery<InternalAppApiToken[]>(API_TOKEN_QUERY_KEY, {
     staleTime: 0,
-    enabled: !isDemoModeEnabled(),
+    enabled: !isDemoModeActive(),
   });
 
   const {mutate: deleteToken} = useMutation({

@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
 import {Flex} from 'sentry/components/container/flex';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -20,18 +20,18 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/streamline/useIssueTimeWindowConfig';
-import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
-import {MonitorIndicator} from 'sentry/views/monitors/components/monitorIndicator';
-import {CheckInStatus, type MonitorBucket} from 'sentry/views/monitors/types';
+import {MonitorIndicator} from 'sentry/views/insights/crons/components/monitorIndicator';
+import {CheckInStatus, type MonitorBucket} from 'sentry/views/insights/crons/types';
 import {
   checkInStatusPrecedent,
   statusToText,
   tickStyle,
-} from 'sentry/views/monitors/utils';
-import {selectCheckInData} from 'sentry/views/monitors/utils/selectCheckInData';
-import {useMonitorStats} from 'sentry/views/monitors/utils/useMonitorStats';
+} from 'sentry/views/insights/crons/utils';
+import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
+import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/streamline/useIssueTimeWindowConfig';
+import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
 
 export function useCronIssueAlertId({groupId}: {groupId: string}): string | undefined {
   /**

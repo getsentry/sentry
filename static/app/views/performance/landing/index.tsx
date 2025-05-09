@@ -3,8 +3,8 @@ import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -39,10 +39,12 @@ import {useTeams} from 'sentry/utils/useTeams';
 import {BACKEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_SIDEBAR_LABEL} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_SIDEBAR_LABEL} from 'sentry/views/insights/pages/mobile/settings';
-
-import {LegacyOnboarding} from '../onboarding';
-import {MetricsEventsDropdown} from '../transactionSummary/transactionOverview/metricEvents/metricsEventsDropdown';
-import {getPerformanceBaseUrl, getTransactionSearchQuery} from '../utils';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
+import {MetricsEventsDropdown} from 'sentry/views/performance/transactionSummary/transactionOverview/metricEvents/metricsEventsDropdown';
+import {
+  getPerformanceBaseUrl,
+  getTransactionSearchQuery,
+} from 'sentry/views/performance/utils';
 
 import {AllTransactionsView} from './views/allTransactionsView';
 import {BackendView} from './views/backendView';

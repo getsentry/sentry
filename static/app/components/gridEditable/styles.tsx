@@ -1,12 +1,13 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {space} from 'sentry/styles/space';
 
-export const GRID_HEAD_ROW_HEIGHT = 45;
+const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 42;
-export const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
+const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
 
 /**
  * Local z-index stacking context
@@ -82,16 +83,16 @@ export const Grid = styled('table')<{height?: string | number; scrollable?: bool
   z-index: ${Z_INDEX_GRID};
   ${p =>
     p.scrollable &&
-    `
-    overflow-x: auto;
-    overflow-y: scroll;
+    css`
+      overflow-x: auto;
+      overflow-y: scroll;
     `}
   ${p =>
     p.height
-      ? `
-      height: 100%;
-      max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height}
-      `
+      ? css`
+          height: 100%;
+          max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
+        `
       : ''}
 `;
 

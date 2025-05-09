@@ -1804,7 +1804,7 @@ class MetricsDatasetConfig(DatasetConfig):
             if (isinstance(term, SearchFilter) and term.key.name == "browser.name")
             or (
                 isinstance(term, ParenExpression)
-                and all(  # type: ignore[unreachable]
+                and all(
                     (isinstance(child_term, SearchFilter) and child_term.key.name == "browser.name")
                     or child_term == "OR"
                     for child_term in term.children

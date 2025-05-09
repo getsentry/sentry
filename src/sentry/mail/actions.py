@@ -40,7 +40,6 @@ class NotifyEmailAction(EventAction):
             "group_id": group.id,
             "notification_uuid": notification_uuid,
         }
-        group = event.group
 
         target_type = ActionTargetType(self.data["targetType"])
         target_identifier = self.data.get("targetIdentifier", None)
@@ -59,7 +58,14 @@ class NotifyEmailAction(EventAction):
             self.logger.info("rule.fail.should_notify", extra=extra)
             return
 
-        metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
+        metrics.incr(
+            "notifications.sent",
+            instance=self.metrics_slug,
+            tags={
+                "issue_type": group.issue_type.slug,
+            },
+            skip_internal=False,
+        )
         yield self.future(
             lambda event, futures: mail_adapter.rule_notify(
                 event,

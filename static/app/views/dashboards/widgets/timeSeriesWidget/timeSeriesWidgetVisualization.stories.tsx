@@ -1,9 +1,12 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import shuffle from 'lodash/shuffle';
 import moment from 'moment-timezone';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Button} from 'sentry/components/core/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -11,31 +14,52 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import type {
+  LegendSelection,
+  Release,
+  TimeSeries,
+  TimeSeriesMeta,
+} from 'sentry/views/dashboards/widgets/common/types';
 
-import type {LegendSelection, Release, TimeSeries} from '../common/types';
-
+import {shiftTabularDataToNow} from './__stories__/shiftTabularDataToNow';
+import {shiftTimeSeriesToNow} from './__stories__/shiftTimeSeriesToNow';
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
+import {sampleScoreTimeSeries} from './fixtures/sampleScoreTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
+import {spanSamplesWithDurations} from './fixtures/spanSamplesWithDurations';
 import {Area} from './plottables/area';
 import {Bars} from './plottables/bars';
 import {Line} from './plottables/line';
+import {Samples} from './plottables/samples';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
-const sampleDurationTimeSeries2 = {
+const sampleDurationTimeSeriesP50: TimeSeries = {
   ...sampleDurationTimeSeries,
-  field: 'p50(span.duration)',
-  data: sampleDurationTimeSeries.data.map(datum => {
+  yAxis: 'p50(span.duration)',
+  values: sampleDurationTimeSeries.values.map(datum => {
     return {
       ...datum,
-      value: datum.value * 0.3 + 30 * Math.random(),
+      value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null,
     };
   }),
 };
+
+const sampleDurationTimeSeriesP75: TimeSeries = {
+  ...sampleDurationTimeSeries,
+  yAxis: 'p75(span.duration)',
+  values: sampleDurationTimeSeries.values.map(datum => {
+    return {
+      ...datum,
+      value: datum.value ? datum.value * 0.1 + 30 * Math.random() : null,
+    };
+  }),
+};
+
+const shiftedSpanSamples = shiftTabularDataToNow(spanSamplesWithDurations);
 
 export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
   APIReference(types.TimeSeriesWidgetVisualization);
@@ -46,25 +70,26 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <p>
           <JSXNode name="TimeSeriesWidgetVisualization" /> is a feature-full time series
           chart, designed to plot data returned from <code>/events-stats/</code> endpoints
-          in Explore, Dashboards, and other similar UIs.
+          in Explore, Dashboards, and other similar UIs. It includes features like:
         </p>
+
+        <ul>
+          <li>automatically scaling mis-matched units</li>
+          <li>visually deemphasizing incomplete ingestion buckets</li>
+          <li>plotting lines, area, and bars on the same visualization</li>
+          <li>
+            skipping <code>null</code> values while plotting
+          </li>
+          <li>
+            stripping legend names of internal information like <code>equation|</code>{' '}
+            prefixes
+          </li>
+          <li>automatically stretching to fit the parent</li>
+          <li>intelligently formatting the axes</li>
+          <li>and more!</li>
+        </ul>
+
         <p>
-          It includes features like:
-          <ul>
-            <li>automatically scaling mis-matched units</li>
-            <li>visually deemphasizing incomplete ingestion buckets</li>
-            <li>plotting lines, area, and bars on the same visualization</li>
-            <li>
-              skipping <code>null</code> values while plotting
-            </li>
-            <li>
-              stripping legend names of internal information like <code>equation|</code>{' '}
-              prefixes
-            </li>
-            <li>automatically stretching to fit the parent</li>
-            <li>intelligently formatting the axes</li>
-            <li>and more!</li>
-          </ul>
           If you (or someone you know) is plotting Sentry data and the X axis is time, you
           should be using this component! It's highly configurable, and should suit your
           needs. If it doesn't, reach out to the Dashboards team.
@@ -83,7 +108,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Area(sampleDurationTimeSeries),
-                new Area(sampleDurationTimeSeries2),
+                new Area(sampleDurationTimeSeriesP50),
               ]}
             />
           </SmallWidget>
@@ -91,7 +116,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Line(sampleDurationTimeSeries),
-                new Line(sampleDurationTimeSeries2),
+                new Line(sampleDurationTimeSeriesP50),
               ]}
             />
           </SmallWidget>
@@ -116,12 +141,14 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             stacked!
           </li>
           <li>
-            Bar charts are to your discretion, it's most an aesthetic choice. Generally,
-            bars communicate discrete buckets, and lines communicate continuous data. If
-            you are plotting something like duration, even if it's broken down by time
-            buckets, a line feels right. If you are plotting someting like throughput (a
-            naturally bucketed value) and the buckets are big, a bar chart might be
-            better. Bar charts are also great for comparing quantities.
+            Bar charts are to your discretion. Generally, bars communicate discrete
+            buckets, and lines communicate continuous data. If you are plotting something
+            like duration, even if it's broken down by time buckets, a line feels right.
+            If you are plotting someting like throughput (a naturally bucketed value) and
+            the buckets are big, a bar chart might be better. Generally, bar charts should
+            be bucketed by a pretty long interval, at least a day. Otherwise, there are
+            too many bars, they end up too skinny, and they're hard to understand and
+            interact with.
           </li>
           <li>Use line charts when in doubt! They are almost always the right choice</li>
         </ul>
@@ -173,11 +200,11 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   "data": [
     {
       "value": 163.26759544018776,
-      "timestamp": "2024-10-24T15:00:00-04:00",
+      "timestamp": 1729798200000,
     },
     {
       "value": 164.07690380778297,
-      "timestamp": "2024-10-24T15:30:00-04:00",
+      "timestamp": 1729800000000,
     },
   ]
 }
@@ -199,6 +226,51 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 />
           `}
         </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('Data Types', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="TimeSeriesWidgetVisualization" /> can plot most, but not all data
+          types that come back from our time series endpoints. The supported data types
+          are:
+        </p>
+
+        <ul>
+          <li>
+            <code>number</code>
+          </li>
+          <li>
+            <code>integer</code>
+          </li>
+          <li>
+            <code>duration</code>
+          </li>
+          <li>
+            <code>percentage</code>
+          </li>
+          <li>
+            <code>size</code>
+          </li>
+          <li>
+            <code>rate</code>
+          </li>
+          <li>
+            <code>score</code>
+          </li>
+        </ul>
+
+        <p>
+          Each of those types has specific behavior in its axes range, axis value
+          formatting, tooltip formatting, unit scaling, and so on. For example, the{' '}
+          <code>score</code> type always uses the 0-100 Y axis range.
+        </p>
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization plottables={[new Area(sampleScoreTimeSeries)]} />
+        </MediumWidget>
       </Fragment>
     );
   });
@@ -242,13 +314,121 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {delay: 90}),
-                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {delay: 90}),
-                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries2), {delay: 90}),
+                new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {
+                  delay: 90,
+                }),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
+                  delay: 90,
+                }),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeriesP50), {
+                  delay: 90,
+                }),
               ]}
             />
           </MediumWidget>
         </SideBySide>
+
+        <p>
+          In rare cases, none of the data will have a known type. In these cases we drop
+          down to a generic "number" axis. This also accounts for combinations of unknown
+          types and the generic "number" type.
+        </p>
+
+        <SideBySide>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  yAxis: 'equation|spm() + 1',
+                  meta: NULL_META,
+                }),
+                new Line({
+                  ...sampleDurationTimeSeries,
+                  yAxis: 'custom_aggregate()',
+                  meta: NULL_META,
+                }),
+              ]}
+            />
+          </SmallWidget>
+
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  yAxis: 'equation|spm() + 1',
+                  meta: {
+                    ...sampleThroughputTimeSeries.meta,
+                    valueType: 'number',
+                    valueUnit: null,
+                  },
+                }),
+                new Line({
+                  ...sampleDurationTimeSeries,
+                  yAxis: 'custom_aggregate()',
+                  meta: NULL_META,
+                }),
+              ]}
+            />
+          </SmallWidget>
+
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleDurationTimeSeries,
+                  yAxis: 'custom_agg(duration)',
+                  meta: {
+                    ...sampleThroughputTimeSeries.meta,
+                    valueType: 'number',
+                    valueUnit: null,
+                  },
+                }),
+                new Line({
+                  ...sampleDurationTimeSeriesP50,
+                  yAxis: 'custom_agg2(duration)',
+                  meta: {
+                    ...sampleThroughputTimeSeries.meta,
+                    valueType: 'integer',
+                    valueUnit: null,
+                  },
+                }),
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  yAxis: 'custom_agg3(duration)',
+                  meta: {
+                    ...sampleThroughputTimeSeries.meta,
+                    valueType: 'duration',
+                    valueUnit: DurationUnit.MILLISECOND,
+                  },
+                }),
+              ]}
+            />
+          </SmallWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('X Axis', () => {
+    return (
+      <Fragment>
+        <p>
+          In a <JSXNode name="TimeSeriesWidgetVisualization" />, the X axis is by
+          definition always time. The ticks and labels are automatically determined based
+          on the domain of the data set. You can, however, use the <code>showXAxis</code>{' '}
+          prop to hide the X axis in contexts where it would be too busy or distracting.
+          This might be the case in small sidebar charts, for example. Setting the{' '}
+          <code>showXAxis</code> prop to <code>"never"</code> will hide the X axis.
+        </p>
+
+        <SmallWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[new Line(sampleDurationTimeSeries)]}
+            showXAxis="never"
+          />
+        </SmallWidget>
       </Fragment>
     );
   });
@@ -257,17 +437,18 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     const millisecondsSeries = sampleDurationTimeSeries;
 
     // Create a very similar series, but with a different unit to demonstrate automatic scaling
-    const secondsSeries = {
-      field: 'p99(span.self_time)',
-      data: sampleDurationTimeSeries.data.map(datum => {
+    const secondsSeries: TimeSeries = {
+      yAxis: 'p99(span.self_time)',
+      values: sampleDurationTimeSeries.values.map(datum => {
         return {
           ...datum,
-          value: (datum.value / 1000) * (1 + Math.random() / 10), // Introduce jitter so the series is visible
+          value: datum.value ? (datum.value / 1000) * (1 + Math.random() / 10) : null, // Introduce jitter so the series is visible
         };
       }),
       meta: {
-        type: 'duration',
-        unit: DurationUnit.SECOND,
+        ...sampleThroughputTimeSeries.meta,
+        valueType: 'duration',
+        valueUnit: DurationUnit.SECOND,
       },
     };
 
@@ -291,6 +472,41 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
+  story('Samples', () => {
+    const timeSeriesPlottable = useMemo(() => {
+      return new Bars(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
+        delay: 1800,
+      });
+    }, []);
+
+    const samplesPlottable = useMemo(() => {
+      return new Samples(shiftedSpanSamples, {
+        alias: 'Span Samples',
+        attributeName: 'p99(span.duration)',
+        baselineValue: 175,
+        baselineLabel: 'Average',
+      });
+    }, []);
+
+    return (
+      <Fragment>
+        <p>
+          <code>Samples</code> plots discontinuous points. It's useful for placing markers
+          for individual events on top of a continuous aggregate series. In the example
+          below, we plot a set of span duration samples on top of an aggregate series of
+          the 99th percentile of those durations. Samples that are faster than a baseline
+          are green, samples that are slower are red.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[timeSeriesPlottable, samplesPlottable]}
+          />
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
   story('Stacking', () => {
     return (
       <Fragment>
@@ -306,7 +522,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Bars(sampleDurationTimeSeries, {}),
-                new Bars(sampleDurationTimeSeries2, {}),
+                new Bars(sampleDurationTimeSeriesP50, {}),
               ]}
             />
           </MediumWidget>
@@ -314,12 +530,26 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Bars(sampleDurationTimeSeries, {stack: 'all'}),
-                new Bars(sampleDurationTimeSeries2, {stack: 'all'}),
+                new Bars(sampleDurationTimeSeriesP50, {stack: 'all'}),
               ]}
             />
           </MediumWidget>
           <SmallWidget />
         </SideBySide>
+        <p>
+          Since stacking is configured per plottable, you can combine stacked and
+          unstacked series. Be wary, this creates really high information density, so
+          don't do this on small charts.
+        </p>
+        <LargeWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[
+              new Bars(sampleDurationTimeSeries, {stack: 'all'}),
+              new Bars(sampleDurationTimeSeriesP50, {stack: 'all'}),
+              new Bars(sampleDurationTimeSeriesP75),
+            ]}
+          />
+        </LargeWidget>
       </Fragment>
     );
   });
@@ -329,7 +559,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       sampleDurationTimeSeries
     );
     const shiftedSampleDurationTimeSeries2 = shiftTimeSeriesToNow(
-      sampleDurationTimeSeries2
+      sampleDurationTimeSeriesP50
     );
 
     const delay = 60 * 60 * 3;
@@ -362,8 +592,14 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Bars(shiftedSampleDurationTimeSeries, {stack: 'all'}),
-                new Bars(shiftedSampleDurationTimeSeries2, {stack: 'all'}),
+                new Bars(shiftedSampleDurationTimeSeries, {
+                  delay,
+                  stack: 'all',
+                }),
+                new Bars(shiftedSampleDurationTimeSeries2, {
+                  delay,
+                  stack: 'all',
+                }),
               ]}
             />
           </MediumWidget>
@@ -372,15 +608,137 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
+  story('Click Events', () => {
+    const [sampleId, setSampleId] = useState<string>();
+
+    const samplesPlottable = useMemo(() => {
+      return new Samples(shiftedSpanSamples, {
+        alias: 'Span Samples',
+        attributeName: 'p99(span.duration)',
+        baselineValue: 175,
+        baselineLabel: 'Average',
+        onClick: row => {
+          setSampleId(row.id);
+        },
+      });
+    }, []);
+
+    return (
+      <Fragment>
+        <p>
+          You can respond to chart click events by passing the <code>onClick</code>{' '}
+          configuration option, if it's supported by the relevant plottable. Right now,
+          only the <code>Samples</code> plottable supports this configuration option.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization plottables={[samplesPlottable]} />
+
+          <p>Clicked sample ID: {sampleId}</p>
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
+  story('Highlighting', () => {
+    const [legendSelection, setLegendSelection] = useState<LegendSelection>({});
+    const [sampleId, setSampleId] = useState<string | null>(null);
+
+    const aggregatePlottable = new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
+      delay: 1800,
+    });
+
+    const samplesPlottable = useMemo(() => {
+      return new Samples(shiftedSpanSamples, {
+        alias: 'Span Samples',
+        attributeName: 'p99(span.duration)',
+        baselineValue: 175,
+        baselineLabel: 'Average',
+        onHighlight: row => {
+          setSampleId(row.id);
+        },
+        onDownplay: () => {
+          setSampleId(null);
+        },
+      });
+    }, []);
+
+    // Synchronize the highlighted sample ID state with ECharts
+    useEffect(() => {
+      const sample = shiftedSpanSamples.data.find(datum => datum.id === sampleId)!;
+
+      // Highlight the new selected sample
+      if (sample) {
+        samplesPlottable.highlight(sample);
+      }
+
+      return () => {
+        // Downplay the previous selected sample
+        if (sample) {
+          samplesPlottable.downplay(sample);
+        }
+      };
+    }, [sampleId, samplesPlottable]);
+
+    return (
+      <Fragment>
+        <p>
+          You can control the highlighting of data points on your charts in two ways. The
+          first way is to pass the <code>onHighlight</code> configuration option to your
+          plottable. All plottables support this configuration option. It's a callback,
+          called whenever a data point is highlighted by bringing the X axis cursor near
+          its timestamp. There is also a corresponding <code>onDownplay</code> option. The
+          second way is to manually cause highlighting on your plottables by calling the{' '}
+          <code>highlight</code> method of the plottable instance. Note: only{' '}
+          <code>Samples</code> supports this right now.
+        </p>
+
+        <p>
+          e.g., the <code>Samples</code> plottable in the chart below has both a callback,
+          and manual highlighting. The callback reports the ID of the currently
+          highlighted sample. The "Highlight Random Sample" button manually highlights a
+          random sample in the plottable.
+        </p>
+
+        <Button
+          size="sm"
+          onClick={() => {
+            const sample = shuffle(shiftedSpanSamples.data).find(
+              shuffledSample => shuffledSample.id !== sampleId
+            ) as {
+              id: string;
+              timestamp: string;
+            };
+
+            setSampleId(sample.id);
+          }}
+        >
+          Highlight Random Sample
+        </Button>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization
+            legendSelection={legendSelection}
+            onLegendSelectionChange={setLegendSelection}
+            plottables={[aggregatePlottable, samplesPlottable]}
+          />
+
+          <p>Highlighted sample ID: {sampleId}</p>
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
   story('Color', () => {
     const theme = useTheme();
 
-    const timeSeries = {
+    const timeSeries: TimeSeries = {
       ...sampleThroughputTimeSeries,
-      field: 'error_rate()',
+      yAxis: 'error_rate()',
       meta: {
-        type: 'rate',
-        unit: RateUnit.PER_SECOND,
+        ...sampleThroughputTimeSeries.meta,
+        valueType: 'rate',
+        valueUnit: RateUnit.PER_SECOND,
       },
     };
 
@@ -443,7 +801,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
 
     const durationTimeSeries2 = toTimeSeriesSelection(
-      sampleDurationTimeSeries2,
+      sampleDurationTimeSeriesP50,
       start,
       end
     );
@@ -490,25 +848,35 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           the user changes the legend selection by clicking on legend labels.
         </p>
         <p>
-          You can also provide aliases for legends to give them a friendlier name. In this
-          example, verbose names like "p99(span.duration)" are truncated, and the p99
-          series is hidden by default.
+          You can also provide aliases for plottables like <code>Line</code> This will
+          give the legends and tooltips a friendlier name. In the first example, verbose
+          names like "p99(span.duration)" are truncated, and the p99 series is hidden by
+          default. The legend will always include an entry for every plottable, even if
+          some plottables have the same alias, as you can see in the second example.
         </p>
 
-        <MediumWidget>
-          <TimeSeriesWidgetVisualization
-            plottables={[
-              new Area(sampleDurationTimeSeries, {}),
-              new Area(sampleDurationTimeSeries2, {}),
-            ]}
-            aliases={{
-              'p99(span.duration)': 'p99',
-              'p50(span.duration)': 'p50',
-            }}
-            legendSelection={legendSelection}
-            onLegendSelectionChange={setLegendSelection}
-          />
-        </MediumWidget>
+        <code>{JSON.stringify(legendSelection)}</code>
+
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Area(sampleDurationTimeSeries, {alias: 'p99'}),
+                new Area(sampleDurationTimeSeriesP50, {alias: 'p50'}),
+              ]}
+              legendSelection={legendSelection}
+              onLegendSelectionChange={setLegendSelection}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Area(sampleDurationTimeSeries, {alias: 'Duration'}),
+                new Area(sampleDurationTimeSeriesP50, {alias: 'Duration'}),
+              ]}
+            />
+          </MediumWidget>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -517,11 +885,15 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     const releases = [
       {
         version: 'ui@0.1.2',
-        timestamp: sampleThroughputTimeSeries.data.at(2)?.timestamp,
+        timestamp: new Date(
+          sampleThroughputTimeSeries.values.at(2)!.timestamp
+        ).toISOString(),
       },
       {
         version: 'ui@0.1.3',
-        timestamp: sampleThroughputTimeSeries.data.at(20)?.timestamp,
+        timestamp: new Date(
+          sampleThroughputTimeSeries.values.at(20)!.timestamp
+        ).toISOString(),
       },
     ].filter(hasTimestamp);
 
@@ -529,29 +901,166 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       <Fragment>
         <p>
           Area and line charts support showing release markers via the{' '}
-          <code>releases</code> prop. Clicking on a release line will open the release
-          details page.
+          <code>releases</code> prop with two different visualizations specified by the
+          <code>showReleaseAs</code> prop: <code>"line"</code> and <code>"bubble"</code>.
         </p>
 
-        <MediumWidget>
-          <TimeSeriesWidgetVisualization
-            plottables={[
-              new Line({
-                ...sampleThroughputTimeSeries,
-                field: 'error_rate()',
-              }),
-            ]}
-            releases={releases}
-          />
-        </MediumWidget>
+        <p>
+          Clicking on a release bubble will open the releases flyout. Releases lines
+          should be reserved for inside the flyout when there are an appropriate number of
+          releases to display. Clicking on a release line should open the release details
+          inside of the flyout.
+        </p>
+
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  yAxis: 'error_rate()',
+                }),
+              ]}
+              releases={releases}
+            />
+          </MediumWidget>
+
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  yAxis: 'error_rate()',
+                }),
+              ]}
+              showReleaseAs="bubble"
+              releases={releases}
+            />
+          </MediumWidget>
+        </SideBySide>
       </Fragment>
     );
   });
+  story('Deep-Linking', () => (
+    <div>
+      <p>
+        Deep-linking to a chart works by mapping a unique ID to a self-contained component
+        that renders a chart and handles all the data-fetching required to do so. The{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
+          <JSXNode name="ChartWidgetLoader" />
+        </ExternalLink>{' '}
+        component is where this mapping occurs and handles loading the module and
+        rendering the component.
+      </p>
+
+      <p>The following are the required steps in order to deep-link to a chart:</p>
+
+      <ul>
+        <li>
+          Create a new component in{' '}
+          <ExternalLink href="https://github.com/getsentry/sentry/tree/master/static/app/views/insights/common/components/widgets">
+            <code>static/app/views/insights/common/components/widgets</code>
+          </ExternalLink>
+          . These currently are only used in Insights, but we can move them to a more
+          common location if they are useful elsewhere. We want a specific location so
+          that we can enforce lint rules.
+        </li>
+        <li>
+          Components need to be self-contained: they should not accept any additional
+          props beyond <code>LoadableChartWidgetProps</code> and should manage their own
+          data-fetching
+        </li>
+        <li>
+          Components need to pass a unique <code>id</code> prop to{' '}
+          <JSXNode name="TimeSeriesWidgetVisualization" />. This <code>id</code> should
+          also match the filename.
+        </li>
+        <li>
+          Components need to be a <code>default</code> export
+        </li>
+        <li>
+          Component must be manually mapped in{' '}
+          <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
+            <JSXNode name="ChartWidgetLoader" />
+          </ExternalLink>{' '}
+          so that these paths are statically analyzable
+        </li>
+      </ul>
+
+      <p>
+        Here's an example component, it would be in a file named{' '}
+        <code>databaseLandingDurationChartWidget.tsx</code>. Also, in{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
+          <JSXNode name="ChartWidgetLoader" />
+        </ExternalLink>
+        , be sure to also map its id to a a function that dynamically imports the
+        component.
+      </p>
+
+      <CodeSnippet language="tsx">
+        {`
+// In the file static/app/views/insights/common/components/widgets/databaseLandingDurationChartWidget.tsx
+export default function DatabaseLandingDurationChartWidget(
+  props: LoadableChartWidgetProps
+) {
+  const {isPending, data, error} = useDatabaseLandingDurationQuery();
+
+
+  // Note that id matches the filename
+  // it also needs to spread props to the underlying component
+  return (
+    <InsightsLineChartWidget
+      {...props}
+      id="databaseLandingDurationChartWidget"
+      title={getDurationChartTitle('db')}
+      series={[data[\`\${DEFAULT_DURATION_AGGREGATE}(span.self_time)\`]]}
+      isLoading={isPending}
+      error={error}
+    />
+  );
+}
+
+
+// In static/app/components/charts/chartWidgetLoader.tsx, add this to the CHART_MAP table
+{
+  "databaseLandingDurationChartWidget": () => import('sentry/views/insights/common/components/widgets/databaseLandingDurationChartWidget')
+}
+`}
+      </CodeSnippet>
+
+      <p>
+        Please take a look at{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/tree/master/static/app/views/insights/common/components/widgets">
+          <code>static/app/views/insights/common/components/widgets</code>
+        </ExternalLink>{' '}
+        for more examples.
+      </p>
+
+      <p>
+        Note that there are lint rules to disallow importing of insights chart widget
+        comopnents, as well as automated testing on all components in the root of the{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/tree/master/static/app/views/insights/common/components/widgets">
+          <code>widgets/</code>
+        </ExternalLink>{' '}
+        directory to ensure that{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
+          <JSXNode name="ChartWidgetLoader" />
+        </ExternalLink>{' '}
+        is able to load them all.
+      </p>
+    </div>
+  ));
 });
 
 const FillParent = styled('div')`
   width: 100%;
   height: 100%;
+`;
+
+const LargeWidget = styled('div')`
+  position: relative;
+  width: 600px;
+  height: 300px;
 `;
 
 const MediumWidget = styled('div')`
@@ -578,7 +1087,7 @@ function toTimeSeriesSelection(
 ): TimeSeries {
   return {
     ...timeSeries,
-    data: timeSeries.data.filter(datum => {
+    values: timeSeries.values.filter(datum => {
       if (start && moment(datum.timestamp).isBefore(moment.utc(start))) {
         return false;
       }
@@ -595,3 +1104,9 @@ function toTimeSeriesSelection(
 function hasTimestamp(release: Partial<Release>): release is Release {
   return Boolean(release?.timestamp);
 }
+
+const NULL_META: TimeSeriesMeta = {
+  valueType: null,
+  valueUnit: null,
+  interval: 0,
+};

@@ -86,20 +86,17 @@ describe('Renderers', function () {
       expect(description).toHaveTextContent('op\u2014descriptioninternal_error');
     });
 
-    it.each(['unknown', 'foobar'])(
-      'does not render span status %s',
-      function (spanStatus) {
-        const span = makeSpan(projects[0]!, {'span.status': spanStatus});
+    it.each(['unknown', 'foobar'])('does not render span status %s', spanStatus => {
+      const span = makeSpan(projects[0]!, {'span.status': spanStatus});
 
-        render(<SpanDescriptionRenderer span={span} />);
+      render(<SpanDescriptionRenderer span={span} />);
 
-        const description = screen.getByTestId('span-description');
-        expect(description).toBeInTheDocument();
-        expect(description).toHaveTextContent('op\u2014description');
-      }
-    );
+      const description = screen.getByTestId('span-description');
+      expect(description).toBeInTheDocument();
+      expect(description).toHaveTextContent('op\u2014description');
+    });
 
-    it.each(['ok', 'internal_error'])('renders span status %s', function (spanStatus) {
+    it.each(['ok', 'internal_error'])('renders span status %s', spanStatus => {
       const span = makeSpan(projects[0]!, {'span.status': spanStatus});
 
       render(<SpanDescriptionRenderer span={span} />);
@@ -212,7 +209,7 @@ describe('Renderers', function () {
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/performance/summary/?project=${projects[0]!.id}&referrer=performance-transaction-summary&transaction=foobar&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
+        `/organizations/${organization.slug}/insights/summary/?project=${projects[0]!.id}&referrer=performance-transaction-summary&transaction=foobar&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
       );
     });
   });

@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -13,7 +14,6 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
@@ -58,6 +58,7 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import IssueListFilters from './filters';
 import IssueListHeader from './header';
@@ -79,10 +80,16 @@ const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const MAX_ISSUES_COUNT = 100;
 
-type Props = RouteComponentProps<
-  Record<PropertyKey, string | undefined>,
-  {searchId?: string}
->;
+interface Props
+  extends RouteComponentProps<
+    Record<PropertyKey, string | undefined>,
+    {searchId?: string}
+  > {
+  initialQuery?: string;
+  shouldFetchOnMount?: boolean;
+  title?: ReactNode;
+  titleDescription?: ReactNode;
+}
 
 interface EndpointParams extends Partial<PageFilters['datetime']> {
   environment: string[];
@@ -153,15 +160,24 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
   return pageInt;
 };
 
-function IssueListOverview({router}: Props) {
+function IssueListOverview({
+  router,
+  initialQuery = DEFAULT_QUERY,
+  shouldFetchOnMount = true,
+  title = t('Issues'),
+  titleDescription,
+}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const api = useApi();
+  const prefersStackedNav = usePrefersStackedNav();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
-    typeof realtimeActiveCookie === 'undefined' ? false : realtimeActiveCookie === 'true'
+    prefersStackedNav || typeof realtimeActiveCookie === 'undefined'
+      ? false
+      : realtimeActiveCookie === 'true'
   );
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [pageLinks, setPageLinks] = useState('');
@@ -170,13 +186,13 @@ function IssueListOverview({router}: Props) {
   const [queryMaxCount, setQueryMaxCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [issuesLoading, setIssuesLoading] = useState(true);
+  const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
   const [memberList, setMemberList] = useState<ReturnType<typeof indexMembersByProject>>(
     {}
   );
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
-  const prefersStackedNav = usePrefersStackedNav();
   const urlParams = useParams<{viewId?: string}>();
 
   const {savedSearch, savedSearchLoading, savedSearches, selectedSearchId} =
@@ -225,19 +241,19 @@ function IssueListOverview({router}: Props) {
         return decodeScalar(query, '');
       }
 
-      return DEFAULT_QUERY;
+      return initialQuery;
     },
-    [organization.features]
+    [organization.features, initialQuery]
   );
 
   const getSortFromSavedSearchOrLocation = useCallback(
-    (props: {location: Location; savedSearch: SavedSearch | null}): string => {
+    (props: {location: Location; savedSearch: SavedSearch | null}): IssueSortOptions => {
       if (!props.location.query.sort && props.savedSearch?.id) {
-        return props.savedSearch.sort;
+        return props.savedSearch.sort as IssueSortOptions;
       }
 
       if (props.location.query.sort) {
-        return props.location.query.sort as string;
+        return props.location.query.sort as IssueSortOptions;
       }
       return DEFAULT_ISSUE_STREAM_SORT;
     },
@@ -251,7 +267,7 @@ function IssueListOverview({router}: Props) {
     });
   }, [getQueryFromSavedSearchOrLocation, savedSearch, location]);
 
-  const sort = useMemo((): string => {
+  const sort = useMemo(() => {
     return getSortFromSavedSearchOrLocation({
       savedSearch,
       location,
@@ -316,9 +332,10 @@ function IssueListOverview({router}: Props) {
       ...getEndpointParams(),
       limit: MAX_ITEMS,
       shortIdLookup: 1,
-      savedSearch: savedSearchLoading
-        ? savedSearchLookupEnabled
-        : savedSearchLookupDisabled,
+      savedSearch:
+        savedSearchLoading && !prefersStackedNav
+          ? savedSearchLookupEnabled
+          : savedSearchLookupDisabled,
     };
 
     if (selectedSearchId) {
@@ -343,7 +360,13 @@ function IssueListOverview({router}: Props) {
     params.collapse = ['stats', 'unhandled'];
 
     return params;
-  }, [getEndpointParams, location.query, savedSearchLoading, selectedSearchId]);
+  }, [
+    getEndpointParams,
+    location.query,
+    savedSearchLoading,
+    selectedSearchId,
+    prefersStackedNav,
+  ]);
 
   const loadFromCache = useCallback((): boolean => {
     const cache = IssueListCacheStore.getFromCache(requestParams);
@@ -353,6 +376,7 @@ function IssueListOverview({router}: Props) {
     }
 
     setIssuesLoading(false);
+    setIssuesSuccessfullyLoaded(true);
     setQueryCount(cache.queryCount);
     setQueryMaxCount(cache.queryMaxCount);
     setPageLinks(cache.pageLinks);
@@ -481,8 +505,30 @@ function IssueListOverview({router}: Props) {
     [getEndpointParams, api, organization.slug]
   );
 
+  // Blank views are created with ?new=true, in order to show the empty state.
+  // We want to clear this query param when data is fetched.
+  const resetNewViewQueryParam = useCallback(() => {
+    if (location.query.new) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            new: undefined,
+          },
+        },
+        {
+          replace: true,
+          preventScrollReset: true,
+        }
+      );
+    }
+  }, [location.pathname, navigate, location.query]);
+
   const fetchData = useCallback(
     (fetchAllCounts = false) => {
+      resetNewViewQueryParam();
+
       if (realtimeActive || (!actionTakenRef.current && !undoRef.current)) {
         GroupStore.loadInitialData([]);
 
@@ -555,6 +601,7 @@ function IssueListOverview({router}: Props) {
 
           setError(null);
           setIssuesLoading(false);
+          setIssuesSuccessfullyLoaded(true);
           setQueryCount(newQueryCount);
           setQueryMaxCount(newQueryMaxCount);
           setPageLinks(newPageLinks === null ? '' : newPageLinks);
@@ -580,6 +627,7 @@ function IssueListOverview({router}: Props) {
 
           setError(parseApiError(err));
           setIssuesLoading(false);
+          setIssuesSuccessfullyLoaded(false);
         },
         complete: () => {
           resumePolling();
@@ -592,13 +640,14 @@ function IssueListOverview({router}: Props) {
       });
     },
     [
+      resetNewViewQueryParam,
       realtimeActive,
       sort,
       api,
       organization,
       requestParams,
-      fetchStats,
       fetchCounts,
+      fetchStats,
       navigate,
       location.query,
       query,
@@ -630,6 +679,11 @@ function IssueListOverview({router}: Props) {
 
   // Fetch data on mount if necessary
   useEffect(() => {
+    if (!shouldFetchOnMount) {
+      setIssuesLoading(false);
+      return;
+    }
+
     const loadedFromCache = loadFromCache();
     if (!loadedFromCache) {
       // It's possible the projects query parameter is not yet ready and this
@@ -1042,10 +1096,15 @@ function IssueListOverview({router}: Props) {
     <NewTabContextProvider>
       <Layout.Page>
         {prefersStackedNav && (
-          <LeftNavViewsHeader selectedProjectIds={selection.projects} />
+          <LeftNavViewsHeader
+            selectedProjectIds={selection.projects}
+            title={title}
+            description={titleDescription}
+          />
         )}
         {!prefersStackedNav &&
-          (organization.features.includes('issue-stream-custom-views') ? (
+          (organization.features.includes('issue-stream-custom-views') &&
+          !organization.features.includes('enforce-stacked-navigation') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
               <IssueViewsIssueListHeader
                 router={router}
@@ -1088,8 +1147,6 @@ function IssueListOverview({router}: Props) {
               groupIds={groupIds}
               allResultsVisible={allResultsVisible()}
               displayReprocessingActions={displayReprocessingActions}
-              sort={sort}
-              onSortChange={onSortChange}
               memberList={memberList}
               selectedProjectIds={selection.projects}
               issuesLoading={issuesLoading}
@@ -1120,6 +1177,7 @@ function IssueListOverview({router}: Props) {
               organizationSavedSearches={savedSearches?.filter(
                 search => search.visibility === 'organization'
               )}
+              issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
             />
           </StyledMain>
           <SavedIssueSearches

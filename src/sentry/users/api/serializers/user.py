@@ -10,7 +10,6 @@ from typing import Any, DefaultDict, TypedDict, cast
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import experiments
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
@@ -65,9 +64,10 @@ class _UserOptions(TypedDict):
     defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
-    prefersIssueDetailsStreamlinedUI: bool
-    prefersSpecializedProjectOverview: dict[str, bool]
-    prefersStackedNavigation: bool
+    prefersIssueDetailsStreamlinedUI: bool | None
+    prefersNextjsInsightsOverview: bool
+    prefersStackedNavigation: bool | None
+    prefersChonkUI: bool
     quickStartDisplay: dict[str, int]
 
 
@@ -159,7 +159,6 @@ class UserSerializer(Serializer):
         user: User | AnonymousUser | RpcUser,
         **kwargs: Any,
     ) -> UserSerializerResponse | UserSerializerResponseSelf:
-        experiment_assignments = experiments.all(user=user)
 
         d: UserSerializerResponse = {
             "id": str(obj.id),
@@ -176,11 +175,13 @@ class UserSerializer(Serializer):
             "lastActive": obj.last_active,
             "isSuperuser": obj.is_superuser,
             "isStaff": obj.is_staff,
-            "experiments": experiment_assignments,
             "emails": [
                 {"id": str(e.id), "email": e.email, "is_verified": e.is_verified}
                 for e in attrs["emails"]
             ],
+            # TODO(epurkhiser): This can be removed once we confirm the
+            # frontend does not use it
+            "experiments": {},
         }
 
         if self._user_is_requester(obj, user):
@@ -198,13 +199,14 @@ class UserSerializer(Serializer):
                 "defaultIssueEvent": options.get("default_issue_event") or "recommended",
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,
+                "prefersNextjsInsightsOverview": options.get(
+                    "prefers_nextjs_insights_overview", True
+                ),
                 "prefersIssueDetailsStreamlinedUI": options.get(
-                    "prefers_issue_details_streamlined_ui", False
+                    "prefers_issue_details_streamlined_ui"
                 ),
-                "prefersSpecializedProjectOverview": options.get(
-                    "prefers_specialized_project_overview", {}
-                ),
-                "prefersStackedNavigation": options.get("prefers_stacked_navigation", False),
+                "prefersStackedNavigation": options.get("prefers_stacked_navigation"),
+                "prefersChonkUI": options.get("prefers_chonk_ui", False),
                 "quickStartDisplay": options.get("quick_start_display") or {},
             }
 

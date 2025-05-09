@@ -1,10 +1,9 @@
-import {forwardRef} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
@@ -27,20 +26,23 @@ type Props = {
   users?: Array<Actor | AvatarUser>;
 };
 
-export const CollapsedAvatars = forwardRef(function CollapsedAvatars(
-  {
-    size,
-    children,
-  }: {
-    children: React.ReactNode;
-    size: number;
-  },
-  ref: React.ForwardedRef<HTMLDivElement>
-) {
+export function CollapsedAvatars({
+  ref,
+  size,
+  children,
+}: {
+  children: React.ReactNode;
+  size: number;
+  ref?: React.Ref<HTMLDivElement>;
+}) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   if (hasStreamlinedUI) {
-    return <CollapsedAvatarPill ref={ref}>{children}</CollapsedAvatarPill>;
+    return (
+      <CollapsedAvatarPill ref={ref} data-test-id="avatarList-collapsedavatars">
+        {children}
+      </CollapsedAvatarPill>
+    );
   }
   return (
     <CollapsedAvatarsCicle
@@ -51,7 +53,7 @@ export const CollapsedAvatars = forwardRef(function CollapsedAvatars(
       {children}
     </CollapsedAvatarsCicle>
   );
-});
+}
 
 function AvatarList({
   avatarSize = 28,
@@ -154,7 +156,7 @@ function AvatarList({
 export default AvatarList;
 
 // used in releases list page to do some alignment
-export const AvatarListWrapper = styled('div')`
+const AvatarListWrapper = styled('div')`
   display: flex;
   align-items: center;
   flex-direction: row-reverse;
@@ -194,7 +196,7 @@ const CollapsedAvatarsCicle = styled('div')<{size: number}>`
   text-align: center;
   font-weight: ${p => p.theme.fontWeightBold};
   background-color: ${p => p.theme.gray200};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => Math.floor(p.size / 2.3)}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
@@ -209,7 +211,7 @@ const CollapsedAvatarPill = styled('div')`
   align-items: center;
   gap: ${space(0.25)};
   font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   height: 24px;
   padding: 0 ${space(1)};
   background-color: ${p => p.theme.surface400};

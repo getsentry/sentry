@@ -19,15 +19,14 @@ type BaseCheckoutData = {
 };
 
 export type CheckoutFormData = BaseCheckoutData & {
-  reserved: {
-    [categoryKey in DataCategory]?: number;
-  };
+  reserved: Partial<Record<DataCategory, number>>;
 };
 
 export type CheckoutAPIData = BaseCheckoutData & {
   paymentIntent?: string;
   previewToken?: string;
   referrer?: string;
+  // TODO(data categories): check if these can be parsed
   reservedAttachments?: number;
   reservedErrors?: number;
   reservedMonitorSeats?: number;

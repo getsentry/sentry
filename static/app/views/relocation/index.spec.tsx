@@ -17,7 +17,6 @@ IAxCAaGQJVsg9dhKOORjAf4XK9aXHvy/jUSyT43opj6AgNqXlKEQjb1NBA8qbJJS
 
 describe('Relocation Onboarding Container', function () {
   beforeEach(function () {
-    MockApiClient.asyncDelay = undefined;
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/publickeys/relocations/',
@@ -25,42 +24,42 @@ describe('Relocation Onboarding Container', function () {
         public_key: fakePublicKey,
       },
     });
-
-    // The tests fail because we have a "component update was not wrapped in act" error. It should
-    // be safe to ignore this error, but we should remove the mock once we move to react testing
-    // library.
-    //
-
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    MockApiClient.addMockResponse({
+      url: '/relocations/',
+      body: [],
+    });
   });
 
-  it('should render if feature enabled', function () {
-    const {routerProps, router, organization} = initializeOrg({
+  it('should render if feature enabled', async function () {
+    const {routerProps, organization} = initializeOrg({
       router: {
-        params: {step: '1'},
+        params: {step: 'get-started'},
       },
     });
     ConfigStore.set('features', new Set(['relocation:enabled']));
     render(<RelocationOnboardingContainer {...routerProps} />, {
-      router,
       organization,
     });
+    expect(
+      await screen.findByText(/Choose where to store your organization's data/)
+    ).toBeInTheDocument();
     expect(
       screen.queryByText("You don't have access to this feature")
     ).not.toBeInTheDocument();
   });
 
-  it('should not render if feature disabled', function () {
-    const {routerProps, router, organization} = initializeOrg({
+  it('should not render if feature disabled', async function () {
+    const {routerProps, organization} = initializeOrg({
       router: {
-        params: {step: '1'},
+        params: {step: 'get-started'},
       },
     });
     ConfigStore.set('features', new Set([]));
     render(<RelocationOnboardingContainer {...routerProps} />, {
-      router,
       organization,
     });
-    expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
+    expect(
+      await screen.findByText("You don't have access to this feature")
+    ).toBeInTheDocument();
   });
 });

@@ -1,13 +1,14 @@
 import {Fragment, type ReactNode, useMemo, useState} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
-import {TriggerLabel} from 'sentry/components/compactSelect/control';
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {TriggerLabel} from 'sentry/components/core/compactSelect/control';
 import {Input} from 'sentry/components/core/input';
 import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
@@ -57,7 +58,7 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 export const NONE = 'none';
 
-export const NONE_AGGREGATE = {
+const NONE_AGGREGATE = {
   textValue: t('field'),
   label: tct('[emphasis:field]', {emphasis: <em />}),
   value: NONE,
@@ -92,7 +93,7 @@ function formatColumnOptions(
           option.value.meta.name,
           option.value.kind !== FieldValueKind.FUNCTION &&
             option.value.kind !== FieldValueKind.EQUATION
-            ? option.value.meta.dataType!
+            ? option.value.meta.dataType
             : undefined
         ),
         disabled: !supported,
@@ -129,16 +130,14 @@ export function getColumnOptions(
   columnFilterMethod: (
     option: SelectValue<FieldValue>,
     field?: QueryFieldValue
-  ) => boolean
+  ) => boolean,
+  filterOutIncompatibleResults?: boolean
 ) {
   const fieldValues = Object.values(fieldOptions);
   if (selectedField.kind !== FieldValueKind.FUNCTION || dataset === WidgetType.SPANS) {
-    return formatColumnOptions(
-      dataset,
-      fieldValues,
-      columnFilterMethod,
-      selectedField
-    ).sort(_sortFn);
+    return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField)
+      .filter(option => (filterOutIncompatibleResults ? !option.disabled : true))
+      .sort(_sortFn);
   }
 
   const fieldData = fieldValues.find(
@@ -401,8 +400,7 @@ function Visualize({error, setError}: VisualizeProps) {
                 const isOnlyFieldOrAggregate =
                   fields.length === 2 &&
                   field.kind !== FieldValueKind.EQUATION &&
-                  fields.filter(fieldItem => fieldItem.kind === FieldValueKind.EQUATION)
-                    .length > 0;
+                  fields.some(fieldItem => fieldItem.kind === FieldValueKind.EQUATION);
 
                 // Depending on the dataset and the display type, we use different options for
                 // displaying in the column select.
@@ -491,7 +489,7 @@ function Visualize({error, setError}: VisualizeProps) {
                             option.value.meta.name,
                             option.value.kind !== FieldValueKind.FUNCTION &&
                               option.value.kind !== FieldValueKind.EQUATION
-                              ? option.value.meta.dataType!
+                              ? option.value.meta.dataType
                               : undefined
                           ),
                         }))
@@ -576,7 +574,6 @@ function Visualize({error, setError}: VisualizeProps) {
                               name="arithmetic"
                               key="parameter:text"
                               type="text"
-                              required
                               value={field.field}
                               onUpdate={value => {
                                 dispatch({
@@ -836,7 +833,7 @@ function Visualize({error, setError}: VisualizeProps) {
 
 export default Visualize;
 
-export function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
+function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
   if (dataType) {
     switch (dataType) {
       case 'boolean':
@@ -892,17 +889,17 @@ export const AggregateCompactSelect = styled(CompactSelect)<{
 }>`
   ${p =>
     p.hasColumnParameter
-      ? `
-    width: fit-content;
-    left: 1px;
+      ? css`
+          width: fit-content;
+          left: 1px;
 
-    ${TriggerLabel} {
-      overflow: visible;
-    }
-  `
-      : `
-    width: 100%;
-  `}
+          ${TriggerLabel} {
+            overflow: visible;
+          }
+        `
+      : css`
+          width: 100%;
+        `}
 
   > button {
     width: 100%;
@@ -942,10 +939,10 @@ export const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
   & ${AggregateCompactSelect} button {
     ${p =>
       p.hasColumnParameter &&
-      `
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    `}
+      css`
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      `}
   }
 `;
 

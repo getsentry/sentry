@@ -83,7 +83,7 @@ describe('GlobalDrawer', function () {
           },
         }}
       />,
-      {disableRouterMocks: true, initialRouterConfig: {location: '/my-modal-view/'}}
+      {initialRouterConfig: {location: '/my-modal-view/'}}
     );
 
     await userEvent.click(screen.getByTestId('drawer-test-open'));

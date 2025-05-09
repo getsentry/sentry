@@ -9,6 +9,7 @@ from typing import Any
 from django.conf import settings
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
+from sentry_sdk.integrations.logging import ignore_logger
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.options.manager import UpdateChannel
@@ -16,7 +17,12 @@ from sentry.options.manager import UpdateChannel
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
 
-logger = logging.getLogger("sentry")
+OPTIONS_LOGGER_NAME = "sentry.options_store"
+
+logger = logging.getLogger(OPTIONS_LOGGER_NAME)
+# Our SDK logging integration will create a circular dependency due to its
+# reliance on options, so we need to ignore it.
+ignore_logger(OPTIONS_LOGGER_NAME)
 
 
 @dataclasses.dataclass
@@ -54,6 +60,9 @@ class Key:
 def _make_cache_value(key, value):
     now = int(time())
     return (value, now + key.ttl, now + key.ttl + key.grace)
+
+
+LOGGING_SAMPLE_RATE = 0.0001
 
 
 class OptionsStore:
@@ -94,6 +103,15 @@ class OptionsStore:
         if result is not None:
             return result
 
+        should_log = random() < LOGGING_SAMPLE_RATE
+        if should_log:
+            # Log some percentage of our cache misses for option retrieval to
+            # help triage excessive queries against the store.
+            logger.info(
+                "sentry_options_store.cache_miss",
+                extra={"key": key.name, "cache_configured": self.cache is not None},
+            )
+
         result = self.get_store(key, silent=silent)
         if result is not None:
             return result
@@ -107,6 +125,10 @@ class OptionsStore:
         First check against our local in-process cache, falling
         back to the network cache.
         """
+        assert (
+            self.cache is not None
+        ), f"Option '{key.name}' requested before cache initialization, which could result in excessive store queries"
+
         value = self.get_local_cache(key)
         if value is not None:
             return value

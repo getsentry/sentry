@@ -1,4 +1,4 @@
-import {RateUnit} from '../discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 
 import {convertRate} from './convertRate';
 

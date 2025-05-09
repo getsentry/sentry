@@ -1,26 +1,28 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
+import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
-
-import {DesyncedFilterIndicator} from '../pageFilters/desyncedFilter';
 
 interface EnvironmentPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value'> {
   desynced: boolean;
   environments: string[];
   ready: boolean;
   value: string[];
+  ref?: React.Ref<HTMLButtonElement>;
 }
 
-function BaseEnvironmentPageFilterTrigger(
-  {value, environments, ready, desynced, ...props}: EnvironmentPageFilterTriggerProps,
-  forwardedRef: React.ForwardedRef<HTMLButtonElement>
-) {
+export function EnvironmentPageFilterTrigger({
+  value,
+  environments,
+  ready,
+  desynced,
+  ...props
+}: EnvironmentPageFilterTriggerProps) {
   const isAllEnvironmentsSelected =
     value.length === 0 || environments.every(env => value.includes(env));
 
@@ -38,11 +40,7 @@ function BaseEnvironmentPageFilterTrigger(
   const remainingCount = isAllEnvironmentsSelected ? 0 : value.length - envsToShow.length;
 
   return (
-    <DropdownButton
-      {...props}
-      ref={forwardedRef}
-      data-test-id="page-filter-environment-selector"
-    >
+    <DropdownButton {...props} data-test-id="page-filter-environment-selector">
       <TriggerLabelWrap>
         <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator role="presentation" />}
@@ -53,8 +51,6 @@ function BaseEnvironmentPageFilterTrigger(
     </DropdownButton>
   );
 }
-
-export const EnvironmentPageFilterTrigger = forwardRef(BaseEnvironmentPageFilterTrigger);
 
 const TriggerLabelWrap = styled('span')`
   position: relative;

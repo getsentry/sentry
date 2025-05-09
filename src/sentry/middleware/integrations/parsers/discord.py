@@ -20,7 +20,6 @@ from sentry.integrations.middleware.hybrid_cloud.parser import (
     create_async_request_payload,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.integrations.web.discord_extension_configuration import (
     DiscordExtensionConfigurationView,
@@ -123,7 +122,10 @@ class DiscordRequestParser(BaseRequestParser):
 
         try:
             regions = self.get_regions_from_organizations()
-        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+        except Integration.DoesNotExist:
+            return self.get_default_missing_integration_response()
+
+        if len(regions) == 0:
             return self.get_default_missing_integration_response()
 
         if is_discord_interactions_endpoint and self.discord_request:

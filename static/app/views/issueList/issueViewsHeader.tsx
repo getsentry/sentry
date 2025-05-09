@@ -34,7 +34,7 @@ import {
   TEMPORARY_TAB_KEY,
 } from 'sentry/views/issueList/issueViews/issueViews';
 import {IssueViewTab} from 'sentry/views/issueList/issueViews/issueViewTab';
-import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {useFetchStarredGroupSearchViews} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 import {IssueSortOptions} from './utils';
@@ -64,7 +64,7 @@ function IssueViewsIssueListHeader({
 
   const {newViewActive} = useContext(NewTabContext);
 
-  const {data: groupSearchViews} = useFetchGroupSearchViews({
+  const {data: starredGroupSearchViews} = useFetchStarredGroupSearchViews({
     orgSlug: organization.slug,
   });
 
@@ -77,7 +77,7 @@ function IssueViewsIssueListHeader({
       noActionWrap
       // No viewId in the URL query means that a temp view is selected, which has a dashed border
       borderStyle={
-        groupSearchViews && !router?.location.query.viewId ? 'dashed' : 'solid'
+        starredGroupSearchViews && !router?.location.query.viewId ? 'dashed' : 'solid'
       }
     >
       <Layout.HeaderContent>
@@ -106,10 +106,10 @@ function IssueViewsIssueListHeader({
         )}
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
-      {groupSearchViews ? (
+      {starredGroupSearchViews ? (
         <StyledIssueViews
           router={router}
-          initialViews={groupSearchViews.map(
+          initialViews={starredGroupSearchViews.map(
             (
               {
                 id,
@@ -119,7 +119,6 @@ function IssueViewsIssueListHeader({
                 environments: viewEnvironments,
                 projects: viewProjects,
                 timeFilters: viewTimeFilters,
-                isAllProjects,
               },
               index
             ): IssueView => {
@@ -132,7 +131,7 @@ function IssueViewsIssueListHeader({
                 query: viewQuery,
                 querySort: viewQuerySort,
                 environments: viewEnvironments,
-                projects: isAllProjects ? [-1] : viewProjects,
+                projects: viewProjects,
                 timeFilters: viewTimeFilters,
                 isCommitted: true,
               };
@@ -174,7 +173,7 @@ function IssueViewsIssueListHeaderTabsContent({
       statsPeriod,
       utc,
     } = router.location.query;
-    const {queryEnvs, queryProjects} = normalizeProjectsEnvironments(project, env);
+    const {queryProjects, queryEnvs} = normalizeProjectsEnvironments(project, env);
     const queryTimeFilters =
       start || end || statsPeriod || utc
         ? {
@@ -252,12 +251,12 @@ function IssueViewsIssueListHeaderTabsContent({
         const newUnsavedChanges: Partial<IssueViewParams> = {
           query: query === originalQuery ? undefined : query,
           querySort: sort === originalSort ? undefined : issueSortOption,
-          projects: isEqual(queryProjects?.sort(), originalProjects.sort())
+          projects: isEqual((queryProjects ?? []).sort(), originalProjects.sort())
             ? undefined
-            : queryProjects,
-          environments: isEqual(queryEnvs?.sort(), originalEnvironments.sort())
+            : (queryProjects ?? []),
+          environments: isEqual((queryEnvs ?? []).sort(), originalEnvironments.sort())
             ? undefined
-            : queryEnvs,
+            : (queryEnvs ?? []),
           timeFilters:
             queryTimeFilters &&
             isEqual(
@@ -423,7 +422,7 @@ function IssueViewsIssueListHeaderTabsContent({
   const allTabs = tempView ? [...views, tempView] : views;
 
   const initialTabKey =
-    viewId && views.find(tab => tab.id === viewId)
+    viewId && views.some(tab => tab.id === viewId)
       ? views.find(tab => tab.id === viewId)!.key
       : query
         ? TEMPORARY_TAB_KEY
@@ -487,7 +486,7 @@ export default IssueViewsIssueListHeader;
  * If project/environemnts is undefined, it equates to an empty array. If it is a single value,
  * it is converted to single element array.
  */
-export const normalizeProjectsEnvironments = (
+const normalizeProjectsEnvironments = (
   project: string[] | string | undefined,
   env: string[] | string | undefined
 ): {queryEnvs: string[] | undefined; queryProjects: number[] | undefined} => {

@@ -156,7 +156,7 @@ export class DifferentialFlamegraph extends Flamegraph {
   }
 }
 
-export function diffFlamegraphTreeRecursive(
+function diffFlamegraphTreeRecursive(
   beforeFlamegraph: Flamegraph,
   afterFlamegraph: Flamegraph,
   negated: any

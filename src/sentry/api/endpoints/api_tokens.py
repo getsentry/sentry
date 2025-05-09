@@ -13,7 +13,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.fields import MultipleChoiceField
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.auth.elevated_mode import has_elevated_mode
@@ -27,7 +26,7 @@ ALLOWED_FIELDS = ["name", "tokenId"]
 
 class ApiTokenSerializer(serializers.Serializer):
     name = CharField(max_length=255, allow_blank=True, required=False)
-    scopes = MultipleChoiceField(required=True, choices=settings.SENTRY_SCOPES)
+    scopes = serializers.MultipleChoiceField(required=True, choices=list(settings.SENTRY_SCOPES))
 
 
 def get_appropriate_user_id(request: Request) -> int:

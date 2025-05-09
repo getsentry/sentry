@@ -3,6 +3,7 @@ import moment from 'moment-timezone';
 
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -11,7 +12,6 @@ import Link from 'sentry/components/links/link';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct, tn} from 'sentry/locale';
@@ -56,6 +56,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                 {t('Finalized')}
                 <Tooltip
                   skipWrapper
+                  isHoverable
                   title={tct(
                     'By default a release is created "unreleased".[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
                     {
@@ -75,41 +76,46 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
               dateReleased ? (
                 <DateTime date={dateReleased} seconds={false} />
               ) : (
-                <Tooltip
-                  title={t(
-                    'Set release date to %s',
-                    moment
-                      .tz(
-                        release.firstEvent ?? release.dateCreated,
-                        options?.timezone ?? ''
-                      )
-                      .format(
-                        options?.clock24Hours
-                          ? 'MMMM D, YYYY HH:mm z'
-                          : 'MMMM D, YYYY h:mm A z'
-                      )
-                  )}
-                >
-                  <Button
-                    size="xs"
-                    style={{marginRight: '-8px'}}
-                    onClick={() => {
-                      finalizeRelease.mutate([release], {
-                        onSettled() {
-                          window.location.reload();
-                        },
-                      });
-                    }}
+                <ButtonContainer>
+                  <Tooltip
+                    title={t(
+                      'Set release date to %s',
+                      moment
+                        .tz(
+                          release.firstEvent ?? release.dateCreated,
+                          options?.timezone ?? ''
+                        )
+                        .format(
+                          options?.clock24Hours
+                            ? 'MMMM D, YYYY HH:mm z'
+                            : 'MMMM D, YYYY h:mm A z'
+                        )
+                    )}
                   >
-                    {t('Finalize')}
-                  </Button>
-                </Tooltip>
+                    <FinalizeButton
+                      size="zero"
+                      onClick={() => {
+                        finalizeRelease.mutate([release], {
+                          onSettled() {
+                            window.location.reload();
+                          },
+                        });
+                      }}
+                    >
+                      {t('Finalize')}
+                    </FinalizeButton>
+                  </Tooltip>
+                </ButtonContainer>
               )
             }
           />
           <KeyValueTableRow
             keyName={t('Version')}
-            value={<Version version={version} anchor={false} />}
+            value={
+              <StyledTextOverflow ellipsisDirection="left">
+                <Version version={version} anchor={false} />
+              </StyledTextOverflow>
+            }
           />
           <KeyValueTableRow
             keyName={t('Semver')}
@@ -159,6 +165,24 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
 const StyledTextOverflow = styled(TextOverflow)`
   line-height: inherit;
   text-align: right;
+`;
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+  position: relative;
+  width: 100%;
+
+  & > * {
+    position: absolute;
+    right: 0;
+  }
+`;
+
+const FinalizeButton = styled(Button)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding-inline: ${space(0.5)};
 `;
 
 export default ProjectReleaseDetails;

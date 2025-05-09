@@ -45,4 +45,6 @@ const Label = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  margin-bottom: 0;
+  cursor: pointer;
 `;

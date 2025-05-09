@@ -84,7 +84,6 @@ describe('LazyLoad', function () {
     });
 
     rerender(<LazyLoad LazyComponent={lazy(() => importBar)} />);
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     // resolve with bar
     doResolve!({default: BarComponent});

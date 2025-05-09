@@ -26,9 +26,9 @@ describe('useLocation', () => {
     };
 
     render(
-      <TestRouteContext.Provider value={routeContext}>
+      <TestRouteContext value={routeContext}>
         <HomePage />
-      </TestRouteContext.Provider>
+      </TestRouteContext>
     );
 
     expect(location.pathname).toBe('/mock-pathname/');

@@ -10,7 +10,6 @@ import {
   THIRTY_DAYS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {
   SessionApiResponse,
@@ -48,19 +47,6 @@ export function getCrashFreeRate(
   const crashedRate = getSessionStatusRate(groups, field, SessionStatus.CRASHED);
 
   return defined(crashedRate) ? getCrashFreePercent(100 - crashedRate) : null;
-}
-
-export function getSeriesAverage(
-  groups: SessionApiResponse['groups'] = [],
-  field: SessionFieldWithOperation
-) {
-  const totalCount = getCount(groups, field);
-
-  const dataPoints = groups.filter(group => !!group.totals[field]).length;
-
-  return !defined(totalCount) || dataPoints === null || totalCount === 0
-    ? null
-    : totalCount / dataPoints;
 }
 
 export function getSeriesSum(
@@ -199,7 +185,7 @@ export function getCountSeries(
 }
 
 export function initSessionsChart(theme: Theme) {
-  const colors = getChartColorPalette(14);
+  const colors = theme.chart.getColorPalette(14);
   return {
     [SessionStatus.HEALTHY]: {
       seriesName: sessionTerm.healthy,
@@ -217,9 +203,9 @@ export function initSessionsChart(theme: Theme) {
     [SessionStatus.ERRORED]: {
       seriesName: sessionTerm.errored,
       data: [],
-      color: colors[12]!,
+      color: colors[12],
       areaStyle: {
-        color: colors[12]!,
+        color: colors[12],
         opacity: 1,
       },
       lineStyle: {
@@ -230,9 +216,9 @@ export function initSessionsChart(theme: Theme) {
     [SessionStatus.ABNORMAL]: {
       seriesName: sessionTerm.abnormal,
       data: [],
-      color: colors[15]!,
+      color: colors[15],
       areaStyle: {
-        color: colors[15]!,
+        color: colors[15],
         opacity: 1,
       },
       lineStyle: {

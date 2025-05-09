@@ -7,7 +7,6 @@ from datetime import UTC, datetime, timedelta
 from functools import cached_property, cmp_to_key
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
 from uuid import uuid4
 
 from cryptography.hazmat.backends import default_backend
@@ -18,12 +17,7 @@ from django.db import connections, router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
-from sentry.backup.crypto import (
-    KeyManagementServiceClient,
-    LocalFileDecryptor,
-    LocalFileEncryptor,
-    decrypt_encrypted_tarball,
-)
+from sentry.backup.crypto import LocalFileDecryptor, LocalFileEncryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
     NormalizedModelName,
     get_model,
@@ -44,7 +38,11 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryProject
+from sentry.explore.models import (
+    ExploreSavedQuery,
+    ExploreSavedQueryProject,
+    ExploreSavedQueryStarred,
+)
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
@@ -52,6 +50,7 @@ from sentry.incidents.models.incident import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
+from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.project_integration import ProjectIntegration
@@ -91,13 +90,14 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -115,12 +115,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
-from sentry.workflow_engine.models import (
-    Action,
-    AlertRuleDetector,
-    AlertRuleWorkflow,
-    DataConditionGroup,
-)
+from sentry.workflow_engine.models import Action, DataConditionAlertRuleTrigger, DataConditionGroup
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 
 __all__ = [
@@ -129,21 +124,6 @@ __all__ = [
 ]
 
 NOOP_PRINTER = Printer()
-
-
-class FakeKeyManagementServiceClient:
-    """
-    Fake version of `KeyManagementServiceClient` that removes the two network calls we rely on: the
-    `Transport` setup on class construction, and the call to the hosted `asymmetric_decrypt`
-    endpoint.
-    """
-
-    asymmetric_decrypt = MagicMock()
-    get_public_key = MagicMock()
-
-    @staticmethod
-    def crypto_key_version_path(**kwargs) -> str:
-        return KeyManagementServiceClient.crypto_key_version_path(**kwargs)
 
 
 class ValidationError(Exception):
@@ -433,8 +413,11 @@ class ExhaustiveFixtures(Fixtures):
                     inviter_id=inviter.id,
                     invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 )
+                # OrganizationMemberInvite + placeholder OrganizationMember
+                om = OrganizationMember.objects.create(organization_id=org.id)
                 OrganizationMemberInvite.objects.create(
                     organization_id=org.id,
+                    organization_member_id=om.id,
                     role="member",
                     email=email,
                     inviter_id=inviter.id,
@@ -470,6 +453,12 @@ class ExhaustiveFixtures(Fixtures):
             project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
+        ProjectSDK.objects.create(
+            project=project,
+            event_type=EventType.PROFILE_CHUNK.value,
+            sdk_name="sentry.python",
+            sdk_version="2.41.0",
+        )
         self.create_notification_action(organization=org, projects=[project])
 
         # Auth*
@@ -516,7 +505,6 @@ class ExhaustiveFixtures(Fixtures):
         Monitor.objects.create(
             organization_id=project.organization.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
             owner_user_id=owner_id,
         )
@@ -628,7 +616,6 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
             query=f"some query for {slug}",
             query_sort="date",
-            position=0,
         )
         GroupSearchViewProject.objects.create(
             group_search_view=group_search_view,
@@ -678,7 +665,7 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        send_notification_action = self.create_action(type=Action.Type.SLACK, data="")
+        send_notification_action = self.create_action()
         self.create_data_condition_group_action(
             action=send_notification_action,
             condition_group=notification_condition_group,
@@ -700,16 +687,19 @@ class ExhaustiveFixtures(Fixtures):
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )
-        self.create_data_condition(
+        data_condition = self.create_data_condition(
             comparison=75,
             condition_result=True,
             condition_group=detector_conditions,
         )
         detector.workflow_condition_group = detector_conditions
 
-        AlertRuleDetector.objects.create(detector=detector, alert_rule=alert)
-        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
+        self.create_alert_rule_detector(detector=detector, alert_rule_id=alert.id)
+        self.create_alert_rule_workflow(workflow=workflow, alert_rule_id=alert.id)
         ActionGroupStatus.objects.create(action=send_notification_action, group=group)
+        DataConditionAlertRuleTrigger.objects.create(
+            data_condition=data_condition, alert_rule_trigger_id=trigger.id
+        )
 
         TempestCredentials.objects.create(
             project=project,
@@ -730,6 +720,20 @@ class ExhaustiveFixtures(Fixtures):
         ExploreSavedQueryProject.objects.create(
             project=project,
             explore_saved_query=explore_saved_query,
+        )
+
+        ExploreSavedQueryStarred.objects.create(
+            organization=org,
+            user_id=owner_id,
+            explore_saved_query=explore_saved_query,
+            position=0,
+        )
+
+        InsightsStarredSegment.objects.create(
+            organization=org,
+            user_id=owner_id,
+            project=project,
+            segment_name="test_transaction",
         )
 
         return org

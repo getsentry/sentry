@@ -1,105 +1,79 @@
-import {useLayoutEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 
+import {addMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {User} from 'sentry/types/user';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {
   DO_NOT_USE_darkChonkTheme,
   DO_NOT_USE_lightChonkTheme,
 } from 'sentry/utils/theme/theme.chonk';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import usePrevious from 'sentry/utils/usePrevious';
+import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
+import {useUser} from 'sentry/utils/useUser';
 
 export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
   const config = useLegacyStore(ConfigStore);
+  // User can be nullable in some cases where this hook can be called, however the
+  // type of the user is not nullable, so we will cast it to undefined.
+  const user = useUser() as User | undefined;
   // @TODO(jonasbadalic): the notion of an organization should be removed from the config store
   // before release, as we may not always have an organization. When we release, chonk should
   // be the value that we receive from the server config - the theme should ultimately be toggled there
   const {organization} = useLegacyStore(OrganizationStore);
-  const [chonkTheme, setChonkTheme] = useLocalStorageState<{
-    theme: 'light' | 'dark' | null;
-  }>('chonk-theme', {theme: null});
 
-  let theme = config.theme === 'dark' ? darkTheme : lightTheme;
+  const {mutate: mutateUserOptions} = useMutateUserOptions();
+
+  let theme: Theme | DO_NOT_USE_ChonkTheme =
+    config.theme === 'dark' ? darkTheme : lightTheme;
   // Check feature access and if chonk theme is enabled
-  if (organization?.features?.includes('chonk-ui') && chonkTheme.theme) {
+  if (organization?.features?.includes('chonk-ui') && user?.options?.prefersChonkUI) {
     theme =
-      chonkTheme.theme === 'dark'
-        ? DO_NOT_USE_darkChonkTheme
-        : DO_NOT_USE_lightChonkTheme;
+      config.theme === 'dark' ? DO_NOT_USE_darkChonkTheme : DO_NOT_USE_lightChonkTheme;
   }
 
-  // Only fire if the config theme changes or the organization does not have chonk-ui feature.
-  // In practice, this should be the only place where the theme could be changed, so this is
-  // likely redundant, but it gives us some extra safety and ensures we react to changes in the store
-  const previousTheme = usePrevious(config.theme);
-  useLayoutEffect(() => {
-    if (
-      previousTheme !== config.theme ||
-      (organization && !organization?.features?.includes('chonk-ui'))
-    ) {
-      removeBodyTheme();
-      setChonkTheme({theme: null});
-    }
-  }, [config.theme, organization, previousTheme, setChonkTheme]);
-
   // Hotkey definition for toggling the current theme
-  const currentThemeHotkey = useMemo(
+  const themeToggleHotkey = useMemo(
     () => ({
       match: ['command+shift+1', 'ctrl+shift+1'],
       includeInputs: true,
       callback: () => {
         removeBodyTheme();
-        ConfigStore.set(
-          'theme',
-          chonkTheme.theme === null
-            ? config.theme === 'dark'
-              ? 'light'
-              : 'dark'
-            : chonkTheme.theme === 'dark'
-              ? 'dark'
-              : 'light'
-        );
-        setChonkTheme({theme: null});
+        ConfigStore.set('theme', config.theme === 'dark' ? 'light' : 'dark');
       },
     }),
-    [chonkTheme.theme, config.theme, setChonkTheme]
+    [config.theme]
   );
 
   // Hotkey definition for toggling the chonk theme
-  const chonkThemeHotkey = useMemo(
+  const chonkThemeToggleHotkey = useMemo(
     () => ({
       match: ['command+shift+2', 'ctrl+shift+2'],
       includeInputs: true,
       callback: () => {
-        removeBodyTheme();
-        setChonkTheme({
-          theme:
-            // A bit of extra logic to ensure that toggling from chonk to legacy and
-            // vice versa persists the current theme. This makes it easier to look for UI
-            // changes as we can quickly swap between light or dark themes.
-            chonkTheme.theme === null
-              ? config.theme === 'dark'
-                ? 'dark'
-                : 'light'
-              : chonkTheme.theme === 'dark'
-                ? 'light'
-                : 'dark',
-        });
+        if (user?.options?.prefersChonkUI) {
+          ConfigStore.set('theme', config.theme);
+          addMessage(`Using default theme`, 'success');
+          mutateUserOptions({prefersChonkUI: false});
+        } else {
+          addMessage(`Previewing new theme`, 'success');
+          mutateUserOptions({prefersChonkUI: true});
+        }
       },
     }),
-    [chonkTheme.theme, config.theme, setChonkTheme]
+    [user?.options?.prefersChonkUI, config.theme, mutateUserOptions]
   );
 
   const themeToggleHotkeys = useMemo(() => {
     return organization?.features?.includes('chonk-ui')
-      ? [currentThemeHotkey, chonkThemeHotkey]
-      : [currentThemeHotkey];
-  }, [organization, chonkThemeHotkey, currentThemeHotkey]);
+      ? [themeToggleHotkey, chonkThemeToggleHotkey]
+      : [themeToggleHotkey];
+  }, [organization, chonkThemeToggleHotkey, themeToggleHotkey]);
 
   useHotkeys(themeToggleHotkeys);
   return theme;

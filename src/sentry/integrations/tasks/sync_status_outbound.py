@@ -10,6 +10,9 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
+from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
@@ -18,6 +21,10 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+        retry=Retry(times=5),
+    ),
 )
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
@@ -53,6 +60,14 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
     ).capture() as lifecycle:
         lifecycle.add_extra("sync_task", "sync_status_outbound")
         if installation.should_sync("outbound_status"):
+            lifecycle.add_extras(
+                {
+                    "organization_id": external_issue.organization_id,
+                    "integration_id": integration.id,
+                    "external_issue": external_issue_id,
+                    "status": group.status,
+                }
+            )
             installation.sync_status_outbound(
                 external_issue, group.status == GroupStatus.RESOLVED, group.project_id
             )

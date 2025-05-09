@@ -217,7 +217,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             <StyledButton
               active={flamegraphPreferences.layout === 'table left'}
               onClick={onTableLeftClick}
-              size="xs"
+              size="zero"
               title={t('Table left')}
             >
               <IconPanel size="xs" direction="left" />
@@ -225,7 +225,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             <StyledButton
               active={flamegraphPreferences.layout === 'table bottom'}
               onClick={onTableBottomClick}
-              size="xs"
+              size="zero"
               title={t('Table bottom')}
             >
               <IconPanel size="xs" direction="down" />
@@ -233,7 +233,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             <StyledButton
               active={flamegraphPreferences.layout === 'table right'}
               onClick={onTableRightClick}
-              size="xs"
+              size="zero"
               title={t('Table right')}
             >
               <IconPanel size="xs" direction="right" />
@@ -359,6 +359,9 @@ export const ProfilingDetailsListItem = styled('li')<{
   margin?: 'none';
   size?: 'sm';
 }>`
+  height: 100%;
+  display: flex;
+  align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
 
@@ -367,6 +370,7 @@ export const ProfilingDetailsListItem = styled('li')<{
     border-top: 2px solid transparent;
     border-bottom: 2px solid transparent;
     border-radius: 0;
+    font-weight: ${p => p.theme.fontWeightNormal};
     margin: 0;
     padding: ${space(0.5)} 0;
     color: ${p => p.theme.textColor};
@@ -402,10 +406,6 @@ const StyledButton = styled(Button)<{active: boolean}>`
   opacity: ${p => (p.active ? 0.7 : 0.5)};
   line-height: 26px;
 
-  &:not(:last-child) {
-    margin-right: ${space(1)};
-  }
-
   &:hover {
     border: none;
     background-color: transparent;
@@ -417,6 +417,8 @@ const StyledButton = styled(Button)<{active: boolean}>`
 const LayoutSelectionContainer = styled('div')`
   display: flex;
   align-items: center;
+  height: 100%;
+  gap: ${space(1)};
 `;
 
 export {FlamegraphDrawer};

@@ -12,7 +12,6 @@ import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -24,8 +23,7 @@ import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
-import {getExclusiveTimeDisplayedValue} from '../utils';
+import {getExclusiveTimeDisplayedValue} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
 
 type Props = {
   eventView: EventView;
@@ -122,7 +120,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
                   top: '40px',
                   bottom: '0px',
                 },
-                colors: getChartColorPalette(yAxis.length - 2),
+                colors: theme.chart.getColorPalette(yAxis.length - 2),
                 seriesOptions: {
                   showSymbol: false,
                 },

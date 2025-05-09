@@ -430,7 +430,14 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
         "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "click_options": [
+            click.Option(
+                ["--skip-produce", "skip_produce"],
+                is_flag=True,
+                default=False,
+            ),
+            *multiprocessing_options(default_max_batch_size=100),
+        ],
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
@@ -454,6 +461,7 @@ def get_stream_processor(
     stale_threshold_sec: int | None = None,
     enforce_schema: bool = False,
     group_instance_id: str | None = None,
+    max_dlq_buffer_length: int | None = None,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -587,7 +595,7 @@ def get_stream_processor(
         dlq_policy = DlqPolicy(
             dlq_producer,
             None,
-            None,
+            max_dlq_buffer_length,
         )
 
     else:

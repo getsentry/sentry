@@ -7,6 +7,7 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import AutomationForm from 'sentry/views/automations/components/automationForm';
 import NewAutomationLayout from 'sentry/views/automations/layouts/new';
 
 export default function AutomationNewSettings() {
@@ -14,10 +15,11 @@ export default function AutomationNewSettings() {
 
   return (
     <NewAutomationLayout>
+      <AutomationForm />
       <StickyFooter>
         <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
-          <LinkButton priority="default" to="/automations/new/">
+          <LinkButton priority="default" to="/issues/automations/new/">
             {t('Back')}
           </LinkButton>
           <Button priority="primary">{t('Create Automation')}</Button>

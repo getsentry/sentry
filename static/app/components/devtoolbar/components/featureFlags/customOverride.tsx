@@ -3,11 +3,10 @@ import {css} from '@emotion/react';
 
 import {Input} from 'sentry/components/core/input';
 import {Switch} from 'sentry/components/core/switch';
+import {AnalyticsContext} from 'sentry/components/devtoolbar/components/analyticsProvider';
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import {resetButtonCss} from 'sentry/components/devtoolbar/styles/reset';
 import {IconAdd} from 'sentry/icons';
-
-import useConfiguration from '../../hooks/useConfiguration';
-import {AnalyticsContext} from '../analyticsProvider';
 
 import {useFeatureFlagsContext} from './featureFlagsContext';
 

@@ -6,13 +6,6 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {
-  SESSIONS_FIELDS,
-  SESSIONS_OPERATIONS,
-} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
-import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
-
-import {
   AGGREGATION_FIELDS,
   AggregationKey,
   DISCOVER_FIELDS,
@@ -24,7 +17,13 @@ import {
   MobileVital,
   SpanOpBreakdown,
   WebVital,
-} from '../fields';
+} from 'sentry/utils/fields';
+import {
+  SESSIONS_FIELDS,
+  SESSIONS_OPERATIONS,
+} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
+import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
 
 import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
@@ -204,23 +203,6 @@ export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
   terabyte: 1000 ** 4,
   petabyte: 1000 ** 5,
   exabyte: 1000 ** 6,
-};
-
-export const SIZE_UNIT_LABELS: Record<SizeUnit, string> = {
-  bit: 'b',
-  byte: 'B',
-  kibibyte: 'KiB',
-  kilobyte: 'KB',
-  mebibyte: 'MiB',
-  megabyte: 'MB',
-  gibibyte: 'GiB',
-  gigabyte: 'GB',
-  tebibyte: 'TiB',
-  terabyte: 'TB',
-  pebibyte: 'PiB',
-  petabyte: 'PB',
-  exbibyte: 'EiB',
-  exabyte: 'EB',
 };
 
 export enum RateUnit {
@@ -612,12 +594,12 @@ export const AGGREGATIONS = {
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
-export const ALIASES = {
+const ALIASES = {
   tpm: AggregationKey.EPM,
   tps: AggregationKey.EPS,
 };
 
-assert(AGGREGATIONS as Readonly<{[key in AggregationKey]: Aggregation}>);
+assert(AGGREGATIONS as Readonly<Record<AggregationKey, Aggregation>>);
 
 export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES | '';
 
@@ -656,11 +638,6 @@ export type Aggregation = {
 };
 
 export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
-
-export type FieldTag = {
-  key: FieldKey;
-  name: FieldKey;
-};
 
 export const FIELD_TAGS = Object.freeze(
   Object.fromEntries(DISCOVER_FIELDS.map(item => [item, {key: item, name: item}]))
@@ -706,7 +683,7 @@ export function formatTagKey(key: string): string {
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-export type MeasurementType =
+type MeasurementType =
   | FieldValueType.DURATION
   | FieldValueType.NUMBER
   | FieldValueType.INTEGER
@@ -846,8 +823,8 @@ export const ERRORS_AGGREGATION_FUNCTIONS = [
 // This list contains fields/functions that are available with profiling feature.
 export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];
 
-export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
-export const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
+const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
+const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
 
 export function isMeasurement(field: string): boolean {
   return MEASUREMENT_PATTERN.test(field);
@@ -905,7 +882,7 @@ function _lookback(columnText: string, j: number, str: string) {
   return columnText.substring(j - str.length, j) === str;
 }
 
-export function parseArguments(columnText: string): string[] {
+function parseArguments(columnText: string): string[] {
   const args: string[] = [];
 
   let quoted = false;
@@ -967,7 +944,7 @@ export function parseArguments(columnText: string): string[] {
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
 export const EQUATION_PREFIX = 'equation|';
 const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)\]$/;
-export const CALCULATED_FIELD_PREFIX = 'calculated|';
+const CALCULATED_FIELD_PREFIX = 'calculated|';
 
 export function isEquation(field: string): boolean {
   return field.startsWith(EQUATION_PREFIX);
@@ -1047,7 +1024,7 @@ export function generateAggregateFields(
   return fields.map(field => ({field})) as Field[];
 }
 
-export function isDerivedMetric(field: string): boolean {
+function isDerivedMetric(field: string): boolean {
   return field.startsWith(CALCULATED_FIELD_PREFIX);
 }
 
@@ -1138,7 +1115,7 @@ export function isAggregateFieldOrEquation(field: string): boolean {
  * Temporary hardcoded hack to enable testing derived metrics.
  * Can be removed after we get rid of getAggregateFields
  */
-export function isNumericMetrics(field: string): boolean {
+function isNumericMetrics(field: string): boolean {
   return [
     'session.crash_free_rate',
     'session.crashed',
@@ -1148,7 +1125,7 @@ export function isNumericMetrics(field: string): boolean {
   ].includes(field);
 }
 
-export function getAggregateFields(fields: string[]): string[] {
+function getAggregateFields(fields: string[]): string[] {
   return fields.filter(
     field =>
       isAggregateField(field) || isAggregateEquation(field) || isNumericMetrics(field)
@@ -1317,34 +1294,6 @@ export function errorsAndTransactionsAggregateFunctionOutputType(
   return null;
 }
 
-export function sessionsAggregateFunctionOutputType(
-  funcName: string,
-  firstArg: string | undefined
-): AggregationOutputType | null {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const aggregate = SESSIONS_OPERATIONS[funcName];
-
-  // Attempt to use the function's outputType.
-  if (aggregate?.outputType) {
-    return aggregate.outputType;
-  }
-
-  // If the first argument is undefined and it is not required,
-  // then we attempt to get the default value.
-  if (!firstArg && aggregate?.parameters?.[0]) {
-    if (aggregate.parameters[0].required === false) {
-      firstArg = aggregate.parameters[0].defaultValue;
-    }
-  }
-
-  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
-  }
-
-  return null;
-}
-
 /**
  * Get the multi-series chart type for an aggregate function.
  */
@@ -1445,7 +1394,7 @@ export function getSpanOperationName(field: string): string | null {
   return null;
 }
 
-export function getColumnType(column: Column): ColumnType {
+function getColumnType(column: Column): ColumnType {
   if (column.kind === 'function') {
     const outputType = aggregateFunctionOutputType(
       column.function[0],
@@ -1480,7 +1429,7 @@ export function hasDuplicate(columnList: Column[], column: Column): boolean {
 // Search categorizations for the new `SearchQueryBuilder` component.
 // Each Insights module page will have different points of interest for searching, so use these on a case-by-case basis
 
-export const TRANSACTION_FILTERS: FilterKeySection = {
+const TRANSACTION_FILTERS: FilterKeySection = {
   value: 'transaction_event_filters',
   label: 'Event',
   children: [
@@ -1496,7 +1445,7 @@ export const TRANSACTION_FILTERS: FilterKeySection = {
   ],
 };
 
-export const USER_FILTERS: FilterKeySection = {
+const USER_FILTERS: FilterKeySection = {
   value: 'user_filters',
   label: 'User',
   children: [
@@ -1509,7 +1458,7 @@ export const USER_FILTERS: FilterKeySection = {
   ],
 };
 
-export const GEO_FILTERS: FilterKeySection = {
+const GEO_FILTERS: FilterKeySection = {
   value: 'geo_filters',
   label: 'Geo',
   children: [
@@ -1520,7 +1469,7 @@ export const GEO_FILTERS: FilterKeySection = {
   ],
 };
 
-export const HTTP_FILTERS: FilterKeySection = {
+const HTTP_FILTERS: FilterKeySection = {
   value: 'http_filters',
   label: 'HTTP',
   children: [
@@ -1531,7 +1480,7 @@ export const HTTP_FILTERS: FilterKeySection = {
   ],
 };
 
-export const WEB_VITAL_FILTERS: FilterKeySection = {
+const WEB_VITAL_FILTERS: FilterKeySection = {
   value: 'web_filters',
   label: 'Web Vitals',
   children: [
@@ -1545,7 +1494,7 @@ export const WEB_VITAL_FILTERS: FilterKeySection = {
   ],
 };
 
-export const MOBILE_VITAL_FILTERS: FilterKeySection = {
+const MOBILE_VITAL_FILTERS: FilterKeySection = {
   value: 'mobile_vitals_filters',
   label: 'Mobile Vitals',
   children: [
@@ -1565,7 +1514,7 @@ export const MOBILE_VITAL_FILTERS: FilterKeySection = {
   ],
 };
 
-export const DEVICE_FILTERS: FilterKeySection = {
+const DEVICE_FILTERS: FilterKeySection = {
   value: 'device_filters',
   label: 'Device',
   children: [
@@ -1589,7 +1538,7 @@ export const DEVICE_FILTERS: FilterKeySection = {
   ],
 };
 
-export const RELEASE_FILTERS: FilterKeySection = {
+const RELEASE_FILTERS: FilterKeySection = {
   value: 'release_filters',
   label: 'Release',
   children: [
@@ -1601,23 +1550,7 @@ export const RELEASE_FILTERS: FilterKeySection = {
   ],
 };
 
-export const STACKTRACE_FILTERS: FilterKeySection = {
-  value: 'stacktrace_filters',
-  label: 'Stacktrace',
-  children: [
-    FieldKey.STACK_ABS_PATH,
-    FieldKey.STACK_COLNO,
-    FieldKey.STACK_FILENAME,
-    FieldKey.STACK_FUNCTION,
-    FieldKey.STACK_IN_APP,
-    FieldKey.STACK_LINENO,
-    FieldKey.STACK_MODULE,
-    FieldKey.STACK_PACKAGE,
-    FieldKey.STACK_STACK_LEVEL,
-  ],
-};
-
-export const ERROR_DETAIL_FILTERS: FilterKeySection = {
+const ERROR_DETAIL_FILTERS: FilterKeySection = {
   value: 'error_detail_filters',
   label: 'Error',
   children: [
@@ -1633,23 +1566,7 @@ export const ERROR_DETAIL_FILTERS: FilterKeySection = {
   ],
 };
 
-export const MISC_FILTERS: FilterKeySection = {
-  value: 'misc_filters',
-  label: 'Misc',
-  children: [FieldKey.HAS, FieldKey.DIST],
-};
-
-export const TRANSACTION_EVENT_FILTERS: FilterKeySection = {
-  value: 'transaction_event_filters',
-  label: 'Event',
-  children: [
-    ...TRANSACTION_FILTERS.children,
-    ...HTTP_FILTERS.children,
-    ...RELEASE_FILTERS.children,
-  ],
-};
-
-export const ERROR_EVENT_FILTERS: FilterKeySection = {
+const ERROR_EVENT_FILTERS: FilterKeySection = {
   value: 'error_event_filters',
   label: 'Event',
   children: [
@@ -1659,7 +1576,7 @@ export const ERROR_EVENT_FILTERS: FilterKeySection = {
   ],
 };
 
-export const COMBINED_EVENT_FILTERS: FilterKeySection = {
+const COMBINED_EVENT_FILTERS: FilterKeySection = {
   value: 'combined_event_filters',
   label: 'Event',
   children: [
@@ -1670,7 +1587,7 @@ export const COMBINED_EVENT_FILTERS: FilterKeySection = {
   ],
 };
 
-export const USER_CONTEXT_FILTERS: FilterKeySection = {
+const USER_CONTEXT_FILTERS: FilterKeySection = {
   value: 'user_context_filters',
   label: 'User',
   children: [
@@ -1680,7 +1597,7 @@ export const USER_CONTEXT_FILTERS: FilterKeySection = {
   ],
 };
 
-export const PERFORMANCE_FILTERS: FilterKeySection = {
+const PERFORMANCE_FILTERS: FilterKeySection = {
   value: 'performance_filters',
   label: 'Performance',
   children: [...WEB_VITAL_FILTERS.children, ...MOBILE_VITAL_FILTERS.children],
@@ -1708,7 +1625,7 @@ export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
 // will take in a project platform key, and output only the relevant filter key sections.
 // This way, users will not be suggested mobile fields for a backend transaction, for example.
 
-export const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
+const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
 
 export function classifyTagKey(key: string): FieldKind {
   const result = key.match(TYPED_TAG_KEY_RE);
@@ -1721,6 +1638,14 @@ export function prettifyTagKey(key: string): string {
 }
 
 export function prettifyParsedFunction(func: ParsedFunction) {
+  // special case for `count(span.duration)` as we want to say `count(spans)`
+  if (
+    func.name === 'count' &&
+    func.arguments.length === 1 &&
+    func.arguments[0] === 'span.duration'
+  ) {
+    return 'count(spans)';
+  }
   const args = func.arguments.map(prettifyTagKey);
   return `${func.name}(${args.join(',')})`;
 }

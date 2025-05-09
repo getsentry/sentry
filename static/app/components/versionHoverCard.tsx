@@ -72,7 +72,7 @@ function VersionHoverCard({
               'Connect a repository to see commit info, files changed, and authors involved in future releases.'
             )}
           </p>
-          <LinkButton to={`/organizations/${orgSlug}/repos/`} priority="primary">
+          <LinkButton to={`/settings/${orgSlug}/repos/`} priority="primary">
             {t('Connect a repository')}
           </LinkButton>
         </ConnectRepo>
@@ -224,7 +224,7 @@ const ConnectRepo = styled('div')`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

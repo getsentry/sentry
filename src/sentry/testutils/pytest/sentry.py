@@ -8,7 +8,7 @@ import string
 import sys
 import time
 from datetime import datetime
-from hashlib import md5
+from hashlib import sha256
 from typing import TypeVar
 from unittest import mock
 
@@ -145,8 +145,6 @@ def pytest_configure(config: pytest.Config) -> None:
     # override a few things with our test specifics
     install_plugin_apps("sentry.apps", settings)
     settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("fixtures",)
-    # Need a predictable key for tests that involve checking signatures
-    settings.SENTRY_PUBLIC = False
 
     if not settings.SENTRY_CACHE:
         settings.SENTRY_CACHE = "sentry.cache.django.DjangoCache"
@@ -245,7 +243,6 @@ def pytest_configure(config: pytest.Config) -> None:
     _configure_test_env_regions()
 
     # ID controls
-    settings.SENTRY_USE_BIG_INTS = True
     settings.SENTRY_USE_SNOWFLAKE = True
     settings.SENTRY_SNOWFLAKE_EPOCH_START = datetime(1999, 12, 31, 0, 0).timestamp()
 
@@ -412,11 +409,12 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     for index, item in enumerate(items):
         # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
         # we want to only include items in `accepted` list
-        item_to_group = (
-            int(md5(item.nodeid.rsplit("::", 1)[0].encode()).hexdigest(), 16)
+        to_hash = (
+            item.nodeid.rsplit("::", 1)[0].encode()
             if grouping_strategy == "scope"
-            else index
+            else item.nodeid.encode()
         )
+        item_to_group = int(sha256(to_hash).hexdigest(), 16)
 
         # Split tests in different groups
         group_num = item_to_group % total_groups

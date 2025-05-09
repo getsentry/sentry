@@ -19,6 +19,7 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.plugins.providers import RepositoryProvider
 from sentry.utils import json
 from sentry.utils.email import parse_email
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -77,6 +78,7 @@ class PushEventWebhook(Webhook):
                         )
 
                 except IntegrityError:
+                    incr_rollback_metrics(Commit)
                     pass
 
 

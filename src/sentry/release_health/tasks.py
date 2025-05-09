@@ -16,6 +16,9 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health import release_monitor
 from sentry.release_health.release_monitor.base import Totals
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import release_health_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 CHUNK_SIZE = 1000
@@ -29,6 +32,9 @@ logger = logging.getLogger("sentry.tasks.releasemonitor")
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=release_health_tasks, retry=Retry(times=5, on=(Exception,))
+    ),
 )
 def monitor_release_adoption(**kwargs) -> None:
     metrics.incr("sentry.tasks.monitor_release_adoption.start", sample_rate=1.0)
@@ -44,6 +50,9 @@ def monitor_release_adoption(**kwargs) -> None:
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=release_health_tasks, retry=Retry(times=5, on=(Exception,))
+    ),
 )
 def process_projects_with_sessions(org_id, project_ids) -> None:
     # Takes a single org id and a list of project ids

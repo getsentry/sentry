@@ -1,6 +1,7 @@
 import abc
 from abc import abstractmethod
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import Mock
 
 from django.db.models import QuerySet
@@ -185,6 +186,26 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
         schedule.refresh_from_db()
         assert schedule.in_progress is True
+
+    def test_relocated_model(self):
+        qs = self.create_simple_deletion()
+        inst = qs.get()
+
+        model_name = type(inst).__name__
+        orig_app = inst._meta.app_label
+        relocated_models = {("other_app", model_name): (orig_app, model_name)}
+
+        # As if the model was scheduled when it was part of a different app
+        with (
+            mock.patch.object(inst._meta, "app_label", "other_app"),
+            mock.patch.dict("sentry.deletions.RELOCATED_MODELS", relocated_models),
+            self.tasks(),
+        ):
+            schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
+            self.run_scheduled_deletions()
+
+        assert not qs.exists()
+        assert not self.ScheduledDeletion.objects.filter(id=schedule.id).exists()
 
 
 class RunRegionScheduledDeletionTest(RegionalRunScheduleDeletionTest):

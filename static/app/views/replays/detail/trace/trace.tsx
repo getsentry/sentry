@@ -18,9 +18,11 @@ import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceA
 import {useTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceTree';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {loadTraceViewPreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {getInitialTracePreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
+import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
+import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 import TraceView, {
   StyledTracePanel,
 } from 'sentry/views/performance/traceDetails/traceView';
@@ -88,7 +90,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.4,
-      'trace context height': 150,
+      'trace grid height': 330,
     },
     layoutOptions: [],
   },
@@ -154,7 +156,29 @@ function Trace({replay}: {replay: undefined | ReplayRecord}) {
   );
 }
 
+const REPLAY_TRACE_WATERFALL_PREFERENCES_KEY = 'replay-trace-waterfall-preferences';
+
 export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
+  const preferences = useMemo(
+    () =>
+      getInitialTracePreferences(
+        REPLAY_TRACE_WATERFALL_PREFERENCES_KEY,
+        DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES
+      ),
+    []
+  );
+
+  return (
+    <TraceStateProvider
+      initialPreferences={preferences}
+      preferencesStorageKey={REPLAY_TRACE_WATERFALL_PREFERENCES_KEY}
+    >
+      <NewTraceViewImpl replay={replay} />
+    </TraceStateProvider>
+  );
+}
+
+function NewTraceViewImpl({replay}: {replay: undefined | ReplayRecord}) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {eventView, indexComplete, indexError, replayTraces} = useReplayTraces({
@@ -166,20 +190,24 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
     traceSlug: firstTrace?.traceSlug,
     timestamp: firstTrace?.timestamp,
   });
-  const rootEvent = useTraceRootEvent(trace.data ?? null);
   const meta = useReplayTraceMeta(replay);
   const tree = useTraceTree({
     trace,
     meta,
     replay: replay ?? null,
   });
+  const rootEvent = useTraceRootEvent({
+    tree,
+    logs: undefined,
+    traceId: firstTrace?.traceSlug ?? '',
+  });
 
-  const preferences = useMemo(
-    () =>
-      loadTraceViewPreferences('replay-trace-view-preferences') ||
-      DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES,
-    []
-  );
+  const traceWaterfallModels = useTraceWaterfallModels();
+  const traceWaterfallScroll = useTraceWaterfallScroll({
+    organization,
+    tree,
+    viewManager: traceWaterfallModels.viewManager,
+  });
 
   const otherReplayTraces = useMemo(() => {
     if (!replayTraces) {
@@ -214,30 +242,27 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
   const performanceActive =
     organization.features.includes('performance-view') && hasPerformance;
 
-  if (replayTraces.length === 0) {
+  if (!firstTrace) {
     return <TracesNotFound performanceActive={performanceActive} />;
   }
 
   return (
-    <TraceStateProvider
-      initialPreferences={preferences}
-      preferencesStorageKey="replay-trace-view-preferences"
-    >
-      <TraceViewWaterfallWrapper>
-        <TraceWaterfall
-          traceSlug={undefined}
-          trace={trace}
-          tree={tree}
-          rootEvent={rootEvent}
-          replayTraces={otherReplayTraces}
-          organization={organization}
-          traceEventView={eventView}
-          meta={meta}
-          source="replay"
-          replay={replay}
-        />
-      </TraceViewWaterfallWrapper>
-    </TraceStateProvider>
+    <TraceViewWaterfallWrapper>
+      <TraceWaterfall
+        traceSlug={firstTrace.traceSlug}
+        trace={trace}
+        tree={tree}
+        rootEventResults={rootEvent}
+        replayTraces={otherReplayTraces}
+        organization={organization}
+        traceEventView={eventView}
+        meta={meta}
+        source="replay"
+        replay={replay}
+        traceWaterfallScrollHandlers={traceWaterfallScroll}
+        traceWaterfallModels={traceWaterfallModels}
+      />
+    </TraceViewWaterfallWrapper>
   );
 }
 

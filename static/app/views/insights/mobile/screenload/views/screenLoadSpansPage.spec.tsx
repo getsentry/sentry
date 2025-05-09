@@ -1,36 +1,23 @@
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import ScreenLoadSpans from 'sentry/views/insights/mobile/screenload/views/screenLoadSpansPage';
 
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
 
 function mockResponses(organization: Organization, project: Project) {
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
-
-  jest.mocked(useProjects).mockReturnValue({
-    fetchError: null,
-    fetching: false,
-    hasMore: false,
-    initiallyLoaded: false,
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    projects: [project],
-  });
+  ProjectsStore.loadInitialData([project]);
 
   jest.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
@@ -47,22 +34,20 @@ function mockResponses(organization: Organization, project: Project) {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [parseInt(project.id, 10)],
       },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
-    },
-  });
+    })
+  );
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/releases/`,

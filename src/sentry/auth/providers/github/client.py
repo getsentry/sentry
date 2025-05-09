@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import orjson
 from requests.exceptions import RequestException
 
@@ -7,23 +9,23 @@ from .constants import API_DOMAIN
 
 
 class GitHubApiError(Exception):
-    def __init__(self, message="", status=0):
+    def __init__(self, message="", status=0) -> None:
         super().__init__(message)
         self.status = status
 
 
 class GitHubClient:
-    def __init__(self, access_token):
+    def __init__(self, access_token) -> None:
         self.http = http.build_session()
         self.access_token = access_token
 
-    def __enter__(self):
+    def __enter__(self) -> GitHubClient:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.http.close()
 
-    def _request(self, path):
+    def _request(self, path: str):
         headers = {"Authorization": f"token {self.access_token}"}
 
         try:
@@ -46,7 +48,7 @@ class GitHubClient:
     def get_user_emails(self):
         return self._request("/user/emails")
 
-    def is_org_member(self, org_id):
+    def is_org_member(self, org_id) -> bool:
         org_id = str(org_id)
         for o in self.get_org_list():
             if str(o["id"]) == org_id:

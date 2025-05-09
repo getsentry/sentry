@@ -11,6 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 
 import TrialRequestedActions from 'getsentry/actions/trialRequestedActions';
+import type {EventType} from 'getsentry/components/addEventsCTA';
 
 export async function sendReplayOnboardRequest({
   api,
@@ -88,34 +89,6 @@ export function sendTrialRequest({
   });
 }
 
-export async function sendBetaCronsTrialOptIn({
-  api,
-  organization,
-  onSuccess,
-}: {
-  api: Client;
-  organization: Organization;
-  onSuccess?: () => void;
-}) {
-  const endpoint = `/customers/${organization.slug}/`;
-  try {
-    addLoadingMessage();
-    await api.requestPromise(endpoint, {
-      method: 'PUT',
-      data: {
-        cronsBetaOptIn: true,
-      },
-    });
-
-    addSuccessMessage(t('Success!'));
-    onSuccess?.();
-  } catch (error) {
-    const message = t('Failed to opt-in');
-    handleXhrErrorResponse(message, error);
-    addErrorMessage(message);
-  }
-}
-
 export function sendAddEventsRequest({
   organization,
   eventTypes,
@@ -124,7 +97,7 @@ export function sendAddEventsRequest({
 }: {
   api: Client;
   organization: Organization;
-  eventTypes?: string[];
+  eventTypes?: EventType[];
   handleSuccess?: () => void;
   notificationType?: string;
 }) {

@@ -10,7 +10,7 @@ import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {IconTimer, IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,9 +18,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
-
-import {checkStatusPrecedent, statusToText, tickStyle} from '../../timelineConfig';
-import {useUptimeMonitorStats} from '../../utils/useUptimeMonitorStats';
+import {
+  checkStatusPrecedent,
+  statusToText,
+  tickStyle,
+} from 'sentry/views/insights/uptime/timelineConfig';
+import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 
 interface Props {
   timeWindowConfig: TimeWindowConfig;
@@ -103,6 +106,7 @@ export function OverviewRow({uptimeRule, timeWindowConfig, singleRuleView}: Prop
             statusStyle={tickStyle}
             statusPrecedent={checkStatusPrecedent}
             timeWindowConfig={timeWindowConfig}
+            makeUnit={count => tn('check', 'checks', count)}
           />
         )}
       </TimelineContainer>

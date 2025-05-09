@@ -85,7 +85,7 @@ function ProjectTags(props: Props) {
     return <LoadingError />;
   }
 
-  const isEmpty = !tags || !tags.length;
+  const isEmpty = !tags?.length;
   return (
     <Fragment>
       <SentryDocumentTitle title={routeTitleGen(t('Tags & Context'), projectId, false)} />

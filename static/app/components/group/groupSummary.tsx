@@ -11,18 +11,17 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
-const POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD = 0.468;
-const POSSIBLE_CAUSE_NOVELTY_THRESHOLD = 0.419;
-// These thresholds were used when embedding the cause and computing simliarities.
+const POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD = 0.0;
+const POSSIBLE_CAUSE_NOVELTY_THRESHOLD = 0.0;
 
-interface GroupSummaryData {
+export interface GroupSummaryData {
   groupId: string;
   headline: string;
   eventId?: string | null;
@@ -50,6 +49,21 @@ export const makeGroupSummaryQueryKey = (
   },
 ];
 
+/**
+ * Gets the data for group summary if it exists but doesn't fetch it.
+ */
+export function useGroupSummaryData(group: Group) {
+  const organization = useOrganization();
+  const queryKey = makeGroupSummaryQueryKey(organization.slug, group.id);
+
+  const {data, isPending} = useApiQuery<GroupSummaryData>(queryKey, {
+    staleTime: Infinity,
+    enabled: false,
+  });
+
+  return {data, isPending};
+}
+
 export function useGroupSummary(
   group: Group,
   event: Event | null | undefined,
@@ -57,7 +71,7 @@ export function useGroupSummary(
   forceEvent = false
 ) {
   const organization = useOrganization();
-  const aiConfig = useAiConfig(group, event, project);
+  const aiConfig = useAiConfig(group, project);
   const enabled = aiConfig.hasSummary;
   const queryClient = useQueryClient();
   const queryKey = makeGroupSummaryQueryKey(
@@ -76,7 +90,7 @@ export function useGroupSummary(
 
   const refresh = () => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/issues/${group.id}/summarize/`],
+      queryKey: makeGroupSummaryQueryKey(organization.slug, group.id),
       exact: false,
     });
     refetch();
@@ -106,7 +120,7 @@ export function GroupSummary({
   const organization = useOrganization();
   const [forceEvent, setForceEvent] = useState(false);
   const openFeedbackForm = useFeedbackForm();
-  const aiConfig = useAiConfig(group, event, project);
+  const aiConfig = useAiConfig(group, project);
   const {data, isPending, isError, refresh} = useGroupSummary(
     group,
     event,
@@ -126,10 +140,17 @@ export function GroupSummary({
   useEffect(() => {
     if (isFixable && !isPending && aiConfig.hasAutofix) {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(group.id),
+        queryKey: makeAutofixQueryKey(organization.slug, group.id),
       });
     }
-  }, [isFixable, isPending, aiConfig.hasAutofix, group.id, queryClient]);
+  }, [
+    isFixable,
+    isPending,
+    aiConfig.hasAutofix,
+    group.id,
+    queryClient,
+    organization.slug,
+  ]);
 
   const eventDetailsItems = [
     {
@@ -242,6 +263,9 @@ export function GroupSummary({
                 size: 'xs',
                 borderless: true,
                 showChevron: false,
+                style: {
+                  zIndex: 0,
+                },
               }}
               isDisabled={isPending}
               position="bottom-end"
@@ -273,12 +297,10 @@ export function GroupSummary({
                     <CardContent>
                       {card.insightElement}
                       {card.insight && (
-                        <div
-                          dangerouslySetInnerHTML={{
-                            __html: marked(
-                              preview ? card.insight.replace(/\*\*/g, '') : card.insight
-                            ),
-                          }}
+                        <MarkedText
+                          text={
+                            preview ? card.insight.replace(/\*\*/g, '') : card.insight
+                          }
                         />
                       )}
                     </CardContent>
@@ -372,6 +394,11 @@ const TooltipWrapper = styled('div')`
   position: absolute;
   top: -${space(0.5)};
   right: 0;
+
+  ul {
+    max-height: none !important;
+    overflow: visible !important;
+  }
 `;
 
 const StyledIconEllipsis = styled(IconEllipsis)`

@@ -32,7 +32,7 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
     router: {
       location: {
         query: {
-          transaction: '/performance',
+          transaction: '/transaction-name',
           project: '1',
           transactionCursor: '1:0:0',
           ...query,
@@ -46,7 +46,7 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
 describe('Performance > TransactionSummary', function () {
   beforeEach(function () {
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
 
     MockApiClient.addMockResponse({
@@ -176,18 +176,15 @@ describe('Performance > TransactionSummary', function () {
 
     ProjectsStore.loadInitialData(projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
-      router,
-    });
+    render(<TransactionEvents organization={organization} location={router.location} />);
 
     // Breadcrumb
-    expect(await screen.findByRole('link', {name: 'Performance'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/performance/?project=1&transactionCursor=1%3A0%3A0'
+    expect((await screen.findAllByTestId('breadcrumb-item'))[0]).toHaveTextContent(
+      'Insights'
     );
 
     // Header
-    expect(screen.getByRole('heading', {name: '/performance'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: '/transaction-name'})).toBeInTheDocument();
 
     expect(
       await screen.findByPlaceholderText('Search for events, users, tags, and more')
@@ -210,9 +207,7 @@ describe('Performance > TransactionSummary', function () {
 
     ProjectsStore.loadInitialData(projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
-      router,
-    });
+    render(<TransactionEvents organization={organization} location={router.location} />);
 
     expect(await screen.findByText('operation duration')).toBeInTheDocument();
     expect(screen.getAllByRole('columnheader')).toHaveLength(6);
@@ -225,9 +220,7 @@ describe('Performance > TransactionSummary', function () {
 
     ProjectsStore.loadInitialData(projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
-      router,
-    });
+    render(<TransactionEvents organization={organization} location={router.location} />);
 
     const tableHeader = await screen.findAllByRole('columnheader');
     expect(tableHeader).toHaveLength(6);
@@ -256,9 +249,7 @@ describe('Performance > TransactionSummary', function () {
 
     ProjectsStore.loadInitialData(projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
-      router,
-    });
+    render(<TransactionEvents organization={organization} location={router.location} />);
 
     const tableHeader = await screen.findAllByRole('columnheader');
     expect(tableHeader).toHaveLength(7);

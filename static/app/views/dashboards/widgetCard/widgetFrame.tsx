@@ -3,19 +3,18 @@ import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-
-import type {StateProps} from '../widgets/common/types';
-import {Widget} from '../widgets/widget/widget';
-import type {WidgetDescriptionProps} from '../widgets/widget/widgetDescription';
+import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import type {WidgetDescriptionProps} from 'sentry/views/dashboards/widgets/widget/widgetDescription';
 
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import {WarningsList} from './warningsList';
 
-export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
+interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   actions?: MenuItemProps[];
   actionsDisabled?: boolean;
   actionsMessage?: string;
@@ -27,6 +26,7 @@ export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   revealActions?: 'always' | 'hover';
   revealTooltip?: 'always' | 'hover';
   title?: string;
+  titleBadges?: React.ReactNode;
   warnings?: string[];
 }
 
@@ -81,6 +81,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
       revealActions={
         props.revealTooltip === 'always' ? 'always' : (props.revealActions ?? 'hover')
       }
+      TitleBadges={props.titleBadges}
       Actions={
         <Fragment>
           {props.description && (

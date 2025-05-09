@@ -2,17 +2,20 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Sequence
-from typing import NamedTuple, TypeAlias
+from collections.abc import Mapping, Sequence
+from typing import Any, NamedTuple, TypeAlias
 
-from sentry import tsdb
-from sentry.digests.types import Notification, Record, RecordWithRuleObjects
+from sentry import features, tsdb
+from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
 from sentry.eventstore.models import Event
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.tsdb.base import TSDBModel
+from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 logger = logging.getLogger("sentry.digests")
 
@@ -22,7 +25,7 @@ Digest: TypeAlias = dict[Rule, dict[Group, list[RecordWithRuleObjects]]]
 class DigestInfo(NamedTuple):
     digest: Digest
     event_counts: dict[int, int]
-    user_counts: dict[int, int]
+    user_counts: Mapping[int, int]
 
 
 def split_key(
@@ -68,9 +71,21 @@ def event_to_record(
     if not rules:
         logger.warning("Creating record for %s that does not contain any rules!", event)
 
+    rule_ids = []
+    identifier_key = IdentifierKey.RULE
+    if features.has("organizations:workflow-engine-ui-links", event.organization):
+        identifier_key = IdentifierKey.WORKFLOW
+        for rule in rules:
+            rule_ids.append(int(get_key_from_rule_data(rule, "workflow_id")))
+    elif features.has("organizations:workflow-engine-trigger-actions", event.organization):
+        for rule in rules:
+            rule_ids.append(int(get_key_from_rule_data(rule, "legacy_rule_id")))
+    else:
+        for rule in rules:
+            rule_ids.append(rule.id)
     return Record(
         event.event_id,
-        Notification(event, [rule.id for rule in rules], notification_uuid),
+        Notification(event, rule_ids, notification_uuid, identifier_key),
         event.datetime.timestamp(),
     )
 
@@ -113,7 +128,7 @@ def _group_records(
 
 
 def _sort_digest(
-    digest: Digest, event_counts: dict[int, int], user_counts: dict[int, int]
+    digest: Digest, event_counts: dict[int, int], user_counts: Mapping[Any, int]
 ) -> Digest:
     # sort inner groups dict by (event_count, user_count) descending
     for key, rule_groups in digest.items():
@@ -142,12 +157,73 @@ def _build_digest_impl(
     groups: dict[int, Group],
     rules: dict[int, Rule],
     event_counts: dict[int, int],
-    user_counts: dict[int, int],
+    user_counts: Mapping[Any, int],
 ) -> Digest:
     # sans-io implementation details
     bound_records = _bind_records(records, groups, rules)
     grouped = _group_records(bound_records, groups, rules)
     return _sort_digest(grouped, event_counts=event_counts, user_counts=user_counts)
+
+
+def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[int, Rule]:
+    rules: dict[int, Rule] = {}
+    if not workflow_ids:
+        return rules
+
+    # Fetch all workflows in bulk
+    workflows = Workflow.objects.filter(organization_id=project.organization_id).in_bulk(
+        workflow_ids
+    )
+
+    # We are only processing the workflows in the digest if under the new flag
+    # This should be ok since we should only add workflow_ids to redis when under this flag
+    if features.has("organizations:workflow-engine-ui-links", project.organization):
+        for workflow_id, workflow in workflows.items():
+            assert (
+                workflow.organization_id == project.organization_id
+            ), "Workflow must belong to Organization"
+            rules[workflow_id] = Rule(
+                label=workflow.name,
+                id=workflow_id,
+                project_id=project.id,
+                # We need to do this so that the links are built correctly downstream
+                data={"actions": [{"workflow_id": workflow_id}]},
+            )
+    # This is if we had workflows in the digest but the flag is not enabled
+    # This can happen if we rollback the flag, but the records in the digest aren't flushed
+    else:
+        alert_rule_workflows = AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids)
+        alert_rule_workflows_map = {awf.workflow_id: awf for awf in alert_rule_workflows}
+
+        rule_ids_to_fetch = {awf.rule_id for awf in alert_rule_workflows}
+
+        bulk_rules = Rule.objects.filter(project_id=project.id).in_bulk(rule_ids_to_fetch)
+
+        for workflow_id in workflow_ids:
+            alert_workflow = alert_rule_workflows_map.get(workflow_id)
+            if not alert_workflow:
+                logger.warning(
+                    "Workflow %s does not have a corresponding AlertRuleWorkflow entry", workflow_id
+                )
+                raise
+
+            rule = bulk_rules.get(alert_workflow.rule_id)
+            if not rule:
+                logger.warning(
+                    "Rule %s linked to Workflow %s not found or does not belong to project %s",
+                    alert_workflow.rule_id,
+                    workflow_id,
+                    project.id,
+                )
+                continue
+
+            assert rule.project_id == project.id, "Rule must belong to Project"
+
+            if features.has("organizations:workflow-engine-trigger-actions", project.organization):
+                rule.data["actions"][0]["legacy_rule_id"] = rule.id
+
+            rules[workflow_id] = rule
+    return rules
 
 
 def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
@@ -161,9 +237,27 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     start = records[-1].datetime
     end = records[0].datetime
 
+    rule_ids: set[int] = set()
+    workflow_ids: set[int] = set()
+
+    for record in records:
+        identifier_key = getattr(record.value, "identifier_key", IdentifierKey.RULE)
+        # record.value is Notification, record.value.rules is Sequence[int]
+        ids_to_add = record.value.rules
+        if identifier_key == IdentifierKey.RULE:
+            rule_ids.update(ids_to_add)
+        elif identifier_key == IdentifierKey.WORKFLOW:
+            workflow_ids.update(ids_to_add)
+
     groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
     group_ids = list(groups)
-    rules = Rule.objects.in_bulk(rule_id for record in records for rule_id in record.value.rules)
+    rules = Rule.objects.in_bulk(rule_ids)
+
+    if features.has("organizations:workflow-engine-trigger-actions", project.organization):
+        for rule in rules.values():
+            rule.data["actions"][0]["legacy_rule_id"] = rule.id
+
+    rules.update(get_rules_from_workflows(project, workflow_ids))
 
     for group_id, g in groups.items():
         assert g.project_id == project.id, "Group must belong to Project"
@@ -171,7 +265,7 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
         assert rule.project_id == project.id, "Rule must belong to Project"
 
     tenant_ids = {"organization_id": project.organization_id}
-    event_counts = tsdb.backend.get_sums(
+    event_counts = tsdb.backend.get_timeseries_sums(
         TSDBModel.group,
         group_ids,
         start,
@@ -185,7 +279,6 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
         end,
         tenant_ids=tenant_ids,
     )
-
     digest = _build_digest_impl(records, groups, rules, event_counts, user_counts)
 
     return DigestInfo(digest, event_counts, user_counts)

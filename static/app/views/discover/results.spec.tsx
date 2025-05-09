@@ -11,8 +11,10 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {SavedSearchType} from 'sentry/types/group';
 import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/discover/results';
-
-import {DEFAULT_EVENT_VIEW, getTransactionViews} from './data';
+import {
+  DEFAULT_EVENT_VIEW,
+  getTransactionViews,
+} from 'sentry/views/discover/results/data';
 
 const FIELDS = [
   {
@@ -252,18 +254,11 @@ describe('Results', function () {
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
-      render(
-        <Results
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       // No request as eventview was invalid.
       expect(mockRequests.eventsStatsMock).not.toHaveBeenCalled();
@@ -300,19 +295,11 @@ describe('Results', function () {
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       // ensure cursor query string is initially present in the location
       expect(router.location).toEqual({
@@ -363,19 +350,11 @@ describe('Results', function () {
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       // Click the 'default' option.
       await selectEvent.select(
@@ -400,19 +379,11 @@ describe('Results', function () {
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       // Click the 'default' option.
       await selectEvent.select(
@@ -437,19 +408,11 @@ describe('Results', function () {
 
       renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(await screen.findByRole('button', {name: /Display/}));
 
@@ -473,19 +436,11 @@ describe('Results', function () {
 
       const mockRequests = renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
       await waitFor(() => {
@@ -515,19 +470,11 @@ describe('Results', function () {
 
       const mockRequests = renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
       await waitFor(() => {
@@ -551,19 +498,11 @@ describe('Results', function () {
 
       const mockRequests = renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => {
         expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
@@ -593,19 +532,11 @@ describe('Results', function () {
 
       const mockRequests = renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => {
         expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
@@ -630,19 +561,11 @@ describe('Results', function () {
 
       const mockRequests = renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => expect(mockRequests.mockVisit).toHaveBeenCalled());
 
@@ -697,19 +620,11 @@ describe('Results', function () {
 
       const mockRequests = renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => expect(mockRequests.mockVisit).toHaveBeenCalled());
 
@@ -735,19 +650,11 @@ describe('Results', function () {
 
       const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
 
-      const {rerender} = render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      const {rerender} = render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       // Should load events once
       expect(eventsStatsMock).toHaveBeenCalledTimes(1);
@@ -768,14 +675,11 @@ describe('Results', function () {
       // Update location simulating a browser back button action
       rerender(
         <Results
-          organization={organization}
           location={{
             ...router.location,
             query: {...generateFields(), yAxis: 'count_unique(user)'},
           }}
           router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
         />
       );
 
@@ -812,19 +716,11 @@ describe('Results', function () {
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
-      const {rerender} = render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      const {rerender} = render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       // Should load events once
       expect(eventsStatsMock).toHaveBeenCalledTimes(1);
@@ -845,14 +741,11 @@ describe('Results', function () {
       // Update location simulating a browser back button action
       rerender(
         <Results
-          organization={organization}
           location={{
             ...router.location,
             query: {...generateFields(), display: 'previous', yAxis: 'count()'},
           }}
           router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
         />
       );
 
@@ -889,19 +782,11 @@ describe('Results', function () {
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
-      const {rerender} = render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      const {rerender} = render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       // Should load events once
       expect(eventsStatsMock).toHaveBeenCalledTimes(1);
@@ -922,7 +807,6 @@ describe('Results', function () {
       // Update location simulating a browser back button action
       rerender(
         <Results
-          organization={organization}
           location={{
             ...router.location,
             query: {
@@ -932,8 +816,6 @@ describe('Results', function () {
             },
           }}
           router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
         />
       );
 
@@ -970,19 +852,11 @@ describe('Results', function () {
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(await screen.findByRole('button', {name: 'Show Tags'}));
 
@@ -1034,16 +908,11 @@ describe('Results', function () {
 
       ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'Pinned Project'})]);
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {router, organization}
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       const projectPageFilter = await screen.findByTestId('page-filter-project-selector');
 
@@ -1077,16 +946,11 @@ describe('Results', function () {
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {router, organization}
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => {
         expect(screen.getByText('this is a tip')).toBeInTheDocument();
@@ -1109,19 +973,11 @@ describe('Results', function () {
 
       renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       expect(
         await screen.findByText(
@@ -1146,19 +1002,11 @@ describe('Results', function () {
 
       renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       expect(
         await screen.findByText(/These are unparameterized transactions/)
@@ -1187,16 +1035,11 @@ describe('Results', function () {
       ProjectsStore.loadInitialData([ProjectFixture()]);
       renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {router, organization}
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() =>
         expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
@@ -1253,16 +1096,11 @@ describe('Results', function () {
       ProjectsStore.loadInitialData([ProjectFixture()]);
       renderMockRequests();
 
-      const {rerender} = render(
-        <Results
-          loading={false}
-          setSavedQuery={jest.fn()}
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
-        {router, organization}
-      );
+      const {rerender} = render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() =>
         expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
@@ -1281,13 +1119,7 @@ describe('Results', function () {
       });
 
       rerender(
-        <Results
-          loading={false}
-          setSavedQuery={jest.fn()}
-          organization={organization}
-          location={rerenderData.router.location}
-          router={rerenderData.router}
-        />
+        <Results location={rerenderData.router.location} router={rerenderData.router} />
       );
       screen.getByText('Previous Period');
       expect(await screen.findByText('Set as Default')).toBeInTheDocument();
@@ -1321,16 +1153,11 @@ describe('Results', function () {
       ProjectsStore.loadInitialData([ProjectFixture()]);
       renderMockRequests();
 
-      const {rerender} = render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {router, organization}
-      );
+      const {rerender} = render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await screen.findAllByText(getTransactionViews(organization)[0]!.name);
       await userEvent.click(screen.getByText('Set as Default'));
@@ -1346,13 +1173,7 @@ describe('Results', function () {
       });
 
       rerender(
-        <Results
-          organization={organization}
-          location={rerenderData.router.location}
-          router={rerenderData.router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />
+        <Results location={rerenderData.router.location} router={rerenderData.router} />
       );
       screen.getByText('Previous Period');
       expect(await screen.findByText('Set as Default')).toBeInTheDocument();
@@ -1373,16 +1194,11 @@ describe('Results', function () {
       ProjectsStore.loadInitialData([ProjectFixture()]);
       const {measurementsMetaMock} = renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {router, organization}
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => {
         expect(measurementsMetaMock).toHaveBeenCalled();
@@ -1407,16 +1223,11 @@ describe('Results', function () {
       });
       const {measurementsMetaMock} = renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {router, organization}
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => {
         expect(measurementsMetaMock).toHaveBeenCalled();
@@ -1451,16 +1262,11 @@ describe('Results', function () {
       ProjectsStore.loadInitialData([ProjectFixture()]);
       const {measurementsMetaMock} = renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {router, organization}
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => {
         expect(measurementsMetaMock).toHaveBeenCalled();
@@ -1489,16 +1295,11 @@ describe('Results', function () {
       });
       const {measurementsMetaMock} = renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {router, organization}
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => {
         expect(measurementsMetaMock).toHaveBeenCalled();
@@ -1527,19 +1328,11 @@ describe('Results', function () {
 
       const mockRequests = renderMockRequests();
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => {
         expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
@@ -1605,19 +1398,11 @@ describe('Results', function () {
         },
       });
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => {
         expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
@@ -1697,19 +1482,11 @@ describe('Results', function () {
         },
       });
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => {
         expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
@@ -1820,18 +1597,14 @@ describe('Results', function () {
         },
       });
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
       );
 
       await userEvent.click(
@@ -1940,18 +1713,14 @@ describe('Results', function () {
         },
       });
 
-      render(
-        <Results
-          organization={organization}
-          location={router.location}
-          router={router}
-          loading={false}
-          setSavedQuery={jest.fn()}
-        />,
-        {
-          router,
-          organization,
-        }
+      render(<Results location={router.location} router={router} />, {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      });
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
       );
 
       await userEvent.click(

@@ -3,7 +3,13 @@ from datetime import date
 import click
 
 from flagpole import Feature, Segment
-from flagpole.conditions import ConditionBase, ConditionOperatorKind, condition_from_dict
+from flagpole.conditions import (
+    ConditionBase,
+    ConditionOperatorKind,
+    EqualsCondition,
+    InCondition,
+    condition_from_dict,
+)
 from sentry.runner.decorators import configuration
 
 valid_scopes = ["organizations", "projects"]
@@ -137,3 +143,78 @@ def createflag(
     click.echo("")
     click.echo("=== GENERATED YAML ===\n")
     click.echo(feature.to_yaml_str())
+
+
+@click.command()
+@click.option("--slug", default=None, help="Slug of the GroupType")
+@click.option("--owner", default=None, help="The team name or email address of the feature owner.")
+@configuration
+def createissueflag(
+    slug: str | None,
+    owner: str | None,
+) -> None:
+    """Create a new Flagpole feature flag."""
+    from sentry.issues.grouptype import registry
+
+    try:
+        if not slug:
+            slug = click.prompt("GroupType slug", type=str)
+
+        assert slug, "Feature must have a non-empty string for 'slug'"
+        group_type = registry.get_by_slug(slug)
+        assert (
+            group_type
+        ), f"Invalid GroupType slug. Valid grouptypes: {[gt.slug for gt in registry.all()]}"
+
+        if not owner:
+            entered_owner = click.prompt("Owner (team name or email address)", type=str)
+            owner = entered_owner.strip()
+
+        assert owner, "Feature must have a non-empty string for 'owner'"
+
+        segments = [
+            Segment(
+                name="LA",
+                rollout=0,
+                conditions=[
+                    InCondition(
+                        "organization_slug",
+                        ["sentry", "codecov", "sentry", "sentry-eu", "sentry-sdks", "sentry-st"],
+                        operator=ConditionOperatorKind.IN.value,
+                    )
+                ],
+            ),
+            Segment(
+                name="EA",
+                rollout=0,
+                conditions=[
+                    EqualsCondition(
+                        "organization_is-early-adopter",
+                        True,
+                        operator=ConditionOperatorKind.EQUALS.value,
+                    )
+                ],
+            ),
+            Segment(
+                name="GA",
+                rollout=0,
+            ),
+        ]
+
+        click.echo("")
+        click.echo("=== GENERATED YAML ===\n")
+        for feature_name in [
+            group_type.build_visible_feature_name(),
+            group_type.build_ingest_feature_name(),
+            group_type.build_post_process_group_feature_name(),
+        ]:
+
+            feature = Feature(
+                name=f"feature.{feature_name}",
+                owner=owner,
+                segments=segments,
+                created_at=date.today().isoformat(),
+            )
+            click.echo(feature.to_yaml_str())
+    except Exception as err:
+        raise click.ClickException(f"{err}")

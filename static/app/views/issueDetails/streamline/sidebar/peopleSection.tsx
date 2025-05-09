@@ -23,7 +23,11 @@ export default function PeopleSection({
       <SidebarSectionTitle>{t('People')}</SidebarSectionTitle>
       {hasParticipants && (
         <Flex gap={space(0.5)} align="center">
-          <ParticipantList users={userParticipants} teams={teamParticipants} />
+          <ParticipantList
+            users={userParticipants}
+            teams={teamParticipants}
+            hideTimestamp
+          />
           {t('participating')}
         </Flex>
       )}

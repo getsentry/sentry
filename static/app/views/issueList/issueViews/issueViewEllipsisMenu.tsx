@@ -103,7 +103,7 @@ const UnsavedChangesIndicator = styled('div')`
 const ButtonWrapper = styled('div')`
   width: 18px;
   height: 16px;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-radius: 4px;
 `;
 

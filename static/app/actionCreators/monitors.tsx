@@ -9,7 +9,7 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {ObjectStatus} from 'sentry/types/core';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import type {Monitor, ProcessingErrorType} from 'sentry/views/monitors/types';
+import type {Monitor, ProcessingErrorType} from 'sentry/views/insights/crons/types';
 
 export async function deleteMonitor(api: Client, orgId: string, monitor: Monitor) {
   addLoadingMessage(t('Deleting Monitor...'));

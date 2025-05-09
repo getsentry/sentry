@@ -3,7 +3,7 @@ from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.models.team import Team
-from sentry.monitors.models import Monitor, MonitorType
+from sentry.monitors.models import Monitor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.types.actor import Actor
@@ -55,7 +55,6 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
             owner_team_id=team.id,
         )

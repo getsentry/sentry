@@ -243,9 +243,9 @@ export class Provider extends Component<PropType, StateType> {
     // to the respective divider components.
 
     return (
-      <DividerManagerContext.Provider value={childrenProps}>
+      <DividerManagerContext value={childrenProps}>
         {this.props.children}
-      </DividerManagerContext.Provider>
+      </DividerManagerContext>
     );
   }
 }

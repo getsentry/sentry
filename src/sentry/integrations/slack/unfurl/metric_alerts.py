@@ -14,9 +14,13 @@ from sentry import features
 from sentry.api.serializers import serialize
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers.incident import (
+    DetailedIncidentSerializer,
+    DetailedIncidentSerializerResponse,
+)
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -128,12 +132,20 @@ def _unfurl_metric_alerts(
         if features.has("organizations:metric-alert-chartcuterie", org):
             try:
                 alert_rule_serialized_response = serialize(alert_rule, user, AlertRuleSerializer())
+                incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
+                    selected_incident, None, DetailedIncidentSerializer()
+                )
                 chart_url = build_metric_alert_chart(
                     organization=org,
                     alert_rule_serialized_response=alert_rule_serialized_response,
                     snuba_query=alert_rule.snuba_query,
                     alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-                    selected_incident=selected_incident,
+                    open_period_context=(
+                        OpenPeriodContext.from_incident(selected_incident)
+                        if selected_incident
+                        else None
+                    ),
+                    selected_incident_serialized=incident_serialized_response,
                     period=link.args["period"],
                     start=link.args["start"],
                     end=link.args["end"],

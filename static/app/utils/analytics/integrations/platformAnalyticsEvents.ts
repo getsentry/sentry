@@ -10,9 +10,7 @@ export enum PlatformEvents {
   PUBLIC_DOCS = 'integrations.platform_public_docs_clicked',
 }
 
-export type PlatformEventParameters = {
-  [key in PlatformEvents]: {} & IntegrationView;
-};
+export type PlatformEventParameters = Record<PlatformEvents, {} & IntegrationView>;
 
 export const platformEventMap: Record<PlatformEvents, string> = {
   [PlatformEvents.DOCS]: 'Integrations: Platform Example App Docs Clicked',

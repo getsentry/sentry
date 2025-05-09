@@ -19,9 +19,7 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
 
-interface TagTree {
-  [key: string]: TagTreeContent;
-}
+type TagTree = Record<string, TagTreeContent>;
 
 export interface TagTreeContent {
   subtree: TagTree;
@@ -142,7 +140,7 @@ function TagTreeColumns({
   });
   const assembledColumns = useMemo(() => {
     if (isPending) {
-      return <TreeLoadingIndicator hideMessage />;
+      return <TreeLoadingIndicator />;
     }
 
     if (!project) {
@@ -242,7 +240,7 @@ export const TreeColumn = styled('div')`
   }
 `;
 
-export const TreeLoadingIndicator = styled(LoadingIndicator)`
+const TreeLoadingIndicator = styled(LoadingIndicator)`
   grid-column: 1 /-1;
 `;
 

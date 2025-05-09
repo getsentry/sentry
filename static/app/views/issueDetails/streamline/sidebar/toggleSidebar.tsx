@@ -28,7 +28,7 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
           org_streamline_only: organization.streamlineOnly ?? undefined,
         }}
       >
-        <Chevron direction={direction} isDouble size="xs" />
+        <StyledIconChevron direction={direction} isDouble size="xs" />
       </ToggleButton>
     </ToggleContainer>
   );
@@ -56,7 +56,7 @@ const ToggleButton = styled(Button)`
   color: ${p => p.theme.subText};
 `;
 
-const Chevron = styled(IconChevron)`
+const StyledIconChevron = styled(IconChevron)`
   position: absolute;
   left: ${space(0.75)};
 `;

@@ -1,4 +1,3 @@
-import type {VFC} from 'react';
 import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -8,8 +7,10 @@ import isEqual from 'lodash/isEqual';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {
   BooleanOperator,
@@ -54,9 +55,6 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-
-import type {MenuItemProps} from '../dropdownMenu';
-import {DropdownMenu} from '../dropdownMenu';
 
 import SearchBarDatePicker from './searchBarDatePicker';
 import SearchDropdown from './searchDropdown';
@@ -167,7 +165,7 @@ const pickParserOptions = (props: Props) => {
   } satisfies Partial<SearchConfig>;
 };
 
-export type ActionProps = {
+type ActionProps = {
   api: Client;
   /**
    * The organization
@@ -183,12 +181,15 @@ export type ActionProps = {
   savedSearchType?: SavedSearchType;
 };
 
-export type ActionBarItem = {
+type ActionBarItem = {
   /**
    * Name of the action
    */
   key: string;
-  makeAction: (props: ActionProps) => {Button: VFC; menuItem: MenuItemProps};
+  makeAction: (props: ActionProps) => {
+    Button: React.ComponentType<any>;
+    menuItem: MenuItemProps;
+  };
 };
 
 type DefaultProps = {
@@ -656,7 +657,8 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
       let offset = filterTokens[0]!.location.end.offset;
       if (token) {
-        const tokenIndex = filterTokens.findIndex(tok => tok === token);
+        // @ts-expect-error: Mismatched types
+        const tokenIndex = filterTokens.indexOf(token);
         if (tokenIndex !== -1 && tokenIndex + 1 < filterTokens.length) {
           offset = filterTokens[tokenIndex + 1]!.location.end.offset;
         }
@@ -675,7 +677,8 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     const hasExecCommand = typeof document.execCommand === 'function';
 
     if (token && filterTokens.length > 0) {
-      const index = filterTokens.findIndex(tok => tok === token) ?? -1;
+      // @ts-expect-error: Mismatched types
+      const index = filterTokens.indexOf(token) ?? -1;
       const newQuery =
         // We trim to remove any remaining spaces
         query.slice(0, token.location.start.offset).trim() +
@@ -1461,7 +1464,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     const project = location?.query ? location.query.projectId : undefined;
 
     const url = `/organizations/${organization.slug}/releases/`;
-    const fetchQuery: {[key: string]: string | number} = {
+    const fetchQuery: Record<string, string | number> = {
       per_page: MAX_AUTOCOMPLETE_RELEASES,
     };
 
@@ -2248,14 +2251,14 @@ const SearchIconContainer = styled('div')`
   display: flex;
   padding: ${space(0.5)} 0;
   margin: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const SearchLabel = styled('label')`
   display: flex;
   padding: ${space(0.5)} 0;
   margin: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const InputWrapper = styled('div')`
