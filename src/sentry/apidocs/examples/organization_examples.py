@@ -321,6 +321,7 @@ class OrganizationExamples:
                 "githubOpenPRBot": True,
                 "githubNudgeInvite": True,
                 "gitlabPRBot": True,
+                "gitlabOpenPRBot": True,
                 "aggregatedDataConsent": False,
                 "defaultAutofixAutomationTuning": "off",
                 "issueAlertsThreadFlag": True,
