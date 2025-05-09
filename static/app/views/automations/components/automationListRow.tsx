@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
+import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {space} from 'sentry/styles/space';
@@ -39,9 +39,10 @@ export function AutomationListRow({
           }}
         />
         <CellWrapper>
-          <TitleCell to={makeAutomationDetailsPathname(organization.slug, id)}>
-            {name}
-          </TitleCell>
+          <AutomationTitleCell
+            name={name}
+            link={makeAutomationDetailsPathname(organization.slug, id)}
+          />
         </CellWrapper>
       </Flex>
       <CellWrapper className="last-triggered">
@@ -71,18 +72,6 @@ const CellWrapper = styled('div')`
   text-overflow: ellipsis;
   width: 100%;
   min-width: 0;
-`;
-
-const TitleCell = styled(Link)`
-  padding: ${space(2)};
-  margin: -${space(2)};
-  color: ${p => p.theme.textColor};
-
-  &:hover,
-  &:active {
-    text-decoration: underline;
-    color: ${p => p.theme.textColor};
-  }
 `;
 
 const RowWrapper = styled('div')<{disabled?: boolean}>`
