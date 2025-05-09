@@ -85,6 +85,7 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
     aggregatedDataConsent: false,
     storeCrashReports: 0,
     trustedRelays: [],
+    defaultAutofixAutomationTuning: 'off',
     ...params,
 
     orgRoleList: OrgRoleListFixture(),
