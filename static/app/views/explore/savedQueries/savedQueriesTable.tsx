@@ -29,7 +29,10 @@ import {
 import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
-import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
+import {
+  confirmDeleteSavedQuery,
+  getExploreUrlFromSavedQueryUrl,
+} from 'sentry/views/explore/utils';
 
 type Props = {
   title: string;
@@ -273,16 +276,21 @@ export function SavedQueriesTable({
                         {
                           key: 'delete',
                           label: t('Delete'),
-                          onAction: async () => {
-                            addLoadingMessage(t('Deleting query...'));
-                            try {
-                              await deleteQuery(query.id);
-                              addSuccessMessage(t('Query deleted'));
-                            } catch (error) {
-                              addErrorMessage(t('Unable to delete query'));
-                            }
-                          },
                           priority: 'danger' as const,
+                          onAction: () => {
+                            confirmDeleteSavedQuery({
+                              handleDelete: async () => {
+                                addLoadingMessage(t('Deleting query...'));
+                                try {
+                                  await deleteQuery(query.id);
+                                  addSuccessMessage(t('Query deleted'));
+                                } catch (error) {
+                                  addErrorMessage(t('Unable to delete query'));
+                                }
+                              },
+                              savedQuery: query,
+                            });
+                          },
                         },
                       ]),
                 ]}
