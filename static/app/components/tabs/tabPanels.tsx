@@ -31,13 +31,14 @@ export function TabPanels(props: TabPanelsProps) {
   const collection = useCollection({items, ...props}, collectionFactory, {
     suppressTextValueWarning: true,
   });
-  const selectedPanel = tabListState
-    ? collection.getItem(tabListState.selectedKey)
-    : null;
 
   if (!tabListState) {
     return null;
   }
+
+  const selectedPanel = tabListState.selectedKey
+    ? collection.getItem(tabListState.selectedKey)
+    : null;
 
   return (
     <TabPanel
