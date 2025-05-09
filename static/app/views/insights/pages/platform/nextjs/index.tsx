@@ -126,8 +126,8 @@ export function NextJsOverviewPage({
       )}
 
       {activeView === 'pages' && (
-        // Render the PagesTable component with a unique key, which forces the rerender
-        // of column order when the user switches between navigations and pageloads
+        // Set key to force the PagesTable component to rerender the table & column order
+        // when the user switches between navigations and pageloads
         <PagesTable key={spanOperationFilter} spanOperationFilter={spanOperationFilter} />
       )}
     </PlatformLandingPageLayout>
