@@ -25,7 +25,7 @@ export interface TagTreeContent {
   subtree: TagTree;
   value: string;
   // These will be omitted on pseudo tags (see addToTagTree)
-  meta?: Record<any, any>;
+  meta?: Record<string, any>;
   originalTag?: EventTagWithMeta;
 }
 
@@ -92,20 +92,19 @@ function addToTagTree({
  * @param props The props for rendering the root of the TagTree
  * @returns A list of TagTreeRow components to be rendered in this tree
  */
-// @ts-expect-error TS(7023): 'getTagTreeRows' implicitly has return type 'any' ... Remove this comment to see the full error message
 function getTagTreeRows({
   tagKey,
   content,
   spacerCount = 0,
   uniqueKey,
-  ...props
-}: EventTagsTreeRowProps & {uniqueKey: string}) {
+  event,
+  project,
+}: EventTagsTreeRowProps & {uniqueKey: string}): React.ReactNode[] {
   const subtreeTags = Object.keys(content.subtree);
-  // @ts-expect-error TS(7022): 'subtreeRows' implicitly has type 'any' because it... Remove this comment to see the full error message
-  const subtreeRows = subtreeTags.reduce((rows, tag, i) => {
-    // @ts-expect-error TS(7022): 'branchRows' implicitly has type 'any' because it ... Remove this comment to see the full error message
+  const subtreeRows = subtreeTags.reduce<React.ReactNode[]>((rows, tag, i) => {
     const branchRows = getTagTreeRows({
-      ...props,
+      event,
+      project,
       tagKey: tag,
       content: content.subtree[tag]!,
       spacerCount: spacerCount + 1,
@@ -122,7 +121,8 @@ function getTagTreeRows({
       content={content}
       spacerCount={spacerCount}
       data-test-id="tag-tree-row"
-      {...props}
+      event={event}
+      project={project}
     />,
     ...subtreeRows,
   ];
@@ -136,7 +136,7 @@ function TagTreeColumns({
   tags,
   columnCount,
   projectSlug,
-  ...props
+  event,
 }: EventTagsTreeProps & {columnCount: number}) {
   const organization = useOrganization();
   const {data: project, isPending} = useDetailedProject({
@@ -160,7 +160,7 @@ function TagTreeColumns({
     // root parent so that we do not split up roots/branches when forming columns
     const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
       ([tagKey, content], i) =>
-        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project, ...props})
+        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project, event})
     );
     // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
     const tagTreeRowTotal = tagTreeRowGroups.reduce(
@@ -197,7 +197,7 @@ function TagTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [columnCount, isPending, project, props, tags]);
+  }, [columnCount, isPending, project, event, tags]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }

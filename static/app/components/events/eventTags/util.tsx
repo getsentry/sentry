@@ -1,7 +1,7 @@
 import {type RefObject, useCallback, useLayoutEffect, useState} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {EventTag, EventTagWithMeta} from 'sentry/types/event';
+import type {EventTag, EventTagWithMeta} from 'sentry/types/event';
 
 export const TAGS_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags`;
 
@@ -206,11 +206,11 @@ export function associateTagsWithMeta({
   tags,
   meta,
 }: {
-  meta: Record<string, any>;
   tags: EventTag[];
+  meta?: Record<string, any>;
 }): EventTagWithMeta[] {
   return tags.map((tag, index) => ({
     ...tag,
-    meta: meta[index],
+    meta: meta?.[index],
   }));
 }
