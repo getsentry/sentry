@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -67,7 +67,7 @@ const getOrderBy = (field: string, order: 'asc' | 'desc') => {
 
 const pageloadColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
-  {key: 'count()', name: t('Pageloads'), width: 122}, // Changed name
+  {key: 'count()', name: t('Pageloads'), width: 122},
   {key: 'failure_rate()', name: t('Error Rate'), width: 122},
   {key: 'sum(span.duration)', name: t('Time Spent'), width: 110},
   {
@@ -85,12 +85,10 @@ const navigationColumnOrder: Array<GridColumnOrder<SortableField>> = [
 
 const pageloadKeys: SortableField[] = pageloadColumnOrder.map(col => col.key);
 const navigationKeys: SortableField[] = navigationColumnOrder.map(col => col.key);
-const allSortableKeys: SortableField[] = Array.from(
-  new Set<SortableField>([...pageloadKeys, ...navigationKeys])
-);
+const allSortableKeys = new Set<SortableField>([...pageloadKeys, ...navigationKeys]);
 
 function isSortField(value: string): value is SortableField {
-  return allSortableKeys.includes(value as SortableField);
+  return allSortableKeys.has(value as SortableField);
 }
 
 function decodeSortField(value: QueryValue): SortableField {
@@ -138,11 +136,17 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
   const currentCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
   const navigate = useNavigate();
 
-  const columnOrder = useMemo(() => {
+  const [columnOrder, setColumnOrder] = useState(() => {
     if (spanOperationFilter === 'pageload') {
       return pageloadColumnOrder;
     }
     return navigationColumnOrder;
+  });
+
+  useEffect(() => {
+    setColumnOrder(
+      spanOperationFilter === 'pageload' ? pageloadColumnOrder : navigationColumnOrder
+    );
   }, [spanOperationFilter]);
 
   const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
@@ -200,6 +204,20 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
     }));
   }, [spansRequest.data]);
 
+  const handleResizeColumn = useCallback(
+    (columnIndex: number, nextColumn: GridColumnHeader<string>) => {
+      setColumnOrder(prev => {
+        const newColumnOrder = [...prev];
+        newColumnOrder[columnIndex] = {
+          ...newColumnOrder[columnIndex]!,
+          width: nextColumn.width,
+        };
+        return newColumnOrder;
+      });
+    },
+    []
+  );
+
   const renderHeadCell = useCallback(
     (column: GridColumnHeader<SortableField>) => {
       return <HeadCell column={column} currentCursorParamName={currentCursorParamName} />;
@@ -247,6 +265,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
           grid={{
             renderHeadCell,
             renderBodyCell,
+            onResizeColumn: handleResizeColumn,
           }}
         />
       </GridEditableContainer>
