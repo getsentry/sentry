@@ -359,6 +359,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                   ...sampleThroughputTimeSeries,
                   yAxis: 'equation|spm() + 1',
                   meta: {
+                    ...sampleThroughputTimeSeries.meta,
                     valueType: 'number',
                     valueUnit: null,
                   },
@@ -379,6 +380,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                   ...sampleDurationTimeSeries,
                   yAxis: 'custom_agg(duration)',
                   meta: {
+                    ...sampleThroughputTimeSeries.meta,
                     valueType: 'number',
                     valueUnit: null,
                   },
@@ -387,6 +389,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                   ...sampleDurationTimeSeriesP50,
                   yAxis: 'custom_agg2(duration)',
                   meta: {
+                    ...sampleThroughputTimeSeries.meta,
                     valueType: 'integer',
                     valueUnit: null,
                   },
@@ -395,6 +398,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                   ...sampleThroughputTimeSeries,
                   yAxis: 'custom_agg3(duration)',
                   meta: {
+                    ...sampleThroughputTimeSeries.meta,
                     valueType: 'duration',
                     valueUnit: DurationUnit.MILLISECOND,
                   },
@@ -442,6 +446,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         };
       }),
       meta: {
+        ...sampleThroughputTimeSeries.meta,
         valueType: 'duration',
         valueUnit: DurationUnit.SECOND,
       },
@@ -731,6 +736,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       ...sampleThroughputTimeSeries,
       yAxis: 'error_rate()',
       meta: {
+        ...sampleThroughputTimeSeries.meta,
         valueType: 'rate',
         valueUnit: RateUnit.PER_SECOND,
       },
@@ -1102,4 +1108,5 @@ function hasTimestamp(release: Partial<Release>): release is Release {
 const NULL_META: TimeSeriesMeta = {
   valueType: null,
   valueUnit: null,
+  interval: 0,
 };

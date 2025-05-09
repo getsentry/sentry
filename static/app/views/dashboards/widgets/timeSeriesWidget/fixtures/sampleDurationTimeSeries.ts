@@ -6,6 +6,7 @@ export const sampleDurationTimeSeries: TimeSeries = {
   meta: {
     valueType: 'duration',
     valueUnit: DurationUnit.MILLISECOND,
+    interval: 1_800_000, // 30 minutes
   },
   values: [
     {
