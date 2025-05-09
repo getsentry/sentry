@@ -29,8 +29,6 @@ import {
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 
 import {
-  ToolbarFooter,
-  ToolbarFooterButton,
   ToolbarHeader,
   ToolbarHeaderButton,
   ToolbarLabel,
@@ -52,21 +50,6 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
     );
     setVisualizes(newVisualizes, [DEFAULT_VISUALIZATION_FIELD]);
   }, [setVisualizes, visualizes]);
-
-  const addOverlay = useCallback(
-    (group: number) => {
-      const newVisualizes = visualizes.map((visualize, i) => {
-        if (i === group) {
-          visualize = visualize.replace({
-            yAxes: [...visualize.yAxes, DEFAULT_VISUALIZATION],
-          });
-        }
-        return visualize.toJSON();
-      });
-      setVisualizes(newVisualizes, [DEFAULT_VISUALIZATION_FIELD]);
-    },
-    [setVisualizes, visualizes]
-  );
 
   const deleteOverlay = useCallback(
     (group: number, index: number) => {
@@ -143,18 +126,6 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
                   )}
                 </Fragment>
               ))}
-              <ToolbarFooter>
-                <ToolbarFooterButton
-                  borderless
-                  size="zero"
-                  icon={<IconAdd />}
-                  onClick={() => addOverlay(group)}
-                  priority="link"
-                  aria-label={t('Add Series')}
-                >
-                  {t('Add Series')}
-                </ToolbarFooterButton>
-              </ToolbarFooter>
             </Fragment>
           );
         })}
