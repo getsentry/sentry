@@ -4,7 +4,8 @@ import pytest
 from django.test import override_settings
 
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.tasks.base import TaskworkerConfig, instrumented_task, retry
+from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import test_tasks
 
 
