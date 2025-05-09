@@ -14,6 +14,8 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -210,22 +212,32 @@ export function combineConfidenceForSeries(
   return 'high';
 }
 
-export function viewSamplesTarget(
-  location: Location,
-  query: string,
-  groupBys: string[],
-  row: Record<string, any>,
-  extras: {
-    // needed to generate targets when `project` is in the group by
-    projects: Project[];
-  }
-) {
+export function viewSamplesTarget({
+  location,
+  query,
+  groupBys,
+  visualizes,
+  sorts,
+  row,
+  projects,
+}: {
+  groupBys: string[];
+  location: Location;
+  // needed to generate targets when `project` is in the group by
+  projects: Project[];
+  query: string;
+  row: Record<string, any>;
+  sorts: Sort[];
+  visualizes: Visualize[];
+}) {
   const search = new MutableSearch(query);
 
+  // first update the resulting query to filter for the target group
   for (const groupBy of groupBys) {
     const value = row[groupBy];
+    // some fields require special handling so make sure to handle it here
     if (groupBy === 'project' && typeof value === 'string') {
-      const project = extras.projects.find(p => p.slug === value);
+      const project = projects.find(p => p.slug === value);
       if (defined(project)) {
         location.query.project = project.id;
       }
@@ -238,9 +250,65 @@ export function viewSamplesTarget(
     }
   }
 
+  // all group bys will be used as columns
+  const fields = groupBys.filter(Boolean);
+  const seenFields = new Set(fields);
+
+  // add all the arguments of the visualizations as columns
+  for (const visualize of visualizes) {
+    for (const yAxis of visualize.yAxes) {
+      const parsedFunction = parseFunction(yAxis);
+      if (!parsedFunction?.arguments[0]) {
+        continue;
+      }
+      const field = parsedFunction.arguments[0];
+      if (seenFields.has(field)) {
+        continue;
+      }
+      fields.push(field);
+      seenFields.add(field);
+    }
+  }
+
+  // fall back, force timestamp to be a column so we
+  // always have at least 1 column
+  if (fields.length === 0) {
+    fields.push('timestamp');
+    seenFields.add('timestamp');
+  }
+
+  // fall back, sort the last column present
+  let sortBy: Sort = {
+    field: fields[fields.length - 1]!,
+    kind: 'desc' as const,
+  };
+
+  // find the first valid sort and sort on that
+  for (const sort of sorts) {
+    const parsedFunction = parseFunction(sort.field);
+    if (!parsedFunction?.arguments[0]) {
+      continue;
+    }
+    const field = parsedFunction.arguments[0];
+
+    // on the odd chance that this sorted column was not added
+    // already, make sure to add it
+    if (!seenFields.has(field)) {
+      fields.push(field);
+    }
+
+    sortBy = {
+      field,
+      kind: sort.kind,
+    };
+    break;
+  }
+
   return newExploreTarget(location, {
     mode: Mode.SAMPLES,
+    fields,
     query: search.formatString(),
+    sortBys: [sortBy],
   });
 }
 

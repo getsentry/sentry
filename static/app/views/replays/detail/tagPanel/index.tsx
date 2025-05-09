@@ -8,6 +8,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
@@ -16,7 +17,7 @@ import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
-function TagPanel() {
+export default function TagPanel() {
   const organization = useOrganization();
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
@@ -66,12 +67,12 @@ function TagPanel() {
   );
 
   if (!replayRecord) {
-    return <Placeholder testId="replay-tags-loading-placeholder" height="100%" />;
+    return <PaddedPlaceholder testId="replay-tags-loading-placeholder" height="100%" />;
   }
   const filteredTags = Object.entries(items);
 
   return (
-    <FluidHeight>
+    <PaddedFluidHeight>
       <TagFilters tags={tags} {...filterProps} />
       <TabItemContainer>
         <StyledPanel>
@@ -93,9 +94,17 @@ function TagPanel() {
           </FluidPanel>
         </StyledPanel>
       </TabItemContainer>
-    </FluidHeight>
+    </PaddedFluidHeight>
   );
 }
+
+const PaddedPlaceholder = styled(Placeholder)`
+  padding-top: ${space(1)};
+`;
+
+const PaddedFluidHeight = styled(FluidHeight)`
+  padding-top: ${space(1)};
+`;
 
 const StyledPanel = styled('div')`
   position: relative;
@@ -103,5 +112,3 @@ const StyledPanel = styled('div')`
   overflow: auto;
   display: grid;
 `;
-
-export default TagPanel;
