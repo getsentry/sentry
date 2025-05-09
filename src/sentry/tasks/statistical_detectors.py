@@ -169,7 +169,7 @@ def dispatch_performance_projects(
                 args=[
                     [],
                     projects,
-                    timestamp,
+                    timestamp.isoformat(),
                 ],
                 countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
             )
@@ -183,7 +183,7 @@ def dispatch_performance_projects(
             args=[
                 [],
                 projects,
-                timestamp,
+                timestamp.isoformat(),
             ],
             countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
         )
@@ -210,7 +210,7 @@ def dispatch_profiling_projects(
 
         if len(projects) >= PROJECTS_PER_BATCH:
             detect_function_trends.apply_async(
-                args=[projects, timestamp],
+                args=[projects, timestamp.isoformat()],
                 countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
             )
             projects = []
@@ -220,7 +220,7 @@ def dispatch_profiling_projects(
     # make sure to dispatch a task to handle the remaining projects
     if projects:
         detect_function_trends.apply_async(
-            args=[projects, timestamp],
+            args=[projects, timestamp.isoformat()],
             countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
         )
 
@@ -361,7 +361,7 @@ def detect_transaction_trends(
         detect_transaction_change_points.apply_async(
             args=[
                 [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
-                delayed_start,
+                delayed_start.isoformat(),
             ],
             # delay the check by delay hours because we want to make sure there
             # will be enough data after the potential change point to be confident
@@ -460,7 +460,7 @@ def detect_function_trends(project_ids: list[int], start: datetime | str, *args,
         detect_function_change_points.apply_async(
             args=[
                 [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
-                delayed_start,
+                delayed_start.isoformat(),
             ],
             # delay the check by delay hours because we want to make sure there
             # will be enough data after the potential change point to be confident
