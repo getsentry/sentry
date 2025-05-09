@@ -32,6 +32,7 @@ export class Visualize {
   chartType: ChartType;
   label: string;
   yAxes: readonly string[];
+  stack?: string;
   private selectedChartType?: ChartType;
 
   constructor(yAxes: readonly string[], label = '', chartType?: ChartType) {
@@ -39,6 +40,8 @@ export class Visualize {
     this.yAxes = yAxes;
     this.selectedChartType = chartType;
     this.chartType = this.selectedChartType ?? determineDefaultChartType(this.yAxes);
+    this.stack =
+      this.chartType === ChartType.BAR && this.yAxes.length > 1 ? undefined : 'all';
   }
 
   clone(): Visualize {
