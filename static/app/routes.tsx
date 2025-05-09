@@ -1943,14 +1943,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const userFeedbackRoutes = (
-    <Route
-      path="/user-feedback/"
-      component={make(() => import('sentry/views/userFeedback'))}
-      withOrgPath
-    />
-  );
-
   const codecovCommitRoutes = (
     /* This is a layout route that will render a header for a commit */
     <Route
@@ -2460,7 +2452,6 @@ function buildRoutes() {
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}
-      {userFeedbackRoutes}
       {feedbackv2Routes}
       {issueRoutes}
       {alertRoutes}
