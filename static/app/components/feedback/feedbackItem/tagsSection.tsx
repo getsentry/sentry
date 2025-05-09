@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
+import orderBy from 'lodash/orderBy';
 
 import Collapsible from 'sentry/components/collapsible';
 import {Button} from 'sentry/components/core/button';
@@ -14,7 +15,7 @@ interface Props {
 }
 
 export default function TagsSection({tags}: Props) {
-  const entries = Object.entries(tags);
+  const orderedEntries = orderBy(Object.entries(tags), ['key'], ['asc']);
 
   return (
     <KeyValueTable noMargin>
@@ -31,7 +32,7 @@ export default function TagsSection({tags}: Props) {
           </StyledButton>
         )}
       >
-        {entries.map(([key, value]) => (
+        {orderedEntries.map(([key, value]) => (
           <KeyValueTableRow
             key={key}
             keyName={key}
