@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sentry_sdk
 from django.db import router, transaction
-from django.db.models import Case, Count, Exists, F, IntegerField, OuterRef, Subquery, When
+from django.db.models import Case, Count, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, When
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -347,7 +347,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         )
         queryset = queryset.annotate(user_last_visited=last_visited_query)
 
-        order_by: list[Case | str] = []
+        order_by: list[OrderBy | Case | str] = []
 
         sort_by_list = request.query_params.getlist("sortBy")
         if sort_by_list and len(sort_by_list) > 0:
