@@ -48,6 +48,9 @@ def holds_bad_pickle_object(value, memo=None):
     app_module = type(value).__module__
     if app_module.startswith(("sentry.", "getsentry.")):
         return value, "do not pickle application classes"
+    elif app_module.startswith("kombu."):
+        # Celery injects these into calls, they don't get passed with taskworker
+        return None
     elif isinstance(value, SafeString):
         # Django string wrappers json encode fine
         return None
