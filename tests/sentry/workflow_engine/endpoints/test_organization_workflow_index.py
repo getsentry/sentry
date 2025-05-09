@@ -55,13 +55,14 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         ]
 
     def test_sort_by_duplicated_name(self):
-        self.create_workflow(organization_id=self.organization.id, name="Name")
-        self.create_workflow(organization_id=self.organization.id, name="Name")
-        self.create_workflow(organization_id=self.organization.id, name="Name")
+        fresh_org = self.create_organization(name="Fresh Org", owner=self.user)
+        self.create_workflow(organization_id=fresh_org.id, name="Name")
+        self.create_workflow(organization_id=fresh_org.id, name="Name")
+        self.create_workflow(organization_id=fresh_org.id, name="Name")
 
-        response1 = self.get_success_response(self.organization.slug, qs_params={"sortBy": "name"})
+        response1 = self.get_success_response(fresh_org.slug, qs_params={"sortBy": "name"})
         assert len(response1.data) == 3
-        response2 = self.get_success_response(self.organization.slug, qs_params={"sortBy": "-name"})
+        response2 = self.get_success_response(fresh_org.slug, qs_params={"sortBy": "-name"})
         assert [w["id"] for w in response2.data] == list(
             reversed([w["id"] for w in response1.data])
         )
@@ -83,8 +84,8 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params={"sortBy": "connectedDetectors"}
         )
         assert [w["name"] for w in response.data] == [
-            self.workflow_three.name,
             self.workflow_two.name,
+            self.workflow_three.name,
             self.workflow.name,
         ]
 
@@ -93,8 +94,8 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert [w["name"] for w in response2.data] == [
             self.workflow.name,
-            self.workflow_two.name,
             self.workflow_three.name,
+            self.workflow_two.name,
         ]
 
     def test_invalid_sort_by(self):
@@ -136,8 +137,8 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params={"sortBy": "actions"}
         )
         assert [w["name"] for w in response.data] == [
-            self.workflow_three.name,
             self.workflow_two.name,
+            self.workflow_three.name,
             self.workflow.name,
         ]
 
@@ -146,8 +147,8 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert [w["name"] for w in response2.data][0] == [
             self.workflow.name,
-            self.workflow_two.name,
             self.workflow_three.name,
+            self.workflow_two.name,
         ][0]
 
     def test_query_filter_by_name(self):
