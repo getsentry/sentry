@@ -728,10 +728,10 @@ def dual_update_migrated_alert_rule_trigger(
         # we won't reach this path
         return None
     action_filter = get_action_filter(alert_rule_trigger, priority)
-    resolve_action_filter = DataCondition.objects.get(
+    resolve_action_filter = DataCondition.objects.filter(
         condition_group=action_filter.condition_group,
         type=Condition.ISSUE_PRIORITY_DEESCALATING,
-    )
+    ).first()
     updated_detector_trigger_fields: dict[str, Any] = {}
     updated_action_filter_fields: dict[str, Any] = {}
     label = alert_rule_trigger.label
@@ -745,7 +745,8 @@ def dual_update_migrated_alert_rule_trigger(
     if updated_action_filter_fields:
         # these are updated together
         action_filter.update(**updated_action_filter_fields)
-        resolve_action_filter.update(**updated_action_filter_fields)
+        if resolve_action_filter is not None:
+            resolve_action_filter.update(**updated_action_filter_fields)
 
     return detector_trigger, action_filter
 
