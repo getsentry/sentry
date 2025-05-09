@@ -125,7 +125,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                     )
                 )
 
-        queryset = queryset.order_by(sort_by.db_order_by)
+        queryset = queryset.order_by(*sort_by.db_order_by)
 
         return self.paginate(
             request=request,

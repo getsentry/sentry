@@ -17,37 +17,41 @@ class OrganizationWorkflowAPITestCase(APITestCase):
 
 @region_silo_test
 class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
-    def test_simple(self):
-        workflow = self.create_workflow(organization_id=self.organization.id, name="Test Workflow")
-
-        workflow_two = self.create_workflow(
-            organization_id=self.organization.id, name="Test Workflow 2"
+    def setUp(self):
+        super().setUp()
+        self.workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Apple Workflow"
+        )
+        self.workflow_two = self.create_workflow(
+            organization_id=self.organization.id, name="Banana Workflow 2"
         )
 
+        self.workflow_three = self.create_workflow(
+            organization_id=self.organization.id, name="Green Apple Workflow 3"
+        )
+
+    def test_simple(self):
         response = self.get_success_response(self.organization.slug)
-        assert response.data == serialize([workflow, workflow_two])
+        assert response.data == serialize([self.workflow, self.workflow_two, self.workflow_three])
 
     def test_empty_result(self):
-        response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "aaaaaaaaaaaaa"}
+        )
         assert response.data == []
 
     def test_sort_by_name(self):
-        workflow = self.create_workflow(
-            organization_id=self.organization.id, name="A Test Workflow"
-        )
-        workflow_two = self.create_workflow(
-            organization_id=self.organization.id, name="B Test Workflow 2"
-        )
-
         response = self.get_success_response(self.organization.slug, qs_params={"sortBy": "-name"})
         assert [w["name"] for w in response.data] == [
-            workflow_two.name,
-            workflow.name,
+            self.workflow_three.name,
+            self.workflow_two.name,
+            self.workflow.name,
         ]
         response2 = self.get_success_response(self.organization.slug, qs_params={"sortBy": "name"})
         assert [w["name"] for w in response2.data] == [
-            workflow.name,
-            workflow_two.name,
+            self.workflow.name,
+            self.workflow_two.name,
+            self.workflow_three.name,
         ]
 
     def test_sort_by_duplicated_name(self):
@@ -63,22 +67,15 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
 
     def test_sort_by_connected_detectors(self):
-        workflow = self.create_workflow(
-            organization_id=self.organization.id, name="A Test Workflow"
-        )
-        workflow_two = self.create_workflow(
-            organization_id=self.organization.id, name="B Test Workflow 2"
-        )
-
         detector = self.create_detector(project=self.project, name="A Test Detector")
         detector_two = self.create_detector(project=self.project, name="B Test Detector 2")
 
         self.create_detector_workflow(
-            workflow=workflow,
+            workflow=self.workflow,
             detector=detector,
         )
         self.create_detector_workflow(
-            workflow=workflow,
+            workflow=self.workflow,
             detector=detector_two,
         )
 
@@ -86,16 +83,18 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params={"sortBy": "connectedDetectors"}
         )
         assert [w["name"] for w in response.data] == [
-            workflow_two.name,
-            workflow.name,
+            self.workflow_three.name,
+            self.workflow_two.name,
+            self.workflow.name,
         ]
 
         response2 = self.get_success_response(
             self.organization.slug, qs_params={"sortBy": "-connectedDetectors"}
         )
         assert [w["name"] for w in response2.data] == [
-            workflow.name,
-            workflow_two.name,
+            self.workflow.name,
+            self.workflow_two.name,
+            self.workflow_three.name,
         ]
 
     def test_invalid_sort_by(self):
@@ -129,42 +128,32 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         return action
 
     def test_sort_by_actions(self):
-        workflow = self.create_workflow(
-            organization_id=self.organization.id, name="A Test Workflow"
-        )
-        workflow_two = self.create_workflow(
-            organization_id=self.organization.id, name="B Test Workflow 2"
-        )
-
-        # First workflow gets 2 actions, second gets none.
-        self._create_action_for_workflow(workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
-        self._create_action_for_workflow(workflow, Action.Type.EMAIL, self.FAKE_EMAIL_CONFIG)
+        # workflow gets 2 actions, workflow_two/workflow_three get none.
+        self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
+        self._create_action_for_workflow(self.workflow, Action.Type.EMAIL, self.FAKE_EMAIL_CONFIG)
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"sortBy": "actions"}
         )
         assert [w["name"] for w in response.data] == [
-            workflow_two.name,
-            workflow.name,
+            self.workflow_three.name,
+            self.workflow_two.name,
+            self.workflow.name,
         ]
 
         response2 = self.get_success_response(
             self.organization.slug, qs_params={"sortBy": "-actions"}
         )
-        assert [w["name"] for w in response2.data] == [
-            workflow.name,
-            workflow_two.name,
-        ]
+        assert [w["name"] for w in response2.data][0] == [
+            self.workflow.name,
+            self.workflow_two.name,
+            self.workflow_three.name,
+        ][0]
 
     def test_query_filter_by_name(self):
-        workflow = self.create_workflow(organization_id=self.organization.id, name="Apple Workflow")
-        self.create_workflow(organization_id=self.organization.id, name="Banana Workflow")
-        workflow_three = self.create_workflow(
-            organization_id=self.organization.id, name="Green Apple Workflow"
-        )
         response = self.get_success_response(self.organization.slug, qs_params={"query": "apple"})
         assert len(response.data) == 2
-        assert {workflow.name, workflow_three.name} == {w["name"] for w in response.data}
+        assert {self.workflow.name, self.workflow_three.name} == {w["name"] for w in response.data}
 
         # With tag syntax, exact only.
         assert (
@@ -178,7 +167,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.get_success_response(
                 self.organization.slug, qs_params={"query": 'name:"apple workflow"'}
             ).data[0]["name"]
-            == workflow.name
+            == self.workflow.name
         )
 
         response3 = self.get_success_response(
@@ -187,37 +176,30 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert len(response3.data) == 0
 
     def test_filter_by_project(self):
-        workflow = self.create_workflow(organization_id=self.organization.id, name="Apple Workflow")
         self.create_detector_workflow(
-            workflow=workflow, detector=self.create_detector(project=self.project)
-        )
-        workflow_two = self.create_workflow(
-            organization_id=self.organization.id, name="Banana Workflow"
+            workflow=self.workflow, detector=self.create_detector(project=self.project)
         )
         self.create_detector_workflow(
-            workflow=workflow_two, detector=self.create_detector(project=self.project)
+            workflow=self.workflow_two, detector=self.create_detector(project=self.project)
         )
 
         other_project = self.create_project(organization=self.organization, name="Other Project")
-        workflow_three = self.create_workflow(
-            organization_id=self.organization.id, name="Other Project Workflow"
-        )
         self.create_detector_workflow(
-            workflow=workflow_three, detector=self.create_detector(project=other_project)
+            workflow=self.workflow_three, detector=self.create_detector(project=other_project)
         )
 
         response = self.get_success_response(
             self.organization.slug, qs_params=[("project", self.project.id)]
         )
         assert len(response.data) == 2
-        assert {workflow.name, workflow_two.name} == {w["name"] for w in response.data}
+        assert {self.workflow.name, self.workflow_two.name} == {w["name"] for w in response.data}
 
         response2 = self.get_success_response(
             self.organization.slug,
             qs_params=[("project", other_project.id), ("project", self.project.id)],
         )
         assert len(response2.data) == 3
-        assert {workflow.name, workflow_three.name, workflow_two.name} == {
+        assert {self.workflow.name, self.workflow_three.name, self.workflow_two.name} == {
             w["name"] for w in response2.data
         }
 
@@ -226,7 +208,9 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params=[("projectSlug", self.project.slug)]
         )
         assert len(slug_response.data) == 2
-        assert {workflow.name, workflow_two.name} == {w["name"] for w in slug_response.data}
+        assert {self.workflow.name, self.workflow_two.name} == {
+            w["name"] for w in slug_response.data
+        }
 
         empty_project = self.create_project(organization=self.organization, name="Empty Project")
         assert not self.get_success_response(
@@ -234,12 +218,9 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         ).data
 
     def test_query_filter_by_action(self):
-        workflow = self.create_workflow(
-            organization_id=self.organization.id, name="A Test Workflow"
-        )
-        self._create_action_for_workflow(workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
-        self._create_action_for_workflow(workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
-        self._create_action_for_workflow(workflow, Action.Type.EMAIL, self.FAKE_EMAIL_CONFIG)
+        self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
+        self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
+        self._create_action_for_workflow(self.workflow, Action.Type.EMAIL, self.FAKE_EMAIL_CONFIG)
 
         # Two actions should match, but they are from the same workflow so we only expect
         # one result.
@@ -247,7 +228,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params={"query": "action:slack"}
         )
         assert len(response.data) == 1
-        assert response.data[0]["name"] == workflow.name
+        assert response.data[0]["name"] == self.workflow.name
 
         # No partial matches with tags.
         assert (
@@ -261,7 +242,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.get_success_response(self.organization.slug, qs_params={"query": "Slack"}).data[0][
                 "name"
             ]
-            == workflow.name
+            == self.workflow.name
         )
 
         response2 = self.get_success_response(
@@ -270,26 +251,24 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert len(response2.data) == 0
 
     def test_compound_query(self):
-        workflow = self.create_workflow(organization_id=self.organization.id, name="Apple Workflow")
         self.create_detector_workflow(
-            workflow=workflow, detector=self.create_detector(project=self.project)
+            workflow=self.workflow, detector=self.create_detector(project=self.project)
         )
-        self._create_action_for_workflow(workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
+        self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
 
         # Same project, no action.
-        self.create_workflow(organization_id=self.organization.id, name="Banana Workflow")
         self.create_detector_workflow(
-            workflow=workflow, detector=self.create_detector(project=self.project)
+            workflow=self.workflow_two, detector=self.create_detector(project=self.project)
         )
 
         # Different project, same action.
-        workflow_three = self.create_workflow(
-            organization_id=self.organization.id, name="Green Apple Workflow"
-        )
         self.create_detector_workflow(
-            workflow=workflow_three, detector=self.create_detector(project=self.create_project())
+            workflow=self.workflow_three,
+            detector=self.create_detector(project=self.create_project()),
         )
-        self._create_action_for_workflow(workflow_three, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
+        self._create_action_for_workflow(
+            self.workflow_three, Action.Type.SLACK, self.FAKE_SLACK_CONFIG
+        )
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "action:slack", "project": self.project.id}
