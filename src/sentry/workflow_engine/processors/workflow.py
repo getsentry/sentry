@@ -143,16 +143,6 @@ def evaluate_workflows_action_filters(
         .distinct()
     )
 
-    logger.info(
-        "workflow_engine.evaluate_workflows_action_filters",
-        extra={
-            "group_id": event_data.event.group_id,
-            "event_id": event_data.event.event_id,
-            "workflow_ids": [workflow.id for workflow in workflows],
-            "action_conditions": [action_condition.id for action_condition in action_conditions],
-        },
-    )
-
     for action_condition in action_conditions:
         workflow_event_data = event_data
 
@@ -191,6 +181,17 @@ def evaluate_workflows_action_filters(
         else:
             if group_evaluation.logic_result:
                 filtered_action_groups.add(action_condition)
+
+    logger.info(
+        "workflow_engine.evaluate_workflows_action_filters",
+        extra={
+            "group_id": event_data.event.group_id,
+            "event_id": event_data.event.event_id,
+            "workflow_ids": [workflow.id for workflow in workflows],
+            "action_conditions": [action_condition.id for action_condition in action_conditions],
+            "filtered_action_groups": [action_group.id for action_group in filtered_action_groups],
+        },
+    )
 
     return filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
 
