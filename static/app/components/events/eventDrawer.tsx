@@ -59,9 +59,9 @@ export const EventNavigator = styled('div')`
   column-gap: ${space(1)};
   padding: ${space(0.75)} 24px;
   background: ${p => p.theme.background};
-  z-index: 1;
+  z-index: 2;
   min-height: ${MIN_NAV_HEIGHT}px;
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
 `;
 
 export const EventDrawerBody = styled(DrawerBody)`
