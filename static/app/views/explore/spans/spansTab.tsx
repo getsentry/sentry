@@ -24,7 +24,6 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {isAggregateField} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -378,7 +377,6 @@ function SpanTabContentSection({
           visualizes={visualizes}
           setVisualizes={setVisualizes}
           samplingMode={timeseriesSamplingMode}
-          dataset={DiscoverDatasets.SPANS_EAP}
         />
         <ExploreTables
           aggregatesTableResult={aggregatesTableResult}

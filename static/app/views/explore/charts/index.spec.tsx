@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {ExploreCharts} from 'sentry/views/explore/charts';
 import {defaultVisualizes} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -37,7 +36,6 @@ describe('ExploreCharts', () => {
         visualizes={defaultVisualizes()}
         setVisualizes={() => {}}
         samplingMode={SAMPLING_MODE.HIGH_ACCURACY}
-        dataset={DiscoverDatasets.SPANS_EAP}
       />,
       {
         organization: OrganizationFixture(),

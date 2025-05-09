@@ -11,7 +11,6 @@ import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -21,7 +20,7 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
+import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import type {
   BaseVisualize,
@@ -43,7 +42,6 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
-  dataset: DiscoverDatasets;
   query: string;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
@@ -78,7 +76,6 @@ export function ExploreCharts({
   setVisualizes,
   hideContextMenu,
   samplingMode,
-  dataset,
 }: ExploreChartsProps) {
   const theme = useTheme();
   const [interval, setInterval, intervalOptions] = useChartInterval();
@@ -329,7 +326,7 @@ export function ExploreCharts({
                 />
               }
               Footer={
-                <WidgetExtrapolationFooter
+                <ConfidenceFooter
                   sampleCount={chartInfo.sampleCount}
                   isSampled={chartInfo.isSampled}
                   confidence={chartInfo.confidence}
@@ -337,7 +334,6 @@ export function ExploreCharts({
                     topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
                   }
                   dataScanned={chartInfo.dataScanned}
-                  dataset={dataset}
                 />
               }
             />
