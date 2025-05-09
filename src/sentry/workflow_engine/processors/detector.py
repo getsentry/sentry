@@ -5,9 +5,12 @@ import logging
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils import metrics
-from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.types import DetectorGroupKey, WorkflowEventData
+from sentry.workflow_engine.types import (
+    DetectorEvaluationResult,
+    DetectorGroupKey,
+    WorkflowEventData,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +49,7 @@ def create_issue_occurrence_from_result(result: DetectorEvaluationResult):
 def process_detectors(
     data_packet: DataPacket, detectors: list[Detector]
 ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
-    results = []
+    results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] = []
 
     for detector in detectors:
         handler = detector.detector_handler
@@ -60,6 +63,9 @@ def process_detectors(
         )
 
         detector_results = handler.evaluate(data_packet)
+
+        if detector_results is None:
+            return results
 
         for result in detector_results.values():
             if result.result is not None:
