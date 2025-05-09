@@ -1026,6 +1026,15 @@ const TraceStylingWrapper = styled('div')`
           80%/2px 100% no-repeat;
       }
 
+      &.None {
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 4px,
+            ${p => p.theme.subText} 4px 8px
+          )
+          80%/2px 100% no-repeat;
+      }
+
       &.Meh {
         background: repeating-linear-gradient(
             to bottom,

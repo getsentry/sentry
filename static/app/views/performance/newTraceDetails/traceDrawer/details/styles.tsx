@@ -546,9 +546,7 @@ function HighLightEAPOpsBreakdown({node}: {node: TraceTreeNode<TraceTree.EAPSpan
 
   return (
     <HighlightsOpsBreakdownWrapper>
-      <HighlightsSpanCount>
-        {t('Most frequent embedded span ops are')}
-      </HighlightsSpanCount>
+      <HighlightsSpanCount>{t('Most frequent child span ops are:')}</HighlightsSpanCount>
       <TopOpsList>
         {displayOps.map(currOp => {
           const operationName = currOp.op;

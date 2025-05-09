@@ -22,6 +22,7 @@ import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQ
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
@@ -46,12 +47,23 @@ export function TraceViewLogsDataProvider({
 export function TraceViewLogsSection() {
   const tableData = useLogsPageData();
   const logsSearch = useLogsSearch();
+  const hasTraceTabsUi = useHasTraceTabsUI();
+
+  if (hasTraceTabsUi) {
+    return (
+      <LogsContentWrapper>
+        <LogsSectionContent tableData={tableData.logsData} />
+      </LogsContentWrapper>
+    );
+  }
+
   if (
     !tableData?.logsData ||
     (tableData.logsData.data.length === 0 && logsSearch.isEmpty())
   ) {
     return null;
   }
+
   return (
     <FoldSection
       sectionKey={TraceContextSectionKeys.LOGS as string as SectionKey}
@@ -90,4 +102,11 @@ function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult})
 
 const TableContainer = styled('div')`
   margin-top: ${space(2)};
+`;
+
+const LogsContentWrapper = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(1)};
+  overflow: hidden;
 `;
