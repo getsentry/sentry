@@ -2,10 +2,11 @@ import {RateUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export const sampleThroughputTimeSeries: TimeSeries = {
-  field: 'eps()',
+  yAxis: 'eps()',
   meta: {
     valueType: 'rate',
     valueUnit: RateUnit.PER_SECOND,
+    interval: 1_800_000, // 30 minutes
   },
   values: [
     {

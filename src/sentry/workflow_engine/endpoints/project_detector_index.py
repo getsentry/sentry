@@ -1,4 +1,3 @@
-from django.db.models import Count
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -9,7 +8,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
-from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -17,12 +15,10 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import DetectorParams, GlobalParams
+from sentry.apidocs.parameters import GlobalParams
 from sentry.issues import grouptype
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
-from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
-from sentry.workflow_engine.models import Detector
 
 
 def get_detector_validator(
@@ -62,52 +58,12 @@ SORT_ATTRS = {
 class ProjectDetectorIndexEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
-        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
 
     # TODO: We probably need a specific permission for detectors. Possibly specific detectors have different perms
     # too?
     permission_classes = (ProjectAlertRulePermission,)
-
-    @extend_schema(
-        operation_id="Fetch a Project's Detectors",
-        parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
-            GlobalParams.PROJECT_ID_OR_SLUG,
-            DetectorParams.SORT,
-        ],
-        responses={
-            201: DetectorSerializer,
-            400: RESPONSE_BAD_REQUEST,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-    )
-    def get(self, request, project):
-        """
-        List a Project's Detectors
-        `````````````````````````
-        Return a list of detectors for a given project.
-        """
-        queryset = Detector.objects.filter(
-            project_id=project.id,
-        )
-
-        sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_ATTRS)
-        if sort_by.db_field_name == "connected_workflows":
-            queryset = queryset.annotate(connected_workflows=Count("detectorworkflow"))
-
-        queryset = queryset.order_by(*sort_by.db_order_by)
-
-        return self.paginate(
-            request=request,
-            paginator_cls=OffsetPaginator,
-            queryset=queryset,
-            order_by=sort_by.db_order_by,
-            on_results=lambda x: serialize(x, request.user),
-        )
 
     @extend_schema(
         operation_id="Create a Detector",

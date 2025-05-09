@@ -45,6 +45,7 @@ from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
+    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
@@ -221,6 +222,13 @@ ORG_OPTIONS = (
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
     ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
     ("rollbackEnabled", "sentry:rollback_enabled", bool, ROLLBACK_ENABLED_DEFAULT),
+    (
+        # Sets the default value for new projects created in this organization
+        "defaultAutofixAutomationTuning",
+        "sentry:default_autofix_automation_tuning",
+        str,
+        DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -832,6 +840,11 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         min_value=PROJECT_RATE_LIMIT_DEFAULT, required=False
     )
     apdexThreshold = serializers.IntegerField(required=False)
+    defaultAutofixAutomationTuning = serializers.ChoiceField(
+        choices=["off", "low", "medium", "high", "always"],
+        required=False,
+        help_text="The default automation tuning setting for new projects.",
+    )
 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
