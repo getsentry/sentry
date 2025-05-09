@@ -9,7 +9,7 @@ import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/uti
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, EventTag} from 'sentry/types/event';
+import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
@@ -26,7 +26,7 @@ export interface TagTreeContent {
   value: string;
   // These will be omitted on pseudo tags (see addToTagTree)
   meta?: Record<any, any>;
-  originalTag?: EventTag;
+  originalTag?: EventTagWithMeta;
 }
 
 interface TagTreeColumnData {
@@ -38,16 +38,18 @@ interface TagTreeColumnData {
 interface EventTagsTreeProps {
   event: Event;
   projectSlug: Project['slug'];
-  tags: EventTag[];
-  meta?: Record<any, any>;
+  tags: EventTagWithMeta[];
 }
 
-function addToTagTree(
-  tree: TagTree,
-  tag: EventTag,
-  meta: Record<any, any>,
-  originalTag: EventTag
-): TagTree {
+function addToTagTree({
+  tree,
+  tag,
+  originalTag,
+}: {
+  originalTag: EventTagWithMeta;
+  tag: EventTagWithMeta;
+  tree: TagTree;
+}): TagTree {
   const BRANCH_MATCHES_REGEX = /\./g;
   if (!defined(tag.key)) {
     return tree;
@@ -61,7 +63,7 @@ function addToTagTree(
 
   // Ignore tags with 0, or >4 branches, as well as sequential dots (e.g. 'some..tag')
   if (hasInvalidBranchCount || hasInvalidBranchSequence) {
-    tree[tag.key] = {value: tag.value, subtree: {}, meta, originalTag};
+    tree[tag.key] = {value: tag.value, subtree: {}, meta: tag?.meta, originalTag};
     return tree;
   }
   // E.g. 'device.model.version'
@@ -77,7 +79,11 @@ function addToTagTree(
     key: branch,
     value: tag.value,
   };
-  tree[trunk].subtree = addToTagTree(tree[trunk].subtree, pseudoTag, meta, originalTag);
+  tree[trunk].subtree = addToTagTree({
+    tree: tree[trunk].subtree,
+    tag: pseudoTag,
+    originalTag,
+  });
   return tree;
 }
 
@@ -127,7 +133,6 @@ function getTagTreeRows({
  * branch tags from their roots, and attempt to be as evenly distributed as possible.
  */
 function TagTreeColumns({
-  meta,
   tags,
   columnCount,
   projectSlug,
@@ -148,7 +153,7 @@ function TagTreeColumns({
     }
     // Create the TagTree data structure using all the given tags
     const tagTree = tags.reduce<TagTree>(
-      (tree, tag, i) => addToTagTree(tree, tag, meta?.[i], tag),
+      (tree, tag) => addToTagTree({tree, tag, originalTag: tag}),
       {}
     );
     // Create a list of TagTreeRow lists, containing every row to be rendered. They are grouped by
@@ -192,7 +197,7 @@ function TagTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [columnCount, isPending, project, props, tags, meta]);
+  }, [columnCount, isPending, project, props, tags]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }
