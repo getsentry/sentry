@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import TypedDict
 
@@ -164,7 +165,7 @@ def get_available_action_integrations_for_org(organization: Organization) -> lis
 def get_notification_plugins_for_org(organization: Organization) -> list[PluginService]:
     """
     Get all plugins for an organization.
-    This method returns a deduplicated list of plugins that are enabled for any project in the organization.
+    This method returns a deduplicated list of plugins that are enabled for an organization.
     """
 
     projects = Project.objects.filter(organization_id=organization.id)
@@ -180,3 +181,29 @@ def get_notification_plugins_for_org(organization: Organization) -> list[PluginS
             plugin_map[plugin.slug] = PluginService(plugin)
 
     return list(plugin_map.values())
+
+
+def get_integration_services(organization_id: int) -> dict[int, list[tuple[int, str]]]:
+    """
+    Get all Pagerduty services and OpsGenie teams for an organization's integrations.
+    """
+
+    org_ints = integration_service.get_organization_integrations(
+        organization_id=organization_id, providers=["opsgenie", "pagerduty"]
+    )
+
+    services: dict[int, list[tuple[int, str]]] = defaultdict(list)
+
+    for org_int in org_ints:
+        pagerduty_services = org_int.config.get("pagerduty_services")
+        if pagerduty_services:
+            services[org_int.integration_id].extend(
+                (s["id"], s["service_name"]) for s in pagerduty_services
+            )
+        opsgenie_teams = org_int.config.get("team_table")
+        if opsgenie_teams:
+            services[org_int.integration_id].extend(
+                (team["id"], team["team"]) for team in opsgenie_teams
+            )
+
+    return services
