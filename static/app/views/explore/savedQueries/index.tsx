@@ -15,7 +15,7 @@ export default function SavedQueriesView() {
   return (
     <SentryDocumentTitle title={t('All Queries')} orgSlug={organization?.slug}>
       <Layout.Page>
-        <Layout.Header>
+        <Layout.Header unified>
           <Layout.HeaderContent>
             <Layout.Title>{t('All Queries')}</Layout.Title>
           </Layout.HeaderContent>
