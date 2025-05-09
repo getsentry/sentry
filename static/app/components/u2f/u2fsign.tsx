@@ -3,13 +3,9 @@ import {t} from 'sentry/locale';
 import U2fInterface from './u2finterface';
 
 const MESSAGES = {
-  signin: t(
-    'Insert your U2F device or tap the button on it to confirm the sign-in request.'
-  ),
-  sudo: t('Alternatively you can use your U2F device to confirm the action.'),
-  enroll: t(
-    'To enroll your U2F device insert it now or tap the button on it to activate it.'
-  ),
+  signin: t('Sign in with your passkey, biometrics, or security key.'),
+  sudo: t('You can also confirm this action using your passkey.'),
+  enroll: t('Create a passkey using your device or password manager.'),
 };
 
 type InterfaceProps = React.ComponentProps<typeof U2fInterface>;

@@ -35,7 +35,7 @@ function PageloadModule() {
     <Layout.Page>
       <PageAlertProvider>
         <MobileHeader
-          module={ModuleName.SCREEN_LOAD}
+          module={ModuleName.MOBILE_VITALS}
           headerTitle={
             <Fragment>
               {MODULE_TITLE}
@@ -53,7 +53,7 @@ function PageloadModule() {
             <Layout.Main fullWidth>
               <Container>
                 <ModulePageFilterBar
-                  moduleName={ModuleName.SCREEN_LOAD}
+                  moduleName={ModuleName.MOBILE_VITALS}
                   extraFilters={<ReleaseComparisonSelector />}
                 />
               </Container>

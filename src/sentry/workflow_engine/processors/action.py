@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import TypedDict
 
@@ -25,6 +26,8 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import WorkflowEventData
+
+logger = logging.getLogger(__name__)
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
@@ -79,6 +82,17 @@ def update_workflow_fire_histories(
         WorkflowDataConditionGroup.objects.filter(
             condition_group__dataconditiongroupaction__action__in=actions_to_fire
         ).values_list("workflow_id", flat=True)
+    )
+
+    logger.info(
+        "workflow_engine.workflow_fire_history.update",
+        extra={
+            "workflow_ids": list(fired_workflows),
+            "group_id": event_data.event.group_id,
+            "event_id": event_data.event.event_id,
+            "has_passed_filters": updates["has_passed_filters"],
+            "has_fired_actions": updates["has_fired_actions"],
+        },
     )
 
     updated_rows = WorkflowFireHistory.objects.filter(

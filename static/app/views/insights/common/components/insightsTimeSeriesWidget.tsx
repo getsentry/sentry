@@ -79,10 +79,10 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             : Bars;
 
       return new PlottableDataConstructor(timeSeries, {
-        color: serie.color ?? COMMON_COLORS(theme)[timeSeries.field],
+        color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
         delay: INGESTION_DELAY,
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
-        alias: props.aliases?.[timeSeries.field],
+        alias: props.aliases?.[timeSeries.yAxis],
       });
     }),
   };

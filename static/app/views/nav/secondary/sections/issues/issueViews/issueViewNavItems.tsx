@@ -62,6 +62,10 @@ export function IssueViewNavItems({sectionRef}: IssueViewNavItemsProps) {
     });
   }, [debounceUpdateStarredViewsOrder, organization.slug, views]);
 
+  if (!views.length) {
+    return null;
+  }
+
   return (
     <SecondaryNav.Section
       id="issues-starred-views"
