@@ -7,14 +7,13 @@ import {BaseAvatar} from 'sentry/components/core/avatar/baseAvatar';
 import {Button} from 'sentry/components/core/button';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type Installation = {
   avatar_url: string;
   github_account: string;
-  installation_id: string;
+  installation_id: number;
 };
 
 type GithubInstallationProps = {
@@ -24,13 +23,6 @@ type GithubInstallationProps = {
 export function GithubInstallationSelect({installation_info}: GithubInstallationProps) {
   const [installationID, setInstallationID] = useState<SelectKey>(-1);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-
-  // Add an option for users to install on a new GH organization
-  installation_info.push({
-    installation_id: '-1',
-    github_account: 'Install integration on a new GitHub organization',
-    avatar_url: '',
-  });
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
     e.preventDefault();
@@ -64,16 +56,12 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
       value: installation.installation_id,
       label: (
         <OptionLabelWrapper>
-          {installation.installation_id === '-1' ? (
-            <IconAdd />
-          ) : (
-            <StyledAvatar
-              type="upload"
-              uploadUrl={installation.avatar_url}
-              size={16}
-              title={installation.github_account}
-            />
-          )}
+          <StyledAvatar
+            type="upload"
+            uploadUrl={installation.avatar_url}
+            size={16}
+            title={installation.github_account}
+          />
           <span>{`${installation.github_account}`}</span>
         </OptionLabelWrapper>
       ),
