@@ -9,7 +9,7 @@ import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import type {Vital} from 'sentry/utils/performance/vitals/types';
+import type {Vital, Vital as VitalDetails} from 'sentry/utils/performance/vitals/types';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {WEB_VITALS_METERS_CONFIG} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
@@ -128,7 +128,7 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
 
 type VitalPillProps = {
   vital: TraceTree.CollectedVital | undefined;
-  vitalDetails: Vital;
+  vitalDetails: VitalDetails;
   hasTraceTabsUi?: boolean;
 };
 
@@ -276,13 +276,13 @@ const getVitalInfo = (
   return {vitalDetails, vital};
 };
 
-function getVitalDetails(vitalKey: WebVital | MobileVital): Vital {
+function getVitalDetails(vitalKey: WebVital | MobileVital): VitalDetails {
   return VITAL_DETAILS[vitalKey];
 }
 
 function getFormattedValue(
   vital: TraceTree.CollectedVital | undefined,
-  vitalDetails: Vital
+  vitalDetails: VitalDetails
 ): string | number {
   return vital?.measurement.value
     ? vitalDetails.slug in WEB_VITALS_METERS_CONFIG
