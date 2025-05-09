@@ -158,6 +158,34 @@ function deleteQueryTokens(
   };
 }
 
+function addWildcardToToken(token: TokenResult<Token.VALUE_TEXT>) {
+  if (token.quoted && !token.text.slice(1).startsWith('*')) {
+    token.text = `"*${token.text.slice(1)}`;
+  } else if (!token.quoted && !token.text.startsWith('*')) {
+    token.text = `*${token.text}`;
+  }
+
+  if (token.quoted && !token.text.slice(0, -1).endsWith('*')) {
+    token.text = `${token.text.slice(0, -1)}*"`;
+  } else if (!token.quoted && !token.text.endsWith('*')) {
+    token.text = `${token.text}*`;
+  }
+}
+
+function removeWildcardFromToken(token: TokenResult<Token.VALUE_TEXT>) {
+  if (token.quoted && token.text.slice(1).startsWith('*')) {
+    token.text = `"${token.text.slice(2)}`;
+  } else if (!token.quoted && token.text.startsWith('*')) {
+    token.text = token.text.slice(1);
+  }
+
+  if (token.quoted && token.text.slice(0, -1).endsWith('*')) {
+    token.text = `${token.text.slice(0, -2)}"`;
+  } else if (!token.quoted && token.text.endsWith('*')) {
+    token.text = token.text.slice(0, -1);
+  }
+}
+
 function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
@@ -175,51 +203,21 @@ function modifyFilterOperatorQuery(
   if (newOperator === TermOperatorNew.CONTAINS) {
     newToken.operator = TermOperator.DEFAULT;
     if (newToken.value.type === Token.VALUE_TEXT) {
-      if (!newToken.value.value.startsWith('*')) {
-        newToken.value.value = `*${newToken.value.value}`;
-      }
-
-      if (!newToken.value.value.endsWith('*')) {
-        newToken.value.value = `${newToken.value.value}*`;
-      }
+      addWildcardToToken(newToken.value);
     } else if (newToken.value.type === Token.VALUE_TEXT_LIST) {
       newToken.value.items.forEach(item => {
-        if (item.value?.text) {
-          if (item.value.quoted && !item.value.text.slice(1).startsWith('*')) {
-            item.value.text = `"*${item.value.text.slice(1)}`;
-          } else if (!item.value.quoted && !item.value.text.startsWith('*')) {
-            item.value.text = `*${item.value.text}`;
-          }
-
-          if (item.value.quoted && !item.value.text.slice(0, -1).endsWith('*')) {
-            item.value.text = `${item.value.text.slice(0, -1)}*"`;
-          } else if (!item.value.quoted && !item.value.text.endsWith('*')) {
-            item.value.text = `${item.value.text}*`;
-          }
+        if (item.value?.type === Token.VALUE_TEXT) {
+          addWildcardToToken(item.value);
         }
       });
     }
   } else {
     if (newToken.value.type === Token.VALUE_TEXT) {
-      if (newToken.value.value.startsWith('*')) {
-        newToken.value.value = newToken.value.value.slice(1);
-      }
-
-      if (newToken.value.value.endsWith('*')) {
-        newToken.value.value = newToken.value.value.slice(0, -1);
-      }
+      removeWildcardFromToken(newToken.value);
     } else if (newToken.value.type === Token.VALUE_TEXT_LIST) {
       newToken.value.items.forEach(item => {
-        if (item.value?.quoted && item.value?.text?.slice(1).startsWith('*')) {
-          item.value.text = `"${item.value.text.slice(2)}`;
-        } else if (!item.value?.quoted && item.value?.text?.startsWith('*')) {
-          item.value.text = item.value.text.slice(1);
-        }
-
-        if (item.value?.quoted && item.value?.text?.slice(0, -1).endsWith('*')) {
-          item.value.text = `${item.value.text.slice(0, -2)}"`;
-        } else if (!item.value?.quoted && item.value?.text?.endsWith('*')) {
-          item.value.text = item.value.text.slice(0, -1);
+        if (item.value?.type === Token.VALUE_TEXT) {
+          removeWildcardFromToken(item.value);
         }
       });
     }
@@ -466,9 +464,9 @@ function modifyFilterValue(
     return modifyFilterValueDate(query, token, newValue);
   }
 
-  if (token.value.type === Token.VALUE_TEXT && token.value.contains) {
-    newValue = token.value.quoted ? `"*${newValue.slice(1, -1)}*"` : `*${newValue}*`;
-  }
+  // if (token.value.type === Token.VALUE_TEXT && !token.value.contains) {
+  //   newValue = token.value.quoted ? `"*${newValue.slice(1, -1)}*"` : `*${newValue}*`;
+  // }
 
   return replaceQueryToken(query, token.value, newValue);
 }
@@ -525,13 +523,13 @@ function multiSelectTokenValue(
       return updateFilterMultipleValues(state, action.token, newValues);
     }
     default: {
-      if (
-        tokenValue.type === Token.VALUE_TEXT &&
-        tokenValue.contains &&
-        tokenValue.value === action.value
-      ) {
-        return updateFilterMultipleValues(state, action.token, ['']);
-      }
+      // if (
+      //   tokenValue.type === Token.VALUE_TEXT &&
+      //   tokenValue.contains &&
+      //   tokenValue.value === action.value
+      // ) {
+      //   return updateFilterMultipleValues(state, action.token, ['']);
+      // }
       if (tokenValue.text === action.value) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
