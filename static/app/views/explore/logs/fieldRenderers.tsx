@@ -205,7 +205,7 @@ function FilteredTooltip({
   );
 }
 
-export function TraceIDRenderer(props: LogFieldRendererProps) {
+function TraceIDRenderer(props: LogFieldRendererProps) {
   const traceId = adjustLogTraceID(props.item.value as string);
   const location = stripLogParamsFromLocation(props.extra.location);
   const timestamp = props.extra.attributes?.[OurLogKnownFieldKey.TIMESTAMP];

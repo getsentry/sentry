@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   useExploreFields,
   useExploreGroupBys,
@@ -12,7 +11,6 @@ import {
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
 import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
-import {ToolbarSuggestedQueries} from 'sentry/views/explore/toolbar/toolbarSuggestedQueries';
 import {ToolbarVisualize} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 type Extras = 'equations';
@@ -29,11 +27,6 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
   const sortBys = useExploreSortBys();
   const setSortBys = useSetExploreSortBys();
 
-  const organization = useOrganization();
-  const isPrebuiltQueryEnabled = organization.features.includes(
-    'performance-default-explore-queries'
-  );
-
   return (
     <Container width={width}>
       <ToolbarVisualize equationSupport={extras?.includes('equations')} />
@@ -46,7 +39,6 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
         setSorts={setSortBys}
       />
       <ToolbarSaveAs />
-      {!isPrebuiltQueryEnabled && <ToolbarSuggestedQueries />}
     </Container>
   );
 }

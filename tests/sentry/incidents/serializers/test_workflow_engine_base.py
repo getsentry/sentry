@@ -2,9 +2,12 @@ from django.utils import timezone
 
 from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
+from sentry.issues.priority import PriorityChangeReason
+from sentry.models.activity import Activity
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
@@ -12,7 +15,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
-from sentry.workflow_engine.models import ActionGroupStatus
+from sentry.workflow_engine.models import ActionGroupStatus, IncidentGroupOpenPeriod
 
 
 @freeze_time("2024-12-11 03:21:34")
@@ -121,13 +124,26 @@ class TestWorklowEngineSerializer(TestCase):
         self.incident = self.create_incident(alert_rule=self.alert_rule, date_started=self.now)
         IncidentTrigger.objects.create(
             incident=self.incident,
-            alert_rule_trigger=self.critical_trigger,
+            alert_rule_trigger=self.warning_trigger,
             status=TriggerStatus.ACTIVE.value,
         )
 
         self.group.priority = PriorityLevel.HIGH
         self.group.save()
         ActionGroupStatus.objects.create(action=self.critical_action, group=self.group)
-        GroupOpenPeriod.objects.create(
+        self.group_open_period = GroupOpenPeriod.objects.create(
             group=self.group, project=self.detector.project, date_started=self.incident.date_started
+        )
+        self.incident_group_open_period = IncidentGroupOpenPeriod.objects.create(
+            group_open_period=self.group_open_period,
+            incident_id=self.incident.id,
+            incident_identifier=self.incident.identifier,
+        )
+        Activity.objects.create_group_activity(
+            group=self.group_open_period.group,
+            type=ActivityType.SET_PRIORITY,
+            data={
+                "priority": PriorityLevel.MEDIUM.to_str(),
+                "reason": PriorityChangeReason.ONGOING,
+            },
         )

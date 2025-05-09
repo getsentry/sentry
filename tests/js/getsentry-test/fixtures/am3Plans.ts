@@ -1,7 +1,7 @@
-import {CheckoutType, type Plan} from 'getsentry/types';
 import {type DataCategory} from 'sentry/types/core';
-import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
 
+import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {CheckoutType, type Plan} from 'getsentry/types';
 
 const AM3_CHECKOUT_CATEGORIES = [
   'errors',
@@ -11,13 +11,21 @@ const AM3_CHECKOUT_CATEGORIES = [
   'spans',
   'uptime',
 ] as DataCategory[];
-const AM3_CATEGORIES = [...AM3_CHECKOUT_CATEGORIES, 'profileDuration', 'profileDurationUI'] as DataCategory[];
+const AM3_CATEGORIES = [
+  ...AM3_CHECKOUT_CATEGORIES,
+  'profileDuration',
+  'profileDurationUI',
+] as DataCategory[];
 
 const AM3_DS_CHECKOUT_CATEGORIES = [
   ...AM3_CHECKOUT_CATEGORIES,
-  'spansIndexed'
+  'spansIndexed',
 ] as DataCategory[];
-const AM3_DS_CATEGORIES = [...AM3_DS_CHECKOUT_CATEGORIES, 'profileDuration', 'profileDurationUI'] as DataCategory[];
+const AM3_DS_CATEGORIES = [
+  ...AM3_DS_CHECKOUT_CATEGORIES,
+  'profileDuration',
+  'profileDurationUI',
+] as DataCategory[];
 
 const AM3_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
@@ -25,7 +33,10 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   attachments: {singular: 'attachment', plural: 'attachments'},
   monitorSeats: {singular: 'cron monitor', plural: 'cron monitors'},
   spans: {plural: 'spans', singular: 'span'},
-  profileDuration: {plural: 'continuous profile hours', singular: 'continuous profile hour'},
+  profileDuration: {
+    plural: 'continuous profile hours',
+    singular: 'continuous profile hour',
+  },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
 };

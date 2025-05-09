@@ -236,15 +236,6 @@ class OrgAuthTokenPermission(OrganizationPermission):
     }
 
 
-class OrganizationMetricsPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:write", "org:admin"],
-        "DELETE": ["org:admin"],
-    }
-
-
 class OrganizationFlagWebHookSigningSecretPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],

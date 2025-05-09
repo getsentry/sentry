@@ -175,7 +175,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             intersecting_attributes_filter=filter,
         )
 
-        rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+        with handle_query_errors():
+            rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
         paginator = ChainPaginator(
             [
