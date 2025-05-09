@@ -273,6 +273,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       if (opt.value === DataCategory.TRANSACTIONS) {
         return !organization.features.includes('spans-usage-tracking');
       }
+      if ([DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER].includes(opt.value)) {
+        return organization.features.includes('seer-billing');
+      }
       if ([DataCategory.LOG_BYTE, DataCategory.LOG_ITEM].includes(opt.value)) {
         return organization.features.includes('ourlogs-stats');
       }

@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
@@ -340,9 +341,9 @@ const LinkContainer = styled('div')<{disabled?: boolean}>`
   align-items: center;
   ${p =>
     p.disabled &&
-    `
-    opacity: 0.5;
-    color: ${p.theme.disabled};
-    cursor: default;
-  `}
+    css`
+      opacity: 0.5;
+      color: ${p.theme.disabled};
+      cursor: default;
+    `}
 `;

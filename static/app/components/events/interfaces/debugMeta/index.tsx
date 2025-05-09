@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
@@ -442,7 +442,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
       grid-column: 1/-1;
       ${p =>
         !p.isEmpty &&
-        `
+        css`
           display: grid;
           padding: 0;
         `}

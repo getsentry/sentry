@@ -518,6 +518,34 @@ describe('OrganizationStats', () => {
     expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
   });
 
+  it('shows Seer categories when seer-billing feature flag is enabled', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: ['global-views', 'team-insights', 'seer-billing'],
+      },
+    });
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />);
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.getByRole('option', {name: 'Issue Fixes'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Issue Scans'})).toBeInTheDocument();
+  });
+
+  it('does not show Seer categories when seer-billing feature flag is disabled', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: ['global-views', 'team-insights'],
+      },
+    });
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />);
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.queryByRole('option', {name: 'Issue Fixes'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Issue Scans'})).not.toBeInTheDocument();
+  });
+
   it('denies access on no projects', async () => {
     act(() => ProjectsStore.loadInitialData([]));
 

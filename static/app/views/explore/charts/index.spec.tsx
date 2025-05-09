@@ -9,7 +9,7 @@ import {defaultVisualizes} from 'sentry/views/explore/contexts/pageParamsContext
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 describe('ExploreCharts', () => {
-  it('renders the progressive loading indicator when the widget is progressively loading', async () => {
+  it('renders the high accuracy message when the widget is loading more data', async () => {
     const mockTimeseriesResult = {
       data: {
         'count(span.duration)': [
@@ -21,10 +21,11 @@ describe('ExploreCharts', () => {
         ],
       },
       isLoading: true,
-      isFetching: false,
+      isPending: true,
+      isFetching: true,
     } as any;
 
-    const {rerender} = render(
+    render(
       <ExploreCharts
         canUsePreviousResults={false}
         confidences={[]}
@@ -32,32 +33,18 @@ describe('ExploreCharts', () => {
         timeseriesResult={mockTimeseriesResult}
         visualizes={defaultVisualizes()}
         setVisualizes={() => {}}
+        samplingMode={SAMPLING_MODE.HIGH_ACCURACY}
         dataset={DiscoverDatasets.SPANS_EAP}
       />,
       {
-        organization: OrganizationFixture({
-          features: ['visibility-explore-progressive-loading'],
-        }),
+        organization: OrganizationFixture(),
       }
     );
 
     expect(
-      await screen.findByTestId('progressive-loading-indicator')
+      await screen.findByText(
+        "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
+      )
     ).toBeInTheDocument();
-
-    rerender(
-      <ExploreCharts
-        canUsePreviousResults={false}
-        confidences={[]}
-        query={''}
-        timeseriesResult={mockTimeseriesResult}
-        visualizes={defaultVisualizes()}
-        setVisualizes={() => {}}
-        samplingMode={SAMPLING_MODE.BEST_EFFORT}
-        dataset={DiscoverDatasets.SPANS_EAP}
-      />
-    );
-
-    expect(screen.queryByTestId('progressive-loading-indicator')).not.toBeInTheDocument();
   });
 });

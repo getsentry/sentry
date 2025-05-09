@@ -14,6 +14,7 @@ from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import features
+from sentry.constants import ObjectStatus
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -371,6 +372,9 @@ class SubscriptionProcessor:
             # Check that the project exists
             self.subscription.project
         except Project.DoesNotExist:
+            metrics.incr("incidents.alert_rules.ignore_deleted_project")
+            return
+        if self.subscription.project.status != ObjectStatus.ACTIVE:
             metrics.incr("incidents.alert_rules.ignore_deleted_project")
             return
         if dataset == "events" and not features.has(

@@ -80,6 +80,7 @@ else:
 
 
 def monkey_migrations():
+    from django.core.management.commands import migrate
     from django.db import models
 
     # This import needs to be below the other imports for `executor` and `writer` so
@@ -87,7 +88,7 @@ def monkey_migrations():
     from django.db.migrations import executor, migration, writer
 
     # monkeypatch Django's migration executor and template.
-    executor.MigrationExecutor = SentryMigrationExecutor  # type: ignore[misc]
+    migrate.MigrationExecutor = executor.MigrationExecutor = SentryMigrationExecutor  # type: ignore[attr-defined, misc]
     migration.Migration.initial = None
     writer.MIGRATION_TEMPLATE = SENTRY_MIGRATION_TEMPLATE
     models.Field.deconstruct = deconstruct  # type: ignore[method-assign]

@@ -147,10 +147,6 @@ export function SeerSectionCtaButton({
     autofixData?.steps?.some(step => step.type === type);
 
   const getButtonText = () => {
-    if (aiConfig.needsGenAiAcknowledgement) {
-      return t('Set Up Seer');
-    }
-
     if (!aiConfig.hasAutofix) {
       return t('Open Resources');
     }
