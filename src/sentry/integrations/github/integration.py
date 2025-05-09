@@ -1002,17 +1002,10 @@ class GithubOrganizationSelection(PipelineView):
             if len(installation_info) == 0:
                 return pipeline.next_step()
 
-            # add an option for users to install on a new GH organization
-            installation_info.append(
-                {
-                    "installation_id": "-1",
-                    "github_account": "Install integration on a new GitHub organization",
-                    "avatar_url": "https://raw.githubusercontent.com/getsentry/sentry/526f08eeaafa3a830f70671ad473afd7b9b05a0f/src/sentry/static/sentry/images/logos/sentry-avatar.png",
-                }
-            )
-
             if "chosen_installation_id" in request.GET:
                 chosen_installation_id = request.GET["chosen_installation_id"]
+                if chosen_installation_id == "-1":
+                    return pipeline.next_step()
 
                 # Verify that the given GH installation belongs to the person installing the pipeline
                 installation_ids = [
@@ -1028,9 +1021,6 @@ class GithubOrganizationSelection(PipelineView):
                         error_short=GitHubInstallationError.INVALID_INSTALLATION,
                         error_long=ERR_INTEGRATION_INVALID_INSTALLATION,
                     )
-
-                if chosen_installation_id == "-1":
-                    return pipeline.next_step()
 
                 pipeline.bind_state("chosen_installation", chosen_installation_id)
                 return pipeline.next_step()
