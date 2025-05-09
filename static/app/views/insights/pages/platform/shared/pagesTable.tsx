@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -65,9 +65,9 @@ const getOrderBy = (field: string, order: 'asc' | 'desc') => {
   return order === 'asc' ? field : `-${field}`;
 };
 
-const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
+const pageloadColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
-  {key: 'count()', name: t('Page Views'), width: 122},
+  {key: 'count()', name: t('Pageloads'), width: 122},
   {key: 'failure_rate()', name: t('Error Rate'), width: 122},
   {key: 'sum(span.duration)', name: t('Time Spent'), width: 110},
   {
@@ -77,8 +77,18 @@ const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
   },
 ];
 
+const navigationColumnOrder: Array<GridColumnOrder<SortableField>> = [
+  {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
+  {key: 'count()', name: t('Navigations'), width: 132},
+  {key: 'sum(span.duration)', name: t('Time Spent'), width: 110},
+];
+
+const pageloadKeys: SortableField[] = pageloadColumnOrder.map(col => col.key);
+const navigationKeys: SortableField[] = navigationColumnOrder.map(col => col.key);
+const allSortableKeys = new Set<SortableField>([...pageloadKeys, ...navigationKeys]);
+
 function isSortField(value: string): value is SortableField {
-  return defaultColumnOrder.some(column => column.key === value);
+  return allSortableKeys.has(value as SortableField);
 }
 
 function decodeSortField(value: QueryValue): SortableField {
@@ -125,6 +135,13 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
   const {sortField, sortOrder} = useTableSortParams();
   const currentCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
   const navigate = useNavigate();
+
+  const [columnOrder, setColumnOrder] = useState(() => {
+    if (spanOperationFilter === 'pageload') {
+      return pageloadColumnOrder;
+    }
+    return navigationColumnOrder;
+  });
 
   const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
     navigate({
@@ -181,6 +198,20 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
     }));
   }, [spansRequest.data]);
 
+  const handleResizeColumn = useCallback(
+    (columnIndex: number, nextColumn: GridColumnHeader<string>) => {
+      setColumnOrder(prev => {
+        const newColumnOrder = [...prev];
+        newColumnOrder[columnIndex] = {
+          ...newColumnOrder[columnIndex]!,
+          width: nextColumn.width,
+        };
+        return newColumnOrder;
+      });
+    },
+    []
+  );
+
   const renderHeadCell = useCallback(
     (column: GridColumnHeader<SortableField>) => {
       return <HeadCell column={column} currentCursorParamName={currentCursorParamName} />;
@@ -222,12 +253,13 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
           isLoading={spansRequest.isLoading}
           error={spansRequest.error}
           data={tableData}
-          columnOrder={defaultColumnOrder}
+          columnOrder={columnOrder}
           columnSortBy={[{key: sortField, order: sortOrder}]}
           stickyHeader
           grid={{
             renderHeadCell,
             renderBodyCell,
+            onResizeColumn: handleResizeColumn,
           }}
         />
       </GridEditableContainer>
