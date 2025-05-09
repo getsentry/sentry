@@ -891,16 +891,17 @@ class GitHubInstallation(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             self.active_user_organization = determine_active_organization(request)
-            error_page = self.check_pending_integration_deletion(request=request)
-            if error_page is not None:
-                lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
-                return error_page
 
             if self.active_user_organization is not None and features.has(
                 "organizations:github-multi-org",
                 organization=self.active_user_organization.organization,
                 actor=request.user,
             ):
+                error_page = self.check_pending_integration_deletion(request=request)
+                if error_page is not None:
+                    lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
+                    return error_page
+
                 chosen_installation_id = pipeline.fetch_state("chosen_installation")
                 if chosen_installation_id is not None:
                     pipeline.bind_state("installation_id", chosen_installation_id)
@@ -922,7 +923,10 @@ class GitHubInstallation(PipelineView):
                     else None
                 ),
             )
-
+            error_page = self.check_pending_integration_deletion(request=request)
+            if error_page is not None:
+                lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
+                return error_page
             try:
                 # We want to limit GitHub integrations to 1 organization
                 installations_exist = OrganizationIntegration.objects.filter(
