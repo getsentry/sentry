@@ -16,6 +16,7 @@ from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -58,59 +59,67 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> st
     if cache.get(cache_key) is not None:
         return "skipped - race condition"
 
-    with locks.get(lock_key, duration=60, name="grouping-update-lock").acquire():
-        if cache.get(cache_key) is not None:
-            return "skipped - race condition"
-        else:
-            cache.set(cache_key, "1", 60 * 5)
+    try:
+        with locks.get(lock_key, duration=60, name="grouping-update-lock").acquire():
+            if cache.get(cache_key) is not None:
+                return "skipped - race condition"
+            else:
+                cache.set(cache_key, "1", 60 * 5)
 
-        changes: dict[str, str | int] = {"sentry:grouping_config": DEFAULT_GROUPING_CONFIG}
+            changes: dict[str, str | int] = {"sentry:grouping_config": DEFAULT_GROUPING_CONFIG}
 
-        # If the current config is out of date but still valid, start a transition period
-        if current_config != DEFAULT_GROUPING_CONFIG and current_config in CONFIGURATIONS.keys():
-            # This is when we will stop calculating the old hash in cases where we don't find the
-            # new hash (which we do in an effort to preserve group continuity).
-            transition_expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+            # If the current config is out of date but still valid, start a transition period
+            if (
+                current_config != DEFAULT_GROUPING_CONFIG
+                and current_config in CONFIGURATIONS.keys()
+            ):
+                # This is when we will stop calculating the old hash in cases where we don't find the
+                # new hash (which we do in an effort to preserve group continuity).
+                transition_expiry = (
+                    int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+                )
 
-            changes.update(
-                {
-                    "sentry:secondary_grouping_config": current_config,
-                    "sentry:secondary_grouping_expiry": transition_expiry,
-                }
+                changes.update(
+                    {
+                        "sentry:secondary_grouping_config": current_config,
+                        "sentry:secondary_grouping_expiry": transition_expiry,
+                    }
+                )
+
+            for key, value in changes.items():
+                project.update_option(key, value)
+
+            create_system_audit_entry(
+                organization=project.organization,
+                target_object=project.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+                data={**changes, **project.get_audit_log_data()},
             )
 
-        for key, value in changes.items():
-            project.update_option(key, value)
+            if current_config == DEFAULT_GROUPING_CONFIG:
+                metrics.incr(
+                    "grouping.default_config_set",
+                    sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+                    tags={
+                        "source": source,
+                        "reason": "new_project" if not project.first_event else "backfill",
+                    },
+                )
+                outcome = "record created"
+            else:
+                metrics.incr(
+                    "grouping.outdated_config_updated",
+                    sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+                    tags={
+                        "source": source,
+                        "current_config": current_config,
+                    },
+                )
+                outcome = "record updated"
 
-        create_system_audit_entry(
-            organization=project.organization,
-            target_object=project.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            data={**changes, **project.get_audit_log_data()},
-        )
-
-        if current_config == DEFAULT_GROUPING_CONFIG:
-            metrics.incr(
-                "grouping.default_config_set",
-                sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
-                tags={
-                    "source": source,
-                    "reason": "new_project" if not project.first_event else "backfill",
-                },
-            )
-            outcome = "record created"
-        else:
-            metrics.incr(
-                "grouping.outdated_config_updated",
-                sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
-                tags={
-                    "source": source,
-                    "current_config": current_config,
-                },
-            )
-            outcome = "record updated"
-
-        return outcome
+            return outcome
+    except UnableToAcquireLock:
+        return "skipped - race condition"
 
 
 def is_in_transition(project: Project) -> bool:
