@@ -279,7 +279,7 @@ function displayNumber(n: number, fractionDigits = 0) {
  * Utility functions for Pricing Plans
  */
 export const isEnterprise = (subscription: Subscription) =>
-  ['e1', 'enterprise'].some(p => subscription.plan.startsWith(p));
+  ['e1', 'enterprise'].some(p => subscription.plan?.startsWith(p));
 
 export const isTrialPlan = (plan: string) => TRIAL_PLANS.includes(plan);
 
