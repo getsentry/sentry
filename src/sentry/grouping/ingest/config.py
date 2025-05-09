@@ -8,12 +8,13 @@ from typing import Any
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import options
+from sentry import audit_log, options
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.utils import metrics
+from sentry.utils.audit import create_system_audit_entry
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -27,40 +28,35 @@ CONFIGS_TO_DEPRECATE = set(CONFIGURATIONS.keys()) - {
 
 def update_grouping_config_if_needed(project: Project, source: str) -> None:
     current_config = project.get_option("sentry:grouping_config")
-    new_config = DEFAULT_GROUPING_CONFIG
 
-    if current_config == new_config or current_config == BETA_GROUPING_CONFIG:
+    if current_config == DEFAULT_GROUPING_CONFIG or current_config == BETA_GROUPING_CONFIG:
         return
 
-    # Because the way the auto grouping upgrading happening is racy, we want to
-    # try to write the audit log entry and project option change just once.
-    # For this a cache key is used.  That's not perfect, but should reduce the
-    # risk significantly.
+    # We want to try to write the audit log entry and project option change just once, so we use a
+    # cache key to avoid raciness. It's not perfect, but it reduces the risk significantly.
     cache_key = f"grouping-config-update:{project.id}:{current_config}"
     lock_key = f"grouping-update-lock:{project.id}"
     if cache.get(cache_key) is not None:
         return
 
     with locks.get(lock_key, duration=60, name="grouping-update-lock").acquire():
-        if cache.get(cache_key) is None:
-            cache.set(cache_key, "1", 60 * 5)
-        else:
+        if cache.get(cache_key) is not None:
             return
+        else:
+            cache.set(cache_key, "1", 60 * 5)
 
-        from sentry import audit_log
-        from sentry.utils.audit import create_system_audit_entry
+        changes: dict[str, str | int] = {"sentry:grouping_config": DEFAULT_GROUPING_CONFIG}
 
-        # This is when we will stop calculating the old hash in cases where we don't find the new
-        # hash (which we do in an effort to preserve group continuity).
-        expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-
-        changes: dict[str, str | int] = {"sentry:grouping_config": new_config}
-        # If the current config is valid we will have a migration period
+        # If the current config is still valid, put the project into a migration period
         if current_config in CONFIGURATIONS.keys():
+            # This is when we will stop calculating the old hash in cases where we don't find the
+            # new hash (which we do in an effort to preserve group continuity).
+            transition_expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+
             changes.update(
                 {
                     "sentry:secondary_grouping_config": current_config,
-                    "sentry:secondary_grouping_expiry": expiry,
+                    "sentry:secondary_grouping_expiry": transition_expiry,
                 }
             )
 

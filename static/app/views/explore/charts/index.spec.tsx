@@ -40,9 +40,7 @@ describe('ExploreCharts', () => {
         dataset={DiscoverDatasets.SPANS_EAP}
       />,
       {
-        organization: OrganizationFixture({
-          features: ['visibility-explore-progressive-loading-normal-sampling-mode'],
-        }),
+        organization: OrganizationFixture(),
       }
     );
 

@@ -7,6 +7,8 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
+import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+
 import {
   render,
   renderGlobalModal,
@@ -34,6 +36,8 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'performance-trace-explorer',
   'profiling',
+  'issue-stream-custom-views',
+  'enforce-stacked-navigation',
 ];
 
 const mockUsingCustomerDomain = jest.fn();
@@ -66,7 +70,12 @@ describe('Nav', function () {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/group-search-views/starred/`,
-      body: [],
+      body: [GroupSearchViewFixture({name: 'Starred View 1'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues-count/`,
+      body: {},
     });
 
     ConfigStore.set('user', {
@@ -153,15 +162,27 @@ describe('Nav', function () {
       renderNav();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
 
-      expect(within(container).getByRole('link', {name: 'Alerts'})).toBeInTheDocument();
-
-      // Click "Configure" button to collapse the section
-      await userEvent.click(within(container).getByRole('button', {name: 'Configure'}));
-
-      // Section should be collapsed and no longer show "Alerts" link
       expect(
-        within(container).queryByRole('link', {name: 'Alerts'})
+        await within(container).findByRole('link', {name: /Starred View 1/})
+      ).toBeInTheDocument();
+
+      // Click "Starred Views" button to collapse the section
+      await userEvent.click(
+        within(container).getByRole('button', {name: 'Starred Views'})
+      );
+
+      // Section should be collapsed and no longer show starred view
+      expect(
+        within(container).queryByRole('link', {name: /Starred View 1/})
       ).not.toBeInTheDocument();
+
+      // Can expand to show again
+      await userEvent.click(
+        within(container).getByRole('button', {name: 'Starred Views'})
+      );
+      expect(
+        within(container).getByRole('link', {name: /Starred View 1/})
+      ).toBeInTheDocument();
     });
 
     describe('sections', function () {

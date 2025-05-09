@@ -27,6 +27,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
   BackendOverviewTable,
@@ -83,6 +84,7 @@ function EAPBackendOverviewPage() {
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
 
   const {query: searchBarQuery} = useLocationQuery({
     fields: {
@@ -164,6 +166,7 @@ function EAPBackendOverviewPage() {
     {
       search: existingQuery,
       sorts,
+      cursor,
       fields: [
         'is_starred_transaction',
         'request.method',
@@ -175,7 +178,6 @@ function EAPBackendOverviewPage() {
         'p95(span.duration)',
         'failure_rate()',
         'count_unique(user)',
-        'time_spent_percentage(span.duration)',
         'sum(span.duration)',
       ],
     },
@@ -227,29 +229,28 @@ function EAPBackendOverviewPage() {
                       title={t('Requests')}
                       trafficSeriesName={t('Requests')}
                       baseQuery={'span.op:http.server'}
-                      query={searchBarQuery}
                     />
-                    <DurationWidget query={searchBarQuery} />
+                    <DurationWidget />
                   </StackedWidgetWrapper>
                 </ModuleLayout.Third>
                 <ModuleLayout.TwoThirds>
-                  <IssuesWidget query={searchBarQuery} />
+                  <IssuesWidget />
                 </ModuleLayout.TwoThirds>
                 <ModuleLayout.Full>
                   <TripleRowWidgetWrapper>
                     <ModuleLayout.Third>
-                      <JobsWidget query={searchBarQuery} />
+                      <JobsWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <QueriesWidget query={searchBarQuery} />
+                      <QueriesWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <CachesWidget query={searchBarQuery} />
+                      <CachesWidget />
                     </ModuleLayout.Third>
                   </TripleRowWidgetWrapper>
                 </ModuleLayout.Full>
                 <ModuleLayout.Full>
-                  <BackendOverviewTable response={response} sort={sorts[0]} />
+                  <BackendOverviewTable response={response} sort={sorts[1]} />
                 </ModuleLayout.Full>
               </Fragment>
             )}

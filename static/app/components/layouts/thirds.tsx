@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tabs} from 'sentry/components/tabs';
@@ -41,7 +42,7 @@ export const Header = styled('header')<{
 
   ${p =>
     !p.unified &&
-    `
+    css`
       border-bottom: 1px ${p.borderStyle ?? 'solid'} ${p.theme.border};
     `}
 
@@ -65,7 +66,7 @@ export const HeaderContent = styled('div')<{unified?: boolean}>`
 
   ${p =>
     p.unified &&
-    `
+    css`
       margin-bottom: 0;
     `}
 `;
