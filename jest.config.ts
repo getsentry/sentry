@@ -231,7 +231,7 @@ const config: Config.InitialOptions = {
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
-    '\\.(css|less|png|jpg|woff|mp4)$':
+    '\\.(css|less|png|gif|jpg|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/importStyleMock.js',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
