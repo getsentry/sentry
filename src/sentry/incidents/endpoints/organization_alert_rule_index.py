@@ -39,6 +39,9 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializerResponse,
     CombinedRuleSerializer,
 )
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+    WorkflowEngineDetectorSerializer,
+)
 from sentry.incidents.endpoints.utils import parse_team_params
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models.alert_rule import AlertRule
@@ -72,7 +75,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
 from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils.cursors import Cursor, StringCursor
-from sentry.incidents.endpoints.serializers.workflow_engine_detector import WorkflowEngineDetectorSerializer
 from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
@@ -124,11 +126,14 @@ def create_metric_alert(
         if features.has("organizations:workflow-engine-rule-serializers", organization):
             try:
                 detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
-                resp = Response(serialize(detector, request.user, WorkflowEngineDetectorSerializer()), status=status.HTTP_201_CREATED)
+                resp = Response(
+                    serialize(detector, request.user, WorkflowEngineDetectorSerializer()),
+                    status=status.HTTP_201_CREATED,
+                )
             except Detector.DoesNotExist:
-                print("no detector cause we didn't dual write you dum dum")
-                return Response(status=status.HTTP_404_NOT_FOUND)  
-            return resp      
+                # print("no detector cause we didn't dual write you dum dum")
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            return resp
         return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
 
@@ -151,9 +156,11 @@ class AlertRuleIndexMixin(Endpoint):
             )
 
         if features.has("organizations:workflow-engine-rule-serializers", organization):
-            detectors = Detector.objects.filter(alertruledetector__alert_rule_id__in=[alert_rule.id for alert_rule in alert_rules])
+            detectors = Detector.objects.filter(
+                alertruledetector__alert_rule_id__in=[alert_rule.id for alert_rule in alert_rules]
+            )
             if not len(detectors):
-                return Response(status=status.HTTP_404_NOT_FOUND) 
+                return Response(status=status.HTTP_404_NOT_FOUND)
             response = self.paginate(
                 request,
                 queryset=detectors,
@@ -161,7 +168,7 @@ class AlertRuleIndexMixin(Endpoint):
                 paginator_cls=OffsetPaginator,
                 on_results=lambda x: serialize(x, request.user, WorkflowEngineDetectorSerializer()),
                 default_per_page=25,
-            )            
+            )
         else:
             response = self.paginate(
                 request,
