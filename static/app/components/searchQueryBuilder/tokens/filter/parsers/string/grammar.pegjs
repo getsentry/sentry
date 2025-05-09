@@ -22,16 +22,24 @@ text_in_value
 
 empty_value
   = spaces {
-    return tc.tokenValueText(text(), false, false);
+    if (tc.enableContainsCheck()) {
+      return tc.tokenValueText('', false, false);
+    }
+    return tc.tokenValueText('', false);
   }
 
 in_value
   = (in_value_char)+ {
-    return tc.tokenValueText(text(), false, false);
+    if (tc.enableContainsCheck()) {
+      return tc.tokenValueText(text(), false, false);
+    }
+    return tc.tokenValueText(text(), false);
   }
 
 contains_value
-  = "*" value:(contains_inner_value)* "*" {
+  = "*" value:(contains_inner_value)* "*" &{
+    return tc.enableContainsCheck();
+  } {
       if (!value.length) {
         // Handle '**' as an empty contains value
         return tc.tokenValueText('', false, true);
@@ -44,11 +52,16 @@ contains_inner_value
 
 quoted_value
   = '"' value:('\\"' / '\\*' / [^"\\])* '"' {
-      return tc.tokenValueText(value.join(''), true, false);
+      if (tc.enableContainsCheck()) {
+        return tc.tokenValueText(value.join(''), true, false);
+      }
+      return tc.tokenValueText(value.join(''), true);
   }
 
 quoted_contains_value
-  = '"' "*" value:('\\"' / '\\*' / [^"*\\])* "*" '"' {
+  = '"' "*" value:('\\"' / '\\*' / [^"*\\])* "*" '"' &{
+    return tc.enableContainsCheck();
+  } {
       return tc.tokenValueText(value.join(''), true, true);
   }
 

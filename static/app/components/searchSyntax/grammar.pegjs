@@ -293,21 +293,31 @@ text_key
 
 value
   = value:[^()\t\n ]* {
-      return tc.tokenValueText(value.join(''), false, false);
+      if (tc.enableContainsCheck()) {
+        return tc.tokenValueText(value.join(''), false, false);
+      }
+      return tc.tokenValueText(value.join(''), false);
     }
 
 quoted_value
   = '"' value:('\\"' / '\\*' / [^"\\])* '"' {
-      return tc.tokenValueText(value.join(''), true, false);
+      if (tc.enableContainsCheck()) {
+        return tc.tokenValueText(value.join(''), true, false);
+      }
+      return tc.tokenValueText(value.join(''), true);
     }
 
 quoted_contains_value
-  = '"' "*" value:('\\"' / '\\*' / [^"*\\])* "*" '"' {
+  = '"' "*" value:('\\"' / '\\*' / [^"*\\])* "*" '"' &{
+    return tc.enableContainsCheck();
+  } {
       return tc.tokenValueText(value.join(''), true, true);
     }
 
 contains_value
-  = "*" value:(contains_inner_value)* "*" {
+  = "*" value:(contains_inner_value)* "*" &{
+    return tc.enableContainsCheck();
+  } {
       if (!value.length) {
         return tc.tokenValueText('', false, true);
       }
@@ -319,7 +329,10 @@ contains_inner_value
 
 in_value
   = (&in_value_termination in_value_char)+ {
+      if (tc.enableContainsCheck()) {
         return tc.tokenValueText(text(), false, false);
+      }
+      return tc.tokenValueText(text(), false);
     }
 
 text_in_value
