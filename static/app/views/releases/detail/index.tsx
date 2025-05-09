@@ -76,7 +76,7 @@ function ReleasesDetail({
   const {
     data: release,
     refetch: refetchRelease,
-    isPending: IsReleasePending,
+    isPending: isReleasePending,
     error: releaseError,
   } = useApiQuery<ReleaseWithHealth>(
     [
@@ -90,21 +90,21 @@ function ReleasesDetail({
     ],
     {staleTime: Infinity}
   );
-
+  const isDeploysEnabled = releaseMeta.deployCount > 0;
   const {
     data: deploys = [],
     refetch: refetchDeploys,
-    isPending: IsDeploysPending,
+    isPending: isDeploysPending,
     error: deploysError,
   } = useApiQuery<Deploy[]>(
     [`${releasePath}deploys/`, {query: {project: location.query.project}}],
-    {staleTime: Infinity, enabled: releaseMeta.deployCount > 0}
+    {staleTime: Infinity, enabled: isDeploysEnabled}
   );
 
   const {
     data: sessions = null,
     refetch: refetchSessions,
-    isPending: IsSessionsPending,
+    isPending: isSessionsPending,
     error: sessionsError,
   } = useApiQuery<SessionApiResponse>(
     [
@@ -170,7 +170,8 @@ function ReleasesDetail({
     return renderErrors(visibleErrors);
   }
 
-  const isPending = IsReleasePending || IsDeploysPending || IsSessionsPending;
+  const isPending =
+    isReleasePending || (isDeploysEnabled && isDeploysPending) || isSessionsPending;
   if (isPending) {
     return (
       <SentryDocumentTitle title={pageTitle}>
