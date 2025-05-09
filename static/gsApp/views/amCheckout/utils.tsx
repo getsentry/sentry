@@ -179,6 +179,8 @@ type ReservedTotalProps = {
   creditCategory?: InvoiceItemType;
   discountType?: string;
   maxDiscount?: number;
+  seerBudget?: number;
+  seerEnabled?: boolean;
 };
 
 /**
@@ -191,6 +193,8 @@ export function getReservedPriceCents({
   discountType,
   maxDiscount,
   creditCategory,
+  seerEnabled,
+  seerBudget,
 }: ReservedTotalProps): number {
   let reservedCents = plan.basePrice;
 
@@ -216,6 +220,11 @@ export function getReservedPriceCents({
     reservedCents -= discount;
   }
 
+  // Add Seer budget to the total if it's enabled
+  if (seerEnabled && seerBudget) {
+    reservedCents += seerBudget;
+  }
+
   return reservedCents;
 }
 
@@ -230,6 +239,8 @@ export function getReservedTotal({
   discountType,
   maxDiscount,
   creditCategory,
+  seerEnabled,
+  seerBudget,
 }: ReservedTotalProps): string {
   return formatPrice({
     cents: getReservedPriceCents({
@@ -239,6 +250,8 @@ export function getReservedTotal({
       discountType,
       maxDiscount,
       creditCategory,
+      seerEnabled,
+      seerBudget,
     }),
   });
 }

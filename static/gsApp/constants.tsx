@@ -182,3 +182,5 @@ export const BILLED_DATA_CATEGORY_INFO = {
     feature: 'seer-billing',
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;
+
+export const SEER_MONTHLY_PRICE_CENTS = 2000;
