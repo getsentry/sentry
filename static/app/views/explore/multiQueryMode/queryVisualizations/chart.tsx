@@ -13,7 +13,6 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -27,7 +26,7 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
-import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
+import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
@@ -318,13 +317,12 @@ export function MultiQueryModeChart({
         />
       }
       Footer={
-        <WidgetExtrapolationFooter
+        <ConfidenceFooter
           sampleCount={sampleCount}
           isSampled={isSampled}
           confidence={confidence}
           topEvents={isTopN ? numSeries : undefined}
           dataScanned={dataScanned}
-          dataset={DiscoverDatasets.SPANS_EAP}
         />
       }
     />

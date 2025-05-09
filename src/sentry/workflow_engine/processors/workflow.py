@@ -137,13 +137,8 @@ def evaluate_workflows_action_filters(
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
-    # Gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
-    workflow_ids_to_envs = {workflow.id: workflow.environment for workflow in workflows}
-
     action_conditions = (
-        DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow_id__in=list(workflow_ids_to_envs.keys())
-        )
+        DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow__in=workflows)
         .prefetch_related("workflowdataconditiongroup_set")
         .distinct()
     )
@@ -158,6 +153,15 @@ def evaluate_workflows_action_filters(
         if workflow_data_condition_group:
             workflow_event_data = replace(
                 workflow_event_data, workflow_env=workflow_data_condition_group.workflow.environment
+            )
+        else:
+            logger.info(
+                "workflow_engine.evaluate_workflows_action_filters.no_workflow_data_condition_group",
+                extra={
+                    "group_id": event_data.event.group_id,
+                    "event_id": event_data.event.event_id,
+                    "action_condition_id": action_condition.id,
+                },
             )
 
         group_evaluation, remaining_conditions = process_data_condition_group(
@@ -177,6 +181,17 @@ def evaluate_workflows_action_filters(
         else:
             if group_evaluation.logic_result:
                 filtered_action_groups.add(action_condition)
+
+    logger.info(
+        "workflow_engine.evaluate_workflows_action_filters",
+        extra={
+            "group_id": event_data.event.group_id,
+            "event_id": event_data.event.event_id,
+            "workflow_ids": [workflow.id for workflow in workflows],
+            "action_conditions": [action_condition.id for action_condition in action_conditions],
+            "filtered_action_groups": [action_group.id for action_group in filtered_action_groups],
+        },
+    )
 
     return filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
 

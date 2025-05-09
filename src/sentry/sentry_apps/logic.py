@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Iterable, Mapping
 from dataclasses import field
-from itertools import chain
 from typing import Any
 
 import sentry_sdk
@@ -64,13 +63,17 @@ def consolidate_events(raw_events: Iterable[str]) -> set[str]:
     }
 
 
-def expand_events(rolled_up_events: list[str]) -> set[str]:
+def expand_events(rolled_up_events: list[str]) -> list[str]:
     """
     Convert a list of rolled up events ('issue', etc) into a list of raw event
     types ('issue.created', etc.)
     """
-    return set(
-        chain.from_iterable([EVENT_EXPANSION.get(event, [event]) for event in rolled_up_events])
+    return sorted(
+        {
+            translated
+            for event in rolled_up_events
+            for translated in EVENT_EXPANSION.get(event, [event])
+        }
     )
 
 
