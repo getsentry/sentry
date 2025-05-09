@@ -148,6 +148,16 @@ def evaluate_workflows_action_filters(
         .distinct()
     )
 
+    logger.info(
+        "workflow_engine.evaluate_workflows_action_filters",
+        extra={
+            "group_id": event_data.event.group_id,
+            "event_id": event_data.event.event_id,
+            "workflow_ids": [workflow.id for workflow in workflows],
+            "action_conditions": [action_condition.id for action_condition in action_conditions],
+        },
+    )
+
     for action_condition in action_conditions:
         workflow_event_data = event_data
 
@@ -158,6 +168,15 @@ def evaluate_workflows_action_filters(
         if workflow_data_condition_group:
             workflow_event_data = replace(
                 workflow_event_data, workflow_env=workflow_data_condition_group.workflow.environment
+            )
+        else:
+            logger.info(
+                "workflow_engine.evaluate_workflows_action_filters.no_workflow_data_condition_group",
+                extra={
+                    "group_id": event_data.event.group_id,
+                    "event_id": event_data.event.event_id,
+                    "action_condition_id": action_condition.id,
+                },
             )
 
         group_evaluation, remaining_conditions = process_data_condition_group(
