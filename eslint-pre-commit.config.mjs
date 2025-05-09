@@ -11,6 +11,9 @@ export default typescript.config([
         projectService: false,
       },
     },
+    linterOptions: {
+      reportUnusedDisableDirectives: 'off',
+    },
   },
   {
     name: typeAwareLintRules.name,
