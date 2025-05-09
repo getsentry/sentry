@@ -39,10 +39,17 @@ const IS_CI = !!env.CI;
 // `CI` env var set.
 const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
+
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
+const IS_ADMIN_UI_DEV = !!env.SENTRY_ADMIN_UI_DEV;
+
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
 const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
+
+// Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
+// features in the Sentry UI.
+const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
@@ -60,7 +67,7 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 
 // User/tooling configurable environment variables
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
-const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK;
+const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
@@ -86,11 +93,14 @@ const SENTRY_EXPERIMENTAL_SPA =
 // is true. This is to make sure we can validate that the experimental SPA mode is
 // working properly.
 const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
+const CODECOV_TOKEN = env.CODECOV_TOKEN;
+// value should come back as either 'true' or 'false' or undefined
+const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true';
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
 const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
-const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(sentryDjangoAppPath, 'dist');
+const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(__dirname, 'static');
 
 // Locale compilation and optimizations.
@@ -284,12 +294,13 @@ const appConfig: Configuration = {
      * Defines environment specific flags.
      */
     new rspack.DefinePlugin({
-      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
       'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(IS_ACCEPTANCE_TEST),
+      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
       'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(DEPLOY_PREVIEW_CONFIG),
       'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
       'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
+      'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(USE_REACT_QUERY_DEVTOOL),
     }),
 
     ...(SHOULD_FORK_TS
@@ -692,12 +703,12 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
-      excludeChunks: ['pipeline'],
+      excludeChunks: IS_ADMIN_UI_DEV ? ['pipeline', 'app'] : ['pipeline', 'gsAdmin'],
       title: 'Sentry',
       window: {
         __SENTRY_DEV_UI: true,
       },
-    }) as unknown as RspackPluginInstance
+    })
   );
 }
 
@@ -715,9 +726,37 @@ if (IS_PRODUCTION) {
   appConfig.plugins?.push(...minificationPlugins);
 }
 
-// Cache webpack builds
+if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
+  const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
+  // defaulting to an empty string which in turn will fallback to env var or
+  // determine merge commit sha from git
+  const GH_COMMIT_SHA = env.GH_COMMIT_SHA ?? '';
+
+  appConfig.plugins?.push(
+    codecovWebpackPlugin({
+      enableBundleAnalysis: true,
+      bundleName: 'app-webpack-bundle',
+      uploadToken: CODECOV_TOKEN,
+      debug: true,
+      gitService: 'github',
+      uploadOverrides: {
+        sha: GH_COMMIT_SHA,
+      },
+    })
+  );
+}
+
+// Cache rspack builds
 if (env.WEBPACK_CACHE_PATH) {
   appConfig.cache = true;
+  appConfig.experiments!.cache = {
+    type: 'persistent',
+    // https://rspack.dev/config/experiments#cachestorage
+    storage: {
+      type: 'filesystem',
+      directory: env.WEBPACK_CACHE_PATH,
+    },
+  };
 }
 
 appConfig.plugins?.push(
