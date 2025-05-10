@@ -25,6 +25,9 @@ from sentry.auth.access import OrganizationGlobalAccess
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+    WorkflowEngineDetectorSerializer,
+)
 from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -55,6 +58,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
+from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_dual_written_resolution_threshold_equals,
 )
@@ -206,7 +210,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
         assert resp.status_code == 404
 
 
-class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
+class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, TestWorklowEngineSerializer):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -214,6 +218,18 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
 
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
+
+    def test_workflow_engine_serializer(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:workflow-engine-rule-serializers"),
+        ):
+            resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+        assert resp.data == serialize(self.detector, serializer=WorkflowEngineDetectorSerializer())
 
     def test_aggregate_translation(self):
         self.create_team(organization=self.organization, members=[self.user])

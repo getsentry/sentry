@@ -19,6 +19,9 @@ from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUB
 from sentry.api.serializers import serialize
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+    WorkflowEngineDetectorSerializer,
+)
 from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -35,6 +38,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.projectteam import ProjectTeam
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_metrics import indexer
@@ -52,6 +56,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction, AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import DataCondition
+from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_alert_rule_migrated,
     assert_alert_rule_resolve_trigger_migrated,
@@ -165,7 +170,7 @@ class AlertRuleIndexBase(AlertRuleBase):
         ]
 
 
-class AlertRuleListEndpointTest(AlertRuleIndexBase):
+class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorklowEngineSerializer):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule()
@@ -175,6 +180,21 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
             resp = self.get_success_response(self.organization.slug)
 
         assert resp.data == serialize([alert_rule])
+
+    def test_workflow_engine_serializer(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.login_as(self.user)
+
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:workflow-engine-rule-serializers"),
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data[0] == serialize(
+            self.detector, self.user, WorkflowEngineDetectorSerializer()
+        )
 
     def test_no_feature(self):
         self.create_team(organization=self.organization, members=[self.user])
