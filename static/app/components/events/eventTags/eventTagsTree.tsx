@@ -9,7 +9,7 @@ import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/uti
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, EventTag} from 'sentry/types/event';
+import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
@@ -25,8 +25,8 @@ export interface TagTreeContent {
   subtree: TagTree;
   value: string;
   // These will be omitted on pseudo tags (see addToTagTree)
-  meta?: Record<any, any>;
-  originalTag?: EventTag;
+  meta?: Record<string, any>;
+  originalTag?: EventTagWithMeta;
 }
 
 interface TagTreeColumnData {
@@ -38,16 +38,18 @@ interface TagTreeColumnData {
 interface EventTagsTreeProps {
   event: Event;
   projectSlug: Project['slug'];
-  tags: EventTag[];
-  meta?: Record<any, any>;
+  tags: EventTagWithMeta[];
 }
 
-function addToTagTree(
-  tree: TagTree,
-  tag: EventTag,
-  meta: Record<any, any>,
-  originalTag: EventTag
-): TagTree {
+function addToTagTree({
+  tree,
+  tag,
+  originalTag,
+}: {
+  originalTag: EventTagWithMeta;
+  tag: EventTagWithMeta;
+  tree: TagTree;
+}): TagTree {
   const BRANCH_MATCHES_REGEX = /\./g;
   if (!defined(tag.key)) {
     return tree;
@@ -61,7 +63,7 @@ function addToTagTree(
 
   // Ignore tags with 0, or >4 branches, as well as sequential dots (e.g. 'some..tag')
   if (hasInvalidBranchCount || hasInvalidBranchSequence) {
-    tree[tag.key] = {value: tag.value, subtree: {}, meta, originalTag};
+    tree[tag.key] = {value: tag.value, subtree: {}, meta: originalTag?.meta, originalTag};
     return tree;
   }
   // E.g. 'device.model.version'
@@ -77,7 +79,11 @@ function addToTagTree(
     key: branch,
     value: tag.value,
   };
-  tree[trunk].subtree = addToTagTree(tree[trunk].subtree, pseudoTag, meta, originalTag);
+  tree[trunk].subtree = addToTagTree({
+    tree: tree[trunk].subtree,
+    tag: pseudoTag,
+    originalTag,
+  });
   return tree;
 }
 
@@ -86,20 +92,19 @@ function addToTagTree(
  * @param props The props for rendering the root of the TagTree
  * @returns A list of TagTreeRow components to be rendered in this tree
  */
-// @ts-expect-error TS(7023): 'getTagTreeRows' implicitly has return type 'any' ... Remove this comment to see the full error message
 function getTagTreeRows({
   tagKey,
   content,
   spacerCount = 0,
   uniqueKey,
-  ...props
-}: EventTagsTreeRowProps & {uniqueKey: string}) {
+  event,
+  project,
+}: EventTagsTreeRowProps & {uniqueKey: string}): React.ReactNode[] {
   const subtreeTags = Object.keys(content.subtree);
-  // @ts-expect-error TS(7022): 'subtreeRows' implicitly has type 'any' because it... Remove this comment to see the full error message
-  const subtreeRows = subtreeTags.reduce((rows, tag, i) => {
-    // @ts-expect-error TS(7022): 'branchRows' implicitly has type 'any' because it ... Remove this comment to see the full error message
+  const subtreeRows = subtreeTags.reduce<React.ReactNode[]>((rows, tag, i) => {
     const branchRows = getTagTreeRows({
-      ...props,
+      event,
+      project,
       tagKey: tag,
       content: content.subtree[tag]!,
       spacerCount: spacerCount + 1,
@@ -116,7 +121,8 @@ function getTagTreeRows({
       content={content}
       spacerCount={spacerCount}
       data-test-id="tag-tree-row"
-      {...props}
+      event={event}
+      project={project}
     />,
     ...subtreeRows,
   ];
@@ -127,11 +133,10 @@ function getTagTreeRows({
  * branch tags from their roots, and attempt to be as evenly distributed as possible.
  */
 function TagTreeColumns({
-  meta,
   tags,
   columnCount,
   projectSlug,
-  ...props
+  event,
 }: EventTagsTreeProps & {columnCount: number}) {
   const organization = useOrganization();
   const {data: project, isPending} = useDetailedProject({
@@ -148,14 +153,14 @@ function TagTreeColumns({
     }
     // Create the TagTree data structure using all the given tags
     const tagTree = tags.reduce<TagTree>(
-      (tree, tag, i) => addToTagTree(tree, tag, meta?.[i], tag),
+      (tree, tag) => addToTagTree({tree, tag, originalTag: tag}),
       {}
     );
     // Create a list of TagTreeRow lists, containing every row to be rendered. They are grouped by
     // root parent so that we do not split up roots/branches when forming columns
     const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
       ([tagKey, content], i) =>
-        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project, ...props})
+        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project, event})
     );
     // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
     const tagTreeRowTotal = tagTreeRowGroups.reduce(
@@ -192,7 +197,7 @@ function TagTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [columnCount, isPending, project, props, tags, meta]);
+  }, [columnCount, isPending, project, event, tags]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }

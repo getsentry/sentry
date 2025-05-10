@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
+import {associateTagsWithMeta} from 'sentry/components/events/eventTags/util';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -97,9 +98,11 @@ export function TraceContextPanel({
             ) : (
               <EventTagsTree
                 event={rootEventResults.data}
-                meta={rootEventResults.data._meta}
                 projectSlug={rootEventResults.data.projectSlug ?? ''}
-                tags={rootEventResults.data.tags}
+                tags={associateTagsWithMeta({
+                  tags: rootEventResults.data.tags,
+                  meta: rootEventResults.data._meta?.tags,
+                })}
               />
             )}
           </FoldSection>
