@@ -104,6 +104,10 @@ def get_host_provider_if_valid(subscription: UptimeSubscription) -> str:
 
 
 def should_run_region_checks(subscription: UptimeSubscription, result: CheckResult) -> bool:
+    """
+    Probabilistically determine whether we should run region checks. This is set up so that the check is performed
+    roughly once an hour for each uptime monitor.
+    """
     if not subscription.subscription_id:
         # Edge case where we can have no subscription_id here
         return False
@@ -149,19 +153,12 @@ def has_reached_status_threshold(
 
 
 def try_check_and_update_regions(
-    subscription: UptimeSubscription,
-    result: CheckResult,
-    regions: list[UptimeSubscriptionRegion],
+    subscription: UptimeSubscription, regions: list[UptimeSubscriptionRegion]
 ):
     """
     This method will check if regions have been added or removed from our region configuration,
-    and updates regions associated with this uptime monitor to reflect the new state. This is
-    done probabilistically, so that the check is performed roughly once an hour for each uptime
-    monitor.
+    and updates regions associated with this uptime monitor to reflect the new state.
     """
-    if not should_run_region_checks(subscription, result):
-        return
-
     if not check_and_update_regions(subscription, regions):
         return
 
@@ -411,7 +408,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             )
             return
 
-        try_check_and_update_regions(subscription, result, subscription_regions)
+        if should_run_region_checks(subscription, result):
+            try_check_and_update_regions(subscription, subscription_regions)
 
         detector = get_detector(subscription)
 
