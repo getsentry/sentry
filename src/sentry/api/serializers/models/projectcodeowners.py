@@ -7,8 +7,8 @@ from sentry.integrations.api.serializers.models.repository_project_path_config i
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.issues.ownership.grammar import convert_schema_to_rules_text
 from sentry.models.projectcodeowners import ProjectCodeOwners
-from sentry.ownership.grammar import convert_schema_to_rules_text
 
 logger = logging.getLogger(__name__)
 
