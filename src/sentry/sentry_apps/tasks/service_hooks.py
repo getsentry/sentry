@@ -1,6 +1,5 @@
 import logging
 from time import time
-from typing import Any
 
 from sentry.api.serializers import serialize
 from sentry.http import safe_urlopen
@@ -47,24 +46,16 @@ def get_payload_v0(event):
     ),
 )
 @retry
-def process_service_hook(
-    servicehook_id: int,
-    event: Any,
-    payload: str | None = None,
-    project_id: int | None = None,
-    **kwargs,
-):
+def process_service_hook(servicehook_id, event, **kwargs):
     try:
         servicehook = ServiceHook.objects.get(id=servicehook_id)
     except ServiceHook.DoesNotExist:
         return
 
-    project_id = project_id or event.project_id
-    if not payload:
-        if servicehook.version == 0:
-            payload = json.dumps(get_payload_v0(event))
-        else:
-            raise NotImplementedError
+    if servicehook.version == 0:
+        payload = get_payload_v0(event)
+    else:
+        raise NotImplementedError
 
     from sentry import tsdb
 
@@ -74,8 +65,10 @@ def process_service_hook(
         "Content-Type": "application/json",
         "X-ServiceHook-Timestamp": str(int(time())),
         "X-ServiceHook-GUID": servicehook.guid,
-        "X-ServiceHook-Signature": servicehook.build_signature(payload),
+        "X-ServiceHook-Signature": servicehook.build_signature(json.dumps(payload)),
     }
 
-    safe_urlopen(url=servicehook.url, data=payload, headers=headers, timeout=5, verify_ssl=False)
-    logger.info("service_hook.success", extra={"project_id": project_id})
+    safe_urlopen(
+        url=servicehook.url, data=json.dumps(payload), headers=headers, timeout=5, verify_ssl=False
+    )
+    logger.info("service_hook.success", extra={"project_id": event.project_id})
