@@ -1,4 +1,4 @@
-import {useCallback, useImperativeHandle, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useImperativeHandle, useMemo, useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useNumberFormatter} from '@react-aria/i18n';
@@ -211,11 +211,15 @@ export function Slider({
           <SliderLabelWrapper className="label-container">
             <SliderLabel {...labelProps}>{label}</SliderLabel>
             <SliderLabelOutput {...outputProps}>
-              {nThumbs > 1
-                ? `${getFormattedValue(selectedRange[0]!)}–${getFormattedValue(
-                    selectedRange[1]!
-                  )}`
-                : getFormattedValue(selectedRange[1]!)}
+              {nThumbs > 1 ? (
+                <Fragment>
+                  {getFormattedValue(selectedRange[0]!)}
+                  {'-'}
+                  {getFormattedValue(selectedRange[1]!)}
+                </Fragment>
+              ) : (
+                getFormattedValue(selectedRange[1]!)
+              )}
             </SliderLabelOutput>
           </SliderLabelWrapper>
         )}

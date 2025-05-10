@@ -105,18 +105,16 @@ export function getDisabledOptions<Value extends SelectKey>(
 export function getHiddenOptions<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
   search: string,
-  limit = Infinity,
-  filterOption?: (opt: SelectOption<Value>, search: string) => boolean
+  limit = Infinity
 ): Set<SelectKey> {
   //
   // First, filter options using `search` value
   //
-  const _filterOption =
-    filterOption ??
-    ((opt: SelectOption<Value>) =>
-      `${opt.label ?? ''}${opt.textValue ?? ''}`
-        .toLowerCase()
-        .includes(search.toLowerCase()));
+  const filterOption = (opt: SelectOption<Value>) =>
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    `${opt.label ?? ''}${opt.textValue ?? ''}`
+      .toLowerCase()
+      .includes(search.toLowerCase());
 
   const hiddenOptionsSet = new Set<SelectKey>();
   const remainingItems = items
@@ -124,7 +122,7 @@ export function getHiddenOptions<Value extends SelectKey>(
       if ('options' in item) {
         const filteredOptions = item.options
           .map(opt => {
-            if (_filterOption(opt, search)) {
+            if (filterOption(opt)) {
               return opt;
             }
 
@@ -136,7 +134,7 @@ export function getHiddenOptions<Value extends SelectKey>(
         return filteredOptions.length > 0 ? {...item, options: filteredOptions} : null;
       }
 
-      if (_filterOption(item, search)) {
+      if (filterOption(item)) {
         return item;
       }
 

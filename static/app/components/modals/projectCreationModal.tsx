@@ -17,6 +17,7 @@ import PlatformPicker, {
   type Category,
   type Platform,
 } from 'sentry/components/platformPicker';
+import type {TeamOption} from 'sentry/components/teamSelector';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -45,7 +46,7 @@ export default function ProjectCreationModal({
     undefined
   );
   const [projectName, setProjectName] = useState('');
-  const [team, setTeam] = useState<Team | undefined>(undefined);
+  const [team, setTeam] = useState<string | undefined>(undefined);
   const [creating, setCreating] = useState(false);
   const api = useApi();
   const organization = useOrganization();
@@ -179,7 +180,7 @@ export default function ProjectCreationModal({
                 clearable={false}
                 value={team}
                 placeholder={t('Select a Team')}
-                onChange={(choice: any) => setTeam(choice.value)}
+                onChange={(choice: TeamOption) => setTeam(choice.value)}
                 teamFilter={(tm: Team) => tm.access.includes('team:admin')}
               />
             </div>
