@@ -1,5 +1,7 @@
 from django.urls import re_path
 
+from sentry.integrations.jira.webhooks.issue_deleted import JiraIssueDeletedWebhook
+
 from .endpoints import JiraDescriptorEndpoint, JiraSearchEndpoint
 from .views import (
     JiraExtensionConfigurationView,
@@ -37,6 +39,11 @@ urlpatterns = [
         r"^issue-updated/$",
         JiraIssueUpdatedWebhook.as_view(),
         name="sentry-extensions-jira-issue-updated",
+    ),
+    re_path(
+        r"^issue-deleted/$",
+        JiraIssueDeletedWebhook.as_view(),
+        name="sentry-extensions-jira-issue-deleted",
     ),
     re_path(
         r"^search/(?P<organization_id_or_slug>[^\/]+)/(?P<integration_id>\d+)/$",
