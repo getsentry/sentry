@@ -18,6 +18,7 @@ from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
+from sentry.options.rollout import in_random_rollout
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
@@ -72,7 +73,7 @@ class PostProcessJob(TypedDict, total=False):
     has_escalated: bool
 
 
-def _get_service_hooks(project_id):
+def _get_service_hooks(project_id: int) -> list[tuple[int, list[str]]]:
     from sentry.sentry_apps.models.servicehook import ServiceHook
 
     cache_key = f"servicehooks:1:{project_id}"
@@ -1180,7 +1181,7 @@ def process_service_hooks(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.sentry_apps.tasks.service_hooks import process_service_hook
+    from sentry.sentry_apps.tasks.service_hooks import get_payload_v0, process_service_hook
 
     event, has_alert = job["event"], job["has_alert"]
 
@@ -1189,7 +1190,21 @@ def process_service_hooks(job: PostProcessJob) -> None:
         if has_alert:
             allowed_events.add("event.alert")
 
-        if allowed_events:
+        if in_random_rollout("process_service_hook.payload.rollout"):
+            payload = None
+            for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
+                if any(e in allowed_events for e in events):
+                    # only generate the payload once to reduce snuba queries
+                    if payload is None:
+                        # TODO: when we have multiple service hook versions, this will need to change.
+                        payload = json.dumps(get_payload_v0(event))
+                    process_service_hook.delay(
+                        servicehook_id=servicehook_id,
+                        project_id=event.project_id,
+                        event=event,
+                        payload=payload,
+                    )
+        else:
             for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
                 if any(e in allowed_events for e in events):
                     process_service_hook.delay(servicehook_id=servicehook_id, event=event)
