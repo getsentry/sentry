@@ -276,6 +276,8 @@ export function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
                         tags: {
                           ['feedback.source']: 'trace_explorer_ai_query',
                           ['feedback.owner']: 'ml-ai',
+                          ['feedback.natural_language_query']: searchQuery,
+                          ['feedback.generated_query']: rawResult?.query || '',
                         },
                       });
                     } else {
