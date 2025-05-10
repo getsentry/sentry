@@ -23,7 +23,7 @@ from sentry.apidocs.examples.explore_saved_query_examples import ExploreExamples
 from sentry.apidocs.parameters import ExploreSavedQueryParams, GlobalParams
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
-from sentry.explore.models import ExploreSavedQuery
+from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryLastVisited
 
 
 class ExploreSavedQueryBase(OrganizationEndpoint):
@@ -180,5 +180,12 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
         query.visits = F("visits") + 1
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
+
+        ExploreSavedQueryLastVisited.objects.create_or_update(
+            organization=organization,
+            user_id=request.user.id,
+            explore_saved_query=query,
+            values={"last_visited": timezone.now()},
+        )
 
         return Response(status=204)
