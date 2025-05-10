@@ -9941,10 +9941,10 @@ platform@^1.3.3:
   resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
   integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
-platformicons@^8.0.1:
-  version "8.0.1"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-8.0.1.tgz#440bfdfd8cc0eff1468215310d8eed705d8694f4"
-  integrity sha512-aHBu172vCSIg3ZnAaIrnMc4EyHgyslqF9XFhNz505f53CZsXmXKTAn5rUOvFhCbYT5Qp6SeUusRiVCrg8h/jOw==
+platformicons@^8.0.4:
+  version "8.0.4"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-8.0.4.tgz#f26e79b7bfbce1d8ae3af382215efe0ad6e19fcf"
+  integrity sha512-hvIWouaTtmnHv/JD42LwOg4MOd020q8Vf1Xs8uzqiA5+cqsiYqhR22WNV+Vzx6+T1K8ZLO9LV8+FvpFargKdlw==
   dependencies:
     "@types/node" "*"
     "@types/react" "*"
