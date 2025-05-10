@@ -6,6 +6,7 @@ import {
   updateEnvironments,
   updatePersistence,
   updateProjects,
+  updateRepository,
 } from 'sentry/actionCreators/pageFilters';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
@@ -32,6 +33,7 @@ describe('PageFiltersStore', function () {
         projects: [],
         environments: [],
         datetime: {period: '14d', start: null, end: null, utc: null},
+        repository: null,
       },
     });
   });
@@ -55,6 +57,26 @@ describe('PageFiltersStore', function () {
 
     await waitFor(() => PageFiltersStore.getState().selection.projects[0] === 1);
     PageFiltersStore.updateProjects([1], []);
+    await tick();
+    expect(triggerSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns updated repository when calling updateRepository()', async function () {
+    expect(PageFiltersStore.getState().selection.repository).toBeNull();
+    updateRepository('test-repo');
+    await tick();
+    expect(PageFiltersStore.getState().selection.repository).toBe('test-repo');
+  });
+
+  it('does not update repository when calling updateRepository() if same value', async function () {
+    const triggerSpy = jest.spyOn(PageFiltersStore, 'trigger');
+    const testRepoName = 'repo 123';
+    PageFiltersStore.updateRepository(testRepoName);
+
+    await waitFor(
+      () => PageFiltersStore.getState().selection.repository === testRepoName
+    );
+    PageFiltersStore.updateRepository(testRepoName);
     await tick();
     expect(triggerSpy).toHaveBeenCalledTimes(1);
   });

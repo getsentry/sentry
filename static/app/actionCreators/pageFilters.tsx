@@ -66,6 +66,7 @@ type PageFiltersUpdate = {
   environment?: string[] | null;
   period?: string | null;
   project?: number[] | null;
+  repository?: string | null;
   start?: DateString;
   utc?: boolean | null;
 };
@@ -206,6 +207,8 @@ export function initializeUrlState({
   const hasDatetimeInUrl = Object.keys(pick(queryParams, DATE_TIME_KEYS)).length > 0;
   const hasProjectOrEnvironmentInUrl =
     Object.keys(pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])).length > 0;
+  const hasRepositoryInUrl =
+    Object.keys(pick(queryParams, URL_PARAM.REPOSITORY)).length > 0;
 
   // We should only check and update the desync state if the site has just been loaded
   // (not counting route changes). To check this, we can use the `isReady` state: if it's
@@ -254,6 +257,12 @@ export function initializeUrlState({
     }
   }
 
+  // We want to update the pageFilter's object with a repository if it is in the URL
+  // or in local storage, in that order.
+  if (hasRepositoryInUrl) {
+    pageFilters.repository = parsed.repository ?? null;
+  }
+
   const storedPageFilters = skipLoadLastUsed
     ? null
     : getPageFilterStorage(orgSlug, storageNamespace);
@@ -293,9 +302,13 @@ export function initializeUrlState({
       pageFilters.datetime = getDatetimeFromState(storedState);
       shouldUsePinnedDatetime = true;
     }
+
+    if (!hasRepositoryInUrl && pinnedFilters.has('repository')) {
+      pageFilters.repository = storedState.repository ?? null;
+    }
   }
 
-  const {projects, environments: environment, datetime} = pageFilters;
+  const {projects, environments: environment, datetime, repository} = pageFilters;
 
   let newProject: number[] | null = null;
   let project = projects;
@@ -358,9 +371,8 @@ export function initializeUrlState({
       }
     }
   }
-
   const pinnedFilters = organization.features.includes('new-page-filter')
-    ? new Set<PinnedPageFilter>(['projects', 'environments', 'datetime'])
+    ? new Set<PinnedPageFilter>(['projects', 'environments', 'datetime', 'repository'])
     : (storedPageFilters?.pinnedFilters ?? new Set());
 
   PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters, shouldPersist);
@@ -392,7 +404,7 @@ export function initializeUrlState({
       };
 
   if (!skipInitializeUrlParams) {
-    updateParams({project, environment, ...newDatetime}, router, {
+    updateParams({project, environment, ...newDatetime, repository}, router, {
       replace: true,
       keepCursor: true,
     });
@@ -467,6 +479,19 @@ export function updateDateTime(
   PageFiltersStore.updateDateTime({...selection.datetime, ...datetime});
   updateParams(datetime, router, options);
   persistPageFilters('datetime', options);
+}
+
+/**
+ * Updates store and global repository selection URL param if `router` is supplied
+ *
+ * @param {Object} repository Object with repository key
+ * @param {Object} [router] Router object
+ * @param {Object} [options] Options object
+ */
+export function updateRepository(repository: string, router?: Router, options?: Options) {
+  PageFiltersStore.updateRepository(repository);
+  updateParams({repository}, router, options);
+  persistPageFilters('repository', options);
 }
 
 /**
@@ -669,7 +694,7 @@ function getNewQueryParams(
   const extraParams = omit(cleanCurrentQuery, omittedParameters);
 
   // Override parameters
-  const {project, environment, start, end, utc} = {
+  const {project, environment, start, end, utc, repository} = {
     ...currentQueryState,
     ...obj,
   };
@@ -684,6 +709,7 @@ function getNewQueryParams(
     end: statsPeriod ? null : end instanceof Date ? getUtcDateString(end) : end,
     utc: utc ? 'true' : null,
     statsPeriod,
+    repository,
     ...extraParams,
   };
 

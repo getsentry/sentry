@@ -158,7 +158,7 @@ export type IntervalPeriod = ReturnType<typeof getInterval>;
 /**
  * Represents a pinned page filter sentinel value
  */
-export type PinnedPageFilter = 'projects' | 'environments' | 'datetime';
+export type PinnedPageFilter = 'projects' | 'environments' | 'datetime' | 'repository';
 
 export type PageFilters = {
   /**
@@ -178,6 +178,10 @@ export type PageFilters = {
    * Currently selected Project IDs
    */
   projects: number[];
+  /**
+   * Currently selected repository
+   */
+  repository?: string | null;
 };
 
 type InitialState = {type: 'initial'};

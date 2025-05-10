@@ -150,6 +150,22 @@ function getEnvironment(maybe: ParamValue) {
   return toArray(maybe);
 }
 
+/**
+ * Normalizes a string into the repository parameter. Repository is singular and
+ * doesn't handle arrays
+ */
+function getRepository(maybe: ParamValue) {
+  if (!defined(maybe)) {
+    return undefined;
+  }
+
+  if (Array.isArray(maybe)) {
+    return null;
+  }
+
+  return maybe;
+}
+
 type InputParams = {
   [others: string]: any;
   end?: ParamValue | Date;
@@ -280,6 +296,7 @@ export function normalizeDateTimeParams(
  *
  *  - Normalizes `project` and `environment` into a consistent list object.
  *  - Normalizes date time filter parameters (using normalizeDateTimeParams).
+ *  - Gets repository string from query params
  *  - Parses `start` and `end` into Date objects.
  */
 export function getStateFromQuery(
@@ -290,6 +307,7 @@ export function getStateFromQuery(
 
   const project = getProject(query[URL_PARAM.PROJECT]) ?? null;
   const environment = getEnvironment(query[URL_PARAM.ENVIRONMENT]) ?? null;
+  const repository = getRepository(query[URL_PARAM.REPOSITORY]) ?? null;
 
   const dateTimeParams = normalizeDateTimeParams(query, normalizeOptions);
 
@@ -308,6 +326,7 @@ export function getStateFromQuery(
     start: start || null,
     end: end || null,
     utc: typeof utc === 'undefined' ? null : utc === 'true',
+    repository,
   };
 
   return state;
