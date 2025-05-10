@@ -414,6 +414,7 @@ class EventManager:
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
         has_attachments: bool = False,
+        start_save_event_time: float | None = None,
     ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
@@ -456,6 +457,7 @@ class EventManager:
         # After calling _pull_out_data we get some keys in the job like the platform
         _pull_out_data([job], projects)
 
+        job["event"].data["start_save_event_time"] = start_save_event_time
         event_type = self._data.get("type")
         if event_type == "transaction":
             job["data"]["project"] = project.id

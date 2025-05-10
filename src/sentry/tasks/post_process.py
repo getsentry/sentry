@@ -632,6 +632,7 @@ def post_process_group(
         if not is_reprocessed:
             received_at = event.data.get("received")
             saved_at = event.data.get("nodestore_insert")
+            start_save_event_time = event.data.get("start_save_event_time")
             post_processed_at = time()
 
             if saved_at:
@@ -653,6 +654,16 @@ def post_process_group(
                 )
             else:
                 metrics.incr("events.missing_received", tags=metric_tags)
+
+            if start_save_event_time:
+                metrics.timing(
+                    "events.start_save_event_to_post_processed",
+                    post_processed_at - start_save_event_time,
+                    instance=event.data["platform"],
+                    tags=metric_tags,
+                )
+            else:
+                metrics.incr("events.missing_start_save_event_time", tags=metric_tags)
 
 
 def run_post_process_job(job: PostProcessJob) -> None:

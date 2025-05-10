@@ -526,6 +526,7 @@ def _do_save_event(
     """
     Saves an event to the database.
     """
+    start_save_event_time = time()
 
     set_current_event_project(project_id)
 
@@ -590,6 +591,7 @@ def _do_save_event(
                 start_time=start_time,
                 cache_key=cache_key,
                 has_attachments=has_attachments,
+                start_save_event_time=start_save_event_time,
             )
             # Put the updated event back into the cache so that post_process
             # has the most recent data.
@@ -637,6 +639,23 @@ def _do_save_event(
                         ),
                     },
                 )
+
+                metrics.timing(
+                    "events.start_time_to_start_save_event",
+                    start_save_event_time - start_time,
+                    instance=data["platform"],
+                )
+
+            metrics.timing(
+                "events.start_save_event_to_processed",
+                time() - start_save_event_time,
+                instance=data["platform"],
+                tags={
+                    "is_reprocessing2": (
+                        "true" if reprocessing2.is_reprocessed_event(data) else "false"
+                    ),
+                },
+            )
 
 
 @instrumented_task(
