@@ -6,10 +6,12 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {
   FILTER_DATA_CONDITION_TYPES,
   FILTER_MATCH_OPTIONS,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
 import {
@@ -156,6 +158,31 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
           })}
         </StepLead>
         {/* TODO: add actions dropdown here */}
+        <ActionNodeList
+          // TODO: replace constant availableActions with API response
+          availableActions={[
+            {
+              type: ActionType.MSTEAMS,
+              integrations: [
+                {id: '123', name: 'Test'},
+                {id: '456', name: 'Test2'},
+              ],
+            },
+            {
+              type: ActionType.DISCORD,
+              integrations: [
+                {id: 'serv3', name: 'server 1'},
+                {id: 'serv6', name: 'server 2'},
+              ],
+            },
+          ]}
+          placeholder={t('Select an action')}
+          group={`actionFilters.${groupIndex}`}
+          actions={actionFilterBlock?.actions || []}
+          onAddRow={type => actions.addIfAction(groupIndex, type)}
+          onDeleteRow={index => actions.removeIfAction(groupIndex, index)}
+          updateAction={(index, data) => actions.updateIfAction(groupIndex, index, data)}
+        />
       </Step>
     </IfThenWrapper>
   );

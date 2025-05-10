@@ -1,7 +1,11 @@
-export interface Action {
+export interface NewAction {
   data: Record<string, unknown>;
-  id: string;
   type: ActionType;
+  integrationId?: string;
+}
+
+export interface Action extends NewAction {
+  id: string;
 }
 
 export enum ActionType {
@@ -19,4 +23,9 @@ export enum ActionType {
   SENTRY_APP = 'sentry_app',
   PLUGIN = 'plugin',
   WEBHOOK = 'webhook',
+}
+
+export interface Integration {
+  id: string;
+  name: string;
 }
