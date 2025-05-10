@@ -2,6 +2,7 @@ import secrets
 from datetime import timedelta
 from typing import Any, TypedDict
 
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 from django.utils import timezone
 
@@ -9,7 +10,7 @@ from bitfield import typed_dict_bitfield
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import ArrayField, FlexibleForeignKey, Model, control_silo_model
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)
@@ -72,7 +73,7 @@ class ApiGrant(Model):
             },
         )
     )
-    scope_list = ArrayField(of=models.TextField)
+    scope_list = ArrayField(models.TextField(), default=list)
     # API applications should ideally get access to only one organization of user
     # If null, the grant is about user level access and not org level
     organization_id = HybridCloudForeignKey(
