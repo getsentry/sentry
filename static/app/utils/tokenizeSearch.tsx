@@ -6,6 +6,7 @@ const ALLOWED_WILDCARD_FIELDS = [
   'span.status_code',
   'log.body',
   'sentry.normalized_description',
+  'transaction',
 ];
 export const EMPTY_OPTION_VALUE = '(empty)';
 
