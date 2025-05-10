@@ -27,6 +27,7 @@ from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.models.release import ReleaseStatus
 from sentry.search.utils import get_teams_for_users
+from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.testutils.cases import TestCase
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 
@@ -323,6 +324,25 @@ class ConvertPriorityValueTest(TestCase):
 
     def test_invalid(self):
         filters = [SearchFilter(SearchKey("issue.priority"), "=", SearchValue("wrong"))]
+        with pytest.raises(InvalidSearchQuery):
+            convert_query_values(filters, [self.project], self.user, None)
+
+
+class ConvertSeerActionabilityValueTest(TestCase):
+    def test_valid(self):
+        for fixability_score in FixabilityScoreThresholds:
+            filters = [
+                SearchFilter(
+                    SearchKey("issue.seer_actionability"),
+                    "=",
+                    SearchValue([fixability_score.name.lower()]),
+                )
+            ]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == [fixability_score.value]
+
+    def test_invalid(self):
+        filters = [SearchFilter(SearchKey("issue.seer_actionability"), "=", SearchValue("wrong"))]
         with pytest.raises(InvalidSearchQuery):
             convert_query_values(filters, [self.project], self.user, None)
 
