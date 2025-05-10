@@ -1,7 +1,8 @@
-import {cloneElement, Component, Fragment, isValidElement} from 'react';
+import {cloneElement, Fragment, isValidElement, useRef, useState} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
+import {Alert} from 'sentry/components/core/alert';
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -72,6 +73,11 @@ export type OpenConfirmOptions = {
    */
   disableConfirmButton?: boolean;
   /**
+   * Message to display to user when an error occurs. Only used if `onConfirmAsync` is
+   * provided and the promise rejects.
+   */
+  errorMessage?: React.ReactNode;
+  /**
    * Header of modal
    */
   header?: React.ReactNode;
@@ -95,8 +101,11 @@ export type OpenConfirmOptions = {
   onClose?: () => void;
   /**
    * Callback when user confirms
+   *
+   * If you pass a promise, the modal will not close until it resolves.
+   * To customize the error message in case of rejection, pass the `errorMessage` prop.
    */
-  onConfirm?: () => void;
+  onConfirm?: () => void | Promise<void>;
   /**
    * Callback function when user is in the confirming state called when the
    * confirm modal is opened
@@ -224,68 +233,75 @@ type ModalProps = ModalRenderProps &
     | 'onCancel'
     | 'disableConfirmButton'
     | 'onRender'
+    | 'errorMessage'
   >;
 
-type ModalState = {
-  /**
-   * The callback registered from the rendered message to call
-   */
-  confirmCallback: null | (() => void);
-  /**
-   * Is confirm button disabled
-   */
-  disableConfirmButton: boolean;
-};
+function ConfirmModal({
+  Header,
+  Body,
+  Footer,
+  priority,
+  confirmText,
+  cancelText,
+  header,
+  isDangerous,
+  renderConfirmButton,
+  renderCancelButton,
+  disableConfirmButton,
+  onCancel,
+  onConfirm,
+  renderMessage,
+  message,
+  errorMessage = t('Something went wrong. Please try again.'),
+  closeModal,
+}: ModalProps) {
+  const confirmCallbackRef = useRef<() => void>(() => {});
+  const isConfirmingRef = useRef(false);
+  const [shouldDisableConfirmButton, setShouldDisableConfirmButton] =
+    useState(disableConfirmButton);
+  const [isError, setIsError] = useState(false);
 
-class ConfirmModal extends Component<ModalProps, ModalState> {
-  state: ModalState = {
-    disableConfirmButton: !!this.props.disableConfirmButton,
-    confirmCallback: null,
-  };
-
-  componentDidMount() {
-    this.props.onRender?.();
-  }
-
-  confirming = false;
-
-  handleClose = () => {
-    const {disableConfirmButton, onCancel, closeModal} = this.props;
-
+  const handleClose = () => {
     onCancel?.();
-    this.setState({disableConfirmButton: disableConfirmButton ?? false});
+    setShouldDisableConfirmButton(disableConfirmButton ?? false);
 
     // always reset `confirming` when modal visibility changes
-    this.confirming = false;
+    isConfirmingRef.current = false;
     closeModal();
   };
 
-  handleConfirm = () => {
-    const {onConfirm, closeModal} = this.props;
-
-    // `confirming` is used to ensure `onConfirm` or the confirm callback is
-    // only called once
-    if (!this.confirming) {
-      onConfirm?.();
-      this.state.confirmCallback?.();
+  const handleConfirm = async () => {
+    if (isConfirmingRef.current) {
+      return;
     }
 
-    this.setState({disableConfirmButton: true});
-    this.confirming = true;
+    isConfirmingRef.current = true;
+    setShouldDisableConfirmButton(true);
+
+    if (onConfirm) {
+      try {
+        await onConfirm();
+      } catch (error) {
+        setIsError(true);
+        setShouldDisableConfirmButton(disableConfirmButton ?? false);
+        return;
+      } finally {
+        isConfirmingRef.current = false;
+      }
+    }
+
+    confirmCallbackRef.current();
     closeModal();
   };
 
-  get confirmMessage() {
-    const {message, renderMessage} = this.props;
-
+  const makeConfirmMessage = () => {
     if (typeof renderMessage === 'function') {
       return renderMessage({
-        confirm: this.handleConfirm,
-        close: this.handleClose,
-        disableConfirmButton: (state: boolean) =>
-          this.setState({disableConfirmButton: state}),
+        confirm: handleConfirm,
+        close: handleClose,
+        disableConfirmButton: (state: boolean) => setShouldDisableConfirmButton(state),
         setConfirmCallback: (confirmCallback: () => void) =>
-          this.setState({confirmCallback}),
+          (confirmCallbackRef.current = confirmCallback),
       });
     }
 
@@ -294,63 +310,56 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
     }
 
     return <p style={{wordWrap: 'break-word'}}>{message}</p>;
-  }
+  };
 
-  render() {
-    const {
-      Header,
-      Body,
-      Footer,
-      priority,
-      confirmText,
-      cancelText,
-      header,
-      isDangerous,
-      renderConfirmButton,
-      renderCancelButton,
-    } = this.props;
-    return (
-      <Fragment>
-        {header && <Header>{header}</Header>}
-        <Body>{this.confirmMessage}</Body>
-        <Footer>
-          <ButtonBar gap={2}>
-            {renderCancelButton ? (
-              renderCancelButton({
-                closeModal: this.props.closeModal,
-                defaultOnClick: this.handleClose,
-              })
-            ) : (
-              <Button
-                onClick={this.handleClose}
-                autoFocus={!!isDangerous}
-                aria-label={typeof cancelText === 'string' ? cancelText : t('Cancel')}
-              >
-                {cancelText ?? t('Cancel')}
-              </Button>
-            )}
-            {renderConfirmButton ? (
-              renderConfirmButton({
-                closeModal: this.props.closeModal,
-                defaultOnClick: this.handleConfirm,
-              })
-            ) : (
-              <Button
-                data-test-id="confirm-button"
-                disabled={this.state.disableConfirmButton}
-                priority={priority}
-                onClick={this.handleConfirm}
-                autoFocus={!isDangerous}
-                aria-label={typeof confirmText === 'string' ? confirmText : t('Confirm')}
-              >
-                {confirmText ?? t('Confirm')}
-              </Button>
-            )}
-          </ButtonBar>
-        </Footer>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      {header && <Header>{header}</Header>}
+      <Body>
+        {isError && (
+          <Alert.Container>
+            <Alert type="error">{errorMessage}</Alert>
+          </Alert.Container>
+        )}
+        {makeConfirmMessage()}
+      </Body>
+      <Footer>
+        <ButtonBar gap={2}>
+          {renderCancelButton ? (
+            renderCancelButton({
+              closeModal,
+              defaultOnClick: handleClose,
+            })
+          ) : (
+            <Button
+              onClick={handleClose}
+              autoFocus={!!isDangerous}
+              aria-label={typeof cancelText === 'string' ? cancelText : t('Cancel')}
+            >
+              {cancelText ?? t('Cancel')}
+            </Button>
+          )}
+          {renderConfirmButton ? (
+            renderConfirmButton({
+              closeModal,
+              defaultOnClick: handleConfirm,
+            })
+          ) : (
+            <Button
+              data-test-id="confirm-button"
+              disabled={shouldDisableConfirmButton}
+              priority={priority}
+              onClick={handleConfirm}
+              autoFocus={!isDangerous}
+              aria-label={typeof confirmText === 'string' ? confirmText : t('Confirm')}
+            >
+              {confirmText ?? t('Confirm')}
+            </Button>
+          )}
+        </ButtonBar>
+      </Footer>
+    </Fragment>
+  );
 }
 
 export default Confirm;
