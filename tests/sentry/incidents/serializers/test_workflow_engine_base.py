@@ -5,8 +5,10 @@ from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.issues.priority import PriorityChangeReason
 from sentry.models.activity import Activity
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.migration_helpers.alert_rule import (
@@ -16,8 +18,6 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_resolve_threshold_data_condition,
 )
 from sentry.workflow_engine.models import ActionGroupStatus, IncidentGroupOpenPeriod
-from sentry.silo.base import SiloMode
-from sentry.testutils.silo import assume_test_silo_mode
 
 
 @freeze_time("2024-12-11 03:21:34")
@@ -61,7 +61,7 @@ class TestWorklowEngineSerializer(TestCase):
                 "label": "critical",
                 "thresholdType": AlertRuleThresholdType.ABOVE.value,
                 "alertThreshold": self.critical_detector_trigger.comparison,
-                "resolveThreshold": AlertRuleThresholdType.BELOW,
+                "resolveThreshold": AlertRuleThresholdType.BELOW.value,
                 "dateCreated": self.critical_trigger.date_added,
                 "actions": self.expected_critical_action,
             },
@@ -117,7 +117,7 @@ class TestWorklowEngineSerializer(TestCase):
             "label": "warning",
             "thresholdType": AlertRuleThresholdType.ABOVE.value,
             "alertThreshold": self.critical_detector_trigger.comparison,
-            "resolveThreshold": AlertRuleThresholdType.BELOW,
+            "resolveThreshold": AlertRuleThresholdType.BELOW.value,
             "dateCreated": self.critical_trigger.date_added,
             "actions": self.expected_warning_action,
         }
