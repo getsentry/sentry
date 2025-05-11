@@ -160,6 +160,11 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     return () => {};
   }, [location.query.scrollTo, scrollToSection]);
 
+  let lastTriggeredAt = autofixData?.last_triggered_at;
+  if (lastTriggeredAt && !lastTriggeredAt.endsWith('Z')) {
+    lastTriggeredAt = lastTriggeredAt + 'Z';
+  }
+
   return (
     <SeerDrawerContainer className="seer-drawer-container">
       <SeerDrawerHeader>
@@ -242,7 +247,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                   title={
                     autofixData?.last_triggered_at
                       ? tct('Last run at [date]', {
-                          date: <DateTime date={autofixData.last_triggered_at} />,
+                          date: <DateTime date={lastTriggeredAt} />,
                         })
                       : null
                   }
