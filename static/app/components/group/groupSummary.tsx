@@ -297,11 +297,7 @@ export function GroupSummary({
                     <CardContent>
                       {card.insightElement}
                       {card.insight && (
-                        <MarkedText
-                          text={
-                            preview ? card.insight.replace(/\*\*/g, '') : card.insight
-                          }
-                        />
+                        <MarkedText text={card.insight.replace(/\*\*/g, '')} />
                       )}
                     </CardContent>
                   )}
@@ -392,7 +388,7 @@ const CardContent = styled('div')`
 
 const TooltipWrapper = styled('div')`
   position: absolute;
-  top: -${space(0.5)};
+  top: -${space(1)};
   right: 0;
 
   ul {

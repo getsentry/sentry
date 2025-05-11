@@ -11,7 +11,6 @@ import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
-import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
@@ -257,9 +256,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         )}
       </SeerDrawerNavigator>
 
-      {!aiConfig.isAutofixSetupLoading &&
-        !aiConfig.needsGenAiAcknowledgement &&
-        autofixData && <AutofixProgressBar autofixData={autofixData} />}
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
@@ -387,7 +383,7 @@ const StyledCard = styled('div')`
   overflow: visible;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(3)};
+  padding: ${space(2)} ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
