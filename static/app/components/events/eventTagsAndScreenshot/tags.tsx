@@ -6,6 +6,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {
+  associateTagsWithMeta,
   getSentryDefaultTags,
   TagFilter,
   TagFilterData,
@@ -44,16 +45,21 @@ export function EventTagsDataSection({
   const handleTagFilterChange = useCallback((value: TagFilter) => {
     setTagFilter(value);
   }, []);
-  const tags = useMemo(() => {
+
+  const tagsWithMeta = useMemo(() => {
+    return associateTagsWithMeta({tags: event.tags, meta: event._meta?.tags});
+  }, [event.tags, event._meta?.tags]);
+
+  const filteredTags = useMemo(() => {
     switch (tagFilter) {
       case TagFilter.ALL:
-        return event.tags;
+        return tagsWithMeta;
       case TagFilter.CUSTOM:
-        return event.tags.filter(tag => !sentryTags.has(tag.key));
+        return tagsWithMeta.filter(tag => !sentryTags.has(tag.key));
       default:
-        return event.tags.filter(tag => TagFilterData[tagFilter].has(tag.key));
+        return tagsWithMeta.filter(tag => TagFilterData[tagFilter].has(tag.key));
     }
-  }, [tagFilter, event.tags, sentryTags]);
+  }, [tagFilter, tagsWithMeta, sentryTags]);
 
   const availableFilters = useMemo(() => {
     return Object.keys(TagFilterData).filter(filter => {
@@ -99,7 +105,7 @@ export function EventTagsDataSection({
         event={event}
         projectSlug={projectSlug}
         tagFilter={tagFilter}
-        filteredTags={tags ?? []}
+        filteredTags={filteredTags ?? []}
       />
     </StyledEventDataSection>
   );

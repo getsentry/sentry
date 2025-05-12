@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/react';
 
 import EventTagCustomBanner from 'sentry/components/events/eventTags/eventTagCustomBanner';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
-import {TagFilter} from 'sentry/components/events/eventTags/util';
+import {associateTagsWithMeta, TagFilter} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import type {Event, EventTag} from 'sentry/types/event';
+import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -15,7 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 type Props = {
   event: Event;
   projectSlug: Project['slug'];
-  filteredTags?: EventTag[];
+  filteredTags?: EventTagWithMeta[];
   tagFilter?: TagFilter;
 };
 
@@ -30,15 +30,15 @@ export function EventTags({
   const organization = useOrganization();
   const meta = event._meta?.tags;
 
-  const tagsSource = defined(filteredTags) ? filteredTags : event.tags;
-
-  const tags = tagsSource;
+  const tags = defined(filteredTags)
+    ? filteredTags
+    : associateTagsWithMeta({tags: event.tags ?? [], meta});
 
   useEffect(() => {
     if (isMobilePlatform(event.platform)) {
-      const deviceClass = tagsSource.find(tag => tag.key === 'device.class')?.value;
-      const deviceFamily = tagsSource.find(tag => tag.key === 'device.family')?.value;
-      const deviceModel = tagsSource.find(tag => tag.key === 'device.model')?.value;
+      const deviceClass = tags.find(tag => tag.key === 'device.class')?.value;
+      const deviceFamily = tags.find(tag => tag.key === 'device.family')?.value;
+      const deviceModel = tags.find(tag => tag.key === 'device.model')?.value;
       if (deviceFamily && IOS_DEVICE_FAMILIES.includes(deviceFamily)) {
         // iOS device missing classification, this probably indicates a new iOS device which we
         // haven't yet classified.
@@ -50,11 +50,11 @@ export function EventTags({
         }
       } else {
         const deviceProcessorCount = parseInt(
-          tagsSource.find(tag => tag.key === 'device.processor_count')?.value ?? '',
+          tags.find(tag => tag.key === 'device.processor_count')?.value ?? '',
           10
         );
         const deviceProcessorFrequency = parseInt(
-          tagsSource.find(tag => tag.key === 'device.processor_frequency')?.value ?? '',
+          tags.find(tag => tag.key === 'device.processor_frequency')?.value ?? '',
           10
         );
         // Android device specs significantly higher than current high end devices.
@@ -74,7 +74,7 @@ export function EventTags({
         }
       }
     }
-  }, [event, tagsSource, organization]);
+  }, [event, tags, organization]);
 
   useEffect(() => {
     const mechanism = filteredTags?.find(tag => tag.key === 'mechanism')?.value;
@@ -100,12 +100,7 @@ export function EventTags({
 
   return (
     <Fragment>
-      <EventTagsTree
-        event={event}
-        meta={meta}
-        projectSlug={projectSlug}
-        tags={filtered}
-      />
+      <EventTagsTree event={event} projectSlug={projectSlug} tags={filtered} />
       {hasCustomTagsBanner && <EventTagCustomBanner />}
     </Fragment>
   );

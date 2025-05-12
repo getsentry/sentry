@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
+import {associateTagsWithMeta} from 'sentry/components/events/eventTags/util';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
@@ -45,9 +46,11 @@ export function TraceContextTags({rootEventResults}: Props) {
       ) : (
         <EventTagsTree
           event={eventDetails}
-          meta={eventDetails._meta}
           projectSlug={eventDetails.projectSlug ?? ''}
-          tags={eventDetails.tags}
+          tags={associateTagsWithMeta({
+            tags: eventDetails.tags,
+            meta: eventDetails._meta?.tags,
+          })}
         />
       )}
     </TagsContainer>
