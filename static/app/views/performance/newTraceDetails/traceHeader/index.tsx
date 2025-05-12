@@ -29,7 +29,7 @@ import {Meta} from './meta';
 import {Title} from './title';
 
 export interface TraceMetadataHeaderProps {
-  logs: OurLogsResponseItem[];
+  logs: OurLogsResponseItem[] | undefined;
   metaResults: TraceMetaQueryResults;
   organization: Organization;
   rootEventResults: TraceRootEventQueryResults;

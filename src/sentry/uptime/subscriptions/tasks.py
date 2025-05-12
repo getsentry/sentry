@@ -38,6 +38,7 @@ BROKEN_MONITOR_AGE_LIMIT = timedelta(days=7)
         namespace=uptime_tasks,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )
@@ -70,6 +71,7 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         namespace=uptime_tasks,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )
@@ -103,6 +105,7 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         namespace=uptime_tasks,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )

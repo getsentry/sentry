@@ -110,7 +110,11 @@ def _run_scheduled_deletions(model_class: type[BaseScheduledDeletion], process_t
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=deletion_control_tasks,
-        retry=Retry(times=MAX_RETRIES, times_exceeded=LastAction.Discard),
+        retry=Retry(
+            times=MAX_RETRIES,
+            times_exceeded=LastAction.Discard,
+            delay=60 * 5,
+        ),
     ),
 )
 @retry(exclude=(DeleteAborted,))
@@ -132,7 +136,11 @@ def run_deletion_control(deletion_id: int, first_pass: bool = True, **kwargs: An
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=deletion_tasks,
-        retry=Retry(times=MAX_RETRIES, times_exceeded=LastAction.Discard),
+        retry=Retry(
+            times=MAX_RETRIES,
+            times_exceeded=LastAction.Discard,
+            delay=60 * 5,
+        ),
     ),
 )
 @retry(exclude=(DeleteAborted,))
