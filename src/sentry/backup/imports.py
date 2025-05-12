@@ -26,6 +26,7 @@ from sentry.backup.dependencies import (
 )
 from sentry.backup.helpers import Filter, ImportFlags, Printer
 from sentry.backup.scopes import ImportScope
+from sentry.backup.services.import_export.impl import fixup_array_fields
 from sentry.backup.services.import_export.model import (
     RpcFilter,
     RpcImportError,
@@ -148,9 +149,7 @@ def _import(
     # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
     # footprint when processing super large (>100MB) exports.
     content: bytes | str = (
-        decrypt_encrypted_tarball(src, decryptor)
-        if decryptor is not None
-        else src.read().decode("utf-8")
+        decrypt_encrypted_tarball(src, decryptor) if decryptor is not None else src.read()
     )
 
     if len(DELETED_MODELS) > 0 or len(DELETED_FIELDS) > 0:
@@ -169,6 +168,8 @@ def _import(
 
         # Return the content to byte form, as that is what the Django deserializer expects.
         content = orjson.dumps(content_as_json)
+
+    content = fixup_array_fields(content)
 
     filters = []
     if filter_by is not None:
