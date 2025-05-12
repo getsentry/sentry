@@ -160,7 +160,7 @@ const LayoutGap = styled('div')`
 
 const ItalicP = styled('p')`
   font-style: italic;
-  color: ${p => p.theme.tokens.content.primary};
+  color: ${p => p.theme.headingColor};
 `;
 
 const IntroSection = styled('div')`
