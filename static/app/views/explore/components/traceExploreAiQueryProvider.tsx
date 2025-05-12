@@ -277,7 +277,11 @@ export function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
                           ['feedback.source']: 'trace_explorer_ai_query',
                           ['feedback.owner']: 'ml-ai',
                           ['feedback.natural_language_query']: searchQuery,
-                          ['feedback.generated_query']: rawResult?.query || '',
+                          ['feedback.generated_query']: JSON.stringify(
+                            rawResult,
+                            null,
+                            2
+                          ),
                         },
                       });
                     } else {
