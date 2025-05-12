@@ -99,23 +99,6 @@ class EventMatcher:
         return matching_id
 
 
-class ServiceHookPayloadMatcher:
-    def __init__(self, event: Event):
-        self.event = event
-
-    def __eq__(self, other: Any) -> bool:
-        assert isinstance(other, str), "other should be a string"
-        assert self.event.group
-
-        payload = json.loads(other)
-        assert payload["event"]["id"] == self.event.event_id
-        assert payload["group"]["id"] == str(self.event.group.id)
-        assert "url" in payload["group"]
-        assert "tags" in payload["event"]
-        assert "project" in payload
-        return True
-
-
 class BasePostProgressGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def create_event(self, data, project_id, assert_no_errors=True):
@@ -516,6 +499,32 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
 
 
 class ServiceHooksTestMixin(BasePostProgressGroupMixin):
+    @override_options({"process_service_hook.payload.rollout": 1.0})
+    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    def test_service_hook_fires_on_new_event_payload_param(self, mock_process_service_hook):
+        event = self.create_event(data={}, project_id=self.project.id)
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.created"],
+        )
+
+        with self.feature("projects:servicehooks"):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+
+        mock_process_service_hook.delay.assert_called_once_with(
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+        )
+
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
     def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -536,9 +545,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
 
         mock_process_service_hook.delay.assert_called_once_with(
             servicehook_id=hook.id,
-            project_id=self.project.id,
             event=EventMatcher(event),
-            payload=ServiceHookPayloadMatcher(event),
         )
 
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
@@ -568,9 +575,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
 
         mock_process_service_hook.delay.assert_called_once_with(
             servicehook_id=hook.id,
-            project_id=self.project.id,
             event=EventMatcher(event),
-            payload=ServiceHookPayloadMatcher(event),
         )
 
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")

@@ -601,23 +601,6 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
     ),
-    "performance_score": AggregateDefinition(
-        internal_function=Function.FUNCTION_AVG,
-        default_search_type="integer",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
-            ),
-        ],
-        attribute_resolver=transform_vital_score_to_ratio,
-    ),
 }
 
 LOG_AGGREGATE_DEFINITIONS = {

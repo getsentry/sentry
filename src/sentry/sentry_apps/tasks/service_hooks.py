@@ -2,8 +2,11 @@ import logging
 from time import time
 from typing import Any
 
+from sentry import nodestore
 from sentry.api.serializers import serialize
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.http import safe_urlopen
+from sentry.models.group import Group
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -49,9 +52,10 @@ def get_payload_v0(event):
 @retry
 def process_service_hook(
     servicehook_id: int,
-    event: Any,
-    payload: str | None = None,
+    event: Any | None = None,
     project_id: int | None = None,
+    group_id: int | None = None,
+    event_id: str | None = None,
     **kwargs,
 ):
     try:
@@ -59,12 +63,25 @@ def process_service_hook(
     except ServiceHook.DoesNotExist:
         return
 
-    project_id = project_id or event.project_id
-    if not payload:
-        if servicehook.version == 0:
-            payload = json.dumps(get_payload_v0(event))
-        else:
-            raise NotImplementedError
+    if not project_id and event:
+        project_id = event.project_id
+
+    if project_id and group_id and event_id:
+        node_id = Event.generate_node_id(project_id, event_id)
+        group = Group.objects.get_from_cache(id=group_id)
+        nodedata = nodestore.backend.get(node_id)
+        event = GroupEvent(
+            project_id=project_id,
+            event_id=event_id,
+            group=group,
+            data=nodedata,
+        )
+
+    assert event, "Event must exist at this point"
+    if servicehook.version == 0:
+        payload = json.dumps(get_payload_v0(event))
+    else:
+        raise NotImplementedError
 
     from sentry import tsdb
 
