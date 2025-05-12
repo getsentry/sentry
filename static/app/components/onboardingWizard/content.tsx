@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {AnimatePresence} from 'framer-motion';
 import partition from 'lodash/partition';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -24,7 +24,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
-import testableTransition from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -258,26 +257,7 @@ function Task({task, hidePanel}: TaskProps) {
   }, [task.status]);
 
   return (
-    <TaskWrapper
-      initial
-      animate="animate"
-      layout={showSkipConfirmation ? false : true}
-      variants={{
-        initial: {
-          opacity: 0,
-          y: 40,
-        },
-        animate: {
-          opacity: 1,
-          y: 0,
-          transition: testableTransition({
-            delay: 0.8,
-            when: 'beforeChildren',
-            staggerChildren: 0.3,
-          }),
-        },
-      }}
-    >
+    <TaskWrapper>
       <TaskCard
         onClick={
           task.status === 'complete' || task.status === 'skipped'
@@ -592,7 +572,7 @@ const TaskGroupBody = styled('ul')`
   margin: 0;
 `;
 
-const TaskWrapper = styled(motion.li)`
+const TaskWrapper = styled('li')`
   gap: ${space(1)};
   p {
     color: ${p => p.theme.subText};
