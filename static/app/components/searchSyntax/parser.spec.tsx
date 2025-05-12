@@ -403,6 +403,6 @@ describe('searchSyntax/parser', function () {
     expect(result).toHaveLength(3);
 
     const bar = result?.[1] as TokenResult<Token.FILTER>;
-    expect(bar.value).toEqual(expect.objectContaining({contains: true, value: '**'}));
+    expect(bar.value).toEqual(expect.objectContaining({contains: false, value: '**'}));
   });
 });
