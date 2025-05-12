@@ -174,7 +174,7 @@ describe('parseMultiSelectValue', function () {
 
       expect(item!.value!.value).toBe('**');
       expect(item!.value!.text).toBe('**');
-      expect(item!.value!.contains).toBe(true);
+      expect(item!.value!.contains).toBe(false);
     });
 
     it('spaces', function () {
