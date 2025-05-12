@@ -457,3 +457,88 @@ export function confirmDeleteSavedQuery({
     onConfirm: handleDelete,
   });
 }
+
+export function findSuggestedColumns(
+  newSearch: MutableSearch,
+  oldSearch: MutableSearch
+): string[] {
+  const oldFilters = oldSearch.filters;
+  const newFilters = newSearch.filters;
+
+  const keys: Set<string> = new Set();
+
+  for (const [key, value] of Object.entries(newFilters)) {
+    if (key === 'has' || key === '!has') {
+      // special key to be handled last
+      continue;
+    }
+
+    if (isSimpleFilter(key, value)) {
+      continue;
+    }
+
+    if (
+      !oldFilters.hasOwnProperty(key) || // new filter key
+      isSimpleFilter(key, oldFilters[key] || []) // existing filter key turned complex
+    ) {
+      keys.add(normalizeKey(key));
+      break;
+    }
+  }
+
+  const oldHas = new Set(oldFilters.has);
+  for (const key of newFilters.has || []) {
+    if (oldFilters.hasOwnProperty(key) || oldHas.has(key)) {
+      // old condition, don't add column
+      continue;
+    }
+
+    // if there's a simple filter on the key, don't add column
+    if (newFilters.hasOwnProperty(key) && isSimpleFilter(key, newFilters[key] || [])) {
+      continue;
+    }
+
+    keys.add(normalizeKey(key));
+  }
+
+  return [...keys];
+}
+
+const PREFIX_WILDCARD_PATTERN = /^(\\\\)*\*/;
+const INFIX_WILDCARD_PATTERN = /[^\\](\\\\)*\*/;
+
+function isSimpleFilter(key: string, value: string[]): boolean {
+  // negation filters are always considered non trivial
+  // because it matches on multiple values
+  if (key.startsWith('!')) {
+    return false;
+  }
+
+  if (value.length === 1) {
+    const v = value[0]!;
+    // if the value is wrapped in `[...]`, then it's an array value
+    if (v.startsWith('[') && v.endsWith(']')) {
+      return false;
+    }
+
+    // if is wild card search, return false
+    if (v.startsWith('*')) {
+      return false;
+    }
+
+    if (PREFIX_WILDCARD_PATTERN.test(v) || INFIX_WILDCARD_PATTERN.test(v)) {
+      return false;
+    }
+  }
+
+  // if there is more than 1 possible value
+  if (value.length > 1) {
+    return false;
+  }
+
+  return true;
+}
+
+function normalizeKey(key: string): string {
+  return key.startsWith('!') ? key.slice(1) : key;
+}
