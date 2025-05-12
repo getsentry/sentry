@@ -13,7 +13,6 @@ from sentry.models.project import Project
 from sentry.onboarding_tasks.base import OnboardingTaskBackend
 from sentry.utils import json
 from sentry.utils.platform_categories import SOURCE_MAPS
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboardingTask]):
@@ -75,5 +74,4 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
                     referrer="onboarding_tasks",
                 )
             except IntegrityError:
-                incr_rollback_metrics(OrganizationOption)
                 pass

@@ -3,7 +3,6 @@ from django.db.models.signals import post_delete, post_save
 
 from sentry.users.models.email import Email
 from sentry.users.models.useremail import UserEmail
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 def create_email(instance, created, **kwargs):
@@ -12,7 +11,6 @@ def create_email(instance, created, **kwargs):
             with transaction.atomic(router.db_for_write(Email)):
                 Email.objects.create(email=instance.email)
         except IntegrityError:
-            incr_rollback_metrics(Email)
             pass
 
 

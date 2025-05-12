@@ -20,7 +20,6 @@ from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidParams
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 class KeyTransactionPermission(OrganizationPermission):
@@ -111,7 +110,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                     return Response(status=201)
                 # Even though we tried to avoid it, the TeamKeyTransaction was created already
                 except IntegrityError:
-                    incr_rollback_metrics(TeamKeyTransaction)
                     return Response(status=409)
 
         return Response(serializer.errors, status=400)

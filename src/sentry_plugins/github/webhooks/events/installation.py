@@ -1,7 +1,6 @@
 from django.db import IntegrityError, router, transaction
 
 from sentry.integrations.models.integration import Integration
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 from . import Webhook
 
@@ -21,5 +20,4 @@ class InstallationEventWebhook(Webhook):
                         name=installation["account"]["login"],
                     )
             except IntegrityError:
-                incr_rollback_metrics(Integration)
                 pass

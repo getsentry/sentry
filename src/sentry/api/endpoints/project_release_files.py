@@ -24,7 +24,6 @@ from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 ERR_FILE_EXISTS = "A file matching this name already exists for the given release"
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
@@ -170,7 +169,6 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                     dist_id=dist.id if dist else dist,
                 )
         except IntegrityError:
-            incr_rollback_metrics(ReleaseFile)
             file.delete()
             return Response({"detail": ERR_FILE_EXISTS}, status=409)
 

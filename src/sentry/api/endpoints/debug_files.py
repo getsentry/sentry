@@ -47,7 +47,6 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.utils.db import atomic_transaction
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"
@@ -153,7 +152,6 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
             )
             return Response(status=status.HTTP_201_CREATED)
         except IntegrityError:
-            incr_rollback_metrics(ProguardArtifactRelease)
             return Response(
                 data={
                     "error": "Proguard artifact release with this name in this project already exists."

@@ -12,7 +12,6 @@ from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
 from sentry.models.broadcast import Broadcast, BroadcastSeen
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger("sentry")
 
@@ -104,7 +103,6 @@ class BroadcastDetailsEndpoint(Endpoint):
                 with transaction.atomic(using=router.db_for_write(Broadcast)):
                     BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
             except IntegrityError:
-                incr_rollback_metrics(BroadcastSeen)
                 pass
 
         return self._serialize_response(request, broadcast)
