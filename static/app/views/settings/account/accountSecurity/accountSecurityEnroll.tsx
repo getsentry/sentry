@@ -24,7 +24,7 @@ import type {FieldObject} from 'sentry/components/forms/types';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {WebAuthnEnroll} from 'sentry/components/webAuthn/webAuthnEnroll';
+import U2fSign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {space} from 'sentry/styles/space';
@@ -43,10 +43,6 @@ import {AuthenticatorHeader} from './components/authenticatorHeader';
 type GetFieldsOpts = {
   authenticator: Authenticator;
   /**
-   * Callback when u2f device is activated
-   */
-  handleWebAuthn: (params: any) => void;
-  /**
    * Flag to track if totp has been sent
    */
   hasSentCode: boolean;
@@ -54,6 +50,10 @@ type GetFieldsOpts = {
    * Callback to reset SMS 2fa enrollment
    */
   onSmsReset: () => void;
+  /**
+   * Callback when u2f device is activated
+   */
+  onU2fTap: React.ComponentProps<typeof U2fSign>['onTap'];
   /**
    * Flag to track if we are currently sending the otp code
    */
@@ -68,7 +68,7 @@ const getFields = ({
   hasSentCode,
   sendingCode,
   onSmsReset,
-  handleWebAuthn,
+  onU2fTap,
 }: GetFieldsOpts): null | FieldObject[] => {
   const {form} = authenticator;
 
@@ -133,9 +133,12 @@ const getFields = ({
     return [
       deviceNameField,
       () => (
-        <WebAuthnEnroll
+        <U2fSign
+          key="u2f-enroll"
+          style={{marginBottom: 0}}
           challengeData={authenticator.challenge}
-          onWebAuthn={handleWebAuthn}
+          displayMode="enroll"
+          onTap={onU2fTap}
         />
       ),
     ];
@@ -264,7 +267,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
   };
 
   // Handle u2f device tap
-  handleWebAuthn = async (tapData: any) => {
+  handleU2fTap = async (tapData: any) => {
     const data = {deviceName: this.formModel.getValue('deviceName'), ...tapData};
 
     this.setState({loading: true});
@@ -402,7 +405,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
       hasSentCode,
       sendingCode,
       onSmsReset: this.handleSmsReset,
-      handleWebAuthn: this.handleWebAuthn,
+      onU2fTap: this.handleU2fTap,
     });
 
     // Attempt to extract `defaultValue` from server generated form fields
