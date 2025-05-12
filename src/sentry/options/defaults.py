@@ -3032,7 +3032,7 @@ register(
 
 register(
     "demo-mode.disable-sandbox-redirect",
-    default=[],
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
