@@ -293,53 +293,25 @@ text_key
 
 value
   = value:[^()\t\n ]* {
-      if (tc.enableContainsCheck()) {
-        return tc.tokenValueText(value.join(''), false, false);
-      }
       return tc.tokenValueText(value.join(''), false);
     }
 
 quoted_value
   = '"' value:('\\"' / '\\*' / [^"\\])* '"' {
-      if (tc.enableContainsCheck()) {
-        return tc.tokenValueText(value.join(''), true, false);
-      }
+
       return tc.tokenValueText(value.join(''), true);
     }
 
-quoted_contains_value
-  = '"' "*" value:('\\"' / '\\*' / [^"*\\])* "*" '"' &{
-    return tc.enableContainsCheck();
-  } {
-      return tc.tokenValueText(value.join(''), true, true);
-    }
-
-contains_value
-  = "*" value:(contains_inner_value)* "*" &{
-    return tc.enableContainsCheck();
-  } {
-      if (!value.length) {
-        return tc.tokenValueText('', false, true);
-      }
-      return tc.tokenValueText(value.join(''), false, true);
-    }
-
-contains_inner_value
-  = [^*\"()]
-
 in_value
   = (&in_value_termination in_value_char)+ {
-      if (tc.enableContainsCheck()) {
-        return tc.tokenValueText(text(), false, false);
-      }
       return tc.tokenValueText(text(), false);
     }
 
 text_in_value
-  = quoted_contains_value / quoted_value / contains_value / in_value
+  = quoted_value / in_value
 
 search_value
-  = quoted_contains_value / quoted_value / contains_value / value
+  = quoted_value / value
 
 numeric_value
   = value:("-"? numeric) unit:(number_unit)? &(end_value / comma / closed_bracket) {

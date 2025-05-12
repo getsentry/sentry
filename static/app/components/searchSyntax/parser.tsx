@@ -696,7 +696,12 @@ export class TokenConverter {
     items: [{separator: '', value: item1}, ...items.map(listJoiner)],
   });
 
-  tokenValueText = (value: string, quoted: boolean, contains?: boolean) => {
+  tokenValueText = (value: string, quoted: boolean) => {
+    let contains: boolean | undefined;
+    if (this.config.parseWildcardsCheckIsEnabled) {
+      contains = value.startsWith('*') && value.endsWith('*');
+    }
+
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
