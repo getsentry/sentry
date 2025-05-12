@@ -1,4 +1,5 @@
 import {Component, createRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -127,7 +128,7 @@ const Wrapper = styled('div')<{contentHeight?: string; isCollapsed?: boolean}>`
   ${p =>
     !p.isCollapsed &&
     p.contentHeight &&
-    `
+    css`
       ${Content} {
         height: ${p.contentHeight};
       }
