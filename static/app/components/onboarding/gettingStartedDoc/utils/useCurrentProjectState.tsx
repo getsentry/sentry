@@ -5,6 +5,7 @@ import type {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
+import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useProjects from 'sentry/utils/useProjects';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
@@ -38,12 +39,12 @@ function useCurrentProjectState({
   }, [projects, allPlatforms]);
 
   const getDefaultCurrentProjectFromSelection = useCallback(
-    (selectionProjects: number[]): Project | undefined => {
-      if (!isActive || !selectionProjects.length) {
+    (selectedProjects: Project[]): Project | undefined => {
+      if (!isActive || !selectedProjects.length) {
         return undefined;
       }
 
-      const selectedProjectIds = selectionProjects.map(String);
+      const selectedProjectIds = selectedProjects.map(p => p.id);
 
       // If we selected something that has onboarding instructions, pick that first
       const projectForOnboarding = projectsWithOnboarding.find(p =>
@@ -64,9 +65,9 @@ function useCurrentProjectState({
       }
 
       // Otherwise, just pick the first selected project
-      return projects.find(p => selectedProjectIds.includes(p.id));
+      return selectedProjects[0];
     },
-    [isActive, projects, projectsWithOnboarding, supportedProjects]
+    [isActive, projectsWithOnboarding, supportedProjects]
   );
 
   const getDefaultCurrentProject = useCallback((): Project | undefined => {
@@ -88,11 +89,9 @@ function useCurrentProjectState({
       return projects.find(p => p.id === projectId);
     }
 
-    return (
-      getDefaultCurrentProjectFromSelection(selection.projects) ??
-      projectsWithOnboarding.at(0) ??
-      supportedProjects.at(0)
-    );
+    const selectedProjects = getSelectedProjectList(selection.projects, projects);
+
+    return getDefaultCurrentProjectFromSelection(selectedProjects);
   }, [
     getDefaultCurrentProjectFromSelection,
     isActive,
@@ -121,11 +120,12 @@ function useCurrentProjectState({
 
   // Update the current project when the page filters store changes
   useEffect(() => {
-    const newSelectionProject = getDefaultCurrentProjectFromSelection(selection.projects);
+    const selectedProjects = getSelectedProjectList(selection.projects, projects);
+    const newSelectionProject = getDefaultCurrentProjectFromSelection(selectedProjects);
     if (newSelectionProject) {
       setCurrentProject(newSelectionProject);
     }
-  }, [selection.projects, getDefaultCurrentProjectFromSelection]);
+  }, [selection.projects, getDefaultCurrentProjectFromSelection, projects]);
 
   return {
     projects: supportedProjects,

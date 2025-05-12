@@ -22,7 +22,6 @@ from sentry.types.region import get_local_region
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.http import is_valid_origin, origin_from_request
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.validators import normalize_event_id
 from sentry.web.frontend.base import region_silo_view
 from sentry.web.helpers import render_to_response, render_to_string
@@ -172,7 +171,6 @@ class ErrorPageEmbedView(View):
                 with atomic_transaction(using=router.db_for_write(UserReport)):
                     report.save()
             except IntegrityError:
-                incr_rollback_metrics(UserReport)
                 # There was a duplicate, so just overwrite the existing
                 # row with the new one. The only way this ever happens is
                 # if someone is messing around with the API, or doing

@@ -23,15 +23,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {isAggregateField} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
@@ -40,7 +37,6 @@ import SchemaHintsList, {
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
-  useExploreFields,
   useExploreId,
   useExploreMode,
   useExploreQuery,
@@ -138,7 +134,6 @@ interface SpanTabSearchSectionProps {
 
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useExploreMode();
-  const fields = useExploreFields();
   const query = useExploreQuery();
   const setExplorePageParams = useSetExplorePageParams();
 
@@ -149,14 +144,8 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
     () => ({
       initialQuery: query,
       onSearch: (newQuery: string) => {
-        const newFields = new MutableSearch(newQuery)
-          .getFilterKeys()
-          .map(key => (key.startsWith('!') ? key.slice(1) : key))
-          // don't add aggregate functions to table fields
-          .filter(key => !isAggregateField(key));
         setExplorePageParams({
           query: newQuery,
-          fields: [...new Set([...fields, ...newFields])],
         });
       },
       searchSource: 'explore',
@@ -176,7 +165,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
       numberTags,
       stringTags,
     }),
-    [mode, fields, query, setExplorePageParams, numberTags, stringTags]
+    [mode, query, setExplorePageParams, numberTags, stringTags]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
@@ -386,7 +375,6 @@ function SpanTabContentSection({
           visualizes={visualizes}
           setVisualizes={setVisualizes}
           samplingMode={timeseriesSamplingMode}
-          dataset={DiscoverDatasets.SPANS_EAP}
         />
         <ExploreTables
           aggregatesTableResult={aggregatesTableResult}
