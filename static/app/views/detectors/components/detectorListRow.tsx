@@ -55,7 +55,7 @@ export function DetectorListRow({
           disabled={disabled}
         />
       </CellWrapper>
-      <CellWrapper className="creator">
+      <CellWrapper className="owner">
         <UserCell user="sentry" />
       </CellWrapper>
       <CellWrapper className="connected-automations">
@@ -110,22 +110,23 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
     }
   }
 
-  .open-issues,
+  .type,
+  .owner,
   .last-issue,
   .connected-automations {
     display: none;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: 3fr 1fr;
+    grid-template-columns: 3fr 0.8fr;
 
-    .open-issues {
+    .type {
       display: flex;
     }
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 3fr 1fr 0.6fr;
+    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
     .last-issue {
       display: flex;
@@ -133,14 +134,18 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 2.5fr 1fr 0.75fr 1fr;
+    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
-    .connected-automations {
+    .owner {
       display: flex;
     }
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 3fr 1fr 0.75fr 1fr;
+    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
+
+    .connected-automations {
+      display: flex;
+    }
   }
 `;
