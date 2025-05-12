@@ -19,7 +19,7 @@ type AutomationListRowProps = {
   automation: Automation;
   handleSelect: (id: string, checked: boolean) => void;
   selected: boolean;
-}
+};
 
 export function AutomationListRow({
   automation,

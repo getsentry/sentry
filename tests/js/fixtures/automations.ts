@@ -1,5 +1,6 @@
-import { DataConditionGroupFixture } from "sentry-fixture/dataConditions";
-import { Automation } from "sentry/types/workflowEngine/automations";
+import {DataConditionGroupFixture} from 'sentry-fixture/dataConditions';
+
+import {Automation} from 'sentry/types/workflowEngine/automations';
 
 export function AutomationFixture(params: Partial<Automation>): Automation {
   return {
@@ -9,6 +10,6 @@ export function AutomationFixture(params: Partial<Automation>): Automation {
     actionFilters: [],
     detectorIds: [],
     triggers: DataConditionGroupFixture({}),
-    ...params
-  }
+    ...params,
+  };
 }
