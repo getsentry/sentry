@@ -116,7 +116,7 @@ function EAPOverviewPage() {
   const existingQuery = new MutableSearch(searchBarQuery);
   // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
   existingQuery.addOp('(');
-  existingQuery.addDisjunctionFilterValues('span.op', EAP_OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addFilterValue('span.op', `[${EAP_OVERVIEW_PAGE_ALLOWED_OPS.join(',')}]`);
   // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
   if (selectedFrontendProjects.length > 0) {
     existingQuery.addOp('OR');
