@@ -63,11 +63,11 @@ export abstract class ContinuousTimeSeries<
   }
 
   get name(): string {
-    return this.timeSeries.field;
+    return this.timeSeries.yAxis;
   }
 
   get label(): string {
-    return this.config?.alias ?? formatSeriesName(this.timeSeries.field);
+    return this.config?.alias ?? formatSeriesName(this.timeSeries.yAxis);
   }
 
   get isEmpty(): boolean {

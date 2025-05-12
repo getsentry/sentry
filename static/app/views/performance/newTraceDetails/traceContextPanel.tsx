@@ -1,21 +1,15 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TraceContextProfiles} from 'sentry/views/performance/newTraceDetails/traceContextProfiles';
+import {TraceContextTags} from 'sentry/views/performance/newTraceDetails/traceContextTags';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
-import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
@@ -44,40 +38,14 @@ export function TraceContextPanel({
     rootEventResults,
     logs,
   });
-  const location = useLocation();
-  const theme = useTheme();
-  const organization = useOrganization();
-  const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
 
   return (
     <Container>
-      {showLinkedTraces && !isTraceItemDetailsResponse(rootEventResults.data) && (
-        <TraceLinksNavigationContainer>
-          <TraceLinkNavigationButton
-            direction={'previous'}
-            isLoading={rootEventResults.isLoading}
-            traceContext={rootEventResults.data?.contexts.trace}
-            currentTraceTimestamps={{
-              start: rootEventResults.data?.startTimestamp,
-              end: rootEventResults.data?.endTimestamp,
-            }}
-          />
-          <TraceLinkNavigationButton
-            direction={'next'}
-            isLoading={rootEventResults.isLoading}
-            projectID={rootEventResults.data?.projectID ?? ''}
-            traceContext={rootEventResults.data?.contexts.trace}
-            currentTraceTimestamps={{
-              start: rootEventResults.data?.startTimestamp,
-              end: rootEventResults.data?.endTimestamp,
-            }}
-          />
-        </TraceLinksNavigationContainer>
-      )}
-
-      <VitalMetersContainer id={TraceContextSectionKeys.VITALS}>
-        <TraceContextVitals rootEventResults={rootEventResults} tree={tree} logs={logs} />
-      </VitalMetersContainer>
+      <TraceContextVitals
+        rootEventResults={rootEventResults}
+        tree={tree}
+        containerWidth={undefined}
+      />
       {hasTags && rootEventResults.data && (
         <ContextRow>
           <FoldSection
@@ -85,23 +53,7 @@ export function TraceContextPanel({
             title={t('Tags')}
             disableCollapsePersistence
           >
-            {isTraceItemDetailsResponse(rootEventResults.data) ? (
-              <AttributesTree
-                attributes={rootEventResults.data.attributes}
-                rendererExtra={{
-                  theme,
-                  location,
-                  organization,
-                }}
-              />
-            ) : (
-              <EventTagsTree
-                event={rootEventResults.data}
-                meta={rootEventResults.data._meta}
-                projectSlug={rootEventResults.data.projectSlug ?? ''}
-                tags={rootEventResults.data.tags}
-              />
-            )}
+            <TraceContextTags rootEventResults={rootEventResults} />
           </FoldSection>
         </ContextRow>
       )}
@@ -131,15 +83,7 @@ const Container = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: ${space(1)};
-`;
-
-const VitalMetersContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-  width: 100%;
+  gap: ${space(2)};
 `;
 
 const ContextRow = styled('div')`
@@ -148,14 +92,4 @@ const ContextRow = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
-`;
-
-const TraceLinksNavigationContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  flex-direction: row;
-
-  &:not(:empty) {
-    margin-top: ${space(1)};
-  }
 `;

@@ -3267,6 +3267,58 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.06
         assert meta["dataset"] == self.dataset
 
+    def test_division_if(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.slow": {"value": 10},
+                            "frames.frozen": {"value": 20},
+                        },
+                        "sentry_tags": {"browser.name": "Chrome"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.slow": {"value": 50},
+                            "frames.frozen": {"value": 60},
+                        },
+                        "sentry_tags": {"browser.name": "Firefox"},
+                    }
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Chrome)",
+                    "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Firefox)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert (
+            data[0]["division_if(mobile.slow_frames,mobile.total_frames,browser.name,Chrome)"]
+            == 10 / 100
+        )
+        assert (
+            data[0]["division_if(mobile.slow_frames,mobile.total_frames,browser.name,Firefox)"]
+            == 50 / 100
+        )
+        assert meta["dataset"] == self.dataset
+
     def test_division(self):
         self.store_spans(
             [
@@ -3300,6 +3352,44 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert len(data) == 1
         assert data[0]["division(mobile.slow_frames,mobile.total_frames)"] == 10 / 100
         assert data[0]["division(mobile.frozen_frames,mobile.total_frames)"] == 20 / 100
+        assert meta["dataset"] == self.dataset
+
+    def test_division_with_groupby(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.slow": {"value": 10},
+                            "frames.frozen": {"value": 20},
+                        },
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "division(mobile.slow_frames,mobile.total_frames)",
+                    "division(mobile.frozen_frames,mobile.total_frames)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["division(mobile.slow_frames,mobile.total_frames)"] == 10 / 100
+        assert data[0]["division(mobile.frozen_frames,mobile.total_frames)"] == 20 / 100
+        assert data[0]["transaction"] == "foo_transaction"
         assert meta["dataset"] == self.dataset
 
     def test_opportunity_score_zero_scores(self):
