@@ -64,6 +64,7 @@ class Topic(Enum):
     SHARED_RESOURCES_USAGE = "shared-resources-usage"
     SNUBA_SPANS = "snuba-spans"
     SNUBA_OURLOGS = "snuba-ourlogs"
+    SNUBA_ITEMS = "snuba-items"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
 
