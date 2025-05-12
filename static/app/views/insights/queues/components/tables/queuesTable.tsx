@@ -89,6 +89,7 @@ const SORTABLE_FIELDS = [
   'avg_if(span.duration,span.op,queue.process)',
   'avg(messaging.message.receive.latency)',
   `sum(span.duration)`,
+  'trace_status_rate(ok)',
 ] as const;
 
 type ValidSort = Sort & {
