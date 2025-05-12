@@ -62,9 +62,13 @@ def division(args: ResolvedArguments, _: ResolverSettings) -> Column.BinaryFormu
 
     return Column.BinaryFormula(
         default_value_double=0.0,
-        left=Column(key=dividend),
+        left=Column(
+            aggregation=AttributeAggregation(aggregate=Function.FUNCTION_SUM, key=dividend)
+        ),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(key=divisor),
+        right=Column(
+            aggregation=AttributeAggregation(aggregate=Function.FUNCTION_SUM, key=divisor)
+        ),
     )
 
 
