@@ -163,7 +163,7 @@ describe('OrganizationStats', () => {
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
-    expect(screen.getByTestId('error-messages')).toBeInTheDocument();
+    expect(await screen.findByTestId('error-messages')).toBeInTheDocument();
   });
 
   it('renders with an error when user has no projects', async () => {
