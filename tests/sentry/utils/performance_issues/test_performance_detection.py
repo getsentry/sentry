@@ -19,6 +19,7 @@ from sentry.utils.performance_issues.detectors.n_plus_one_db_span_detector impor
     NPlusOneDBSpanDetector,
 )
 from sentry.utils.performance_issues.performance_detection import (
+    DETECTOR_CLASSES,
     EventPerformanceProblem,
     _detect_performance_problems,
     detect_performance_problems,
@@ -99,6 +100,13 @@ class PerformanceDetectionTest(TestCase):
         self.addCleanup(patch_organization.stop)
 
         self.project = self.create_project()
+        # Exclude experimental detectors from detection in this test suite
+        self.patch_detector_classes = patch(
+            "sentry.utils.performance_issues.performance_detection.DETECTOR_CLASSES",
+            [cls for cls in DETECTOR_CLASSES if "Experimental" not in cls.__name__],
+        )
+        self.patch_detector_classes.start()
+        self.addCleanup(self.patch_detector_classes.stop)
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):

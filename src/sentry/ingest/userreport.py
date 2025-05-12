@@ -27,7 +27,6 @@ from sentry.signals import user_feedback_received
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +140,6 @@ def save_userreport(
             # something wrong with the SDK, but this behavior is
             # more reasonable than just hard erroring and is more
             # expected.
-            incr_rollback_metrics(UserReport)
             existing_report = UserReport.objects.get(
                 project_id=report["project_id"], event_id=report["event_id"]
             )
