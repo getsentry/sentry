@@ -8,9 +8,13 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {useConnectedIds} from 'sentry/views/automations/hooks/utils';
 
-export default function EditConnectedMonitors() {
+interface Props {
+  key: string;
+}
+
+export default function EditConnectedMonitors({key}: Props) {
   const monitors: Detector[] = []; // TODO: Fetch monitors from API
-  const {connectedIds, toggleConnected} = useConnectedIds();
+  const {connectedIds, toggleConnected} = useConnectedIds(key);
 
   const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
   const unconnectedMonitors = monitors.filter(monitor => !connectedIds.has(monitor.id));

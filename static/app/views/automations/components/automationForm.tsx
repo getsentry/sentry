@@ -21,7 +21,10 @@ import {
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
-import {useConnectedIds} from 'sentry/views/automations/hooks/utils';
+import {
+  NEW_AUTOMATION_CONNECTED_IDS_KEY,
+  useConnectedIds,
+} from 'sentry/views/automations/hooks/utils';
 
 const FREQUENCY_OPTIONS = [
   {value: '5', label: t('5 minutes')},
@@ -45,7 +48,9 @@ export default function AutomationForm() {
   }, [title, model]);
 
   const monitors: Detector[] = []; // TODO: Fetch monitors from API
-  const {connectedIds, toggleConnected} = useConnectedIds();
+  const {connectedIds, toggleConnected} = useConnectedIds(
+    NEW_AUTOMATION_CONNECTED_IDS_KEY
+  );
   const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
 
   return (

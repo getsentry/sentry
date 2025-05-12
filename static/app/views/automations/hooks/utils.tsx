@@ -1,4 +1,4 @@
-import {useId, useState} from 'react';
+import {useState} from 'react';
 
 import type {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -15,8 +15,7 @@ export function useAutomationActions(automation: Automation): ActionType[] {
   ] as ActionType[];
 }
 
-export function useConnectedIds() {
-  const key = useId();
+export function useConnectedIds(key: string) {
   const [connectedIds, setConnectedIds] = useState<Set<string>>(() => {
     const stored = localStorage.getItem(key);
     return stored ? new Set(JSON.parse(stored)) : new Set();
@@ -37,3 +36,5 @@ export function useConnectedIds() {
 
   return {connectedIds, toggleConnected};
 }
+
+export const NEW_AUTOMATION_CONNECTED_IDS_KEY = 'new-automation-connected-ids';
