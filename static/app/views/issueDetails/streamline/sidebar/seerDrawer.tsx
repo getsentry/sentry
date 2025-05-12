@@ -313,9 +313,14 @@ export const useOpenSeerDrawer = ({
   const {openDrawer} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
 
   const openSeerDrawer = useCallback(() => {
-    if (!event) {
+    if (
+      !event ||
+      !organization.features.includes('gen-ai-features') ||
+      organization.hideAiFeatures
+    ) {
       return;
     }
 
@@ -377,7 +382,7 @@ export const useOpenSeerDrawer = ({
         });
       },
     });
-  }, [openDrawer, buttonRef, event, group, project, location, navigate]);
+  }, [openDrawer, buttonRef, event, group, project, location, navigate, organization]);
 
   return {openSeerDrawer};
 };

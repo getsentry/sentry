@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0882_projectoptions_idx_on_key
+sentry: 0884_delete_incident_snapshot_tables_pt2
 
 social_auth: 0002_default_auto_field
 

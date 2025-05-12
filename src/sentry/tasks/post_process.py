@@ -72,7 +72,7 @@ class PostProcessJob(TypedDict, total=False):
     has_escalated: bool
 
 
-def _get_service_hooks(project_id: int) -> list[tuple[int, list[str]]]:
+def _get_service_hooks(project_id):
     from sentry.sentry_apps.models.servicehook import ServiceHook
 
     cache_key = f"servicehooks:1:{project_id}"
@@ -663,6 +663,10 @@ def run_post_process_job(job: PostProcessJob) -> None:
     if group_event.group and not group_event.group.issue_type.allow_post_process_group(
         group_event.group.organization
     ):
+        metrics.incr(
+            "post_process.skipped_feature_disabled",
+            tags={"issue_type": group_event.group.issue_type.slug},
+        )
         return
 
     if issue_category in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
@@ -1180,7 +1184,7 @@ def process_service_hooks(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.sentry_apps.tasks.service_hooks import get_payload_v0, process_service_hook
+    from sentry.sentry_apps.tasks.service_hooks import process_service_hook
 
     event, has_alert = job["event"], job["has_alert"]
 
@@ -1189,17 +1193,10 @@ def process_service_hooks(job: PostProcessJob) -> None:
         if has_alert:
             allowed_events.add("event.alert")
 
-        # TODO: when we have multiple service hook versions, this will need to change.
-        payload = json.dumps(get_payload_v0(event))
-
-        for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-            if any(e in allowed_events for e in events):
-                process_service_hook.delay(
-                    servicehook_id=servicehook_id,
-                    project_id=event.project_id,
-                    event=event,
-                    payload=payload,
-                )
+        if allowed_events:
+            for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
+                if any(e in allowed_events for e in events):
+                    process_service_hook.delay(servicehook_id=servicehook_id, event=event)
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:
