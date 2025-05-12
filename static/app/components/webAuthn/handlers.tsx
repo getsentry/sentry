@@ -18,6 +18,24 @@ function bufferToBase64url(buffer: ArrayBuffer): string {
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
+function isPublicKeyCredential(c: Credential | null): c is PublicKeyCredential {
+  return c?.type === 'public-key';
+}
+
+// XXX(epurkhiser): We're using the `in` operator here instead of
+// `Object.hasOwn` or `instanceof` because in Chrome these come back as
+// concrete objects of the two discriminate types, however in FireFox these
+// come back as plain objects. The `in` operator is the only operator that
+// correctly validates that the properties exist in both types of objects.
+
+function isAttestation(r: AuthenticatorResponse): r is AuthenticatorAttestationResponse {
+  return 'attestationObject' in r;
+}
+
+function isAssertion(r: AuthenticatorResponse): r is AuthenticatorAssertionResponse {
+  return 'authenticatorData' in r;
+}
+
 /**
  * Register a new credential using WebAuthn (FIDO2) and return its attestation data.
  */
@@ -26,11 +44,11 @@ export async function handleEnroll(challengeData: ChallengeData) {
   const {publicKey}: CredentialCreationOptions = decode(binaryChallenge);
   const credential = await navigator.credentials.create({publicKey});
 
-  if (!(credential instanceof PublicKeyCredential)) {
+  if (!isPublicKeyCredential(credential)) {
     return null;
   }
 
-  if (!(credential.response instanceof AuthenticatorAttestationResponse)) {
+  if (!isAttestation(credential.response)) {
     return null;
   }
 
@@ -55,11 +73,11 @@ export async function handleSign(challengeData: ChallengeData) {
   const options: PublicKeyCredentialRequestOptions = decode(binaryChallenge);
   const credential = await navigator.credentials.get({publicKey: options});
 
-  if (!(credential instanceof PublicKeyCredential)) {
+  if (!isPublicKeyCredential(credential)) {
     return null;
   }
 
-  if (!(credential.response instanceof AuthenticatorAssertionResponse)) {
+  if (!isAssertion(credential.response)) {
     return null;
   }
   const authenticatorData = {

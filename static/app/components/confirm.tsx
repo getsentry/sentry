@@ -1,4 +1,4 @@
-import {cloneElement, Component, Fragment, isValidElement} from 'react';
+import {cloneElement, Fragment, isValidElement, useRef, useState} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -226,66 +226,57 @@ type ModalProps = ModalRenderProps &
     | 'onRender'
   >;
 
-type ModalState = {
-  /**
-   * The callback registered from the rendered message to call
-   */
-  confirmCallback: null | (() => void);
-  /**
-   * Is confirm button disabled
-   */
-  disableConfirmButton: boolean;
-};
+function ConfirmModal({
+  Header,
+  Body,
+  Footer,
+  priority,
+  confirmText,
+  cancelText,
+  header,
+  isDangerous,
+  renderConfirmButton,
+  renderCancelButton,
+  disableConfirmButton,
+  onCancel,
+  onConfirm,
+  renderMessage,
+  message,
+  closeModal,
+}: ModalProps) {
+  const confirmCallbackRef = useRef<() => void>(() => {});
+  const isConfirmingRef = useRef(false);
+  const [shouldDisableConfirmButton, setShouldDisableConfirmButton] =
+    useState(disableConfirmButton);
 
-class ConfirmModal extends Component<ModalProps, ModalState> {
-  state: ModalState = {
-    disableConfirmButton: !!this.props.disableConfirmButton,
-    confirmCallback: null,
-  };
-
-  componentDidMount() {
-    this.props.onRender?.();
-  }
-
-  confirming = false;
-
-  handleClose = () => {
-    const {disableConfirmButton, onCancel, closeModal} = this.props;
-
+  const handleClose = () => {
     onCancel?.();
-    this.setState({disableConfirmButton: disableConfirmButton ?? false});
+    setShouldDisableConfirmButton(disableConfirmButton ?? false);
 
     // always reset `confirming` when modal visibility changes
-    this.confirming = false;
+    isConfirmingRef.current = false;
     closeModal();
   };
 
-  handleConfirm = () => {
-    const {onConfirm, closeModal} = this.props;
-
-    // `confirming` is used to ensure `onConfirm` or the confirm callback is
-    // only called once
-    if (!this.confirming) {
+  const handleConfirm = () => {
+    if (!isConfirmingRef.current) {
       onConfirm?.();
-      this.state.confirmCallback?.();
+      confirmCallbackRef.current();
     }
 
-    this.setState({disableConfirmButton: true});
-    this.confirming = true;
+    setShouldDisableConfirmButton(true);
+    isConfirmingRef.current = true;
     closeModal();
   };
 
-  get confirmMessage() {
-    const {message, renderMessage} = this.props;
-
+  const makeConfirmMessage = () => {
     if (typeof renderMessage === 'function') {
       return renderMessage({
-        confirm: this.handleConfirm,
-        close: this.handleClose,
-        disableConfirmButton: (state: boolean) =>
-          this.setState({disableConfirmButton: state}),
+        confirm: handleConfirm,
+        close: handleClose,
+        disableConfirmButton: (state: boolean) => setShouldDisableConfirmButton(state),
         setConfirmCallback: (confirmCallback: () => void) =>
-          this.setState({confirmCallback}),
+          (confirmCallbackRef.current = confirmCallback),
       });
     }
 
@@ -294,63 +285,49 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
     }
 
     return <p style={{wordWrap: 'break-word'}}>{message}</p>;
-  }
+  };
 
-  render() {
-    const {
-      Header,
-      Body,
-      Footer,
-      priority,
-      confirmText,
-      cancelText,
-      header,
-      isDangerous,
-      renderConfirmButton,
-      renderCancelButton,
-    } = this.props;
-    return (
-      <Fragment>
-        {header && <Header>{header}</Header>}
-        <Body>{this.confirmMessage}</Body>
-        <Footer>
-          <ButtonBar gap={2}>
-            {renderCancelButton ? (
-              renderCancelButton({
-                closeModal: this.props.closeModal,
-                defaultOnClick: this.handleClose,
-              })
-            ) : (
-              <Button
-                onClick={this.handleClose}
-                autoFocus={!!isDangerous}
-                aria-label={typeof cancelText === 'string' ? cancelText : t('Cancel')}
-              >
-                {cancelText ?? t('Cancel')}
-              </Button>
-            )}
-            {renderConfirmButton ? (
-              renderConfirmButton({
-                closeModal: this.props.closeModal,
-                defaultOnClick: this.handleConfirm,
-              })
-            ) : (
-              <Button
-                data-test-id="confirm-button"
-                disabled={this.state.disableConfirmButton}
-                priority={priority}
-                onClick={this.handleConfirm}
-                autoFocus={!isDangerous}
-                aria-label={typeof confirmText === 'string' ? confirmText : t('Confirm')}
-              >
-                {confirmText ?? t('Confirm')}
-              </Button>
-            )}
-          </ButtonBar>
-        </Footer>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      {header && <Header>{header}</Header>}
+      <Body>{makeConfirmMessage()}</Body>
+      <Footer>
+        <ButtonBar gap={2}>
+          {renderCancelButton ? (
+            renderCancelButton({
+              closeModal,
+              defaultOnClick: handleClose,
+            })
+          ) : (
+            <Button
+              onClick={handleClose}
+              autoFocus={!!isDangerous}
+              aria-label={typeof cancelText === 'string' ? cancelText : t('Cancel')}
+            >
+              {cancelText ?? t('Cancel')}
+            </Button>
+          )}
+          {renderConfirmButton ? (
+            renderConfirmButton({
+              closeModal,
+              defaultOnClick: handleConfirm,
+            })
+          ) : (
+            <Button
+              data-test-id="confirm-button"
+              disabled={shouldDisableConfirmButton}
+              priority={priority}
+              onClick={handleConfirm}
+              autoFocus={!isDangerous}
+              aria-label={typeof confirmText === 'string' ? confirmText : t('Confirm')}
+            >
+              {confirmText ?? t('Confirm')}
+            </Button>
+          )}
+        </ButtonBar>
+      </Footer>
+    </Fragment>
+  );
 }
 
 export default Confirm;

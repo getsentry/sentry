@@ -27,6 +27,8 @@ import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -363,7 +365,13 @@ function SpanTabContentSection({
         aria-label={controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')}
         expanded={controlSectionExpanded}
         size="xs"
-        icon={<IconDoubleChevron direction={controlSectionExpanded ? 'left' : 'right'} />}
+        icon={
+          <IconChevron
+            isDouble
+            direction={controlSectionExpanded ? 'left' : 'right'}
+            size="xs"
+          />
+        }
         onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
       />
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
@@ -396,15 +404,6 @@ function SpanTabContentSection({
         />
       </TourElement>
     </ContentSection>
-  );
-}
-
-function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
-  return (
-    <DoubleChevronWrapper>
-      <IconChevron style={{marginRight: `-3px`}} {...props} />
-      <IconChevron style={{marginLeft: `-3px`}} {...props} />
-    </DoubleChevronWrapper>
   );
 }
 
@@ -501,31 +500,44 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
-const ChevronButton = styled(Button)<{expanded: boolean}>`
-  width: 28px;
-  border-left-color: ${p => p.theme.background};
-  border-top-left-radius: 0px;
-  border-bottom-left-radius: 0px;
-  margin-bottom: ${space(1)};
-  display: none;
+const ChevronButton = withChonk(
+  styled(Button)<{expanded: boolean}>`
+    width: 28px;
+    border-left-color: ${p => p.theme.background};
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    margin-bottom: ${space(1)};
+    display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    display: block;
-  }
+    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+      display: block;
+    }
 
-  ${p =>
-    p.expanded
-      ? css`
-          margin-left: -13px;
-        `
-      : css`
-          margin-left: -31px;
-        `}
-`;
+    ${p =>
+      p.expanded
+        ? css`
+            margin-left: -13px;
+          `
+        : css`
+            margin-left: -31px;
+          `}
+  `,
+  chonkStyled(Button)<{expanded: boolean}>`
+    margin-bottom: ${space(1)};
+    display: none;
+    margin-left: ${p => (p.expanded ? '-13px' : '-31px')};
 
-const DoubleChevronWrapper = styled('div')`
-  display: flex;
-`;
+    @media (min-width: ${p => p.theme.breakpoints.medium}) {
+      display: inline-flex;
+    }
+
+    &::after {
+      border-left-color: ${p => p.theme.background};
+      border-top-left-radius: 0px;
+      border-bottom-left-radius: 0px;
+    }
+  `
+);
 
 const StyledSchemaHintsSection = styled(SchemaHintsSection)`
   margin-top: ${space(1)};
