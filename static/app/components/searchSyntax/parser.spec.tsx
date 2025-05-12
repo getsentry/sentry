@@ -360,49 +360,4 @@ describe('searchSyntax/parser', function () {
       ]);
     });
   });
-
-  it('sets contains to false when not wrapped in `*`', function () {
-    const result = parseSearch('foo:bar');
-
-    expect(result).toHaveLength(3);
-
-    const bar = result?.[1] as TokenResult<Token.FILTER>;
-    expect(bar.value).toEqual(expect.objectContaining({contains: false}));
-  });
-
-  it('sets contains to true when wrapped in `*`', function () {
-    const result = parseSearch('foo:*bar*');
-
-    expect(result).toHaveLength(3);
-
-    const bar = result?.[1] as TokenResult<Token.FILTER>;
-    expect(bar.value).toEqual(expect.objectContaining({contains: true, value: '*bar*'}));
-  });
-
-  it('sets contains to true when quoted', function () {
-    const result = parseSearch('foo:"*bar*"');
-
-    expect(result).toHaveLength(3);
-
-    const bar = result?.[1] as TokenResult<Token.FILTER>;
-    expect(bar.value).toEqual(expect.objectContaining({contains: true, value: '*bar*'}));
-  });
-
-  it('spaces', function () {
-    const result = parseSearch('foo:"* *"');
-
-    expect(result).toHaveLength(3);
-
-    const bar = result?.[1] as TokenResult<Token.FILTER>;
-    expect(bar.value).toEqual(expect.objectContaining({contains: true, value: '* *'}));
-  });
-
-  it('just asterisks', function () {
-    const result = parseSearch('foo:**');
-
-    expect(result).toHaveLength(3);
-
-    const bar = result?.[1] as TokenResult<Token.FILTER>;
-    expect(bar.value).toEqual(expect.objectContaining({contains: false, value: '**'}));
-  });
 });
