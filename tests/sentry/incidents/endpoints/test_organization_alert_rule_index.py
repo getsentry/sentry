@@ -168,24 +168,19 @@ class AlertRuleIndexBase(AlertRuleBase):
                 "integration": self.integration.id,
             }
         ]
+        self.team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=self.team)
+        self.login_as(self.user)
 
 
 class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorklowEngineSerializer):
     def test_simple(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        alert_rule = self.create_alert_rule()
-
-        self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug)
 
-        assert resp.data == serialize([alert_rule])
+        assert resp.data == serialize([self.alert_rule])
 
     def test_workflow_engine_serializer(self):
-        team = self.create_team(organization=self.organization, members=[self.user])
-        ProjectTeam.objects.create(project=self.project, team=team)
-        self.login_as(self.user)
-
         with (
             self.feature("organizations:incidents"),
             self.feature("organizations:workflow-engine-rule-serializers"),
@@ -197,16 +192,10 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorklowEngineSerializer)
         )
 
     def test_no_feature(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        self.login_as(self.user)
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
 
     def test_response_headers(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        self.create_alert_rule()
-        self.login_as(self.user)
-
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug)
 
