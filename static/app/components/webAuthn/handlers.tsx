@@ -22,12 +22,18 @@ function isPublicKeyCredential(c: Credential | null): c is PublicKeyCredential {
   return c?.type === 'public-key';
 }
 
+// XXX(epurkhiser): We're using the `in` operator here instead of
+// `Object.hasOwn` or `instanceof` because in Chrome these come back as
+// concrete objects of the two discriminate types, however in FireFox these
+// come back as plain objects. The `in` operator is the only operator that
+// correctly validates that the properties exist in both types of objects.
+
 function isAttestation(r: AuthenticatorResponse): r is AuthenticatorAttestationResponse {
-  return Object.hasOwn(r, 'attestationObject');
+  return 'attestationObject' in r;
 }
 
 function isAssertion(r: AuthenticatorResponse): r is AuthenticatorAssertionResponse {
-  return Object.hasOwn(r, 'authenticatorData');
+  return 'authenticatorData' in r;
 }
 
 /**
