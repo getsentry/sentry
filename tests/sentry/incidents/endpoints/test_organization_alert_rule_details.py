@@ -57,8 +57,13 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    migrate_alert_rule,
+    migrate_metric_action,
+    migrate_metric_data_conditions,
+    migrate_resolve_threshold_data_condition,
+)
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
-from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_dual_written_resolution_threshold_equals,
 )
@@ -210,7 +215,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
         assert resp.status_code == 404
 
 
-class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, TestWorklowEngineSerializer):
+class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -222,6 +227,20 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, TestWorklowEngineSer
     def test_workflow_engine_serializer(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
+
+        critical_trigger = AlertRuleTrigger.objects.get(
+            alert_rule_id=self.alert_rule.id, label="critical"
+        )
+        critical_trigger_action = AlertRuleTriggerAction.objects.get(
+            alert_rule_trigger=critical_trigger
+        )
+        _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
+        self.critical_detector_trigger, _ = migrate_metric_data_conditions(critical_trigger)
+
+        self.critical_action, _, _ = migrate_metric_action(critical_trigger_action)
+        self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
+            self.alert_rule
+        )
 
         with (
             self.feature("organizations:incidents"),
