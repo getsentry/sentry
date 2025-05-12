@@ -98,7 +98,9 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
 }
 
 function prepareInputValueForSaving(valueType: FieldValueType, inputValue: string) {
-  const parsed = parseMultiSelectFilterValue(inputValue, {containsCheckIsEnabled: false});
+  const parsed = parseMultiSelectFilterValue(inputValue, {
+    parseWildcardsCheckIsEnabled: false,
+  });
 
   if (!parsed) {
     return '""';
@@ -124,7 +126,7 @@ function getSelectedValuesFromText(
   text: string,
   {escaped = true}: {escaped?: boolean} = {}
 ) {
-  const parsed = parseMultiSelectFilterValue(text, {containsCheckIsEnabled: false});
+  const parsed = parseMultiSelectFilterValue(text, {parseWildcardsCheckIsEnabled: false});
 
   if (!parsed) {
     return [];

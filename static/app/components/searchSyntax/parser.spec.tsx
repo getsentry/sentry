@@ -105,7 +105,9 @@ describe('searchSyntax/parser', function () {
 
   Object.entries(testData).map(([name, cases]) =>
     describe(`${name}`, () => {
-      cases.map(c => registerTestCase(c, {parse: true, containsCheckIsEnabled: false}));
+      cases.map(c =>
+        registerTestCase(c, {parse: true, parseWildcardsCheckIsEnabled: false})
+      );
     })
   );
 
@@ -361,10 +363,10 @@ describe('searchSyntax/parser', function () {
     });
   });
 
-  describe('containsCheckIsEnabled', () => {
+  describe('parseWildcardsCheckIsEnabled', () => {
     it('sets contains to false when not wrapped in `*`', function () {
       const result = parseSearch('foo:bar', {
-        containsCheckIsEnabled: true,
+        parseWildcardsCheckIsEnabled: true,
       });
 
       expect(result).toHaveLength(3);
@@ -375,7 +377,7 @@ describe('searchSyntax/parser', function () {
 
     it('sets contains to true when wrapped in `*`', function () {
       const result = parseSearch('foo:*bar*', {
-        containsCheckIsEnabled: true,
+        parseWildcardsCheckIsEnabled: true,
       });
 
       expect(result).toHaveLength(3);
@@ -386,7 +388,7 @@ describe('searchSyntax/parser', function () {
 
     it('sets contains to true when quoted', function () {
       const result = parseSearch('foo:"*bar*"', {
-        containsCheckIsEnabled: true,
+        parseWildcardsCheckIsEnabled: true,
       });
 
       expect(result).toHaveLength(3);
@@ -397,7 +399,7 @@ describe('searchSyntax/parser', function () {
 
     it('spaces', function () {
       const result = parseSearch('foo:"* *"', {
-        containsCheckIsEnabled: true,
+        parseWildcardsCheckIsEnabled: true,
       });
 
       expect(result).toHaveLength(3);
@@ -408,7 +410,7 @@ describe('searchSyntax/parser', function () {
 
     it('just asterisks', function () {
       const result = parseSearch('foo:**', {
-        containsCheckIsEnabled: true,
+        parseWildcardsCheckIsEnabled: true,
       });
 
       expect(result).toHaveLength(3);
