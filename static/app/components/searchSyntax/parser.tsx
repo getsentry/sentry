@@ -697,11 +697,14 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
+    const isContains = value.startsWith('*') && value.endsWith('*');
+
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
+      ...(this.config.parseWildcardsCheckIsEnabled ? {contains: isContains} : {}),
     };
   };
 
@@ -771,6 +774,14 @@ export class TokenConverter {
    */
   predicateParenGroup = (): boolean => {
     return !this.config.flattenParenGroups;
+  };
+
+  /**
+   * When parseWildcardsCheckIsEnabled is enabled, the parser will check for the contains
+   * flag in text values. i.e. `*value*`
+   */
+  parseWildcardsCheckIsEnabled = (): boolean => {
+    return !!this.config.parseWildcardsCheckIsEnabled;
   };
 
   /**
@@ -1366,6 +1377,7 @@ export type SearchConfig = {
    * When true, the parser will not parse paren groups and will return individual paren tokens
    */
   flattenParenGroups?: boolean;
+
   /**
    * A function that returns a warning message for a given filter token key
    */
@@ -1374,6 +1386,15 @@ export type SearchConfig = {
    * Determines if user input values should be parsed
    */
   parse?: boolean;
+  /**
+   * When set to true, the parser will enable checks for different types of wildcard scenarios, and set the appropriate boolean fields on the token.
+   *
+   * Checks:
+   * - contains check: `*value*`
+   * - starts with check: `*value`
+   * - ends with check: `value*`
+   */
+  parseWildcardsCheckIsEnabled?: boolean;
   /**
    * If validateKeys is set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
