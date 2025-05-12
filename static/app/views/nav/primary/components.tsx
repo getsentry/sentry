@@ -458,7 +458,7 @@ const ChonkNavButton = styled(Button, {
   justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
   height: ${p => (p.isMobile ? 'auto' : '44px')};
   width: ${p => (p.isMobile ? '100%' : '44px')};
-  padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : undefined)};
+  padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : space(0.5))};
 
   svg {
     margin-right: ${p => (p.isMobile ? space(1) : undefined)};
