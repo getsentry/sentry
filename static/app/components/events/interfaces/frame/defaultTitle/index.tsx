@@ -27,7 +27,7 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 /**
  * File paths can get very long, so increase it for the tooltips within this component.
  */
-export const FRAME_TOOLTIP_MAX_WIDTH = 500;
+export const FRAME_TOOLTIP_MAX_WIDTH = 750;
 
 type Props = {
   frame: Frame;
