@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
 
@@ -148,7 +148,7 @@ function SudoModal({
     }
   };
 
-  const handleSuccess = () => {
+  const handleSuccess = useCallback(() => {
     if (isSuperuser) {
       navigate(
         {pathname: location.pathname, state: {forceUpdate: new Date()}},
@@ -169,9 +169,9 @@ function SudoModal({
       setState(prevState => ({...prevState, showAccessForms: true}));
       closeModal();
     });
-  };
+  }, [closeModal, isSuperuser, location.pathname, navigate, needsReload, retryRequest]);
 
-  const handleError = (err: any) => {
+  const handleError = useCallback((err: any) => {
     let newErrorType = ''; // Create a new variable to store the error type
 
     if (err.status === 403) {
@@ -196,16 +196,25 @@ function SudoModal({
       errorType: newErrorType,
       showAccessForms: true,
     }));
-  };
+  }, []);
 
-  const handleWebAuthn = async (data: WebAuthnParams) => {
-    data.isSuperuserModal = isSuperuser;
-    data.superuserAccessCategory = state.superuserAccessCategory;
-    data.superuserReason = state.superuserReason;
-    // It's ok to throw from here, u2fInterface will handle it.
-    await api.requestPromise('/auth/', {method: 'PUT', data});
-    handleSuccess();
-  };
+  const handleWebAuthn = useCallback(
+    async (data: WebAuthnParams) => {
+      data.isSuperuserModal = isSuperuser;
+      data.superuserAccessCategory = state.superuserAccessCategory;
+      data.superuserReason = state.superuserReason;
+      // It's ok to throw from here, u2fInterface will handle it.
+      await api.requestPromise('/auth/', {method: 'PUT', data});
+      handleSuccess();
+    },
+    [
+      api,
+      handleSuccess,
+      isSuperuser,
+      state.superuserAccessCategory,
+      state.superuserReason,
+    ]
+  );
 
   const getAuthLoginPath = (): string => {
     const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
