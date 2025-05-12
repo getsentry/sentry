@@ -11,6 +11,7 @@ type OurLogCustomFieldKey = string; // We could brand this for nominal types.
 
 // This enum is used to represent known fields or attributes in the logs response.
 // Should always map to the public alias from the backend (.../search/eap/ourlogs/attributes.py)
+// This is not an exhaustive list, it's only the fields which have special handling in the frontend
 export enum OurLogKnownFieldKey {
   TRACE_ID = 'trace',
   MESSAGE = 'message',
