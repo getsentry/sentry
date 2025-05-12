@@ -6,6 +6,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {FRAME_TOOLTIP_MAX_WIDTH} from 'sentry/components/events/interfaces/frame/defaultTitle';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {
@@ -314,9 +315,10 @@ function NativeFrame({
             )}
             <Tooltip
               title={frame.package ?? t('Go to images loaded')}
-              position="bottom"
               containerDisplayMode="inline-flex"
               delay={tooltipDelay}
+              maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+              position="auto-start"
             >
               <Package>
                 {frame.package ? trimPackage(frame.package) : `<${t('unknown')}>`}
@@ -329,6 +331,7 @@ function NativeFrame({
                 title={addressTooltip}
                 disabled={!(foundByStackScanning || inlineFrame)}
                 delay={tooltipDelay}
+                maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               >
                 {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
               </Tooltip>
@@ -348,6 +351,7 @@ function NativeFrame({
                 disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
                 delay={tooltipDelay}
                 isHoverable
+                maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               >
                 <FileName>
                   {'('}

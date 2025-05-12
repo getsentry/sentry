@@ -401,6 +401,17 @@ def fire_actions_for_groups(
     trigger_group_to_dcg_model: dict[DataConditionHandler.Group, dict[int, int]],
     group_to_groupevent: dict[Group, GroupEvent],
 ) -> None:
+    serialized_groups = {
+        group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
+    }
+    logger.info(
+        "workflow_engine.delayed_workflow.fire_actions_for_groups",
+        extra={
+            "groups_to_fire": groups_to_fire,
+            "group_to_groupevent": serialized_groups,
+        },
+    )
+
     for group, group_event in group_to_groupevent.items():
         event_data = WorkflowEventData(event=group_event)
         detector = get_detector_by_event(event_data)
@@ -440,6 +451,8 @@ def fire_actions_for_groups(
                 "workflow_ids": [workflow.id for workflow in workflows],
                 "actions": filtered_actions,
                 "event_data": event_data,
+                "group_id": group.id,
+                "event_id": event_data.event.event_id,
             },
         )
 
@@ -475,6 +488,7 @@ def cleanup_redis_buffer(
         processing_deadline_duration=60,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )
@@ -502,7 +516,11 @@ def process_delayed_workflows(
 
     logger.info(
         "delayed_workflow.workflows",
-        extra={"data": workflow_event_dcg_data, "workflows": set(dcg_to_workflow.values())},
+        extra={
+            "data": workflow_event_dcg_data,
+            "workflows": set(dcg_to_workflow.values()),
+            "project_id": project_id,
+        },
     )
 
     # Get unique query groups to query Snuba
@@ -531,7 +549,7 @@ def process_delayed_workflows(
     }
     logger.info(
         "delayed_workflow.condition_group_results",
-        extra={"condition_group_results": serialized_results},
+        extra={"condition_group_results": serialized_results, "project_id": project_id},
     )
 
     # Evaluate DCGs
@@ -545,7 +563,7 @@ def process_delayed_workflows(
 
     logger.info(
         "delayed_workflow.groups_to_fire",
-        extra={"groups_to_dcgs": groups_to_dcgs},
+        extra={"groups_to_dcgs": groups_to_dcgs, "project_id": project_id},
     )
 
     dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(

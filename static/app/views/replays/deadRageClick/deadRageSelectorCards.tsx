@@ -227,7 +227,7 @@ function SearchButton({
   return (
     <StyledLinkButton
       {...props}
-      size="zero"
+      size="md"
       to={{
         pathname,
         query: {
