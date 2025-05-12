@@ -7,15 +7,15 @@ from typing import IO, Any
 from uuid import uuid4
 
 import orjson
+from django.apps import apps
 from django.core import serializers
+from django.core.exceptions import FieldDoesNotExist
 from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
 from sentry_sdk import capture_exception
 
 from sentry.backup.crypto import Decryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
-    DELETED_FIELDS,
-    DELETED_MODELS,
     ImportKind,
     ModelRelations,
     NormalizedModelName,
@@ -85,6 +85,29 @@ def _clear_model_tables_before_import():
                 cursor.execute("SELECT setval(%s, 1, false)", [seq])
 
 
+def remove_deleted_models_and_fields(json_data: str | bytes) -> str | bytes:
+    try:
+        contents = orjson.loads(json_data)
+    except orjson.JSONDecodeError:  # let the actual import/export produce a better message
+        return json_data
+
+    new = []
+    for dct in contents:
+        try:
+            model = apps.get_model(dct["model"])
+        except LookupError:
+            continue
+        else:
+            new.append(dct)
+
+        for k in tuple(dct["fields"]):
+            try:
+                model._meta.get_field(k)
+            except FieldDoesNotExist:
+                dct["fields"].pop(k)
+    return orjson.dumps(new)
+
+
 def _import(
     src: IO[bytes],
     scope: ImportScope,
@@ -152,22 +175,7 @@ def _import(
         decrypt_encrypted_tarball(src, decryptor) if decryptor is not None else src.read()
     )
 
-    if len(DELETED_MODELS) > 0 or len(DELETED_FIELDS) > 0:
-        # Parse the content JSON and remove fields and models that we have marked for deletion in
-        # the function.
-        content_as_json = orjson.loads(content)
-        shimmed_models = set(DELETED_FIELDS.keys())
-        for i, json_model in enumerate(content_as_json):
-            if json_model["model"] in shimmed_models:
-                fields_to_remove = DELETED_FIELDS[json_model["model"]]
-                for field in fields_to_remove:
-                    json_model["fields"].pop(field, None)
-
-            if json_model["model"] in DELETED_MODELS:
-                del content_as_json[i]
-
-        # Return the content to byte form, as that is what the Django deserializer expects.
-        content = orjson.dumps(content_as_json)
+    content = remove_deleted_models_and_fields(content)
 
     content = fixup_array_fields(content)
 
