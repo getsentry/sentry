@@ -191,6 +191,7 @@ export function OrgDropdown({
 const OrgDropdownTrigger = styled(Button)<{width: number}>`
   height: ${p => p.width}px;
   width: ${p => p.width}px;
+  padding: 0; /* fixes overflow behavior for avatar */
 `;
 
 const StyledOrganizationAvatar = styled(OrganizationAvatar)`
