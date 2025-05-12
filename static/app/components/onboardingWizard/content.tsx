@@ -188,7 +188,7 @@ function Task({task, hidePanel}: TaskProps) {
   }, []);
 
   // We want layout animation to be disabled initially, and if the skip confirmation is open
-  // but we want to animate the task card the task status changes
+  // but we want to animate the task card when the task status changes
   const shouldLayoutAnimate = useMemo(() => {
     return enableLayoutAnimation && !showSkipConfirmation;
   }, [enableLayoutAnimation, showSkipConfirmation]);
