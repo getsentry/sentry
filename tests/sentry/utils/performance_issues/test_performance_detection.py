@@ -198,7 +198,7 @@ class PerformanceDetectionTest(TestCase):
         assert default_settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] == 300
         assert default_settings[DetectorType.LARGE_HTTP_PAYLOAD]["payload_size_threshold"] == 300000
         assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 2000
-        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 500
+        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 1000
 
         self.project_option_mock.return_value = {
             "n_plus_one_db_duration_threshold": 100000,
