@@ -7,13 +7,14 @@ import {BaseAvatar} from 'sentry/components/core/avatar/baseAvatar';
 import {Button} from 'sentry/components/core/button';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type Installation = {
   avatar_url: string;
   github_account: string;
-  installation_id: number;
+  installation_id: string;
 };
 
 type GithubInstallationProps = {
@@ -56,12 +57,16 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
       value: installation.installation_id,
       label: (
         <OptionLabelWrapper>
-          <StyledAvatar
-            type="upload"
-            uploadUrl={installation.avatar_url}
-            size={16}
-            title={installation.github_account}
-          />
+          {installation.installation_id === '-1' ? (
+            <IconAdd />
+          ) : (
+            <StyledAvatar
+              type="upload"
+              uploadUrl={installation.avatar_url}
+              size={16}
+              title={installation.github_account}
+            />
+          )}
           <span>{`${installation.github_account}`}</span>
         </OptionLabelWrapper>
       ),
