@@ -24,6 +24,11 @@ import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 
+/**
+ * File paths can get very long, so increase it for the tooltips within this component.
+ */
+export const FRAME_TOOLTIP_MAX_WIDTH = 500;
+
 type Props = {
   frame: Frame;
   platform: PlatformKey;
@@ -122,6 +127,7 @@ function DefaultTitle({
           title={frame.absPath}
           disabled={!enablePathTooltip}
           delay={tooltipDelay}
+          maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
         >
           <code key="filename" className="filename" data-test-id="filename">
             {isPotentiallyThirdParty && frame.absPath ? (
@@ -143,7 +149,12 @@ function DefaultTitle({
     // we want to show a litle (?) icon that on hover shows the actual filename
     if (shouldPrioritizeModuleName && frame.filename) {
       title.push(
-        <Tooltip key={frame.filename} title={frame.filename} delay={tooltipDelay}>
+        <Tooltip
+          key={frame.filename}
+          title={frame.filename}
+          delay={tooltipDelay}
+          maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+        >
           <a className="in-at real-filename">
             <IconQuestion size="xs" />
           </a>
