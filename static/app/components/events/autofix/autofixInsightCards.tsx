@@ -732,7 +732,7 @@ const StyledIconChevron = styled(IconChevron)`
 const RightSection = styled('div')`
   display: flex;
   align-items: center;
-  padding-right: ${space(1)};
+  padding-right: ${space(0.5)};
 `;
 
 const EditContainer = styled('div')`
