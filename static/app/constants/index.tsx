@@ -542,7 +542,7 @@ export const DATA_CATEGORY_INFO = {
     isBilledCategory: true,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
-      showInternalStats: false, // TODO(Seer): update this for launch
+      showExternalStats: true,
     },
   },
   [DataCategoryExact.SEER_SCANNER]: {
@@ -556,7 +556,7 @@ export const DATA_CATEGORY_INFO = {
     isBilledCategory: true,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
-      showInternalStats: false, // TODO(Seer): update this for launch
+      showExternalStats: true,
     },
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;

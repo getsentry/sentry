@@ -18,6 +18,7 @@ import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/la
 import {getPreviousPeriod} from 'sentry/views/insights/pages/platform/nextjs/utils';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 
 const FIELDS: EAPSpanProperty[] = [
@@ -135,9 +136,9 @@ function usePerformanceScoreData({query}: {query?: string}): ProjectScoreQuery {
   };
 }
 
-export function WebVitalsWidget({query}: {query?: string}) {
+export function WebVitalsWidget() {
   const organization = useOrganization();
-
+  const {query} = useTransactionNameQuery();
   const {data, isLoading, error} = usePerformanceScoreData({query});
 
   const isEmpty = !isLoading && data?.projectScore.totalScore === 0;

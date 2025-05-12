@@ -771,7 +771,7 @@ const CountsWrapper = styled('div')`
   flex-direction: column;
 `;
 
-export const PrimaryCount = styled(Count)`
+const PrimaryCount = styled(Count)`
   font-size: ${p => p.theme.fontSizeMedium};
   display: flex;
   justify-content: right;

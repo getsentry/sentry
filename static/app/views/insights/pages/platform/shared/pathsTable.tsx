@@ -25,6 +25,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 interface TableData {
@@ -70,7 +71,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
   {key: 'avg(span.duration)', name: t('AVG'), width: 90},
   {key: 'p95(span.duration)', name: t('P95'), width: 90},
-  {key: 'sum(span.duration)', name: t('Total'), width: 90},
+  {key: 'sum(span.duration)', name: t('Time Spent'), width: 120},
   {key: 'count_unique(user)', name: t('Users'), width: 90},
 ];
 
@@ -107,20 +108,17 @@ function useTableSortParams() {
 }
 
 interface PathsTableProps {
-  handleAddTransactionFilter: (value: string) => void;
-  query?: string;
   showHttpMethodColumn?: boolean;
   showUsersColumn?: boolean;
 }
 
 export function PathsTable({
-  query,
-  handleAddTransactionFilter,
   showHttpMethodColumn = true,
   showUsersColumn = true,
 }: PathsTableProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const {query, setTransactionFilter} = useTransactionNameQuery();
   const [columnOrder, setColumnOrder] = useState(() => {
     let columns = [...defaultColumnOrder];
 
@@ -240,11 +238,11 @@ export function PathsTable({
         <BodyCell
           column={column}
           dataRow={dataRow}
-          handleAddTransactionFilter={handleAddTransactionFilter}
+          handleAddTransactionFilter={setTransactionFilter}
         />
       );
     },
-    [handleAddTransactionFilter]
+    [setTransactionFilter]
   );
 
   return (

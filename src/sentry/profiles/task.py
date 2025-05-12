@@ -107,7 +107,10 @@ def encode_payload(message: dict[str, Any]) -> str:
     taskworker_config=TaskworkerConfig(
         namespace=ingest_profiling_tasks,
         processing_deadline_duration=60,
-        retry=Retry(times=2),
+        retry=Retry(
+            times=2,
+            delay=5,
+        ),
     ),
 )
 def process_profile_task(

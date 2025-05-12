@@ -1,19 +1,17 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Release, TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
@@ -26,10 +24,13 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {QueuesWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export function JobsWidget({query, releases}: {query?: string; releases?: Release[]}) {
+export function JobsWidget() {
   const organization = useOrganization();
+  const {query} = useTransactionNameQuery();
+  const releaseBubbleProps = useReleaseBubbleProps();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
   });
@@ -37,59 +38,28 @@ export function JobsWidget({query, releases}: {query?: string; releases?: Releas
 
   const fullQuery = `span.op:queue.process ${query}`.trim();
 
-  const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
-    [
-      `/organizations/${organization.slug}/events-stats/`,
-      {
-        query: {
-          ...pageFilterChartParams,
-          dataset: 'spans',
-          field: ['trace_status_rate(internal_error)', 'count(span.duration)'],
-          yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
-          transformAliasToInputFormat: 1,
-          query: fullQuery,
-          referrer: Referrer.JOBS_CHART,
-        },
-      },
-    ],
-    {staleTime: 0}
-  );
-
-  const statsToSeries = useCallback(
-    (multiSeriesStats: MultiSeriesEventsStats | undefined, field: string): TimeSeries => {
-      const stats = multiSeriesStats?.[field];
-      const statsData = stats?.data || [];
-      const meta = stats?.meta;
-
-      return convertSeriesToTimeseries({
-        data: statsData.map(([time], index) => ({
-          name: new Date(time * 1000).toISOString(),
-          value: statsData[index]?.[1][0]?.count! || 0,
-        })),
-        seriesName: field,
-        meta: {
-          fields: {
-            [field]: meta?.fields[field]!,
-          },
-          units: {},
-        },
-      });
+  const {data, isLoading, error} = useEAPSeries(
+    {
+      ...pageFilterChartParams,
+      search: fullQuery,
+      yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
+      referrer: Referrer.JOBS_CHART,
     },
-    []
+    Referrer.JOBS_CHART
   );
 
   const plottables = useMemo(() => {
     return [
-      new Bars(statsToSeries(data, 'count(span.duration)'), {
+      new Bars(convertSeriesToTimeseries(data['count(span.duration)']), {
         alias: t('Jobs'),
         color: theme.gray200,
       }),
-      new Line(statsToSeries(data, 'trace_status_rate(internal_error)'), {
+      new Line(convertSeriesToTimeseries(data['trace_status_rate(internal_error)']), {
         alias: t('Error Rate'),
         color: theme.error,
       }),
     ];
-  }, [data, statsToSeries, theme.error, theme.gray200]);
+  }, [data, theme.error, theme.gray200]);
 
   const isEmpty = useMemo(
     () =>
@@ -110,7 +80,7 @@ export function JobsWidget({query, releases}: {query?: string; releases?: Releas
       visualizationProps={{
         showLegend: 'never',
         plottables,
-        ...useReleaseBubbleProps(releases),
+        ...releaseBubbleProps,
       }}
     />
   );

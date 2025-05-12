@@ -50,13 +50,9 @@ class U2fInterface(AuthenticatorInterface):
     type = 3
     interface_id = "u2f"
     configure_button = _("Configure")
-    name = _("U2F (Universal 2nd Factor)")
+    name = _("Passkey / Biometric / Security Key")
     description = _(
-        "Authenticate with a U2F hardware device. This is a "
-        "device like a Yubikey or something similar which "
-        "supports FIDO's U2F specification. This also requires "
-        "a browser which supports this system (like Google "
-        "Chrome)."
+        "Authenticate using a Passkey, Biometrics, or a physical security key such as a YubiKey."
     )
     allow_multi_enrollment = True
 

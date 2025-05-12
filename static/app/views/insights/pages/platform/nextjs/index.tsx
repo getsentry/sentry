@@ -9,8 +9,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {DeadRageClicksWidget} from 'sentry/views/insights/pages/platform/nextjs/deadRageClickWidget';
 import SSRTreeWidget from 'sentry/views/insights/pages/platform/nextjs/ssrTreeWidget';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
@@ -21,7 +19,6 @@ import {PagesTable} from 'sentry/views/insights/pages/platform/shared/pagesTable
 import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 type View = 'api' | 'pages';
 type SpanOperation = 'pageload' | 'navigation';
@@ -42,13 +39,6 @@ export function NextJsOverviewPage({
   performanceType: 'backend' | 'frontend';
 }) {
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
-  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
-  const releases =
-    releasesWithDate?.map(({date, version}) => ({
-      timestamp: date,
-      version,
-    })) ?? [];
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -83,8 +73,6 @@ export function NextJsOverviewPage({
     });
   }, [organization, activeView, spanOperationFilter]);
 
-  const {query, setTransactionFilter} = useTransactionNameQuery();
-
   return (
     <PlatformLandingPageLayout performanceType={performanceType}>
       <WidgetGrid>
@@ -93,21 +81,19 @@ export function NextJsOverviewPage({
             title={t('Traffic')}
             trafficSeriesName={t('Page views')}
             baseQuery={'span.op:[navigation,pageload]'}
-            query={query}
-            releases={releases}
           />
         </WidgetGrid.Position1>
         <WidgetGrid.Position2>
-          <DurationWidget query={query} releases={releases} />
+          <DurationWidget />
         </WidgetGrid.Position2>
         <WidgetGrid.Position3>
-          <IssuesWidget query={query} />
+          <IssuesWidget />
         </WidgetGrid.Position3>
         <WidgetGrid.Position4>
-          <WebVitalsWidget query={query} />
+          <WebVitalsWidget />
         </WidgetGrid.Position4>
         <WidgetGrid.Position5>
-          <DeadRageClicksWidget query={query} releases={releases} />
+          <DeadRageClicksWidget />
         </WidgetGrid.Position5>
         <WidgetGrid.Position6>
           <SSRTreeWidget />
@@ -136,20 +122,13 @@ export function NextJsOverviewPage({
       </ControlsWrapper>
 
       {activeView === 'api' && (
-        <PathsTable
-          handleAddTransactionFilter={setTransactionFilter}
-          query={query}
-          showHttpMethodColumn={false}
-          showUsersColumn={false}
-        />
+        <PathsTable showHttpMethodColumn={false} showUsersColumn={false} />
       )}
 
       {activeView === 'pages' && (
-        <PagesTable
-          spanOperationFilter={spanOperationFilter}
-          handleAddTransactionFilter={setTransactionFilter}
-          query={query}
-        />
+        // Set key to force the PagesTable component to rerender the table & column order
+        // when the user switches between navigations and pageloads
+        <PagesTable key={spanOperationFilter} spanOperationFilter={spanOperationFilter} />
       )}
     </PlatformLandingPageLayout>
   );

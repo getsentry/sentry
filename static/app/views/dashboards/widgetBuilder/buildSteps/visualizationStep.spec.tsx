@@ -112,7 +112,7 @@ describe('VisualizationStep', function () {
     location: LocationFixture(),
     dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
     organization,
-    router,
+    navigate: jest.fn(),
   });
 
   beforeEach(function () {
