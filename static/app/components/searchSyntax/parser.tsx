@@ -697,17 +697,14 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
-    let contains: boolean | undefined;
-    if (this.config.parseWildcardsCheckIsEnabled) {
-      contains = value.startsWith('*') && value.endsWith('*');
-    }
+    const isContains = value.startsWith('*') && value.endsWith('*');
 
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
-      ...(typeof contains === 'boolean' ? {contains} : {}),
+      ...(this.config.parseWildcardsCheckIsEnabled ? {contains: isContains} : {}),
     };
   };
 
