@@ -228,7 +228,11 @@ class OrganizationExamples:
                 "allowSuperuserAccess": False,
                 "require2FA": False,
                 "requiresSso": False,
-                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
+                "avatar": {
+                    "avatarType": "letter_avatar",
+                    "avatarUuid": None,
+                    "avatarUrl": None,
+                },
                 "links": {
                     "organizationUrl": "https://the-interstellar-jurisdiction.sentry.io",
                     "regionUrl": "https://us.sentry.io",
@@ -525,7 +529,10 @@ class OrganizationExamples:
                                     "client_discard": 1942414,
                                     "cardinality_limited": 0,
                                 },
-                                "totals": {"dropped": 2506132, "sum(quantity)": 10252111},
+                                "totals": {
+                                    "dropped": 2506132,
+                                    "sum(quantity)": 10252111,
+                                },
                             },
                             {
                                 "category": "transaction",
@@ -538,7 +545,10 @@ class OrganizationExamples:
                                     "client_discard": 1931595,
                                     "cardinality_limited": 0,
                                 },
-                                "totals": {"dropped": 2458946, "sum(quantity)": 10174711},
+                                "totals": {
+                                    "dropped": 2458946,
+                                    "sum(quantity)": 10174711,
+                                },
                             },
                         ],
                     },
@@ -572,13 +582,6 @@ class OrganizationExamples:
                     "isSuperuser": False,
                     "isStaff": False,
                     "experiments": {},
-                    "emails": [
-                        {
-                            "id": "2153450836",
-                            "email": "sirpenguin@antarcticarocks.com",
-                            "is_verified": True,
-                        }
-                    ],
                     "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
                     "authenticators": [],
                     "canReset2fa": True,
@@ -731,7 +734,11 @@ class OrganizationExamples:
                         "isStaff": True,
                         "experiments": {},
                         "emails": [
-                            {"id": "2972219", "email": "raj@raspberries", "is_verified": True}
+                            {
+                                "id": "2972219",
+                                "email": "raj@raspberries",
+                                "is_verified": True,
+                            }
                         ],
                         "avatar": {
                             "avatarType": "upload",
@@ -801,7 +808,11 @@ class OrganizationExamples:
                         "isStaff": True,
                         "experiments": {},
                         "emails": [
-                            {"id": "2972219", "email": "raj@raspberries", "is_verified": True}
+                            {
+                                "id": "2972219",
+                                "email": "raj@raspberries",
+                                "is_verified": True,
+                            }
                         ],
                         "avatar": {
                             "avatarType": "upload",
@@ -861,7 +872,11 @@ class OrganizationExamples:
                 "currentProjectMeta": {},
                 "userAgent": "Python-urllib/3.11",
                 "adoptionStages": {
-                    "sentry": {"stage": "low_adoption", "adopted": None, "unadopted": None}
+                    "sentry": {
+                        "stage": "low_adoption",
+                        "adopted": None,
+                        "unadopted": None,
+                    }
                 },
             },
             status_codes=["200"],
