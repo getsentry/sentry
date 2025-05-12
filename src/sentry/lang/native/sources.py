@@ -259,7 +259,7 @@ LAST_UPLOAD_TTL = 24 * 3600
 TOKEN_TTL_SECONDS = 3600
 # Set the TTL a little shorter than the actual token expiration to acomodate a bit of delay
 # while obtaining the token and storing it
-token_cache = TTLCache(ttl=TOKEN_TTL_SECONDS - 100)
+token_cache = TTLCache(maxsize=128, ttl=TOKEN_TTL_SECONDS - 100)
 
 
 def _get_cluster() -> RedisCluster:
