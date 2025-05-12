@@ -613,7 +613,7 @@ def get_sources_for_project(project):
 
 def get_gcp_token(client_email: str) -> str | None:
     """
-    Returns a cached GCP token or fetches it if nothing is cached
+    Returns a cached GCP token or fetches it if not is cached.
 
     :param client_email: GCP client email
     """
