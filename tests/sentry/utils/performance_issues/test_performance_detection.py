@@ -100,8 +100,7 @@ class PerformanceDetectionTest(TestCase):
         self.addCleanup(patch_organization.stop)
 
         self.project = self.create_project()
-
-        # Patch DETECTOR_CLASSES to exclude experimental detectors
+        # Exclude experimental detectors from detection in this test suite
         self.patch_detector_classes = patch(
             "sentry.utils.performance_issues.performance_detection.DETECTOR_CLASSES",
             [cls for cls in DETECTOR_CLASSES if "Experimental" not in cls.__name__],
