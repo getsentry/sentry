@@ -775,11 +775,11 @@ export class TokenConverter {
   };
 
   /**
-   * When enableContainsCheck is enabled, the parser will check for the contains
+   * When containsCheckIsEnabled is enabled, the parser will check for the contains
    * flag in text values. i.e. `*value*`
    */
-  enableContainsCheck = (): boolean => {
-    return !!this.config.enableContainsCheck;
+  containsCheckIsEnabled = (): boolean => {
+    return !!this.config.containsCheckIsEnabled;
   };
 
   /**
@@ -1374,7 +1374,7 @@ export type SearchConfig = {
   /**
    * When true, the parser will check for the contains flag in text values
    */
-  enableContainsCheck?: boolean;
+  containsCheckIsEnabled?: boolean;
   /**
    * When true, the parser will not parse paren groups and will return individual paren tokens
    */

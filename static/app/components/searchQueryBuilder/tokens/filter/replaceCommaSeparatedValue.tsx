@@ -12,7 +12,7 @@ export function replaceCommaSeparatedValue(
   cursorPosition: number | null,
   replacement: string
 ) {
-  const parsed = parseMultiSelectFilterValue(value, {enableContainsCheck: false});
+  const parsed = parseMultiSelectFilterValue(value, {containsCheckIsEnabled: false});
 
   if (!parsed) {
     return value;

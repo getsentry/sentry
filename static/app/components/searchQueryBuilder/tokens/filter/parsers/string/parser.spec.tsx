@@ -97,7 +97,7 @@ describe('parseMultiSelectValue', function () {
 
   describe('contains', function () {
     it('sets contains to false when not wrapped in `*`', function () {
-      const result = parseMultiSelectFilterValue('a', {enableContainsCheck: true});
+      const result = parseMultiSelectFilterValue('a', {containsCheckIsEnabled: true});
 
       expect(result).not.toBeNull();
       expect(result!.items).toHaveLength(1);
@@ -107,7 +107,7 @@ describe('parseMultiSelectValue', function () {
     });
 
     it('single value', function () {
-      const result = parseMultiSelectFilterValue('*a*', {enableContainsCheck: true});
+      const result = parseMultiSelectFilterValue('*a*', {containsCheckIsEnabled: true});
 
       expect(result).not.toBeNull();
       expect(result!.items).toHaveLength(1);
@@ -118,7 +118,7 @@ describe('parseMultiSelectValue', function () {
 
     it('multiple value', function () {
       const result = parseMultiSelectFilterValue('*a*,*b*,c', {
-        enableContainsCheck: true,
+        containsCheckIsEnabled: true,
       });
 
       expect(result).not.toBeNull();
@@ -139,7 +139,7 @@ describe('parseMultiSelectValue', function () {
 
     it('quoted value', function () {
       const result = parseMultiSelectFilterValue('a,"*b*",c', {
-        enableContainsCheck: true,
+        containsCheckIsEnabled: true,
       });
 
       expect(result).not.toBeNull();
@@ -156,7 +156,7 @@ describe('parseMultiSelectValue', function () {
     });
 
     it('just quotes', function () {
-      const result = parseMultiSelectFilterValue('"**"', {enableContainsCheck: true});
+      const result = parseMultiSelectFilterValue('"**"', {containsCheckIsEnabled: true});
 
       expect(result).not.toBeNull();
 
@@ -169,7 +169,7 @@ describe('parseMultiSelectValue', function () {
     });
 
     it('single empty value', function () {
-      const result = parseMultiSelectFilterValue('**', {enableContainsCheck: true});
+      const result = parseMultiSelectFilterValue('**', {containsCheckIsEnabled: true});
 
       expect(result).not.toBeNull();
 
@@ -183,7 +183,7 @@ describe('parseMultiSelectValue', function () {
 
     it('spaces', function () {
       const result = parseMultiSelectFilterValue('a,*b c*,d', {
-        enableContainsCheck: true,
+        containsCheckIsEnabled: true,
       });
 
       expect(result).not.toBeNull();
