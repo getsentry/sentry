@@ -4,7 +4,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconMegaphone} from 'sentry/icons';
+import {IconMegaphone, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -82,9 +82,11 @@ export default function LogsPage() {
               <ButtonBar gap={1}>
                 <FeedbackButton />
                 <LinkButton
-                  to="https://docs.sentry.io/product/explore/logs/getting-started/"
-                  size="xs"
+                  icon={<IconOpen />}
                   priority="primary"
+                  href="https://docs.sentry.io/product/explore/logs/getting-started/"
+                  external
+                  size="xs"
                 >
                   {t('Set Up Logs')}
                 </LinkButton>
