@@ -14,13 +14,11 @@ item = s1:spaces c:comma s2:spaces value:(!comma text_in_value)? {
 }
 
 text_in_value
-  = quoted_value
-  / in_value
-  / empty_value
+  = quoted_value / in_value / empty_value
 
 empty_value
   = spaces {
-    return tc.tokenValueText('', false);
+    return tc.tokenValueText(text(), false);
   }
 
 in_value
@@ -29,8 +27,8 @@ in_value
   }
 
 quoted_value
-  = '"' value:('\\"' / '\\*' / [^"\\])* '"' {
-      return tc.tokenValueText(value.join(''), true);
+  = '"' value:('\\"' / [^"])* '"' {
+    return tc.tokenValueText(value.join(''), true);
   }
 
 in_value_termination

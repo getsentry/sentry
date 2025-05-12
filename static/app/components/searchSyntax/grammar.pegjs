@@ -297,14 +297,13 @@ value
     }
 
 quoted_value
-  = '"' value:('\\"' / '\\*' / [^"\\])* '"' {
-
+  = '"' value:('\\"' / [^"])* '"' {
       return tc.tokenValueText(value.join(''), true);
     }
 
 in_value
   = (&in_value_termination in_value_char)+ {
-      return tc.tokenValueText(text(), false);
+        return tc.tokenValueText(text(), false);
     }
 
 text_in_value
