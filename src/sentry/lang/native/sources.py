@@ -259,7 +259,7 @@ LAST_UPLOAD_TTL = 24 * 3600
 TOKEN_TTL_SECONDS = 3600
 # Set the TTL a little shorter than the actual token expiration to acomodate a bit of delay
 # while obtaining the token and storing it
-token_cache: TTLCache[str, str | None] = TTLCache(maxsize=128, ttl=TOKEN_TTL_SECONDS - 100)
+token_cache: TTLCache[Any, Any] = TTLCache(maxsize=128, ttl=TOKEN_TTL_SECONDS - 100)
 
 
 def _get_cluster() -> RedisCluster:
@@ -588,7 +588,7 @@ def get_sources_for_project(project):
 
         if features.has("organizations:gcp-bearer-token-authentication", organization):
             if source.get("type") == "gcs":
-                client_email: str = source.get("client_email")
+                client_email = source.get("client_email")
                 token = get_gcp_token(client_email)
                 # if target_credentials.token is None it means that the
                 # token could not be fetched successfully
@@ -612,7 +612,7 @@ def get_sources_for_project(project):
     return sources
 
 
-def get_gcp_token(client_email: str) -> str | None:
+def get_gcp_token(client_email):
     """
     Returns a cached GCP token or fetches it if not is cached.
 
