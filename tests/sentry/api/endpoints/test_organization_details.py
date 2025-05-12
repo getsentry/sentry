@@ -1313,6 +1313,21 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"samplingMode": "invalid"}
         self.get_error_response(self.organization.slug, status_code=400, **data)
 
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_default_autofix_automation_tuning_feature_enabled(self):
+        data = {"defaultAutofixAutomationTuning": "high"}
+        self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:default_autofix_automation_tuning") == "high"
+
+    @with_feature({"organizations:trigger-autofix-on-issue-summary": False})
+    def test_default_autofix_automation_tuning_feature_disabled(self):
+        data = {"defaultAutofixAutomationTuning": "high"}
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert response.data["defaultAutofixAutomationTuning"] == [
+            "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+        ]
+        assert self.organization.get_option("sentry:default_autofix_automation_tuning") is None
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
