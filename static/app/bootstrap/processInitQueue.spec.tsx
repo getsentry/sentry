@@ -147,11 +147,12 @@ describe('processInitQueue', function () {
         {timeout: 5000}
       );
     });
-    it('renders u2f sign', async () => {
+
+    it('renders WebAuthn Assert', async () => {
       window.__onSentryInit = [
         {
-          component: SentryInitRenderReactComponent.U2F_SIGN,
-          container: '#u2f-sign-container',
+          component: SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT,
+          container: '#webauthn-container',
           name: 'renderReact',
           props: {
             mode: 'signin',
@@ -159,7 +160,7 @@ describe('processInitQueue', function () {
         },
       ];
 
-      render(<div id="u2f-sign-container" />);
+      render(<div id="webauthn-container" />);
       processInitQueue();
 
       // WebAuthn is not supported in the test environment
