@@ -10,8 +10,9 @@ import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connecti
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
-import {AUTOMATIONS_BASE_URL} from 'sentry/views/automations/routes';
+import {makeAutomationDetailsUrl} from 'sentry/views/automations/makeAutomationDetailsUrl';
 
 type AutomationListRowProps = {
   automation: Automation;
@@ -24,6 +25,7 @@ export function AutomationListRow({
   handleSelect,
   selected,
 }: AutomationListRowProps) {
+  const organization = useOrganization();
   const actions = useAutomationActions(automation);
   const {id, name, disabled, lastTriggered, detectorIds = []} = automation;
   return (
@@ -37,7 +39,9 @@ export function AutomationListRow({
           }}
         />
         <CellWrapper>
-          <TitleCell to={`${AUTOMATIONS_BASE_URL}/${id}/`}>{name}</TitleCell>
+          <TitleCell to={makeAutomationDetailsUrl(organization.slug, id)}>
+            {name}
+          </TitleCell>
         </CellWrapper>
       </Flex>
       <CellWrapper className="last-triggered">
