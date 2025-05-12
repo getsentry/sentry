@@ -23,8 +23,6 @@ const COMPONENT_MAP = {
     import(/* webpackChunkName: "SystemAlerts" */ 'sentry/views/app/systemAlerts'),
   [SentryInitRenderReactComponent.SETUP_WIZARD]: () =>
     import(/* webpackChunkName: "SetupWizard" */ 'sentry/views/setupWizard'),
-  [SentryInitRenderReactComponent.U2F_SIGN]: () =>
-    import(/* webpackChunkName: "U2fSign" */ 'sentry/components/webAuthn/webAuthnAssert'),
   [SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT]: () =>
     import(
       /* webpackChunkName: "WebAuthnAssert" */ 'sentry/components/webAuthn/webAuthnAssert'
