@@ -91,10 +91,13 @@ class ActionHandlerSerializer(Serializer):
 
         integrations = kwargs.get("integrations")
         if integrations:
-            result["integrations"] = [
-                {"id": str(integration.id), "name": integration.name}
-                for integration in integrations
-            ]
+            integrations_result = []
+            for i in integrations:
+                i_result = {"id": str(i["integration"].id), "name": i["integration"].name}
+                if i["services"]:
+                    i_result["services"] = [{"id": id, "name": name} for id, name in i["services"]]
+                integrations_result.append(i_result)
+            result["integrations"] = integrations_result
 
         sentry_app_context = kwargs.get("sentry_app_context")
         if sentry_app_context:

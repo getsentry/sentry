@@ -14,7 +14,6 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_control_tasks, integrations_tasks
 from sentry.taskworker.retry import Retry
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 @instrumented_task(
@@ -77,7 +76,6 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
                         relationship=GroupLink.Relationship.references,
                     )
             except IntegrityError:
-                incr_rollback_metrics(GroupLink)
                 continue
 
             plugin_issue.delete()
