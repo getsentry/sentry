@@ -134,7 +134,7 @@ def prepare_organization_report(
     email_override: str | None = None,
 ):
     batch_id = str(batch_id)
-    if target_user and not isinstance(target_user, int):
+    if email_override and not isinstance(target_user, int):
         logger.error(
             "Target user must have an ID",
             extra={
