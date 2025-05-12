@@ -215,6 +215,10 @@ def instrumented_task(
             )(func)
 
             task = override_task(task, taskworker_task, taskworker_config, name)
+        else:
+            raise Exception(
+                f"taskworker_config must be defined, please add TaskworkerConfig to instrumented_task call for {name}"
+            )
 
         if silo_mode:
             silo_limiter = TaskSiloLimit(silo_mode)
