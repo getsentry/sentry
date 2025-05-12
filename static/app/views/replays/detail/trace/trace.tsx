@@ -5,6 +5,7 @@ import Loading from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -185,4 +186,5 @@ const TraceViewWaterfallWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding-top: ${space(0.5)};
 `;
