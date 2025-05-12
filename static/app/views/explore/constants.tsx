@@ -1,5 +1,5 @@
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields, SpanIndexedField} from 'sentry/views/insights/types';
 
 export const SENTRY_SEARCHABLE_SPAN_STRING_TAGS: string[] = [
   // NOTE: intentionally choose to not expose transaction id
@@ -42,6 +42,7 @@ export const SENTRY_SEARCHABLE_SPAN_STRING_TAGS: string[] = [
 export const SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS: string[] = [
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.SPAN_SELF_TIME,
+  SpanFields.PROJECT_ID,
 ];
 
 export const SENTRY_SPAN_STRING_TAGS: string[] = [
