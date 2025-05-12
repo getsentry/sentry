@@ -13,10 +13,12 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
+    DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
     Workflow,
@@ -557,6 +559,48 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
         assert not triggered_actions
+
+    def test_post_migration(self):
+        self.action_group.update(logic_type=DataConditionGroup.Type.ALL)
+        self.high_priority_conditions = [
+            self.create_data_condition(
+                condition_group=self.action_group,
+                type="existing_high_priority_issue",
+                comparison=True,
+                condition_result=True,
+            ),
+            self.create_data_condition(
+                condition_group=self.action_group,
+                type="new_high_priority_issue",
+                comparison=True,
+                condition_result=True,
+            ),
+        ]
+        self.group_event.group.priority = PriorityLevel.HIGH
+        self.event_data = WorkflowEventData(
+            event=self.group_event,
+            has_reappeared=False,
+            has_escalated=False,
+            group_state=GroupState(
+                id=1,
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+            ),
+        )
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
+        assert not triggered_actions
+
+        for condition in self.high_priority_conditions:
+            condition.condition_group_id = self.workflow_triggers.id
+            condition.save()
+
+        # assert there are no DCs in the filter group
+        assert not DataCondition.objects.filter(condition_group=self.action_group).exists()
+
+        # this should pass and get actions because there are no conditions in the filter group
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
+        assert set(triggered_actions) == {self.action}
 
     def test_with_slow_conditions(self):
         self.action_group.logic_type = DataConditionGroup.Type.ALL
