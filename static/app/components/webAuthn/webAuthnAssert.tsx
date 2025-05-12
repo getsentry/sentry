@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import noop from 'lodash/noop';
 
 import deviceAnimation from 'sentry-images/spot/u2f-small.gif';
 
@@ -113,10 +114,22 @@ export function WebAuthnAssert({
   );
 
   // Trigger the webAuthn flow immediately
-  useEffect(
-    () => void (isSupported && triggerWebAuthn()),
-    [isSupported, triggerWebAuthn]
-  );
+  useEffect(() => {
+    if (!isSupported) {
+      return noop;
+    }
+
+    // Trigger immedialtey if the browser has focus
+    if (document.hasFocus()) {
+      triggerWebAuthn();
+      return noop;
+    }
+
+    // Trigger webauthn once the browser is focused. Browsers like safari do
+    // not like it if the navigator.credentials APIs are used without focus.
+    window.addEventListener('focus', triggerWebAuthn, {once: true});
+    return () => window.removeEventListener('focus', triggerWebAuthn);
+  }, [isSupported, triggerWebAuthn]);
 
   if (!isSupported && mode === 'sudo') {
     return null;
