@@ -88,6 +88,7 @@ const SORTABLE_FIELDS = new Set([
   'sum_if(span.duration,is_transaction,true)',
   'p75(measurements.frames_slow_rate)',
   'p75(measurements.frames_frozen_rate)',
+  'trace_status_rate(ok)',
 ]);
 
 const NUMERIC_FIELDS = new Set([
