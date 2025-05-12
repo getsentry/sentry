@@ -100,10 +100,10 @@ def get_kafka_admin_cluster_options(
 def get_topic_definition(topic: Topic | str) -> TopicDefinition:
     if isinstance(topic, str):
         topic_name = topic
-        cluster_name = settings.KAFKA_TOPIC_TO_CLUSTER[topic]
+        cluster_name = settings.KAFKA_TOPIC_TO_CLUSTER.get(topic_name, "default")
     else:
         topic_name = topic.value
-        cluster_name = settings.KAFKA_TOPIC_TO_CLUSTER[topic]
+        cluster_name = settings.KAFKA_TOPIC_TO_CLUSTER[topic_name]
     return {
         "cluster": cluster_name,
         "real_topic_name": settings.KAFKA_TOPIC_OVERRIDES.get(topic_name, topic_name),
