@@ -53,7 +53,7 @@ class DatasetSourcesTypes(Enum):
     FORCED = 3
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return tuple((source.value, source.name.lower()) for source in cls)
 
 
