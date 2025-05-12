@@ -439,6 +439,53 @@ def taskbroker_send_tasks(
 
 
 @run.command()
+@log_options()
+@configuration
+@click.option(
+    "--size",
+    type=int,
+    help="The size of the parameter in bytes",
+    default=1,
+    show_default=True,
+)
+@click.option(
+    "--repeat",
+    type=int,
+    help="Number of messages to send to the kafka topic",
+    default=1,
+    show_default=True,
+)
+@click.option(
+    "--bootstrap-servers",
+    type=str,
+    help="The bootstrap servers to use for the kafka topic",
+    default="127.0.0.1:9092",
+)
+def taskbroker_send_big_tasks(
+    size: int,
+    repeat: int,
+    bootstrap_servers: str,
+) -> None:
+    import random
+
+    from sentry.conf.server import KAFKA_CLUSTERS
+    from sentry.taskworker.tasks.examples import big_task
+
+    KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
+
+    checkmarks = {int(repeat * (i / 10)) for i in range(1, 10)}
+
+    for i in range(repeat):
+        big_task.delay(
+            "".join([chr(ord("a") + random.randint(0, ord("z") - ord("a"))) for _ in range(size)])
+        )
+        if i in checkmarks:
+            click.echo(message=f"{int((i / repeat) * 100)}% complete")
+
+    click.echo(message=f"Successfully sent {repeat} messages.")
+
+
+@run.command()
 @click.option(
     "--pidfile",
     help=(

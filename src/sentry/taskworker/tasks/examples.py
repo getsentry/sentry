@@ -11,6 +11,11 @@ from sentry.utils.redis import redis_clusters
 logger = logging.getLogger(__name__)
 
 
+@exampletasks.register(name="examples.big_task")
+def big_task(param: str) -> None:
+    logger.debug("Got %s", len(param.encode()))
+
+
 @exampletasks.register(name="examples.say_hello")
 def say_hello(name: str) -> None:
     logger.debug("Hello %s", name)
