@@ -86,7 +86,7 @@ export default function LogsPage() {
                   size="xs"
                   priority="primary"
                 >
-                  {t('Send Logs')}
+                  {t('Set Up Logs')}
                 </LinkButton>
               </ButtonBar>
             </Layout.HeaderActions>
