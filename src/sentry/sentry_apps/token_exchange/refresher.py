@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 
-from django.db import router, transaction
+from django.db import OperationalError, router, transaction
 from django.utils.functional import cached_property
 
 from sentry import analytics
@@ -30,22 +30,44 @@ class Refresher:
     user: User
 
     def run(self) -> ApiToken:
-        with transaction.atomic(router.db_for_write(ApiToken)):
-            try:
-                self._validate()
-                self.token.delete()
+        try:
+            with transaction.atomic(router.db_for_write(ApiToken)):
+                try:
+                    token = None
+                    self._validate()
+                    self.token.delete()
 
-                self._record_analytics()
-                return self._create_new_token()
-            except (SentryAppIntegratorError, SentryAppSentryError):
-                logger.info(
-                    "refresher.context",
-                    extra={
-                        "application_id": self.application.id,
-                        "refresh_token": self.refresh_token[-4:],
-                    },
+                    self._record_analytics()
+                    token = self._create_new_token()
+                    return token
+                except (SentryAppIntegratorError, SentryAppSentryError):
+                    logger.info(
+                        "refresher.context",
+                        extra={
+                            "application_id": self.application.id,
+                            "refresh_token": self.refresh_token[-4:],
+                        },
+                    )
+                    raise
+        except OperationalError as e:
+            context = {
+                "installation_uuid": self.install.uuid,
+                "client_id": self.application.client_id[:SENSITIVE_CHARACTER_LIMIT],
+                "sentry_app_id": self.install.sentry_app.id,
+            }
+            if token is not None:
+                logger.warning(
+                    "refresher.database-failure",
+                    extra=context,
+                    exc_info=e,
                 )
-                raise
+                return token
+
+            raise SentryAppSentryError(
+                message="Failed to delete or create current token",
+                status_code=500,
+                webhook_context=context,
+            ) from e
 
     def _record_analytics(self) -> None:
         analytics.record(
