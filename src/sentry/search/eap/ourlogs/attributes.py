@@ -57,7 +57,6 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("sdk.name"),
         simple_sentry_field("sdk.version"),
         simple_sentry_field("origin"),
-        simple_sentry_field("server.address"),
         # Deprecated
         ResolvedAttribute(
             public_alias="log.body",
