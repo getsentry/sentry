@@ -67,7 +67,6 @@ def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
     (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, value])
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_SUM,
