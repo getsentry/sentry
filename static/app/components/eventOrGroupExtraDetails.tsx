@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {AUTOFIX_TTL_IN_DAYS} from 'sentry/components/events/autofix/types';
+import {getAutofixRunExists} from 'sentry/components/events/autofix/utils';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
@@ -78,18 +78,10 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
     data.issueCategory &&
     !!getReplayCountForIssue(data.id, data.issueCategory);
 
-  const seerAutofixLastTriggered = (data as Group).seerAutofixLastTriggered;
-  const autofixLastRunAsDate = seerAutofixLastTriggered
-    ? new Date(seerAutofixLastTriggered)
-    : null;
-  const autofixRanWithinTtl = autofixLastRunAsDate
-    ? autofixLastRunAsDate >
-      new Date(Date.now() - AUTOFIX_TTL_IN_DAYS * 24 * 60 * 60 * 1000)
-    : false;
   const showSeer =
     organization.features.includes('gen-ai-features') &&
     !organization.hideAiFeatures &&
-    autofixRanWithinTtl;
+    getAutofixRunExists(data as Group);
 
   const {subtitle} = getTitle(data);
 

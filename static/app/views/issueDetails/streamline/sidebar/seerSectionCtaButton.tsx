@@ -9,6 +9,7 @@ import {
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import {getAutofixRunExists} from 'sentry/components/events/autofix/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
@@ -135,7 +136,8 @@ export function SeerSectionCtaButton({
     aiConfig.needsGenAiAcknowledgement ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
-  const isButtonLoading = aiConfig.isAutofixSetupLoading || isAutofixPending;
+  const isButtonLoading =
+    aiConfig.isAutofixSetupLoading || (isAutofixPending && getAutofixRunExists(group));
 
   const lastStep = autofixData?.steps?.[autofixData.steps.length - 1];
   const isAutofixInProgress = lastStep?.status === AutofixStatus.PROCESSING;

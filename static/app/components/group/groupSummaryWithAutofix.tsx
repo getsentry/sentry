@@ -5,6 +5,7 @@ import {motion} from 'framer-motion';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {
+  getAutofixRunExists,
   getCodeChangesDescription,
   getCodeChangesIsLoading,
   getRootCauseCopyText,
@@ -100,7 +101,7 @@ export function GroupSummaryWithAutofix({
     [autofixData]
   );
 
-  if (isPending) {
+  if (isPending && getAutofixRunExists(group)) {
     return <Placeholder height="130px" />;
   }
 
