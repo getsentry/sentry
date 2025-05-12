@@ -68,7 +68,7 @@ class Validator:
         try:
             return ApiApplication.objects.get(client_id=self.client_id)
         except ApiApplication.DoesNotExist:
-            raise SentryAppSentryError(
+            raise SentryAppIntegratorError(
                 "Application does not exist",
                 webhook_context={"client_id": self.client_id[:SENSITIVE_CHARACTER_LIMIT]},
             )

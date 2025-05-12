@@ -1,6 +1,7 @@
 from unittest.mock import PropertyMock, patch
 
 import pytest
+from django.db.utils import OperationalError
 
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
@@ -92,8 +93,9 @@ class TestRefresher(TestCase):
         }
         assert e.value.public_context == {}
 
+    @patch("sentry.sentry_apps.token_exchange.refresher.Refresher._validate")
     @patch("sentry.models.ApiApplication.objects.get", side_effect=ApiApplication.DoesNotExist)
-    def test_api_application_must_exist(self, _):
+    def test_api_application_must_exist(self, _, mock_validate):
         with pytest.raises(SentryAppIntegratorError) as e:
             self.refresher.run()
 
@@ -133,3 +135,30 @@ class TestRefresher(TestCase):
             sentry_app_installation_id=self.install.id,
             exchange_type="refresh",
         )
+
+    def test_returns_token_on_outbox_error(self):
+        # Mock the transaction to raise OperationalError after token creation
+        with patch(
+            "sentry.hybridcloud.models.outbox.process_region_outbox.send"
+        ) as mock_transaction:
+            mock_transaction.atomic.side_effect = OperationalError("Outbox issue")
+
+            # The refresher should return the token even though there was an error
+            token = self.refresher.run()
+            assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token
+
+    def test_raises_error_on_operational_error_before_creation(self):
+        # Mock the transaction to raise OperationalError before token creation
+        with patch("sentry.sentry_apps.token_exchange.refresher.transaction") as mock_transaction:
+            mock_transaction.atomic.side_effect = OperationalError("Database error")
+
+            with pytest.raises(SentryAppSentryError) as e:
+                self.refresher.run()
+
+            assert e.value.message == "Failed to refresh given token"
+            assert e.value.status_code == 500
+            assert e.value.webhook_context == {
+                "installation_uuid": self.install.uuid,
+                "client_id": self.client_id[:SENSITIVE_CHARACTER_LIMIT],
+                "sentry_app_id": self.install.sentry_app.id,
+            }

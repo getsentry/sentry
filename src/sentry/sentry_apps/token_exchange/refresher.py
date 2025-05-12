@@ -31,8 +31,8 @@ class Refresher:
 
     def run(self) -> ApiToken:
         try:
+            token = None
             with transaction.atomic(router.db_for_write(ApiToken)):
-                token = None
                 self._validate()
                 self.token.delete()
 
