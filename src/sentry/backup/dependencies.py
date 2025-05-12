@@ -15,38 +15,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.silo.base import SiloMode
 from sentry.utils import json
 
-# We have to be careful when removing fields from our model schemas, since exports created using
-# the old-but-still-in-the-support-window versions could have those fields set in the data they
-# provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
-# valid in at least one of the versions we support. For example, since our current version
-# support window is two minor versions back, if we delete a field at version 24.5.N, we must
-# include an entry in this map for that field until that version is out of the support window
-# (in this case, we can remove shim once version 24.7.0 is released).
-#
-# NOTE TO FUTURE EDITORS: please keep the `DELETED_FIELDS` dict, and the subsequent `if` clause,
-# around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
-# each entry in this dict, please leave a TODO comment pointed to a github issue for removing
-# the shim, noting in the comment which self-hosted release will trigger the removal.
-DELETED_FIELDS: dict[str, set[str]] = {
-    # These fields were removed in 2024 but we need them to support exports from older sentry versions.
-    "sentry.team": {"actor", "org_role"},
-    "sentry.rule": {"owner"},
-    "sentry.alertrule": {"owner", "include_all_projects"},
-    "sentry.grouphistory": {"actor"},
-}
-
-# When models are removed from the application, they will continue to be in exports
-# from previous releases. Models in this list are elided from data as imports are processed.
-#
-# NOTE TO FUTURE EDITORS: please keep the `DELETED_MODELS` set, and the subsequent `if` clause,
-# around even if the set is empty, to ensure that there is a ready place to pop shims into. For
-# each entry in this set, please leave a TODO comment pointed to a github issue for removing
-# the shim, noting in the comment which self-hosted release will trigger the removal.
-DELETED_MODELS: set[str] = set(
-    # This model was removed in 2023, but we need to support imports from older sentry still.
-    "sentry.actor",
-)
-
 
 class NormalizedModelName:
     """

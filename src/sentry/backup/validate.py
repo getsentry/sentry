@@ -8,13 +8,7 @@ from difflib import unified_diff
 from typing import Any
 
 from sentry.backup.comparators import ComparatorMap, ForeignKeyComparator, get_default_comparators
-from sentry.backup.dependencies import (
-    DELETED_MODELS,
-    ImportKind,
-    NormalizedModelName,
-    PrimaryKeyMap,
-    get_model,
-)
+from sentry.backup.dependencies import ImportKind, NormalizedModelName, PrimaryKeyMap, get_model
 from sentry.backup.findings import (
     ComparatorFinding,
     ComparatorFindingKind,
@@ -102,8 +96,6 @@ def validate(
             pk = model["pk"]
             model_name = NormalizedModelName(model["model"])
             model_type = get_model(model_name)
-            if str(model_name) in DELETED_MODELS:
-                continue
             if model_type is None or not issubclass(model_type, BaseModel):
                 raise RuntimeError("Unknown model class")
 
