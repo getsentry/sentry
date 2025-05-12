@@ -74,7 +74,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 ).run()
             else:
                 raise SentryAppIntegratorError(message="Invalid grant_type", status_code=403)
-        except SentryAppIntegratorError as e:
+        except Exception as e:
             logger.info(
                 "sentry-app-authorizations.error-context",
                 exc_info=e,

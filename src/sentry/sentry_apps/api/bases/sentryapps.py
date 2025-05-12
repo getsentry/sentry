@@ -122,7 +122,7 @@ class IntegrationPlatformEndpoint(Endpoint):
         elif isinstance(exception, SentryAppSentryError):
             return Response(
                 exception.to_public_dict(),
-                status=500,
+                status=exception.status_code,
             )
         # If not an audited sentry app error then default to using default error handler
         return None
