@@ -25,6 +25,10 @@ const COMPONENT_MAP = {
     import(/* webpackChunkName: "SetupWizard" */ 'sentry/views/setupWizard'),
   [SentryInitRenderReactComponent.U2F_SIGN]: () =>
     import(/* webpackChunkName: "U2fSign" */ 'sentry/components/webAuthn/webAuthnAssert'),
+  [SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT]: () =>
+    import(
+      /* webpackChunkName: "WebAuthnAssert" */ 'sentry/components/webAuthn/webAuthnAssert'
+    ),
   [SentryInitRenderReactComponent.SU_STAFF_ACCESS_FORM]: () =>
     import(
       /* webpackChunkName: "SuperuserStaffAccessForm" */ 'sentry/components/superuserStaffAccessForm'
