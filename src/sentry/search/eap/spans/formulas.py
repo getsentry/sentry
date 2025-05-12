@@ -86,6 +86,7 @@ def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
         ),
     )
 
+
 def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     dividend = cast(AttributeKey, args[0])
     divisor = cast(AttributeKey, args[1])
