@@ -10,6 +10,7 @@ import type {
   FieldDefinitionGetter,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
+import {TermOperatorNew} from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
   makeTokenKey,
@@ -91,7 +92,7 @@ type UpdateFilterKeyAction = {
 };
 
 type UpdateFilterOpAction = {
-  op: TermOperator;
+  op: TermOperatorNew;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
 };
@@ -158,20 +159,74 @@ function deleteQueryTokens(
   };
 }
 
+function addWildcardToToken(token: TokenResult<Token.VALUE_TEXT>) {
+  if (token.quoted && !token.text.slice(1).startsWith('*')) {
+    token.text = `"*${token.text.slice(1)}`;
+  } else if (!token.quoted && !token.text.startsWith('*')) {
+    token.text = `*${token.text}`;
+  }
+
+  if (token.quoted && !token.text.slice(0, -1).endsWith('*')) {
+    token.text = `${token.text.slice(0, -1)}*"`;
+  } else if (!token.quoted && !token.text.endsWith('*')) {
+    token.text = `${token.text}*`;
+  }
+}
+
+function removeWildcardFromToken(token: TokenResult<Token.VALUE_TEXT>) {
+  if (token.quoted && token.text.slice(1).startsWith('*')) {
+    token.text = `"${token.text.slice(2)}`;
+  } else if (!token.quoted && token.text.startsWith('*')) {
+    token.text = token.text.slice(1);
+  }
+
+  if (token.quoted && token.text.slice(0, -1).endsWith('*')) {
+    token.text = `${token.text.slice(0, -2)}"`;
+  } else if (!token.quoted && token.text.endsWith('*')) {
+    token.text = token.text.slice(0, -1);
+  }
+}
+
 function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: TermOperatorNew
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
   }
 
-  const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
-
   const newToken: TokenResult<Token.FILTER> = {...token};
-  newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
+  const isNotEqual = newOperator === TermOperatorNew.NOT_EQUAL;
+
   newToken.negated = isNotEqual;
+  // if the operator is contains, update the token (output value) to be wrapped in stars
+  if (newOperator === TermOperatorNew.CONTAINS) {
+    newToken.operator = TermOperator.DEFAULT;
+    if (newToken.value.type === Token.VALUE_TEXT) {
+      addWildcardToToken(newToken.value);
+    } else if (newToken.value.type === Token.VALUE_TEXT_LIST) {
+      newToken.value.items.forEach(item => {
+        if (item.value?.type === Token.VALUE_TEXT) {
+          addWildcardToToken(item.value);
+        }
+      });
+    }
+  } else {
+    if (newToken.value.type === Token.VALUE_TEXT) {
+      removeWildcardFromToken(newToken.value);
+    } else if (newToken.value.type === Token.VALUE_TEXT_LIST) {
+      newToken.value.items.forEach(item => {
+        if (item.value?.type === Token.VALUE_TEXT) {
+          removeWildcardFromToken(item.value);
+        }
+      });
+    }
+
+    newToken.operator = isNotEqual
+      ? TermOperator.DEFAULT
+      : (newOperator as unknown as TermOperator);
+  }
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
 }
@@ -196,33 +251,33 @@ function modifyFilterOperator(
 function modifyFilterOperatorDate(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: TermOperatorNew
 ): string {
   switch (newOperator) {
-    case TermOperator.GREATER_THAN:
-    case TermOperator.LESS_THAN: {
+    case TermOperatorNew.GREATER_THAN:
+    case TermOperatorNew.LESS_THAN: {
       if (token.filter === FilterType.RELATIVE_DATE) {
-        token.value.sign = newOperator === TermOperator.GREATER_THAN ? '-' : '+';
+        token.value.sign = newOperator === TermOperatorNew.GREATER_THAN ? '-' : '+';
       } else if (
         token.filter === FilterType.SPECIFIC_DATE ||
         token.filter === FilterType.DATE
       ) {
-        token.operator = newOperator;
+        token.operator = newOperator as unknown as TermOperator;
       }
       return replaceQueryToken(query, token, stringifyToken(token));
     }
 
     // The "equal" and "or equal to" operators require a specific date
-    case TermOperator.EQUAL:
-    case TermOperator.GREATER_THAN_EQUAL:
-    case TermOperator.LESS_THAN_EQUAL:
+    case TermOperatorNew.EQUAL:
+    case TermOperatorNew.GREATER_THAN_EQUAL:
+    case TermOperatorNew.LESS_THAN_EQUAL:
       // If it's a relative date, modify the operator and generate an ISO timestamp
       if (token.filter === FilterType.RELATIVE_DATE) {
         const generatedIsoDateStr = token.value.parsed?.value ?? new Date().toISOString();
         const newTokenStr = `${token.key.text}:${newOperator}${generatedIsoDateStr}`;
         return replaceQueryToken(query, token, newTokenStr);
       }
-      token.operator = newOperator;
+      token.operator = newOperator as unknown as TermOperator;
       return replaceQueryToken(query, token, stringifyToken(token));
     default:
       return replaceQueryToken(query, token, newOperator);
@@ -409,6 +464,10 @@ function modifyFilterValue(
     return modifyFilterValueDate(query, token, newValue);
   }
 
+  // if (token.value.type === Token.VALUE_TEXT && !token.value.contains) {
+  //   newValue = token.value.quoted ? `"*${newValue.slice(1, -1)}*"` : `*${newValue}*`;
+  // }
+
   return replaceQueryToken(query, token.value, newValue);
 }
 
@@ -424,10 +483,19 @@ function updateFilterMultipleValues(
     return {...state, query: replaceQueryToken(state.query, token.value, '""')};
   }
 
-  const newValue =
-    uniqNonEmptyValues.length > 1
-      ? `[${uniqNonEmptyValues.join(',')}]`
-      : uniqNonEmptyValues[0]!;
+  let newValue = uniqNonEmptyValues[0]!;
+
+  if (uniqNonEmptyValues.length > 1) {
+    if (uniqNonEmptyValues.some(value => value.startsWith('*') && value.endsWith('*'))) {
+      const containsValues = uniqNonEmptyValues.map(value => {
+        return value.startsWith('*') && value.endsWith('*') ? value : `*${value}*`;
+      });
+
+      newValue = `[${containsValues.join(',')}]`;
+    } else {
+      newValue = `[${uniqNonEmptyValues.join(',')}]`;
+    }
+  }
 
   return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
 }
@@ -441,7 +509,12 @@ function multiSelectTokenValue(
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
-      const values = tokenValue.items.map(item => item.value?.text ?? '');
+      const values = tokenValue.items.map(item => {
+        if (item?.value?.type === Token.VALUE_TEXT && item.value.contains) {
+          return item.value?.value ?? '';
+        }
+        return item.value?.text ?? '';
+      });
       const containsValue = values.includes(action.value);
       const newValues = containsValue
         ? values.filter(value => value !== action.value)
@@ -450,6 +523,13 @@ function multiSelectTokenValue(
       return updateFilterMultipleValues(state, action.token, newValues);
     }
     default: {
+      // if (
+      //   tokenValue.type === Token.VALUE_TEXT &&
+      //   tokenValue.contains &&
+      //   tokenValue.value === action.value
+      // ) {
+      //   return updateFilterMultipleValues(state, action.token, ['']);
+      // }
       if (tokenValue.text === action.value) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }

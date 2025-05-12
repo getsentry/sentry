@@ -696,12 +696,13 @@ export class TokenConverter {
     items: [{separator: '', value: item1}, ...items.map(listJoiner)],
   });
 
-  tokenValueText = (value: string, quoted: boolean) => {
+  tokenValueText = (value: string, quoted: boolean, contains: boolean) => {
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
+      contains,
     };
   };
 

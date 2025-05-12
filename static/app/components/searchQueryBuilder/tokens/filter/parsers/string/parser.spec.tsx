@@ -94,4 +94,61 @@ describe('parseMultiSelectValue', function () {
     expect(result?.items[1]!.value?.value).toBe('b c');
     expect(result?.items[2]!.value?.value).toBe('d');
   });
+
+  describe('contains', function () {
+    describe('when the value is wrapped in asterisks', function () {
+      it('sets contains to true', function () {
+        const result = parseMultiSelectFilterValue('*a*');
+
+        expect(result).not.toBeNull();
+        expect(result!.items[0]!.value?.contains).toBe(true);
+      });
+    });
+
+    describe('when the value is not wrapped in asterisks', function () {
+      it('sets contains to false', function () {
+        const result = parseMultiSelectFilterValue('a');
+
+        expect(result).not.toBeNull();
+        expect(result!.items[0]!.value?.contains).toBe(false);
+      });
+    });
+
+    it('strips asterisks from the value', function () {
+      const singleEntry = parseMultiSelectFilterValue('*a*');
+      expect(singleEntry!.items[0]!.value?.value).toBe('a');
+
+      const multipleEntries = parseMultiSelectFilterValue('*a*,*b*,*c*');
+      expect(multipleEntries?.items[0]!.value?.value).toBe('a');
+      expect(multipleEntries?.items[1]!.value?.value).toBe('b');
+      expect(multipleEntries?.items[2]!.value?.value).toBe('c');
+
+      const multiQuoteValue = parseMultiSelectFilterValue('*a*,"*b*",*c*');
+      expect(multiQuoteValue?.items[0]!.value?.value).toBe('a');
+      expect(multiQuoteValue?.items[1]!.value?.value).toBe('b');
+      expect(multiQuoteValue?.items[1]!.value?.text).toBe('"b"');
+      expect(multiQuoteValue?.items[1]!.value?.quoted).toBe(true);
+      expect(multiQuoteValue?.items[1]!.value?.contains).toBe(true);
+      expect(multiQuoteValue!.items[2]!.value?.value).toBe('c');
+
+      const justQuotes = parseMultiSelectFilterValue('"**"');
+      expect(justQuotes?.items[0]!.value?.value).toBe('');
+      expect(justQuotes?.items[0]!.value?.text).toBe('""');
+      expect(justQuotes?.items[0]!.value?.quoted).toBe(true);
+
+      const multiValuesWithEmpty = parseMultiSelectFilterValue('*a*,**,*b*');
+      expect(multiValuesWithEmpty?.items[0]!.value?.value).toBe('a');
+      expect(multiValuesWithEmpty?.items[1]!.value?.value).toBe('');
+      expect(multiValuesWithEmpty?.items[2]!.value?.value).toBe('b');
+
+      const trailingComma = parseMultiSelectFilterValue('*a*,**');
+      expect(trailingComma?.items[0]!.value?.value).toBe('a');
+      expect(trailingComma?.items[1]!.value?.value).toBe('');
+
+      const spaces = parseMultiSelectFilterValue('*a*,*b c*,*d*');
+      expect(spaces?.items[0]!.value?.value).toBe('a');
+      expect(spaces?.items[1]!.value?.value).toBe('b c');
+      expect(spaces?.items[2]!.value?.value).toBe('d');
+    });
+  });
 });
