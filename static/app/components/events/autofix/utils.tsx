@@ -1,11 +1,13 @@
 import {formatRootCauseText} from 'sentry/components/events/autofix/autofixRootCause';
 import {formatSolutionText} from 'sentry/components/events/autofix/autofixSolution';
 import {
+  AUTOFIX_TTL_IN_DAYS,
   type AutofixCodebaseChange,
   type AutofixData,
   AutofixStatus,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import type {Group} from 'sentry/types/group';
 
 export function getRootCauseDescription(autofixData: AutofixData) {
   const rootCause = autofixData.steps?.find(
@@ -168,4 +170,16 @@ export function getAutofixProgressDetails(
   return {
     overallProgress: progress,
   };
+}
+
+export function getAutofixRunExists(group: Group) {
+  const autofixLastRunAsDate = group.seerAutofixLastTriggered
+    ? new Date(group.seerAutofixLastTriggered)
+    : null;
+  const autofixRanWithinTtl = autofixLastRunAsDate
+    ? autofixLastRunAsDate >
+      new Date(Date.now() - AUTOFIX_TTL_IN_DAYS * 24 * 60 * 60 * 1000)
+    : false;
+
+  return autofixRanWithinTtl;
 }
