@@ -123,6 +123,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
 
       trackAnalytics('profiling_views.landing.tab_change', {
         organization,
+        tab: newTab,
       });
       browserHistory.push({
         ...location,

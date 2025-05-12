@@ -25,7 +25,9 @@ export type ProfilingEventParameters = {
     data: 'populated' | 'empty' | 'errored';
   };
   'profiling_views.landing.tab.transaction_click': NoParams;
-  'profiling_views.landing.tab_change': NoParams;
+  'profiling_views.landing.tab_change': {
+    tab: 'flamegraph' | 'transactions';
+  };
   'profiling_views.landing.widget.function_change': {
     source: string;
   };
