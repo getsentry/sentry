@@ -315,10 +315,10 @@ function NativeFrame({
             )}
             <Tooltip
               title={frame.package ?? t('Go to images loaded')}
-              position="bottom"
               containerDisplayMode="inline-flex"
               delay={tooltipDelay}
               maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+              position="auto-start"
             >
               <Package>
                 {frame.package ? trimPackage(frame.package) : `<${t('unknown')}>`}

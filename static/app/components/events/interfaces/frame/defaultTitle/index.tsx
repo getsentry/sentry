@@ -128,6 +128,7 @@ function DefaultTitle({
           disabled={!enablePathTooltip}
           delay={tooltipDelay}
           maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+          position="auto-start"
         >
           <code key="filename" className="filename" data-test-id="filename">
             {isPotentiallyThirdParty && frame.absPath ? (
@@ -154,6 +155,7 @@ function DefaultTitle({
           title={frame.filename}
           delay={tooltipDelay}
           maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+          position="auto-start"
         >
           <a className="in-at real-filename">
             <IconQuestion size="xs" />
