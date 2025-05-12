@@ -373,10 +373,10 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
 
     time_window = get_time_window_for_interval(snuba_query.time_window)
 
-    # EAP timeseries don't round time buckets to the nearest time window but seer expects
-    # that. So for example, if start was 7:01 with a 15 min interval, EAP would
+    # EAP timeseries don't round time buckets to the nearest time window snql does,
+    # So for example, if start was 7:01 with a 15 min interval, EAP would
     # bucket it as 7:01, 7:16 etc. Force rounding the start and end times so we
-    # get the buckets seer expects.
+    # get the buckets snql returns so we can match time buckets.
     rounded_end = (
         int(datetime.now(tz=timezone.utc).timestamp() / snuba_query.time_window)
         * snuba_query.time_window
