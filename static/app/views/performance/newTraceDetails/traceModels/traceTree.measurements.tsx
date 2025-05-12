@@ -25,26 +25,30 @@ export const RENDERABLE_MEASUREMENTS = [
     {} as Record<string, boolean>
   );
 
-export const TRACE_VIEW_WEB_VITALS = [
-  WebVital.TTFB,
-  WebVital.FCP,
+export const TRACE_VIEW_WEB_VITALS: WebVital[] = [
   WebVital.LCP,
-  WebVital.CLS,
+  WebVital.FCP,
   WebVital.INP,
-].map(n => n.replace('measurements.', ''));
+  WebVital.CLS,
+  WebVital.TTFB,
+];
 
-export const TRACE_VIEW_MOBILE_VITALS = [
+export const TRACE_VIEW_MOBILE_VITALS: MobileVital[] = [
   MobileVital.APP_START_COLD,
   MobileVital.APP_START_WARM,
-  MobileVital.TIME_TO_INITIAL_DISPLAY,
-  MobileVital.TIME_TO_FULL_DISPLAY,
   MobileVital.FRAMES_SLOW_RATE,
   MobileVital.FRAMES_FROZEN_RATE,
   MobileVital.STALL_LONGEST_TIME,
-].map(n => n.replace('measurements.', ''));
+  MobileVital.TIME_TO_INITIAL_DISPLAY,
+  MobileVital.TIME_TO_FULL_DISPLAY,
+];
 
-const WEB_VITALS_LOOKUP = new Set<string>(TRACE_VIEW_WEB_VITALS);
-const MOBILE_VITALS_LOOKUP = new Set<string>(TRACE_VIEW_MOBILE_VITALS);
+const WEB_VITALS_LOOKUP = new Set<string>(
+  TRACE_VIEW_WEB_VITALS.map(n => n.replace('measurements.', ''))
+);
+const MOBILE_VITALS_LOOKUP = new Set<string>(
+  TRACE_VIEW_MOBILE_VITALS.map(n => n.replace('measurements.', ''))
+);
 
 const COLLECTABLE_MEASUREMENTS = [
   ...TRACE_VIEW_WEB_VITALS,

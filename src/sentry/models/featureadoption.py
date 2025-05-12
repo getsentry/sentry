@@ -17,7 +17,6 @@ from sentry.utils.redis import (
     is_instance_rb_cluster,
     is_instance_redis_cluster,
 )
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.services import build_instance_from_options
 
 logger = logging.getLogger(__name__)
@@ -212,7 +211,6 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
             with transaction.atomic(router.db_for_write(FeatureAdoption)):
                 self.bulk_create(features)
         except IntegrityError:
-            incr_rollback_metrics(FeatureAdoption)
             # This can occur if redis somehow loses the set of complete features and
             # we attempt to insert duplicate (org_id, feature_id) rows
             # This also will happen if we get parallel processes running `bulk_record` and

@@ -45,6 +45,7 @@ from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
+    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
@@ -221,6 +222,13 @@ ORG_OPTIONS = (
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
     ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
     ("rollbackEnabled", "sentry:rollback_enabled", bool, ROLLBACK_ENABLED_DEFAULT),
+    (
+        # Sets the default value for new projects created in this organization
+        "defaultAutofixAutomationTuning",
+        "sentry:default_autofix_automation_tuning",
+        str,
+        DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -282,6 +290,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     samplingMode = serializers.ChoiceField(choices=DynamicSamplingMode.choices, required=False)
     rollbackEnabled = serializers.BooleanField(required=False)
     rollbackSharingEnabled = serializers.BooleanField(required=False)
+    defaultAutofixAutomationTuning = serializers.ChoiceField(
+        choices=["off", "low", "medium", "high", "always"],
+        required=False,
+        help_text="The default automation tuning setting for new projects.",
+    )
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -393,6 +406,17 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         # as this is handled by a choice field, we don't need to check the values of the field
 
+        return value
+
+    def validate_defaultAutofixAutomationTuning(self, value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=request.user
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
         return value
 
     def validate(self, attrs):
@@ -627,6 +651,7 @@ def post_org_pending_deletion(
         "projectRateLimit",
         "apdexThreshold",
         "genAIConsent",
+        "defaultAutofixAutomationTuning",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -990,6 +1015,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 ):
                     boost_low_volume_projects_of_org_with_query.delay(
                         organization.id,
+                    )
+
+                if is_org_mode and "defaultAutofixAutomationTuning" in changed_data:
+                    organization.update_option(
+                        "sentry:default_autofix_automation_tuning",
+                        serializer.validated_data["defaultAutofixAutomationTuning"],
                     )
 
             if was_pending_deletion:
