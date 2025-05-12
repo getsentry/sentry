@@ -115,7 +115,7 @@ describe('parseMultiSelectValue', function () {
 
       expect(result).not.toBeNull();
       expect(result!.items).toHaveLength(1);
-      expect(result!.items[0]!.value?.value).toBe('a');
+      expect(result!.items[0]!.value?.value).toBe('*a*');
       expect(result!.items[0]!.value?.text).toBe('*a*');
       expect(result!.items[0]!.value?.contains).toBe(true);
     });
@@ -128,11 +128,11 @@ describe('parseMultiSelectValue', function () {
       expect(result).not.toBeNull();
 
       expect(result!.items).toHaveLength(3);
-      expect(result?.items[0]!.value?.value).toBe('a');
+      expect(result?.items[0]!.value?.value).toBe('*a*');
       expect(result?.items[0]!.value?.text).toBe('*a*');
       expect(result?.items[0]!.value?.contains).toBe(true);
 
-      expect(result?.items[1]!.value?.value).toBe('b');
+      expect(result?.items[1]!.value?.value).toBe('*b*');
       expect(result?.items[1]!.value?.text).toBe('*b*');
       expect(result?.items[1]!.value?.contains).toBe(true);
 
@@ -151,7 +151,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items).toHaveLength(3);
       expect(result?.items[0]!.value?.value).toBe('a');
 
-      expect(result?.items[1]!.value?.value).toBe('b');
+      expect(result?.items[1]!.value?.value).toBe('*b*');
       expect(result?.items[1]!.value?.text).toBe('"*b*"');
       expect(result?.items[1]!.value?.quoted).toBe(true);
       expect(result?.items[1]!.value?.contains).toBe(true);
@@ -169,7 +169,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items).toHaveLength(1);
       const item = result!.items[0];
 
-      expect(item!.value?.value).toBe('');
+      expect(item!.value?.value).toBe('**');
       expect(item!.value?.text).toBe('"**"');
       expect(item!.value?.quoted).toBe(true);
     });
@@ -184,7 +184,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items).toHaveLength(1);
       const item = result!.items[0];
 
-      expect(item!.value!.value).toBe('');
+      expect(item!.value!.value).toBe('**');
       expect(item!.value!.text).toBe('**');
       expect(item!.value!.contains).toBe(true);
     });
@@ -199,7 +199,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items).toHaveLength(3);
 
       expect(result?.items[0]!.value?.value).toBe('a');
-      expect(result?.items[1]!.value?.value).toBe('b c');
+      expect(result?.items[1]!.value?.value).toBe('*b c*');
       expect(result?.items[1]!.value?.text).toBe('*b c*');
       expect(result?.items[1]!.value?.contains).toBe(true);
 

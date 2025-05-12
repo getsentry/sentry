@@ -383,7 +383,9 @@ describe('searchSyntax/parser', function () {
       expect(result).toHaveLength(3);
 
       const bar = result?.[1] as TokenResult<Token.FILTER>;
-      expect(bar.value).toEqual(expect.objectContaining({contains: true}));
+      expect(bar.value).toEqual(
+        expect.objectContaining({contains: true, value: '*bar*'})
+      );
     });
 
     it('sets contains to true when quoted', function () {
@@ -394,7 +396,9 @@ describe('searchSyntax/parser', function () {
       expect(result).toHaveLength(3);
 
       const bar = result?.[1] as TokenResult<Token.FILTER>;
-      expect(bar.value).toEqual(expect.objectContaining({contains: true}));
+      expect(bar.value).toEqual(
+        expect.objectContaining({contains: true, value: '*bar*'})
+      );
     });
 
     it('spaces', function () {
@@ -405,7 +409,7 @@ describe('searchSyntax/parser', function () {
       expect(result).toHaveLength(3);
 
       const bar = result?.[1] as TokenResult<Token.FILTER>;
-      expect(bar.value).toEqual(expect.objectContaining({contains: true}));
+      expect(bar.value).toEqual(expect.objectContaining({contains: true, value: '* *'}));
     });
 
     it('just asterisks', function () {
@@ -416,7 +420,7 @@ describe('searchSyntax/parser', function () {
       expect(result).toHaveLength(3);
 
       const bar = result?.[1] as TokenResult<Token.FILTER>;
-      expect(bar.value).toEqual(expect.objectContaining({contains: true}));
+      expect(bar.value).toEqual(expect.objectContaining({contains: true, value: '**'}));
     });
   });
 });
