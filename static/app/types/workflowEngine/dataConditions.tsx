@@ -1,4 +1,4 @@
-import type {Action} from './actions';
+import type {NewAction} from './actions';
 
 interface SnubaQuery {
   aggregate: string;
@@ -74,5 +74,5 @@ export interface DataConditionGroup {
   conditions: NewDataCondition[];
   id: string;
   logicType: DataConditionGroupLogicType;
-  actions?: Action[];
+  actions?: NewAction[];
 }
