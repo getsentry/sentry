@@ -282,8 +282,10 @@ export function GroupSummary({
 
             return (
               <InsightCard key={card.id}>
-                <CardTitle preview={preview}>
-                  <CardTitleIcon>{card.icon}</CardTitleIcon>
+                <CardTitle preview={preview} cardId={card.id}>
+                  <CardTitleIcon cardId={card.id} preview={preview}>
+                    {card.icon}
+                  </CardTitleIcon>
                   <CardTitleText>{card.title}</CardTitleText>
                 </CardTitle>
                 <CardContentContainer>
@@ -298,11 +300,7 @@ export function GroupSummary({
                     <CardContent>
                       {card.insightElement}
                       {card.insight && (
-                        <MarkedText
-                          text={
-                            preview ? card.insight.replace(/\*\*/g, '') : card.insight
-                          }
-                        />
+                        <MarkedText text={card.insight.replace(/\*\*/g, '')} />
                       )}
                     </CardContent>
                   )}
@@ -337,11 +335,14 @@ const InsightCard = styled('div')`
   min-height: 0;
 `;
 
-const CardTitle = styled('div')<{preview?: boolean}>`
+const CardTitle = styled('div')<{cardId?: string; preview?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p =>
+    p.preview === false && p.cardId === 'whats_wrong'
+      ? p.theme.textColor
+      : p.theme.subText};
   padding-bottom: ${space(0.5)};
 `;
 
@@ -351,10 +352,13 @@ const CardTitleText = styled('p')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const CardTitleIcon = styled('div')`
+const CardTitleIcon = styled('div')<{cardId?: string; preview?: boolean}>`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p =>
+    p.preview === false && p.cardId === 'whats_wrong'
+      ? p.theme.pink400
+      : p.theme.subText};
 `;
 
 const CardContentContainer = styled('div')`
@@ -393,7 +397,7 @@ const CardContent = styled('div')`
 
 const TooltipWrapper = styled('div')`
   position: absolute;
-  top: -${space(0.5)};
+  top: -${space(1)};
   right: 0;
 
   ul {

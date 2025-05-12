@@ -142,7 +142,8 @@ const AnimatedContent = styled(motion.div)`
 
 const StyledSpan = styled(MarkedText)`
   & code {
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSizeSmall};
+    background-color: transparent;
     display: inline-block;
   }
 `;

@@ -356,8 +356,7 @@ const CardTitle = styled('div')<{preview?: boolean}>`
   align-items: center;
   gap: ${space(1)};
   color: ${p => p.theme.subText};
-  padding: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
   justify-content: space-between;
 `;
 
@@ -384,7 +383,7 @@ const CardTitleIcon = styled('div')`
 const CardContent = styled('div')`
   overflow-wrap: break-word;
   word-break: break-word;
-  padding: ${space(1)};
+  padding: ${space(0.5)} ${space(1)} ${space(1)} ${space(1)};
   text-align: left;
   flex: 1;
 
