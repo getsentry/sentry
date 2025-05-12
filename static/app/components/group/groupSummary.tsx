@@ -135,16 +135,17 @@ export function GroupSummary({
     }
   }, [forceEvent, isPending, refresh]);
 
-  const isFixable = data?.scores?.isFixable ?? false;
+  const hasFixabilityScore =
+    data?.scores?.fixabilityScore !== null && data?.scores?.fixabilityScore !== undefined;
 
   useEffect(() => {
-    if (isFixable && !isPending && aiConfig.hasAutofix) {
+    if (hasFixabilityScore && !isPending && aiConfig.hasAutofix) {
       queryClient.invalidateQueries({
         queryKey: makeAutofixQueryKey(organization.slug, group.id),
       });
     }
   }, [
-    isFixable,
+    hasFixabilityScore,
     isPending,
     aiConfig.hasAutofix,
     group.id,
