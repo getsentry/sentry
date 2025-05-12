@@ -39,7 +39,7 @@ export const ShortId = styled('div')`
 export const EventDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: max-content max-content auto;
 `;
 
 export const EventDrawerHeader = styled(DrawerHeader)`
