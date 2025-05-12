@@ -48,7 +48,10 @@ CLUSTERING_TIMEOUT_PER_PROJECT = 0.3
     max_retries=5,  # copied from release monitor
     taskworker_config=TaskworkerConfig(
         namespace=performance_tasks,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
 def spawn_clusterers(**kwargs: Any) -> None:
@@ -73,16 +76,14 @@ def spawn_clusterers(**kwargs: Any) -> None:
     taskworker_config=TaskworkerConfig(
         namespace=performance_tasks,
         processing_deadline_duration=int(PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2),
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
     ),
 )
-def cluster_projects(
-    projects: Sequence[Project] | None = None, project_ids: Sequence[int] | None = None
-) -> None:
-    if project_ids:
-        projects = Project.objects.get_many_from_cache(project_ids)
-    assert projects is not None, "Either projects or project_ids must be provided"
-
+def cluster_projects(project_ids: Sequence[int]) -> None:
+    projects = Project.objects.get_many_from_cache(project_ids)
     pending = set(projects)
     num_clustered = 0
     try:

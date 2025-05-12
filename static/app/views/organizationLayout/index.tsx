@@ -2,9 +2,10 @@ import {ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
-import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
+import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Footer from 'sentry/components/footer';
+import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
@@ -44,7 +45,6 @@ function DevToolInit() {
 
 function OrganizationLayout({children}: Props) {
   useRouteAnalyticsHookSetup();
-  useReleasesDrawer();
 
   // XXX(epurkhiser): The OrganizationContainer is responsible for ensuring the
   // oganization is loaded before rendering children. Organization may not be
@@ -60,7 +60,9 @@ function OrganizationLayout({children}: Props) {
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <OrganizationContainer>
-        <App organization={organization}>{children}</App>
+        <GlobalDrawer>
+          <App organization={organization}>{children}</App>
+        </GlobalDrawer>
       </OrganizationContainer>
       <ScrollRestoration />
     </SentryDocumentTitle>
@@ -77,6 +79,7 @@ function AppLayout({children, organization}: LayoutProps) {
   usePerformanceOnboardingDrawer();
   useProfilingOnboardingDrawer();
   useFeatureFlagOnboardingDrawer();
+  useReleasesDrawer();
 
   return (
     <NavContextProvider>
@@ -97,6 +100,8 @@ function AppLayout({children, organization}: LayoutProps) {
 }
 
 function LegacyAppLayout({children, organization}: LayoutProps) {
+  useReleasesDrawer();
+
   return (
     <div className="app">
       <DemoHeader />

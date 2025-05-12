@@ -182,6 +182,7 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
         uniqueKey: `${uniqueKey}-${i}`,
         renderers,
         rendererExtra,
+        getCustomActions,
       });
       return rows.concat(branchRows);
     },

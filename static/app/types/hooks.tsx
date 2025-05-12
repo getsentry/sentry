@@ -172,6 +172,7 @@ type ComponentHooks = {
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
+  'component:explore-date-range-query-limit-footer': () => React.ComponentType;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
@@ -252,6 +253,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:relay': FeatureDisabledHook;
   'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
+  'feature-disabled:sso-saml2': FeatureDisabledHook;
 };
 
 /**

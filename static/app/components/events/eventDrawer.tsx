@@ -39,7 +39,7 @@ export const ShortId = styled('div')`
 export const EventDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: max-content max-content auto;
 `;
 
 export const EventDrawerHeader = styled(DrawerHeader)`
@@ -59,9 +59,20 @@ export const EventNavigator = styled('div')`
   column-gap: ${space(1)};
   padding: ${space(0.75)} 24px;
   background: ${p => p.theme.background};
-  z-index: 1;
+  z-index: 2;
   min-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+`;
+
+export const EventStickyControls = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  position: sticky;
+  top: -${space(2)};
+  margin-block: -${space(2)};
+  padding-block: ${space(2)};
+  background: ${p => p.theme.background};
+  z-index: 1;
 `;
 
 export const EventDrawerBody = styled(DrawerBody)`
@@ -72,7 +83,6 @@ export const EventDrawerBody = styled(DrawerBody)`
   display: flex;
   gap: ${space(2)};
   flex-direction: column;
-  height: fit-content; /* makes drawer resize work better with flex */
   direction: rtl;
   * {
     direction: ltr;

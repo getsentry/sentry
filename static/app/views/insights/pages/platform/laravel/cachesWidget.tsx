@@ -1,38 +1,40 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
+import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
+import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {
   ModalChartContainer,
   ModalTableWrapper,
   SeriesColorIndicator,
   WidgetFooterTable,
-} from 'sentry/views/insights/pages/platform/laravel/styles';
-import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
-import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {HighestCacheMissRateTransactionsWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-function isCacheHitError(error: QueryError | null) {
+function isColumnNotFoundError(error: QueryError | null) {
   return error?.message === 'Column cache.hit was not found in metrics indexer';
 }
-export function CachesWidget({query}: {query?: string}) {
+export function CachesWidget() {
   const theme = useTheme();
   const organization = useOrganization();
+  const {query} = useTransactionNameQuery();
+  const releaseBubbleProps = useReleaseBubbleProps();
   const pageFilterChartParams = usePageFilterChartParams();
 
   const cachesRequest = useEAPSpans(
@@ -45,66 +47,34 @@ export function CachesWidget({query}: {query?: string}) {
     Referrer.CACHE_CHART
   );
 
-  const timeSeriesRequest = useApiQuery<MultiSeriesEventsStats>(
-    [
-      `/organizations/${organization.slug}/events-stats/`,
-      {
-        query: {
-          ...pageFilterChartParams,
-          dataset: 'spans',
-          field: ['transaction', 'cache_miss_rate()'],
-          yAxis: 'cache_miss_rate()',
-          query:
-            cachesRequest.data &&
-            `transaction:[${cachesRequest.data
-              .map(item => `"${item.transaction}"`)
-              .join(', ')}]`,
-          sort: '-cache_miss_rate()',
-          useRpc: 1,
-          topEvents: 4,
-        },
-      },
-    ],
-    {staleTime: 0}
+  const timeSeriesRequest = useTopNSpanEAPSeries(
+    {
+      ...pageFilterChartParams,
+      search:
+        cachesRequest.data &&
+        `transaction:[${cachesRequest.data
+          .map(item => `"${item.transaction}"`)
+          .join(', ')}]`,
+      fields: ['transaction', 'cache_miss_rate()'],
+      yAxis: ['cache_miss_rate()'],
+      sort: {field: 'cache_miss_rate()', kind: 'desc'},
+      topN: 4,
+      enabled: !!cachesRequest.data,
+    },
+    Referrer.CACHE_CHART
   );
 
-  const timeSeries = useMemo<DiscoverSeries[]>(() => {
-    if (
-      !timeSeriesRequest.data ||
-      // There are no-data cases, for which the endpoint returns a single empty series with meta containing an explanation
-      'data' in timeSeriesRequest.data
-    ) {
-      return [];
-    }
-
-    return Object.keys(timeSeriesRequest.data).map(key => {
-      const seriesData = timeSeriesRequest.data[key]!;
-      return {
-        data: seriesData.data.map(([time, value]) => ({
-          name: new Date(time * 1000).toISOString(),
-          value: value?.[0]?.count || 0,
-        })),
-        // TODO(aknaus): useSpanMetricsTopNSeries does not return the meta for the series
-        seriesName: key,
-        meta: {
-          fields: {
-            [key]: seriesData.meta?.fields['cache_miss_rate()']!,
-          },
-          units: {
-            [key]: seriesData.meta?.units['cache_miss_rate()']!,
-          },
-        },
-      } satisfies DiscoverSeries;
-    });
-  }, [timeSeriesRequest.data]);
+  const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
 
   const isLoading = timeSeriesRequest.isLoading || cachesRequest.isLoading;
-  const isValidCachesError = !isCacheHitError(cachesRequest.error);
+  // The BE returns an error if cache.hit is not found in the metrics indexer.
+  // This is expected behavior, so we don't want to show an error but the empty state.
+  const isValidCachesError = !isColumnNotFoundError(cachesRequest.error);
   const error =
     timeSeriesRequest.error || (isValidCachesError ? cachesRequest.error : null);
 
   const hasData =
-    !isCacheHitError(cachesRequest.error) &&
+    !isColumnNotFoundError(cachesRequest.error) &&
     cachesRequest.data &&
     cachesRequest.data.length > 0 &&
     timeSeries.length > 0;
@@ -124,6 +94,7 @@ export function CachesWidget({query}: {query?: string}) {
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {color: colorPalette[index]})
         ),
+        ...releaseBubbleProps,
       }}
     />
   );

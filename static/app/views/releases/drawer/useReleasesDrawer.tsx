@@ -25,8 +25,7 @@ export function useReleasesDrawer() {
   const {data: ReleasesDrawer, isPending} = useQuery({
     queryKey: ['ReleasesDrawerComponent'],
     queryFn: async () => {
-      const mod = await import('sentry/views/releases/drawer/releasesDrawer');
-      return mod.ReleasesDrawer;
+      return (await import('sentry/views/releases/drawer/releasesDrawer')).ReleasesDrawer;
     },
   });
 
@@ -39,6 +38,7 @@ export function useReleasesDrawer() {
             return nextLocation.query[ReleasesDrawerFields.DRAWER] !== 'show';
           },
           ariaLabel: t('Releases drawer'),
+          drawerKey: 'releases-drawer',
           transitionProps: {stiffness: 1000},
           onClose: () => {
             navigate({

@@ -1,4 +1,4 @@
-import type {SyntheticEvent} from 'react';
+import type {ComponentProps, SyntheticEvent} from 'react';
 import {Fragment, useCallback, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
@@ -20,7 +20,9 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   useLogsAnalyticsPageSource,
+  useLogsBlockRowExpanding,
   useLogsFields,
+  useLogsIsTableFrozen,
   useLogsSearch,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -92,6 +94,8 @@ export function LogRowContent({
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setLogsSearch = useSetLogsSearch();
+  const isTableFrozen = useLogsIsTableFrozen();
+  const blockRowExpanding = useLogsBlockRowExpanding();
 
   function toggleExpanded() {
     setExpanded(e => !e);
@@ -163,24 +167,30 @@ export function LogRowContent({
     projectSlug,
   };
 
+  const rowInteractProps: ComponentProps<typeof LogTableRow> = blockRowExpanding
+    ? {}
+    : {
+        ...hoverProps,
+        onPointerUp,
+        onTouchEnd: onPointerUp,
+        isClickable: true,
+      };
+
   return (
     <Fragment>
-      <LogTableRow
-        data-test-id="log-table-row"
-        onPointerUp={onPointerUp}
-        onTouchEnd={onPointerUp}
-        {...hoverProps}
-      >
+      <LogTableRow data-test-id="log-table-row" {...rowInteractProps}>
         <LogsTableBodyFirstCell key={'first'}>
           <LogFirstCellContent>
-            <StyledChevronButton
-              icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
-              aria-label={t('Toggle trace details')}
-              aria-expanded={expanded}
-              size="zero"
-              borderless
-              onClick={() => toggleExpanded()}
-            />
+            {blockRowExpanding ? null : (
+              <StyledChevronButton
+                icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
+                aria-label={t('Toggle trace details')}
+                aria-expanded={expanded}
+                size="zero"
+                borderless
+                onClick={() => toggleExpanded()}
+              />
+            )}
             <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
@@ -188,7 +198,7 @@ export function LogRowContent({
           const value = dataRow[field];
 
           if (!defined(value)) {
-            return null;
+            return <LogTableBodyCell key={field} />;
           }
 
           const discoverColumn: TableColumn<keyof TableDataRow> = {
@@ -203,7 +213,7 @@ export function LogRowContent({
           };
 
           return (
-            <LogTableBodyCell key={field}>
+            <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
               <CellAction
                 column={discoverColumn}
                 dataRow={dataRow as unknown as TableDataRow}
@@ -227,7 +237,9 @@ export function LogRowContent({
                   }
                 }}
                 allowActions={
-                  field === OurLogKnownFieldKey.TIMESTAMP ? [] : ALLOWED_CELL_ACTIONS
+                  field === OurLogKnownFieldKey.TIMESTAMP || isTableFrozen
+                    ? []
+                    : ALLOWED_CELL_ACTIONS
                 }
               >
                 <LogFieldRenderer
@@ -282,7 +294,9 @@ function LogRowDetails({
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
   const attributes =
-    data?.attributes?.reduce((it, {name, value}) => ({...it, [name]: value}), {}) ?? {};
+    data?.attributes?.reduce((it, {name, value}) => ({...it, [name]: value}), {
+      [OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP],
+    }) ?? {};
 
   if (missingLogId) {
     return (

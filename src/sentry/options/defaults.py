@@ -586,6 +586,18 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Disable semantic partitioning of spans by trace ID. Use this in case there is
+# partition imbalance on the spans topic produced to by Relay (either
+# snuba-spans or ingest-spans). This will break the span buffer, and anything
+# that depends on segments being assembled by it (performance issue, etc). As
+# of 2025-05-06, the span buffer is not yet rolled out to most regions though.
+register(
+    "relay.spans-ignore-trace-id-partitioning",
+    type=Bool,
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -1625,12 +1637,12 @@ register(
 )
 register(
     "performance.issues.consecutive_http.problem-creation",
-    default=0.5,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.large_http_payload.problem-creation",
-    default=0.5,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1685,7 +1697,7 @@ register(
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=500.0,  # ms
+    default=1000.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2356,6 +2368,13 @@ register(
 
 # END: SDK Crash Detection
 
+# Whether to add the full stack trace to Python errors.
+register(
+    "sentry_sdk.add_full_stack",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     # Lists the shared resource ids we want to account usage for.
     "shared_resources_accounting_enabled",
@@ -2542,6 +2561,15 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Rate at which to run split enhancements and compare the results to the default enhancements
+register(
+    "grouping.split_enhancements.sample_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "metrics.sample-list.sample-rate",
     type=Float,
@@ -3002,6 +3030,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "demo-mode.disable-sandbox-redirect",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",
@@ -3288,6 +3322,11 @@ register(
 )
 register(
     "taskworker.telemetry-experience.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.ingest.attachments.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

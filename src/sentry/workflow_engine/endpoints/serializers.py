@@ -91,10 +91,13 @@ class ActionHandlerSerializer(Serializer):
 
         integrations = kwargs.get("integrations")
         if integrations:
-            result["integrations"] = [
-                {"id": str(integration.id), "name": integration.name}
-                for integration in integrations
-            ]
+            integrations_result = []
+            for i in integrations:
+                i_result = {"id": str(i["integration"].id), "name": i["integration"].name}
+                if i["services"]:
+                    i_result["services"] = [{"id": id, "name": name} for id, name in i["services"]]
+                integrations_result.append(i_result)
+            result["integrations"] = integrations_result
 
         sentry_app_context = kwargs.get("sentry_app_context")
         if sentry_app_context:
@@ -275,6 +278,10 @@ class DetectorSerializer(Serializer):
             for group, serialized in zip(condition_groups, serialize(condition_groups, user=user))
         }
 
+        workflows_map = defaultdict[int, list[str]](list)
+        for dw in DetectorWorkflow.objects.filter(detector__in=item_list):
+            workflows_map[dw.detector_id].append(str(dw.workflow_id))
+
         filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
         project_ids = [item.project_id for item in filtered_item_list]
 
@@ -295,6 +302,7 @@ class DetectorSerializer(Serializer):
             attrs[item]["condition_group"] = condition_group_map.get(
                 str(item.workflow_condition_group_id)
             )
+            attrs[item]["connected_workflows"] = workflows_map[item.id]
             if item.id in configs:
                 attrs[item]["config"] = configs[item.id]
             else:
@@ -308,6 +316,7 @@ class DetectorSerializer(Serializer):
             "projectId": str(obj.project_id),
             "name": obj.name,
             "type": obj.type,
+            "connectedWorkflows": attrs.get("connected_workflows"),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),

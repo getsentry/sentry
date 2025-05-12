@@ -35,23 +35,6 @@ class ProjectDetectorIndexBaseTest(APITestCase):
 
 
 @region_silo_test
-class ProjectDetectorIndexGetTest(ProjectDetectorIndexBaseTest):
-    def test_simple(self):
-        detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
-        )
-        detector_2 = self.create_detector(
-            project_id=self.project.id, name="Test Detector 2", type=MetricIssue.slug
-        )
-        response = self.get_success_response(self.organization.slug, self.project.slug)
-        assert response.data == serialize([detector, detector_2])
-
-    def test_empty_result(self):
-        response = self.get_success_response(self.organization.slug, self.project.slug)
-        assert len(response.data) == 0
-
-
-@region_silo_test
 class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
     method = "POST"
 

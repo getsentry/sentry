@@ -73,7 +73,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[falcon]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[falcon]'}),
     },
   ],
   configure: (params: Params) => [

@@ -1,5 +1,6 @@
 import type {ReactEventHandler} from 'react';
 import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
@@ -216,10 +217,10 @@ const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`
 
   ${p =>
     !p.hasHeader &&
-    `
-  border-top-left-radius: ${p.theme.borderRadius};
-  border-top-right-radius: ${p.theme.borderRadius};
-  `}
+    css`
+      border-top-left-radius: ${p.theme.borderRadius};
+      border-top-right-radius: ${p.theme.borderRadius};
+    `}
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`

@@ -1,12 +1,10 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -15,18 +13,20 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
+import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
+import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {
   ModalChartContainer,
   ModalTableWrapper,
   SeriesColorIndicator,
   WidgetFooterTable,
-} from 'sentry/views/insights/pages/platform/laravel/styles';
-import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
-import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {ModuleName} from 'sentry/views/insights/types';
 import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
@@ -34,12 +34,12 @@ function getSeriesName(item: {'span.group': string; transaction: string}) {
   return `${item.transaction},${item['span.group']}`;
 }
 
-export function QueriesWidget({query}: {query?: string}) {
+export function QueriesWidget() {
   const theme = useTheme();
   const organization = useOrganization();
-  const pageFilterChartParams = usePageFilterChartParams({
-    granularity: 'spans',
-  });
+  const {query} = useTransactionNameQuery();
+  const releaseBubbleProps = useReleaseBubbleProps();
+  const pageFilterChartParams = usePageFilterChartParams();
 
   const fullQuery = `has:db.system ${query}`;
 
@@ -60,55 +60,20 @@ export function QueriesWidget({query}: {query?: string}) {
     Referrer.QUERIES_CHART
   );
 
-  const timeSeriesRequest = useApiQuery<MultiSeriesEventsStats>(
-    [
-      `/organizations/${organization.slug}/events-stats/`,
-      {
-        query: {
-          ...pageFilterChartParams,
-          dataset: 'spans',
-          field: ['transaction', 'span.group', 'avg(span.duration)'],
-          yAxis: ['avg(span.duration)'],
-          query: `span.group:[${queriesRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
-          sort: '-avg(span.duration)',
-          topEvents: 3,
-          useRpc: 1,
-        },
-      },
-    ],
-    {staleTime: 0}
+  const timeSeriesRequest = useTopNSpanEAPSeries(
+    {
+      ...pageFilterChartParams,
+      search: `span.group:[${queriesRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
+      fields: ['transaction', 'span.group', 'avg(span.duration)'],
+      yAxis: ['avg(span.duration)'],
+      sort: {field: 'avg(span.duration)', kind: 'desc'},
+      topN: 3,
+      enabled: !!queriesRequest.data,
+    },
+    Referrer.QUERIES_CHART
   );
 
-  const timeSeries = useMemo<DiscoverSeries[]>(() => {
-    if (
-      !timeSeriesRequest.data ||
-      // There are no-data cases, for which the endpoint returns a single empty series with meta containing an explanation
-      'data' in timeSeriesRequest.data
-    ) {
-      return [];
-    }
-
-    return Object.keys(timeSeriesRequest.data)
-      .filter(key => key !== 'Other')
-      .map(key => {
-        const seriesData = timeSeriesRequest.data[key]!;
-        return {
-          data: seriesData.data.map(([time, value]) => ({
-            name: new Date(time * 1000).toISOString(),
-            value: value?.[0]?.count || 0,
-          })),
-          seriesName: key,
-          meta: {
-            fields: {
-              [key]: 'duration',
-            },
-            units: {
-              [key]: 'millisecond',
-            },
-          },
-        } satisfies DiscoverSeries;
-      });
-  }, [timeSeriesRequest.data]);
+  const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
 
   const isLoading = timeSeriesRequest.isLoading || queriesRequest.isLoading;
   const error = timeSeriesRequest.error || queriesRequest.error;
@@ -141,6 +106,7 @@ export function QueriesWidget({query}: {query?: string}) {
               alias: aliases[ts.seriesName],
             })
         ),
+        ...releaseBubbleProps,
       }}
     />
   );

@@ -165,4 +165,22 @@ export const BILLED_DATA_CATEGORY_INFO = {
     freeEventsMultiple: 1, // in hours
     feature: null,
   },
+  [DataCategoryExact.SEER_AUTOFIX]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_AUTOFIX],
+    canAllocate: false,
+    canProductTrial: true,
+    maxAdminGift: 0,
+    freeEventsMultiple: 0,
+    feature: 'seer-billing',
+  },
+  [DataCategoryExact.SEER_SCANNER]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_SCANNER],
+    canAllocate: false,
+    canProductTrial: true,
+    maxAdminGift: 0,
+    freeEventsMultiple: 0,
+    feature: 'seer-billing',
+  },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;
+
+export const SEER_MONTHLY_PRICE_CENTS = 2000;

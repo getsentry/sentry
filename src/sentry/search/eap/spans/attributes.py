@@ -143,6 +143,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="transaction.event_id",
+            internal_name="sentry.event_id",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="profile.id",
             internal_name="sentry.profile_id",
             search_type="string",
@@ -373,6 +378,9 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("user.id"),
         simple_sentry_field("user.ip"),
         simple_sentry_field("user.username"),
+        simple_sentry_field("os.name"),
+        simple_sentry_field("app_start_type"),
+        simple_sentry_field("ttid"),
         simple_measurements_field("app_start_cold", "millisecond"),
         simple_measurements_field("app_start_warm", "millisecond"),
         simple_measurements_field("frames_frozen"),

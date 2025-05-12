@@ -56,15 +56,25 @@ def get_total_span_count(settings: ResolverSettings) -> Column:
     )
 
 
-def division(args: ResolvedArguments, _: ResolverSettings) -> Column.BinaryFormula:
+def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     dividend = cast(AttributeKey, args[0])
     divisor = cast(AttributeKey, args[1])
 
+    extrapolation_mode = settings["extrapolation_mode"]
+
     return Column.BinaryFormula(
         default_value_double=0.0,
-        left=Column(key=dividend),
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_SUM, key=dividend, extrapolation_mode=extrapolation_mode
+            )
+        ),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(key=divisor),
+        right=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_SUM, key=divisor, extrapolation_mode=extrapolation_mode
+            )
+        ),
     )
 
 
@@ -633,6 +643,7 @@ SPAN_FORMULA_DEFINITIONS = {
     ),
     "failure_rate_if": FormulaDefinition(
         default_search_type="percentage",
+        infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
             ValueArgumentDefinition(argument_types={"string"}),
@@ -668,6 +679,7 @@ SPAN_FORMULA_DEFINITIONS = {
     ),
     "avg_compare": FormulaDefinition(
         default_search_type="percentage",
+        infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={

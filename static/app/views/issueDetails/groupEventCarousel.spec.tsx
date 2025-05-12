@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import * as useMedia from 'sentry/utils/useMedia';
@@ -210,9 +210,7 @@ describe('GroupEventCarousel', () => {
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
 
     expect(
-      within(screen.getByRole('menuitemradio', {name: /full event details/i})).getByRole(
-        'link'
-      )
+      screen.getByRole('menuitemradio', {name: /full event details/i})
     ).toHaveAttribute('href', `/organizations/org-slug/discover/project-slug:event-id/`);
   });
 

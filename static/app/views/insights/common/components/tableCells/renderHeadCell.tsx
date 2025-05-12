@@ -31,6 +31,7 @@ const {
   TIME_SPENT_PERCENTAGE,
   SPS,
   EPM,
+  TPM,
   HTTP_RESPONSE_COUNT,
   HTTP_RESPONSE_RATE,
   CACHE_HIT_RATE,
@@ -40,6 +41,7 @@ const {
 const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
   `avg(${SPAN_DURATION})`,
+  `sum(${SPAN_DURATION})`,
   `sum(${SPAN_SELF_TIME})`,
   `p95(${SPAN_SELF_TIME})`,
   `p75(transaction.duration)`,
@@ -48,6 +50,7 @@ const SORTABLE_FIELDS = new Set([
   `count()`,
   `${SPS}()`,
   `${EPM}()`,
+  `${TPM}()`,
   `${TIME_SPENT_PERCENTAGE}()`,
   `${HTTP_RESPONSE_COUNT}(5)`,
   `${HTTP_RESPONSE_COUNT}(4)`,
@@ -79,6 +82,12 @@ const SORTABLE_FIELDS = new Set([
   'failure_rate()',
   'performance_score(measurements.score.total)',
   'count_unique(user)',
+  'p50_if(span.duration,is_transaction,true)',
+  'p95_if(span.duration,is_transaction,true)',
+  'failure_rate_if(is_transaction,true)',
+  'sum_if(span.duration,is_transaction,true)',
+  'p75(measurements.frames_slow_rate)',
+  'p75(measurements.frames_frozen_rate)',
 ]);
 
 const NUMERIC_FIELDS = new Set([
