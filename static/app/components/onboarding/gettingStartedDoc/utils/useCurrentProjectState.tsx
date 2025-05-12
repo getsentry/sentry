@@ -91,11 +91,7 @@ function useCurrentProjectState({
 
     const selectedProjects = getSelectedProjectList(selection.projects, projects);
 
-    return (
-      getDefaultCurrentProjectFromSelection(selectedProjects) ??
-      projectsWithOnboarding.at(0) ??
-      supportedProjects.at(0)
-    );
+    return getDefaultCurrentProjectFromSelection(selectedProjects);
   }, [
     getDefaultCurrentProjectFromSelection,
     isActive,
