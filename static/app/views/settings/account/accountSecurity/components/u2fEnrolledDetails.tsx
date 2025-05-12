@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
@@ -15,8 +15,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconClose, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import ConfirmHeader from 'sentry/views/settings/account/accountSecurity/components/confirmHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 function U2fEnrolledDetails(props: any) {
   const {className, isEnrolled, devices, id, onRemoveU2fDevice, onRenameU2fDevice} =
@@ -76,14 +74,7 @@ function Device(props: any) {
           <Confirm
             onConfirm={() => onRemoveU2fDevice(device)}
             disabled={isLastDevice}
-            message={
-              <Fragment>
-                <ConfirmHeader>{t('Do you want to remove U2F device?')}</ConfirmHeader>
-                <TextBlock>
-                  {t('Are you sure you want to remove the U2F device "%s"?', device.name)}
-                </TextBlock>
-              </Fragment>
-            }
+            message={t('Are you sure you want to remove the device "%s"?', device.name)}
           >
             <Button
               aria-label={t('Remove device')}
