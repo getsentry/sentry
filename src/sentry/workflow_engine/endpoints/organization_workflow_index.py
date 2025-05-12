@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -17,7 +17,9 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams, WorkflowParams
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
+from sentry.db.models.query import in_icontains, in_iexact
+from sentry.search.utils import tokenize_query
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
@@ -61,6 +63,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.SORT_BY,
+            WorkflowParams.QUERY,
+            OrganizationParams.PROJECT,
         ],
         responses={
             201: WorkflowSerializer,
@@ -77,6 +81,38 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
 
         queryset = Workflow.objects.filter(organization_id=organization.id)
+
+        if raw_query := request.GET.get("query"):
+            tokenized_query = tokenize_query(raw_query)
+            for key, values in tokenized_query.items():
+                match key:
+                    case "name":
+                        queryset = queryset.filter(in_iexact("name", values))
+                    case "action":
+                        queryset = queryset.filter(
+                            in_iexact(
+                                "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type",
+                                values,
+                            )
+                        ).distinct()
+                    case "query":
+                        queryset = queryset.filter(
+                            in_icontains("name", values)
+                            | in_icontains(
+                                "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type",
+                                values,
+                            )
+                        ).distinct()
+                    case _:
+                        # TODO: What about unreecognized keys?
+                        pass
+
+        projects = self.get_projects(request, organization)
+        if projects:
+            queryset = queryset.filter(
+                Q(detectorworkflow__detector__project__in=projects)
+                | Q(detectorworkflow__isnull=True)
+            ).distinct()
 
         # Add synthetic fields to the queryset if needed.
         match sort_by.db_field_name:
