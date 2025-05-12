@@ -639,6 +639,8 @@ def get_gcp_token(client_email):
         if target_credentials.token is None:
             return None
 
+        token_cache[client_email] = target_credentials.token
+
         return target_credentials.token
 
 
