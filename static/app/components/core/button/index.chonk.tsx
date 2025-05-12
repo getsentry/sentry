@@ -108,6 +108,7 @@ export function getChonkButtonStyles(
       justifyContent: 'inherit',
       flex: '1',
       gap: 'inherit',
+      overflow: 'hidden',
 
       whiteSpace: 'nowrap',
       transform: 'translateY(-2px)',
