@@ -47,11 +47,11 @@ export function ConnectedAutomationsList({
   );
 }
 
-interface AutomationData extends Automation {
+interface BaseAutomationData extends Automation {
   link: string;
 }
 
-const baseColumns = defineColumns<AutomationData>({
+const baseColumns = defineColumns<BaseAutomationData>({
   name: {
     Header: () => t('Name'),
     Cell: ({value, row}) => <AutomationTitleCell name={value} href={row.link} />,
@@ -70,7 +70,7 @@ const baseColumns = defineColumns<AutomationData>({
   },
 });
 
-interface ConnectedAutomationsData extends AutomationData {
+interface ConnectedAutomationsData extends BaseAutomationData {
   connected?: {
     isConnected: boolean;
     toggleConnected: () => void;
