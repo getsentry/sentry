@@ -112,7 +112,6 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
             key={query.id}
             to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
             analyticsItemName="explore_starred_item"
-            showInteractionStateLayer={false}
             isActive={id === query.id.toString()}
           >
             <Tooltip title={query.name} position="top" showOnlyOnOverflow skipWrapper>
