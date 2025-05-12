@@ -42,7 +42,6 @@ export const SENTRY_SEARCHABLE_SPAN_STRING_TAGS: string[] = [
 export const SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS: string[] = [
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.SPAN_SELF_TIME,
-  SpanFields.PROJECT_ID,
 ];
 
 export const SENTRY_SPAN_STRING_TAGS: string[] = [
@@ -55,6 +54,7 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanIndexedField.TRACE,
   SpanIndexedField.IS_TRANSACTION, // boolean field but we can expose it as a string
   SpanIndexedField.NORMALIZED_DESCRIPTION,
+  SpanFields.PROJECT_ID,
 ];
 
 export const SENTRY_SPAN_NUMBER_TAGS: string[] = [...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS];
