@@ -11,7 +11,9 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
@@ -40,10 +42,11 @@ function TableHeader() {
 }
 
 function Actions() {
+  const organization = useOrganization();
   return (
     <Fragment>
       <LinkButton
-        to="/issues/monitors/new"
+        to={`${makeMonitorBasePathname(organization.slug)}new/`}
         priority="primary"
         icon={<IconAdd isCircled />}
       >
