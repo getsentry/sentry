@@ -13,7 +13,7 @@ from sentry.seer.issue_summary import (
 )
 from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
@@ -473,16 +473,15 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.issue_summary.get_autofix_state")
     @patch("sentry.seer.issue_summary._generate_fixability_score")
-    @patch("sentry.seer.issue_summary.features.has")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_run_automation_saves_fixability_score(
         self,
-        mock_features_has,
         mock_generate_fixability_score,
         mock_get_autofix_state,
         mock_trigger_autofix_task,
     ):
         """Test that _run_automation saves the fixability score."""
-        mock_features_has.return_value = True
+        self.group.project.update_option("sentry:autofix_automation_tuning", "high")
         mock_event = Mock(event_id="test_event_id")
         mock_user = self.user
 
@@ -516,3 +515,70 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
 
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score == 0.5
+
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    @patch("sentry.seer.issue_summary._trigger_autofix_task.delay")
+    @patch("sentry.seer.issue_summary.get_autofix_state")
+    @patch("sentry.seer.issue_summary._generate_fixability_score")
+    def test_is_issue_fixable_triggers_autofix(
+        self,
+        mock_generate_fixability_score,
+        mock_get_autofix_state,
+        mock_trigger_autofix_task,
+    ):
+        mock_event = Mock(event_id="test_event_id")
+        mock_user = self.user
+        mock_get_autofix_state.return_value = None
+
+        test_cases = [
+            # option, fixability_score, should_trigger_autofix
+            ("off", 0.9, False),
+            ("low", 0.6, False),
+            ("low", 0.7, True),
+            ("low", 0.8, True),
+            ("medium", 0.4, False),
+            ("medium", 0.5, True),
+            ("medium", 0.6, True),
+            ("high", 0.2, False),
+            ("high", 0.3, True),
+            ("high", 0.4, True),
+            ("always", 0.1, True),
+            ("always", 0.0, True),
+        ]
+
+        for option_value, score, should_trigger in test_cases:
+            mock_trigger_autofix_task.reset_mock()
+            mock_generate_fixability_score.reset_mock()
+            self.group.seer_fixability_score = None
+            self.group.save()
+
+            mock_fixability_response = SummarizeIssueResponse(
+                group_id=str(self.group.id),
+                headline="some headline",
+                whats_wrong="some whats wrong",
+                trace="some trace",
+                possible_cause="some possible cause",
+                scores=SummarizeIssueScores(
+                    fixability_score=score,
+                    is_fixable=True,  # is_fixable from seer doesn't gate our logic
+                ),
+            )
+            mock_generate_fixability_score.return_value = mock_fixability_response
+
+            with self.subTest(option=option_value, score=score, should_trigger=should_trigger):
+                self.group.project.update_option("sentry:autofix_automation_tuning", option_value)
+                _run_automation(self.group, mock_user, mock_event, source="issue_details")
+
+                mock_generate_fixability_score.assert_called_once_with(self.group.id)
+                self.group.refresh_from_db()
+                assert self.group.seer_fixability_score == score
+
+                if should_trigger:
+                    mock_trigger_autofix_task.assert_called_once_with(
+                        group_id=self.group.id,
+                        event_id="test_event_id",
+                        user_id=mock_user.id,
+                        auto_run_source="issue_summary_fixability",
+                    )
+                else:
+                    mock_trigger_autofix_task.assert_not_called()

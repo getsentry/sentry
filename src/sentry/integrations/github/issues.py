@@ -301,7 +301,8 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         def natural_sort_pair(pair: tuple[str, str]) -> list[str | int]:
             return [
-                int(text) if text.isdecimal() else text for text in re.split("([0-9]+)", pair[0])
+                int(text) if text.isdecimal() else text.lower()
+                for text in re.split("([0-9]+)", pair[0])
             ]
 
         # sort alphabetically

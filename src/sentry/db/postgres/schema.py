@@ -1,13 +1,17 @@
+from django.contrib.postgres.constraints import ExclusionConstraint
 from django.db.backends.postgresql.schema import (
     DatabaseSchemaEditor as PostgresDatabaseSchemaEditor,
 )
-from django.db.models import Field
+from django.db.models import Field, Model
 from django.db.models.base import ModelBase
 from django_zero_downtime_migrations.backends.postgres.schema import (
-    DatabaseSchemaEditorMixin,
+    DatabaseSchemaEditorMixin as ZeroDowntimeMixin,
+)
+from django_zero_downtime_migrations.backends.postgres.schema import (
     Unsafe,
     UnsafeOperationException,
 )
+from pgtrigger.migrations import DatabaseSchemaEditorMixin as PgTriggerMixin
 
 unsafe_mapping = {
     Unsafe.ADD_COLUMN_NOT_NULL: (
@@ -58,7 +62,18 @@ def translate_unsafeoperation_exception(func):
     return inner
 
 
-class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDatabaseSchemaEditor):
+class MakeBtreeGistSchemaEditor(PgTriggerMixin, PostgresDatabaseSchemaEditor):
+    """workaround for https://code.djangoproject.com/ticket/36374"""
+
+    def create_model(self, model: type[Model]) -> None:
+        if any(isinstance(c, ExclusionConstraint) for c in model._meta.constraints):
+            self.execute("CREATE EXTENSION IF NOT EXISTS btree_gist;")
+        super().create_model(model)
+
+
+class SafePostgresDatabaseSchemaEditor(
+    PgTriggerMixin, ZeroDowntimeMixin, PostgresDatabaseSchemaEditor
+):
     add_field = translate_unsafeoperation_exception(PostgresDatabaseSchemaEditor.add_field)
     alter_field = translate_unsafeoperation_exception(PostgresDatabaseSchemaEditor.alter_field)
     alter_db_tablespace = translate_unsafeoperation_exception(
@@ -84,7 +99,7 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
                 f"Deleting the {model.__name__} model is unsafe.\n"
                 "More info here: https://develop.sentry.dev/database-migrations/#deleting-tables"
             )
-        super(DatabaseSchemaEditorMixin, self).delete_model(model)
+        super(ZeroDowntimeMixin, self).delete_model(model)
 
     def remove_field(self, model, field, is_safe=False):
         """
@@ -95,7 +110,7 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
                 f"Removing the {model.__name__}.{field.name} field is unsafe.\n"
                 "More info here: https://develop.sentry.dev/database-migrations/#deleting-columns"
             )
-        super(DatabaseSchemaEditorMixin, self).remove_field(model, field)
+        super(ZeroDowntimeMixin, self).remove_field(model, field)
 
 
 class DatabaseSchemaEditorProxy:
@@ -130,7 +145,7 @@ class DatabaseSchemaEditorProxy:
     def schema_editor(self):
         if self._schema_editor is None:
             schema_editor_cls = (
-                SafePostgresDatabaseSchemaEditor if self.safe else PostgresDatabaseSchemaEditor
+                SafePostgresDatabaseSchemaEditor if self.safe else MakeBtreeGistSchemaEditor
             )
             schema_editor = schema_editor_cls(*self.args, **self.kwargs)
             schema_editor.__enter__()

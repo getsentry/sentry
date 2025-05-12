@@ -56,15 +56,56 @@ def get_total_span_count(settings: ResolverSettings) -> Column:
     )
 
 
-def division(args: ResolvedArguments, _: ResolverSettings) -> Column.BinaryFormula:
+def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    dividend = cast(AttributeKey, args[0])
+    divisor = cast(AttributeKey, args[1])
+    key = cast(AttributeKey, args[2])
+    value = cast(str, args[3])
+
+    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, value])
+
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_SUM,
+                key=dividend,
+                filter=key_equal_value_filter,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_SUM,
+                key=divisor,
+                filter=key_equal_value_filter,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+    )
+
+
+def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     dividend = cast(AttributeKey, args[0])
     divisor = cast(AttributeKey, args[1])
 
+    extrapolation_mode = settings["extrapolation_mode"]
+
     return Column.BinaryFormula(
         default_value_double=0.0,
-        left=Column(key=dividend),
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_SUM, key=dividend, extrapolation_mode=extrapolation_mode
+            )
+        ),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(key=divisor),
+        right=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_SUM, key=divisor, extrapolation_mode=extrapolation_mode
+            )
+        ),
     )
 
 
@@ -685,6 +726,33 @@ SPAN_FORMULA_DEFINITIONS = {
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         formula_resolver=avg_compare,
+        is_aggregate=True,
+    ),
+    "division_if": FormulaDefinition(
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        formula_resolver=division_if,
         is_aggregate=True,
     ),
     "division": FormulaDefinition(

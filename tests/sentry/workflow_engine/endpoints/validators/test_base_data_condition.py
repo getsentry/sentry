@@ -116,7 +116,7 @@ class TestComplexBaseDataConditionValidator(TestCase):
         assert validator.is_valid() is False
 
     def test_condition_result__complex_value__array(self, mock_handler_get):
-        invalid_data = {**self.valid_data, "condition_result": ["foo"]}
+        invalid_data = {**self.valid_data, "conditionResult": ["foo"]}
         validator = BaseDataConditionValidator(data=invalid_data)
         assert validator.is_valid() is False
 

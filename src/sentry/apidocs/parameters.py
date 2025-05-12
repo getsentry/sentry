@@ -419,6 +419,14 @@ class DetectorParams:
         description="The ID of the detector you'd like to query.",
     )
 
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="An optional search query for filtering detectors.",
+    )
+
     SORT = OpenApiParameter(
         name="sortBy",
         location="query",
@@ -444,6 +452,14 @@ class WorkflowParams:
         required=True,
         type=int,
         description="The ID of the workflow you'd like to query.",
+    )
+
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="An optional search query for filtering workflows.",
     )
 
     SORT_BY = OpenApiParameter(

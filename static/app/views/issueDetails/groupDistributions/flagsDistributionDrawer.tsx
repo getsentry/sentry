@@ -5,9 +5,14 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Flex} from 'sentry/components/container/flex';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {EventDrawerBody, EventNavigator} from 'sentry/components/events/eventDrawer';
+import {
+  EventDrawerBody,
+  EventNavigator,
+  EventStickyControls,
+} from 'sentry/components/events/eventDrawer';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import SuspectTable from 'sentry/components/issues/suspect/suspectTable';
 import {IconSentry} from 'sentry/icons/iconSentry';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,7 +23,6 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useParams} from 'sentry/utils/useParams';
 import GroupDistributionsSearchInput from 'sentry/views/issueDetails/groupDistributions/groupDistributionsSearchInput';
 import HeaderTitle from 'sentry/views/issueDetails/groupDistributions/headerTitle';
-import SuspectTable from 'sentry/views/issueDetails/groupDistributions/suspectTable';
 import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsDrawerContent';
@@ -67,6 +71,10 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
           label: t('Suspiciousness'),
           value: SortBy.SUSPICION,
         },
+        {
+          label: t('Distribution'),
+          value: SortBy.DISTRIBUTION,
+        },
       ]
     : [
         {
@@ -87,6 +95,10 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
         {
           label: t('High to Low'),
           value: OrderBy.HIGH_TO_LOW,
+        },
+        {
+          label: t('Low to High'),
+          value: OrderBy.LOW_TO_HIGH,
         },
       ]
     : [
@@ -134,7 +146,7 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
         ) : null}
 
         {tagKey ? null : (
-          <Flex justify="space-between">
+          <EventStickyControls>
             <TagFlagPicker setTab={setTab} tab={DrawerTab.FEATURE_FLAGS} />
 
             <ButtonBar gap={1}>
@@ -171,7 +183,7 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
                 sortByOptions={sortByOptions}
               />
             </ButtonBar>
-          </Flex>
+          </EventStickyControls>
         )}
 
         {tagKey ? (

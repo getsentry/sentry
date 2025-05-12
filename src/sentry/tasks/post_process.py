@@ -663,6 +663,10 @@ def run_post_process_job(job: PostProcessJob) -> None:
     if group_event.group and not group_event.group.issue_type.allow_post_process_group(
         group_event.group.organization
     ):
+        metrics.incr(
+            "post_process.skipped_feature_disabled",
+            tags={"issue_type": group_event.group.issue_type.slug},
+        )
         return
 
     if issue_category in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
@@ -1555,6 +1559,25 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
             first_flag_received.send_robust(project=project, sender=Project)
 
 
+def kick_off_seer_automation(job: PostProcessJob) -> None:
+    from sentry.seer.seer_setup import get_seer_org_acknowledgement
+    from sentry.tasks.autofix import start_seer_automation
+
+    event = job["event"]
+    group = event.group
+
+    if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
+        "projects:trigger-issue-summary-on-alerts", group.project
+    ):
+        return
+
+    seer_enabled = get_seer_org_acknowledgement(group.organization.id)
+    if not seer_enabled:
+        return
+
+    start_seer_automation.delay(group.id)
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
@@ -1565,6 +1588,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_commits,
         handle_owner_assignment,
         handle_auto_assignment,
+        kick_off_seer_automation,
         process_rules,
         process_workflow_engine,
         process_service_hooks,

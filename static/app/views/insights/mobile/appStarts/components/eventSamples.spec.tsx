@@ -79,18 +79,18 @@ describe('ScreenLoadEventSamples', function () {
         meta: {
           fields: {
             profile_id: 'string',
-            'transaction.id': 'string',
+            'transaction.span_id': 'string',
             'span.duration': 'duration',
-            'project.name': 'string',
+            project: 'string',
             id: 'string',
           },
         },
         data: [
           {
             profile_id: 'profile-id',
-            'transaction.id': '76af98a3ac9d4448b894e44b1819970e',
+            'transaction.span_id': '76af98a3ac9d4448b894e44b1819970e',
             'span.duration': 131,
-            'project.name': 'sentry-cocoa',
+            project: 'sentry-cocoa',
             id: 'f0587aad3de14aeb',
           },
         ],

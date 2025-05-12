@@ -5,7 +5,6 @@ import type {Organization} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import toArray from 'sentry/utils/array/toArray';
-import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
@@ -16,20 +15,8 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import type {CombinedAlerts, Incident, IncidentStats} from 'sentry/views/alerts/types';
+import type {CombinedAlerts, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus, CombinedAlertType} from 'sentry/views/alerts/types';
-
-/**
- * Gets start and end date query parameters from stats
- */
-export function getStartEndFromStats(stats: IncidentStats) {
-  const start = getUtcDateString(stats.eventStats.data[0]![0] * 1000);
-  const end = getUtcDateString(
-    stats.eventStats.data[stats.eventStats.data.length - 1]![0] * 1000
-  );
-
-  return {start, end};
-}
 
 export function isIssueAlert(data: CombinedAlerts) {
   return data.type === CombinedAlertType.ISSUE;
