@@ -97,14 +97,15 @@ def get_kafka_admin_cluster_options(
     )
 
 
-def get_topic_definition(topic: Topic | str) -> TopicDefinition:
-    if isinstance(topic, str):
-        topic_name = topic
-        cluster_name = settings.KAFKA_TOPIC_TO_CLUSTER.get(topic_name, "default")
-    else:
-        topic_name = topic.value
-        cluster_name = settings.KAFKA_TOPIC_TO_CLUSTER[topic_name]
+def get_topic_definition(topic: Topic) -> TopicDefinition:
     return {
-        "cluster": cluster_name,
+        "cluster": settings.KAFKA_TOPIC_TO_CLUSTER[topic.value],
+        "real_topic_name": settings.KAFKA_TOPIC_OVERRIDES.get(topic.value, topic.value),
+    }
+
+
+def get_topic_definition_from_name(topic_name: str) -> TopicDefinition:
+    return {
+        "cluster": settings.KAFKA_TOPIC_TO_CLUSTER.get(topic_name, "default"),
         "real_topic_name": settings.KAFKA_TOPIC_OVERRIDES.get(topic_name, topic_name),
     }
