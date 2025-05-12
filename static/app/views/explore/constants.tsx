@@ -1,5 +1,5 @@
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields, SpanIndexedField} from 'sentry/views/insights/types';
 
 export const SENTRY_SEARCHABLE_SPAN_STRING_TAGS: string[] = [
   // NOTE: intentionally choose to not expose transaction id
@@ -54,6 +54,7 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanIndexedField.TRACE,
   SpanIndexedField.IS_TRANSACTION, // boolean field but we can expose it as a string
   SpanIndexedField.NORMALIZED_DESCRIPTION,
+  SpanFields.PROJECT_ID,
 ];
 
 export const SENTRY_SPAN_NUMBER_TAGS: string[] = [...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS];
