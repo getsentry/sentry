@@ -36,6 +36,7 @@ from .detectors.n_plus_one_api_calls_detector import NPlusOneAPICallsDetector
 from .detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from .detectors.render_blocking_asset_span_detector import RenderBlockingAssetSpanDetector
 from .detectors.slow_db_query_detector import SlowDBQueryDetector
+from .detectors.sql_injection_detector import SQLInjectionDetector
 from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
 from .performance_problem import PerformanceProblem
 
@@ -320,6 +321,9 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "http_request_delay_threshold": settings["http_request_delay_threshold"],
             "detection_enabled": settings["http_overhead_detection_enabled"],
         },
+        DetectorType.SQL_INJECTION: {
+            "detection_enabled": settings["sql_injection_detection_enabled"]
+        },
     }
 
 
@@ -338,6 +342,7 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     UncompressedAssetSpanDetector,
     LargeHTTPPayloadDetector,
     HTTPOverheadDetector,
+    SQLInjectionDetector,
 ]
 
 

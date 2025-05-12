@@ -491,6 +491,18 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
     default_priority = PriorityLevel.LOW
 
 
+@dataclass(frozen=True)
+class SQLInjectionGroupType(GroupType):
+    type_id = 1020
+    slug = "sql_injection"
+    description = "SQL Injection"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    default_priority = PriorityLevel.LOW
+
+
 # 2000 was ProfileBlockingFunctionMainThreadType
 @dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
