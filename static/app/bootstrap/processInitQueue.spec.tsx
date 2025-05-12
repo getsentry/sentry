@@ -1,8 +1,13 @@
+// We don't want to render with any of our existing providers since this will
+// mirror what is actually happening when the initQueue is processed.
+//
+// eslint-disable-next-line no-restricted-imports
+import {render} from '@testing-library/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {processInitQueue} from 'sentry/bootstrap/processInitQueue';
 import AlertStore from 'sentry/stores/alertStore';

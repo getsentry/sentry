@@ -1,5 +1,4 @@
-import React, {Component, Fragment, useState} from 'react';
-import {createBrowserRouter, RouterProvider} from 'react-router-dom';
+import React, {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
@@ -253,19 +252,7 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
   }
 }
 
-const FormWithApi = withApi(SuperuserStaffAccessFormContent);
-
-export default function SuperuserStaffAccessForm({hasStaff}: Props) {
-  const [router] = useState(() =>
-    createBrowserRouter([
-      {
-        path: '*',
-        element: <FormWithApi hasStaff={hasStaff} />,
-      },
-    ])
-  );
-  return <RouterProvider router={router} />;
-}
+export default withApi(SuperuserStaffAccessFormContent);
 
 const BackWrapper = styled('div')`
   width: 100%;
