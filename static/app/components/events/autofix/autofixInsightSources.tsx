@@ -272,9 +272,7 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
             </OverlayContent>
             <OverlayFooter>
               <OverlayButtonGroup>
-                <Button size="xs" onClick={() => setShowThoughtsPopup(false)}>
-                  {t('Close')}
-                </Button>
+                <Button onClick={() => setShowThoughtsPopup(false)}>{t('Close')}</Button>
               </OverlayButtonGroup>
             </OverlayFooter>
           </ThoughtsOverlay>,
@@ -337,7 +335,7 @@ const OverlayContent = styled('div')`
 `;
 
 const OverlayFooter = styled('div')`
-  padding: ${space(2)};
+  padding: ${space(1)};
   border-top: 1px solid ${p => p.theme.border};
 `;
 

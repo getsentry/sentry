@@ -367,7 +367,6 @@ class SentryAppCreator:
             "application_id": api_app.id,
             "owner_id": self.organization_id,
             "proxy_user_id": proxy.id,
-            "scope_list": self.scopes,
             "events": expand_events(self.events),
             "schema": self.schema or {},
             "webhook_url": self.webhook_url,
@@ -381,6 +380,8 @@ class SentryAppCreator:
             or user.username,  # email is not required for some users (sentry apps)
             "metadata": self.metadata if self.metadata else {},
         }
+        if self.scopes is not None:
+            kwargs["scope_list"] = self.scopes
 
         if self.is_internal:
             kwargs["status"] = SentryAppStatus.INTERNAL

@@ -291,6 +291,28 @@ def test_detect_function_trends_options(
     assert query_functions.called == (task_enabled and option_enabled)
 
 
+@mock.patch("sentry.tasks.statistical_detectors.query_functions")
+@django_db_all
+def test_detect_function_trends_options_with_str(
+    query_functions,
+    timestamp,
+    project,
+):
+    ProjectOption.objects.set_value(
+        project=project,
+        key="sentry:performance_issue_settings",
+        value={InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: True},
+    )
+
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    with override_options(options):
+        detect_function_trends([project.id], timestamp.isoformat())
+    assert query_functions.called == (True and True)
+
+
 @mock.patch("sentry.snuba.functions.query")
 @django_db_all
 def test_detect_function_trends_query_timerange(functions_query, timestamp, project):
@@ -1002,6 +1024,67 @@ def test_detect_function_change_points(
 
     with override_options(options):
         detect_function_change_points([(project.id, fingerprint)], timestamp)
+    assert mock_emit_function_regression_issue.called
+
+
+@mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")
+@mock.patch("sentry.statistical_detectors.detector.detect_breakpoints")
+@mock.patch("sentry.search.events.builder.base.raw_snql_query")
+@django_db_all
+def test_detect_function_change_points_with_str(
+    mock_raw_snql_query,
+    mock_detect_breakpoints,
+    mock_emit_function_regression_issue,
+    timestamp,
+    project,
+):
+    start_of_hour = timestamp.replace(minute=0, second=0, microsecond=0)
+
+    fingerprint = 12345
+
+    mock_raw_snql_query.return_value = {
+        "data": [
+            {
+                "time": (start_of_hour - timedelta(days=day, hours=hour)).isoformat(),
+                "project.id": project.id,
+                "fingerprint": fingerprint,
+                "p95": 2 if day < 1 and hour < 8 else 1,
+            }
+            for day in reversed(range(14))
+            for hour in reversed(range(24))
+        ],
+        "meta": [
+            {"name": "time", "type": "DateTime"},
+            {"name": "project.id", "type": "UInt64"},
+            {"name": "fingerprint", "type": "UInt32"},
+            {"name": "p95", "type": "Float64"},
+        ],
+    }
+
+    mock_detect_breakpoints.return_value = {
+        "data": [
+            {
+                "absolute_percentage_change": 5.0,
+                "aggregate_range_1": 100000000.0,
+                "aggregate_range_2": 500000000.0,
+                "breakpoint": 1687323600,
+                "change": "regression",
+                "project": str(project.id),
+                "transaction": str(fingerprint),
+                "trend_difference": 400000000.0,
+                "trend_percentage": 5.0,
+                "unweighted_p_value": 0.0,
+                "unweighted_t_value": -float("inf"),
+            },
+        ]
+    }
+
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    with override_options(options):
+        detect_function_change_points([(project.id, fingerprint)], timestamp.isoformat())
     assert mock_emit_function_regression_issue.called
 
 
@@ -1929,5 +2012,41 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                     (self.projects[1].id, "transaction_1"),
                 ],
                 self.now,
+            )
+        assert mock_send_regression_to_platform.called
+
+    @mock.patch("sentry.tasks.statistical_detectors.send_regression_to_platform")
+    @mock.patch("sentry.statistical_detectors.detector.detect_breakpoints")
+    def test_transaction_change_point_detection_with_str(
+        self, mock_detect_breakpoints, mock_send_regression_to_platform
+    ) -> None:
+        mock_detect_breakpoints.return_value = {
+            "data": [
+                {
+                    "absolute_percentage_change": 5.0,
+                    "aggregate_range_1": 100000000.0,
+                    "aggregate_range_2": 500000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "regression",
+                    "project": str(self.projects[0].id),
+                    "transaction": "transaction_1",
+                    "trend_difference": 400000000.0,
+                    "trend_percentage": 5.0,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": -float("inf"),
+                },
+            ]
+        }
+
+        options = {"statistical_detectors.enable": True}
+
+        with override_options(options):
+            detect_transaction_change_points(
+                [
+                    (self.projects[0].id, "transaction_1"),
+                    (self.projects[0].id, "transaction_2"),
+                    (self.projects[1].id, "transaction_1"),
+                ],
+                self.now.isoformat(),
             )
         assert mock_send_regression_to_platform.called
