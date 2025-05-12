@@ -237,7 +237,7 @@ def process_profile_task(
                 "options": filestore_profiles_options,
             },
         )
-        sentry_sdk.capture_message("Debug profile filestore")
+        sentry_sdk.capture_message("Debug profile filestore", level="debug")
         if not _process_vroomrs_profile(profile, project):
             return
     else:
@@ -1253,7 +1253,7 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                         "chunk_path": chunk.storage_path(),
                     },
                 )
-                sentry_sdk.capture_message("Debug profile chunk info")
+                sentry_sdk.capture_message("Debug profile chunk info", level="debug")
                 storage = get_profiles_storage()
                 compressed_chunk = chunk.compress()
                 storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
