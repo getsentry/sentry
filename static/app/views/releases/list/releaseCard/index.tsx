@@ -116,185 +116,188 @@ function ReleaseCard({
   };
 
   return (
-    <StyledPanel reloading={reloading ? 1 : 0} data-test-id="release-panel">
-      <ReleaseInfo>
-        {/* Header/info is the table sidecard */}
-        <ReleaseInfoHeader>
-          <GlobalSelectionLink
-            to={{
-              pathname: makeReleasesPathname({
-                organization,
-                path: `/${encodeURIComponent(version)}/`,
-              }),
-              query: {project: getReleaseProjectId(release, selection)},
-            }}
-          >
-            <DemoTourElement
-              id={DemoTourStep.RELEASES_DETAILS}
-              disabled={!isTopRelease || projectsToShow.length > 1}
-              title={t('Release-specific trends')}
-              description={t(
-                'Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.'
-              )}
-              position="bottom-start"
+    <DemoTourElement
+      id={DemoTourStep.RELEASES_DETAILS}
+      disabled={!isTopRelease || projectsToShow.length > 1}
+      title={t('Release-specific trends')}
+      description={t(
+        'Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.'
+      )}
+      position="bottom-start"
+    >
+      <StyledPanel reloading={reloading ? 1 : 0} data-test-id="release-panel">
+        <ReleaseInfo>
+          {/* Header/info is the table sidecard */}
+          <ReleaseInfoHeader>
+            <GlobalSelectionLink
+              to={{
+                pathname: makeReleasesPathname({
+                  organization,
+                  path: `/${encodeURIComponent(version)}/`,
+                }),
+                query: {project: getReleaseProjectId(release, selection)},
+              }}
             >
               <VersionWrapper>
                 <StyledVersion version={version} tooltipRawVersion anchor={false} />
               </VersionWrapper>
-            </DemoTourElement>
-          </GlobalSelectionLink>
-          {commitCount > 0 && (
-            <ReleaseCardCommits release={release} withHeading={false} />
-          )}
-        </ReleaseInfoHeader>
-        <ReleaseInfoSubheader>
-          <ReleaseInfoSubheaderUpper>
-            <PackageContainer>
-              <PackageName>
-                {versionInfo?.package && (
-                  <TextOverflow ellipsisDirection="right">
-                    {versionInfo.package}
-                  </TextOverflow>
-                )}
-              </PackageName>
-              <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
-              {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
-              &nbsp;
-            </PackageContainer>
-            <FinalizeWrapper>
-              {release.dateReleased ? (
-                <Tooltip
-                  isHoverable
-                  title={tct('This release was finalized on [date]. [docs:Read More].', {
-                    date: moment
-                      .tz(release.dateReleased, options?.timezone ?? '')
-                      .format(
-                        options?.clock24Hours
-                          ? 'MMMM D, YYYY HH:mm z'
-                          : 'MMMM D, YYYY h:mm A z'
-                      ),
-                    docs: (
-                      <ExternalLink href="https://docs.sentry.io/cli/releases/#finalizing-releases" />
-                    ),
-                  })}
-                >
-                  <Tag type="success" icon={<IconCheckmark />} />
-                </Tooltip>
-              ) : (
-                <Tooltip
-                  isHoverable
-                  title={tct(
-                    'Set release date to [date].[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
-                    {
-                      date: moment
-                        .tz(
-                          release.firstEvent ?? release.dateCreated,
-                          options?.timezone ?? ''
-                        )
-                        .format(
-                          options?.clock24Hours
-                            ? 'MMMM D, YYYY HH:mm z'
-                            : 'MMMM D, YYYY h:mm A z'
-                        ),
-                      br: <br />,
-                      code: <code />,
-                      docs: (
-                        <ExternalLink href="https://docs.sentry.io/cli/releases/#finalizing-releases" />
-                      ),
-                    }
+            </GlobalSelectionLink>
+            {commitCount > 0 && (
+              <ReleaseCardCommits release={release} withHeading={false} />
+            )}
+          </ReleaseInfoHeader>
+          <ReleaseInfoSubheader>
+            <ReleaseInfoSubheaderUpper>
+              <PackageContainer>
+                <PackageName>
+                  {versionInfo?.package && (
+                    <TextOverflow ellipsisDirection="right">
+                      {versionInfo.package}
+                    </TextOverflow>
                   )}
-                >
-                  <Button
-                    size="xs"
-                    onClick={() =>
-                      finalizeRelease.mutate([release], {
-                        onSettled() {
-                          window.location.reload();
-                        },
-                      })
-                    }
+                </PackageName>
+                <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
+                {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
+                &nbsp;
+              </PackageContainer>
+              <FinalizeWrapper>
+                {release.dateReleased ? (
+                  <Tooltip
+                    isHoverable
+                    title={tct(
+                      'This release was finalized on [date]. [docs:Read More].',
+                      {
+                        date: moment
+                          .tz(release.dateReleased, options?.timezone ?? '')
+                          .format(
+                            options?.clock24Hours
+                              ? 'MMMM D, YYYY HH:mm z'
+                              : 'MMMM D, YYYY h:mm A z'
+                          ),
+                        docs: (
+                          <ExternalLink href="https://docs.sentry.io/cli/releases/#finalizing-releases" />
+                        ),
+                      }
+                    )}
                   >
-                    {t('Finalize')}
-                  </Button>
-                </Tooltip>
+                    <Tag type="success" icon={<IconCheckmark />} />
+                  </Tooltip>
+                ) : (
+                  <Tooltip
+                    isHoverable
+                    title={tct(
+                      'Set release date to [date].[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
+                      {
+                        date: moment
+                          .tz(
+                            release.firstEvent ?? release.dateCreated,
+                            options?.timezone ?? ''
+                          )
+                          .format(
+                            options?.clock24Hours
+                              ? 'MMMM D, YYYY HH:mm z'
+                              : 'MMMM D, YYYY h:mm A z'
+                          ),
+                        br: <br />,
+                        code: <code />,
+                        docs: (
+                          <ExternalLink href="https://docs.sentry.io/cli/releases/#finalizing-releases" />
+                        ),
+                      }
+                    )}
+                  >
+                    <Button
+                      size="xs"
+                      onClick={() =>
+                        finalizeRelease.mutate([release], {
+                          onSettled() {
+                            window.location.reload();
+                          },
+                        })
+                      }
+                    >
+                      {t('Finalize')}
+                    </Button>
+                  </Tooltip>
+                )}
+              </FinalizeWrapper>
+            </ReleaseInfoSubheaderUpper>
+          </ReleaseInfoSubheader>
+        </ReleaseInfo>
+
+        <ReleaseProjects>
+          {/* projects is the table */}
+          <ReleaseProjectsHeader lightText>
+            <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
+              <ReleaseProjectColumn>{t('Project Name')}</ReleaseProjectColumn>
+              {showReleaseAdoptionStages && (
+                <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
               )}
-            </FinalizeWrapper>
-          </ReleaseInfoSubheaderUpper>
-        </ReleaseInfoSubheader>
-      </ReleaseInfo>
+              <AdoptionColumn>
+                <span>{t('Adoption')}</span>
+                <ReleaseCardStatsPeriod location={location} />
+              </AdoptionColumn>
+              <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
+              <DisplaySmallCol>{t('Crashes')}</DisplaySmallCol>
+              <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
+            </ReleaseProjectsLayout>
+          </ReleaseProjectsHeader>
 
-      <ReleaseProjects>
-        {/* projects is the table */}
-        <ReleaseProjectsHeader lightText>
-          <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
-            <ReleaseProjectColumn>{t('Project Name')}</ReleaseProjectColumn>
-            {showReleaseAdoptionStages && (
-              <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
-            )}
-            <AdoptionColumn>
-              <span>{t('Adoption')}</span>
-              <ReleaseCardStatsPeriod location={location} />
-            </AdoptionColumn>
-            <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
-            <DisplaySmallCol>{t('Crashes')}</DisplaySmallCol>
-            <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
-          </ReleaseProjectsLayout>
-        </ReleaseProjectsHeader>
+          <ProjectRows>
+            <Collapsible
+              expandButton={({onExpand, numberOfHiddenItems}) => (
+                <ExpandButtonWrapper>
+                  <Button priority="primary" size="xs" onClick={onExpand}>
+                    {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
+                  </Button>
+                </ExpandButtonWrapper>
+              )}
+              collapseButton={({onCollapse}) => (
+                <CollapseButtonWrapper>
+                  <Button priority="primary" size="xs" onClick={onCollapse}>
+                    {t('Collapse')}
+                  </Button>
+                </CollapseButtonWrapper>
+              )}
+            >
+              {projectsToShow.map((project, index) => {
+                const key = `${project.slug}-${version}`;
+                return (
+                  <ReleaseCardProjectRow
+                    key={`${key}-row`}
+                    activeDisplay={activeDisplay}
+                    adoptionStages={adoptionStages}
+                    getHealthData={getHealthData}
+                    index={index}
+                    isTopRelease={isTopRelease}
+                    location={location}
+                    organization={organization}
+                    project={project}
+                    releaseVersion={version}
+                    showPlaceholders={showHealthPlaceholders}
+                    showReleaseAdoptionStages={showReleaseAdoptionStages}
+                  />
+                );
+              })}
+            </Collapsible>
+          </ProjectRows>
 
-        <ProjectRows>
-          <Collapsible
-            expandButton={({onExpand, numberOfHiddenItems}) => (
-              <ExpandButtonWrapper>
-                <Button priority="primary" size="xs" onClick={onExpand}>
-                  {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
-                </Button>
-              </ExpandButtonWrapper>
-            )}
-            collapseButton={({onCollapse}) => (
-              <CollapseButtonWrapper>
-                <Button priority="primary" size="xs" onClick={onCollapse}>
-                  {t('Collapse')}
-                </Button>
-              </CollapseButtonWrapper>
-            )}
-          >
-            {projectsToShow.map((project, index) => {
-              const key = `${project.slug}-${version}`;
-              return (
-                <ReleaseCardProjectRow
-                  key={`${key}-row`}
-                  activeDisplay={activeDisplay}
-                  adoptionStages={adoptionStages}
-                  getHealthData={getHealthData}
-                  index={index}
-                  isTopRelease={isTopRelease}
-                  location={location}
-                  organization={organization}
-                  project={project}
-                  releaseVersion={version}
-                  showPlaceholders={showHealthPlaceholders}
-                  showReleaseAdoptionStages={showReleaseAdoptionStages}
-                />
-              );
-            })}
-          </Collapsible>
-        </ProjectRows>
-
-        {projectsToHide.length > 0 && (
-          <HiddenProjectsMessage data-test-id="hidden-projects">
-            <Tooltip title={getHiddenProjectsTooltip()}>
-              <TextOverflow>
-                {projectsToHide.length === 1
-                  ? tct('[number:1] hidden project', {number: <strong />})
-                  : tct('[number] hidden projects', {
-                      number: <strong>{projectsToHide.length}</strong>,
-                    })}
-              </TextOverflow>
-            </Tooltip>
-          </HiddenProjectsMessage>
-        )}
-      </ReleaseProjects>
-    </StyledPanel>
+          {projectsToHide.length > 0 && (
+            <HiddenProjectsMessage data-test-id="hidden-projects">
+              <Tooltip title={getHiddenProjectsTooltip()}>
+                <TextOverflow>
+                  {projectsToHide.length === 1
+                    ? tct('[number:1] hidden project', {number: <strong />})
+                    : tct('[number] hidden projects', {
+                        number: <strong>{projectsToHide.length}</strong>,
+                      })}
+                </TextOverflow>
+              </Tooltip>
+            </HiddenProjectsMessage>
+          )}
+        </ReleaseProjects>
+      </StyledPanel>
+    </DemoTourElement>
   );
 }
 

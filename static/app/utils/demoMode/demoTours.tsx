@@ -12,15 +12,20 @@ import {
   type TourState,
   useTourReducer,
 } from 'sentry/components/tours/tourContext';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 export const DEMO_TOURS_STATE_KEY = 'demo-mode:tours';
-const DEMO_SELECTED_PROJECT_ID = '4508160347275264';
+
+// TODO: Fetch these from the API
+const DEMO_SELECTED_PROJECT_ID = 4508160347275264;
 const DEMO_SELECTED_TRANSACTION = '/products';
 const DEMO_SELECTED_TRACE_ID = '171df07fc30e4e269358eb4d7cca7b9f';
+const DEMO_SELECTED_ISSUE_ID = 6592614385;
+const DEMO_SELECTED_RELEASE_ID = 'application.monitoring.javascript@25.5.2';
 
 export const enum DemoTour {
   SIDEBAR = 'sidebar',
@@ -78,26 +83,47 @@ const TOUR_STEPS: Record<DemoTour, DemoTourStepWithUrl[]> = {
   [DemoTour.ISSUES]: [
     {
       id: DemoTourStep.ISSUES_STREAM,
+      url: {
+        pathname: '/issues/',
+      },
     },
     {
       id: DemoTourStep.ISSUES_AGGREGATES,
+      url: {
+        pathname: `/issues/${DEMO_SELECTED_ISSUE_ID}`,
+      },
     },
     {
       id: DemoTourStep.ISSUES_EVENT_DETAILS,
+      url: {
+        pathname: `/issues/${DEMO_SELECTED_ISSUE_ID}`,
+      },
     },
     {
       id: DemoTourStep.ISSUES_DETAIL_SIDEBAR,
+      url: {
+        pathname: `/issues/${DEMO_SELECTED_ISSUE_ID}`,
+      },
     },
   ],
   [DemoTour.RELEASES]: [
     {
       id: DemoTourStep.RELEASES_COMPARE,
+      url: {
+        pathname: `/releases/`,
+      },
     },
     {
       id: DemoTourStep.RELEASES_DETAILS,
+      url: {
+        pathname: `/releases/`,
+      },
     },
     {
       id: DemoTourStep.RELEASES_STATES,
+      url: {
+        pathname: `/releases/${DEMO_SELECTED_RELEASE_ID}/`,
+      },
     },
   ],
   [DemoTour.PERFORMANCE]: [
@@ -206,6 +232,7 @@ function useNavigateToStep() {
   };
 
   const navigateToStep = (stepId: DemoTourStep) => {
+    PageFiltersStore.updateProjects([DEMO_SELECTED_PROJECT_ID], null);
     const target = getUrlFromStep(stepId);
     if (location.pathname !== target.pathname && target.pathname !== '') {
       navigate(target);
@@ -232,6 +259,10 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
     [setTourState, navigateToStep]
   );
 
+  const handleStartTour = useCallback(() => {
+    PageFiltersStore.updateProjects([DEMO_SELECTED_PROJECT_ID], null);
+  }, []);
+
   const handleEndTour = useCallback(
     (tourKey: DemoTour) => {
       setTourState(prev => ({
@@ -250,10 +281,11 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
   const getTourOptions = useCallback(
     (tourKey: DemoTour) => ({
       onEndTour: () => handleEndTour(tourKey),
+      onStartTour: () => handleStartTour(),
       onStepChange: (stepId: DemoTourStep) => handleStepChange(tourKey, stepId),
       requireAllStepsRegistered: false,
     }),
-    [handleEndTour, handleStepChange]
+    [handleEndTour, handleStepChange, handleStartTour]
   );
 
   const sidebarTour = useTourReducer<DemoTourStep>(
