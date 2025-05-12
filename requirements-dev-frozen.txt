@@ -243,6 +243,7 @@ urllib3==2.2.2
 vine==5.1.0
 virtualenv==20.26.6
 wcwidth==0.2.13
+vroomrs==0.1.4
 werkzeug==3.0.6
 wheel==0.38.4
 wrapt==1.17.0

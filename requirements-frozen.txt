@@ -156,6 +156,7 @@ uritemplate==4.1.1
 urllib3==2.2.2
 vine==5.1.0
 wcwidth==0.2.13
+vroomrs==0.1.4
 xmlsec==1.3.14
 zstandard==0.18.0
 
