@@ -71,7 +71,7 @@ function Device(props: any) {
         </DeviceInformation>
         <ButtonBar gap={1}>
           <Button size="sm" onClick={() => setEditting(true)}>
-            {t('Rename Device')}
+            {t('Rename device')}
           </Button>
           <Confirm
             onConfirm={() => onRemoveU2fDevice(device)}
@@ -102,6 +102,7 @@ function Device(props: any) {
     <PanelItem key={device.name}>
       <DeviceInformation>
         <DeviceNameInput
+          size="sm"
           type="text"
           value={deviceName}
           onChange={e => {
@@ -125,7 +126,7 @@ function Device(props: any) {
           size="sm"
           title={t('Cancel Rename')}
           aria-label={t('Cancel Rename')}
-          icon={<IconClose size="xs" />}
+          icon={<IconClose />}
           onClick={() => {
             setDeviceName(device.name);
             setEditting(false);
