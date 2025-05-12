@@ -84,6 +84,8 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
 
         if not features.has(
             "organizations:gen-ai-explore-traces", organization=organization, actor=request.user
+        ) or not features.has(
+            "organizations:gen-ai-features", organization=organization, actor=request.user
         ):
             return Response(
                 {"detail": "Organization does not have access to this feature"},
