@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useId, useState} from 'react';
 
 import type {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -16,8 +16,9 @@ export function useAutomationActions(automation: Automation): ActionType[] {
 }
 
 export function useConnectedIds() {
+  const key = useId();
   const [connectedIds, setConnectedIds] = useState<Set<string>>(() => {
-    const stored = localStorage.getItem('connectedIds');
+    const stored = localStorage.getItem(key);
     return stored ? new Set(JSON.parse(stored)) : new Set();
   });
 
@@ -29,7 +30,7 @@ export function useConnectedIds() {
       } else {
         newSet.add(id);
       }
-      localStorage.setItem('connectedIds', JSON.stringify(Array.from(newSet)));
+      localStorage.setItem(key, JSON.stringify(Array.from(newSet)));
       return newSet;
     });
   };
