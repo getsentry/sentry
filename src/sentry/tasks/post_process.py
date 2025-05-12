@@ -1181,7 +1181,7 @@ def process_service_hooks(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.sentry_apps.tasks.service_hooks import get_payload_v0, process_service_hook
+    from sentry.sentry_apps.tasks.service_hooks import process_service_hook
 
     event, has_alert = job["event"], job["has_alert"]
 
@@ -1191,18 +1191,13 @@ def process_service_hooks(job: PostProcessJob) -> None:
             allowed_events.add("event.alert")
 
         if in_random_rollout("process_service_hook.payload.rollout"):
-            payload = None
             for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
                 if any(e in allowed_events for e in events):
-                    # only generate the payload once to reduce snuba queries
-                    if payload is None:
-                        # TODO: when we have multiple service hook versions, this will need to change.
-                        payload = json.dumps(get_payload_v0(event))
                     process_service_hook.delay(
                         servicehook_id=servicehook_id,
                         project_id=event.project_id,
-                        event=event,
-                        payload=payload,
+                        group_id=event.group_id,
+                        event_id=event.event_id,
                     )
         else:
             for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
