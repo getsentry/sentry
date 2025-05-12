@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
-import {makeAutomationDetailsUrl} from 'sentry/views/automations/makeAutomationDetailsUrl';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 
 type AutomationListRowProps = {
   automation: Automation;
@@ -39,7 +39,7 @@ export function AutomationListRow({
           }}
         />
         <CellWrapper>
-          <TitleCell to={makeAutomationDetailsUrl(organization.slug, id)}>
+          <TitleCell to={makeAutomationDetailsPathname(organization.slug, id)}>
             {name}
           </TitleCell>
         </CellWrapper>
