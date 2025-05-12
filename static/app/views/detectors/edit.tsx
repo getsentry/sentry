@@ -8,13 +8,18 @@ import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/bread
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 export default function DetectorEdit() {
+  const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
 
   return (
     <SentryDocumentTitle title={t('Edit Monitor')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/issues/monitors'}}>
+      <BreadcrumbsProvider
+        crumb={{label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)}}
+      >
         <ActionsProvider actions={<Actions />}>
           <EditLayout>
             <h2>Edit Monitor</h2>

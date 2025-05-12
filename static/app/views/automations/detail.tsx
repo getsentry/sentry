@@ -16,9 +16,11 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import AutomationHistoryList from 'sentry/views/automations/components/automationHistoryList';
 import ConditionsPanel from 'sentry/views/automations/components/conditionsPanel';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
+import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 
 function HistoryAndConnectedMonitors() {
   return (
@@ -80,11 +82,17 @@ function Details() {
 }
 
 export default function AutomationDetail() {
+  const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
 
   return (
     <SentryDocumentTitle title={t('Automation')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/issues/automations'}}>
+      <BreadcrumbsProvider
+        crumb={{
+          label: t('Automations'),
+          to: makeAutomationBasePathname(organization.slug),
+        }}
+      >
         <ActionsProvider actions={<Actions />}>
           <DetailLayout>
             <DetailLayout.Main>

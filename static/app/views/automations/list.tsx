@@ -11,7 +11,9 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import AutomationListTable from 'sentry/views/automations/components/automationListTable';
+import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 
 export default function AutomationsList() {
   useWorkflowEngineFeatureGate({redirect: true});
@@ -40,10 +42,11 @@ function TableHeader() {
 }
 
 function Actions() {
+  const organization = useOrganization();
   return (
     <Fragment>
       <LinkButton
-        to="/issues/automations/new/"
+        to={`${makeAutomationBasePathname(organization.slug)}new/`}
         priority="primary"
         icon={<IconAdd isCircled />}
       >
