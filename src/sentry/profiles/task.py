@@ -228,6 +228,16 @@ def process_profile_task(
         features.has("projects:continuous-profiling-vroomrs-processing", project)
         and "profiler_id" in profile
     ):
+        filestore_backend = options.get("filestore.profiles-backend")
+        filestore_profiles_options = options.get("filestore.profiles-options")
+        sentry_sdk.set_context(
+            "profile filestore info",
+            {
+                "backend": filestore_backend,
+                "options": filestore_profiles_options,
+            },
+        )
+        sentry_sdk.capture_message("Debug profile filestore")
         if not _process_vroomrs_profile(profile, project):
             return
     else:
@@ -1237,17 +1247,13 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                 chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
             chunk.normalize()
             with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
-                filestore_backend = options.get("filestore.profiles-backend")
-                filestore_profiles_options = options.get("filestore.profiles-options")
                 sentry_sdk.set_context(
-                    "profile filestore info",
+                    "chunk path info",
                     {
-                        "backend": filestore_backend,
-                        "options": filestore_profiles_options,
                         "chunk_path": chunk.storage_path(),
                     },
                 )
-                sentry_sdk.capture_message("Debug profile filestore and chunk info")
+                sentry_sdk.capture_message("Debug profile chunk info")
                 storage = get_profiles_storage()
                 compressed_chunk = chunk.compress()
                 storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
