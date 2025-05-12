@@ -32,29 +32,20 @@ class Refresher:
     def run(self) -> ApiToken:
         try:
             with transaction.atomic(router.db_for_write(ApiToken)):
-                try:
-                    token = None
-                    self._validate()
-                    self.token.delete()
+                token = None
+                self._validate()
+                self.token.delete()
 
-                    self._record_analytics()
-                    token = self._create_new_token()
-                    return token
-                except (SentryAppIntegratorError, SentryAppSentryError):
-                    logger.info(
-                        "refresher.context",
-                        extra={
-                            "application_id": self.application.id,
-                            "refresh_token": self.refresh_token[-4:],
-                        },
-                    )
-                    raise
+                self._record_analytics()
+                token = self._create_new_token()
+                return token
         except OperationalError as e:
             context = {
                 "installation_uuid": self.install.uuid,
                 "client_id": self.application.client_id[:SENSITIVE_CHARACTER_LIMIT],
                 "sentry_app_id": self.install.sentry_app.id,
             }
+
             if token is not None:
                 logger.warning(
                     "refresher.database-failure",
@@ -64,7 +55,7 @@ class Refresher:
                 return token
 
             raise SentryAppSentryError(
-                message="Failed to delete or create current token",
+                message="Failed to refresh given token",
                 status_code=500,
                 webhook_context=context,
             ) from e
