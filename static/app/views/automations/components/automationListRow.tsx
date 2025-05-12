@@ -41,7 +41,7 @@ export function AutomationListRow({
         <CellWrapper>
           <AutomationTitleCell
             name={name}
-            link={makeAutomationDetailsPathname(organization.slug, id)}
+            href={makeAutomationDetailsPathname(organization.slug, id)}
           />
         </CellWrapper>
       </Flex>

@@ -4,12 +4,12 @@ import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 
 interface Props {
-  link: string;
+  href: string;
   name: string;
 }
 
-export default function AutomationTitleCell({name, link}: Props) {
-  return <StyledLink to={link}>{name}</StyledLink>;
+export default function AutomationTitleCell({name, href}: Props) {
+  return <StyledLink to={href}>{name}</StyledLink>;
 }
 
 const StyledLink = styled(Link)`

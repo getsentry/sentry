@@ -54,7 +54,7 @@ interface AutomationData extends Automation {
 const baseColumns = defineColumns<AutomationData>({
   name: {
     Header: () => t('Name'),
-    Cell: ({value, row}) => <AutomationTitleCell name={value} link={row.link} />,
+    Cell: ({value, row}) => <AutomationTitleCell name={value} href={row.link} />,
     width: 'minmax(0, 3fr)',
   },
   lastTriggered: {
