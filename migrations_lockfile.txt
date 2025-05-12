@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0884_delete_incident_snapshot_tables_pt2
+sentry: 0885_split_discover_dataset_saved_queries
 
 social_auth: 0002_default_auto_field
 
