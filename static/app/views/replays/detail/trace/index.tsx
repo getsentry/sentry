@@ -5,7 +5,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import Trace, {NewTraceView} from 'sentry/views/replays/detail/trace/trace';
+import {NewTraceView} from 'sentry/views/replays/detail/trace/trace';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 interface Props {
@@ -36,11 +36,7 @@ export default function TraceFeature({replayRecord}: Props) {
       renderDisabled={PerfDisabled}
     >
       <TraceWrapper>
-        {organization.features.includes('replay-trace-view-v1') ? (
-          <NewTraceView replay={replayRecord} />
-        ) : (
-          <Trace replay={replayRecord} />
-        )}
+        <NewTraceView replay={replayRecord} />
       </TraceWrapper>
     </Feature>
   );
