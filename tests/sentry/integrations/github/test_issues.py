@@ -174,6 +174,50 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/sentry/labels",
+            json=[
+                {"name": "bug"},
+                {"name": "Big Bug"},
+                {"name": "enhancement"},
+                {"name": "duplicate"},
+                {"name": "1"},
+                {"name": "10"},
+                {"name": "2"},
+            ],
+        )
+
+        # results should be sorted alphabetically
+        assert self.install.get_repo_labels("getsentry", "sentry") == (
+            ("1", "1"),
+            ("2", "2"),
+            ("10", "10"),
+            ("Big Bug", "Big Bug"),
+            ("bug", "bug"),
+            ("duplicate", "duplicate"),
+            ("enhancement", "enhancement"),
+        )
+
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
+
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+        else:
+            self._check_proxying()
+
+    @responses.activate
+    def test_get_repo_labels_with_pagination(self):
+        """Test that labels are fetched using pagination when the feature flag is enabled."""
+        responses.add(
+            responses.POST,
+            "https://api.github.com/app/installations/github_external_id/access_tokens",
+            json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
+        )
 
         per_page_limit = 5
         # An extra label to test pagination
@@ -192,7 +236,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "sentry.integrations.github.client.GitHubBaseClient.page_size", new=len(labels) - 1
         ):
             # results should be sorted alphabetically
-            assert self.install.get_repo_labels("getsentry", "sentry") == (
+            assert self.install.get_repo_labels("getsentry", "sentry", paginated=True) == (
                 ("1", "1"),
                 ("2", "2"),
                 ("10", "10"),
