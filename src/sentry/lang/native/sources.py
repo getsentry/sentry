@@ -11,6 +11,7 @@ import google.auth
 import jsonschema
 import orjson
 import sentry_sdk
+from cachetools import TTLCache
 from django.conf import settings
 from django.urls import reverse
 from google.auth import impersonated_credentials
@@ -254,6 +255,11 @@ REDACTED_SOURCES_SCHEMA = {
 }
 
 LAST_UPLOAD_TTL = 24 * 3600
+
+TOKEN_TTL_SECONDS = 3600
+# Set the TTL a little shorter than the actual token expiration to acomodate a bit of delay
+# while obtaining the token and storing it
+token_cache = TTLCache(ttl=TOKEN_TTL_SECONDS - 100)
 
 
 def _get_cluster() -> RedisCluster:
@@ -582,21 +588,11 @@ def get_sources_for_project(project):
 
         if features.has("organizations:gcp-bearer-token-authentication", organization):
             if source.get("type") == "gcs":
-                # Fetch the regular credentials for GCP
-                source_credentials, _ = google.auth.default()
-
-                # Impersonate the service account to give the token for symbolicator a proper scope
-                target_credentials = impersonated_credentials.Credentials(
-                    source_credentials=source_credentials,
-                    target_principal=source.get("client_email"),
-                    target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
-                    lifetime=3600,
-                )
-
-                target_credentials.refresh(Request())
-
-                if target_credentials.token is not None:
-                    source["bearer_token"] = target_credentials.token
+                token = get_gcp_token(source.get("client_email"))
+                # if target_credentials.token is None it means that the
+                # token could not be fetched successfully
+                if token is not None:
+                    source["bearer_token"] = token
 
                     # Remove other credentials if we have a token
                     if "client_email" in source:
@@ -613,6 +609,37 @@ def get_sources_for_project(project):
             sources.append(source)
 
     return sources
+
+
+def get_gcp_token(client_email: str) -> str | None:
+    """
+    Returns a cached GCP token or fetches it if nothing is cached
+
+    :param client_email: GCP client email
+    """
+    if client_email in token_cache:
+        return token_cache[client_email]
+    else:
+        # Fetch the regular credentials for GCP
+        source_credentials, _ = google.auth.default()
+
+        if source_credentials.token is None:
+            return None
+
+        # Impersonate the service account to give the token for symbolicator a proper scope
+        target_credentials = impersonated_credentials.Credentials(
+            source_credentials=source_credentials,
+            target_principal=client_email,
+            target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
+            lifetime=TOKEN_TTL_SECONDS,
+        )
+
+        target_credentials.refresh(Request())
+
+        if target_credentials.token is None:
+            return None
+
+        return target_credentials.token
 
 
 def reverse_aliases_map(builtin_sources):
