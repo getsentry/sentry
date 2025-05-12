@@ -1,4 +1,6 @@
+import {useState} from 'react';
 import {createRoot} from 'react-dom/client';
+import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import throttle from 'lodash/throttle';
 
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
@@ -34,6 +36,16 @@ const COMPONENT_MAP = {
       /* webpackChunkName: "SuperuserStaffAccessForm" */ 'sentry/components/superuserStaffAccessForm'
     ),
 };
+
+interface SimpleRouterProps {
+  element: React.ReactNode;
+}
+
+function SimpleRouter({element}: SimpleRouterProps) {
+  const [router] = useState(() => createBrowserRouter([{path: '*', element}]));
+
+  return <RouterProvider router={router} />;
+}
 
 async function processItem(initConfig: OnSentryInitConfiguration) {
   /**
@@ -100,7 +112,7 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
            */
           <QueryClientProvider client={queryClient}>
             <ThemeAndStyleProvider>
-              <Component {...props} />
+              <SimpleRouter element={<Component {...props} />} />
             </ThemeAndStyleProvider>
           </QueryClientProvider>
         ),
