@@ -5,9 +5,12 @@ import omit from 'lodash/omit';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 
 import {FunctionTrendsWidget} from './functionTrendsWidget';
 import {SlowestFunctionsWidget} from './slowestFunctionsWidget';
@@ -21,10 +24,15 @@ type WidgetOption =
   | 'regressed functions'
   | 'improved functions';
 
+function getAnalyticsName(option: WidgetOption): string {
+  return option === 'slowest functions' ? 'slowest functions p75' : option;
+}
+
 interface LandingWidgetSelectorProps {
   cursorName: string;
   defaultWidget: WidgetOption;
   storageKey: string;
+  onDataState?: (dataState: DataState) => void;
   widgetHeight?: string;
 }
 
@@ -32,9 +40,11 @@ export function LandingWidgetSelector({
   cursorName,
   defaultWidget,
   storageKey,
+  onDataState,
   widgetHeight,
 }: LandingWidgetSelectorProps) {
   const router = useRouter();
+  const organization = useOrganization();
 
   const [selectedWidget, setSelectedWidget] = useSyncedLocalStorageState<WidgetOption>(
     storageKey,
@@ -49,8 +59,13 @@ export function LandingWidgetSelector({
         query: newQuery,
       });
       setSelectedWidget(opt.value);
+      trackAnalytics('profiling_views.landing.widget_change', {
+        organization,
+        source: getAnalyticsName(selectedWidget),
+        target: getAnalyticsName(opt.value),
+      });
     },
-    [cursorName, router, setSelectedWidget]
+    [cursorName, router, selectedWidget, setSelectedWidget, organization]
   );
 
   const functionQuery = useMemo(() => {
@@ -79,6 +94,7 @@ export function LandingWidgetSelector({
           trendType="regression"
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
     case 'improved functions':
@@ -90,6 +106,7 @@ export function LandingWidgetSelector({
           trendType="improvement"
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
     case 'slowest functions avg':
@@ -100,6 +117,7 @@ export function LandingWidgetSelector({
           header={header}
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
     case 'slowest functions p50':
@@ -110,6 +128,7 @@ export function LandingWidgetSelector({
           header={header}
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
     case 'slowest functions p95':
@@ -120,6 +139,7 @@ export function LandingWidgetSelector({
           header={header}
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
     case 'slowest functions p99':
@@ -130,6 +150,7 @@ export function LandingWidgetSelector({
           header={header}
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
     case 'slowest functions':
@@ -141,6 +162,7 @@ export function LandingWidgetSelector({
           header={header}
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
+          onDataState={onDataState}
         />
       );
   }

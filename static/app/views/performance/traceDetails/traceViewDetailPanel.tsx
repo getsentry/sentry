@@ -259,7 +259,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     function handleOnClick() {
       trackAnalytics('profiling_views.go_to_flamegraph', {
         organization,
-        source: 'performance.trace_view',
+        source: 'performance.trace_view.details',
       });
     }
 

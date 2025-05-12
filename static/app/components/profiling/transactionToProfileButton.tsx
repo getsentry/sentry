@@ -33,7 +33,7 @@ function TransactionToProfileButton({
   function handleGoToProfile() {
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
-      source: 'transaction_details',
+      source: 'unknown',
     });
   }
 
