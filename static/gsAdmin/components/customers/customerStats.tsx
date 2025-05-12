@@ -268,8 +268,8 @@ export function populateChartData(
     totalDropped!.subSeries = totalDropped!.subSeries ?? [];
     totalDropped!.subSeries.push({seriesName: data.seriesName, data: data.data});
 
-    for (let dataIndex = 0; dataIndex < data.data.length; dataIndex++) {
-      totalDropped!.data[dataIndex]!.value += data.data[dataIndex]!.value;
+    for (const [dataIndex, dataPoint] of data.data.entries()) {
+      totalDropped!.data[dataIndex]!.value += dataPoint.value;
     }
   }
 
