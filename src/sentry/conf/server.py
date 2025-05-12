@@ -3150,6 +3150,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
     "snuba-spans": "default",
+    "snuba-items": "default",
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
