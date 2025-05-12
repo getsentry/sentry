@@ -1697,7 +1697,7 @@ register(
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=500.0,  # ms
+    default=1000.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3027,6 +3027,12 @@ register(
 register(
     "demo-mode.users",
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-mode.disable-sandbox-redirect",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

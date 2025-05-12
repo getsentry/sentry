@@ -19,6 +19,7 @@ from sentry.utils.performance_issues.detectors.n_plus_one_db_span_detector impor
     NPlusOneDBSpanDetector,
 )
 from sentry.utils.performance_issues.performance_detection import (
+    DETECTOR_CLASSES,
     EventPerformanceProblem,
     _detect_performance_problems,
     detect_performance_problems,
@@ -99,6 +100,13 @@ class PerformanceDetectionTest(TestCase):
         self.addCleanup(patch_organization.stop)
 
         self.project = self.create_project()
+        # Exclude experimental detectors from detection in this test suite
+        self.patch_detector_classes = patch(
+            "sentry.utils.performance_issues.performance_detection.DETECTOR_CLASSES",
+            [cls for cls in DETECTOR_CLASSES if "Experimental" not in cls.__name__],
+        )
+        self.patch_detector_classes.start()
+        self.addCleanup(self.patch_detector_classes.stop)
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):
@@ -190,7 +198,7 @@ class PerformanceDetectionTest(TestCase):
         assert default_settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] == 300
         assert default_settings[DetectorType.LARGE_HTTP_PAYLOAD]["payload_size_threshold"] == 300000
         assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 2000
-        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 500
+        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 1000
 
         self.project_option_mock.return_value = {
             "n_plus_one_db_duration_threshold": 100000,

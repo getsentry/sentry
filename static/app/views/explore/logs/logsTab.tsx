@@ -88,13 +88,9 @@ export function LogsTabContent({
     initialQuery: logsSearch.formatString(),
     searchSource: 'ourlogs',
     onSearch: (newQuery: string) => {
-      const newFields = new MutableSearch(newQuery)
-        .getFilterKeys()
-        .map(key => (key.startsWith('!') ? key.slice(1) : key));
       const mutableQuery = new MutableSearch(newQuery);
       setLogsPageParams({
         search: mutableQuery,
-        fields: [...new Set([...fields, ...newFields])],
       });
     },
     numberAttributes,
