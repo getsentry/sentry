@@ -8,6 +8,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH, SECONDARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -47,9 +49,9 @@ export function Sidebar() {
         <SidebarHeader isSuperuser={showSuperuserWarning}>
           <OrgDropdown />
           {showSuperuserWarning && (
-            <SuperuserBadgeContainer>
+            <SuperuserBadge>
               <Hook name="component:superuser-warning" organization={organization} />
-            </SuperuserBadgeContainer>
+            </SuperuserBadge>
           )}
         </SidebarHeader>
         <PrimaryNavigationItems />
@@ -102,11 +104,14 @@ const CollapsedSecondaryWrapper = styled(motion.div)`
 const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
   position: relative;
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   margin-bottom: ${space(0.5)};
 
   ${p =>
     p.isSuperuser &&
+    !p.theme.isChonk &&
     css`
       &:before {
         content: '';
@@ -126,3 +131,13 @@ const SuperuserBadgeContainer = styled('div')`
   font-size: 12px;
   margin: 0;
 `;
+
+const ChonkSuperuserBadgeContainer = chonkStyled('div')`
+  position: fixed;
+  top: -1px;
+  left: 0;
+  width: ${PRIMARY_SIDEBAR_WIDTH}px;
+  background: ${p => p.theme.colors.chonk.red400};
+`;
+
+const SuperuserBadge = withChonk(SuperuserBadgeContainer, ChonkSuperuserBadgeContainer);
