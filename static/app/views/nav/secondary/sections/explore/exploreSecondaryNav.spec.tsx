@@ -7,7 +7,11 @@ import {NavContextProvider} from 'sentry/views/nav/context';
 describe('ExploreSecondaryNav', () => {
   const {organization} = initializeOrg({
     organization: {
-      features: ['performance-trace-explorer', 'performance-view'],
+      features: [
+        'performance-trace-explorer',
+        'performance-view',
+        'visibility-explore-view',
+      ],
     },
   });
 
