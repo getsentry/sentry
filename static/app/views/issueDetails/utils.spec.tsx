@@ -8,8 +8,6 @@ import type {Organization} from 'sentry/types/organization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/utils/useLocation');
-
 const contextWrapper = (organization: Organization) => {
   return function ({children}: {children: React.ReactNode}) {
     return <OrganizationContext value={organization}>{children}</OrganizationContext>;
