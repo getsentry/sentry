@@ -1,9 +1,12 @@
 import {Button} from 'sentry/components/core/button';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FlexContainer} from 'sentry/utils/discover/styles';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useProjects from 'sentry/utils/useProjects';
 import {useStarredSegment} from 'sentry/views/insights/common/utils/useStarredSegment';
+import type {EAPSpanResponse} from 'sentry/views/insights/types';
 
 interface Props {
   isStarred: boolean;
@@ -11,20 +14,50 @@ interface Props {
   segmentName: string;
 }
 
+type TableRow = Partial<EAPSpanResponse> &
+  Pick<EAPSpanResponse, 'is_starred_transaction' | 'transaction'>;
+
+type TableResponse = [{confidence: any; data: TableRow[]; meta: EventsMetaType}];
+
 // The query key used for the starred segments table request, this key is used to reference that query and update the starred segment state
 export const STARRED_SEGMENT_TABLE_QUERY_KEY = ['starred-segment-table'];
 
 export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props) {
+  const queryClient = useQueryClient();
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === projectSlug);
 
-  const {toggleStarredTransaction, isPending} = useStarredSegment({
+  const {setStarredSegment, isPending} = useStarredSegment({
     projectId: project?.id,
     segmentName,
-    tableQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY,
+    onError: () => updateTableData(!isStarred),
   });
 
   const disabled = !project || !segmentName || isPending;
+
+  const updateTableData = (newIsStarred: boolean) => {
+    queryClient.setQueriesData(
+      {queryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
+      (oldResponse: TableResponse) => {
+        const oldTableData = oldResponse[0]?.data || [];
+        const newData = oldTableData.map(row => {
+          if (row.transaction === segmentName) {
+            return {
+              ...row,
+              is_starred_transaction: newIsStarred,
+            };
+          }
+          return row;
+        });
+        return [{...oldResponse[0], data: newData}] satisfies TableResponse;
+      }
+    );
+  };
+
+  const toggleStarredTransaction = () => {
+    setStarredSegment(!isStarred);
+    updateTableData(!isStarred);
+  };
 
   return (
     <FlexContainer>

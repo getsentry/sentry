@@ -4,11 +4,9 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {useIsMutating, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {useIsMutating, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
 
 type StarTransactionParams = {
   project_id?: string;
@@ -19,31 +17,20 @@ const URL_PREFIX = '/insights/starred-segments/';
 
 interface Props {
   segmentName: string;
-  tableQueryKey: string[];
+  onError?: () => void;
   projectId?: string | undefined;
 }
 
-type TableRow = Partial<EAPSpanResponse> &
-  Pick<EAPSpanResponse, 'is_starred_transaction' | 'transaction'>;
-
-type TableResponse = [{confidence: any; data: TableRow[]; meta: EventsMetaType}];
-
-export function useStarredSegment({projectId, segmentName, tableQueryKey}: Props) {
+export function useStarredSegment({
+  projectId,
+  segmentName,
+  onError: errorCallback,
+}: Props) {
   const starredSegmentMutationKey = ['star-segment', segmentName];
 
-  const queryClient = useQueryClient();
   const organization = useOrganization();
   const api = useApi();
   const isMutating = useIsMutating({mutationKey: starredSegmentMutationKey});
-
-  const tableData = queryClient.getQueriesData<TableResponse>({
-    queryKey: tableQueryKey,
-  })[0]?.[1]?.[0]?.data;
-
-  const isStarred =
-    tableData?.some(
-      row => row.transaction === segmentName && row.is_starred_transaction
-    ) || false;
 
   const url = `/organizations/${organization.slug}${URL_PREFIX}`;
   const data: StarTransactionParams = {
@@ -53,7 +40,7 @@ export function useStarredSegment({projectId, segmentName, tableQueryKey}: Props
 
   const onError = (message: string) => {
     addErrorMessage(message);
-    // TODO - revert table data if the mutation fails
+    errorCallback?.();
   };
 
   const onSuccess = (message: string) => {
@@ -74,38 +61,22 @@ export function useStarredSegment({projectId, segmentName, tableQueryKey}: Props
     onError: () => onError(t('Failed to unstar transaction')),
   });
 
-  const toggleStarredTransaction = () => {
+  const setStarredSegment = (star: boolean) => {
     if (isMutating) {
       return;
     }
 
     addLoadingMessage();
 
-    if (isStarred) {
-      unstarTransaction();
-    } else {
+    if (star) {
       starTransaction();
+    } else {
+      unstarTransaction();
     }
-    queryClient.setQueriesData(
-      {queryKey: tableQueryKey},
-      (oldResponse: TableResponse) => {
-        const oldTableData = oldResponse[0]?.data || [];
-        const newData = oldTableData.map(row => {
-          if (row.transaction === segmentName) {
-            return {
-              ...row,
-              is_starred_transaction: !isStarred,
-            };
-          }
-          return row;
-        });
-        return [{...oldResponse[0], data: newData}] satisfies TableResponse;
-      }
-    );
   };
 
   return {
-    toggleStarredTransaction,
+    setStarredSegment,
     isPending: isMutating > 0,
   };
 }
