@@ -96,7 +96,7 @@ class EventAttachmentsTest(APITestCase):
             file_id=file.id,
             name=file.name,
         )
-        file = File.objects.create(name="foo.txt")
+        file = File.objects.create(name="foo.png")
         EventAttachment.objects.create(
             event_id=event1.event_id,
             project_id=event1.project_id,
@@ -113,4 +113,5 @@ class EventAttachmentsTest(APITestCase):
         assert len(response.data) == 2
         for attachment in response.data:
             assert attachment["event_id"] == event1.event_id
+            # foo.png will not be included
             assert attachment["name"] in ["screenshot.png", "crash_screenshot.png"]
