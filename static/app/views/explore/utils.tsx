@@ -9,6 +9,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBusiness} from 'sentry/icons/iconBusiness';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -460,7 +461,11 @@ export function confirmDeleteSavedQuery({
 
 export function findSuggestedColumns(
   newSearch: MutableSearch,
-  oldSearch: MutableSearch
+  oldSearch: MutableSearch,
+  attributes: {
+    numberAttributes: TagCollection;
+    stringAttributes: TagCollection;
+  }
 ): string[] {
   const oldFilters = oldSearch.filters;
   const newFilters = newSearch.filters;
@@ -473,13 +478,25 @@ export function findSuggestedColumns(
       continue;
     }
 
-    if (isSimpleFilter(key, value)) {
+    const isStringAttribute = key.startsWith('!')
+      ? attributes.stringAttributes.hasOwnProperty(key.slice(1))
+      : attributes.stringAttributes.hasOwnProperty(key);
+    const isNumberAttribute = key.startsWith('!')
+      ? attributes.numberAttributes.hasOwnProperty(key.slice(1))
+      : attributes.numberAttributes.hasOwnProperty(key);
+
+    // guard against unknown keys and aggregate keys
+    if (!isStringAttribute && !isNumberAttribute) {
+      continue;
+    }
+
+    if (isSimpleFilter(key, value, attributes)) {
       continue;
     }
 
     if (
       !oldFilters.hasOwnProperty(key) || // new filter key
-      isSimpleFilter(key, oldFilters[key] || []) // existing filter key turned complex
+      isSimpleFilter(key, oldFilters[key] || [], attributes) // existing filter key turned complex
     ) {
       keys.add(normalizeKey(key));
       break;
@@ -494,7 +511,10 @@ export function findSuggestedColumns(
     }
 
     // if there's a simple filter on the key, don't add column
-    if (newFilters.hasOwnProperty(key) && isSimpleFilter(key, newFilters[key] || [])) {
+    if (
+      newFilters.hasOwnProperty(key) &&
+      isSimpleFilter(key, newFilters[key] || [], attributes)
+    ) {
       continue;
     }
 
@@ -507,10 +527,23 @@ export function findSuggestedColumns(
 const PREFIX_WILDCARD_PATTERN = /^(\\\\)*\*/;
 const INFIX_WILDCARD_PATTERN = /[^\\](\\\\)*\*/;
 
-function isSimpleFilter(key: string, value: string[]): boolean {
+function isSimpleFilter(
+  key: string,
+  value: string[],
+  attributes: {
+    numberAttributes: TagCollection;
+    stringAttributes: TagCollection;
+  }
+): boolean {
   // negation filters are always considered non trivial
   // because it matches on multiple values
   if (key.startsWith('!')) {
+    return false;
+  }
+
+  // all number attributes are considered non trivial because they
+  // almost always match on a range of values
+  if (attributes.numberAttributes.hasOwnProperty(key)) {
     return false;
   }
 

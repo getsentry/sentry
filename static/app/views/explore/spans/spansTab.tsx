@@ -156,7 +156,10 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
       initialQuery: query,
       onSearch: (newQuery: string) => {
         const newSearch = new MutableSearch(newQuery);
-        const suggestedColumns = findSuggestedColumns(newSearch, oldSearch);
+        const suggestedColumns = findSuggestedColumns(newSearch, oldSearch, {
+          numberAttributes: numberTags,
+          stringAttributes: stringTags,
+        });
 
         const existingFields = new Set(fields);
         const newColumns = suggestedColumns.filter(col => !existingFields.has(col));

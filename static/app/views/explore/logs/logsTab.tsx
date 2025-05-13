@@ -93,7 +93,10 @@ export function LogsTabContent({
     searchSource: 'ourlogs',
     onSearch: (newQuery: string) => {
       const newSearch = new MutableSearch(newQuery);
-      const suggestedColumns = findSuggestedColumns(newSearch, oldLogsSearch);
+      const suggestedColumns = findSuggestedColumns(newSearch, oldLogsSearch, {
+        numberAttributes,
+        stringAttributes,
+      });
 
       const existingFields = new Set(fields);
       const newColumns = suggestedColumns.filter(col => !existingFields.has(col));

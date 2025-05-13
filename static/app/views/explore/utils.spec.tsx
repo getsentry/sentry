@@ -250,12 +250,34 @@ describe('findSuggestedColumns', function () {
       oldQuery: '',
       newQuery: '!has:a',
     },
+    {
+      cols: ['num'],
+      oldQuery: '',
+      newQuery: 'num:>0',
+    },
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: 'foo:[a,b]',
+    },
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: 'count():>0',
+    },
   ])(
     'should inject $cols when changing from `$oldQuery` to `$newQuery`',
     function ({cols, oldQuery, newQuery}) {
       const oldSearch = new MutableSearch(oldQuery);
       const newSearch = new MutableSearch(newQuery);
-      const suggestion = findSuggestedColumns(newSearch, oldSearch);
+      const suggestion = findSuggestedColumns(newSearch, oldSearch, {
+        numberAttributes: {
+          num: {key: 'num', name: 'num'},
+        },
+        stringAttributes: {
+          key: {key: 'key', name: 'key'},
+        },
+      });
       expect(new Set(suggestion)).toEqual(new Set(cols));
     }
   );
