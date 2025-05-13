@@ -217,7 +217,7 @@ def check_ratelimit(metric_kwargs: dict[str, str], item: CheckinItem) -> bool:
 
 
 class _CheckinUpdateKwargs(TypedDict):
-    status: NotRequired[CheckInStatus]
+    status: NotRequired[int]
     duration: int | None
     timeout_at: NotRequired[datetime | None]
     date_updated: NotRequired[datetime]
@@ -275,7 +275,7 @@ def update_existing_check_in(
     monitor_environment: MonitorEnvironment,
     start_time: datetime,
     existing_check_in: MonitorCheckIn,
-    updated_status: CheckInStatus,
+    updated_status: int,
     updated_duration: int | None,
 ) -> None:
     monitor = monitor_environment.monitor
@@ -737,9 +737,9 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
 
     try:
         with transaction.atomic(router.db_for_write(Monitor)):
-            status = getattr(CheckInStatus, validated_params["status"].upper())
-            trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
-            duration = validated_params.get("duration")
+            status: int = getattr(CheckInStatus, validated_params["status"].upper())
+            trace_id: str = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
+            duration: int = validated_params.get("duration")
 
             # 03-A
             # Retrieve existing check-in for update
