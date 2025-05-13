@@ -16,11 +16,11 @@ import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useI
 import {useNavContext} from 'sentry/views/nav/context';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
+import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavQueryCount';
 import {
   constructViewLink,
-  type NavIssueView,
-} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
-import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavQueryCount';
+  type IssueView,
+} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViews';
 
 interface IssueViewNavItemContentProps {
   /**
@@ -47,7 +47,7 @@ interface IssueViewNavItemContentProps {
   /**
    * The issue view to display
    */
-  view: NavIssueView;
+  view: IssueView;
   /**
    * Ref to the body of the section that contains the reorderable items.
    * This is used as the portal container for the ellipsis menu, and as
