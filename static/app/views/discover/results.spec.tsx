@@ -571,12 +571,12 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'timestamp'})).toHaveAttribute(
         'href',
-        '/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-timestamp&statsPeriod=24h&topEvents=5'
+        '/?dataset=discover&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&queryDataset=error-events&sort=-timestamp&statsPeriod=24h&topEvents=5'
       );
 
       expect(screen.getByRole('link', {name: 'project'})).toHaveAttribute(
         'href',
-        '/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-project&statsPeriod=24h&topEvents=5'
+        '/?dataset=discover&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&queryDataset=error-events&sort=-project&statsPeriod=24h&topEvents=5'
       );
 
       // NOTE: This uses a legacy redirect for project event to the issue group event link
@@ -587,12 +587,12 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'user.display'})).toHaveAttribute(
         'href',
-        '/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=user.display&statsPeriod=24h&topEvents=5'
+        '/?dataset=discover&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&queryDataset=error-events&sort=user.display&statsPeriod=24h&topEvents=5'
       );
 
       expect(screen.getByRole('link', {name: 'title'})).toHaveAttribute(
         'href',
-        '/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-title&statsPeriod=24h&topEvents=5'
+        '/?dataset=discover&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&queryDataset=error-events&sort=-title&statsPeriod=24h&topEvents=5'
       );
     });
 
@@ -630,7 +630,7 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'timestamp'})).toHaveAttribute(
         'href',
-        '/?environment=production&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&project=2&query=&sort=-timestamp&statsPeriod=7d&topEvents=5'
+        '/?dataset=discover&environment=production&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&project=2&query=&queryDataset=error-events&sort=-timestamp&statsPeriod=7d&topEvents=5'
       );
     });
 
@@ -1133,7 +1133,7 @@ describe('Results', function () {
         url: '/organizations/org-slug/discover/homepage/',
         method: 'PUT',
         statusCode: 200,
-        body: {...getTransactionViews(organization)[0], name: ''},
+        body: {...getTransactionViews(organization)[0], name: 'test'},
       });
       const {router} = initializeOrg({
         organization,
