@@ -443,7 +443,7 @@ class IntegrationInstallation(abc.ABC):
         """For Integrations that rely solely on user auth for authentication."""
         try:
             org_integration = self.org_integration
-        except NotFound:
+        except OrganizationIntegrationNotFound:
             raise Identity.DoesNotExist
         else:
             if org_integration.default_auth_id is None:
