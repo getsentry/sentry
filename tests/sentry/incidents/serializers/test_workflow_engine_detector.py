@@ -10,10 +10,12 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.workflow_engine.migration_helpers.alert_rule import migrate_metric_action
-from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
+from tests.sentry.incidents.serializers.test_workflow_engine_base import (
+    TestWorkflowEngineSerializer,
+)
 
 
-class TestDetectorSerializer(TestWorklowEngineSerializer):
+class TestDetectorSerializer(TestWorkflowEngineSerializer):
     def setUp(self) -> None:
         super().setUp()
         self.add_warning_trigger()
