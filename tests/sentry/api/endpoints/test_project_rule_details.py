@@ -11,7 +11,7 @@ from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
-from sentry.integrations.slack.utils.channel import strip_channel_name
+from sentry.integrations.slack.utils.channel import SlackChannelIdData, strip_channel_name
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -1076,7 +1076,10 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] is None
         assert_rule_from_payload(self.rule, payload)
 
-    def test_update_channel_slack_workspace_fail_sdk(self):
+    @patch(
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
+    )
+    def test_update_channel_slack_workspace_saved(self, mock_get_channel_id_with_timeout):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         actions = [
             {
@@ -1095,6 +1098,9 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 {"name": "new_channel_name", "id": "new_channel_id"},
             ],
         }
+        mock_get_channel_id_with_timeout.return_value = SlackChannelIdData(
+            prefix="#", channel_id="new_channel_id", timed_out=False
+        )
 
         with self.mock_conversations_list(channels["channels"]):
             with self.mock_conversations_info(channels["channels"][0]):
@@ -1107,11 +1113,12 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                     "conditions": conditions,
                     "frequency": 30,
                 }
-                self.get_error_response(
+
+                self.get_success_response(
                     self.organization.slug,
                     self.project.slug,
                     self.rule.id,
-                    status_code=400,
+                    status_code=200,
                     **payload,
                 )
 
