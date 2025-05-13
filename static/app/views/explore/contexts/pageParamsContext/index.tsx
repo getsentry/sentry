@@ -63,16 +63,6 @@ interface WritablePageParams {
   visualizes?: BaseVisualize[] | null;
 }
 
-export interface SuggestedQuery {
-  fields: string[];
-  groupBys: string[];
-  mode: Mode;
-  query: string;
-  sortBys: Sort[];
-  title: string;
-  visualizes: BaseVisualize[];
-}
-
 function defaultPageParams(): ReadablePageParams {
   const dataset = defaultDataset();
   const fields = defaultFields();
