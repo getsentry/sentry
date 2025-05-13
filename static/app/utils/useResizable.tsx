@@ -86,26 +86,6 @@ export const useResizable = ({
     }
   }, [ref, initialSize, sizeStorageKey]);
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      setIsHeld(true);
-      e.preventDefault();
-
-      const currentWidth = ref.current
-        ? parseInt(getComputedStyle(ref.current).width, 10)
-        : 0;
-
-      isDraggingRef.current = true;
-      startXRef.current = e.clientX;
-      startWidthRef.current = currentWidth;
-
-      document.body.style.cursor = 'ew-resize';
-      document.body.style.userSelect = 'none';
-      onResizeStart?.();
-    },
-    [ref, onResizeStart]
-  );
-
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!isDraggingRef.current) return;
@@ -132,20 +112,34 @@ export const useResizable = ({
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
     onResizeEnd?.(newSize);
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
     if (sizeStorageKey) {
       localStorage.setItem(sizeStorageKey, newSize.toString());
     }
-  }, [onResizeEnd, ref, sizeStorageKey, initialSize]);
+  }, [handleMouseMove, onResizeEnd, ref, sizeStorageKey, initialSize]);
 
-  useEffect(() => {
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      setIsHeld(true);
+      e.preventDefault();
 
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [handleMouseMove, handleMouseUp]);
+      const currentWidth = ref.current
+        ? parseInt(getComputedStyle(ref.current).width, 10)
+        : 0;
+
+      isDraggingRef.current = true;
+      startXRef.current = e.clientX;
+      startWidthRef.current = currentWidth;
+
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      onResizeStart?.();
+    },
+    [ref, onResizeStart, handleMouseMove, handleMouseUp]
+  );
 
   const onDoubleClick = useCallback(() => {
     if (ref.current) {
