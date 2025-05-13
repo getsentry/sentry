@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from sentry.ownership.grammar import (
+from sentry.issues.ownership.grammar import (
     Matcher,
     Owner,
     Rule,
