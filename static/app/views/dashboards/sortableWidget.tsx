@@ -70,7 +70,7 @@ function SortableWidget(props: Props) {
     if (widgetRef.current) {
       widgetRef.current.scrollIntoView({behavior: 'smooth', block: 'center'});
     }
-  }, [index]);
+  }, [widget.id, widget.tempId]);
 
   const widgetProps: ComponentProps<typeof WidgetCard> = {
     widget,
