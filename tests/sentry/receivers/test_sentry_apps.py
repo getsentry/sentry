@@ -319,7 +319,7 @@ class TestComments(APITestCase):
         )
         comment_data = {
             "comment_id": note.id,
-            "timestamp": note.datetime,
+            "timestamp": note.datetime.isoformat(),
             "comment": "hello world",
             "project_slug": self.project.slug,
         }
@@ -338,7 +338,7 @@ class TestComments(APITestCase):
         self.client.put(url, data=data, format="json")
         data = {
             "comment_id": note.id,
-            "timestamp": note.datetime,
+            "timestamp": note.datetime.isoformat(),
             "comment": "goodbye cruel world",
             "project_slug": self.project.slug,
         }
@@ -356,7 +356,7 @@ class TestComments(APITestCase):
         self.client.delete(url, format="json")
         data = {
             "comment_id": note.id,
-            "timestamp": note.datetime,
+            "timestamp": note.datetime.isoformat(),
             "comment": "hello world",
             "project_slug": self.project.slug,
         }
