@@ -116,15 +116,17 @@ export const useResizable = ({
     (e: MouseEvent) => {
       if (!isDraggingRef.current) return;
 
-      const deltaX = e.clientX - startXRef.current;
-      const newWidth = Math.max(
-        minWidth,
-        Math.min(maxWidth, startWidthRef.current + deltaX)
-      );
+      window.requestAnimationFrame(() => {
+        const deltaX = e.clientX - startXRef.current;
+        const newWidth = Math.max(
+          minWidth,
+          Math.min(maxWidth, startWidthRef.current + deltaX)
+        );
 
-      if (ref.current) {
-        ref.current.style.width = `${newWidth}px`;
-      }
+        if (ref.current) {
+          ref.current.style.width = `${newWidth}px`;
+        }
+      });
     },
     [ref, minWidth, maxWidth]
   );
