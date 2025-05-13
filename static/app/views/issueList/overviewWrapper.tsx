@@ -3,7 +3,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import IssueListContainer from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
-import {useHasIssueViewSharing} from 'sentry/views/nav/usePrefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type OverviewWrapperProps = RouteComponentProps<
   Record<PropertyKey, string | undefined>,
@@ -12,9 +12,9 @@ type OverviewWrapperProps = RouteComponentProps<
 
 export function OverviewWrapper(props: OverviewWrapperProps) {
   const shouldFetchOnMount = !defined(props.location.query.new);
-  const hasIssueViewSharing = useHasIssueViewSharing();
+  const prefersStackedNav = usePrefersStackedNav();
 
-  const title = hasIssueViewSharing ? t('Feed') : t('Issues');
+  const title = prefersStackedNav ? t('Feed') : t('Issues');
 
   return (
     <IssueListContainer title={title}>

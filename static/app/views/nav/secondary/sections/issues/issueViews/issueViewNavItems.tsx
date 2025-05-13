@@ -44,9 +44,7 @@ export function IssueViewNavItems({sectionRef}: IssueViewNavItemsProps) {
       debounce((newViews: NavIssueView[]) => {
         updateStarredViewsOrder({
           orgSlug: organization.slug,
-          viewIds: newViews
-            .filter(view => view.id[0] !== '_' && !view.id.startsWith('default'))
-            .map(view => parseInt(view.id, 10)),
+          viewIds: newViews.map(view => parseInt(view.id, 10)),
         });
       }, 500),
     [organization.slug, updateStarredViewsOrder]
