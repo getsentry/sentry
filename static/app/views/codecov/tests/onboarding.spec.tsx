@@ -1,18 +1,81 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import TestsOnboardingPage from 'sentry/views/codecov/tests/onboarding';
 
-import TestAnalyticsOnboardingPage from 'sentry/views/codecov/tests/onboarding';
-
-const COVERAGE_FEATURE = 'codecov-ui';
-
-describe('TestAnalyticsOnboardingPage', () => {
-  it('renders the placeholder content', () => {
-    render(<TestAnalyticsOnboardingPage />, {
-      organization: OrganizationFixture({features: [COVERAGE_FEATURE]}),
+describe('TestsOnboardingPage', () => {
+  it('renders with GitHub Actions selected by default', () => {
+    render(<TestsOnboardingPage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/codecov/tests/new',
+          query: {opt: ''},
+        },
+      },
     });
 
-    const testContent = screen.getByText('Test Analytics Onboarding');
-    expect(testContent).toBeInTheDocument();
+    const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
+    expect(githubRadio).toBeChecked();
+
+    const cliRadio = screen.getByLabelText(
+      "Use Sentry Prevent's CLI to upload testing reports"
+    );
+    expect(cliRadio).not.toBeChecked();
+  });
+
+  it('renders with CLI selected when opt=cli in URL', () => {
+    render(<TestsOnboardingPage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/codecov/tests/new',
+          query: {opt: 'cli'},
+        },
+      },
+    });
+
+    const cliRadio = screen.getByLabelText(
+      "Use Sentry Prevent's CLI to upload testing reports"
+    );
+    expect(cliRadio).toBeChecked();
+
+    const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
+    expect(githubRadio).not.toBeChecked();
+  });
+
+  it('updates URL when GitHub Actions option is selected', async () => {
+    const {router} = render(<TestsOnboardingPage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/codecov/tests/new',
+          query: {opt: 'cli'},
+        },
+      },
+    });
+
+    const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
+    expect(githubRadio).not.toBeChecked();
+
+    await userEvent.click(githubRadio);
+
+    expect(router.location.search).toBe('?opt=githubAction');
+  });
+
+  it('updates URL when CLI option is selected', async () => {
+    const {router} = render(<TestsOnboardingPage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/codecov/tests/new',
+          query: {opt: ''},
+        },
+      },
+    });
+
+    const cliRadio = screen.getByLabelText(
+      "Use Sentry Prevent's CLI to upload testing reports"
+    );
+    expect(cliRadio).not.toBeChecked();
+
+    await userEvent.click(cliRadio);
+
+    expect(router.location.search).toBe('?opt=cli');
   });
 });

@@ -4,7 +4,6 @@ import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {space} from 'sentry/styles/space';
-import TestsOnboardingPage from 'sentry/views/codecov/tests/onboarding';
 import {Summaries} from 'sentry/views/codecov/tests/summaries/summaries';
 
 const DEFAULT_CODECOV_DATETIME_SELECTION = {
@@ -27,7 +26,6 @@ export default function TestsPage() {
       </PageFiltersContainer>
       {/* TODO: Conditionally show these if the branch we're in is the main branch */}
       <Summaries />
-      <TestsOnboardingPage />
     </LayoutGap>
   );
 }
