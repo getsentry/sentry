@@ -56,7 +56,7 @@ class ActionType(StrEnum):
     GITHUB_ENTERPRISE = "github_enterprise"
     JIRA = "jira"
     JIRA_SERVER = "jira_server"
-    AZURE_DEVOPS = "azure_devops"
+    AZURE_DEVOPS = "vsts"
 
     EMAIL = "email"
     SENTRY_APP = "sentry_app"
