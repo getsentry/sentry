@@ -90,7 +90,7 @@ def create_metric_alert(
     if project:
         data["projects"] = [project.slug]
 
-    serializer = DrfAlertRuleSerializer(
+    validator = DrfAlertRuleSerializer(
         context={
             "organization": organization,
             "access": request.access,
@@ -102,11 +102,11 @@ def create_metric_alert(
         },
         data=data,
     )
-    if not serializer.is_valid():
-        raise ValidationError(serializer.errors)
+    if not validator.is_valid():
+        raise ValidationError(validator.errors)
 
     try:
-        trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        trigger_sentry_app_action_creators_for_incidents(validator.validated_data)
     except SentryAppBaseError as e:
         return e.response_from_exception()
 
@@ -122,7 +122,20 @@ def create_metric_alert(
         find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
         return Response({"uuid": client.uuid}, status=202)
     else:
-        alert_rule = serializer.save()
+        alert_rule = validator.save()
+        if features.has("organizations:workflow-engine-rule-serializers", organization):
+            try:
+                detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+                return Response(
+                    serialize(
+                        detector,
+                        request.user,
+                        WorkflowEngineDetectorSerializer(),
+                    ),
+                    status=status.HTTP_201_CREATED,
+                )
+            except Detector.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
 
