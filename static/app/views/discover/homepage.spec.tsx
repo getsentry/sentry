@@ -247,6 +247,7 @@ describe('Discover > Homepage', () => {
         display: 'previous',
         query: 'event.type:error',
         topEvents: '5',
+        queryDataset: 'error-events',
       },
     });
 
@@ -672,7 +673,7 @@ describe('Discover > Homepage', () => {
         display: 'previous',
         query: 'event.type:error',
         topEvents: '5',
-        queryDataset: 'discover',
+        queryDataset: 'error-events',
       },
     });
 

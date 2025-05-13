@@ -79,6 +79,7 @@ describe('Incident Rules Create', () => {
           statsPeriod: '9998m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
+          dataset: 'errors',
         },
       })
     );
@@ -91,6 +92,7 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '9998m',
           environment: [],
+          dataset: 'errors',
         },
       })
     );
@@ -134,6 +136,7 @@ describe('Incident Rules Create', () => {
           statsPeriod: '9998m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
+          dataset: 'errors',
         },
       })
     );
@@ -146,6 +149,7 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '9998m',
           environment: [],
+          dataset: 'errors',
         },
       })
     );
