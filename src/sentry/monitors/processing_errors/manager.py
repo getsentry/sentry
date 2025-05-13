@@ -98,9 +98,7 @@ def _delete_for_entity(entity_identifier: str, uuid: uuid.UUID) -> None:
     pipeline.execute()
 
 
-def _delete_for_entity_by_type(
-    entity_identifier: str, type: ProcessingErrorType, monitor: Monitor | None = None
-) -> None:
+def _delete_for_entity_by_type(entity_identifier: str, type: ProcessingErrorType) -> None:
     checkin_errors = _get_for_entities([entity_identifier])
     redis = _get_cluster()
     pipeline = redis.pipeline()
@@ -108,18 +106,22 @@ def _delete_for_entity_by_type(
         errors = checkin_error.errors
         if not any(error["type"] == type for error in errors):
             continue
-        # If the processing error holds more than one type of error, re-store the filtered version
-        # with the target error type removed
-        if len(errors) > 1:
-            filtered_errors = list(filter(lambda error: error["type"] != type, errors))
-            new_checkin_error = CheckinProcessingError(filtered_errors, checkin_error.checkin)
-            store_error(new_checkin_error, monitor)
 
-        pipeline.zrem(build_set_identifier(entity_identifier), checkin_error.id.hex)
-        pipeline.delete(build_error_identifier(checkin_error.id))
+        # If the processing error only holds this one type of error, remove the whole error
+        if len(errors) == 1:
+            pipeline.zrem(build_set_identifier(entity_identifier), checkin_error.id.hex)
+            pipeline.delete(build_error_identifier(checkin_error.id))
+        # If the processing error has other errors, filter out the matching error and update the redis value
+        else:
+            filtered_errors = list(filter(lambda error: error["type"] != type, errors))
+            new_checkin_error = CheckinProcessingError(
+                filtered_errors, checkin_error.checkin, id=checkin_error.id
+            )
+            new_serialized_checkin_error = json.dumps(new_checkin_error.to_dict())
+            error_key = build_error_identifier(checkin_error.id)
+            pipeline.set(error_key, new_serialized_checkin_error, ex=MONITOR_ERRORS_LIFETIME)
 
     pipeline.execute()
-    checkin_errors = _get_for_entities([entity_identifier])
 
 
 def store_error(error: CheckinProcessingError, monitor: Monitor | None):
@@ -161,7 +163,7 @@ def delete_error(project: Project, uuid: uuid.UUID):
 
 
 def delete_errors_for_monitor_by_type(monitor: Monitor, type: ProcessingErrorType):
-    _delete_for_entity_by_type(build_monitor_identifier(monitor), type, monitor)
+    _delete_for_entity_by_type(build_monitor_identifier(monitor), type)
 
 
 def delete_errors_for_project_by_type(project: Project, type: ProcessingErrorType):
