@@ -176,6 +176,7 @@ for (const locale of supportedLocales) {
 
 const appConfig: Configuration = {
   mode: WEBPACK_MODE,
+  target: 'browserslist',
   entry: {
     /**
      * Main Sentry SPA
