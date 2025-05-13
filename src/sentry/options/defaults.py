@@ -3343,3 +3343,5 @@ register(
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+register("process_service_hook.payload.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)

@@ -882,6 +882,8 @@ export interface BaseGroup {
   latestEventHasAttachments?: boolean;
   openPeriods?: GroupOpenPeriod[] | null;
   owners?: SuggestedOwner[] | null;
+  seerAutofixLastTriggered?: string | null;
+  seerFixabilityScore?: number | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
 }
