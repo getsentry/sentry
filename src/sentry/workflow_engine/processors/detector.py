@@ -72,7 +72,8 @@ def process_detectors(
                 logger.info(
                     "detector_triggered",
                     extra={
-                        "detector": detector,
+                        "detector": detector.id,
+                        "detector_type": detector.type,
                         "evaluation_data": data_packet.packet,
                         "result": result,
                     },
