@@ -16,6 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame as ProfilingFrame} from 'sentry/utils/profiling/frame';
@@ -258,6 +259,10 @@ export function SpanProfileDetails({
               disabled={!hasPrevious}
               onClick={() => {
                 setIndex(prevIndex => prevIndex - 1);
+                trackAnalytics('profiling_views.trace.profile_context.pagination', {
+                  organization,
+                  direction: 'Previous',
+                });
               }}
             />
             <Button
@@ -267,6 +272,10 @@ export function SpanProfileDetails({
               disabled={!hasNext}
               onClick={() => {
                 setIndex(prevIndex => prevIndex + 1);
+                trackAnalytics('profiling_views.trace.profile_context.pagination', {
+                  organization,
+                  direction: 'Next',
+                });
               }}
             />
           </ButtonBar>

@@ -51,14 +51,16 @@ def run_table_query(
     debug: bool = False,
 ) -> EAPResponse:
     return rpc_dataset_common.run_table_query(
-        query_string,
-        selected_columns,
-        orderby,
-        offset,
-        limit,
-        referrer,
-        sampling_mode,
-        search_resolver or get_resolver(params, config),
+        rpc_dataset_common.TableQuery(
+            query_string=query_string,
+            selected_columns=selected_columns,
+            orderby=orderby,
+            offset=offset,
+            limit=limit,
+            referrer=referrer,
+            sampling_mode=sampling_mode,
+            resolver=search_resolver or get_resolver(params, config),
+        ),
         debug,
     )
 
@@ -362,6 +364,7 @@ def run_trace_query(
         "span.op",
         "is_transaction",
         "transaction.span_id",
+        "transaction.event_id",
         "transaction",
         "precise.start_ts",
         "precise.finish_ts",
@@ -381,7 +384,7 @@ def run_trace_query(
         "ttfb",
     }:
         trace_attributes.append(f"measurements.{key}")
-        trace_attributes.append(f"measurements.score.{key}")
+        trace_attributes.append(f"measurements.score.ratio.{key}")
     resolver = get_resolver(params=params, config=SearchResolverConfig())
     columns, _ = resolver.resolve_attributes(trace_attributes)
     meta = resolver.resolve_meta(referrer=referrer)

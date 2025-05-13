@@ -227,7 +227,7 @@ function SearchButton({
   return (
     <StyledLinkButton
       {...props}
-      size="zero"
+      size="md"
       to={{
         pathname,
         query: {
@@ -329,7 +329,7 @@ const LoadingContainer = styled(ContentContainer)`
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
-  height: 34px;
+  height: ${p => (p.theme.isChonk ? '39px' : '34px')};
 `;
 
 const EmptyHeader = styled(Flex)`

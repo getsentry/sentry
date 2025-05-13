@@ -2,6 +2,7 @@ import type {LocationDescriptor} from 'history';
 
 import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
 import type {TitledPlugin} from 'sentry/components/group/pluginActions';
+import {t} from 'sentry/locale';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -95,16 +96,28 @@ export enum IssueCategory {
 
   // New issue categories (under the issue-taxonomy flag)
   OUTAGE = 'outage',
-  PERFORMANCE_REGRESSION = 'performance_regression',
-  USER_EXPERIENCE = 'user_experience',
-  RESPONSIVENESS = 'responsiveness',
-  PERFORMANCE_BEST_PRACTICE = 'performance_best_practice',
-
+  METRIC = 'metric',
   FRONTEND = 'frontend',
   HTTP_CLIENT = 'http_client',
   DB_QUERY = 'db_query',
   MOBILE = 'mobile',
 }
+
+export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
+  [IssueCategory.ERROR]: t('Runtime errors or exceptions.'),
+  [IssueCategory.OUTAGE]: t('Uptime or cron monitoring issues.'),
+  [IssueCategory.METRIC]: t('Performance regressions or metric threshold violations.'),
+  [IssueCategory.FRONTEND]: t('Frontend performance or usability issues.'),
+  [IssueCategory.HTTP_CLIENT]: t('Inefficient or problematic outgoing HTTP requests.'),
+  [IssueCategory.DB_QUERY]: t('Inefficient or problematic database queries.'),
+  [IssueCategory.MOBILE]: t('Mobile performance or usability issues.'),
+  [IssueCategory.FEEDBACK]: t('Feedback submitted directly by users.'),
+  [IssueCategory.METRIC_ALERT]: '',
+  [IssueCategory.PERFORMANCE]: '',
+  [IssueCategory.CRON]: '',
+  [IssueCategory.REPLAY]: '',
+  [IssueCategory.UPTIME]: '',
+};
 
 export enum IssueType {
   // Error
@@ -826,6 +839,12 @@ export const enum PriorityLevel {
   LOW = 'low',
 }
 
+export const enum FixabilityScoreThresholds {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -869,6 +888,8 @@ export interface BaseGroup {
   latestEventHasAttachments?: boolean;
   openPeriods?: GroupOpenPeriod[] | null;
   owners?: SuggestedOwner[] | null;
+  seerAutofixLastTriggered?: string | null;
+  seerFixabilityScore?: number | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
 }

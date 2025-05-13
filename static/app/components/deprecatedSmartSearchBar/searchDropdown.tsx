@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -536,13 +537,13 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
   margin-bottom: 0;
   ${p => {
     if (p.maxMenuHeight !== undefined) {
-      return `
+      return css`
         max-height: ${p.maxMenuHeight}px;
         overflow-y: scroll;
       `;
     }
 
-    return `
+    return css`
       height: auto;
     `;
   }}
@@ -558,7 +559,7 @@ const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
 
   ${p => {
     if (!p.isDisabled) {
-      return `
+      return css`
         cursor: pointer;
 
         &:hover,

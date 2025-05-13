@@ -12,10 +12,13 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import EditConnectedMonitors from 'sentry/views/automations/components/editConnectedMonitors';
 import NewAutomationLayout from 'sentry/views/automations/layouts/new';
+import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 
 export default function AutomationNew() {
+  const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
 
   return (
@@ -33,7 +36,10 @@ export default function AutomationNew() {
       <StyledStickyFooter>
         <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
-          <LinkButton priority="default" to="/issues/automations">
+          <LinkButton
+            priority="default"
+            to={makeAutomationBasePathname(organization.slug)}
+          >
             {t('Cancel')}
           </LinkButton>
           <LinkButton priority="primary" to="settings">

@@ -58,7 +58,6 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
   const handleGoToTransaction = useCallback(() => {
     trackAnalytics('profiling_views.go_to_transaction', {
       organization,
-      source: 'transaction_details',
     });
   }, [organization]);
 

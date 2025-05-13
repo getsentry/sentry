@@ -151,6 +151,7 @@ function useSpanSearchQueryBuilderProps({
     disallowUnsupportedFilters: true,
     recentSearches: SavedSearchType.SPAN,
     showUnsubmittedIndicator: true,
+    searchOnChange: organization.features.includes('ui-search-on-change'),
   };
 }
 
@@ -179,6 +180,7 @@ export function SpanSearchQueryBuilder({
 export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
+  autoFocus?: boolean;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   onChange?: (query: string, state: CallbackSearchState) => void;
   portalTarget?: HTMLElement | null;

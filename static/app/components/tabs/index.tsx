@@ -1,4 +1,5 @@
 import {createContext, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
@@ -45,7 +46,7 @@ export interface TabsProps<T>
   value?: T;
 }
 
-export interface TabContext {
+interface TabContext {
   rootProps: Omit<TabsProps<any>, 'children' | 'className'>;
   setTabListState: (state: TabListState<any>) => void;
   tabListState?: TabListState<any>;
@@ -104,7 +105,7 @@ const TabsWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
 
   ${p =>
     p.orientation === 'vertical' &&
-    `
+    css`
       height: 100%;
       align-items: stretch;
     `};

@@ -17,9 +17,11 @@ import {IconArrow, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
+import useOrganization from 'sentry/utils/useOrganization';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import DetailsPanel from 'sentry/views/detectors/components/detailsPanel';
 import IssuesList from 'sentry/views/detectors/components/issuesList';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 type Priority = {
   sensitivity: string;
@@ -32,11 +34,14 @@ const priorities: Priority[] = [
 ];
 
 export default function DetectorDetail() {
+  const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
 
   return (
     <SentryDocumentTitle title={'/endpoint'} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/issues/monitors'}}>
+      <BreadcrumbsProvider
+        crumb={{label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)}}
+      >
         <ActionsProvider actions={<Actions />}>
           <DetailLayout project={{slug: 'project-slug', platform: 'javascript-astro'}}>
             <DetailLayout.Main>
@@ -46,7 +51,7 @@ export default function DetectorDetail() {
                 <IssuesList />
               </Section>
               <Section title={t('Connected Automations')}>
-                <ConnectedAutomationsList />
+                <ConnectedAutomationsList automations={[]} />
               </Section>
             </DetailLayout.Main>
             <DetailLayout.Sidebar>

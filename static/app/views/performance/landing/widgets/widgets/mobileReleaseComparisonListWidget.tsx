@@ -32,6 +32,8 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/uti
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import type {TabKey} from 'sentry/views/insights/mobile/screens/views/screenDetailsPage';
+import {ModuleName} from 'sentry/views/insights/types';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import {
@@ -347,17 +349,16 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
     PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
     PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START,
   ].includes(props.chartSetting);
-  const targetModulePath = isAppStartup
-    ? moduleURLBuilder('app_start')
-    : moduleURLBuilder('screen_load');
+  const targetModulePath = moduleURLBuilder(ModuleName.MOBILE_VITALS);
   const targetQueryParams = isAppStartup
     ? {
+        tab: 'app_start' satisfies TabKey,
         app_start_type:
           props.chartSetting === PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START
             ? 'cold'
             : 'warm',
       }
-    : {};
+    : {tab: 'screen_load' satisfies TabKey};
   const getItems = (provided: ComponentData) =>
     provided.widgetData.list.data.map((listItem, i) => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
@@ -366,7 +367,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         <Fragment key={i}>
           <GrowLink
             to={{
-              pathname: `${targetModulePath}/spans/`,
+              pathname: `${targetModulePath}/details/`,
               query: {
                 project: listItem['project.id'],
                 transaction,

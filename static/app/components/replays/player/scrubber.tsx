@@ -258,7 +258,7 @@ export const PlayerScrubber = styled(Scrubber)`
      *      MouseTrackingValue @ 10s
      */
     :after {
-      background: ${p => p.theme.gray300};
+      background: ${p => p.theme.gray400};
     }
   }
 

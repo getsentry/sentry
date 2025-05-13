@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {IntegrationReposAddRepository} from './integrationReposAddRepository';
@@ -30,6 +31,7 @@ function IntegrationRepos(props: Props) {
 
   const {integration} = props;
   const organization = useOrganization();
+  const location = useLocation();
   const ENDPOINT = `/organizations/${organization.slug}/repos/`;
 
   const {
@@ -39,7 +41,16 @@ function IntegrationRepos(props: Props) {
     refetch,
     getResponseHeader,
   } = useApiQuery<Repository[]>(
-    [ENDPOINT, {query: {status: 'active', integration_id: integration.id}}],
+    [
+      ENDPOINT,
+      {
+        query: {
+          status: 'active',
+          integration_id: integration.id,
+          cursor: location.query.cursor,
+        },
+      },
+    ],
     {
       staleTime: 0,
     }

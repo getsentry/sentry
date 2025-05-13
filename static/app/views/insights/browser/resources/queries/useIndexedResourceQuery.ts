@@ -1,6 +1,10 @@
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {
+  useEAPSpans,
+  useSpansIndexed,
+} from 'sentry/views/insights/common/queries/useDiscover';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {SpanFields, SpanIndexedField} from 'sentry/views/insights/types';
 
 type Options = {
   referrer: string;
@@ -17,10 +21,29 @@ export const useIndexedResourcesQuery = ({
   referrer,
   enabled = true,
 }: Options) => {
-  return useSpansIndexed(
+  const useEap = useInsightsEap();
+
+  const eapResult = useEAPSpans(
     {
       fields: [
-        `any(id)`,
+        SpanFields.PROJECT,
+        SpanFields.SPAN_GROUP,
+        SpanFields.RAW_DOMAIN,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH,
+      ],
+      limit,
+      sorts,
+      search: queryConditions.join(' '),
+      enabled: enabled && useEap,
+    },
+    referrer
+  );
+
+  const spanIndexedResult = useSpansIndexed(
+    {
+      fields: [
+        'any(id)',
         SpanIndexedField.PROJECT,
         SpanIndexedField.SPAN_GROUP,
         SpanIndexedField.RAW_DOMAIN,
@@ -30,8 +53,10 @@ export const useIndexedResourcesQuery = ({
       limit,
       sorts,
       search: queryConditions.join(' '),
-      enabled,
+      enabled: enabled && !useEap,
     },
     referrer
   );
+
+  return useEap ? eapResult : spanIndexedResult;
 };

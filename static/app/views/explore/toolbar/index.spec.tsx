@@ -18,7 +18,6 @@ import {
   useExploreFields,
   useExploreGroupBys,
   useExploreMode,
-  useExplorePageParams,
   useExploreSortBys,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -31,7 +30,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', function () {
   const organization = OrganizationFixture({
-    features: ['alerts-eap', 'dashboards-eap', 'dashboards-edit', 'explore-multi-query'],
+    features: ['dashboards-edit'],
   });
 
   beforeEach(function () {
@@ -206,31 +205,16 @@ describe('ExploreToolbar', function () {
       'span.self_time',
     ]);
 
-    // try adding an overlay
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
-    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'avg(span.duration)'], 'A'),
-    ]);
-
     // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'avg(span.duration)'], 'A'),
-      new Visualize(['count(span.duration)'], 'B'),
-    ]);
-
-    // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.duration)'], 'A'),
+      new Visualize(['avg(span.self_time)'], 'A'),
       new Visualize(['count(span.duration)'], 'B'),
     ]);
 
     // delete second chart
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
-    expect(visualizes).toEqual([new Visualize(['avg(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
 
     // only one left so we hide the delete button
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
@@ -267,10 +251,8 @@ describe('ExploreToolbar', function () {
       'timestamp',
     ]); // default
 
-    let input: HTMLElement;
-
     // try changing the field
-    input = within(section).getByRole('combobox', {
+    const input = within(section).getByRole('combobox', {
       name: 'Select an attribute',
     });
     await userEvent.click(input);
@@ -297,39 +279,16 @@ describe('ExploreToolbar', function () {
 
     expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
 
-    // try adding an overlay
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
-    input = within(section)
-      .getAllByRole('combobox', {
-        name: 'Select an attribute',
-      })
-      .at(-1)!;
-    await userEvent.click(input);
-    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    await userEvent.keyboard('{Escape}');
-    await userEvent.click(within(section).getByText('Visualize'));
-
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'count(span.self_time)'], 'A'),
-    ]);
-
     // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'count(span.self_time)'], 'A'),
-      new Visualize(['count(span.duration)'], 'B'),
-    ]);
-
-    // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
-    expect(visualizes).toEqual([
-      new Visualize(['count(span.self_time)'], 'A'),
+      new Visualize(['avg(span.self_time)'], 'A'),
       new Visualize(['count(span.duration)'], 'B'),
     ]);
 
     // delete second chart
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
-    expect(visualizes).toEqual([new Visualize(['count(span.self_time)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
 
     // only one left so cant be deleted
     expect(within(section).getByLabelText('Remove Overlay')).toBeDisabled();
@@ -499,45 +458,6 @@ describe('ExploreToolbar', function () {
     expect(sortBys).toEqual([{field: 'span.op', kind: 'asc'}]);
   });
 
-  it('takes you to suggested query', async function () {
-    let pageParams: any;
-    function Component() {
-      pageParams = useExplorePageParams();
-      return <ExploreToolbar />;
-    }
-    render(
-      <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <Component />
-        </SpanTagsProvider>
-      </PageParamsProvider>
-    );
-
-    const section = screen.getByTestId('section-suggested-queries');
-
-    await userEvent.click(within(section).getByText('Slowest Ops'));
-    expect(pageParams).toEqual(
-      expect.objectContaining({
-        fields: [
-          'id',
-          'project',
-          'span.op',
-          'span.description',
-          'span.duration',
-          'timestamp',
-        ],
-        groupBys: ['span.op'],
-        mode: Mode.AGGREGATE,
-        query: '',
-        sortBys: [{field: 'avg(span.duration)', kind: 'desc'}],
-        visualizes: [
-          new Visualize(['avg(span.duration)'], 'A'),
-          new Visualize(['p50(span.duration)'], 'B'),
-        ],
-      })
-    );
-  });
-
   it('opens compare queries', async function () {
     const router = RouterFixture({
       location: {
@@ -661,41 +581,13 @@ describe('ExploreToolbar', function () {
                 aggregates: ['count(span.duration)'],
                 columns: [],
                 conditions: '',
-                fields: ['count(span.duration)'],
+                fields: [],
                 name: '',
-                orderby: '-timestamp',
+                orderby: '',
               },
             ],
             title: 'Custom Widget',
             widgetType: 'spans',
-          }),
-          widgetAsQueryParams: expect.objectContaining({
-            dataset: 'spans',
-            defaultTableColumns: [
-              'id',
-              'span.op',
-              'span.description',
-              'span.duration',
-              'transaction',
-              'timestamp',
-            ],
-            defaultTitle: 'Custom Widget',
-            defaultWidgetQuery:
-              'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-timestamp',
-            displayType: 'bar',
-            end: undefined,
-            field: [
-              'id',
-              'span.op',
-              'span.description',
-              'span.duration',
-              'transaction',
-              'timestamp',
-            ],
-            limit: undefined,
-            source: 'traceExplorer',
-            start: undefined,
-            statsPeriod: '14d',
           }),
         })
       );

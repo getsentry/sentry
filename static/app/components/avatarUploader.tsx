@@ -417,7 +417,7 @@ class AvatarUploader extends Component<Props, State> {
     return (
       <Fragment>
         {!src && uploader}
-        {src && <HiddenCanvas ref={this.canvas} />}
+        {src && <HiddenCanvas ref={this.canvas} className="sentry-block" />}
         {this.renderImageCrop()}
         <div className="form-group">
           {src && (

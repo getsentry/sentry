@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -22,11 +23,11 @@ export const PerformanceLayoutBodyRow = styled('div')<{
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     ${p =>
       p.columns
-        ? `
-    grid-template-columns: repeat(${p.columns}, 1fr);
-    `
-        : `
-    grid-template-columns: repeat(auto-fit, minmax(${p.minSize}px, 1fr));
-    `}
+        ? css`
+            grid-template-columns: repeat(${p.columns}, 1fr);
+          `
+        : css`
+            grid-template-columns: repeat(auto-fit, minmax(${p.minSize}px, 1fr));
+          `}
   }
 `;

@@ -119,7 +119,7 @@ describe('EventSamplesTable', function () {
   it('uses the profile ID key to get the profile ID from the data payload and display an icon button', async function () {
     mockQuery = {
       name: '',
-      fields: ['profile.id', 'project.name'], // Project name is required to form the profile target
+      fields: ['profile.id', 'project'], // Project name is required to form the profile target
       query: '',
       version: 2,
     };
@@ -139,8 +139,8 @@ describe('EventSamplesTable', function () {
         }}
         sortKey=""
         data={{
-          data: [{id: '1', 'profile.id': 'abc', 'project.name': 'project'}],
-          meta: {fields: {'profile.id': 'string', 'project.name': 'string'}},
+          data: [{id: '1', 'profile.id': 'abc', project: 'project'}],
+          meta: {fields: {'profile.id': 'string', project: 'string'}},
         }}
       />,
       {router: mockRouter, deprecatedRouterMocks: true}

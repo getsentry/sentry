@@ -6,6 +6,9 @@ from typing import Any, Literal, cast
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
@@ -586,8 +589,11 @@ class SearchResolver:
         self, term: event_search.AggregateFilter
     ) -> tuple[AggregationFilter, VirtualColumnDefinition | None]:
         resolved_column, context = self.resolve_column(term.key.name)
+        proto_definition = resolved_column.proto_definition
 
-        if not isinstance(resolved_column.proto_definition, AttributeAggregation):
+        if not isinstance(
+            proto_definition, (AttributeAggregation, AttributeConditionalAggregation)
+        ):
             raise ValueError(f"{term.key.name} is not valid search term")
 
         # TODO: Handle different units properly
@@ -598,13 +604,16 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
+        kwargs = {"op": operator, "val": value}
+        aggregation_key = (
+            "conditional_aggregation"
+            if isinstance(proto_definition, AttributeConditionalAggregation)
+            else "aggregation"
+        )
+        kwargs[aggregation_key] = proto_definition
         return (
             AggregationFilter(
-                comparison_filter=AggregationComparisonFilter(
-                    aggregation=resolved_column.proto_definition,
-                    op=operator,
-                    val=value,
-                ),
+                comparison_filter=AggregationComparisonFilter(**kwargs),
             ),
             context,
         )
@@ -666,6 +675,8 @@ class SearchResolver:
                         )
                     bool_value = lowered_value in constants.TRUTHY_VALUES
                     return AttributeValue(val_bool=bool_value)
+                elif isinstance(value, bool):
+                    return AttributeValue(val_bool=value)
             raise InvalidSearchQuery(
                 f"{value} is not a valid filter value for {column.public_alias}, expecting {constants.TYPE_TO_STRING_MAP[column_type]}, but got a {type(value)}"
             )
@@ -790,7 +801,8 @@ class SearchResolver:
                 field_type = "string"
             else:
                 field_type = None
-            field = tag_match.group("tag") if tag_match else column
+            # make sure to remove surrounding quotes if it's a tag
+            field = tag_match.group("tag").strip('"') if tag_match else column
             if field is None:
                 raise InvalidSearchQuery(f"Could not parse {column}")
             # Assume string if a type isn't passed. eg. tags[foo]

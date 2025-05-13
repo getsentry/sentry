@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import logging
 import re
 from collections import defaultdict
@@ -171,9 +172,7 @@ ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
         ),
     ),
 )
-def uploading_start(
-    uuid: UUID | str, replying_region_name: str | None, org_slug: str | None
-) -> None:
+def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str | None) -> None:
     """
     The very first action in the relocation pipeline. In the case of a `SAAS_TO_SAAS` relocation, it
     will trigger the export of the requested organization from the region it currently live in. If
@@ -344,7 +343,7 @@ def fulfill_cross_region_export_request(
     requesting_region_name: str,
     replying_region_name: str,
     org_slug: str,
-    encrypt_with_public_key: bytes,
+    encrypt_with_public_key: str,
     # Unix timestamp, in seconds.
     scheduled_at: int,
 ) -> None:
@@ -357,6 +356,7 @@ def fulfill_cross_region_export_request(
     call is received with the encrypted export in tow, it will trigger the next step in the
     `SAAS_TO_SAAS` relocation's pipeline, namely `uploading_complete`.
     """
+    encrypt_with_public_key_bytes = base64.b64decode(encrypt_with_public_key.encode("utf8"))
 
     logger_data = {
         "uuid": uuid_str,
@@ -364,7 +364,7 @@ def fulfill_cross_region_export_request(
         "requesting_region_name": requesting_region_name,
         "replying_region_name": replying_region_name,
         "org_slug": org_slug,
-        "encrypted_public_key_size": len(encrypt_with_public_key),
+        "encrypted_public_key_size": len(encrypt_with_public_key_bytes),
         "scheduled_at": scheduled_at,
     }
     logger.info(
@@ -396,7 +396,7 @@ def fulfill_cross_region_export_request(
 
     export_in_organization_scope(
         fp,
-        encryptor=LocalFileEncryptor(BytesIO(encrypt_with_public_key)),
+        encryptor=LocalFileEncryptor(BytesIO(encrypt_with_public_key_bytes)),
         org_filter={org_slug},
         printer=LoggingPrinter(uuid_str),
         checkpointer=StorageBackedCheckpointExporter(
@@ -457,9 +457,7 @@ def fulfill_cross_region_export_request(
         ),
     ),
 )
-def cross_region_export_timeout_check(
-    uuid: UUID | str,
-) -> None:
+def cross_region_export_timeout_check(uuid: str) -> None:
     """
     Not part of the primary `OrderedTask` queue. This task is only used to ensure that cross-region
     export requests don't hang indefinitely.
@@ -522,7 +520,7 @@ def cross_region_export_timeout_check(
         ),
     ),
 )
-def uploading_complete(uuid: UUID | str) -> None:
+def uploading_complete(uuid: str) -> None:
     """
     Just check to ensure that uploading the (potentially very large!) backup file has completed
     before we try to do all sorts of fun stuff with it.
@@ -576,7 +574,7 @@ def uploading_complete(uuid: UUID | str) -> None:
         ),
     ),
 )
-def preprocessing_scan(uuid: UUID | str) -> None:
+def preprocessing_scan(uuid: str) -> None:
     """
     Performs the very first part of the `PREPROCESSING` step of a `Relocation`, which involves
     decrypting the user-supplied tarball and picking out some useful information for it. This let's
@@ -757,7 +755,7 @@ def preprocessing_scan(uuid: UUID | str) -> None:
         ),
     ),
 )
-def preprocessing_transfer(uuid: UUID | str) -> None:
+def preprocessing_transfer(uuid: str) -> None:
     """
     We currently have the user's relocation data stored in the main filestore bucket, but we need to
     move it to the relocation bucket. This task handles that transfer.
@@ -852,7 +850,7 @@ def preprocessing_transfer(uuid: UUID | str) -> None:
         ),
     ),
 )
-def preprocessing_baseline_config(uuid: UUID | str) -> None:
+def preprocessing_baseline_config(uuid: str) -> None:
     """
     Pulls down the global config data we'll need to check for collisions and global data integrity.
 
@@ -910,7 +908,7 @@ def preprocessing_baseline_config(uuid: UUID | str) -> None:
         ),
     ),
 )
-def preprocessing_colliding_users(uuid: UUID | str) -> None:
+def preprocessing_colliding_users(uuid: str) -> None:
     """
     Pulls down any already existing users whose usernames match those found in the import - we'll
     need to validate that none of these are mutated during import.
@@ -966,7 +964,7 @@ def preprocessing_colliding_users(uuid: UUID | str) -> None:
         ),
     ),
 )
-def preprocessing_complete(uuid: UUID | str) -> None:
+def preprocessing_complete(uuid: str) -> None:
     """
     This task ensures that every file CloudBuild will need to do its work is actually present and
     available. Even if we've "finished" our uploads from the previous step, they may still not (yet)
@@ -1190,7 +1188,7 @@ def _update_relocation_validation_attempt(
         ),
     ),
 )
-def validating_start(uuid: UUID | str) -> None:
+def validating_start(uuid: str) -> None:
     """
     Calls into Google CloudBuild and kicks off a validation run.
 
@@ -1274,7 +1272,7 @@ def validating_start(uuid: UUID | str) -> None:
         retry=Retry(times=MAX_VALIDATION_POLLS, on=(Exception,), times_exceeded=LastAction.Discard),
     ),
 )
-def validating_poll(uuid: UUID | str, build_id: str) -> None:
+def validating_poll(uuid: str, build_id: str) -> None:
     """
     Checks the progress of a Google CloudBuild validation run.
 
@@ -1379,7 +1377,7 @@ def validating_poll(uuid: UUID | str, build_id: str) -> None:
         ),
     ),
 )
-def validating_complete(uuid: UUID | str, build_id: str) -> None:
+def validating_complete(uuid: str, build_id: str) -> None:
     """
     Wraps up a validation run, and reports on what we found. If this task is being called, the
     CloudBuild run as completed successfully, so we just need to figure out if there were any
@@ -1474,7 +1472,7 @@ def validating_complete(uuid: UUID | str, build_id: str) -> None:
         ),
     ),
 )
-def importing(uuid: UUID | str) -> None:
+def importing(uuid: str) -> None:
     """
     Perform the import on the actual live instance we are targeting.
 
@@ -1543,7 +1541,7 @@ def importing(uuid: UUID | str) -> None:
         ),
     ),
 )
-def postprocessing(uuid: UUID | str) -> None:
+def postprocessing(uuid: str) -> None:
     """
     Make the owner of this relocation an owner of all of the organizations we just imported.
     """
@@ -1641,7 +1639,7 @@ def postprocessing(uuid: UUID | str) -> None:
         ),
     ),
 )
-def notifying_unhide(uuid: UUID | str) -> None:
+def notifying_unhide(uuid: str) -> None:
     """
     Un-hide the just-imported organizations, making them visible to users in the UI.
     """
@@ -1694,7 +1692,7 @@ def notifying_unhide(uuid: UUID | str) -> None:
         ),
     ),
 )
-def notifying_users(uuid: UUID | str) -> None:
+def notifying_users(uuid: str) -> None:
     """
     Send an email to all users that have been imported, telling them to claim their accounts.
     """
@@ -1774,7 +1772,7 @@ def notifying_users(uuid: UUID | str) -> None:
         ),
     ),
 )
-def notifying_owner(uuid: UUID | str) -> None:
+def notifying_owner(uuid: str) -> None:
     """
     Send an email to the creator and owner, telling them that their relocation was successful.
     """
@@ -1828,7 +1826,7 @@ def notifying_owner(uuid: UUID | str) -> None:
         ),
     ),
 )
-def completed(uuid: UUID | str) -> None:
+def completed(uuid: str) -> None:
     """
     Finish up a relocation by marking it a success.
     """

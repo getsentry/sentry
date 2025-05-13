@@ -184,7 +184,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
                 aggregates: ['count()', 'failure_count()'],
                 columns: [],
                 conditions: 'event.type:error',
-                fields: ['count()', 'failure_count()'],
+                fields: [],
                 name: '',
                 orderby: '-count()',
               },
@@ -192,19 +192,6 @@ describe('Discover > SaveQueryButtonGroup', function () {
             title: 'Errors by Title',
             widgetType: WidgetType.ERRORS,
           },
-          widgetAsQueryParams: expect.objectContaining({
-            dataset: WidgetType.ERRORS,
-            defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'project'],
-            defaultTitle: 'Errors by Title',
-            defaultWidgetQuery:
-              'name=&aggregates=count()%2Cfailure_count()&columns=&fields=count()%2Cfailure_count()&conditions=event.type%3Aerror&orderby=-count()',
-            displayType: 'area',
-            end: undefined,
-            limit: undefined,
-            source: 'discoverv2',
-            start: undefined,
-            statsPeriod: '24h',
-          }),
         })
       );
     });

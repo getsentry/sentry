@@ -41,6 +41,7 @@ const {
 const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
   `avg(${SPAN_DURATION})`,
+  `sum(${SPAN_DURATION})`,
   `sum(${SPAN_SELF_TIME})`,
   `p95(${SPAN_SELF_TIME})`,
   `p75(transaction.duration)`,
@@ -85,6 +86,9 @@ const SORTABLE_FIELDS = new Set([
   'p95_if(span.duration,is_transaction,true)',
   'failure_rate_if(is_transaction,true)',
   'sum_if(span.duration,is_transaction,true)',
+  'p75(measurements.frames_slow_rate)',
+  'p75(measurements.frames_frozen_rate)',
+  'trace_status_rate(ok)',
 ]);
 
 const NUMERIC_FIELDS = new Set([

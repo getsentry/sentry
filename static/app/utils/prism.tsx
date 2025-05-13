@@ -47,6 +47,7 @@ const EXTRA_LANGUAGE_ALIASES: Record<string, string> = {
   jbuilder: 'ruby',
   ru: 'ruby',
   rake: 'ruby',
+  rabl: 'ruby',
 
   // JS
   cjs: 'javascript',
@@ -56,11 +57,26 @@ const EXTRA_LANGUAGE_ALIASES: Record<string, string> = {
   vue: 'javascript',
   svelte: 'javascript',
   'js?': 'javascript',
+  'ts?': 'typescript',
+  'tsx?': 'tsx',
+  mts: 'typescript',
 
   // Clojure
   clj: 'clojure',
   cljc: 'clojure',
   cljs: 'clojure',
+
+  // Php
+  php5: 'php',
+  phtml: 'php',
+
+  // Various
+  // Flutter ARB file .arb is a JSON file
+  arb: 'json',
+  ps1: 'powershell',
+  jinja: 'jinja2',
+  // Godot Script - e.g: "file": "res://script_with_errors.gd"
+  gd: 'gdscript',
 };
 
 export const getPrismLanguage = (lang: string) => {

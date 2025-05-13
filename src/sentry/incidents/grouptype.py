@@ -18,7 +18,7 @@ from sentry.workflow_engine.handlers.detector import (
 )
 from sentry.workflow_engine.handlers.detector.base import EvidenceData
 from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorSettings
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorSettings
 
 COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
 COMPARISON_DELTA_CHOICES.append(None)
@@ -29,9 +29,11 @@ class MetricIssueEvidenceData(EvidenceData):
     alert_id: int
 
 
-class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscriptionUpdate]):
-    def build_occurrence_and_event_data(
-        self, group_key: DetectorGroupKey, new_status: PriorityLevel
+class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscriptionUpdate, int]):
+    def create_occurrence(
+        self,
+        value: int,
+        priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         # Returning a placeholder for now, this may require us passing more info
         occurrence = DetectorOccurrence(
@@ -48,10 +50,13 @@ class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscripti
         # Placeholder for now, this should be a list of counters that we want to update as we go above warning / critical
         return []
 
-    def get_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
+    def extract_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
         return int(data_packet.packet.get("timestamp", datetime.now(UTC)).timestamp())
 
-    def get_group_key_values(
+    def extract_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
+        return data_packet.packet["values"]["value"]
+
+    def extract_group_values(
         self, data_packet: DataPacket[MetricDetectorUpdate]
     ) -> dict[DetectorGroupKey, int]:
         return {None: data_packet.packet["values"]["value"]}
@@ -65,7 +70,7 @@ class MetricIssue(GroupType):
     slug = "metric_issue"
     description = "Metric issue triggered"
     category = GroupCategory.METRIC_ALERT.value
-    category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
+    category_v2 = GroupCategory.METRIC.value
     creation_quota = Quota(3600, 60, 100)
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False

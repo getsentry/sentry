@@ -42,6 +42,7 @@ from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
+from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -51,7 +52,6 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.notifications.utils.actions import MessageAction
-from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
@@ -942,7 +942,13 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_options({"alerts.issue_summary_timeout": 5})
     @with_feature({"organizations:gen-ai-features", "projects:trigger-issue-summary-on-alerts"})
-    def test_build_group_block_with_ai_summary_with_feature_flag(self):
+    @patch(
+        "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    def test_build_group_block_with_ai_summary_with_feature_flag(
+        self, mock_get_seer_org_acknowledgement
+    ):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -998,7 +1004,13 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             assert "This is a possible cause" in content_block
 
     @override_options({"alerts.issue_summary_timeout": 5})
-    def test_build_group_block_with_ai_summary_without_feature_flag(self):
+    @patch(
+        "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    def test_build_group_block_with_ai_summary_without_feature_flag(
+        self, mock_get_seer_org_acknowledgement
+    ):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -1034,7 +1046,13 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @override_options({"alerts.issue_summary_timeout": 5})
     @with_feature({"organizations:gen-ai-features", "projects:trigger-issue-summary-on-alerts"})
-    def test_build_group_block_with_ai_summary_text_truncation(self):
+    @patch(
+        "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    def test_build_group_block_with_ai_summary_text_truncation(
+        self, mock_get_seer_org_acknowledgement
+    ):
         # Test case for multi-line exception text
         multiline_text = "First line of text\nSecond line of text\nThird line of text"
         event1 = self.store_event(
@@ -1165,6 +1183,38 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 blocks = SlackIssuesMessageBuilder(group_lb, event_lb.for_group(group_lb)).build()
                 title_block = blocks["blocks"][0]["text"]["text"]
                 assert f": {expected_headline_part}*>" in title_block, f"Failed for {name}"
+
+    @override_options({"alerts.issue_summary_timeout": 5})
+    @patch(
+        "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
+        return_value=False,
+    )
+    @patch(
+        "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary",
+        return_value=(None, 403),
+    )
+    @with_feature({"organizations:gen-ai-features", "projects:trigger-issue-summary-on-alerts"})
+    def test_build_group_block_with_ai_summary_without_org_acknowledgement(
+        self, mock_get_issue_summary, mock_get_seer_org_acknowledgement
+    ):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+        group.type = ErrorGroupType.type_id
+        group.save()
+        assert group.issue_category == GroupCategory.ERROR
+
+        mock_get_issue_summary.assert_not_called()
+
+        blocks = SlackIssuesMessageBuilder(group).build()
+        assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
 
 
 class BuildGroupAttachmentReplaysTest(TestCase):

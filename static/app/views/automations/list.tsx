@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -11,19 +12,23 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import AutomationListTable from 'sentry/views/automations/components/automationListTable';
+import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 
 export default function AutomationsList() {
   useWorkflowEngineFeatureGate({redirect: true});
 
   return (
     <SentryDocumentTitle title={t('Automations')} noSuffix>
-      <ActionsProvider actions={<Actions />}>
-        <ListLayout>
-          <TableHeader />
-          <AutomationListTable automations={[]} />
-        </ListLayout>
-      </ActionsProvider>
+      <PageFiltersContainer>
+        <ActionsProvider actions={<Actions />}>
+          <ListLayout>
+            <TableHeader />
+            <AutomationListTable />
+          </ListLayout>
+        </ActionsProvider>
+      </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
@@ -40,10 +45,11 @@ function TableHeader() {
 }
 
 function Actions() {
+  const organization = useOrganization();
   return (
     <Fragment>
       <LinkButton
-        to="/issues/automations/new/"
+        to={`${makeAutomationBasePathname(organization.slug)}new/`}
         priority="primary"
         icon={<IconAdd isCircled />}
       >

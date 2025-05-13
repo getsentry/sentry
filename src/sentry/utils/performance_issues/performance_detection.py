@@ -17,6 +17,12 @@ from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.performance_issues.detectors.experiments.mn_plus_one_db_span_detector import (
+    MNPlusOneDBSpanExperimentalDetector,
+)
+from sentry.utils.performance_issues.detectors.experiments.n_plus_one_db_span_detector import (
+    NPlusOneDBSpanExperimentalDetector,
+)
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
@@ -292,6 +298,12 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "max_sequence_length": 5,
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
+        DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: {
+            "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "minimum_occurrences_of_pattern": 3,
+            "max_sequence_length": 5,
+            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
+        },
         DetectorType.UNCOMPRESSED_ASSETS: {
             "size_threshold_bytes": settings["uncompressed_asset_size_threshold"],
             "duration_threshold": settings["uncompressed_asset_duration_threshold"],  # ms
@@ -327,10 +339,12 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     SlowDBQueryDetector,
     RenderBlockingAssetSpanDetector,
     NPlusOneDBSpanDetector,
+    NPlusOneDBSpanExperimentalDetector,
     FileIOMainThreadDetector,
     NPlusOneAPICallsDetector,
     NPlusOneAPICallsExperimentalDetector,
     MNPlusOneDBSpanDetector,
+    MNPlusOneDBSpanExperimentalDetector,
     UncompressedAssetSpanDetector,
     LargeHTTPPayloadDetector,
     HTTPOverheadDetector,

@@ -1685,7 +1685,7 @@ register(
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=500.0,  # ms
+    default=1000.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2356,6 +2356,13 @@ register(
 
 # END: SDK Crash Detection
 
+# Whether to add the full stack trace to Python errors.
+register(
+    "sentry_sdk.add_full_stack",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     # Lists the shared resource ids we want to account usage for.
     "shared_resources_accounting_enabled",
@@ -2542,6 +2549,15 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Rate at which to run split enhancements and compare the results to the default enhancements
+register(
+    "grouping.split_enhancements.sample_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "metrics.sample-list.sample-rate",
     type=Float,
@@ -3002,6 +3018,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "demo-mode.disable-sandbox-redirect",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",
@@ -3292,6 +3314,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.ingest.attachments.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.ingest.errors.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3304,3 +3331,5 @@ register(
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+register("process_service_hook.payload.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)

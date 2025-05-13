@@ -10,10 +10,7 @@ from tests.snuba.api.endpoints.test_organization_events_trace import (
 
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-trace"
-    FEATURES = [
-        "organizations:trace-spans-format",
-        "organizations:performance-slow-db-issue",
-    ]
+    FEATURES = ["organizations:trace-spans-format"]
 
     def assert_event(self, result, event_data, message):
         assert result["transaction"] == event_data.transaction, message
@@ -21,6 +18,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert result["start_timestamp"] == event_data.data["start_timestamp"], message
         assert result["project_slug"] == event_data.project.slug, message
         assert result["sdk_name"] == event_data.data["sdk"]["name"], message
+        assert result["transaction_id"] == event_data.event_id, message
 
     def get_transaction_children(self, event):
         """Assumes that the test setup only gives each event 1 txn child"""

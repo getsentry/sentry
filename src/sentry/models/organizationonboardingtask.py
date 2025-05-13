@@ -39,7 +39,8 @@ class OnboardingTask:
 
 class OnboardingTaskStatus:
     COMPLETE = 1
-    PENDING = 2
+    # deprecated - no longer used
+    # PENDING = 2
     SKIPPED = 3
 
 
@@ -71,7 +72,6 @@ class AbstractOnboardingTask(Model):
 
     STATUS_CHOICES = (
         (OnboardingTaskStatus.COMPLETE, "complete"),
-        (OnboardingTaskStatus.PENDING, "pending"),
         (OnboardingTaskStatus.SKIPPED, "skipped"),
     )
 
@@ -159,6 +159,20 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.SESSION_REPLAY,
             OnboardingTask.REAL_TIME_NOTIFICATIONS,
             OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+        ]
+    )
+
+    # These are tasks that can be tightened to a project
+    TRANSFERABLE_TASKS = frozenset(
+        [
+            OnboardingTask.FIRST_PROJECT,
+            OnboardingTask.FIRST_EVENT,
+            OnboardingTask.SECOND_PLATFORM,
+            OnboardingTask.RELEASE_TRACKING,
+            OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
+            OnboardingTask.SESSION_REPLAY,
+            OnboardingTask.SOURCEMAPS,
         ]
     )
 

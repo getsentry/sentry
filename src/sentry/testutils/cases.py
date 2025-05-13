@@ -75,7 +75,7 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import (
     NoiseConfig,
@@ -380,7 +380,8 @@ class BaseTestCase(Fixtures):
         with open(get_fixture_path(filepath), "rb") as fp:
             return fp.read()
 
-    def _pre_setup(self):
+    @classmethod
+    def _pre_setup(cls):
         super()._pre_setup()
 
         cache.clear()
@@ -790,6 +791,9 @@ class RuleTestCase(TestCase):
     def get_event(self):
         return self.event
 
+    def get_group_event(self):
+        return GroupEvent.from_event(self.event, self.event.group)
+
     def get_rule(self, **kwargs):
         kwargs.setdefault("project", self.project)
         kwargs.setdefault("data", {})
@@ -1139,22 +1143,7 @@ class SnubaTestCase(BaseTestCase):
         )
 
     def store_span(self, span, is_eap=False):
-        span["ingest_in_eap"] = is_eap
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
-                data=json.dumps([span]),
-            ).status_code
-            == 200
-        )
-        if is_eap:
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
-                    data=json.dumps([span]),
-                ).status_code
-                == 200
-            )
+        self.store_spans([span], is_eap=is_eap)
 
     def store_spans(self, spans, is_eap=False):
         for span in spans:
@@ -3152,12 +3141,6 @@ class UptimeTestCaseMixin:
         self.mock_resolve_rdap_provider_ctx.__exit__(None, None, None)
         self.mock_requests_get_ctx.__exit__(None, None, None)
 
-
-class _OptionalCheckResult(TypedDict, total=False):
-    region: str
-
-
-class UptimeTestCase(UptimeTestCaseMixin, TestCase):
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
@@ -3188,6 +3171,14 @@ class UptimeTestCase(UptimeTestCaseMixin, TestCase):
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
             **optional_fields,
         }
+
+
+class _OptionalCheckResult(TypedDict, total=False):
+    region: str
+
+
+class UptimeTestCase(UptimeTestCaseMixin, TestCase):
+    pass
 
 
 class IntegratedApiTestCase(BaseTestCase):

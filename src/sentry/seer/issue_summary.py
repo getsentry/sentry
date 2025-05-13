@@ -22,6 +22,7 @@ from sentry.models.project import Project
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -233,6 +234,22 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
     return connected_issues
 
 
+def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
+    project = group.project
+    option = project.get_option("sentry:autofix_automation_tuning")
+    if option == "off":
+        return False
+    elif option == "low":
+        return fixability_score >= FixabilityScoreThresholds.HIGH.value
+    elif option == "medium":
+        return fixability_score >= FixabilityScoreThresholds.MEDIUM.value
+    elif option == "high":
+        return fixability_score >= FixabilityScoreThresholds.LOW.value
+    elif option == "always":
+        return True
+    return False
+
+
 def _run_automation(
     group: Group,
     user: User | RpcUser | AnonymousUser,
@@ -252,10 +269,12 @@ def _run_automation(
         if not issue_summary.scores:
             return
 
-        if issue_summary.scores.fixability_score is not None:
-            group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+        if issue_summary.scores.fixability_score is None:
+            return
 
-        if issue_summary.scores.is_fixable:
+        group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+
+        if _is_issue_fixable(group, issue_summary.scores.fixability_score):
             with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
                 autofix_state = get_autofix_state(group_id=group.id)
 
