@@ -1,10 +1,9 @@
-import {useCallback, useEffect} from 'react';
+import {useEffect} from 'react';
 
 import type {CodecovContextData} from 'sentry/components/codecov/context/codecovContext';
 import {CodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type CodecovProviderProps = {
@@ -20,52 +19,54 @@ export default function CodecovQueryParamsProvider({children}: CodecovProviderPr
     `codecov-selection:${orgSlug}`,
     {} as Partial<CodecovContextData>
   );
-  const navigate = useNavigate();
-
-  const updateSelectorData: CodecovContextData['updateSelectorData'] = useCallback(
-    data => {
-      const currentParams = new URLSearchParams(location.search);
-      currentParams.set(Object.keys(data)[0] as string, Object.values(data)[0] as string);
-      navigate(`${location.pathname}?${currentParams.toString()}`, {replace: true});
-    },
-    [location.search, location.pathname, navigate]
-  );
 
   useEffect(() => {
-    const repository =
-      typeof location.query.repository === 'string' ? location.query.repository : null;
-    const integratedOrg =
-      typeof location.query.integratedOrg === 'string'
-        ? location.query.integratedOrg
-        : null;
-    const branch =
-      typeof location.query.branch === 'string' ? location.query.branch : null;
-    const codecovPeriod =
-      typeof location.query.codecovPeriod === 'string'
-        ? location.query.codecovPeriod
-        : null;
+    const queryRepository = location.query.repository;
+    const queryIntegratedOrg = location.query.integratedOrg;
+    const queryBranch = location.query.branch;
+    const queryCodecovPeriod = location.query.codecovPeriod;
+    const validEntries = {} as Partial<CodecovContextData>;
 
-    setLocalStorageState({repository, integratedOrg, branch, codecovPeriod});
+    if (typeof queryRepository === 'string' && queryRepository.trim() !== '') {
+      validEntries.repository = queryRepository;
+    }
+    if (typeof queryIntegratedOrg === 'string' && queryIntegratedOrg.trim() !== '') {
+      validEntries.integratedOrg = queryIntegratedOrg;
+    }
+    if (typeof queryBranch === 'string' && queryBranch.trim() !== '') {
+      validEntries.branch = queryBranch;
+    }
+    if (typeof queryCodecovPeriod === 'string' && queryCodecovPeriod.trim() !== '') {
+      validEntries.codecovPeriod = queryCodecovPeriod;
+    }
+
+    setLocalStorageState(prev => ({
+      ...prev,
+      ...validEntries,
+    }));
   }, [setLocalStorageState, location.query]);
 
   const params: CodecovContextData = {
     repository:
-      decodeURIComponent(location.query.repository as string).trim() ||
-      localStorageState.repository ||
+      ((typeof location.query.repository === 'string' &&
+        decodeURIComponent(location.query.repository)) ||
+        localStorageState.repository) ??
       null,
     integratedOrg:
-      decodeURIComponent(location.query.integratedOrg as string).trim() ||
+      (typeof location.query.integratedOrg === 'string' &&
+        decodeURIComponent(location.query.integratedOrg)) ||
       localStorageState.integratedOrg ||
       null,
     branch:
-      decodeURIComponent(location.query.branch as string).trim() ||
+      (typeof location.query.branch === 'string' &&
+        decodeURIComponent(location.query.branch)) ||
       localStorageState.branch ||
       null,
     codecovPeriod:
-      decodeURIComponent(location.query.codecovPeriod as string).trim() ||
+      (typeof location.query.codecovPeriod === 'string' &&
+        decodeURIComponent(location.query.codecovPeriod)) ||
       localStorageState.codecovPeriod ||
-      null,
-    updateSelectorData,
+      '24h',
   };
 
   return <CodecovContext.Provider value={params}>{children}</CodecovContext.Provider>;
