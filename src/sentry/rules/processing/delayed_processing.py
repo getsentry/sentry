@@ -271,6 +271,8 @@ def build_group_to_groupevent(
                         "rule": rule_group[0],
                         "project_id": project_id,
                         "event_id": event_id,
+                        "event_missing": event is None,
+                        "group_missing": group is None,
                         "group_id": group.id if group else None,
                     },
                 )
@@ -552,6 +554,10 @@ def cleanup_redis_buffer(
         filters["batch_key"] = batch_key
 
     buffer.backend.delete_hash(model=Project, filters=filters, fields=hashes_to_delete)
+    logger.info(
+        "delayed_processing.cleanup_redis_buffer",
+        extra={"hashes_to_delete": hashes_to_delete, "project_id": project_id},
+    )
 
 
 @instrumented_task(
