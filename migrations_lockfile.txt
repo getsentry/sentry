@@ -13,7 +13,7 @@ hybridcloud: 0021_django_arrayfield_scope_list
 
 insights: 0001_add_starred_transactions_model
 
-monitors: 0003_record_date_in_progress
+monitors: 0002_fix_drift_default_to_db_default
 
 nodestore: 0002_nodestore_no_dictfield
 
