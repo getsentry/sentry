@@ -54,9 +54,16 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction, AlertRuleDetector
+from sentry.workflow_engine.models import (
+    Action,
+    ActionAlertRuleTriggerAction,
+    AlertRuleDetector,
+    Detector,
+)
 from sentry.workflow_engine.models.data_condition import DataCondition
-from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
+from tests.sentry.incidents.serializers.test_workflow_engine_base import (
+    TestWorkflowEngineSerializer,
+)
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_alert_rule_migrated,
     assert_alert_rule_resolve_trigger_migrated,
@@ -170,7 +177,7 @@ class AlertRuleIndexBase(AlertRuleBase):
         ]
 
 
-class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorklowEngineSerializer):
+class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
     def test_simple(self):
         team = self.create_team(organization=self.organization, members=[self.user])
         ProjectTeam.objects.create(project=self.project, team=team)
@@ -251,6 +258,31 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    def test_workflow_engine_serializer(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.login_as(self.user)
+
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:workflow-engine-metric-alert-dual-write",
+                    "organizations:workflow-engine-rule-serializers",
+                ]
+            ),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **self.alert_rule_dict,
+            )
+
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=int(resp.data.get("id")))
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
     def test_create_alert_rule_aci(self):

@@ -770,7 +770,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       <StarredSegmentCell
         projectSlug={data.project}
         segmentName={data.transaction}
-        initialIsStarred={data.is_starred_transaction}
+        isStarred={data.is_starred_transaction}
       />
     ),
   },

@@ -247,21 +247,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             decision = DashboardWidgetTypes.TRANSACTION_LIKE
             sentry_sdk.set_tag("discover.split_reason", "query_result")
         else:
-            if features.has(
-                "organizations:performance-discover-dataset-selector", organization, actor=user
-            ):
-                # In the case that neither side has data, or both sides have data, default to errors.
-                decision = DashboardWidgetTypes.ERROR_EVENTS
-                source = DashboardDatasetSourcesTypes.FORCED.value
-                sentry_sdk.set_tag("discover.split_reason", "default")
-            else:
-                # This branch can be deleted once the feature flag for the discover split is removed
-                if has_errors and has_transactions_data:
-                    decision = DashboardWidgetTypes.DISCOVER
-                else:
-                    # In the case that neither side has data, we do not need to split this yet and can make multiple queries to check each time.
-                    # This will help newly created widgets or infrequent count widgets that shouldn't be prematurely assigned a side.
-                    decision = None
+            # In the case that neither side has data, or both sides have data, default to errors.
+            decision = DashboardWidgetTypes.ERROR_EVENTS
+            source = DashboardDatasetSourcesTypes.FORCED.value
+            sentry_sdk.set_tag("discover.split_reason", "default")
 
         sentry_sdk.set_tag("discover.split_decision", decision)
         if decision is not None and widget.discover_widget_split != decision:

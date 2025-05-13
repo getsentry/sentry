@@ -183,7 +183,7 @@ function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
   return [
     <StarredSegmentCell
       key={row.transaction}
-      initialIsStarred={row.is_starred_transaction}
+      isStarred={row.is_starred_transaction}
       projectSlug={row.project}
       segmentName={row.transaction}
     />,

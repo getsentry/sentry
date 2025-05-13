@@ -835,9 +835,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                 # to UTC
                 clock_time = item.ts.replace(tzinfo=UTC)
 
-                # Record the reported in_progress time when the check is in progress
-                date_in_progress = start_time if status == CheckInStatus.IN_PROGRESS else None
-
                 check_in, created = MonitorCheckIn.objects.get_or_create(
                     defaults={
                         "duration": duration,
@@ -845,7 +842,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                         "date_added": date_added,
                         "date_clock": clock_time,
                         "date_updated": start_time,
-                        "date_in_progress": date_in_progress,
                         "expected_time": expected_time,
                         "timeout_at": timeout_at,
                         "monitor_config": monitor_config,
