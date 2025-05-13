@@ -590,9 +590,7 @@ class IssueDefaultTest(TestCase):
         self.group.substatus = None
         self.group.save()
 
-        GroupOpenPeriod.objects.create(
-            group=self.group, project=self.group.project, date_ended=timezone.now()
-        )
+        GroupOpenPeriod.objects.get(group_id=self.group.id).update(date_ended=timezone.now())
 
         integration = self.create_integration(
             organization=self.group.organization, provider="example", external_id="123456"
