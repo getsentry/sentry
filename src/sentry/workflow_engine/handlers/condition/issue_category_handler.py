@@ -30,7 +30,8 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
 
         try:
             issue_category = group.issue_category
+            issue_category_v2 = group.issue_category_v2
         except ValueError:
             return False
 
-        return bool(value == issue_category)
+        return bool(value == issue_category or value == issue_category_v2)
