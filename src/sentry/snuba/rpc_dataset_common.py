@@ -177,6 +177,7 @@ class TableQuery:
     referrer: str
     sampling_mode: SAMPLING_MODES | None
     resolver: SearchResolver
+    name: str | None = None
 
 
 @dataclass
@@ -190,15 +191,22 @@ class TableRequest:
 
 
 @sentry_sdk.trace
-def run_bulk_table_queries(queries: dict[str, TableQuery]):
-    prepared_queries = {name: get_table_rpc_request(query) for name, query in queries.items()}
-    """Run the qurey"""
+def run_bulk_table_queries(queries: list[TableQuery]):
+    """Validate the bulk queries"""
+    names: set[str] = set()
+    for query in queries:
+        if query.name is None:
+            raise ValueError("Query name is required for bulk queries")
+        elif query.name in names:
+            raise ValueError("Query names need to be unique")
+        else:
+            names.add(query.name)
+    prepared_queries = {query.name: get_table_rpc_request(query) for query in queries}
+    """Run the query"""
     responses = snuba_rpc.table_rpc([query.rpc_request for query in prepared_queries.values()])
     results = {
         name: process_table_response(response, request)
-        for name, request, response in zip(
-            prepared_queries.keys(), prepared_queries.values(), responses
-        )
+        for (name, request), response in zip(prepared_queries.items(), responses)
     }
     return results
 
