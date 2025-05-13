@@ -607,6 +607,7 @@ from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoi
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_trace import OrganizationTraceEndpoint
+from .endpoints.organization_trace_meta import OrganizationTraceMetaEndpoint
 from .endpoints.organization_traces import (
     OrganizationTracesEndpoint,
     OrganizationTraceSpansEndpoint,
@@ -1672,6 +1673,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         OrganizationTraceEndpoint.as_view(),
         name="sentry-api-0-organization-trace",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-meta/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        OrganizationTraceMetaEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-meta",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/trace-summary/$",

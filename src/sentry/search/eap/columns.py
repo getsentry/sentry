@@ -113,6 +113,7 @@ class ValueArgumentDefinition(BaseArgumentDefinition):
 class AttributeArgumentDefinition(BaseArgumentDefinition):
     # the allowed types of data stored in the attribute
     attribute_types: set[constants.SearchType] | None = None
+    field_allowlist: set[str] | None = None
 
 
 @dataclass
@@ -325,13 +326,13 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
     ) -> ResolvedConditionalAggregate:
-        key, filter = self.aggregate_resolver(resolved_arguments)
+        key, aggregate_filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
             public_alias=alias,
             internal_name=self.internal_function,
             search_type=search_type,
             internal_type=self.internal_type,
-            filter=filter,
+            filter=aggregate_filter,
             key=key,
             processor=self.processor,
             extrapolation=self.extrapolation,
