@@ -27,5 +27,5 @@ def exclude_experimental_detectors(cls: type[TestCase]):
         self.addCleanup(self.patch_detector_classes.stop)
         cls_setUp(self, *args, **kwargs)
 
-    cls.setUp = exclude_experimental_detectors_setUp
+    cls.setUp = exclude_experimental_detectors_setUp  # type: ignore[method-assign]
     return cls
