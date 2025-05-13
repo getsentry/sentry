@@ -136,8 +136,7 @@ def create_metric_alert(
                 )
             except Detector.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
-        else:
-            return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+        return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
 
 class AlertRuleIndexMixin(Endpoint):

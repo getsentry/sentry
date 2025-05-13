@@ -140,8 +140,8 @@ def update_alert_rule(
             # The user has requested a new Slack channel and we tell the client to check again in a bit
             return Response({"uuid": client.uuid}, status=202)
         else:
-            alert_rule = validator.save()
             if features.has("organizations:workflow-engine-rule-serializers", organization):
+                validator.save()
                 try:
                     detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
                     return Response(
@@ -154,8 +154,7 @@ def update_alert_rule(
                     )
                 except Detector.DoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND)
-            else:
-                return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
+            return Response(serialize(validator.save(), request.user), status=status.HTTP_200_OK)
 
     return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
