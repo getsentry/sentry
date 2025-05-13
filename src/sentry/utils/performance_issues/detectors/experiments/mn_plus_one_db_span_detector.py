@@ -61,15 +61,23 @@ class SearchingForMNPlusOne(MNPlusOneState):
 
     def __init__(
         self,
+        *,
         settings: dict[str, Any],
         event: dict[str, Any],
+        parent_map: dict[str, str] | None = None,
         initial_spans: Sequence[Span] | None = None,
     ) -> None:
         self.settings = settings
         self.event = event
         self.recent_spans = deque(initial_spans or [], self.settings["max_sequence_length"])
+        self.parent_map = parent_map or {}
 
     def next(self, span: Span) -> tuple[MNPlusOneState, PerformanceProblem | None]:
+        span_id = span.get("span_id")
+        parent_span_id = span.get("parent_span_id")
+        if span_id and parent_span_id:
+            self.parent_map[span_id] = parent_span_id
+
         # Can't be a potential MN+1 without at least 2 previous spans.
         if len(self.recent_spans) <= 1:
             self.recent_spans.append(span)
@@ -84,7 +92,16 @@ class SearchingForMNPlusOne(MNPlusOneState):
             if self._equivalent(span, recent_span):
                 pattern = recent_span_list[i:]
                 if self._is_valid_pattern(pattern):
-                    return (ContinuingMNPlusOne(self.settings, self.event, pattern, span), None)
+                    return (
+                        ContinuingMNPlusOne(
+                            settings=self.settings,
+                            event=self.event,
+                            pattern=pattern,
+                            first_span=span,
+                            parent_map=self.parent_map,
+                        ),
+                        None,
+                    )
 
         # We haven't found a pattern yet, so remember this span and keep
         # looking.
@@ -125,18 +142,29 @@ class ContinuingMNPlusOne(MNPlusOneState):
     __slots__ = ("settings", "event", "pattern", "spans", "pattern_index")
 
     def __init__(
-        self, settings: dict[str, Any], event: dict[str, Any], pattern: list[Span], first_span: Span
+        self,
+        *,
+        settings: dict[str, Any],
+        event: dict[str, Any],
+        pattern: list[Span],
+        first_span: Span,
+        parent_map: dict[str, str],
     ) -> None:
         self.settings = settings
         self.event = event
         self.pattern = pattern
-
+        self.parent_map = parent_map
         # The full list of spans involved in the MN pattern.
         self.spans = pattern.copy()
         self.spans.append(first_span)
         self.pattern_index = 1
 
     def next(self, span: Span) -> tuple[MNPlusOneState, PerformanceProblem | None]:
+        span_id = span.get("span_id")
+        parent_span_id = span.get("parent_span_id")
+        if span_id and parent_span_id:
+            self.parent_map[span_id] = parent_span_id
+
         # If the MN pattern is continuing, carry on in this state.
         pattern_span = self.pattern[self.pattern_index]
         if self._equivalent(pattern_span, span):
@@ -152,7 +180,12 @@ class ContinuingMNPlusOne(MNPlusOneState):
         start_index = len(self.pattern) * times_occurred
         remaining_spans = self.spans[start_index:] + [span]
         return (
-            SearchingForMNPlusOne(self.settings, self.event, remaining_spans),
+            SearchingForMNPlusOne(
+                settings=self.settings,
+                event=self.event,
+                parent_map=self.parent_map,
+                initial_spans=remaining_spans,
+            ),
             self._maybe_performance_problem(),
         )
 
@@ -177,7 +210,10 @@ class ContinuingMNPlusOne(MNPlusOneState):
         total_db_spans_duration = total_span_time(offender_db_spans)
         pct_db_spans = total_db_spans_duration / total_spans_duration if total_spans_duration else 0
 
-        if total_spans_duration < total_duration_threshold or pct_db_spans < 0.1:
+        if (
+            total_spans_duration < total_duration_threshold
+            or pct_db_spans < self.settings["min_percentage_of_db_spans"]
+        ):
             return None
 
         parent_span = self._find_common_parent_span(offender_spans)
@@ -187,19 +223,23 @@ class ContinuingMNPlusOne(MNPlusOneState):
         db_span = self._first_db_span()
         if not db_span:
             return None
+
+        db_span_ids = [span["span_id"] for span in offender_spans if span["op"].startswith("db")]
+        offender_span_ids = [span["span_id"] for span in offender_spans]
+
         return PerformanceProblem(
             fingerprint=self._fingerprint(db_span["hash"], parent_span),
             op="db",
             desc=db_span["description"],
             type=PerformanceNPlusOneExperimentalGroupType,
             parent_span_ids=[parent_span["span_id"]],
-            cause_span_ids=[],
-            offender_span_ids=[span["span_id"] for span in offender_spans],
+            cause_span_ids=db_span_ids,
+            offender_span_ids=offender_span_ids,
             evidence_data={
                 "op": "db",
                 "parent_span_ids": [parent_span["span_id"]],
                 "cause_span_ids": [],
-                "offender_span_ids": [span["span_id"] for span in offender_spans],
+                "offender_span_ids": offender_span_ids,
                 "transaction_name": self.event.get("transaction", ""),
                 "parent_span": get_span_evidence_value(parent_span),
                 "repeating_spans": get_span_evidence_value(offender_spans[0]),
@@ -228,18 +268,66 @@ class ContinuingMNPlusOne(MNPlusOneState):
         return None
 
     def _find_common_parent_span(self, spans: Sequence[Span]) -> Span | None:
-        parent_span_id = spans[0].get("parent_span_id")
-        if not parent_span_id:
+        span_id_to_parent_list = self._build_span_id_to_parent_list(spans=spans)
+        first_span_id = spans[0].get("span_id")
+        if not first_span_id:
             return None
-        for id in [span.get("parent_span_id") for span in spans[1:]]:
-            if not id or id != parent_span_id:
+
+        first_parent_list = span_id_to_parent_list[first_span_id]
+        if not first_parent_list:
+            return None
+
+        # Ensure every parent set has a intersection result with first parent set
+        # Save the result of the full intersection
+        parent_intersection = set(first_parent_list)
+        for span_parent_list in span_id_to_parent_list.values():
+            parent_intersection = parent_intersection.intersection(set(span_parent_list))
+            if not parent_intersection:
                 return None
+
+        # The first parent list is ordered, so the first match is the earliest common parent,
+        # which is the best match for useful fingerprinting.
+        common_parent_span_id = next(
+            (span_id for span_id in first_parent_list if span_id in parent_intersection), None
+        )
+        if not common_parent_span_id:
+            return None
 
         all_spans = self.event.get("spans") or []
         for span in all_spans:
-            if span.get("span_id") == parent_span_id:
+            if span.get("span_id") == common_parent_span_id:
                 return span
         return None
+
+    def _build_span_id_to_parent_list(self, spans: Sequence[Span]) -> dict[str, list[str]]:
+        """
+        Build a mapping of span_id to an ordered list of parent_span_ids.
+        Ordered in proximity to the initial span, (e.g. [parent, grandparent, ...]) with
+        a maximum length configured via the `max_allowable_depth` setting.
+        """
+        span_id_to_parent_list: dict[str, list[str]] = {}
+        for span in spans:
+            span_id = span.get("span_id")
+            if not span_id:
+                continue
+
+            parent_span_id = span.get("parent_span_id")
+            if not parent_span_id:
+                continue
+
+            parent_list: list[str] = []
+            parent_list.append(parent_span_id)
+
+            # Subtract 1 because the first parent is already available without a lookup on the parent_map
+            for _ in range(self.settings["max_allowable_depth"] - 1):
+                parent_list.append(parent_span_id)
+                parent_parent_span_id = self.parent_map.get(parent_span_id)
+                if parent_parent_span_id:
+                    parent_list.append(parent_parent_span_id)
+                parent_span_id = parent_parent_span_id
+
+            span_id_to_parent_list[span_id] = parent_list
+        return span_id_to_parent_list
 
     def _fingerprint(self, db_hash: str, parent_span: Span) -> str:
         parent_op = parent_span.get("op") or ""
@@ -271,13 +359,11 @@ class MNPlusOneDBSpanExperimentalDetector(PerformanceDetector):
         super().__init__(settings, event)
 
         self.stored_problems = {}
-        self.state: MNPlusOneState = SearchingForMNPlusOne(self.settings, self.event())
-
-    @classmethod
-    def is_detection_allowed_for_system(cls) -> bool:
-        # Defer to the issue platform for whether to create issues
-        # See https://develop.sentry.dev/backend/issue-platform/#releasing-your-issue-type
-        return True
+        self.state: MNPlusOneState = SearchingForMNPlusOne(
+            settings=self.settings,
+            event=event,
+            parent_map={},
+        )
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
         return True
