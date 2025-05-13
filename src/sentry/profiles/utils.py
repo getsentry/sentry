@@ -118,7 +118,6 @@ def get_from_profiling_service(
         if metric:
             metric_name, metric_tags = metric
             metrics.distribution(metric_name, len(data), tags=metric_tags)
-            assert 0
 
         kwargs["body"] = brotli.compress(data, quality=6, mode=brotli.MODE_TEXT)
     return _profiling_pool.urlopen(
