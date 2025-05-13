@@ -21,8 +21,8 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
-from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
