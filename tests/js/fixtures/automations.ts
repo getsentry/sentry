@@ -1,6 +1,6 @@
 import {DataConditionGroupFixture} from 'sentry-fixture/dataConditions';
 
-import {Automation} from 'sentry/types/workflowEngine/automations';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 
 export function AutomationFixture(params: Partial<Automation>): Automation {
   return {
