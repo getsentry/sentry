@@ -1,12 +1,15 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import EmptyMessage from 'sentry/components/emptyMessage';
+import useDrawer from 'sentry/components/globalDrawer';
+import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import Panel from 'sentry/components/panels/panel';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconChevron, IconCode, IconFile, IconProject} from 'sentry/icons';
+import {IconChevron, IconCode, IconFile, IconProject, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventsStats} from 'sentry/types/organization';
@@ -43,6 +46,8 @@ interface TreeLeaf {
   name: string;
   type: 'component';
 }
+
+const WIDGET_TITLE = t('Server Side Rendering');
 
 export function getFileAndFunctionName(componentType: string) {
   // There are two cases:
@@ -115,12 +120,38 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
   return root;
 }
 
+function filterTree(
+  tree: TreeContainer,
+  path: string[],
+  filter: (item: TreeNode, path: string[]) => boolean
+): TreeContainer {
+  const currentPath = [...path, tree.name];
+  const newChildren: TreeNode[] = [];
+
+  for (const child of tree.children) {
+    const childPath = [...currentPath, child.name];
+    const shouldKeep = filter(child, childPath);
+
+    if (child.type === 'folder' || child.type === 'file') {
+      const filteredChild = filterTree(child, currentPath, filter);
+      if (filteredChild.children.length > 0 || shouldKeep) {
+        newChildren.push(filteredChild);
+      }
+    } else if (shouldKeep) {
+      newChildren.push(child);
+    }
+  }
+
+  return {...tree, children: newChildren};
+}
+
 export default function SSRTreeWidget() {
   const location = useLocation();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans',
   });
+  const {openDrawer} = useDrawer();
 
   const fullQuery = `span.op:function.nextjs ${location.query.query ?? ''}`;
 
@@ -153,13 +184,13 @@ export default function SSRTreeWidget() {
       isLoading={treeRequest.isLoading}
       error={treeRequest.error}
       VisualizationType={TreeWidgetVisualization}
-      visualizationProps={{tree}}
+      visualizationProps={{tree, size: 'xs'}}
     />
   );
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('File Tree')} />}
+      Title={<Widget.WidgetTitle title={WIDGET_TITLE} />}
       Visualization={<VisualizationWrapper>{visualization}</VisualizationWrapper>}
       noVisualizationPadding
       revealActions="always"
@@ -168,10 +199,16 @@ export default function SSRTreeWidget() {
           <Button
             size="xs"
             onClick={() =>
-              openInsightChartModal({
-                title: t('File Tree'),
-                children: <ModalPanel>{visualization}</ModalPanel>,
-              })
+              openDrawer(
+                () => <SSRTreeDrawer tree={tree} />,
+
+                {
+                  ariaLabel: WIDGET_TITLE,
+                  drawerKey: 'ssr-tree-widget',
+                  drawerWidth: '600px',
+                  resizable: true,
+                }
+              )
             }
           >
             {t('Show All')}
@@ -179,6 +216,49 @@ export default function SSRTreeWidget() {
         )
       }
     />
+  );
+}
+
+function SSRTreeDrawer({tree}: {tree: TreeContainer}) {
+  const [search, setSearch] = useState('');
+
+  const filteredTree = useMemo(() => {
+    return filterTree(tree, [], (_item, path) => {
+      // Split the search string by separators (/, \ and space)
+      const normalizedSearch = search
+        .toLowerCase()
+        .split(/[\\/\s]/)
+        .join();
+      const combinedPath = path.join().toLowerCase();
+      return combinedPath.includes(normalizedSearch);
+    });
+  }, [tree, search]);
+
+  return (
+    <Fragment>
+      <DrawerHeader>{WIDGET_TITLE}</DrawerHeader>
+      <DrawerBody>
+        <DrawerHeading>{WIDGET_TITLE}</DrawerHeading>
+        <InputGroup>
+          <InputGroup.LeadingItems disablePointerEvents>
+            <IconSearch size="sm" />
+          </InputGroup.LeadingItems>
+          <InputGroup.Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={t('Search for a file or folder')}
+          />
+        </InputGroup>
+        <ModalPanel>
+          <TreeWidgetVisualization tree={filteredTree} />
+          {filteredTree.children.length === 0 && (
+            <EmptyMessage size="large" icon={<IconSearch size="lg" />}>
+              {t('No results found')}
+            </EmptyMessage>
+          )}
+        </ModalPanel>
+      </DrawerBody>
+    </Fragment>
   );
 }
 
@@ -190,9 +270,15 @@ function sortTreeChildren(a: TreeNode, b: TreeNode): number {
   return a.name.localeCompare(b.name);
 }
 
-function TreeWidgetVisualization({tree}: {tree: TreeContainer}) {
+function TreeWidgetVisualization({
+  tree,
+  size = 'sm',
+}: {
+  tree: TreeContainer;
+  size?: 'xs' | 'sm';
+}) {
   return (
-    <TreeGrid>
+    <TreeGrid size={size}>
       <HeaderCell>{t('Path')}</HeaderCell>
       <HeaderCell>{t('Avg Duration')}</HeaderCell>
       {tree.children.toSorted(sortTreeChildren).map((item, index) => {
@@ -297,13 +383,14 @@ const StyledIconChevron = styled(IconChevron)`
   height: 10px;
 `;
 
-const TreeGrid = styled('div')`
+const TreeGrid = styled('div')<{size: 'xs' | 'sm'}>`
   display: grid;
   grid-template-columns: 1fr min-content;
-  font-size: ${p => p.theme.codeFontSize};
+  font-size: ${p => (p.size === 'xs' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium)};
 
   & > * {
-    padding: ${space(0.25)};
+    padding: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
+    background-color: ${p => p.theme.background};
   }
 
   & > *:nth-child(2n + 1) {
@@ -326,4 +413,9 @@ const TreeGrid = styled('div')`
 const ModalPanel = styled(Panel)`
   max-height: min(50vh, 500px);
   overflow-y: auto;
+  margin-top: ${space(1)};
+`;
+
+const DrawerHeading = styled('h4')`
+  margin-bottom: ${space(2)};
 `;
