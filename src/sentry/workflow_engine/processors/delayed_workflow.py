@@ -49,7 +49,6 @@ from sentry.workflow_engine.processors.data_condition_group import evaluate_data
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
-    create_workflow_fire_histories,
     evaluate_workflows_action_filters,
 )
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
@@ -430,8 +429,6 @@ def fire_actions_for_groups(
         # process workflow_triggers
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
 
-        # create WorkflowFireHistory (updated in evaluate_workflows_action_filters)
-        create_workflow_fire_histories(workflows, event_data)
         filtered_actions = filtered_actions.union(
             evaluate_workflows_action_filters(workflows, event_data)
         )
