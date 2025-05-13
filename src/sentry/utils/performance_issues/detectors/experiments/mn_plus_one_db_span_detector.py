@@ -13,6 +13,7 @@ from sentry.issues.grouptype import (
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils import metrics
 from sentry.utils.performance_issues.base import (
     DetectorType,
     PerformanceDetector,
@@ -203,50 +204,52 @@ class ContinuingMNPlusOne(MNPlusOneState):
 
         # Consider all spans when evaluating the duration threshold, however at least 10 percent
         # of the total duration of offenders should be from db spans.
-        total_duration_threshold = self.settings["total_duration_threshold"]
         total_spans_duration = total_span_time(offender_spans)
+        if total_spans_duration < self.settings["total_duration_threshold"]:
+            metrics.incr("mn_plus_one_db_span_detector.below_duration_threshold")
+            return None
 
         offender_db_spans = [span for span in offender_spans if span["op"].startswith("db")]
         total_db_spans_duration = total_span_time(offender_db_spans)
         pct_db_spans = total_db_spans_duration / total_spans_duration if total_spans_duration else 0
-
-        if (
-            total_spans_duration < total_duration_threshold
-            or pct_db_spans < self.settings["min_percentage_of_db_spans"]
-        ):
+        if pct_db_spans < self.settings["min_percentage_of_db_spans"]:
+            metrics.incr("mn_plus_one_db_span_detector.below_db_span_percentage")
             return None
 
-        parent_span = self._find_common_parent_span(offender_spans)
-        if not parent_span:
+        common_parent_span = self._find_common_parent_span(offender_spans)
+        if not common_parent_span:
+            metrics.incr("mn_plus_one_db_span_detector.no_parent_span")
             return None
 
         db_span = self._first_db_span()
         if not db_span:
+            metrics.incr("mn_plus_one_db_span_detector.no_db_span")
             return None
 
-        db_span_ids = [span["span_id"] for span in offender_spans if span["op"].startswith("db")]
+        db_span_ids = [span["span_id"] for span in offender_db_spans]
         offender_span_ids = [span["span_id"] for span in offender_spans]
 
         return PerformanceProblem(
-            fingerprint=self._fingerprint(db_span["hash"], parent_span),
+            fingerprint=self._fingerprint(db_span["hash"], common_parent_span),
             op="db",
             desc=db_span["description"],
             type=PerformanceNPlusOneExperimentalGroupType,
-            parent_span_ids=[parent_span["span_id"]],
+            parent_span_ids=[common_parent_span["span_id"]],
             cause_span_ids=db_span_ids,
             offender_span_ids=offender_span_ids,
             evidence_data={
                 "op": "db",
-                "parent_span_ids": [parent_span["span_id"]],
-                "cause_span_ids": [],
+                "parent_span_ids": [common_parent_span["span_id"]],
+                "cause_span_ids": db_span_ids,
                 "offender_span_ids": offender_span_ids,
                 "transaction_name": self.event.get("transaction", ""),
-                "parent_span": get_span_evidence_value(parent_span),
-                "repeating_spans": get_span_evidence_value(offender_spans[0]),
-                "repeating_spans_compact": get_span_evidence_value(
-                    offender_spans[0], include_op=False
-                ),
+                "parent_span": get_span_evidence_value(common_parent_span),
+                "repeating_spans": get_span_evidence_value(db_span),
+                "repeating_spans_compact": get_span_evidence_value(db_span, include_op=False),
                 "number_repeating_spans": str(len(offender_spans)),
+                "pattern_size": len(self.pattern),
+                "pattern_span_ids": [span["span_id"] for span in self.pattern],
+                "num_pattern_repetitions": times_occurred,
             },
             evidence_display=[
                 IssueEvidence(
