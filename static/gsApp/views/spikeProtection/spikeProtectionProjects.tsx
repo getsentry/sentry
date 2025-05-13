@@ -204,9 +204,7 @@ function SpikeProtectionProjects({subscription}: Props) {
     );
     return (
       <Confirm
-        onConfirm={() => {
-          updateAllProjects(isEnabling);
-        }}
+        onConfirm={() => updateAllProjects(isEnabling)}
         message={confirmationText}
         disabled={!hasOrgWrite}
       >

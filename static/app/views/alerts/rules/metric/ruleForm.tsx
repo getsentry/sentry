@@ -1352,9 +1352,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                       header={<h5>{t('Delete Alert Rule?')}</h5>}
                       priority="danger"
                       confirmText={t('Delete Rule')}
-                      onConfirm={() => {
-                        this.handleDeleteRule();
-                      }}
+                      onConfirm={this.handleDeleteRule}
                     >
                       <Button priority="danger">{t('Delete Rule')}</Button>
                     </Confirm>
