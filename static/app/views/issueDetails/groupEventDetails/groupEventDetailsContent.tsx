@@ -296,16 +296,6 @@ export function EventDetailsContent({
           </GuideAnchor>
         )}
       </ClassNames>
-      {defined(eventEntries[EntryType.DEBUGMETA]) && (
-        <EntryErrorBoundary type={EntryType.DEBUGMETA}>
-          <DebugMeta
-            event={event}
-            projectSlug={projectSlug}
-            groupId={group?.id}
-            data={eventEntries[EntryType.DEBUGMETA].data}
-          />
-        </EntryErrorBoundary>
-      )}
       {hasStreamlinedUI && (
         <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
@@ -450,6 +440,16 @@ export function EventDetailsContent({
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {hasStreamlinedUI && (
         <EventProcessingErrors event={event} project={project} isShare={false} />
+      )}
+      {defined(eventEntries[EntryType.DEBUGMETA]) && (
+        <EntryErrorBoundary type={EntryType.DEBUGMETA}>
+          <DebugMeta
+            event={event}
+            projectSlug={projectSlug}
+            groupId={group?.id}
+            data={eventEntries[EntryType.DEBUGMETA].data}
+          />
+        </EntryErrorBoundary>
       )}
       {event.groupID && (
         <EventGroupingInfoSection
