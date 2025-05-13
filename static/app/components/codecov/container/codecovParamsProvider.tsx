@@ -27,16 +27,16 @@ export default function CodecovQueryParamsProvider({children}: CodecovProviderPr
     const queryCodecovPeriod = location.query.codecovPeriod;
     const validEntries = {} as Partial<CodecovContextData>;
 
-    if (typeof queryRepository === 'string' && queryRepository.trim() !== '') {
+    if (typeof queryRepository === 'string' && queryRepository !== '') {
       validEntries.repository = queryRepository;
     }
-    if (typeof queryIntegratedOrg === 'string' && queryIntegratedOrg.trim() !== '') {
+    if (typeof queryIntegratedOrg === 'string' && queryIntegratedOrg !== '') {
       validEntries.integratedOrg = queryIntegratedOrg;
     }
-    if (typeof queryBranch === 'string' && queryBranch.trim() !== '') {
+    if (typeof queryBranch === 'string' && queryBranch !== '') {
       validEntries.branch = queryBranch;
     }
-    if (typeof queryCodecovPeriod === 'string' && queryCodecovPeriod.trim() !== '') {
+    if (typeof queryCodecovPeriod === 'string' && queryCodecovPeriod !== '') {
       validEntries.codecovPeriod = queryCodecovPeriod;
     }
 
