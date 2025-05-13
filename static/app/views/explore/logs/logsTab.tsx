@@ -16,6 +16,7 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -43,6 +44,7 @@ import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePers
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
+import {findSuggestedColumns} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 type LogsTabProps = PickableDays;
@@ -59,6 +61,8 @@ export function LogsTabContent({
   const tableData = useExploreLogsTable({});
   const pageFilters = usePageFilters();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
+
+  const oldLogsSearch = usePrevious(logsSearch);
 
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
@@ -88,9 +92,18 @@ export function LogsTabContent({
     initialQuery: logsSearch.formatString(),
     searchSource: 'ourlogs',
     onSearch: (newQuery: string) => {
-      const mutableQuery = new MutableSearch(newQuery);
+      const newSearch = new MutableSearch(newQuery);
+      const suggestedColumns = findSuggestedColumns(newSearch, oldLogsSearch, {
+        numberAttributes,
+        stringAttributes,
+      });
+
+      const existingFields = new Set(fields);
+      const newColumns = suggestedColumns.filter(col => !existingFields.has(col));
+
       setLogsPageParams({
-        search: mutableQuery,
+        search: newSearch,
+        fields: newColumns.length ? [...fields, ...newColumns] : undefined,
       });
     },
     numberAttributes,
