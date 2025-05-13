@@ -66,8 +66,6 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
 def send_email(message: EmailMultiAlternatives | dict[str, Any]) -> None:
     if not isinstance(message, EmailMultiAlternatives):
         message = message_from_dict(message)
-    else:
-        raise TypeError("Expected dict instance")
     send_messages([message])
 
 
