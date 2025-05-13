@@ -150,6 +150,9 @@ ERR_INTEGRATION_PENDING_DELETION = _(
 ERR_INTEGRATION_INVALID_INSTALLATION = _(
     "Your GitHub account does not have owner privileges for the chosen organization."
 )
+ERR_MISSING_INTEGRATION = _(
+    "The chosen GitHub installation could not be found. Please uninstall the Sentry app from your GitHub account settings."
+)
 
 
 class GithubInstallationInfo(TypedDict):
@@ -883,6 +886,78 @@ class OAuthLoginView(PipelineView):
         ]
 
 
+class GithubOrganizationSelection(PipelineView):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+        self.active_user_organization = determine_active_organization(request)
+
+        if self.active_user_organization is None or not features.has(
+            "organizations:github-multi-org",
+            organization=self.active_user_organization.organization,
+            actor=request.user,
+        ):
+            return pipeline.next_step()
+
+        with record_event(
+            IntegrationPipelineViewType.ORGANIZATION_SELECTION
+        ).capture() as lifecycle:
+            installation_info = pipeline.fetch_state("existing_installation_info") or []
+            if len(installation_info) == 0:
+                return pipeline.next_step()
+
+            # add an option for users to install on a new GH organization
+            installation_info.append(
+                {
+                    "installation_id": "-1",
+                    "github_account": "Integrate with a new GitHub organization",
+                    "avatar_url": "",
+                }
+            )
+
+            if "chosen_installation_id" in request.GET:
+                chosen_installation_id = request.GET["chosen_installation_id"]
+                if chosen_installation_id == "-1":
+                    return pipeline.next_step()
+
+                # Verify that the given GH installation belongs to the person installing the pipeline
+                installation_ids = [
+                    installation["installation_id"] for installation in installation_info
+                ]
+                if chosen_installation_id not in installation_ids:
+                    lifecycle.record_failure(
+                        failure_reason=GitHubInstallationError.INVALID_INSTALLATION
+                    )
+                    return error(
+                        request,
+                        self.active_user_organization,
+                        error_short=GitHubInstallationError.INVALID_INSTALLATION,
+                        error_long=ERR_INTEGRATION_INVALID_INSTALLATION,
+                    )
+
+                # Validate that the chosen installation has an existing Integration object
+                integration_exists = Integration.objects.filter(
+                    external_id=chosen_installation_id, status=ObjectStatus.ACTIVE
+                ).exists()
+                if not integration_exists:
+                    lifecycle.record_failure(
+                        failure_reason=GitHubInstallationError.MISSING_INTEGRATION
+                    )
+                    return error(
+                        request,
+                        self.active_user_organization,
+                        error_short=GitHubInstallationError.MISSING_INTEGRATION,
+                        error_long=ERR_MISSING_INTEGRATION,
+                    )
+
+                pipeline.bind_state("chosen_installation", chosen_installation_id)
+                return pipeline.next_step()
+
+            return self.render_react_view(
+                request=request,
+                pipeline_name="githubInstallationSelect",
+                props={"installation_info": installation_info},
+            )
+
+
 class GitHubInstallation(PipelineView):
     def get_app_url(self) -> str:
         name = options.get("github-app.name")
@@ -892,15 +967,16 @@ class GitHubInstallation(PipelineView):
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             self.active_user_organization = determine_active_organization(request)
 
+            error_page = self.check_pending_integration_deletion(request=request)
+            if error_page is not None:
+                lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
+                return error_page
+
             if self.active_user_organization is not None and features.has(
                 "organizations:github-multi-org",
                 organization=self.active_user_organization.organization,
                 actor=request.user,
             ):
-                error_page = self.check_pending_integration_deletion(request=request)
-                if error_page is not None:
-                    lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
-                    return error_page
 
                 chosen_installation_id = pipeline.fetch_state("chosen_installation")
                 if chosen_installation_id is not None:
@@ -923,10 +999,7 @@ class GitHubInstallation(PipelineView):
                     else None
                 ),
             )
-            error_page = self.check_pending_integration_deletion(request=request)
-            if error_page is not None:
-                lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
-                return error_page
+
             try:
                 # We want to limit GitHub integrations to 1 organization
                 installations_exist = OrganizationIntegration.objects.filter(
@@ -987,60 +1060,3 @@ class GitHubInstallation(PipelineView):
                 error_long=ERR_INTEGRATION_PENDING_DELETION,
             )
         return None
-
-
-class GithubOrganizationSelection(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
-        self.active_user_organization = determine_active_organization(request)
-
-        if self.active_user_organization is None or not features.has(
-            "organizations:github-multi-org",
-            organization=self.active_user_organization.organization,
-            actor=request.user,
-        ):
-            return pipeline.next_step()
-
-        with record_event(
-            IntegrationPipelineViewType.ORGANIZATION_SELECTION
-        ).capture() as lifecycle:
-            installation_info = pipeline.fetch_state("existing_installation_info") or []
-            if len(installation_info) == 0:
-                return pipeline.next_step()
-
-            # add an option for users to install on a new GH organization
-            installation_info.append(
-                {
-                    "installation_id": "-1",
-                    "github_account": "Integrate with a new GitHub organization",
-                    "avatar_url": "https://raw.githubusercontent.com/getsentry/sentry/526f08eeaafa3a830f70671ad473afd7b9b05a0f/src/sentry/static/sentry/images/logos/sentry-avatar.png",
-                }
-            )
-
-            if "chosen_installation_id" in request.GET:
-                chosen_installation_id = request.GET["chosen_installation_id"]
-                if chosen_installation_id == "-1":
-                    return pipeline.next_step()
-
-                # Verify that the given GH installation belongs to the person installing the pipeline
-                installation_ids = [
-                    installation["installation_id"] for installation in installation_info
-                ]
-                if chosen_installation_id not in installation_ids:
-                    lifecycle.record_failure(
-                        failure_reason=GitHubInstallationError.INVALID_INSTALLATION
-                    )
-                    return error(
-                        request,
-                        self.active_user_organization,
-                        error_short=GitHubInstallationError.INVALID_INSTALLATION,
-                        error_long=ERR_INTEGRATION_INVALID_INSTALLATION,
-                    )
-
-                pipeline.bind_state("chosen_installation", chosen_installation_id)
-                return pipeline.next_step()
-
-            return self.render_react_view(
-                request=request,
-                pipeline_name="githubInstallationSelect",
-                props={"installation_info": installation_info},
-            )
