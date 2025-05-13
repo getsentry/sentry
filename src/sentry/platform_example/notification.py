@@ -8,11 +8,9 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import Model
-from sentry.platform_example.notification_provider import ProviderTarget
 from sentry.platform_example.notification_target import (
     NotificationIntegrationTarget,
     NotificationTarget,
-    NotificationUserTarget,
 )
 from sentry.platform_example.notification_types import NotificationType
 from sentry.platform_example.registry import ProviderRegistry
@@ -52,30 +50,22 @@ class NotificationService(Generic[NotificationTemplateDataT]):
         Send a notification to a single target. Targets can be a user,
         an integration resource, or a team.
         """
-
-        if isinstance(target, NotificationUserTarget):
-            raise NotImplementedError("User notifications are not yet implemented")
-
         if isinstance(target, NotificationIntegrationTarget):
-            integration_installation = target.integration_installation
+            # integration_installation = target.integration_installation
 
             # This is a little hand-wavy, but we'll need to use the
             # installation to get the target provider.
             # An organization can have multiple integration installations for a
             # single provider. Ensuring we target the correct one is essential.
-            provider_target = ProviderTarget(
-                provider_name=integration_installation.provider,
-                resource_id=target.resource_id,
-                resource_type=target.resource_type,
-            )
+            pass
+        else:
+            raise NotImplementedError("Other targets are not yet supported")
 
-        provider = ProviderRegistry.get_provider(provider_target.provider_name)
+        provider = ProviderRegistry.get_provider(target.provider)
         renderer = provider.get_renderer(template.notification_type)
         notification_content = renderer.render(data, template)
 
-        provider.send_notification(
-            notification_content, template.notification_type, provider_target
-        )
+        provider.send_notification(notification_content, template.notification_type, target)
 
         # This is where we'd either return a notification ID
         return ""

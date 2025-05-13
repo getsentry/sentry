@@ -1,11 +1,19 @@
 import abc
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Generic, TypeVar
 
 from sentry.platform_example.notification_renderer import NotificationRenderer
+from sentry.platform_example.notification_target import NotificationTarget
 from sentry.platform_example.notification_types import NotificationType, ProviderResourceType
 
 RendererReturnTypeT = TypeVar("RendererReturnTypeT")
+
+
+class NotificationProviderNames(StrEnum):
+    EMAIL = "email"
+    SLACK = "slack"
+    DISCORD = "discord"
 
 
 @dataclass
@@ -21,7 +29,7 @@ class NotificationProvider(abc.ABC, Generic[RendererReturnTypeT]):
         self,
         notification_content: RendererReturnTypeT,
         notification_type: NotificationType,
-        target: ProviderTarget,
+        target: NotificationTarget,
     ) -> None:
         raise NotImplementedError("Subclasses must implement this method")
 

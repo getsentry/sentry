@@ -48,7 +48,7 @@ class EmailTemplate(Template):
 @dataclass
 class IntegrationTemplate(Template):
     chart: NotificationChart | None = None
-    help_text_template: str | None = None
+    help_text_template_path: str | None = None
 
 
 @dataclass
@@ -98,7 +98,11 @@ class JinjaNotificationTemplate(NotificationTemplate[NotificationTemplateDataT])
             body=env.get_template(self.integration_template.body_template_path).render(data),
             subject=env.get_template(self.integration_template.subject_template_path).render(data),
             chart=self.integration_template.chart,
-            help_text=self.integration_template.help_text_template(data),
+            help_text=(
+                env.get_template(self.integration_template.help_text_template_path).render(data)
+                if self.integration_template.help_text_template_path
+                else None
+            ),
         )
 
 

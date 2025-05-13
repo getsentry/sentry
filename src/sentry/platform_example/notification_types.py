@@ -2,14 +2,14 @@ from enum import StrEnum
 
 
 class NotificationType(StrEnum):
-    OrganizationInvite = "organization_invite"
-    WeeklyDigests = "weekly_digests"
-    Workflows = "workflows"
-    IssueAlert = "issue_alert"
-    SpikeProtection = "spike_protection"
-    OrganizationEmailBlast = "organization_email_blast"
+    ORGANIZATION_INVITE = "organization_invite"
+    WEEKLY_DIGESTS = "weekly_digests"
+    WORKFLOWS = "workflows"
+    ISSUE_ALERT = "issue_alert"
+    SPIKE_PROTECTION = "spike_protection"
+    ORGANIZATION_EMAIL_BLAST = "organization_email_blast"
     # Billing concerns
-    BillingEmail = "billing_email"
+    BILLING_EMAIL = "billing_email"
     ...
 
     @staticmethod
@@ -18,5 +18,7 @@ class NotificationType(StrEnum):
 
 
 class ProviderResourceType(StrEnum):
-    IdentityLink = "identity_link"
-    Channel = "channel"
+    IDENTITY_LINK = "identity_link"
+    CHANNEL = "channel"
+    DIRECT_MESSAGE = "direct_message"
+    EMAIL = "email"

@@ -6,9 +6,10 @@ from django.urls import reverse
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.platform_example.notification import NotificationService
-from sentry.platform_example.notification_target import NotificationTarget, NotificationUserTarget
+from sentry.platform_example.notification_provider import NotificationProviderNames
+from sentry.platform_example.notification_target import NotificationTarget
 from sentry.platform_example.notification_target_strategies import NotificationTargetStrategy
-from sentry.platform_example.notification_types import NotificationType
+from sentry.platform_example.notification_types import NotificationType, ProviderResourceType
 from sentry.platform_example.template_base import (
     DjangoNotificationTemplate,
     EmailTemplate,
@@ -45,17 +46,10 @@ class OrganizationInviteNotificationData(TemplateData):
         )
 
 
-# Maybe default to Jinja?
-
-
-# class ExampleTemplate(BaseTemplate[OrganizationInviteNotificationData]):
-#     type: TemplateType.DJANGO
-
-
 OrganizationInviteNotificationTemplate = DjangoNotificationTemplate[
     OrganizationInviteNotificationData
 ](
-    notification_type=NotificationType.OrganizationInvite,
+    notification_type=NotificationType.ORGANIZATION_INVITE,
     email_template=EmailTemplate(
         body_template_path="sentry/emails/organization-invite-request.html",
         body_plaintext_template_path="sentry/emails/organization-invite-request.txt",
@@ -79,11 +73,14 @@ class OrganizationRoleTargetStrategy(NotificationTargetStrategy):
 
     def get_targets(self) -> list[NotificationTarget]:
         return [
-            NotificationUserTarget(
-                user_id=member.user_id,
+            NotificationTarget(
+                resource_type=ProviderResourceType.EMAIL,
+                resource_value=member.email,
+                provider=NotificationProviderNames.EMAIL,
+                additional_data={},
             )
             for member in self._get_organization_members_with_scope()
-            if member.user_id is not None
+            if member.user_id is not None and member.email is not None
         ]
 
     def _get_organization_members_with_scope(self) -> list[OrganizationMember]:

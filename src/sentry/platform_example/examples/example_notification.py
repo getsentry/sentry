@@ -20,7 +20,7 @@ class ExampleNotificationData(TemplateData):
 
 
 ExampleNotificationTemplate = DjangoNotificationTemplate[ExampleNotificationData](
-    notification_type=NotificationType.OrganizationEmailBlast,
+    notification_type=NotificationType.ORGANIZATION_EMAIL_BLAST,
     email_template=EmailTemplate(
         body_template_path="sentry/emails/organization-email-blast.html",
         subject_template_path="sentry/emails/organization-email-blast.txt",

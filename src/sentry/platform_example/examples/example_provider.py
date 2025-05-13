@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from typing import Any
 
-from sentry.platform_example.notification_provider import NotificationProvider, ProviderTarget
+from sentry.platform_example.notification_provider import NotificationProvider
 from sentry.platform_example.notification_renderer import NotificationRenderer
+from sentry.platform_example.notification_target import NotificationTarget
 from sentry.platform_example.notification_types import NotificationType
 from sentry.platform_example.registry import ProviderRegistry
 from sentry.platform_example.template_base import NotificationTemplate, TemplateData
@@ -31,7 +32,7 @@ class ExampleNotificationProvider(NotificationProvider[str]):
         self,
         notification_content: str,
         notification_type: NotificationType,
-        target: ProviderTarget,
+        target: NotificationTarget,
     ) -> None:
         # print(notification_content)
         pass
@@ -54,7 +55,7 @@ class SlackNotificationProvider(NotificationProvider[SlackBlockKitData]):
         self,
         notification_content: SlackBlockKitData,
         notification_type: NotificationType,
-        target: ProviderTarget,
+        target: NotificationTarget,
     ) -> None:
         pass
 
