@@ -22,6 +22,7 @@ from sentry.models.project import Project
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -239,11 +240,11 @@ def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
     if option == "off":
         return False
     elif option == "low":
-        return fixability_score >= 0.7
+        return fixability_score >= FixabilityScoreThresholds.HIGH.value
     elif option == "medium":
-        return fixability_score >= 0.5
+        return fixability_score >= FixabilityScoreThresholds.MEDIUM.value
     elif option == "high":
-        return fixability_score >= 0.3
+        return fixability_score >= FixabilityScoreThresholds.LOW.value
     elif option == "always":
         return True
     return False
