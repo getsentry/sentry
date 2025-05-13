@@ -110,7 +110,6 @@ export function useSpanSamplesWebVitalsQuery({
         SpanIndexedField.USER_USERNAME,
         SpanIndexedField.USER_ID,
         SpanIndexedField.USER_IP,
-        SpanIndexedField.USER,
         SpanIndexedField.PROJECT,
         SpanIndexedField.SPAN_DESCRIPTION,
         SpanIndexedField.TIMESTAMP,
