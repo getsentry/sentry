@@ -1953,7 +1953,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        with self.feature({"organizations:deprecate-discover-widget-type": True}):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
 
         assert response.status_code == 400, response.data
         assert (

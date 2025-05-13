@@ -1562,15 +1562,16 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         )
 
         saved_widget = DashboardWidget.objects.get(id=widget.id)
-        assert saved_widget.discover_widget_split == DashboardWidgetTypes.DISCOVER
+        assert (
+            saved_widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        )  # we default to errors
 
         assert response.status_code == 200, response.content
 
         assert response.status_code == 200, response.content
         # Fell back to discover data which is empty for this test (empty group of '').
-        assert len(response.data.keys()) == 2
+        assert len(response.data.keys()) == 1
         assert bool(response.data["error_value,"])
-        assert bool(response.data["transaction_value,"])
 
     def test_top_events_with_transaction_on_demand_passing_widget_id_saved(self):
         field = "count()"
