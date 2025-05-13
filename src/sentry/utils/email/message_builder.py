@@ -86,7 +86,11 @@ def message_to_dict(message: EmailMultiAlternatives) -> dict[str, Any]:
         "attachments": message.attachments,
         "headers": message.extra_headers,
         "reply_to": message.reply_to,
-        "alternatives": message.alternatives,
+        "alternatives": [
+            # Django 5.2 uses a class for alternatives. Previously it was a tuple
+            [msg[0], msg[1]]
+            for msg in message.alternatives
+        ],
     }
 
 
