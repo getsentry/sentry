@@ -5,7 +5,11 @@ from typing import Any
 
 from django.db import router, transaction
 
-from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRuleStatus,
+    AlertRuleTriggerAction,
+    AlertRuleTriggerActionMethod,
+)
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
@@ -94,7 +98,7 @@ def handle_trigger_action(
     action_id: int,
     incident_id: int,
     project_id: int,
-    method: str,
+    method: AlertRuleTriggerActionMethod,
     new_status: int,
     metric_value: int | None = None,
     **kwargs: Any,
