@@ -1,4 +1,4 @@
-import type {ComponentProps} from 'react';
+import {type ComponentProps, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {LazyRender} from 'sentry/components/lazyRender';
@@ -36,6 +36,7 @@ type Props = {
 };
 
 function SortableWidget(props: Props) {
+  const widgetRef = useRef<HTMLDivElement>(null);
   const {
     widget,
     isEditingDashboard,
@@ -65,6 +66,12 @@ function SortableWidget(props: Props) {
     dashboardCreator
   );
 
+  useEffect(() => {
+    if (widgetRef.current) {
+      widgetRef.current.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+  }, [index]);
+
   const widgetProps: ComponentProps<typeof WidgetCard> = {
     widget,
     isEditingDashboard,
@@ -92,7 +99,7 @@ function SortableWidget(props: Props) {
   };
 
   return (
-    <GridWidgetWrapper>
+    <GridWidgetWrapper ref={widgetRef}>
       <DashboardsMEPProvider>
         <LazyRender containerHeight={200} withoutContainer>
           <WidgetCard {...widgetProps} />
