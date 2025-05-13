@@ -53,6 +53,7 @@ export function useStarredSegment({projectId, segmentName, tableQueryKey}: Props
 
   const onError = (message: string) => {
     addErrorMessage(message);
+    // TODO - revert table data if the mutation fails
   };
 
   const onSuccess = (message: string) => {
