@@ -153,7 +153,7 @@ function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
     onSuccess: result => {
       setResponse(<QueryTokens result={result} />);
       setRawResult(result);
-      setGeneratedQueryString(JSON.stringify(result, null, 2));
+      setGeneratedQueryString(JSON.stringify(result));
     },
     onError: (error: Error) => {
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
