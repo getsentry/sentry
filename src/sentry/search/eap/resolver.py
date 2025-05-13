@@ -870,12 +870,24 @@ class SearchResolver:
                 f"Invalid number of arguments for {function_name}, was expecting {len(function_definition.required_arguments)} arguments"
             )
 
-        for index, argument_definition in enumerate(function_definition.arguments):
+        missing_args = len(function_definition.arguments) - len(arguments)
+        argument_index = 0
+
+        for argument_definition in function_definition.arguments:
             if argument_definition.ignored:
                 continue
 
-            if index < len(arguments):
-                argument = arguments[index]
+            # If there are missing arguments, and the argument definition has a default arg, use the default arg
+            # this assumes the missing args are at the beginning or end of the arguments list
+            if missing_args > 0 and argument_definition.default_arg:
+                parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
+                parsed_args.append(parsed_argument)
+                missing_args -= 1
+                continue
+
+            if argument_index < len(arguments):
+                argument = arguments[argument_index]
+                argument_index += 1
                 if argument_definition.validator is not None:
                     if not argument_definition.validator(argument):
                         raise InvalidSearchQuery(
@@ -883,6 +895,7 @@ class SearchResolver:
                         )
                 if isinstance(argument_definition, AttributeArgumentDefinition):
                     parsed_argument, _ = self.resolve_attribute(argument)
+                    parsed_args.append(parsed_argument)
                 else:
                     if argument_definition.argument_types is None:
                         parsed_args.append(argument)  # assume it's a string
@@ -896,9 +909,6 @@ class SearchResolver:
                         else:
                             parsed_args.append(argument)
                     continue
-
-            elif argument_definition.default_arg:
-                parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
             else:
                 raise InvalidSearchQuery(
                     f"Invalid number of arguments for {function_name}, was expecting {len(function_definition.required_arguments)} arguments"
@@ -910,9 +920,8 @@ class SearchResolver:
                 and parsed_argument.search_type not in argument_definition.attribute_types
             ):
                 raise InvalidSearchQuery(
-                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
+                    f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
                 )
-            parsed_args.append(parsed_argument)
 
         resolved_arguments = []
         for parsed_arg in parsed_args:
