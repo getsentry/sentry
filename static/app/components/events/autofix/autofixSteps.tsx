@@ -66,7 +66,6 @@ function Step({
   hasErroredStepBefore,
   previousDefaultStepIndex,
   previousInsightCount,
-  feedback,
   isRootCauseFirstAppearance,
   isSolutionFirstAppearance,
   isChangesFirstAppearance,
@@ -102,7 +101,6 @@ function Step({
                   agentCommentThread={step.agent_comment_thread ?? undefined}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
-                  feedback={feedback}
                   isRootCauseFirstAppearance={isRootCauseFirstAppearance}
                 />
               )}
@@ -117,7 +115,6 @@ function Step({
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
-                  feedback={feedback}
                   isSolutionFirstAppearance={isSolutionFirstAppearance}
                 />
               )}
@@ -264,7 +261,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
                 previousDefaultStepIndex >= 0 ? previousDefaultStepIndex : undefined
               }
               previousInsightCount={previousInsightCount}
-              feedback={data.feedback}
               isRootCauseFirstAppearance={
                 step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && !isInitialMount
               }

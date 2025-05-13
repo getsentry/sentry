@@ -11,9 +11,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
-import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
-  type AutofixFeedback,
   type AutofixSolutionTimelineEvent,
   AutofixStatus,
   AutofixStepType,
@@ -33,7 +31,6 @@ import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryCl
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 
@@ -112,7 +109,6 @@ type AutofixSolutionProps = {
   changesDisabled?: boolean;
   customSolution?: string;
   description?: string;
-  feedback?: AutofixFeedback;
   isSolutionFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
@@ -319,7 +315,6 @@ function AutofixSolutionDisplay({
   customSolution,
   solutionSelected,
   agentCommentThread,
-  feedback,
 }: Omit<AutofixSolutionProps, 'repos'>) {
   const {repos} = useAutofixRepos(groupId);
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
@@ -415,15 +410,6 @@ function AutofixSolutionDisplay({
             {t('Solution')}
           </HeaderText>
           <ButtonBar gap={1}>
-            <AutofixThumbsUpDownButtons
-              thumbsUpDownType="solution"
-              feedback={feedback}
-              groupId={groupId}
-              runId={runId}
-            />
-            <DividerWrapper>
-              <Divider />
-            </DividerWrapper>
             <ButtonBar>
               {!isEditing && (
                 <CopySolutionButton solution={solution} isEditing={isEditing} />
@@ -619,8 +605,4 @@ const SubmitButton = styled(Button)`
 
 const AddInstructionWrapper = styled('div')`
   padding: ${space(1)} ${space(1)} 0 ${space(3)};
-`;
-
-const DividerWrapper = styled('div')`
-  margin: 0 ${space(0.5)};
 `;
