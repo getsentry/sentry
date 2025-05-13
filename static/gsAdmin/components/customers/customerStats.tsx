@@ -250,8 +250,8 @@ export function populateChartData(
     totalFiltered!.subSeries = totalFiltered!.subSeries ?? [];
     totalFiltered!.subSeries.push({seriesName: data.seriesName, data: data.data});
 
-    for (const dataIndex in data.data) {
-      totalFiltered!.data[dataIndex]!.value += data.data[dataIndex]!.value;
+    for (const [dataIndex, dataPoint] of data.data.entries()) {
+      totalFiltered!.data[dataIndex]!.value += dataPoint.value;
     }
   }
 
@@ -259,8 +259,8 @@ export function populateChartData(
     totalDiscarded!.subSeries = totalDiscarded!.subSeries ?? [];
     totalDiscarded!.subSeries.push({seriesName: data.seriesName, data: data.data});
 
-    for (const dataIndex in data.data) {
-      totalDiscarded!.data[dataIndex]!.value += data.data[dataIndex]!.value;
+    for (const [dataIndex, dataPoint] of data.data.entries()) {
+      totalDiscarded!.data[dataIndex]!.value += dataPoint.value;
     }
   }
 
@@ -268,8 +268,8 @@ export function populateChartData(
     totalDropped!.subSeries = totalDropped!.subSeries ?? [];
     totalDropped!.subSeries.push({seriesName: data.seriesName, data: data.data});
 
-    for (const dataIndex in data.data) {
-      totalDropped!.data[dataIndex]!.value += data.data[dataIndex]!.value;
+    for (const [dataIndex, dataPoint] of data.data.entries()) {
+      totalDropped!.data[dataIndex]!.value += dataPoint.value;
     }
   }
 
