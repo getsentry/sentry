@@ -1,5 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EAPChartsWidget} from './eapChartsWidget';
@@ -9,7 +7,6 @@ describe('EAPChartsWidget', function () {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    mockUseLocation.mockImplementation(() => LocationFixture());
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
@@ -19,7 +16,6 @@ describe('EAPChartsWidget', function () {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
   });
 
@@ -32,16 +28,17 @@ describe('EAPChartsWidget', function () {
   });
 
   it('shows default widget when invalid query param is provided', async function () {
-    mockUseLocation.mockImplementation(() =>
-      LocationFixture({
-        query: {
-          chartDisplay: 'some_widget_that_does_not_exist',
+    render(<EAPChartsWidget transactionName={transactionName} query={''} />, {
+      initialRouterConfig: {
+        route: '/organizations/:orgId/insights/summary/',
+        location: {
+          pathname: '/organizations/org-slug/insights/summary/',
+          query: {
+            chartDisplay: 'some_widget_that_does_not_exist',
+          },
         },
-        pathname: '/test',
-      })
-    );
-
-    render(<EAPChartsWidget transactionName={transactionName} query={''} />);
+      },
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Duration Breakdown')).toBeInTheDocument();
