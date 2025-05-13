@@ -809,7 +809,8 @@ SPAN_FORMULA_DEFINITIONS = {
         is_aggregate=True,
     ),
     "division_if": FormulaDefinition(
-        default_search_type="number",
+        default_search_type="percentage",
+        infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
@@ -836,7 +837,8 @@ SPAN_FORMULA_DEFINITIONS = {
         is_aggregate=True,
     ),
     "division": FormulaDefinition(
-        default_search_type="number",
+        default_search_type="percentage",
+        infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={

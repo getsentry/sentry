@@ -3318,6 +3318,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             == 50 / 100
         )
         assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {
+            "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Chrome)": "percentage",
+            "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Firefox)": "percentage",
+        }
 
     def test_total_performance_score(self):
         self.store_spans(
@@ -3444,6 +3448,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data[0]["division(mobile.slow_frames,mobile.total_frames)"] == 10 / 100
         assert data[0]["division(mobile.frozen_frames,mobile.total_frames)"] == 20 / 100
         assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {
+            "division(mobile.slow_frames,mobile.total_frames)": "percentage",
+            "division(mobile.frozen_frames,mobile.total_frames)": "percentage",
+        }
 
     def test_division_with_groupby(self):
         self.store_spans(
