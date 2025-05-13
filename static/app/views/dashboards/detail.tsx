@@ -649,7 +649,7 @@ class DashboardDetail extends Component<Props, State> {
     const {
       organization,
       dashboard,
-      router,
+      navigate,
       location,
       params: {dashboardId},
     } = this.props;
@@ -667,7 +667,7 @@ class DashboardDetail extends Component<Props, State> {
         if (!defined(dashboardId)) {
           pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
         }
-        router.push(
+        navigate(
           normalizeUrl({
             // TODO: Replace with the old widget builder path when swapping over
             pathname,
@@ -679,7 +679,8 @@ class DashboardDetail extends Component<Props, State> {
                     getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
                   )),
             },
-          })
+          }),
+          {preventScrollReset: true}
         );
       }
     );
@@ -778,18 +779,19 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleCloseWidgetBuilder = () => {
-    const {organization, router, location, params} = this.props;
+    const {organization, navigate, location, params} = this.props;
 
     this.setState({
       isWidgetBuilderOpen: false,
       openWidgetTemplates: undefined,
     });
-    router.push(
+    navigate(
       getDashboardLocation({
         organization,
         dashboardId: params.dashboardId,
         location,
-      })
+      }),
+      {preventScrollReset: true}
     );
   };
 
