@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -20,12 +21,14 @@ export default function DetectorsList() {
 
   return (
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
-      <ActionsProvider actions={<Actions />}>
-        <ListLayout>
-          <TableHeader />
-          <DetectorListTable detectors={[]} />
-        </ListLayout>
-      </ActionsProvider>
+      <PageFiltersContainer>
+        <ActionsProvider actions={<Actions />}>
+          <ListLayout>
+            <TableHeader />
+            <DetectorListTable detectors={[]} />
+          </ListLayout>
+        </ActionsProvider>
+      </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
