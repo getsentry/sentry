@@ -435,7 +435,7 @@ class StatefulGroupingDetectorHandler(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         """
-        Overrides the best evaluation method, to evaluate in groups instead.
+        Overrides the base evaluation method, to evaluate in groups instead.
         """
         return self.evaluate_groups(data_packet)
 
