@@ -124,6 +124,7 @@ const Topbar = styled('header')<{showSuperuserWarning: boolean}>`
 
   ${p =>
     p.showSuperuserWarning &&
+    !p.theme.isChonk &&
     css`
       background: ${p.theme.sidebar.superuser};
     `}

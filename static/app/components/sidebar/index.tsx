@@ -34,7 +34,6 @@ import {
   IconSettings,
   IconSiren,
   IconStats,
-  IconSupport,
   IconTelescope,
   IconTimer,
 } from 'sentry/icons';
@@ -240,18 +239,6 @@ function Sidebar() {
       to={`/organizations/${organization.slug}/releases/`}
       id="releases"
     />
-  );
-
-  const userFeedback = hasOrganization && (
-    <Feature features="old-user-feedback" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconSupport />}
-        label={t('User Feedback')}
-        to={`/organizations/${organization.slug}/user-feedback/`}
-        id="user-feedback"
-      />
-    </Feature>
   );
 
   const feedback = hasOrganization && (
@@ -468,7 +455,6 @@ function Sidebar() {
                       {discover}
                       {dashboards}
                       {releases}
-                      {userFeedback}
                     </SidebarSection>
                   </Fragment>
                 )}

@@ -333,10 +333,13 @@ class FunctionRegressionDetector(RegressionDetector):
     ),
 )
 def detect_transaction_trends(
-    _org_ids: list[int], project_ids: list[int], start: datetime, *args, **kwargs
+    _org_ids: list[int], project_ids: list[int], start: datetime | str, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    if isinstance(start, str):
+        start = datetime.fromisoformat(start)
 
     EndpointRegressionDetector.configure_tags()
 
@@ -376,8 +379,11 @@ def detect_transaction_trends(
     ),
 )
 def detect_transaction_change_points(
-    transactions: list[tuple[int, str | int]], start: datetime, *args, **kwargs
+    transactions: list[tuple[int, str | int]], start: datetime | str, *args, **kwargs
 ) -> None:
+    if isinstance(start, str):
+        start = datetime.fromisoformat(start)
+
     _detect_transaction_change_points(transactions, start, *args, **kwargs)
 
 
@@ -427,9 +433,12 @@ def _detect_transaction_change_points(
         namespace=profiling_tasks,
     ),
 )
-def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwargs) -> None:
+def detect_function_trends(project_ids: list[int], start: datetime | str, *args, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    if isinstance(start, str):
+        start = datetime.fromisoformat(start)
 
     FunctionRegressionDetector.configure_tags()
 
@@ -469,8 +478,11 @@ def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwa
     ),
 )
 def detect_function_change_points(
-    functions_list: list[tuple[int, int]], start: datetime, *args, **kwargs
+    functions_list: list[tuple[int, int]], start: datetime | str, *args, **kwargs
 ) -> None:
+    if isinstance(start, str):
+        start = datetime.fromisoformat(start)
+
     _detect_function_change_points(functions_list, start, *args, **kwargs)
 
 

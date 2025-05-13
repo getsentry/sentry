@@ -107,13 +107,13 @@ export const LogFirstCellContent = styled('div')`
 export const DetailsBody = styled('div')`
   display: flex;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+  padding: ${space(1)} 0;
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
 
   &:last-child {
     border-bottom: 0;
   }
-
-  padding: ${space(1)} 0;
-  font-family: ${p => p.theme.text.familyMono};
 `;
 
 export const StyledChevronButton = styled(Button)`
@@ -173,6 +173,7 @@ export const AlignedCellContent = styled('div')<{
   flex-direction: row;
   justify-content: ${p => p.align || 'left'};
   font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
 `;
 
 export const FirstTableHeadCell = styled(TableHeadCell)`

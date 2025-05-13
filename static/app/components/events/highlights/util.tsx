@@ -11,7 +11,7 @@ import {
 } from 'sentry/components/events/contexts/utils';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import {t} from 'sentry/locale';
-import type {Event, EventTag} from 'sentry/types/event';
+import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -156,19 +156,17 @@ export function getHighlightTagData({
   event: Event;
   highlightTags: HighlightTags;
 }): Array<Required<TagTreeContent>> {
-  const tagMap: Record<string, {meta: Record<string, any>; tag: EventTag}> =
-    event.tags.reduce((tm, tag, i) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      tm[tag.key] = {tag, meta: event._meta?.tags?.[i]};
-      return tm;
-    }, {});
+  const tagMap = event.tags.reduce<Record<string, EventTagWithMeta>>((tm, tag, i) => {
+    tm[tag.key] = {...tag, meta: event._meta?.tags?.[i]};
+    return tm;
+  }, {});
   return highlightTags.map(tagKey => ({
     subtree: {},
     meta: tagMap[tagKey]?.meta ?? {},
-    value: tagMap[tagKey]?.tag?.hasOwnProperty('value')
-      ? tagMap[tagKey]?.tag.value
+    value: tagMap[tagKey]?.hasOwnProperty('value')
+      ? tagMap[tagKey]?.value
       : EMPTY_HIGHLIGHT_DEFAULT,
-    originalTag: tagMap[tagKey]?.tag ?? {key: tagKey, value: EMPTY_HIGHLIGHT_DEFAULT},
+    originalTag: tagMap[tagKey] ?? {key: tagKey, value: EMPTY_HIGHLIGHT_DEFAULT},
   }));
 }
 

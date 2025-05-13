@@ -126,7 +126,13 @@ def _webhook_event_data(
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **TASK_OPTIONS,
 )
 @retry_decorator
@@ -224,7 +230,13 @@ def send_alert_webhook_v2(
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **TASK_OPTIONS,
 )
 @retry_decorator
@@ -394,7 +406,13 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **TASK_OPTIONS,
 )
 @retry_decorator
@@ -406,7 +424,13 @@ def process_resource_change_bound(
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.installation_webhook",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_control_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **CONTROL_TASK_OPTIONS,
 )
 @retry_decorator
@@ -436,7 +460,13 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.clear_region_cache",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_control_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **CONTROL_TASK_OPTIONS,
 )
 def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
@@ -480,7 +510,13 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.workflow_notification",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **TASK_OPTIONS,
 )
 @retry_decorator
@@ -509,7 +545,13 @@ def workflow_notification(
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.build_comment_webhook",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **TASK_OPTIONS,
 )
 @retry_decorator
@@ -577,7 +619,13 @@ def get_webhook_data(
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook",
-    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
     **TASK_OPTIONS,
 )
 @retry_decorator

@@ -7,8 +7,15 @@ describe('Visualize', function () {
     function (yAxis) {
       const visualize = new Visualize([yAxis]);
       expect(visualize.chartType).toEqual(ChartType.BAR);
+      expect(visualize.stack).toBeDefined();
     }
   );
+
+  it('uses unstacked bar graph', function () {
+    const visualize = new Visualize(['count(span.duration)', 'count_unique(span.op)']);
+    expect(visualize.chartType).toEqual(ChartType.BAR);
+    expect(visualize.stack).toBeUndefined();
+  });
 
   it.each([
     'avg(span.duration)',
@@ -23,11 +30,13 @@ describe('Visualize', function () {
   ])('defaults to bar charts for %s', function (yAxis) {
     const visualize = new Visualize([yAxis]);
     expect(visualize.chartType).toEqual(ChartType.LINE);
+    expect(visualize.stack).toBeDefined();
   });
 
   it('uses selected chart type', function () {
     const visualize = new Visualize(['count(span.duration)'], '', ChartType.AREA);
     expect(visualize.chartType).toEqual(ChartType.AREA);
+    expect(visualize.stack).toBeDefined();
   });
 
   it('uses the dominant chart type', function () {
@@ -38,6 +47,7 @@ describe('Visualize', function () {
       'p90(span.duration)',
     ]);
     expect(visualize.chartType).toEqual(ChartType.LINE);
+    expect(visualize.stack).toBeDefined();
   });
 
   it('clones', function () {

@@ -42,6 +42,27 @@ class ExploreSavedQueryProject(Model):
 
 
 @region_silo_model
+class ExploreSavedQueryLastVisited(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization")
+    explore_saved_query = FlexibleForeignKey("explore.ExploreSavedQuery")
+
+    last_visited = models.DateTimeField(null=False, default=timezone.now)
+
+    class Meta:
+        app_label = "explore"
+        db_table = "explore_exploresavedquerylastvisited"
+        constraints = [
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "explore_saved_query_id"],
+                name="explore_exploresavedquerylastvisited_unique_last_visited_per_org_user_query",
+            )
+        ]
+
+
+@region_silo_model
 class ExploreSavedQuery(DefaultFieldsModel):
     """
     A saved Explore query
