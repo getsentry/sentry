@@ -113,7 +113,7 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
 }
 
 const Meter = styled(Progress.Meter)`
-  background: 'rebeccapurple';
+  background: ${p => p.theme.gray200};
 `;
 
 const RangeWrapper = styled('div')`
