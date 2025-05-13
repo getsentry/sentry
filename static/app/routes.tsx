@@ -1727,19 +1727,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/insights/mobile/ui/views/uiLandingPage')
-          )}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () => import('sentry/views/insights/mobile/ui/views/screenSummaryPage')
-          )}
-        />
-      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.UPTIME]}/`}>
         <IndexRoute
           component={make(() => import('sentry/views/insights/uptime/views/overview'))}
@@ -1941,14 +1928,6 @@ function buildRoutes() {
         component={make(() => import('sentry/views/explore/savedQueries'))}
       />
     </Route>
-  );
-
-  const userFeedbackRoutes = (
-    <Route
-      path="/user-feedback/"
-      component={make(() => import('sentry/views/userFeedback'))}
-      withOrgPath
-    />
   );
 
   const codecovCommitRoutes = (
@@ -2460,7 +2439,6 @@ function buildRoutes() {
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}
-      {userFeedbackRoutes}
       {feedbackv2Routes}
       {issueRoutes}
       {alertRoutes}

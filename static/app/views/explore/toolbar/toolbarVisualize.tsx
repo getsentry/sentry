@@ -11,7 +11,6 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
@@ -32,7 +31,6 @@ import {
   ToolbarFooter,
   ToolbarFooterButton,
   ToolbarHeader,
-  ToolbarHeaderButton,
   ToolbarLabel,
   ToolbarRow,
   ToolbarSection,
@@ -52,21 +50,6 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
     );
     setVisualizes(newVisualizes, [DEFAULT_VISUALIZATION_FIELD]);
   }, [setVisualizes, visualizes]);
-
-  const addOverlay = useCallback(
-    (group: number) => {
-      const newVisualizes = visualizes.map((visualize, i) => {
-        if (i === group) {
-          visualize = visualize.replace({
-            yAxes: [...visualize.yAxes, DEFAULT_VISUALIZATION],
-          });
-        }
-        return visualize.toJSON();
-      });
-      setVisualizes(newVisualizes, [DEFAULT_VISUALIZATION_FIELD]);
-    },
-    [setVisualizes, visualizes]
-  );
 
   const deleteOverlay = useCallback(
     (group: number, index: number) => {
@@ -91,7 +74,7 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
   const shouldRenderLabel = visualizes.length > 1;
 
   return (
-    <StyledToolbarSection data-test-id="section-visualizes">
+    <ToolbarSection data-test-id="section-visualizes">
       <ToolbarHeader>
         <Tooltip
           position="right"
@@ -101,65 +84,54 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
         >
           <ToolbarLabel>{t('Visualize')}</ToolbarLabel>
         </Tooltip>
-        <Tooltip title={t('Add a new chart')}>
-          <ToolbarHeaderButton
-            size="zero"
-            icon={<IconAdd />}
-            onClick={addChart}
-            aria-label={t('Add Chart')}
-            borderless
-            disabled={visualizes.length >= MAX_VISUALIZES}
-          />
-        </Tooltip>
       </ToolbarHeader>
-      <div>
-        {visualizes.map((visualize, group) => {
-          return (
-            <Fragment key={group}>
-              {visualize.yAxes.map((yAxis, index) => (
-                <Fragment key={index}>
-                  {equationSupport ? (
-                    <VisualizeEquation
-                      canDelete={canDelete}
-                      deleteOverlay={deleteOverlay}
-                      group={group}
-                      index={index}
-                      label={shouldRenderLabel ? visualize.label : undefined}
-                      yAxis={visualizes[group]?.yAxes?.[index]}
-                      visualizes={visualizes}
-                      setVisualizes={setVisualizes}
-                    />
-                  ) : (
-                    <VisualizeDropdown
-                      canDelete={canDelete}
-                      deleteOverlay={deleteOverlay}
-                      group={group}
-                      index={index}
-                      label={shouldRenderLabel ? visualize.label : undefined}
-                      yAxis={yAxis}
-                      visualizes={visualizes}
-                      setVisualizes={setVisualizes}
-                    />
-                  )}
-                </Fragment>
-              ))}
-              <ToolbarFooter>
-                <ToolbarFooterButton
-                  borderless
-                  size="zero"
-                  icon={<IconAdd />}
-                  onClick={() => addOverlay(group)}
-                  priority="link"
-                  aria-label={t('Add Series')}
-                >
-                  {t('Add Series')}
-                </ToolbarFooterButton>
-              </ToolbarFooter>
-            </Fragment>
-          );
-        })}
-      </div>
-    </StyledToolbarSection>
+      {visualizes.map((visualize, group) => {
+        return (
+          <Fragment key={group}>
+            {visualize.yAxes.map((yAxis, index) => (
+              <Fragment key={index}>
+                {equationSupport ? (
+                  <VisualizeEquation
+                    canDelete={canDelete}
+                    deleteOverlay={deleteOverlay}
+                    group={group}
+                    index={index}
+                    label={shouldRenderLabel ? visualize.label : undefined}
+                    yAxis={visualizes[group]?.yAxes?.[index]}
+                    visualizes={visualizes}
+                    setVisualizes={setVisualizes}
+                  />
+                ) : (
+                  <VisualizeDropdown
+                    canDelete={canDelete}
+                    deleteOverlay={deleteOverlay}
+                    group={group}
+                    index={index}
+                    label={shouldRenderLabel ? visualize.label : undefined}
+                    yAxis={yAxis}
+                    visualizes={visualizes}
+                    setVisualizes={setVisualizes}
+                  />
+                )}
+              </Fragment>
+            ))}
+          </Fragment>
+        );
+      })}
+      <ToolbarFooter>
+        <ToolbarFooterButton
+          borderless
+          size="zero"
+          icon={<IconAdd />}
+          onClick={addChart}
+          priority="link"
+          aria-label={t('Add Chart')}
+          disabled={visualizes.length >= MAX_VISUALIZES}
+        >
+          {t('Add Chart')}
+        </ToolbarFooterButton>
+      </ToolbarFooter>
+    </ToolbarSection>
   );
 }
 
@@ -396,8 +368,4 @@ const AggregateCompactSelect = styled(CompactSelect)`
   > button {
     width: 100%;
   }
-`;
-
-const StyledToolbarSection = styled(ToolbarSection)`
-  margin-bottom: ${space(1)};
 `;

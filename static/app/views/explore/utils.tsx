@@ -9,6 +9,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBusiness} from 'sentry/icons/iconBusiness';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -456,4 +457,121 @@ export function confirmDeleteSavedQuery({
     priority: 'danger',
     onConfirm: handleDelete,
   });
+}
+
+export function findSuggestedColumns(
+  newSearch: MutableSearch,
+  oldSearch: MutableSearch,
+  attributes: {
+    numberAttributes: TagCollection;
+    stringAttributes: TagCollection;
+  }
+): string[] {
+  const oldFilters = oldSearch.filters;
+  const newFilters = newSearch.filters;
+
+  const keys: Set<string> = new Set();
+
+  for (const [key, value] of Object.entries(newFilters)) {
+    if (key === 'has' || key === '!has') {
+      // special key to be handled last
+      continue;
+    }
+
+    const isStringAttribute = key.startsWith('!')
+      ? attributes.stringAttributes.hasOwnProperty(key.slice(1))
+      : attributes.stringAttributes.hasOwnProperty(key);
+    const isNumberAttribute = key.startsWith('!')
+      ? attributes.numberAttributes.hasOwnProperty(key.slice(1))
+      : attributes.numberAttributes.hasOwnProperty(key);
+
+    // guard against unknown keys and aggregate keys
+    if (!isStringAttribute && !isNumberAttribute) {
+      continue;
+    }
+
+    if (isSimpleFilter(key, value, attributes)) {
+      continue;
+    }
+
+    if (
+      !oldFilters.hasOwnProperty(key) || // new filter key
+      isSimpleFilter(key, oldFilters[key] || [], attributes) // existing filter key turned complex
+    ) {
+      keys.add(normalizeKey(key));
+      break;
+    }
+  }
+
+  const oldHas = new Set(oldFilters.has);
+  for (const key of newFilters.has || []) {
+    if (oldFilters.hasOwnProperty(key) || oldHas.has(key)) {
+      // old condition, don't add column
+      continue;
+    }
+
+    // if there's a simple filter on the key, don't add column
+    if (
+      newFilters.hasOwnProperty(key) &&
+      isSimpleFilter(key, newFilters[key] || [], attributes)
+    ) {
+      continue;
+    }
+
+    keys.add(normalizeKey(key));
+  }
+
+  return [...keys];
+}
+
+const PREFIX_WILDCARD_PATTERN = /^(\\\\)*\*/;
+const INFIX_WILDCARD_PATTERN = /[^\\](\\\\)*\*/;
+
+function isSimpleFilter(
+  key: string,
+  value: string[],
+  attributes: {
+    numberAttributes: TagCollection;
+    stringAttributes: TagCollection;
+  }
+): boolean {
+  // negation filters are always considered non trivial
+  // because it matches on multiple values
+  if (key.startsWith('!')) {
+    return false;
+  }
+
+  // all number attributes are considered non trivial because they
+  // almost always match on a range of values
+  if (attributes.numberAttributes.hasOwnProperty(key)) {
+    return false;
+  }
+
+  if (value.length === 1) {
+    const v = value[0]!;
+    // if the value is wrapped in `[...]`, then it's an array value
+    if (v.startsWith('[') && v.endsWith(']')) {
+      return false;
+    }
+
+    // if is wild card search, return false
+    if (v.startsWith('*')) {
+      return false;
+    }
+
+    if (PREFIX_WILDCARD_PATTERN.test(v) || INFIX_WILDCARD_PATTERN.test(v)) {
+      return false;
+    }
+  }
+
+  // if there is more than 1 possible value
+  if (value.length > 1) {
+    return false;
+  }
+
+  return true;
+}
+
+function normalizeKey(key: string): string {
+  return key.startsWith('!') ? key.slice(1) : key;
 }

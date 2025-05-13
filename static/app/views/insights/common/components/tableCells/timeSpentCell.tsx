@@ -33,7 +33,7 @@ export function TimeSpentCell({percentage, total, op, containerProps}: Props) {
   );
 }
 
-export function getTimeSpentExplanation(percentage: number, op?: string) {
+function getTimeSpentExplanation(percentage: number, op?: string) {
   const formattedPercentage = formatPercentage(clamp(percentage ?? 0, 0, 1));
 
   return tct(

@@ -394,7 +394,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.sites",
     "drf_spectacular",
     "crispy_forms",
-    "pgtrigger",
     "rest_framework",
     "sentry",
     "sentry.analytics",
@@ -2947,6 +2946,7 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
+        "has_index": True,
     },
     "chromium": {
         "type": "http",
@@ -3149,6 +3149,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
     "snuba-spans": "default",
+    "snuba-items": "default",
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",

@@ -9,11 +9,11 @@ explore: 0004_add_explore_last_visited_table
 
 feedback: 0004_index_together
 
-hybridcloud: 0019_add_provider_webhook_payload
+hybridcloud: 0021_django_arrayfield_scope_list
 
 insights: 0001_add_starred_transactions_model
 
-monitors: 0002_fix_drift_default_to_db_default
+monitors: 0003_record_date_in_progress
 
 nodestore: 0002_nodestore_no_dictfield
 
@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0882_projectoptions_idx_on_key
+sentry: 0886_django_arrayfield_scope_list
 
 social_auth: 0002_default_auto_field
 

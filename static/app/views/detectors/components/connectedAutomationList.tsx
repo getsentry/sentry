@@ -5,17 +5,16 @@ import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpl
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
-import {AUTOMATIONS_BASE_URL} from 'sentry/views/automations/routes';
 
-const columns = defineColumns<Automation>({
+interface ConnectedAutomationData extends Automation {
+  link: string;
+}
+
+const columns = defineColumns<ConnectedAutomationData>({
   name: {
     Header: () => t('Name'),
     Cell: ({value, row}) => (
-      <TitleCell
-        name={value}
-        link={`${AUTOMATIONS_BASE_URL}/${row.id}/`}
-        projectId={row.detectorIds[0]}
-      />
+      <TitleCell name={value} link={row.link} projectId={row.detectorIds[0]} />
     ),
     width: 'minmax(0, 3fr)',
   },
@@ -32,12 +31,10 @@ const columns = defineColumns<Automation>({
   },
 });
 
-export interface ConnectedAutomationsListProps {
-  automations: Automation[];
+interface ConnectedAutomationsListProps {
+  automations: ConnectedAutomationData[];
 }
-export function ConnectedAutomationsList({
-  automations = [],
-}: ConnectedAutomationsListProps) {
+export function ConnectedAutomationsList({automations}: ConnectedAutomationsListProps) {
   return (
     <SimpleTable
       data={automations}

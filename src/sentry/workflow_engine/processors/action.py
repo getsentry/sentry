@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import TypedDict
 
@@ -10,6 +11,7 @@ from django.utils import timezone
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -87,6 +89,7 @@ def update_workflow_fire_histories(
     logger.info(
         "workflow_engine.workflow_fire_history.update",
         extra={
+            "actions": [action.id for action in actions_to_fire],
             "workflow_ids": list(fired_workflows),
             "group_id": event_data.event.group_id,
             "event_id": event_data.event.event_id,
@@ -163,7 +166,7 @@ def get_available_action_integrations_for_org(organization: Organization) -> lis
 def get_notification_plugins_for_org(organization: Organization) -> list[PluginService]:
     """
     Get all plugins for an organization.
-    This method returns a deduplicated list of plugins that are enabled for any project in the organization.
+    This method returns a deduplicated list of plugins that are enabled for an organization.
     """
 
     projects = Project.objects.filter(organization_id=organization.id)
@@ -179,3 +182,30 @@ def get_notification_plugins_for_org(organization: Organization) -> list[PluginS
             plugin_map[plugin.slug] = PluginService(plugin)
 
     return list(plugin_map.values())
+
+
+def get_integration_services(organization_id: int) -> dict[int, list[tuple[int, str]]]:
+    """
+    Get all Pagerduty services and Opsgenie teams for an organization's integrations.
+    """
+
+    org_ints = integration_service.get_organization_integrations(
+        organization_id=organization_id,
+        providers=[IntegrationProviderSlug.PAGERDUTY, IntegrationProviderSlug.OPSGENIE],
+    )
+
+    services: dict[int, list[tuple[int, str]]] = defaultdict(list)
+
+    for org_int in org_ints:
+        pagerduty_services = org_int.config.get("pagerduty_services")
+        if pagerduty_services:
+            services[org_int.integration_id].extend(
+                (s["id"], s["service_name"]) for s in pagerduty_services
+            )
+        opsgenie_teams = org_int.config.get("team_table")
+        if opsgenie_teams:
+            services[org_int.integration_id].extend(
+                (team["id"], team["team"]) for team in opsgenie_teams
+            )
+
+    return services
