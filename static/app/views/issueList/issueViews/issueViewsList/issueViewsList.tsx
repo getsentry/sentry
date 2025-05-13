@@ -146,6 +146,11 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
       queryClient.invalidateQueries({queryKey: tableQueryKey});
     },
   });
+  const updateViewName = (view: GroupSearchView) => {
+    setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
+      return data?.map(v => (v.id === view.id ? {...v, name: view.name} : v));
+    });
+  };
 
   useRouteAnalyticsParams(
     isPending
@@ -169,6 +174,9 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
         }}
         handleDeleteView={view => {
           deleteView({id: view.id});
+        }}
+        onRenameView={view => {
+          updateViewName(view);
         }}
         hideCreatedBy={createdBy === GroupSearchViewCreatedBy.ME}
       />

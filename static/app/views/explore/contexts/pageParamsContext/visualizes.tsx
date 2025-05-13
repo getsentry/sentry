@@ -20,8 +20,13 @@ export const DEFAULT_VISUALIZATION_FIELD = ALLOWED_EXPLORE_VISUALIZE_FIELDS[0]!;
 export const DEFAULT_VISUALIZATION = `${DEFAULT_VISUALIZATION_AGGREGATE}(${DEFAULT_VISUALIZATION_FIELD})`;
 
 export function defaultVisualizes(): Visualize[] {
-  return [new Visualize([DEFAULT_VISUALIZATION], 'A')];
+  return [new Visualize([DEFAULT_VISUALIZATION], {label: 'A'})];
 }
+
+type VisualizeOptions = {
+  chartType?: ChartType;
+  label?: string;
+};
 
 export interface BaseVisualize {
   yAxes: readonly string[];
@@ -35,25 +40,27 @@ export class Visualize {
   stack?: string;
   private selectedChartType?: ChartType;
 
-  constructor(yAxes: readonly string[], label = '', chartType?: ChartType) {
-    this.label = label;
+  constructor(yAxes: readonly string[], options?: VisualizeOptions) {
     this.yAxes = yAxes;
-    this.selectedChartType = chartType;
+    this.label = options?.label || '';
+    this.selectedChartType = options?.chartType;
     this.chartType = this.selectedChartType ?? determineDefaultChartType(this.yAxes);
     this.stack =
       this.chartType === ChartType.BAR && this.yAxes.length > 1 ? undefined : 'all';
   }
 
   clone(): Visualize {
-    return new Visualize(this.yAxes, this.label, this.selectedChartType);
+    return new Visualize(this.yAxes, {
+      label: this.label,
+      chartType: this.selectedChartType,
+    });
   }
 
   replace({chartType, yAxes}: {chartType?: ChartType; yAxes?: string[]}): Visualize {
-    return new Visualize(
-      yAxes ?? this.yAxes,
-      this.label,
-      chartType ?? this.selectedChartType
-    );
+    return new Visualize(yAxes ?? this.yAxes, {
+      label: this.label,
+      chartType: chartType ?? this.selectedChartType,
+    });
   }
 
   toJSON(): BaseVisualize {
@@ -69,7 +76,7 @@ export class Visualize {
   }
 
   static fromJSON(json: BaseVisualize): Visualize {
-    return new Visualize(json.yAxes, '', json.chartType);
+    return new Visualize(json.yAxes, {label: '', chartType: json.chartType});
   }
 }
 
@@ -84,11 +91,10 @@ export function getVisualizesFromLocation(
     .filter(defined)
     .filter(parsed => parsed.yAxes.length > 0)
     .map((parsed, i) => {
-      return new Visualize(
-        parsed.yAxes,
-        String.fromCharCode(65 + i), // starts from 'A'
-        parsed.chartType
-      );
+      return new Visualize(parsed.yAxes, {
+        label: String.fromCharCode(65 + i), // starts from 'A'
+        chartType: parsed.chartType,
+      });
     });
 
   return result.length ? result : defaultVisualizes();
