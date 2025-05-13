@@ -110,7 +110,7 @@ function withSubscription<P extends InjectedSubscriptionProps>(
     }
 
     render() {
-      const {subscription} = this.state as State;
+      const {subscription} = this.state;
       const {organization, ...otherProps} = this.props;
 
       if (subscription === undefined) {

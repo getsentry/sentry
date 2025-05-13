@@ -8,12 +8,11 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {Tooltip} from 'sentry/components/tooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,14 +22,16 @@ import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getAdoptionSeries, getCount, getCountAtIndex} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
-
+import {
+  generateReleaseMarkLines,
+  releaseMarkLinesLabels,
+} from 'sentry/views/releases/detail/utils';
 import {
   ADOPTION_STAGE_LABELS,
   getReleaseBounds,
   getReleaseParams,
   isMobileRelease,
-} from '../../../utils';
-import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../../utils';
+} from 'sentry/views/releases/utils';
 
 const sessionsAxisIndex = 0;
 const usersAxisIndex = 1;
@@ -124,7 +125,7 @@ function ReleaseAdoption({
     return series;
   }
 
-  const colors = getChartColorPalette(2);
+  const colors = theme.chart.getColorPalette(2);
 
   const axisLineConfig = {
     scale: true,

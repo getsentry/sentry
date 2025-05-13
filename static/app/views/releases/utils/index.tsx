@@ -19,10 +19,6 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export const CRASH_FREE_DECIMAL_THRESHOLD = 90;
 
-export const roundDuration = (seconds: number) => {
-  return round(seconds, seconds > 60 ? 0 : 3);
-};
-
 export const getCrashFreePercent = (
   percent: number,
   decimalThreshold = CRASH_FREE_DECIMAL_THRESHOLD,
@@ -150,7 +146,7 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
   ).endOf('minute');
 
   if (moment(releaseStart).isSame(releaseEnd, 'minute')) {
-    releaseEnd = moment(releaseEnd).add(1, 'minutes');
+    releaseEnd = moment(releaseEnd).add(1, 'seconds');
   }
 
   if (releaseStart.isBefore(retentionBound)) {

@@ -1,3 +1,5 @@
+import {type DataCategory} from 'sentry/types/core';
+
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
 
@@ -8,7 +10,7 @@ const AM1_CATEGORIES = [
   'attachments',
   'monitorSeats',
   'uptime',
-];
+] as DataCategory[];
 
 const AM1_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
@@ -75,6 +77,8 @@ const AM1_TRIAL_FEATURES = AM1_BUSINESS_FEATURES.filter(
   feature => feature !== 'sso-saml2' && feature !== 'baa'
 );
 
+const BUDGET_TERM = 'on-demand';
+
 const AM1_PLANS: Record<string, Plan> = {
   am1_f: {
     allowAdditionalReservedEvents: false,
@@ -95,6 +99,7 @@ const AM1_PLANS: Record<string, Plan> = {
     price: 0,
     maxMembers: 1,
     allowOnDemand: false,
+    isTestPlan: false,
     userSelectable: true,
     retentionDays: 30,
     billingInterval: MONTHLY,
@@ -144,6 +149,7 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     features: AM1_FREE_FEATURES,
+    budgetTerm: BUDGET_TERM,
   },
   am1_t: {
     allowAdditionalReservedEvents: false,
@@ -164,6 +170,7 @@ const AM1_PLANS: Record<string, Plan> = {
     price: 0,
     maxMembers: 20,
     allowOnDemand: false,
+    isTestPlan: false,
     userSelectable: false,
     retentionDays: 90,
     billingInterval: MONTHLY,
@@ -213,6 +220,7 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     features: AM1_TRIAL_FEATURES,
+    budgetTerm: BUDGET_TERM,
   },
   am1_team: {
     allowAdditionalReservedEvents: false,
@@ -233,6 +241,7 @@ const AM1_PLANS: Record<string, Plan> = {
     price: 2900,
     maxMembers: null,
     allowOnDemand: true,
+    isTestPlan: false,
     userSelectable: true,
     retentionDays: 90,
     billingInterval: MONTHLY,
@@ -792,6 +801,7 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     features: AM1_TEAM_FEATURES,
+    budgetTerm: BUDGET_TERM,
   },
   am1_team_auf: {
     allowAdditionalReservedEvents: false,
@@ -812,6 +822,7 @@ const AM1_PLANS: Record<string, Plan> = {
     price: 31200,
     maxMembers: null,
     allowOnDemand: true,
+    isTestPlan: false,
     userSelectable: true,
     retentionDays: 90,
     billingInterval: ANNUAL,
@@ -1371,6 +1382,7 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     features: AM1_TEAM_FEATURES,
+    budgetTerm: BUDGET_TERM,
   },
   am1_business: {
     allowAdditionalReservedEvents: false,
@@ -1391,6 +1403,7 @@ const AM1_PLANS: Record<string, Plan> = {
     basePrice: 8900,
     price: 8900,
     allowOnDemand: true,
+    isTestPlan: false,
     userSelectable: true,
     retentionDays: 90,
     billingInterval: MONTHLY,
@@ -1950,6 +1963,7 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     features: AM1_BUSINESS_FEATURES,
+    budgetTerm: BUDGET_TERM,
   },
   am1_business_auf: {
     allowAdditionalReservedEvents: false,
@@ -1970,6 +1984,7 @@ const AM1_PLANS: Record<string, Plan> = {
     price: 96000,
     maxMembers: null,
     allowOnDemand: true,
+    isTestPlan: false,
     userSelectable: true,
     retentionDays: 90,
     billingInterval: ANNUAL,
@@ -2529,6 +2544,85 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     features: AM1_BUSINESS_FEATURES,
+    budgetTerm: BUDGET_TERM,
+  },
+  am1_business_ent: {
+    id: 'am1_business_ent',
+    name: 'Enterprise (Business)',
+    description: '',
+    price: 0,
+    basePrice: 0,
+    totalPrice: 0,
+    trialPlan: 'am1_business',
+    isTestPlan: false,
+    maxMembers: null,
+    retentionDays: 90,
+    userSelectable: false,
+    features: AM1_BUSINESS_FEATURES,
+    billingInterval: MONTHLY,
+    contractInterval: MONTHLY,
+    onDemandEventPrice: 0,
+    allowOnDemand: true,
+    reservedMinimum: 0,
+    allowAdditionalReservedEvents: true,
+    categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
+    categories: AM1_CATEGORIES,
+    checkoutCategories: AM1_CATEGORIES,
+    availableCategories: AM1_CATEGORIES,
+    onDemandCategories: AM1_CATEGORIES,
+    hasOnDemandModes: false,
+    planCategories: {
+      errors: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      transactions: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      replays: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      attachments: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      monitorSeats: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      uptime: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      profileDuration: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+    },
+    budgetTerm: BUDGET_TERM,
   },
 };
 

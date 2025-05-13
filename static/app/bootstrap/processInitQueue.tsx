@@ -1,13 +1,22 @@
+import {useState} from 'react';
 import {createRoot} from 'react-dom/client';
+import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import throttle from 'lodash/throttle';
 
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
+import {
+  DEFAULT_QUERY_CLIENT_CONFIG,
+  QueryClient,
+  QueryClientProvider,
+} from 'sentry/utils/queryClient';
 
 import {renderDom} from './renderDom';
 import {renderOnDomReady} from './renderOnDomReady';
+
+const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 
 const COMPONENT_MAP = {
   [SentryInitRenderReactComponent.INDICATORS]: () =>
@@ -16,13 +25,25 @@ const COMPONENT_MAP = {
     import(/* webpackChunkName: "SystemAlerts" */ 'sentry/views/app/systemAlerts'),
   [SentryInitRenderReactComponent.SETUP_WIZARD]: () =>
     import(/* webpackChunkName: "SetupWizard" */ 'sentry/views/setupWizard'),
-  [SentryInitRenderReactComponent.U2F_SIGN]: () =>
-    import(/* webpackChunkName: "U2fSign" */ 'sentry/components/u2f/u2fsign'),
+  [SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT]: () =>
+    import(
+      /* webpackChunkName: "WebAuthnAssert" */ 'sentry/components/webAuthn/webAuthnAssert'
+    ),
   [SentryInitRenderReactComponent.SU_STAFF_ACCESS_FORM]: () =>
     import(
       /* webpackChunkName: "SuperuserStaffAccessForm" */ 'sentry/components/superuserStaffAccessForm'
     ),
 };
+
+interface SimpleRouterProps {
+  element: React.ReactNode;
+}
+
+function SimpleRouter({element}: SimpleRouterProps) {
+  const [router] = useState(() => createBrowserRouter([{path: '*', element}]));
+
+  return <RouterProvider router={router} />;
+}
 
 async function processItem(initConfig: OnSentryInitConfiguration) {
   /**
@@ -56,9 +77,11 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
            * This is because config is not available at this point (user might not be logged in yet),
            * and so we dont know which theme to pick.
            */
-          <ThemeAndStyleProvider>
-            <PasswordStrength value={e.target.value} />
-          </ThemeAndStyleProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeAndStyleProvider>
+              <PasswordStrength value={e.target.value} />
+            </ThemeAndStyleProvider>
+          </QueryClientProvider>
         );
       })
     );
@@ -85,9 +108,11 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
            * This is because config is not available at this point (user might not be logged in yet),
            * and so we dont know which theme to pick.
            */
-          <ThemeAndStyleProvider>
-            <Component {...props} />
-          </ThemeAndStyleProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeAndStyleProvider>
+              <SimpleRouter element={<Component {...props} />} />
+            </ThemeAndStyleProvider>
+          </QueryClientProvider>
         ),
         initConfig.container,
         initConfig.props

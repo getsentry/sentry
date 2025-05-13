@@ -3,6 +3,7 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -20,8 +21,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0699_update_monitor_owner_team_id_cascsade"),
     ]
@@ -30,17 +29,17 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             state_operations=[],
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     "ALTER TABLE sentry_docintegrationavatar DROP COLUMN file_id",
                     reverse_sql="ALTER TABLE sentry_docintegrationavatar ADD COLUMN file_id BIGINT NULL",
                     hints={"tables": ["sentry_docintegrationavatar"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     "ALTER TABLE sentry_sentryappavatar DROP COLUMN file_id",
                     reverse_sql="ALTER TABLE sentry_sentryappavatar ADD COLUMN file_id BIGINT NULL",
                     hints={"tables": ["sentry_sentryappavatar"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     "ALTER TABLE sentry_useravatar DROP COLUMN file_id",
                     reverse_sql="ALTER TABLE sentry_useravatar ADD COLUMN file_id BIGINT NULL",
                     hints={"tables": ["sentry_useravatar"]},

@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Text from 'sentry/components/text';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -16,6 +16,10 @@ interface CheckInTooltipProps<Status extends string> extends Omit<TooltipProps, 
    * The tick that the tooltip is rendered for
    */
   jobTick: JobTickData<Status>;
+  /**
+   * A function which returns the unit for the row given the count of check-ins.
+   */
+  makeUnit: (count: number) => React.ReactNode;
   /**
    * Maps the job tick status to a human readable label
    */
@@ -33,6 +37,7 @@ export function CheckInTooltip<Status extends string>({
   statusStyle,
   statusLabel,
   children,
+  makeUnit,
   ...props
 }: CheckInTooltipProps<Status>) {
   const {startTs, endTs, stats} = jobTick;
@@ -56,6 +61,7 @@ export function CheckInTooltip<Status extends string>({
           <tr>
             <td>{t('Status')}</td>
             <td>{t('Count')}</td>
+            <td>{t('Unit')}</td>
           </tr>
         </thead>
         <tbody>
@@ -67,6 +73,7 @@ export function CheckInTooltip<Status extends string>({
                     {statusLabel[status]}
                   </StatusLabel>
                   <StatusCount>{count}</StatusCount>
+                  <StatusUnit>{makeUnit(count)}</StatusUnit>
                 </tr>
               )
           )}
@@ -86,7 +93,7 @@ const StatusCountContainer = styled('table')`
   width: 100%;
   margin: 0;
   display: grid;
-  grid-template-columns: max-content max-content;
+  grid-template-columns: max-content max-content max-content;
   gap: ${space(1)};
 
   /* Visually hide the tooltip headers but keep them for accessability */
@@ -106,6 +113,10 @@ const StatusCountContainer = styled('table')`
     grid-column: 1 / -1;
     grid-template-columns: subgrid;
   }
+
+  td {
+    text-align: left;
+  }
 `;
 
 const TooltipTimeLabel = styled('div')`
@@ -115,10 +126,12 @@ const TooltipTimeLabel = styled('div')`
 
 const StatusLabel = styled('td')<{labelColor: ColorOrAlias}>`
   color: ${p => p.theme[p.labelColor]};
-  text-align: left;
 `;
 
 const StatusCount = styled('td')`
   font-variant-numeric: tabular-nums;
-  text-align: left;
+`;
+
+const StatusUnit = styled('td')`
+  color: ${p => p.theme.subText};
 `;

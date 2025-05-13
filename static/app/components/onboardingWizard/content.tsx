@@ -4,34 +4,27 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import partition from 'lodash/partition';
 
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
-import {Chevron} from 'sentry/components/chevron';
-import {Button} from 'sentry/components/core/button';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
-import {Tooltip} from 'sentry/components/tooltip';
-import {
-  IconCheckmark,
-  IconChevron,
-  IconClose,
-  IconNot,
-  IconSupport,
-  IconSync,
-} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';
+import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -103,54 +96,27 @@ function TaskCard({
 }
 
 interface TaskStatusIconProps {
-  status: 'complete' | 'inProgress' | 'skipped' | 'pending';
   progress?: number;
+  status?: 'complete' | 'skipped';
   tooltipText?: string;
 }
 
-function TaskStatusIcon({status, tooltipText, progress}: TaskStatusIconProps) {
+function TaskStatusIcon({status, tooltipText}: TaskStatusIconProps) {
   const theme = useTheme();
-
-  const progressValue = progress ?? 0;
-
+  const commonStyle = css`
+    opacity: 50%;
+    color: ${theme.tokens.content.accent};
+  `;
   return (
     <Tooltip title={tooltipText} disabled={!tooltipText} containerDisplayMode="flex">
       {status === 'complete' ? (
         <IconCheckmark
           data-test-id="task-status-icon-complete"
-          css={css`
-            color: ${theme.success};
-            height: ${theme.fontSizeLarge};
-            width: ${theme.fontSizeLarge};
-          `}
-          isCircled
-        />
-      ) : status === 'skipped' ? (
-        <IconNot
-          data-test-id="task-status-icon-skipped"
-          css={css`
-            color: ${theme.disabled};
-            height: ${theme.fontSizeLarge};
-            width: ${theme.fontSizeLarge};
-          `}
-        />
-      ) : status === 'pending' ? (
-        <IconSync
-          data-test-id="task-status-icon-pending"
-          css={css`
-            color: ${theme.pink400};
-            height: ${theme.fontSizeLarge};
-            width: ${theme.fontSizeLarge};
-          `}
+          css={commonStyle}
+          size="sm"
         />
       ) : (
-        <ProgressRing
-          data-test-id="task-status-icon-progress"
-          value={progressValue * 100}
-          progressEndcaps="round"
-          size={16}
-          barWidth={2}
-        />
+        <IconNot data-test-id="task-status-icon-skipped" css={commonStyle} size="sm" />
       )}
     </Tooltip>
   );
@@ -162,88 +128,38 @@ interface SkipConfirmationProps {
 }
 
 function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
-  const organization = useOrganization();
-  const theme = useTheme();
-
   return (
-    <SkipConfirmationWrapper>
-      <TaskCard
-        title={t('Not sure what to do? We’re here for you!')}
-        icon={
-          <IconChevron
-            direction="up"
-            css={css`
-              color: ${theme.disabled};
-              height: ${theme.fontSizeLarge};
-              width: ${theme.fontSizeLarge};
-            `}
-            isCircled
-          />
-        }
-        actions={
-          <Fragment>
+    <Alert type="info" showIcon>
+      <Flex column gap={space(1)}>
+        {t("Not sure what to do? We're here for you!")}
+        <Flex justify="space-between" gap={0.5} flex={1}>
+          <LinkButton external href="https://sentry.io/support/" size="xs">
+            {t('Contact Support')}
+          </LinkButton>
+          <ButtonBar gap={0.5}>
             <Button
-              borderless
-              size="zero"
-              aria-label={t('Just Skip')}
-              title={t('Just Skip')}
-              icon={<IconClose color="gray300" isCircled />}
-              onClick={event => {
-                event.stopPropagation();
-                onConfirm();
-              }}
-            />
-            <DropdownMenu
-              position="top-start"
-              triggerProps={{
-                'aria-label': t('Help'),
-                title: t('Help'),
-                icon: <IconSupport color="gray300" />,
-                showChevron: false,
-                size: 'zero',
-                borderless: true,
-              }}
-              items={[
-                {
-                  key: 'search',
-                  label: t('Search Support, Docs and More'),
-                  onAction() {
-                    openHelpSearchModal({organization});
-                  },
-                },
-                {
-                  key: 'help',
-                  label: t('Visit Help Center'),
-                  // TODO(Telemetry): Make it open in a new tab
-                  to: 'https://sentry.zendesk.com/hc/en-us',
-                },
-                {
-                  key: 'discord',
-                  label: t('Join our Discord'),
-                  to: 'https://discord.com/invite/sentry',
-                },
-                {
-                  key: 'support',
-                  label: t('Contact Support'),
-                  to: `mailto:${ConfigStore.get('supportEmail')}`,
-                },
-              ]}
-            />
-            <Button
-              borderless
-              size="zero"
-              aria-label={t('Dismiss Skip')}
-              title={t('Dismiss Skip')}
-              icon={<IconClose color="gray300" />}
               onClick={event => {
                 event.stopPropagation();
                 onDismiss();
               }}
-            />
-          </Fragment>
-        }
-      />
-    </SkipConfirmationWrapper>
+              size="xs"
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              priority="primary"
+              onClick={event => {
+                event.stopPropagation();
+                onConfirm();
+              }}
+              size="xs"
+            >
+              {t('Just Skip')}
+            </Button>
+          </ButtonBar>
+        </Flex>
+      </Flex>
+    </Alert>
   );
 }
 
@@ -251,14 +167,15 @@ interface TaskProps {
   hidePanel: () => void;
   task: OnboardingTask;
   completed?: boolean;
-  showWaitingIndicator?: boolean;
 }
 
-function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
-  const api = useApi();
+function Task({task, hidePanel}: TaskProps) {
   const organization = useOrganization();
+  const mutateOnboardingTasks = useMutateOnboardingTasks();
   const router = useRouter();
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
+
+  const tours = useDemoTours();
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -272,7 +189,15 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       e.stopPropagation();
 
       if (isDemoModeActive()) {
-        DemoWalkthroughStore.activateGuideAnchor(task.task);
+        if (task.task === OnboardingTaskKey.PERFORMANCE_GUIDE) {
+          tours?.[DemoTour.PERFORMANCE]?.startTour();
+        } else if (task.task === OnboardingTaskKey.RELEASE_GUIDE) {
+          tours?.[DemoTour.RELEASES]?.startTour();
+        } else if (task.task === OnboardingTaskKey.ISSUE_GUIDE) {
+          tours?.[DemoTour.ISSUES]?.startTour();
+        } else {
+          DemoWalkthroughStore.activateGuideAnchor(task.task);
+        }
       }
 
       if (task.actionType === 'external') {
@@ -294,38 +219,43 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       }
       hidePanel();
     },
-    [task, organization, router, hidePanel]
+    [task, organization, router, hidePanel, tours]
   );
 
-  const handleMarkSkipped = useCallback(
-    (taskKey: OnboardingTaskKey) => {
-      trackAnalytics('quick_start.task_card_clicked', {
-        organization,
-        todo_id: task.task,
-        todo_title: task.title,
-        action: 'skipped',
-      });
-      updateOnboardingTask(api, organization, {
-        task: taskKey,
+  const handleMarkSkipped = useCallback(() => {
+    // all demos tasks are not skippable,
+    // so this apply for the quick start only.
+    // Adding this check here just in case it changes in the future
+    if (isDemoModeActive()) {
+      return;
+    }
+
+    trackAnalytics('quick_start.task_card_clicked', {
+      organization,
+      todo_id: task.task,
+      todo_title: task.title,
+      action: 'skipped',
+    });
+
+    mutateOnboardingTasks.mutate([
+      {
+        task: task.task,
         status: 'skipped',
         completionSeen: true,
-      });
-    },
-    [task, organization, api]
-  );
+      },
+    ]);
+  }, [task, organization, mutateOnboardingTasks]);
 
   const iconTooltipText = useMemo(() => {
     switch (task.status) {
       case 'complete':
         return t('Task completed');
-      case 'pending':
-        return task.pendingTitle ?? t('Task in progress\u2026');
       case 'skipped':
         return t('Task skipped');
       default:
         return undefined;
     }
-  }, [task.status, task.pendingTitle]);
+  }, [task.status]);
 
   return (
     <TaskWrapper
@@ -354,42 +284,37 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
             ? undefined
             : handleClick
         }
-        icon={<TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />}
+        icon={
+          task.status === 'complete' || task.status === 'skipped' ? (
+            <TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />
+          ) : task.skippable ? (
+            <Button
+              icon={<IconNot size="sm" color="subText" />}
+              aria-label={t('Skip Task')}
+              onClick={event => {
+                event.stopPropagation();
+                setShowSkipConfirmation(!showSkipConfirmation);
+              }}
+              size="zero"
+              borderless
+              title={t('Skip Task')}
+            />
+          ) : undefined
+        }
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
           task.status === 'complete' || task.status === 'skipped' ? undefined : (
-            <TaskActions>
-              {task.skippable && (
-                <Button
-                  borderless
-                  size="zero"
-                  aria-label={t('Skip Task')}
-                  title={t('Skip Task')}
-                  icon={<IconClose color="gray300" isCircled />}
-                  onClick={event => {
-                    event.stopPropagation();
-                    setShowSkipConfirmation(!showSkipConfirmation);
-                  }}
-                  css={css`
-                    /* If the pulsing indicator is active, the close button
-                        * should be above it so it's clickable.
-                        */
-                    z-index: 1;
-                  `}
-                />
-              )}
-              {task.SupplementComponent && showWaitingIndicator && (
-                <task.SupplementComponent task={task} />
-              )}
-            </TaskActions>
+            <ClickIndicator>
+              <IconChevron direction="right" size="xs" color="subText" />
+            </ClickIndicator>
           )
         }
       />
       {showSkipConfirmation && (
         <SkipConfirmation
           onConfirm={() => {
-            handleMarkSkipped(task.task);
+            handleMarkSkipped();
             setShowSkipConfirmation(false);
           }}
           onDismiss={() => setShowSkipConfirmation(false)}
@@ -402,18 +327,12 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
 interface ExpandedTaskGroupProps {
   hidePanel: () => void;
   sortedTasks: OnboardingTask[];
-  taskKeyForWaitingIndicator: OnboardingTaskKey | undefined;
 }
 
-function ExpandedTaskGroup({
-  sortedTasks,
-  hidePanel,
-  taskKeyForWaitingIndicator,
-}: ExpandedTaskGroupProps) {
-  const api = useApi();
-  const organization = useOrganization();
+function ExpandedTaskGroup({sortedTasks, hidePanel}: ExpandedTaskGroupProps) {
+  const mutateOnboardingTasks = useMutateOnboardingTasks();
 
-  const markCompletionTimeout = useRef<number | undefined>();
+  const markCompletionTimeout = useRef<number | undefined>(undefined);
 
   function completionTimeout(time: number): Promise<void> {
     window.clearTimeout(markCompletionTimeout.current);
@@ -425,15 +344,16 @@ function ExpandedTaskGroup({
   const markTasksAsSeen = useCallback(() => {
     const unseenDoneTasks = sortedTasks
       .filter(task => taskIsDone(task) && !task.completionSeen)
-      .map(task => task.task);
+      .map(task => ({...task, completionSeen: true}));
 
-    for (const unseenDoneTask of unseenDoneTasks) {
-      updateOnboardingTask(api, organization, {
-        task: unseenDoneTask,
-        completionSeen: true,
-      });
+    if (isDemoModeActive()) {
+      for (const unseenDoneTask of unseenDoneTasks) {
+        updateDemoWalkthroughTask(unseenDoneTask);
+      }
+    } else {
+      mutateOnboardingTasks.mutate(unseenDoneTasks);
     }
-  }, [api, organization, sortedTasks]);
+  }, [mutateOnboardingTasks, sortedTasks]);
 
   const markSeenOnOpen = useCallback(
     async function () {
@@ -458,12 +378,7 @@ function ExpandedTaskGroup({
       <TaskGroupBody>
         <AnimatePresence initial={false}>
           {sortedTasks.map(sortedTask => (
-            <Task
-              key={sortedTask.task}
-              task={sortedTask}
-              hidePanel={hidePanel}
-              showWaitingIndicator={taskKeyForWaitingIndicator === sortedTask.task}
-            />
+            <Task key={sortedTask.task} task={sortedTask} hidePanel={hidePanel} />
           ))}
         </AnimatePresence>
       </TaskGroupBody>
@@ -477,7 +392,6 @@ interface TaskGroupProps {
    */
   group: 'getting_started' | 'beyond_basics';
   hidePanel: () => void;
-  taskKeyForWaitingIndicator: OnboardingTaskKey | undefined;
   tasks: OnboardingTask[];
   title: string;
   expanded?: boolean;
@@ -489,10 +403,10 @@ function TaskGroup({
   tasks,
   expanded,
   hidePanel,
-  taskKeyForWaitingIndicator,
   toggleable = true,
   group,
 }: TaskGroupProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(expanded);
   const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
@@ -548,14 +462,22 @@ function TaskGroup({
         hasProgress={doneTasks.length > 0}
         onClick={toggleable ? () => setIsExpanded(!isExpanded) : undefined}
         icon={
-          <TaskStatusIcon
-            status={doneTasks.length === tasks.length ? 'complete' : 'inProgress'}
-            progress={doneTasks.length / tasks.length}
-          />
+          doneTasks.length === tasks.length ? (
+            <TaskStatusIcon status="complete" />
+          ) : (
+            <ProgressRing
+              value={(doneTasks.length / tasks.length) * 100}
+              backgroundColor={theme.gray200}
+              progressEndcaps="round"
+              progressColor={theme.tokens.content.accent}
+              size={22}
+              barWidth={4}
+            />
+          )
         }
         actions={
           <Button
-            icon={<Chevron direction={isExpanded ? 'up' : 'down'} />}
+            icon={<IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />}
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
             aria-expanded={isExpanded}
             size="zero"
@@ -567,7 +489,6 @@ function TaskGroup({
         <ExpandedTaskGroup
           sortedTasks={[...incompletedTasks, ...completedTasks]}
           hidePanel={hidePanel}
-          taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
         />
       )}
     </TaskGroupWrapper>
@@ -593,12 +514,6 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
       orderedBeyondBasicsTasks.indexOf(a.task) - orderedBeyondBasicsTasks.indexOf(b.task)
   );
 
-  const taskKeyForWaitingIndicator = useMemo(() => {
-    return [...sortedGettingStartedTasks, ...sortedBeyondBasicsTasks].find(
-      task => !taskIsDone(task) && !!task.SupplementComponent
-    )?.task;
-  }, [sortedGettingStartedTasks, sortedBeyondBasicsTasks]);
-
   return (
     <Content data-test-id="quick-start-content">
       <TaskGroup
@@ -609,7 +524,6 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
           groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
         }
         toggleable={sortedBeyondBasicsTasks.length > 0}
-        taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
         group="getting_started"
       />
       {sortedBeyondBasicsTasks.length > 0 && (
@@ -622,7 +536,6 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
               0 &&
             groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
           }
-          taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
           group="beyond_basics"
         />
       )}
@@ -668,7 +581,7 @@ const TaskGroupWrapper = styled('div')`
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   p {
-    color: ${p => (p.hasProgress ? p.theme.successText : p.theme.subText)};
+    color: ${p => (p.hasProgress ? p.theme.tokens.content.accent : p.theme.subText)};
   }
 `;
 
@@ -681,19 +594,23 @@ const TaskGroupBody = styled('ul')`
 
 const TaskWrapper = styled(motion.li)`
   gap: ${space(1)};
+  p {
+    color: ${p => p.theme.subText};
+  }
 `;
 
-const TaskActions = styled('div')`
+const ClickIndicator = styled('div')`
+  width: 20px;
+  height: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: ${space(1)};
+  justify-content: center;
 `;
 
 const TaskCardWrapper = styled('div')`
   position: relative;
   display: grid;
-  grid-template-columns: max-content 1fr max-content;
+  grid-template-columns: 22px 1fr max-content;
   gap: ${space(1.5)};
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.borderRadius};
@@ -702,15 +619,27 @@ const TaskCardWrapper = styled('div')`
     margin: 0;
     font-size: ${p => p.theme.fontSizeSmall};
   }
+  button {
+    visibility: hidden;
+  }
+  :hover {
+    button {
+      visibility: visible;
+    }
+  }
 `;
 
 const TaskCardDescription = styled('div')`
   line-height: 20px;
+  strong {
+    color: ${p => p.theme.headingColor};
+  }
 `;
 
 const TaskCardIcon = styled('div')`
   display: flex;
   align-items: center;
+  justify-content: center;
   height: 20px;
 `;
 
@@ -720,10 +649,4 @@ const TaskCardActions = styled('div')`
   grid-auto-columns: 20px;
   gap: ${space(1)};
   align-items: flex-start;
-`;
-
-const SkipConfirmationWrapper = styled('div')`
-  margin: ${space(1)} 0;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
 `;

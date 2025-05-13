@@ -15,6 +15,7 @@ export function getUserOrgNavigationConfiguration({
 }): NavigationSection[] {
   return [
     {
+      id: 'settings-account',
       name: t('Account'),
       items: [
         {
@@ -70,6 +71,7 @@ export function getUserOrgNavigationConfiguration({
       ],
     },
     {
+      id: 'settings-organization',
       name: t('Organization'),
       items: [
         {
@@ -180,12 +182,11 @@ export function getUserOrgNavigationConfiguration({
           title: t('Feature Flags'),
           description: t('Set up feature flag integrations'),
           badge: () => 'beta',
-          show: ({organization}) =>
-            !!organization && organization.features.includes('feature-flag-ui'),
         },
       ],
     },
     {
+      id: 'settings-developer',
       name: t('Developer Settings'),
       items: [
         {
@@ -203,6 +204,7 @@ export function getUserOrgNavigationConfiguration({
       ],
     },
     {
+      id: 'settings-api',
       name: t('API'),
       items: [
         {

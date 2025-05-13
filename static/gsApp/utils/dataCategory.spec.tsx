@@ -97,7 +97,7 @@ describe('hasCategoryFeature', function () {
 
   it('returns org does not have unknown feature', function () {
     const org = {...organization, features: []};
-    expect(hasCategoryFeature('unknown', subscription, org)).toBe(false);
+    expect(hasCategoryFeature('unknown' as DataCategory, subscription, org)).toBe(false);
   });
 
   it('returns sorted categories', function () {
@@ -207,17 +207,27 @@ describe('getPlanCategoryName', function () {
   const plan = PlanDetailsLookupFixture('am3_team');
 
   it('should capitalize category', function () {
-    expect(getPlanCategoryName({plan, category: 'transactions'})).toBe('Transactions');
-    expect(getPlanCategoryName({plan, category: 'errors'})).toBe('Errors');
-    expect(getPlanCategoryName({plan, category: 'replays'})).toBe('Replays');
-    expect(getPlanCategoryName({plan, category: 'spans'})).toBe('Spans');
-    expect(getPlanCategoryName({plan, category: 'profiles'})).toBe('Profiles');
-    expect(getPlanCategoryName({plan, category: 'monitorSeats'})).toBe('Cron monitors');
+    expect(getPlanCategoryName({plan, category: DataCategory.TRANSACTIONS})).toBe(
+      'Transactions'
+    );
+    expect(getPlanCategoryName({plan, category: DataCategory.ERRORS})).toBe('Errors');
+    expect(getPlanCategoryName({plan, category: DataCategory.REPLAYS})).toBe('Replays');
+    expect(getPlanCategoryName({plan, category: DataCategory.SPANS})).toBe('Spans');
+    expect(getPlanCategoryName({plan, category: DataCategory.PROFILE_DURATION})).toBe(
+      'Continuous profile hours'
+    );
+    expect(getPlanCategoryName({plan, category: DataCategory.MONITOR_SEATS})).toBe(
+      'Cron monitors'
+    );
   });
 
   it('should display spans as accepted spans for DS', function () {
     expect(
-      getPlanCategoryName({plan, category: 'spans', hadCustomDynamicSampling: true})
+      getPlanCategoryName({
+        plan,
+        category: DataCategory.SPANS,
+        hadCustomDynamicSampling: true,
+      })
     ).toBe('Accepted spans');
   });
 });
@@ -232,7 +242,7 @@ describe('getReservedBudgetDisplayName', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am1Plan,
-        categories: am1Plan?.categories ?? [],
+        categories: am1Plan?.categories as DataCategory[],
         hadCustomDynamicSampling: false,
       })
     ).toBe(
@@ -244,11 +254,11 @@ describe('getReservedBudgetDisplayName', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am2Plan,
-        categories: am2Plan?.categories ?? [],
+        categories: am2Plan?.categories as DataCategory[],
         hadCustomDynamicSampling: false,
       })
     ).toBe(
-      'attachments, cron monitors, errors, performance units, profile hours, replays, and uptime monitors'
+      'attachments, continuous profile hours, cron monitors, errors, performance units, replays, UI profile hours, and uptime monitors'
     );
   });
 
@@ -256,11 +266,11 @@ describe('getReservedBudgetDisplayName', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am3Plan,
-        categories: am3Plan?.categories ?? [],
+        categories: am3Plan?.categories as DataCategory[],
         hadCustomDynamicSampling: false,
       })
     ).toBe(
-      'attachments, cron monitors, errors, profile hours, replays, spans, and uptime monitors'
+      'attachments, continuous profile hours, cron monitors, errors, replays, spans, UI profile hours, and uptime monitors'
     );
   });
 
@@ -268,7 +278,7 @@ describe('getReservedBudgetDisplayName', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am3DsPlan,
-        categories: ['spans', 'spansIndexed'],
+        categories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
         hadCustomDynamicSampling: true,
       })
     ).toBe('accepted spans and stored spans');
@@ -276,7 +286,7 @@ describe('getReservedBudgetDisplayName', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am3DsPlan,
-        categories: ['spans', 'spansIndexed'],
+        categories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
         hadCustomDynamicSampling: false,
       })
     ).toBe('spans and stored spans');
@@ -286,11 +296,11 @@ describe('getReservedBudgetDisplayName', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am3Plan,
-        categories: am3Plan?.categories ?? [],
+        categories: am3Plan?.categories as DataCategory[],
         shouldTitleCase: true,
       })
     ).toBe(
-      'Attachments, Cron Monitors, Errors, Profile Hours, Replays, Spans, and Uptime Monitors'
+      'Attachments, Continuous Profile Hours, Cron Monitors, Errors, Replays, Spans, UI Profile Hours, and Uptime Monitors'
     );
   });
 });
@@ -303,12 +313,12 @@ describe('listDisplayNames', function () {
       listDisplayNames({
         plan: plan!,
         categories: [
-          'spans',
-          'transactions',
-          'errors',
-          'replays',
-          'monitorSeats',
-          'attachments',
+          DataCategory.SPANS,
+          DataCategory.TRANSACTIONS,
+          DataCategory.ERRORS,
+          DataCategory.REPLAYS,
+          DataCategory.MONITOR_SEATS,
+          DataCategory.ATTACHMENTS,
         ],
       })
     ).toBe('spans, transactions, errors, replays, cron monitors, and attachments');
@@ -321,9 +331,7 @@ describe('listDisplayNames', function () {
         categories: plan!.checkoutCategories,
         hadCustomDynamicSampling: false,
       })
-    ).toBe(
-      'errors, replays, attachments, cron monitors, spans, profile hours, and uptime monitors'
-    );
+    ).toBe('errors, replays, attachments, cron monitors, spans, and uptime monitors');
   });
 
   it('should include stored spans and use accepted spans for DS', function () {
@@ -334,7 +342,7 @@ describe('listDisplayNames', function () {
         hadCustomDynamicSampling: true,
       })
     ).toBe(
-      'errors, replays, attachments, cron monitors, accepted spans, profile hours, uptime monitors, and stored spans'
+      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, and stored spans'
     );
   });
 });

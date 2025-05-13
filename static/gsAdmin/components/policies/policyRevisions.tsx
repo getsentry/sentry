@@ -2,15 +2,15 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {space} from 'sentry/styles/space';
 
-import DropdownActions from 'admin/components/dropdownActions';
 import ResultGrid from 'admin/components/resultGrid';
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
 type Props = {
-  onUpdate: (data: {[key: string]: any}, version: PolicyRevision['version']) => void;
+  onUpdate: (data: Record<string, any>, version: PolicyRevision['version']) => void;
   policy: Policy;
 };
 
@@ -37,18 +37,17 @@ const getRow = ({row, policy, onUpdate}: RowProps) => {
       <br />
     </td>,
     <td key="actions" data-test-id="revision-actions">
-      <DropdownActions
-        actions={[
-          {
-            key: 'make-current',
-            name: 'Make current',
-            help: 'Make this the active version of this policy.',
-            skipConfirmModal: true,
-            disabled: policy.version === row.version,
-            onAction: () => onUpdate({current: true}, row.version),
-          },
-        ]}
-      />
+      <Button
+        title={
+          policy.version === row.version
+            ? 'This is already the current version'
+            : 'Make this the active version of this policy.'
+        }
+        disabled={policy.version === row.version}
+        onClick={() => onUpdate({current: true}, row.version)}
+      >
+        Make current
+      </Button>
     </td>,
   ];
 };

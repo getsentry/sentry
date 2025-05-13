@@ -29,6 +29,7 @@ from sentry.plugins.base import Notification
 from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -216,6 +217,99 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "issue_alert-slack",
             alert_type="alerts",
             issue_link_extra_params=f"&alert_rule_id={self.rule.id}&alert_type=issue",
+        )
+
+    @patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=TEST_ISSUE_OCCURRENCE,
+        new_callable=mock.PropertyMock,
+    )
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    def test_generic_issue_alert_user_block_workflow_engine_dual_write(self, occurrence):
+        """
+        Tests that we build links correctly when dual writing
+        """
+        event = self.store_event(
+            data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
+        )
+        group_event = event.for_group(event.groups[0])
+
+        # Create a rule with the legacy rule id being another rule
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[{"legacy_rule_id": self.rule.id}],
+            name="ja rule",
+        )
+
+        notification = AlertRuleNotification(
+            Notification(event=group_event, rule=rule), ActionTargetType.MEMBER, self.user.id
+        )
+        with self.tasks():
+            notification.send()
+
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
+        # Assert we are using the legacy rule id
+        assert (
+            fallback_text
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{self.rule.id}/details/|ja rule>"
+        )
+        assert blocks[0]["text"]["text"] == fallback_text
+
+        self.assert_generic_issue_blocks(
+            blocks,
+            group_event.organization,
+            event.project.slug,
+            event.group,
+            "issue_alert-slack",
+            alert_type="alerts",
+            issue_link_extra_params=f"&alert_rule_id={self.rule.id}&alert_type=issue",
+        )
+
+    @patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=TEST_ISSUE_OCCURRENCE,
+        new_callable=mock.PropertyMock,
+    )
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_generic_issue_alert_user_block_workflow_engine_ui_links(self, occurrence):
+        """
+        Tests that we build links correctly when dual writing
+        """
+        event = self.store_event(
+            data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
+        )
+        group_event = event.for_group(event.groups[0])
+
+        rule = self.create_project_rule(
+            project=self.project,
+            action_data=[{"workflow_id": "1234567890"}],
+            name="ja rule",
+        )
+
+        notification = AlertRuleNotification(
+            Notification(event=group_event, rule=rule), ActionTargetType.MEMBER, self.user.id
+        )
+        with self.tasks():
+            notification.send()
+
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
+        # Assert we are using the workflow id and created a link to the workflow
+        assert (
+            fallback_text
+            == f"Alert triggered <http://testserver/organizations/{event.organization.id}/issues/automations/1234567890/|ja rule>"
+        )
+        assert blocks[0]["text"]["text"] == fallback_text
+
+        self.assert_generic_issue_blocks(
+            blocks,
+            group_event.organization,
+            event.project.slug,
+            event.group,
+            "issue_alert-slack",
+            alert_type="alerts",
+            issue_link_extra_params="&workflow_id=1234567890&alert_type=issue",
         )
 
     def test_disabled_org_integration_for_user(self):

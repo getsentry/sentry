@@ -1,22 +1,25 @@
-import {forwardRef as reactForwardRef, memo, useMemo, useRef, useState} from 'react';
+import {memo, useId, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
-import {type Theme, useTheme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import {
   ChonkContentWrap,
+  ChonkDetails,
   ChonkInnerWrap,
+  ChonkLabel,
+  ChonkLabelWrap,
+  ChonkLeadingItems,
   type Priority,
 } from 'sentry/components/core/menuListItem/index.chonk';
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import domId from 'sentry/utils/domId';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
@@ -87,11 +90,10 @@ interface OtherProps {
   isPressed?: boolean;
   isSelected?: boolean;
   labelProps?: Partial<React.ComponentProps<typeof Label>>;
-  showDivider?: boolean;
 }
 
 interface Props extends MenuListItemProps, OtherProps {
-  forwardRef: React.ForwardedRef<HTMLLIElement>;
+  ref?: React.Ref<HTMLLIElement>;
 }
 
 function BaseMenuListItem({
@@ -101,7 +103,6 @@ function BaseMenuListItem({
   priority = 'default',
   size,
   disabled = false,
-  showDivider = false,
   leadingItems = false,
   trailingItems = false,
   isFocused = false,
@@ -113,21 +114,20 @@ function BaseMenuListItem({
   showDetailsInOverlay = false,
   tooltip,
   tooltipOptions = {delay: 500},
-  forwardRef,
+  ref,
   ...props
 }: Props) {
   const itemRef = useRef<HTMLLIElement>(null);
-  const labelId = useMemo(() => domId('menuitem-label-'), []);
-  const detailId = useMemo(() => domId('menuitem-details-'), []);
+  const labelId = useId();
+  const detailId = useId();
 
   return (
     <MenuItemWrap
-      role="menuitem"
       aria-disabled={disabled}
       aria-labelledby={labelId}
       aria-describedby={detailId}
       as={as}
-      ref={mergeRefs([forwardRef, itemRef])}
+      ref={mergeRefs(ref, itemRef)}
       {...props}
     >
       <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
@@ -150,7 +150,7 @@ function BaseMenuListItem({
                 : leadingItems}
             </LeadingItems>
           )}
-          <ContentWrap isFocused={isFocused} showDivider={showDivider} size={size}>
+          <ContentWrap isFocused={isFocused} size={size}>
             <LabelWrap>
               <Label id={labelId} data-test-id="menu-list-item-label" {...labelProps}>
                 {label}
@@ -185,11 +185,7 @@ function BaseMenuListItem({
   );
 }
 
-export const MenuListItem = memo(
-  reactForwardRef<HTMLLIElement, MenuListItemProps & OtherProps>((props, ref) => (
-    <BaseMenuListItem {...props} forwardRef={ref} />
-  ))
-);
+export const MenuListItem = memo(BaseMenuListItem);
 
 const POPPER_OPTIONS = {
   placement: 'right-start' as const,
@@ -316,8 +312,12 @@ export const InnerWrap = withChonk(
     font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
 
     &,
-    &:hover {
+    &:hover,
+    &:focus,
+    &:focus-visible {
       color: ${getTextColor};
+      box-shadow: none;
+      outline: none;
     }
     ${p => p.disabled && `cursor: default;`}
 
@@ -333,13 +333,13 @@ export const InnerWrap = withChonk(
 
     ${p =>
       p.isFocused &&
-      `
-      z-index: 1;
-      /* Background to hide the previous item's divider */
-      ::before {
-        background: ${p.theme.backgroundElevated};
-      }
-    `}
+      css`
+        z-index: 1;
+        /* Background to hide the previous item's divider */
+        ::before {
+          background: ${p.theme.backgroundElevated};
+        }
+      `}
   `,
   ChonkInnerWrap
 );
@@ -367,7 +367,6 @@ const getVerticalPadding = (size: Props['size']) => {
 const ContentWrap = withChonk(
   styled('div')<{
     isFocused: boolean;
-    showDivider: boolean;
     size: Props['size'];
   }>`
     position: relative;
@@ -377,62 +376,59 @@ const ContentWrap = withChonk(
     gap: ${space(1)};
     justify-content: space-between;
     padding: ${p => getVerticalPadding(p.size)} 0;
-
-    ${p =>
-      p.showDivider &&
-      !p.isFocused &&
-      `
-      li:not(:last-child) &::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        height: 1px;
-        box-shadow:  0 1px 0 0 ${p.theme.innerBorder};
-      }
-    `}
   `,
   ChonkContentWrap
 );
 
-export const LeadingItems = styled('div')<{
-  disabled: boolean;
-  size: Props['size'];
-}>`
-  display: flex;
-  align-items: center;
-  height: 1.4em;
-  gap: ${space(1)};
-  margin-top: ${p => getVerticalPadding(p.size)};
-  margin-right: ${space(1)};
-  flex-shrink: 0;
+export const LeadingItems = withChonk(
+  styled('div')<{
+    disabled: boolean;
+    size: Props['size'];
+  }>`
+    display: flex;
+    align-items: center;
+    height: 1.4em;
+    gap: ${space(1)};
+    margin-top: ${p => getVerticalPadding(p.size)};
+    margin-right: ${space(1)};
+    flex-shrink: 0;
 
-  ${p => p.disabled && `opacity: 0.5;`}
-`;
+    ${p => p.disabled && `opacity: 0.5;`}
+  `,
+  ChonkLeadingItems
+);
 
-const LabelWrap = styled('div')`
-  padding-right: ${space(1)};
-  width: 100%;
-  min-width: 0;
-`;
+const LabelWrap = withChonk(
+  styled('div')`
+    padding-right: ${space(1)};
+    width: 100%;
+    min-width: 0;
+  `,
+  ChonkLabelWrap
+);
 
-const Label = styled('div')`
-  margin-bottom: 0;
-  line-height: 1.4;
-  white-space: nowrap;
+const Label = withChonk(
+  styled('div')`
+    margin-bottom: 0;
+    line-height: 1.4;
+    white-space: nowrap;
 
-  ${p => p.theme.overflowEllipsis}
-`;
+    ${p => p.theme.overflowEllipsis}
+  `,
+  ChonkLabel
+);
 
-const Details = styled('div')<{disabled: boolean; priority: Priority}>`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-  line-height: 1.2;
-  margin-bottom: 0;
+const Details = withChonk(
+  styled('div')<{disabled: boolean; priority: Priority}>`
+    font-size: ${p => p.theme.fontSizeSmall};
+    color: ${p => p.theme.subText};
+    line-height: 1.2;
+    margin-bottom: 0;
 
-  ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
-`;
+    ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
+  `,
+  ChonkDetails
+);
 
 const TrailingItems = styled('div')<{disabled: boolean}>`
   display: flex;

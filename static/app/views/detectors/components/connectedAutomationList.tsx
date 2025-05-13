@@ -1,67 +1,45 @@
-import {useState} from 'react';
-import styled from '@emotion/styled';
-
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
-import {Grid} from 'sentry/components/gridEditable/styles';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
-import type {Automation} from 'sentry/views/automations/components/automationListRow';
+import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
+import {t} from 'sentry/locale';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
 
-export function ConnectedAutomationsList() {
-  const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
-
-  const columnOrder: Array<GridColumnOrder<keyof Automation>> = [
-    {key: 'name', name: 'Name'},
-    {key: 'lastTriggered', name: 'Last Triggered'},
-    {key: 'actions', name: 'Action'},
-  ];
-
-  const renderHeadCell = (column: GridColumnOrder) => column.name;
-
-  const renderBodyCell = (
-    column: GridColumnOrder<keyof Automation>,
-    dataRow: Automation
-  ) => {
-    switch (column.key) {
-      case 'name':
-        return (
-          <TitleCell name={dataRow.name} project={dataRow.project} link={dataRow.link} />
-        );
-      case 'lastTriggered':
-        return <TimeAgoCell date={dataRow.lastTriggered} />;
-      case 'actions':
-        return <ActionCell actions={dataRow.actions} />;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <Wrapper>
-      <GridEditable
-        data={[]}
-        columnOrder={columnOrder}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-        onRowMouseOver={(_dataRow, key) => {
-          setActiveRowKey(key);
-        }}
-        onRowMouseOut={() => {
-          setActiveRowKey(undefined);
-        }}
-        highlightedRowKey={activeRowKey}
-      />
-    </Wrapper>
-  );
+interface ConnectedAutomationData extends Automation {
+  link: string;
 }
 
-const Wrapper = styled('div')`
-  ${Grid} {
-    grid-template-columns: 3fr 1fr 1fr !important;
-  }
-`;
+const columns = defineColumns<ConnectedAutomationData>({
+  name: {
+    Header: () => t('Name'),
+    Cell: ({value, row}) => (
+      <TitleCell name={value} link={row.link} projectId={row.detectorIds[0]} />
+    ),
+    width: 'minmax(0, 3fr)',
+  },
+  lastTriggered: {
+    Header: () => t('Last Triggered'),
+    Cell: ({value}) => <TimeAgoCell date={value} />,
+  },
+  actionFilters: {
+    Header: () => t('Actions'),
+    Cell: ({row}) => {
+      const actions = useAutomationActions(row);
+      return <ActionCell actions={actions} />;
+    },
+  },
+});
+
+interface ConnectedAutomationsListProps {
+  automations: ConnectedAutomationData[];
+}
+export function ConnectedAutomationsList({automations}: ConnectedAutomationsListProps) {
+  return (
+    <SimpleTable
+      data={automations}
+      columns={columns}
+      fallback={t('No automations connected')}
+    />
+  );
+}

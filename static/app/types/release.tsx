@@ -174,7 +174,7 @@ export type Health = {
   totalUsers24h: number | null;
 };
 
-export type HealthGraphData = Record<string, TimeseriesValue[]>;
+type HealthGraphData = Record<string, TimeseriesValue[]>;
 
 export enum ReleaseComparisonChartType {
   CRASH_FREE_USERS = 'crashFreeUsers',

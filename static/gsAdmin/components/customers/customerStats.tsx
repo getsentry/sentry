@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
+import snakeCase from 'lodash/snakeCase';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
@@ -25,10 +25,7 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useRouter from 'sentry/utils/useRouter';
 
-import {
-  categoryFromDataType,
-  type DataType,
-} from 'admin/components/customers/customerStatsFilters';
+import type {DataType} from 'admin/components/customers/customerStatsFilters';
 
 enum SeriesName {
   ACCEPTED = 'Accepted',
@@ -153,7 +150,7 @@ export function populateChartData(
           if (dateIndex >= filteredData['dynamic-sampling'].data.length) {
             filteredData['dynamic-sampling'].data.push(dataObject);
           } else {
-            filteredData['dynamic-sampling']!.data[dateIndex]!.value += dataObject.value;
+            filteredData['dynamic-sampling'].data[dateIndex]!.value += dataObject.value;
           }
         } else {
           // dynamically adding filtered reasons into graph
@@ -253,8 +250,8 @@ export function populateChartData(
     totalFiltered!.subSeries = totalFiltered!.subSeries ?? [];
     totalFiltered!.subSeries.push({seriesName: data.seriesName, data: data.data});
 
-    for (const dataIndex in data.data) {
-      totalFiltered!.data[dataIndex]!.value += data.data[dataIndex]!.value;
+    for (const [dataIndex, dataPoint] of data.data.entries()) {
+      totalFiltered!.data[dataIndex]!.value += dataPoint.value;
     }
   }
 
@@ -262,8 +259,8 @@ export function populateChartData(
     totalDiscarded!.subSeries = totalDiscarded!.subSeries ?? [];
     totalDiscarded!.subSeries.push({seriesName: data.seriesName, data: data.data});
 
-    for (const dataIndex in data.data) {
-      totalDiscarded!.data[dataIndex]!.value += data.data[dataIndex]!.value;
+    for (const [dataIndex, dataPoint] of data.data.entries()) {
+      totalDiscarded!.data[dataIndex]!.value += dataPoint.value;
     }
   }
 
@@ -271,8 +268,8 @@ export function populateChartData(
     totalDropped!.subSeries = totalDropped!.subSeries ?? [];
     totalDropped!.subSeries.push({seriesName: data.seriesName, data: data.data});
 
-    for (const dataIndex in data.data) {
-      totalDropped!.data[dataIndex]!.value += data.data[dataIndex]!.value;
+    for (const [dataIndex, dataPoint] of data.data.entries()) {
+      totalDropped!.data[dataIndex]!.value += dataPoint.value;
     }
   }
 
@@ -401,7 +398,7 @@ export function CustomerStats({
         interval: getInterval(dataDatetime),
         groupBy: ['outcome', 'reason'],
         field: 'sum(quantity)',
-        category: categoryFromDataType(dataType),
+        category: snakeCase(dataType), // TODO(isabella): remove snakeCase when .apiName is consistent
         ...(projectId ? {project: projectId} : {}),
       },
     });
@@ -456,17 +453,17 @@ export function CustomerStats({
 
   const {legend, subLabels} = chartSeries.reduce(
     (acc, serie) => {
-      if (!acc.legend.includes(serie!.seriesName) && serie!.data.length > 0) {
-        acc.legend.push(serie!.seriesName);
+      if (!acc.legend.includes(serie.seriesName) && serie.data.length > 0) {
+        acc.legend.push(serie.seriesName);
       }
 
-      if (!serie!.subSeries) {
+      if (!serie.subSeries) {
         return acc;
       }
 
-      for (const subSerie of serie!.subSeries) {
+      for (const subSerie of serie.subSeries) {
         acc.subLabels.push({
-          parentLabel: serie!.seriesName,
+          parentLabel: serie.seriesName,
           label: subSerie.seriesName,
           data: subSerie.data,
         });
@@ -505,7 +502,7 @@ export function CustomerStats({
                     right: 10,
                     top: 0,
                     data: legend,
-                    theme: theme as Theme,
+                    theme,
                   })}
                   grid={{top: 30, bottom: 0, left: 0, right: 0}}
                   {...zoomRenderProps}

@@ -180,7 +180,7 @@ const SectionHeader = styled('div')`
   }
 `;
 
-export const SectionContents = styled('div')`
+const SectionContents = styled('div')`
   position: relative;
 `;
 

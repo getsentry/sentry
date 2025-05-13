@@ -2,6 +2,7 @@ import logging
 
 from sentry.integrations.messaging.linkage import UnlinkTeamView
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.views.linkage import SlackLinkageView
 from sentry.web.frontend.base import region_silo_view
 
@@ -15,8 +16,8 @@ INSUFFICIENT_ACCESS = (
 
 
 def build_team_unlinking_url(
-    integration: Integration,
-    organization_id: str,
+    integration: Integration | RpcIntegration,
+    organization_id: int,
     slack_id: str,
     channel_id: str,
     channel_name: str,

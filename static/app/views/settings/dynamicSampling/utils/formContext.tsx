@@ -50,7 +50,7 @@ interface PlainObject {
 interface PlainArray extends Array<PlainValue> {}
 type AtomicValue = string | number | boolean | null | undefined;
 
-export type FormValidators<
+type FormValidators<
   FormFields extends Record<string, PlainValue>,
   FieldErrors extends Record<keyof FormFields, any>,
 > = {
@@ -82,7 +82,7 @@ type FormStateConfig<
 /**
  * Creates a form state object with fields and validation for a given set of form fields.
  */
-export const useFormState = <
+const useFormState = <
   FormFields extends Record<string, PlainValue>,
   FieldErrors extends Record<keyof FormFields, any>,
 >(
@@ -211,7 +211,7 @@ export const createForm = <
     children: React.ReactNode;
     formState: FormState<FormFields, FieldErrors>;
   }) {
-    return <FormContext.Provider value={formState}>{children}</FormContext.Provider>;
+    return <FormContext value={formState}>{children}</FormContext>;
   }
 
   const useFormField = <K extends keyof FormFields>(name: K) => {

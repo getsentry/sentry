@@ -6,12 +6,13 @@ import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
-import {ListBox} from 'sentry/components/compactSelect/listBox';
+import Feature from 'sentry/components/acl/feature';
+import {Button} from 'sentry/components/core/button';
+import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
   SelectKey,
   SelectOptionOrSectionWithKey,
-} from 'sentry/components/compactSelect/types';
-import {Button} from 'sentry/components/core/button';
+} from 'sentry/components/core/compactSelect/types';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -23,10 +24,13 @@ import {
   RECENT_SEARCH_CATEGORY_VALUE,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {IconMegaphone} from 'sentry/icons';
+import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   recentFilters: string[];
@@ -73,8 +77,13 @@ function ListBoxSectionButton({
 }
 
 function FeedbackFooter() {
-  const {searchSource} = useSearchQueryBuilder();
+  const {searchSource, query} = useSearchQueryBuilder();
   const openForm = useFeedbackForm();
+  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
+  const organization = useOrganization();
+
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
   if (!openForm) {
     return null;
@@ -82,6 +91,18 @@ function FeedbackFooter() {
 
   return (
     <SectionedOverlayFooter>
+      <Feature features="organizations:gen-ai-explore-traces">
+        {traceExploreAiQueryContext && areAiFeaturesAllowed ? (
+          <StyledSeerButton
+            priority="primary"
+            size="xs"
+            icon={<IconSeer />}
+            onClick={() => traceExploreAiQueryContext?.onAiButtonClick?.(query)}
+          >
+            {t('Use Seer AI')}
+          </StyledSeerButton>
+        ) : null}
+      </Feature>
       <Button
         size="xs"
         icon={<IconMegaphone />}
@@ -243,7 +264,6 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
       <SectionedListBoxPane>
         <ListBox
           {...listBoxProps}
-          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
           ref={listBoxRef}
           listState={state}
           hasSearch={selectedSection === RECENT_SEARCH_CATEGORY_VALUE}
@@ -341,12 +361,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         visible={isOpen}
         style={{position: 'absolute', width: '100%', left: 0, top: 38, right: 0}}
       >
-        <SectionedOverlay
-          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
-          ref={popoverRef}
-          fullWidth
-          showDetailsPane={showDetailsPane}
-        >
+        <SectionedOverlay ref={popoverRef} fullWidth showDetailsPane={showDetailsPane}>
           {isOpen ? (
             <FilterKeyMenuContent
               fullWidth={fullWidth}
@@ -368,11 +383,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
 
   const filterKeyListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <SectionedOverlay
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
-        ref={popoverRef}
-        width={filterKeyMenuWidth}
-      >
+      <SectionedOverlay ref={popoverRef} width={filterKeyMenuWidth}>
         {isOpen ? (
           <FilterKeyMenuContent
             fullWidth={fullWidth}
@@ -426,6 +437,10 @@ const SectionedOverlay = styled(Overlay, {
   width: ${p => (p.fullWidth ? '100%' : `${p.width}px`)};
   ${p =>
     p.fullWidth && `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
+`;
+
+const StyledSeerButton = styled(Button)`
+  margin-right: ${space(1)};
 `;
 
 const SectionedOverlayFooter = styled('div')`

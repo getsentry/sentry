@@ -1,11 +1,12 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -31,9 +32,12 @@ describe('GroupActivity', function () {
   beforeEach(function () {
     project = ProjectFixture();
     ProjectsStore.loadInitialData([project]);
-    ConfigStore.init();
-    ConfigStore.set('user', UserFixture({id: '123'}));
     GroupStore.init();
+    // XXX: Explicitly using legacy UI since this component is not used in the new one
+    ConfigStore.init();
+    const user = UserFixture({id: '123'});
+    user.options.prefersIssueDetailsStreamlinedUI = false;
+    ConfigStore.set('user', user);
   });
 
   afterEach(() => {
@@ -61,11 +65,10 @@ describe('GroupActivity', function () {
       project,
     });
     GroupStore.add([group]);
-
-    const {organization, router} = initializeOrg({
-      router: {
-        params: {orgId: 'org-slug', groupId: group.id},
-      },
+    // XXX: Explicitly using legacy UI since this component is not used in the new one
+    const organization = OrganizationFixture({streamlineOnly: false});
+    const router = RouterFixture({
+      params: {orgId: organization.slug, groupId: group.id},
     });
 
     MockApiClient.addMockResponse({
@@ -75,7 +78,11 @@ describe('GroupActivity', function () {
 
     TeamStore.loadInitialData([TeamFixture({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
-    return render(<GroupActivity />, {router, organization});
+    render(<GroupActivity />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    });
   }
 
   it('renders a NoteInput', async function () {
@@ -404,7 +411,9 @@ describe('GroupActivity', function () {
         url: '/organizations/org-slug/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
-      ConfigStore.set('user', UserFixture({id: '123', isSuperuser: true}));
+      const user = UserFixture({id: '123', isSuperuser: true});
+      user.options.prefersIssueDetailsStreamlinedUI = false;
+      ConfigStore.set('user', user);
     });
 
     it('should remove remove the item from the GroupStore make a DELETE API request', async function () {

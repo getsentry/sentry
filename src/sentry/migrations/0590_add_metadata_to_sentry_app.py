@@ -4,6 +4,7 @@ from django.db import migrations
 
 import sentry.db.models.fields.jsonfield
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -19,8 +20,6 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0589_add_commit_date_added_indices"),
     ]
@@ -35,7 +34,7 @@ class Migration(CheckedMigration):
                 ),
             ],
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "sentry_sentryapp" ADD COLUMN "metadata" json NOT NULL DEFAULT '{}';
                     """,

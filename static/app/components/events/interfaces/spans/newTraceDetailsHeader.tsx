@@ -86,11 +86,7 @@ function TraceViewHeader(props: PropType) {
   const hasServiceBreakdown = httpOp && props.traceType === TraceShape.ONE_ROOT;
 
   return (
-    <HeaderContainer
-      // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
-      ref={props.traceViewHeaderRef}
-      hasProfileMeasurementsChart={false}
-    >
+    <HeaderContainer ref={props.traceViewHeaderRef} hasProfileMeasurementsChart={false}>
       <DividerHandlerManager.Consumer>
         {dividerHandlerChildrenProps => {
           const {dividerPosition} = dividerHandlerChildrenProps;
@@ -145,7 +141,7 @@ const OperationsBreakdown = styled('div')`
 `;
 
 const Dur = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-variant-numeric: tabular-nums;
 `;
 

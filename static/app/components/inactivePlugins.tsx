@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
 
@@ -37,10 +38,10 @@ function InactivePlugins({disabled, plugins, onEnablePlugin}: Props) {
               onClick={() => onEnablePlugin(plugin)}
               className={`ref-plugin-enable-${plugin.id}`}
             >
-              <Label>
-                <StyledPluginIcon pluginId={plugin.id} />
+              <Flex align="center" justify="center" gap={space(1)}>
+                <PluginIcon pluginId={plugin.id} />
                 <TextOverflow>{plugin.shortName || plugin.name}</TextOverflow>
-              </Label>
+              </Flex>
             </IntegrationButton>
           ))}
         </Plugins>
@@ -57,32 +58,10 @@ const Plugins = styled('div')`
 `;
 
 const IntegrationButton = styled(Button)`
-  margin: ${space(1)};
-  width: 175px;
   text-align: center;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: #889ab0;
-  letter-spacing: 0.1px;
-  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
-  border: 1px solid #eee;
-  background: inherit;
-  border-radius: ${p => p.theme.borderRadius};
-  padding: 10px;
-
-  &:hover {
-    border-color: #ccc;
-  }
-`;
-
-const Label = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const StyledPluginIcon = styled(PluginIcon)`
-  margin-right: ${space(1)};
+  min-width: 175px;
+  margin: ${space(1)};
 `;
 
 export default InactivePlugins;

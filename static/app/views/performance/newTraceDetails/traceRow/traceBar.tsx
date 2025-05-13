@@ -3,21 +3,24 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
-
-import {getStylingSliceName} from '../../../traces/utils';
 import {
   isAutogroupedNode,
+  isEAPErrorNode,
   isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
-import {TraceBackgroundPatterns} from '../traceRow/traceBackgroundPatterns';
-import {TraceErrorIcons, TracePerformanceIssueIcons} from '../traceRow/traceIcons';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {TraceBackgroundPatterns} from 'sentry/views/performance/newTraceDetails/traceRow/traceBackgroundPatterns';
+import {
+  TraceErrorIcons,
+  TraceOccurenceIcons,
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
+import {getStylingSliceName} from 'sentry/views/traces/utils';
 
 export function makeTraceNodeBarColor(
   theme: Theme,
@@ -26,11 +29,12 @@ export function makeTraceNodeBarColor(
   if (isTransactionNode(node)) {
     return pickBarColor(
       getStylingSliceName(node.value.project_slug, node.value.sdk_name) ??
-        node.value['transaction.op']
+        node.value['transaction.op'],
+      theme
     );
   }
   if (isSpanNode(node) || isEAPSpanNode(node)) {
-    return pickBarColor(node.value.op);
+    return pickBarColor(node.value.op, theme);
   }
   if (isAutogroupedNode(node)) {
     if (node.errors.size > 0) {
@@ -42,7 +46,7 @@ export function makeTraceNodeBarColor(
     return theme.gray300;
   }
 
-  if (isTraceErrorNode(node)) {
+  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
     // Theme defines this as orange, yet everywhere in our product we show red for errors
     if (node.value.level === 'error' || node.value.level === 'fatal') {
       return theme.red300;
@@ -52,7 +56,7 @@ export function makeTraceNodeBarColor(
     }
     return theme.red300;
   }
-  return pickBarColor('default');
+  return pickBarColor('default', theme);
 }
 
 interface InvisibleTraceBarProps {
@@ -152,7 +156,7 @@ interface TraceBarProps {
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
   node_space: [number, number] | null;
-  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
+  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
 }
@@ -208,19 +212,19 @@ export function TraceBar(props: TraceBarProps) {
             manager={props.manager}
           />
         ) : null}
-        {props.performance_issues.size > 0 ? (
-          <TracePerformanceIssueIcons
+        {props.occurrences.size > 0 ? (
+          <TraceOccurenceIcons
             node_space={props.node_space}
-            performance_issues={props.performance_issues}
+            occurrences={props.occurrences}
             manager={props.manager}
           />
         ) : null}
-        {props.performance_issues.size > 0 ||
+        {props.occurrences.size > 0 ||
         props.errors.size > 0 ||
         props.profiles.length > 0 ? (
           <TraceBackgroundPatterns
             node_space={props.node_space}
-            performance_issues={props.performance_issues}
+            occurrences={props.occurrences}
             errors={props.errors}
             manager={props.manager}
           />
@@ -240,7 +244,7 @@ interface AutogroupedTraceBarProps {
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
   node_spaces: Array<[number, number]>;
-  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
+  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
 }
@@ -280,7 +284,7 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         manager={props.manager}
         virtualized_index={props.virtualized_index}
         errors={props.errors}
-        performance_issues={props.performance_issues}
+        occurrences={props.occurrences}
         profiles={props.profiles}
       />
     );
@@ -320,10 +324,10 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
             manager={props.manager}
           />
         ) : null}
-        {props.performance_issues.size > 0 ? (
-          <TracePerformanceIssueIcons
+        {props.occurrences.size > 0 ? (
+          <TraceOccurenceIcons
             node_space={props.entire_space}
-            performance_issues={props.performance_issues}
+            occurrences={props.occurrences}
             manager={props.manager}
           />
         ) : null}

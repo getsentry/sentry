@@ -1,7 +1,6 @@
 import type React from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import beautify from 'js-beautify';
 
 import {Button} from 'sentry/components/core/button';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
@@ -60,7 +59,6 @@ export function TabbedCodeSnippet({
 
   return (
     <OnboardingCodeSnippet
-      dark
       language={language}
       onCopy={onCopy}
       onSelectAndCopy={onSelectAndCopy}
@@ -71,13 +69,7 @@ export function TabbedCodeSnippet({
       onTabClick={value => setSelectedTabValue(value)}
       filename={filename}
     >
-      {language === 'javascript'
-        ? beautify.js(code, {
-            indent_size: 2,
-            e4x: true,
-            brace_style: 'preserve-inline',
-          })
-        : code.trim()}
+      {code}
     </OnboardingCodeSnippet>
   );
 }
@@ -180,20 +172,13 @@ function getConfiguration({
         language &&
         code && (
           <OnboardingCodeSnippet
-            dark
             language={language}
             onCopy={onCopy}
             onSelectAndCopy={onSelectAndCopy}
             hideCopyButton={partialLoading}
             disableUserSelection={partialLoading}
           >
-            {language === 'javascript'
-              ? beautify.js(code, {
-                  indent_size: 2,
-                  e4x: true,
-                  brace_style: 'preserve-inline',
-                })
-              : code.trim()}
+            {code}
           </OnboardingCodeSnippet>
         )
       )}
@@ -299,7 +284,7 @@ const Configuration = styled('div')`
 `;
 
 const Description = styled('div')`
-  code {
+  code:not([class*='language-']) {
     color: ${p => p.theme.pink400};
   }
 

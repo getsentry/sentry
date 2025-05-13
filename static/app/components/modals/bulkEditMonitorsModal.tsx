@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {BulkEditOperation} from 'sentry/actionCreators/monitors';
 import {bulkEditMonitors} from 'sentry/actionCreators/monitors';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -23,10 +23,10 @@ import {
   MonitorSortOption,
   MonitorSortOrder,
   SortSelector,
-} from 'sentry/views/monitors/components/overviewTimeline/sortSelector';
-import type {Monitor} from 'sentry/views/monitors/types';
-import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
-import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
+} from 'sentry/views/insights/crons/components/overviewTimeline/sortSelector';
+import type {Monitor} from 'sentry/views/insights/crons/types';
+import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
+import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 interface Props extends ModalRenderProps {}
 
@@ -56,7 +56,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
 
   const [selectedMonitors, setSelectedMonitors] = useState<Monitor[]>([]);
   const isMonitorSelected = (monitor: Monitor): boolean => {
-    return !!selectedMonitors.find(m => m.slug === monitor.slug);
+    return selectedMonitors.some(m => m.slug === monitor.slug);
   };
 
   const handleSearch = (query: string) => {
@@ -242,5 +242,3 @@ const MonitorSlug = styled('div')`
   gap: ${space(1)};
   align-items: center;
 `;
-
-export default BulkEditMonitorsModal;

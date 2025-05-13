@@ -12,7 +12,7 @@ const fileDebugIdCache = new Map<string, string>();
  *
  * RFC related to this: https://github.com/getsentry/rfcs/blob/main/text/0081-sourcemap-debugid.md
  */
-export async function getErrorDebugIds(e: Error): Promise<{[filename: string]: string}> {
+export async function getErrorDebugIds(e: Error): Promise<Record<string, string>> {
   if (!e.stack) {
     return {};
   }

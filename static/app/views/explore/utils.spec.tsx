@@ -1,121 +1,157 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {viewSamplesTarget} from 'sentry/views/explore/utils';
 
 describe('viewSamplesTarget', function () {
   const project = ProjectFixture();
-  const extras = {projects: [project]};
+  const projects = [project];
+  const visualize = new Visualize(['count(span.duration)']);
+  const sort = {
+    field: 'count(span.duration)',
+    kind: 'desc' as const,
+  };
 
   it('simple drill down with no group bys', function () {
     const location = LocationFixture();
-    const target = viewSamplesTarget(location, '', [], {}, extras);
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      groupBys: [],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {},
+      projects,
+    });
     expect(target).toMatchObject({
       query: {
+        field: ['span.duration'],
         mode: 'samples',
         query: '',
+        sort: ['-span.duration'],
       },
     });
   });
 
   it('simple drill down with single group by', function () {
     const location = LocationFixture();
-    const target = viewSamplesTarget(
+    const target = viewSamplesTarget({
       location,
-      '',
-      ['foo'],
-      {foo: 'foo', 'count()': 10},
-      extras
-    );
+      query: '',
+      groupBys: ['foo'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {foo: 'foo', 'count(span.duration)': 10},
+      projects,
+    });
     expect(target).toMatchObject({
       query: {
+        field: ['foo', 'span.duration'],
         mode: 'samples',
         query: 'foo:foo',
+        sort: ['-span.duration'],
       },
     });
   });
 
   it('simple drill down with multiple group bys', function () {
     const location = LocationFixture();
-    const target = viewSamplesTarget(
+    const target = viewSamplesTarget({
       location,
-      '',
-      ['foo', 'bar', 'baz'],
-      {
+      query: '',
+      groupBys: ['foo', 'bar', 'baz'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
         foo: 'foo',
         bar: 'bar',
         baz: 'baz',
-        'count()': 10,
+        'count(span.duration)': 10,
       },
-      extras
-    );
+      projects,
+    });
     expect(target).toMatchObject({
       query: {
+        field: ['foo', 'bar', 'baz', 'span.duration'],
         mode: 'samples',
         query: 'foo:foo bar:bar baz:baz',
+        sort: ['-span.duration'],
       },
     });
   });
 
   it('simple drill down with on environment', function () {
     const location = LocationFixture();
-    const target = viewSamplesTarget(
+    const target = viewSamplesTarget({
       location,
-      '',
-      ['environment'],
-      {
+      query: '',
+      groupBys: ['environment'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
         environment: 'prod',
-        'count()': 10,
+        'count(span.duration)': 10,
       },
-      extras
-    );
+      projects,
+    });
     expect(target).toMatchObject({
       query: {
+        field: ['environment', 'span.duration'],
         mode: 'samples',
         query: '',
         environment: 'prod',
+        sort: ['-span.duration'],
       },
     });
   });
 
   it('simple drill down with on project id', function () {
     const location = LocationFixture();
-    const target = viewSamplesTarget(
+    const target = viewSamplesTarget({
       location,
-      '',
-      ['project.id'],
-      {
+      query: '',
+      groupBys: ['project.id'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
         'project.id': 1,
-        'count()': 10,
+        'count(span.duration)': 10,
       },
-      extras
-    );
+      projects,
+    });
     expect(target).toMatchObject({
       query: {
+        field: ['project.id', 'span.duration'],
         mode: 'samples',
         query: '',
         project: '1',
+        sort: ['-span.duration'],
       },
     });
   });
 
   it('simple drill down with on project slug', function () {
     const location = LocationFixture();
-    const target = viewSamplesTarget(
+    const target = viewSamplesTarget({
       location,
-      '',
-      ['project'],
-      {
+      query: '',
+      groupBys: ['project'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
         project: project.slug,
-        'count()': 10,
+        'count(span.duration)': 10,
       },
-      extras
-    );
+      projects,
+    });
     expect(target).toMatchObject({
       query: {
+        field: ['project', 'span.duration'],
         mode: 'samples',
         query: '',
         project: String(project.id),
+        sort: ['-span.duration'],
       },
     });
   });

@@ -1,8 +1,8 @@
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
@@ -16,12 +16,13 @@ type ConfigParams = {
 export function getOrganizationNavigationConfiguration({
   organization: incomingOrganization,
 }: ConfigParams): NavigationSection[] {
-  if (incomingOrganization && prefersStackedNav()) {
+  if (incomingOrganization && prefersStackedNav(incomingOrganization)) {
     return getUserOrgNavigationConfiguration({organization: incomingOrganization});
   }
 
   return [
     {
+      id: 'settings-user',
       name: t('User Settings'),
       items: [
         {
@@ -33,6 +34,7 @@ export function getOrganizationNavigationConfiguration({
       ],
     },
     {
+      id: 'settings-organization',
       name: t('Organization'),
       items: [
         {
@@ -144,19 +146,18 @@ export function getOrganizationNavigationConfiguration({
               }}
             />
           ),
-          show: ({organization}) =>
-            !!organization && organization.features.includes('feature-flag-ui'),
         },
         {
           path: `${organizationSettingsPathPrefix}/stats/`,
           title: t('Stats & Usage'),
           description: t('View organization stats and usage'),
           id: 'stats',
-          show: () => prefersStackedNav(),
+          show: ({organization}) => !!organization && prefersStackedNav(organization),
         },
       ],
     },
     {
+      id: 'settings-developer',
       name: t('Developer Settings'),
       items: [
         {

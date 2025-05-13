@@ -17,7 +17,7 @@ interface MetricIncidentsParams {
   };
 }
 
-export function makeMetricIncidentsQueryKey(params: MetricIncidentsParams): ApiQueryKey {
+function makeMetricIncidentsQueryKey(params: MetricIncidentsParams): ApiQueryKey {
   const {orgSlug, query} = params;
   return [
     `/organizations/${orgSlug}/incidents/`,

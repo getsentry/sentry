@@ -3,8 +3,8 @@ import {LinkButton} from 'sentry/components/core/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
-import ReplaySettingsAlert from 'sentry/components/replays/alerts/replaySettingsAlert';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -13,6 +13,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+
+const ReplaySettingsAlert = HookOrDefault({
+  hookName: 'component:replay-settings-alert',
+  defaultComponent: null,
+});
 
 type RouteParams = {
   projectId: string;

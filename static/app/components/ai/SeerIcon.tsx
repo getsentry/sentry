@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -55,9 +54,9 @@ const InteractionWrapper = styled('div')`
   }
 `;
 
-const SeerIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function SeerIcon({ref, ...props}: SVGIconProps) {
   return (
-    <SvgIcon {...props} ref={ref} viewBox="0 0 30 30">
+    <SvgIcon {...props} ref={ref} viewBox="0 0 30 30" kind="path">
       <path
         d="M14.0407,3.1458L3.5742,17.0376c-.2989.3967-.2327.9584.1501,1.2748l10.4917,8.6705c.3436.284.8405.2838,1.1839-.0005l10.4717-8.6691c.3827-.3169.4483-.8788.1488-1.2753L15.5235,3.1448c-.3719-.4922-1.1115-.4917-1.4828.001Z"
         fill="none"
@@ -87,14 +86,14 @@ const SeerIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       />
     </SvgIcon>
   );
-});
+}
 
 SeerIcon.displayName = 'SeerIcon';
 
-const SeerLoadingIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function SeerLoadingIcon({ref, ...props}: SVGIconProps) {
   return (
     <InteractionWrapper>
-      <SvgIcon {...props} ref={ref} viewBox="0 0 30 30">
+      <SvgIcon {...props} ref={ref} viewBox="0 0 30 30" kind="path">
         <defs>
           <clipPath id="eaf-dde7-1">
             <rect x="0" y="0" width="30" height="30" />
@@ -151,12 +150,12 @@ const SeerLoadingIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => 
       </SvgIcon>
     </InteractionWrapper>
   );
-});
+}
 
-const SeerWaitingIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function SeerWaitingIcon({ref, ...props}: SVGIconProps) {
   return (
     <InteractionWrapper>
-      <SvgIcon {...props} ref={ref} viewBox="0 0 30 30">
+      <SvgIcon {...props} ref={ref} viewBox="0 0 30 30" kind="path">
         <defs>
           <clipPath id="eaf-7216-1">
             <rect x="0" y="0" width="30" height="30" />
@@ -214,6 +213,6 @@ const SeerWaitingIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => 
       </SvgIcon>
     </InteractionWrapper>
   );
-});
+}
 
 export {SeerIcon, SeerLoadingIcon, SeerWaitingIcon};

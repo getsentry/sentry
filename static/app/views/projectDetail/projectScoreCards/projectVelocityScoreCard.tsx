@@ -10,8 +10,7 @@ import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-
-import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
+import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 
 import {ActionWrapper} from './actionWrapper';
 
@@ -207,10 +206,8 @@ function ProjectVelocityScoreCard(props: Props) {
           previousPeriodValue={previousReleases?.length}
           field="count()"
           maximumValue={API_LIMIT}
-          meta={{
-            type: 'number',
-            unit: null,
-          }}
+          type="number"
+          unit={null}
           preferredPolarity="+"
         />
       }

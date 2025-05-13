@@ -1,24 +1,19 @@
 import logging
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from functools import partial
 
 import rapidjson
-from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
-from arroyo.types import Commit, Message, Partition
+from arroyo.types import Commit, FilteredPayload, Message, Partition
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
-from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +36,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_flush_segments: int,
         input_block_size: int | None,
         output_block_size: int | None,
+        produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
     ):
         super().__init__()
 
@@ -50,15 +46,11 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_flush_segments = max_flush_segments
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
-        self.__pool = MultiprocessingPool(num_processes)
+        self.num_processes = num_processes
+        self.produce_to_pipe = produce_to_pipe
 
-        cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
-
-        producer_config = get_kafka_producer_cluster_options(cluster_name)
-        self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-        self.output_topic = ArroyoTopic(
-            get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
-        )
+        if self.num_processes != 1:
+            self.__pool = MultiprocessingPool(num_processes)
 
     def create_with_partitions(
         self,
@@ -70,23 +62,30 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         buffer = SpansBuffer(assigned_shards=[p.index for p in partitions])
 
         # patch onto self just for testing
+        flusher: ProcessingStrategy[FilteredPayload | int]
+
         flusher = self._flusher = SpanFlusher(
             buffer,
-            self.producer,
-            self.output_topic,
             self.max_flush_segments,
+            self.produce_to_pipe,
             next_step=committer,
         )
 
-        run_task = run_task_with_multiprocessing(
-            function=partial(process_batch, buffer),
-            next_step=flusher,
-            max_batch_size=self.max_batch_size,
-            max_batch_time=self.max_batch_time,
-            pool=self.__pool,
-            input_block_size=self.input_block_size,
-            output_block_size=self.output_block_size,
-        )
+        if self.num_processes != 1:
+            run_task = run_task_with_multiprocessing(
+                function=partial(process_batch, buffer),
+                next_step=flusher,
+                max_batch_size=self.max_batch_size,
+                max_batch_time=self.max_batch_time,
+                pool=self.__pool,
+                input_block_size=self.input_block_size,
+                output_block_size=self.output_block_size,
+            )
+        else:
+            run_task = RunTask(
+                function=partial(process_batch, buffer),
+                next_step=flusher,
+            )
 
         batch = BatchStep(
             max_batch_size=self.max_batch_size,
@@ -113,8 +112,8 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         return add_timestamp
 
     def shutdown(self) -> None:
-        self.producer.close()
-        self.__pool.close()
+        if self.num_processes != 1:
+            self.__pool.close()
 
 
 def process_batch(
@@ -134,12 +133,7 @@ def process_batch(
             parent_span_id=val.get("parent_span_id"),
             project_id=val["project_id"],
             payload=payload.value,
-            # TODO: validate, this logic may not be complete.
-            is_segment_span=(
-                val.get("parent_span_id") is None
-                or get_path(val, "sentry_tags", "op") == "http.server"
-                or val.get("is_remote")
-            ),
+            is_segment_span=(val.get("parent_span_id") is None or val.get("is_remote")),
         )
         spans.append(span)
 

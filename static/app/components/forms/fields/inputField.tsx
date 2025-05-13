@@ -52,6 +52,8 @@ function defaultField({
         onChange={e => onChange(e.target.value, e)}
         name={name}
         {...rest}
+        // Do not forward required to `input` to avoid default browser behavior
+        required={undefined}
       />
       {!hideControlState && (
         <InputGroup.TrailingItems>

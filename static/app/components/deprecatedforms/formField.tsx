@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import type {FormContextData} from 'sentry/components/deprecatedforms/formContext';
-import FormContext from 'sentry/components/deprecatedforms/formContext';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -16,13 +15,15 @@ type DefaultProps = {
   required?: boolean;
 };
 
-type FormFieldProps = DefaultProps & {
+export type FormFieldProps = DefaultProps & {
+  formContext: FormContextData;
   name: string;
   className?: string;
   defaultValue?: any;
   disabledReason?: string;
   error?: string;
   help?: string | React.ReactNode;
+  id?: string;
   label?: React.ReactNode;
   meta?: Meta;
   onChange?: (value: Value) => void;
@@ -45,32 +46,29 @@ export default abstract class FormField<
     required: false,
   };
 
-  constructor(props: Props, context?: any) {
-    super(props, context);
+  constructor(props: Props) {
+    super(props);
     this.state = {
       error: null,
-      value: this.getValue(props, context),
+      value: this.getValue(props),
     } as State;
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props, nextContext: FormContextData) {
-    const newError = this.getError(nextProps, nextContext);
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+    const newError = this.getError(nextProps);
     if (newError !== this.state.error) {
       this.setState({error: newError});
     }
-    if (this.props.value !== nextProps.value || defined(nextContext.form)) {
-      const newValue = this.getValue(nextProps, nextContext);
+    if (this.props.value !== nextProps.value || defined(nextProps.formContext.form)) {
+      const newValue = this.getValue(nextProps);
       if (newValue !== this.state.value) {
         this.setValue(newValue);
       }
     }
   }
 
-  declare context: React.ContextType<typeof FormContext>;
-  static contextType = FormContext;
-
-  getValue(props: Props, context: FormContextData) {
-    const form = (context || this.context)?.form;
+  getValue(props: Props) {
+    const form = (props.formContext || this.props.formContext)?.form;
     props = props || this.props;
     if (defined(props.value)) {
       return props.value;
@@ -81,8 +79,8 @@ export default abstract class FormField<
     return defined(props.defaultValue) ? props.defaultValue : '';
   }
 
-  getError(props: Props, context: FormContextData) {
-    const form = (context || this.context)?.form;
+  getError(props: Props) {
+    const form = (props.formContext || this.props.formContext)?.form;
     props = props || this.props;
     if (defined(props.error)) {
       return props.error;
@@ -104,7 +102,7 @@ export default abstract class FormField<
   };
 
   setValue = (value: Value) => {
-    const form = this.context?.form;
+    const form = this.props.formContext?.form;
     this.setState(
       {
         value,

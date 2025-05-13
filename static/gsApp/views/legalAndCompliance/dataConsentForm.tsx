@@ -19,7 +19,6 @@ function DataConsentForm({subscription}: {subscription: Subscription}) {
   const {
     isDisabled: isGenAiButtonDisabled,
     message: genAiButtonMessage,
-    isUsRegion,
     hasBillingAccess,
     isSuperuser,
     isTouchCustomerAndNeedsMsaUpdate,
@@ -28,7 +27,6 @@ function DataConsentForm({subscription}: {subscription: Subscription}) {
   });
 
   const initialData = {
-    genAIConsent: organization.genAIConsent,
     aggregatedDataConsent: organization.aggregatedDataConsent,
   };
 
@@ -47,12 +45,6 @@ function DataConsentForm({subscription}: {subscription: Subscription}) {
         updateOrganization({id: organization.id, ...updatedOrganization});
       }}
       onFieldChange={(name, value) => {
-        if (name === 'genAIConsent') {
-          trackGetsentryAnalytics('gen_ai_consent.settings_clicked', {
-            organization,
-            value,
-          });
-        }
         trackGetsentryAnalytics('data_consent_settings.updated', {
           organization,
           setting: name,
@@ -64,7 +56,6 @@ function DataConsentForm({subscription}: {subscription: Subscription}) {
         additionalFieldProps={{
           isGenAiButtonDisabled,
           genAiButtonMessage,
-          isUsRegion,
           hasBillingAccess,
           isSuperuser,
           isTouchCustomerAndNeedsMsaUpdate,

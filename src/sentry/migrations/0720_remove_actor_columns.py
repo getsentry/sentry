@@ -3,6 +3,7 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -20,8 +21,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0719_querysubscription_timebox_column_deletion_db"),
     ]
@@ -30,22 +29,22 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             state_operations=[],
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="ALTER TABLE sentry_team DROP COLUMN actor_id",
                     reverse_sql="ALTER TABLE sentry_team ADD COLUMN actor_id BIGINT NULL",
                     hints={"tables": ["sentry_team"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="ALTER TABLE sentry_rule DROP COLUMN owner_id",
                     reverse_sql="ALTER TABLE sentry_rule ADD COLUMN owner_id BIGINT NULL",
                     hints={"tables": ["sentry_rule"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="ALTER TABLE sentry_alertrule DROP COLUMN owner_id",
                     reverse_sql="ALTER TABLE sentry_alertrule ADD COLUMN owner_id BIGINT NULL",
                     hints={"tables": ["sentry_alertrule"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="ALTER TABLE sentry_grouphistory DROP COLUMN actor_id",
                     reverse_sql="ALTER TABLE sentry_grouphistory ADD COLUMN actor_id BIGINT NULL",
                     hints={"tables": ["sentry_grouphistory"]},

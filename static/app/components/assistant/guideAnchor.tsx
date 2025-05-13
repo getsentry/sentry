@@ -11,7 +11,7 @@ import {
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
 import type {Guide} from 'sentry/components/assistant/types';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {Hovercard} from 'sentry/components/hovercard';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
@@ -124,9 +124,9 @@ class BaseGuideAnchor extends Component<Props, State> {
     this.props.onStepComplete?.(e);
     this.props.onFinish?.(e);
 
-    const {currentGuide, orgId, orgSlug, org} = this.state;
+    const {currentGuide, orgId} = this.state;
     if (currentGuide) {
-      recordFinish(currentGuide.guide, orgId, orgSlug, org);
+      recordFinish(currentGuide.guide, orgId);
     }
     closeGuide();
   };

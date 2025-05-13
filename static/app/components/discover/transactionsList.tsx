@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {LinkButton} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {parseCursor} from 'sentry/utils/cursor';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -136,7 +137,6 @@ type TableRenderProps = Omit<React.ComponentProps<typeof Pagination>, 'size'> &
   React.ComponentProps<typeof TransactionsTable> & {
     header: React.ReactNode;
     paginationCursorSize: React.ComponentProps<typeof Pagination>['size'];
-    target?: string;
   };
 
 function TableRender({
@@ -154,7 +154,6 @@ function TableRender({
   handleCellAction,
   referrer,
   useAggregateAlias,
-  target,
   paginationCursorSize,
 }: TableRenderProps) {
   const query = decodeScalar(location.query.query, '');
@@ -191,22 +190,6 @@ function TableRender({
     });
   }, [display, isLoading, hasResults, performanceAtScaleContext, query]);
 
-  const content = (
-    <TransactionsTable
-      eventView={eventView}
-      organization={organization}
-      location={location}
-      isLoading={isLoading}
-      tableData={tableData}
-      columnOrder={columnOrder}
-      titles={titles}
-      generateLink={generateLink}
-      handleCellAction={handleCellAction}
-      useAggregateAlias={useAggregateAlias}
-      referrer={referrer}
-    />
-  );
-
   return (
     <Fragment>
       <Header>
@@ -217,13 +200,27 @@ function TableRender({
           size={paginationCursorSize}
         />
       </Header>
-      {target ? (
-        <GuideAnchor target={target} position="top-start" wrapperComponent={TableWrapper}>
-          {content}
-        </GuideAnchor>
-      ) : (
-        content
-      )}
+      <DemoTourElement
+        id={DemoTourStep.PERFORMANCE_TRANSACTION_SUMMARY_TABLE}
+        title={t('Breakdown event spans')}
+        description={t(
+          'Select an Event ID from a list of slow transactions to uncover slow spans.'
+        )}
+      >
+        <TransactionsTable
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          isLoading={isLoading}
+          tableData={tableData}
+          columnOrder={columnOrder}
+          titles={titles}
+          generateLink={generateLink}
+          handleCellAction={handleCellAction}
+          useAggregateAlias={useAggregateAlias}
+          referrer={referrer}
+        />
+      </DemoTourElement>
     </Fragment>
   );
 }
@@ -383,7 +380,6 @@ class _TransactionsList extends Component<Props> {
       titles,
       generateLink,
       useAggregateAlias: false,
-      target: 'transactions_table',
       paginationCursorSize: 'xs',
       onCursor: this.handleCursor,
     };
@@ -515,10 +511,6 @@ const StyledPagination = styled(Pagination)`
 
 const InvestigationRuleWrapper = styled('div')`
   margin-right: ${space(1)};
-`;
-
-const TableWrapper = styled('span')`
-  display: block;
 `;
 
 function TransactionsList(

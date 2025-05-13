@@ -492,7 +492,7 @@ class RegressionDetector(ABC):
             }
 
             issue_groups = bulk_get_groups_from_fingerprints(
-                [(project_id, [fingerprint]) for project_id, fingerprint in pairs]
+                [(project_id, fingerprint) for project_id, fingerprint in pairs]
             )
 
             for key, bundle in pairs.items():
@@ -558,7 +558,7 @@ class RegressionDetector(ABC):
 
             # Sync the regression group with the issue group
             issue_groups = bulk_get_groups_from_fingerprints(
-                [(project_id, [fingerprint]) for (project_id, fingerprint), _, _ in triples]
+                [(project_id, p_fingerprint) for (project_id, p_fingerprint), _, _ in triples]
             )
 
             for key, regression_group, regression in triples:
@@ -635,9 +635,9 @@ def generate_fingerprint(regression_type: RegressionType, name: str | int) -> st
         raise ValueError(f"Unsupported RegressionType: {regression_type}")
 
 
-def generate_issue_group_key(project_id: int, fingerprint: str) -> tuple[int, str]:
+def generate_issue_group_key(project_id: int, fingerprint: str) -> tuple[int, tuple[str, ...]]:
     data = {
         "fingerprint": [fingerprint],
     }
     process_occurrence_data(data)
-    return project_id, data["fingerprint"][0]
+    return project_id, tuple(data["fingerprint"])

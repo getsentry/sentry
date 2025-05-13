@@ -5,7 +5,7 @@ import {CanvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlug
 import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const context = createContext<(events: eventWithTime[]) => ReplayPlugin[]>(() => []);
+const Context = createContext<(events: eventWithTime[]) => ReplayPlugin[]>(() => []);
 
 export function ReplayPlayerPluginsContextProvider({
   children,
@@ -21,15 +21,13 @@ export function ReplayPlayerPluginsContextProvider({
     [organization]
   );
 
-  return <context.Provider value={getter}>{children}</context.Provider>;
+  return <Context value={getter}>{children}</Context>;
 }
 
 export function useReplayPlayerPlugins() {
-  return useContext(context);
+  return useContext(Context);
 }
 
-function getPlugins(organization: Organization, events: eventWithTime[]) {
-  return organization.features.includes('session-replay-enable-canvas-replayer')
-    ? [CanvasReplayerPlugin(events)]
-    : [];
+function getPlugins(_organization: Organization, events: eventWithTime[]) {
+  return [CanvasReplayerPlugin(events)];
 }

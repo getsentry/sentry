@@ -17,7 +17,6 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {DEFAULT_TIER, MONTHLY, SUPPORTED_TIERS} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {
-  DataCategories,
   EventBucket,
   OnDemandBudgets,
   Plan,
@@ -25,6 +24,7 @@ import type {
   PreviewData,
   Subscription,
 } from 'getsentry/types';
+import {InvoiceItemType} from 'getsentry/types';
 import {getSlot} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
@@ -174,13 +174,13 @@ export function getBucket({
 
 type ReservedTotalProps = {
   plan: Plan;
-  reserved: {
-    [categoryKey in DataCategory]?: number;
-  };
+  reserved: Partial<Record<DataCategory, number>>;
   amount?: number;
-  creditCategory?: string;
+  creditCategory?: InvoiceItemType;
   discountType?: string;
   maxDiscount?: number;
+  seerBudget?: number;
+  seerEnabled?: boolean;
 };
 
 /**
@@ -193,6 +193,8 @@ export function getReservedPriceCents({
   discountType,
   maxDiscount,
   creditCategory,
+  seerEnabled,
+  seerBudget,
 }: ReservedTotalProps): number {
   let reservedCents = plan.basePrice;
 
@@ -209,13 +211,18 @@ export function getReservedPriceCents({
     ([category, quantity]) =>
       (reservedCents += getBucket({
         events: quantity,
-        buckets: plan.planCategories[category as DataCategories],
+        buckets: plan.planCategories[category as DataCategory],
       }).price)
   );
 
   if (amount && maxDiscount) {
     const discount = Math.min(maxDiscount, (reservedCents * amount) / 10000);
     reservedCents -= discount;
+  }
+
+  // Add Seer budget to the total if it's enabled
+  if (seerEnabled && seerBudget) {
+    reservedCents += seerBudget;
   }
 
   return reservedCents;
@@ -232,6 +239,8 @@ export function getReservedTotal({
   discountType,
   maxDiscount,
   creditCategory,
+  seerEnabled,
+  seerBudget,
 }: ReservedTotalProps): string {
   return formatPrice({
     cents: getReservedPriceCents({
@@ -241,6 +250,8 @@ export function getReservedTotal({
       discountType,
       maxDiscount,
       creditCategory,
+      seerEnabled,
+      seerBudget,
     }),
   });
 }
@@ -248,7 +259,7 @@ export function getReservedTotal({
 type DiscountedPriceProps = {
   amount: number;
   basePrice: number;
-  creditCategory: string;
+  creditCategory: InvoiceItemType | null;
   discountType: string;
 };
 
@@ -262,7 +273,10 @@ export function getDiscountedPrice({
   creditCategory,
 }: DiscountedPriceProps): number {
   let price = basePrice;
-  if (discountType === 'percentPoints' && creditCategory === 'subscription') {
+  if (
+    discountType === 'percentPoints' &&
+    creditCategory === InvoiceItemType.SUBSCRIPTION
+  ) {
     const discount = (basePrice * amount) / 10000;
     price = basePrice - discount;
   } else if (discountType === 'amountCents') {
@@ -319,6 +333,7 @@ function recordAnalytics(
   trackMarketingEvent('Upgrade', {plan: data.plan});
 
   const currentData = {
+    // TODO(data categories): check if these can be parsed
     plan: data.plan,
     errors: data.reservedErrors,
     transactions: data.reservedTransactions,
@@ -438,6 +453,7 @@ export function getCheckoutAPIData({
   const formatReservedData = (value: number | null | undefined) => value ?? undefined;
 
   const reservedData = {
+    // TODO(data categories): check if these can be parsed
     reservedErrors: formatReservedData(formData.reserved.errors),
     reservedTransactions: formatReservedData(formData.reserved.transactions),
     reservedAttachments: formatReservedData(formData.reserved.attachments),
@@ -514,7 +530,6 @@ export async function submitCheckout(
   onSubmitting?: (b: boolean) => void,
   intentId?: string,
   referrer = 'billing',
-  codecovReferrer = 'checkout',
   shouldUpdateOnDemand = true
 ) {
   const endpoint = `/customers/${organization.slug}/subscription/`;
@@ -558,7 +573,7 @@ export async function submitCheckout(
     SubscriptionStore.loadData(organization.slug);
     browserHistory.push(
       normalizeUrl(
-        `/settings/${organization.slug}/billing/overview/?open_codecov_modal=1&referrer=${codecovReferrer}`
+        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}`
       )
     );
   } catch (error) {

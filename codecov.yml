@@ -57,7 +57,7 @@ flags:
     carryforward: true
     # Do not send any status checks until n coverage reports are uploaded.
     # NOTE: If you change this, make sure to change `comment.after_n_builds` below as well.
-    after_n_builds: 18
+    after_n_builds: 29
 
 # https://docs.codecov.com/docs/flags#two-approaches-to-flag-management
 flag_management:

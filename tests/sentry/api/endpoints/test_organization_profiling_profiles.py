@@ -826,16 +826,18 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
         # this span has continuous profile with a matching chunk (to be mocked below)
         profiler_id = uuid4().hex
         thread_id = "12345"
-        span_2 = self.create_span(project=self.project, start_ts=self.ten_mins_ago, duration=1000)
-        del span_2["profile_id"]
-        span_2.update(
+        span_2 = self.create_span(
             {
-                "data": {
+                "sentry_tags": {
                     "profiler_id": profiler_id,
                     "thread.id": thread_id,
                 }
-            }
+            },
+            project=self.project,
+            start_ts=self.ten_mins_ago,
+            duration=1000,
         )
+        del span_2["profile_id"]
 
         self.store_span(span_2, is_eap=True)
 
@@ -874,6 +876,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
             {
                 "query": "",
                 "project": [self.project.id],
+                "statsPeriod": "1h",
                 "dataSource": "spans",
             },
         )

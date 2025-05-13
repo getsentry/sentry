@@ -1,15 +1,16 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import layout from 'sentry/components/events/interfaces/debugMeta/layout';
+import {
+  getFileName,
+  getImageAddress,
+} from 'sentry/components/events/interfaces/debugMeta/utils';
 import NotAvailable from 'sentry/components/notAvailable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
-
-import layout from '../layout';
-import {getFileName, getImageAddress} from '../utils';
 
 import Processings from './processings';
 import Status from './status';
@@ -20,10 +21,14 @@ type Props = {
   style?: React.CSSProperties;
 };
 
-const DebugImage = forwardRef<HTMLDivElement, Props>(function DebugImage(
-  {image, onOpenImageDetailsModal, style},
-  ref
-) {
+function DebugImage({
+  ref,
+  image,
+  onOpenImageDetailsModal,
+  style,
+}: Props & {
+  ref?: React.Ref<HTMLDivElement>;
+}) {
   const {unwind_status, debug_status, debug_file, code_file, status} = image;
 
   const codeFilename = getFileName(code_file);
@@ -62,7 +67,7 @@ const DebugImage = forwardRef<HTMLDivElement, Props>(function DebugImage(
       </DebugFilesColumn>
     </Wrapper>
   );
-});
+}
 
 export default DebugImage;
 
@@ -101,7 +106,7 @@ const CodeFilename = styled('span')`
 
 const ImageColumn = styled(Column)`
   font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   overflow: hidden;
   flex-direction: column;

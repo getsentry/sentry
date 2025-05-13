@@ -2,8 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
-import List from 'sentry/components/list/';
-import ListItem from 'sentry/components/list/listItem';
 import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -29,6 +27,7 @@ import {
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -63,10 +62,10 @@ const onboarding: OnboardingConfig = {
   ],
   configure: params => [
     {
-      title: t('Manual Configuration'),
       collapsible: true,
+      title: t('Manual Configuration'),
       description: tct(
-        'Alternatively, you can also [manualSetupLink:set up the SDK manually], by following these steps:',
+        'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
         {
           manualSetupLink: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/" />
@@ -74,47 +73,6 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        {
-          description: (
-            <List symbol="bullet">
-              <ListItem>
-                {tct(
-                  'Create [code:sentry.server.config.js], [code:sentry.client.config.js] and [code:sentry.edge.config.js] with the default [code:Sentry.init].',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </ListItem>
-              <ListItem>
-                {tct(
-                  'Create or update the Next.js instrumentation file [instrumentationCode:instrumentation.ts] to initialize the SDK with the configuration files added in the previous step.',
-                  {
-                    instrumentationCode: <code />,
-                  }
-                )}
-              </ListItem>
-              <ListItem>
-                {tct(
-                  'Create or update your Next.js config [nextConfig:next.config.js] with the default Sentry configuration.',
-                  {
-                    nextConfig: <code />,
-                  }
-                )}
-              </ListItem>
-              <ListItem>
-                {tct(
-                  'Create a [bundlerPluginsEnv:.env.sentry-build-plugin] with an auth token (which is used to upload source maps when building the application).',
-                  {
-                    bundlerPluginsEnv: <code />,
-                  }
-                )}
-              </ListItem>
-              <ListItem>
-                {t('Add an example page to your app to verify your Sentry setup.')}
-              </ListItem>
-            </List>
-          ),
-        },
         {
           description: <CopyDsnField params={params} />,
         },
@@ -393,6 +351,72 @@ Sentry.init({
   nextSteps: () => [],
 };
 
+const profilingOnboarding = getJavascriptFullStackOnboarding({
+  basePackage: '@sentry/nextjs',
+  browserProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/nextjs/profiling/browser-profiling/',
+  nodeProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/nextjs/profiling/node-profiling/',
+  getProfilingHeaderConfig: () => [
+    {
+      description: tct(
+        'In Next.js you can configure document response headers via the headers option in [code:next.config.js]:',
+        {
+          code: <code />,
+        }
+      ),
+      code: [
+        {
+          label: 'ESM',
+          value: 'esm',
+          language: 'javascript',
+          filename: 'next.config.js',
+          code: `
+export default withSentryConfig({
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Document-Policy",
+            value: "js-profiling",
+          },
+        ],
+      },
+    ];
+  },
+  // ... other Next.js config options
+});`,
+        },
+        {
+          label: 'CJS',
+          value: 'cjs',
+          language: 'javascript',
+          filename: 'next.config.js',
+          code: `
+module.exports = withSentryConfig({
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Document-Policy",
+            value: "js-profiling",
+          },
+        ],
+      },
+    ];
+  },
+  // ... other Next.js config options
+});`,
+        },
+      ],
+    },
+  ],
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -400,6 +424,7 @@ const docs: Docs = {
   performanceOnboarding,
   crashReportOnboarding,
   featureFlagOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;

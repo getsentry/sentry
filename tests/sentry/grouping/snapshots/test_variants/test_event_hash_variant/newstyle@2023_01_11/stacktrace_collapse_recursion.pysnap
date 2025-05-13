@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:18.167124+00:00'
+created: '2025-04-25T21:22:13.604760+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,49 +9,49 @@ app:
   component:
     app (stacktrace of system takes precedence)
       stacktrace (ignored because it contains no in-app frames)
-        frame (non app frame)
+        frame (marked out of app by the client)
           module*
             "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "main"
-        frame (non app frame)
+        frame (marked out of app by the client)
           module*
             "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "normalFunc"
-        frame (non app frame)
+        frame (marked out of app by the client)
           module*
             "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (non app frame)
+        frame (marked out of app by the client)
           module*
             "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (non app frame)
+        frame (marked out of app by the client)
           module*
             "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (non app frame)
+        frame (marked out of app by the client)
           module*
             "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (non app frame)
+        frame (marked out of app by the client)
           module*
             "com.example.Application"
           filename (module takes precedence)

@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Any, TypedDict
 from urllib.parse import urlencode
 
+import sentry_sdk
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import ValidationError
 
@@ -61,19 +62,26 @@ INSTALL_NOTICE_TEXT = _(
 )
 
 
-external_install = {
-    "url": f"https://vercel.com/integrations/{options.get('vercel.integration-slug')}/add",
-    "buttonText": _("Vercel Marketplace"),
-    "noticeText": INSTALL_NOTICE_TEXT,
-}
-
-
 configure_integration = {"title": _("Connect Your Projects")}
 install_source_code_integration = _(
     "Install a [source code integration]({}) and configure your repositories."
 )
 
-metadata = IntegrationMetadata(
+
+class VercelIntegrationMetadata(IntegrationMetadata):
+    def asdict(self):
+        metadata = super().asdict()
+        # We have to calculate this here since fetching options at the module level causes us to skip the cache.
+        metadata["aspects"]["externalInstall"] = {
+            "url": f"https://vercel.com/integrations/{options.get('vercel.integration-slug')}/add",
+            "buttonText": _("Vercel Marketplace"),
+            "noticeText": INSTALL_NOTICE_TEXT,
+        }
+
+        return metadata
+
+
+metadata = VercelIntegrationMetadata(
     description=DESCRIPTION.strip(),
     features=FEATURES,
     author="The Sentry Team",
@@ -81,7 +89,6 @@ metadata = IntegrationMetadata(
     issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Vercel%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
     aspects={
-        "externalInstall": external_install,
         "configure_integration": configure_integration,
     },
 )
@@ -280,6 +287,12 @@ class VercelIntegration(IntegrationInstallation):
             )
 
             for env_var, details in env_var_map.items():
+                # We are logging a message because we potentially have a weird bug where auth tokens disappear from vercel
+                if env_var == "SENTRY_AUTH_TOKEN" and details["value"] is None:
+                    sentry_sdk.capture_message(
+                        "Setting SENTRY_AUTH_TOKEN env var with None value in Vercel integration"
+                    )
+
                 self.create_env_var(
                     vercel_client,
                     vercel_project_id,

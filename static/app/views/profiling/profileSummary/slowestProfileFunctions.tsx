@@ -1,8 +1,8 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -104,7 +104,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
   const onSlowestFunctionClick = useCallback(() => {
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
-      source: `profiling_transaction.slowest_functions_table`,
+      source: 'unknown',
     });
   }, [organization]);
 

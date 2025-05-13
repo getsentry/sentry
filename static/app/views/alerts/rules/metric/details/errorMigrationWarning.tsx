@@ -6,9 +6,9 @@ import {
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconClose, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -87,7 +87,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
         projectId: project?.id,
       }),
       () => {
-        const dimissedTs = new Date().getTime() / 1000;
+        const dimissedTs = Date.now() / 1000;
         return {
           data: {dismissed_ts: dimissedTs},
           features: {[METRIC_ALERT_IGNORE_ARCHIVED_ISSUES]: {dismissed_ts: dimissedTs}},

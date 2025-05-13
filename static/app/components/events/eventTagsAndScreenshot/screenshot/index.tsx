@@ -1,11 +1,12 @@
 import type {ReactEventHandler} from 'react';
 import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -216,10 +217,10 @@ const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`
 
   ${p =>
     !p.hasHeader &&
-    `
-  border-top-left-radius: ${p.theme.borderRadius};
-  border-top-right-radius: ${p.theme.borderRadius};
-  `}
+    css`
+      border-top-left-radius: ${p.theme.borderRadius};
+      border-top-right-radius: ${p.theme.borderRadius};
+    `}
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`

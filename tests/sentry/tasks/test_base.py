@@ -5,38 +5,64 @@ from django.test import override_settings
 
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import test_tasks
 
 
-@instrumented_task(name="test.tasks.test_base.region_task", silo_mode=SiloMode.REGION)
+@instrumented_task(
+    name="test.tasks.test_base.region_task",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=test_tasks),
+)
 def region_task(param):
     return f"Region task {param}"
 
 
-@instrumented_task(name="test.tasks.test_base.control_task", silo_mode=SiloMode.CONTROL)
+@instrumented_task(
+    name="test.tasks.test_base.control_task",
+    silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(namespace=test_tasks),
+)
 def control_task(param):
     return f"Control task {param}"
 
 
 @retry(ignore_and_capture=(Exception,))
-@instrumented_task(name="test.tasks.test_base.ignore_and_capture_task", silo_mode=SiloMode.CONTROL)
+@instrumented_task(
+    name="test.tasks.test_base.ignore_and_capture_task",
+    silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(namespace=test_tasks),
+)
 def ignore_and_capture_retry_task(param):
     raise Exception(param)
 
 
 @retry(on=(Exception,))
-@instrumented_task(name="test.tasks.test_base.retry_task", silo_mode=SiloMode.CONTROL)
+@instrumented_task(
+    name="test.tasks.test_base.retry_task",
+    silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(namespace=test_tasks),
+)
 def retry_on_task(param):
     raise Exception(param)
 
 
 @retry(ignore=(Exception,))
-@instrumented_task(name="test.tasks.test_base.ignore_task", silo_mode=SiloMode.CONTROL)
+@instrumented_task(
+    name="test.tasks.test_base.ignore_task",
+    silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(namespace=test_tasks),
+)
 def ignore_on_exception_task(param):
     raise Exception(param)
 
 
 @retry(exclude=(Exception,))
-@instrumented_task(name="test.tasks.test_base.exclude_task", silo_mode=SiloMode.CONTROL)
+@instrumented_task(
+    name="test.tasks.test_base.exclude_task",
+    silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(namespace=test_tasks),
+)
 def exclude_on_exception_task(param):
     raise Exception(param)
 
@@ -86,7 +112,7 @@ def test_exclude_exception_retry(capture_exception):
     assert capture_exception.call_count == 0
 
 
-@patch("sentry.tasks.base.current_task")
+@patch("sentry.taskworker.retry.current_task")
 @patch("sentry.tasks.base.capture_exception")
 def test_retry_on(capture_exception, current_task):
 

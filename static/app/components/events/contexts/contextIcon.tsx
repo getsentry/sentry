@@ -161,5 +161,3 @@ export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps)
 
   return <img height={size} width={size} css={extraCass} src={imageName} />;
 }
-
-export default ContextIcon;

@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
 import Well from 'sentry/components/well';
-import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -17,9 +16,8 @@ import PageHeader from 'admin/components/pageHeader';
 
 const FILE_MAX_SIZE = 200e6; // 200 MB limit for file upload
 
-const PROMO_CODE_ERROR_MSG = t(
-  'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
-);
+const PROMO_CODE_ERROR_MSG =
+  'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.';
 
 function RelocationForm() {
   // Use our own api client to initialize, since we need to be careful with the headers when using multipart/form-data
@@ -152,12 +150,11 @@ function RelocationForm() {
           type="text"
           name="owner"
           aria-label="owner-input"
-          required
           minLength={1}
           placeholder=""
         />
         <InputLabel>List of Organization Slugs</InputLabel>
-        <Input type="text" name="orgs" aria-label="orgs-input" required minLength={1} />
+        <Input type="text" name="orgs" aria-label="orgs-input" minLength={1} />
         <InputLabel>Promo Code (Optional)</InputLabel>
         <Input
           type="text"

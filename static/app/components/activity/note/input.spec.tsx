@@ -1,11 +1,22 @@
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {NoteInput} from 'sentry/components/activity/note/input';
+import MemberListStore from 'sentry/stores/memberListStore';
+import TeamStore from 'sentry/stores/teamStore';
 
 describe('NoteInput', function () {
+  beforeEach(() => {
+    TeamStore.reset();
+    MemberListStore.reset();
+  });
+
   describe('New item', function () {
     it('renders', function () {
       render(<NoteInput />);
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
 
     it('submits when meta + enter is pressed', async function () {
@@ -52,6 +63,34 @@ describe('NoteInput', function () {
       await userEvent.type(screen.getByRole('textbox'), 'something');
 
       expect(screen.getByRole('button', {name: 'Post Comment'})).toBeEnabled();
+    });
+
+    it('can mention a team', async function () {
+      TeamStore.loadInitialData([TeamFixture()]);
+      const onCreate = jest.fn();
+      render(<NoteInput onCreate={onCreate} />);
+      await userEvent.type(screen.getByRole('textbox'), '#team');
+      await userEvent.click(screen.getByRole('option', {name: '# team -slug'}));
+      expect(screen.getByRole('textbox')).toHaveTextContent('#team-slug');
+      await userEvent.click(screen.getByRole('button', {name: 'Post Comment'}));
+      expect(onCreate).toHaveBeenCalledWith({
+        text: '**#team-slug** ',
+        mentions: ['team:1'],
+      });
+    });
+
+    it('can mention a member', async function () {
+      MemberListStore.loadInitialData([UserFixture()], false, null);
+      const onCreate = jest.fn();
+      render(<NoteInput onCreate={onCreate} />);
+      await userEvent.type(screen.getByRole('textbox'), '@foo');
+      await userEvent.click(screen.getByRole('option', {name: 'Foo Bar'}));
+      expect(screen.getByRole('textbox')).toHaveTextContent('@Foo Bar');
+      await userEvent.click(screen.getByRole('button', {name: 'Post Comment'}));
+      expect(onCreate).toHaveBeenCalledWith({
+        text: '**@Foo Bar** ',
+        mentions: ['user:1'],
+      });
     });
   });
 

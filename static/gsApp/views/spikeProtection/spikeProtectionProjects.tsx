@@ -4,9 +4,9 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -204,7 +204,9 @@ function SpikeProtectionProjects({subscription}: Props) {
     );
     return (
       <Confirm
-        onConfirm={() => updateAllProjects(isEnabling)}
+        onConfirm={() => {
+          updateAllProjects(isEnabling);
+        }}
         message={confirmationText}
         disabled={!hasOrgWrite}
       >

@@ -3,9 +3,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconGraph} from 'sentry/icons/iconGraph';
@@ -28,6 +28,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
 import {DEFAULT_TOP_EVENTS} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
@@ -36,21 +37,19 @@ import {
   useUpdateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {INGESTION_DELAY} from 'sentry/views/explore/settings';
-import {combineConfidenceForSeries, showConfidence} from 'sentry/views/explore/utils';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 const CHART_HEIGHT = 260;
-export interface MultiQueryChartProps {
+interface MultiQueryChartProps {
   canUsePreviousResults: boolean;
   index: number;
   mode: Mode;
   query: ReadableExploreQueryParts;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
-
-export const EXPLORE_CHART_GROUP = 'multi-query-charts_group';
 
 export function MultiQueryModeChart({
   index,
@@ -99,7 +98,7 @@ export function MultiQueryModeChart({
         //
         // We can't do this in top N mode as the series name uses the row
         // values instead of the aggregate function.
-        if (s.field === yAxis) {
+        if (s.yAxis === yAxis) {
           return {
             ...s,
             seriesName: formattedYAxes[i] ?? yAxis,
@@ -130,18 +129,19 @@ export function MultiQueryModeChart({
   ]);
 
   const {data, error, loading} = getSeries();
-  const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(data, isTopN);
+  const {sampleCount, isSampled, dataScanned} = determineSeriesSampleCountAndIsSampled(
+    data,
+    isTopN
+  );
+
+  const chartType = queryParts.chartType || determineDefaultChartType(yAxes);
 
   const visualizationType =
-    queryParts.chartType === ChartType.LINE
-      ? 'line'
-      : queryParts.chartType === ChartType.AREA
-        ? 'area'
-        : 'bar';
+    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
 
   const chartInfo = {
     chartIcon: <IconGraph type={visualizationType} />,
-    chartType: queryParts.chartType,
+    chartType,
     yAxes,
     formattedYAxes,
     data,
@@ -190,7 +190,7 @@ export function MultiQueryModeChart({
       ? projects[0]
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-  if (organization.features.includes('alerts-eap') && defined(yAxes[0])) {
+  if (defined(yAxes[0])) {
     items.push({
       key: 'create-alert',
       textValue: t('Create an Alert'),
@@ -214,34 +214,32 @@ export function MultiQueryModeChart({
     });
   }
 
-  if (organization.features.includes('dashboards-eap')) {
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-    items.push({
-      key: 'add-to-dashboard',
-      textValue: t('Add to Dashboard'),
-      label: (
-        <Feature
-          hookName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-        >
-          {t('Add to Dashboard')}
-        </Feature>
-      ),
-      disabled: disableAddToDashboard,
-      onAction: () => {
-        if (disableAddToDashboard) {
-          return undefined;
-        }
-        trackAnalytics('trace_explorer.save_as', {
-          save_type: 'dashboard',
-          ui_source: 'compare chart',
-          organization,
-        });
-        return addToDashboard();
-      },
-    });
-  }
+  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+  items.push({
+    key: 'add-to-dashboard',
+    textValue: t('Add to Dashboard'),
+    label: (
+      <Feature
+        hookName="feature-disabled:dashboards-edit"
+        features="organizations:dashboards-edit"
+        renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+      >
+        {t('Add to Dashboard')}
+      </Feature>
+    ),
+    disabled: disableAddToDashboard,
+    onAction: () => {
+      if (disableAddToDashboard) {
+        return undefined;
+      }
+      trackAnalytics('trace_explorer.save_as', {
+        save_type: 'dashboard',
+        ui_source: 'compare chart',
+        organization,
+      });
+      return addToDashboard();
+    },
+  });
 
   const DataPlottableConstructor =
     chartInfo.chartType === ChartType.LINE
@@ -319,13 +317,13 @@ export function MultiQueryModeChart({
         />
       }
       Footer={
-        showConfidence(isSampled) && (
-          <ConfidenceFooter
-            sampleCount={sampleCount}
-            confidence={confidence}
-            topEvents={isTopN ? numSeries : undefined}
-          />
-        )
+        <ConfidenceFooter
+          sampleCount={sampleCount}
+          isSampled={isSampled}
+          confidence={confidence}
+          topEvents={isTopN ? numSeries : undefined}
+          dataScanned={dataScanned}
+        />
       }
     />
   );

@@ -1,5 +1,5 @@
-import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompositeSelect} from 'sentry/components/compactSelect/composite';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrgRole} from 'sentry/types/organization';

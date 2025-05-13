@@ -126,6 +126,7 @@ class ProjectKey(Model):
         max_length=32,
         choices=[(v.value, v.value) for v in UseCase],
         default=UseCase.USER.value,
+        db_default=UseCase.USER.value,
     )
 
     # support legacy project keys in API
@@ -199,7 +200,7 @@ class ProjectKey(Model):
         super().save(*args, **kwargs)
 
     def get_dsn(self, domain=None, secure=True, public=False):
-        urlparts = urlparse(self.get_endpoint(public=public))
+        urlparts = urlparse(self.get_endpoint())
 
         if not public:
             key = f"{self.public_key}:{self.secret_key}"
@@ -277,27 +278,24 @@ class ProjectKey(Model):
                 reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]),
             )
 
-    def get_endpoint(self, public=True):
+    def get_endpoint(self) -> str:
         from sentry.api.utils import generate_region_url
 
-        if public:
-            endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
-        else:
-            endpoint = settings.SENTRY_ENDPOINT
-
-        if not endpoint and SiloMode.get_current_mode() == SiloMode.REGION:
-            endpoint = generate_region_url()
+        endpoint = settings.SENTRY_ENDPOINT
         if not endpoint:
-            endpoint = options.get("system.url-prefix")
+            if SiloMode.get_current_mode() == SiloMode.REGION:
+                endpoint = generate_region_url()
+            else:
+                endpoint = options.get("system.url-prefix")
+            assert endpoint is not None
 
-        has_org_subdomain = False
         try:
             has_org_subdomain = features.has(
                 "organizations:org-ingest-subdomains", self.project.organization
             )
         except ProgrammingError:
             # This happens during migration generation for the organization model.
-            pass
+            has_org_subdomain = False
 
         if has_org_subdomain:
             urlparts = urlparse(endpoint)
@@ -313,7 +311,7 @@ class ProjectKey(Model):
 
         return endpoint
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> frozenset[str]:
         from sentry.utils.http import get_origins
 
         return get_origins(self.project)

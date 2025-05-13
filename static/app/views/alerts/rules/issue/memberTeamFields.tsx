@@ -51,7 +51,7 @@ class MemberTeamFields extends Component<Props> {
     this.handleChange('targetType', optionRecord.value);
   };
 
-  handleChangeActorId = (optionRecord: OptionRecord & {[key: string]: any}) => {
+  handleChangeActorId = (optionRecord: OptionRecord & Record<string, any>) => {
     this.handleChange('targetIdentifier', optionRecord.value);
   };
 

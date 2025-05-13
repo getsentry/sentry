@@ -422,7 +422,7 @@ def _transform_search_filter(search_filter: SearchFilter) -> SearchFilter:
     return search_filter
 
 
-def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def _transform_search_query(query: Sequence[QueryToken]) -> list[QueryToken]:
     transformed_query: list[QueryToken] = []
 
     for token in query:
@@ -446,7 +446,7 @@ def parse_search_query(
     Parses a search query with the discover grammar and performs some transformations on the AST in order to account for
     edge cases.
     """
-    tokens = cast(Sequence[QueryToken], event_search.parse_search_query(query))
+    tokens = event_search.parse_search_query(query)
 
     # We might want to force the `event.type:transaction` to be in the query, as a validation step.
     if force_transaction_event_type:
@@ -462,7 +462,7 @@ def parse_search_query(
     return tokens
 
 
-def cleanup_search_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def cleanup_search_query(tokens: Sequence[QueryToken]) -> list[QueryToken]:
     """
     Recreates a valid query from an original query that has had on demand search filters removed.
 
@@ -907,7 +907,7 @@ def to_standard_metrics_query(query: str) -> str:
     return query_tokens_to_string(cleaned_query)
 
 
-def to_standard_metrics_tokens(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def to_standard_metrics_tokens(tokens: Sequence[QueryToken]) -> list[QueryToken]:
     """
     Converts a query in token form containing on-demand search fields to a query
     that has all on-demand filters removed and can be run using only standard metrics.
@@ -930,7 +930,7 @@ def query_tokens_to_string(tokens: Sequence[QueryToken]) -> str:
     return ret_val.strip()
 
 
-def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> list[QueryToken]:
     """
     Removes tokens that contain filters that can only be handled by on demand metrics.
     """
@@ -947,7 +947,7 @@ def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[Q
     return ret_val
 
 
-def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> list[QueryToken]:
     """
     Removes tokens that contain filters that are blacklisted.
     """

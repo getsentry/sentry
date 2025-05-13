@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -21,29 +22,25 @@ describe('useSpanMetricsTopNSeries', () => {
   function Wrapper({children}: {children?: ReactNode}) {
     return (
       <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext.Provider value={organization}>
-          {children}
-        </OrganizationContext.Provider>
+        <OrganizationContext value={organization}>{children}</OrganizationContext>
       </QueryClientProvider>
     );
   }
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -65,12 +62,32 @@ describe('useSpanMetricsTopNSeries', () => {
             [1699907700, [{count: 117}]],
             [1699908000, [{count: 199}]],
           ],
+          meta: {
+            fields: {
+              'span.group': 'string',
+              'count()': 'integer',
+            },
+            units: {
+              'span.group': null,
+              'count()': null,
+            },
+          },
         },
         '304': {
           data: [
             [1699907700, [{count: 12}]],
             [1699908000, [{count: 13}]],
           ],
+          meta: {
+            fields: {
+              'span.group': 'string',
+              'count()': 'integer',
+            },
+            units: {
+              'span.group': null,
+              'count()': null,
+            },
+          },
         },
       },
     });
@@ -122,6 +139,16 @@ describe('useSpanMetricsTopNSeries', () => {
           {name: '2023-11-13T20:40:00+00:00', value: 199},
         ],
         seriesName: '200',
+        meta: {
+          fields: {
+            'span.group': 'string',
+            'count()': 'integer',
+          },
+          units: {
+            'span.group': null,
+            'count()': null,
+          },
+        },
       },
       '304': {
         data: [
@@ -129,6 +156,16 @@ describe('useSpanMetricsTopNSeries', () => {
           {name: '2023-11-13T20:40:00+00:00', value: 13},
         ],
         seriesName: '304',
+        meta: {
+          fields: {
+            'span.group': 'string',
+            'count()': 'integer',
+          },
+          units: {
+            'span.group': null,
+            'count()': null,
+          },
+        },
       },
     });
   });

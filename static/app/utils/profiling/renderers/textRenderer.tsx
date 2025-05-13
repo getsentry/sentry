@@ -1,5 +1,5 @@
-import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {getContext, resizeCanvasToDisplaySize} from '../gl/utils';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {getContext, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
 
 const TEST_STRING = 'Who knows if this changed, font-display: swap wont tell me';
 

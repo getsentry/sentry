@@ -1,4 +1,5 @@
 import {EventsStatsFixture} from 'sentry-fixture/events';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -9,6 +10,9 @@ import {
   AlertRuleThresholdType,
   Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+
+const theme = ThemeFixture();
 
 describe('Incident Rules Create', () => {
   let eventStatsMock: jest.Func;
@@ -44,6 +48,7 @@ describe('Incident Rules Create', () => {
         anomalies={[]}
         location={router.location}
         organization={organization}
+        theme={theme}
         projects={[project]}
         query="event.type:error"
         timeWindow={1}
@@ -96,6 +101,7 @@ describe('Incident Rules Create', () => {
 
     render(
       <TriggersChart
+        theme={theme}
         api={api}
         location={router.location}
         organization={organization}
@@ -152,6 +158,7 @@ describe('Incident Rules Create', () => {
 
     render(
       <TriggersChart
+        theme={theme}
         api={api}
         location={router.location}
         organization={organization}
@@ -206,11 +213,12 @@ describe('Incident Rules Create', () => {
 
   it('does a 7 day query for confidence data on the EAP dataset', async () => {
     const {organization, project, router} = initializeOrg({
-      organization: {features: ['alerts-eap']},
+      organization: {features: ['visibility-explore-view']},
     });
 
     render(
       <TriggersChart
+        theme={theme}
         api={api}
         location={router.location}
         organization={organization}
@@ -243,6 +251,52 @@ describe('Incident Rules Create', () => {
           statsPeriod: '9998m',
           yAxis: 'count(span.duration)',
         }),
+      })
+    );
+  });
+
+  it('uses normal sampling for span alerts', async () => {
+    const {organization, project, router} = initializeOrg();
+
+    render(
+      <TriggersChart
+        theme={theme}
+        api={api}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        query=""
+        timeWindow={1}
+        aggregate="count(span.duration)"
+        dataset={Dataset.EVENTS_ANALYTICS_PLATFORM}
+        triggers={[]}
+        environment={null}
+        comparisonType={AlertRuleComparisonType.COUNT}
+        resolveThreshold={null}
+        thresholdType={AlertRuleThresholdType.BELOW}
+        newAlertOrQuery
+        onDataLoaded={() => {}}
+        isQueryValid
+        showTotalCount
+      />
+    );
+
+    expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
+    expect(await screen.findByTestId('alert-total-events')).toBeInTheDocument();
+
+    expect(eventStatsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          interval: '1m',
+          project: [2],
+          query: '',
+          statsPeriod: '14d',
+          yAxis: 'count(span.duration)',
+          referrer: 'api.organization-event-stats',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
+        },
       })
     );
   });

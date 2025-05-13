@@ -1,10 +1,14 @@
 from datetime import UTC, datetime, timedelta
+from unittest import mock
 from uuid import uuid4
 
 import pytest
 
-from sentry.discover.compare_timeseries import compare_timeseries_for_alert_rule
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
+from sentry.discover.compare_timeseries import (
+    assert_timeseries_close,
+    compare_timeseries_for_alert_rule,
+)
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects, AlertRuleThresholdType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.models import SnubaQuery
@@ -29,7 +33,7 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         with assume_test_silo_mode_of(User):
             self.user = User.objects.create(email="test@sentry.io")
 
-        project_1 = self.create_project(organization=self.org)
+        self.project_1 = self.create_project(organization=self.org)
 
         snuba_query = SnubaQuery.objects.create(
             type=SnubaQuery.Type.PERFORMANCE.value,
@@ -43,13 +47,13 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         self.alert_rule = AlertRule.objects.create(
             snuba_query=snuba_query,
             threshold_period=1,
-            organization=project_1.organization,
+            organization=self.project_1.organization,
         )
 
-        AlertRuleProjects.objects.create(alert_rule=self.alert_rule, project=project_1)
+        AlertRuleProjects.objects.create(alert_rule=self.alert_rule, project=self.project_1)
 
         self.double_write_segment(
-            project=project_1,
+            project=self.project_1,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
             span_id="1" + uuid4().hex[:15],
@@ -60,7 +64,7 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         )
 
         self.double_write_segment(
-            project=project_1,
+            project=self.project_1,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
             span_id="1" + uuid4().hex[:15],
@@ -141,6 +145,71 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
             seconds_before_now=seconds_before_now,
         )
 
-    def test_compare_simple(self):
-        mismatches = compare_timeseries_for_alert_rule(self.alert_rule)
-        assert mismatches == {}
+    @mock.patch("sentry.discover.compare_timeseries.sentry_sdk.set_extra")
+    def test_compare_simple(self, mock_set_extra):
+        result = compare_timeseries_for_alert_rule(self.alert_rule)
+        for call in mock_set_extra.call_args_list:
+            if call.args[0] in ["eap_call", "metrics_call"]:
+                self.assertRegex(
+                    call.args[1],
+                    r"http:\/\/.*.testserver\/api\/0\/organizations\/\S*\/events-stats\/\?query=.*",
+                )
+        assert result["mismatches"] == {}
+
+    def test_compare_mri_alert(self):
+        snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.PERFORMANCE.value,
+            dataset=Dataset.PerformanceMetrics.value,
+            query="",
+            aggregate="sum(c:spans/ai.total_cost@usd)",
+            time_window=3600,
+            resolution=60,
+        )
+
+        alert_rule = AlertRule.objects.create(
+            snuba_query=snuba_query,
+            threshold_period=1,
+            organization=self.project_1.organization,
+        )
+
+        AlertRuleProjects.objects.create(alert_rule=alert_rule, project=self.project_1)
+        result = compare_timeseries_for_alert_rule(alert_rule)
+        assert result["skipped"] is True
+
+    @mock.patch("sentry.discover.compare_timeseries.sentry_sdk.set_tag")
+    def test_false_positive_misfires(self, mock_set_tag):
+        alert_rule = self.create_alert_rule(
+            dataset=Dataset.PerformanceMetrics,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            aggregate="avg(transaction.duration)",
+            threshold_type=AlertRuleThresholdType.ABOVE,
+        )
+        self.create_alert_rule_trigger(alert_rule=alert_rule, alert_threshold=75, label="critical")
+
+        aligned_timeseries = {
+            1745870400: {"rpc_value": 100, "snql_value": 50, "confidence": 0, "sampling_rate": 0},
+            1745874000: {"rpc_value": 100, "snql_value": 100, "confidence": 0, "sampling_rate": 0},
+        }
+
+        assert_timeseries_close(aligned_timeseries=aligned_timeseries, alert_rule=alert_rule)
+        mock_set_tag.assert_any_call("false_positive_misfires", 1)
+        mock_set_tag.assert_any_call("false_negative_misfires", 0)
+
+    @mock.patch("sentry.discover.compare_timeseries.sentry_sdk.set_tag")
+    def test_false_negative_misfires(self, mock_set_tag):
+        alert_rule = self.create_alert_rule(
+            dataset=Dataset.PerformanceMetrics,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            aggregate="avg(transaction.duration)",
+            threshold_type=AlertRuleThresholdType.ABOVE,
+        )
+        self.create_alert_rule_trigger(alert_rule=alert_rule, alert_threshold=75, label="critical")
+
+        aligned_timeseries = {
+            1745870400: {"rpc_value": 50, "snql_value": 100, "confidence": 0, "sampling_rate": 0},
+            1745874000: {"rpc_value": 100, "snql_value": 100, "confidence": 0, "sampling_rate": 0},
+        }
+
+        assert_timeseries_close(aligned_timeseries=aligned_timeseries, alert_rule=alert_rule)
+        mock_set_tag.assert_any_call("false_positive_misfires", 0)
+        mock_set_tag.assert_any_call("false_negative_misfires", 1)

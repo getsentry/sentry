@@ -32,6 +32,7 @@ describe('SentryAppDetailedView', function () {
     render(<SentryAppDetailedView />, {
       router: {...RouterFixture(), params: {integrationSlug}},
       organization,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -355,13 +356,12 @@ describe('SentryAppDetailedView', function () {
     });
     it('onClick: redirects url', async function () {
       await renderSentryAppDetailedView({integrationSlug: 'go-to-google'});
-      const locationAssignSpy = jest.spyOn(window.location, 'assign');
 
       await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
 
       expect(createRequest).toHaveBeenCalled();
       await waitFor(() => {
-        expect(locationAssignSpy).toHaveBeenLastCalledWith(
+        expect(window.location.assign).toHaveBeenLastCalledWith(
           'https://www.google.com/?code=1f0e7c1b99b940abac7a19b86e69bbe1&installationId=4d803538-fd42-4278-b410-492f5ab677b5&orgSlug=org-slug'
         );
       });

@@ -18,11 +18,17 @@ type Props = {
   event: Event;
   orgId: Organization['id'];
   projectSlug: Project['slug'];
+  disableCollapsePersistence?: boolean;
 };
 
 const LazyReplayer = lazy(() => import('./rrwebReplayer'));
 
-function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
+function EventRRWebIntegrationContent({
+  orgId,
+  projectSlug,
+  event,
+  disableCollapsePersistence,
+}: Props) {
   const {
     data: attachmentList,
     isPending,
@@ -63,7 +69,11 @@ function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
     `/api/0/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/${attachment.id}/?download`;
 
   return (
-    <StyledReplayEventDataSection type={SectionKey.RRWEB} title={t('Replay')}>
+    <StyledReplayEventDataSection
+      type={SectionKey.RRWEB}
+      title={t('Replay')}
+      disableCollapsePersistence={disableCollapsePersistence}
+    >
       <LazyLoad
         LazyComponent={LazyReplayer}
         urls={attachmentList.map(createAttachmentUrl)}

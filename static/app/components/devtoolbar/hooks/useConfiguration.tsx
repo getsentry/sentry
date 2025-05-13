@@ -1,8 +1,8 @@
 import {createContext, useContext} from 'react';
 
-import type {Configuration} from '../types';
+import type {Configuration} from 'sentry/components/devtoolbar/types';
 
-const context = createContext<Configuration>({
+const Context = createContext<Configuration>({
   apiPrefix: '',
   environment: ['production'],
   featureFlags: {},
@@ -20,9 +20,9 @@ export function ConfigurationContextProvider({
   children: React.ReactNode;
   config: Configuration;
 }) {
-  return <context.Provider value={config}>{children}</context.Provider>;
+  return <Context value={config}>{children}</Context>;
 }
 
 export default function useConfiguration() {
-  return useContext(context);
+  return useContext(Context);
 }

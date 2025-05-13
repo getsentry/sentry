@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {Tooltip} from 'sentry/components/tooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
@@ -16,15 +15,23 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
+import {makePerformanceScoreColors} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
+export type ProjectData = {
+  'p75(measurements.cls)': number;
+  'p75(measurements.fcp)': number;
+  'p75(measurements.inp)': number;
+  'p75(measurements.lcp)': number;
+  'p75(measurements.ttfb)': number;
+};
+
 type Props = {
   onClick?: (webVital: WebVitals) => void;
-  projectData?: TableData;
+  projectData?: ProjectData[];
   projectScore?: ProjectScore;
   showTooltip?: boolean;
   transaction?: string;
@@ -59,6 +66,7 @@ export default function WebVitalMeters({
   projectScore,
   showTooltip = true,
 }: Props) {
+  const theme = useTheme();
   if (!projectScore) {
     return null;
   }
@@ -66,13 +74,13 @@ export default function WebVitalMeters({
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
-  const colors = getChartColorPalette(3);
+  const colors = theme.chart.getColorPalette(3);
 
   const renderVitals = () => {
     return webVitals.map((webVital, index) => {
-      const webVitalKey = `p75(measurements.${webVital})`;
+      const webVitalKey: keyof ProjectData = `p75(measurements.${webVital})`;
       const score = projectScore[`${webVital}Score`];
-      const meterValue = projectData?.data?.[0]?.[webVitalKey] as number;
+      const meterValue = projectData?.[0]?.[webVitalKey];
 
       if (!score) {
         return null;
@@ -109,7 +117,7 @@ type VitalMeterProps = {
   onClick?: (webVital: WebVitals) => void;
 };
 
-export function VitalMeter({
+function VitalMeter({
   webVital,
   showTooltip,
   score,
@@ -237,7 +245,7 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
 `;
 
 const MeterBarBody = styled('div')`
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   border-bottom: none;
   padding: ${space(1)} 0 ${space(0.5)} 0;
@@ -277,19 +285,19 @@ function MeterBarFooter({score}: {score: number | undefined}) {
 }
 
 const MeterBarFooterContainer = styled('div')<{
-  status: keyof typeof PERFORMANCE_SCORE_COLORS;
+  status: keyof ReturnType<typeof makePerformanceScoreColors>;
 }>`
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].border]};
+  background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
+  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].border};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.5)};
   text-align: center;
 `;
 
 const NoValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.headerFontSize};
 `;
 

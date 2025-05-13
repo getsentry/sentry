@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -38,6 +39,7 @@ export function CodeOwnerFileTable({
   disabled,
 }: CodeOwnerFileTableProps) {
   const api = useApi();
+  const theme = useTheme();
   const organization = useOrganization();
 
   // Do we need an empty state instead?
@@ -47,7 +49,9 @@ export function CodeOwnerFileTable({
 
   const handleView = (codeowner: CodeOwner) => () => {
     // Open modal with codeowner file
-    openModal(deps => <ViewCodeOwnerModal {...deps} codeowner={codeowner} />, {modalCss});
+    openModal(deps => <ViewCodeOwnerModal {...deps} codeowner={codeowner} />, {
+      modalCss: modalCss(theme),
+    });
   };
 
   const handleSync = (codeowner: CodeOwner) => async () => {

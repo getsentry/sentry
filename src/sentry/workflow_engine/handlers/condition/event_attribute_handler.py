@@ -4,26 +4,51 @@ import sentry_sdk
 
 from sentry.eventstore.models import GroupEvent
 from sentry.rules import MatchType, match_values
-from sentry.rules.conditions.event_attribute import attribute_registry
+from sentry.rules.conditions.event_attribute import ATTR_CHOICES, attribute_registry
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
 @condition_handler_registry.register(Condition.EVENT_ATTRIBUTE)
-class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = DataConditionHandler.Type.ACTION_FILTER
-    filter_group = DataConditionHandler.FilterGroup.EVENT_ATTRIBUTES
+class EventAttributeConditionHandler(DataConditionHandler[WorkflowEventData]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
 
     comparison_json_schema = {
         "type": "object",
         "properties": {
-            "attribute": {"type": "string"},
-            "match": {"type": "string", "enum": [*MatchType]},
-            "value": {"type": "string"},
+            "attribute": {"type": "string", "enum": list(ATTR_CHOICES.keys())},
+            "match": {
+                "type": "string",
+                "enum": [*MatchType],
+            },
+            "value": {
+                "type": "string",
+                "optional": True,
+            },
         },
-        "required": ["attribute", "match", "value"],
+        "oneOf": [
+            {
+                "properties": {
+                    "attribute": {"type": "string", "enum": list(ATTR_CHOICES.keys())},
+                    "match": {"enum": [MatchType.IS_SET, MatchType.NOT_SET]},
+                },
+                "required": ["attribute", "match"],
+                "not": {"required": ["value"]},
+            },
+            {
+                "properties": {
+                    "attribute": {"type": "string", "enum": list(ATTR_CHOICES.keys())},
+                    "match": {
+                        "not": {"enum": [MatchType.IS_SET, MatchType.NOT_SET]},
+                    },
+                    "value": {"type": "string"},
+                },
+                "required": ["attribute", "match", "value"],
+            },
+        ],
         "additionalProperties": False,
     }
 
@@ -50,8 +75,8 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
         return attribute_values
 
     @staticmethod
-    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        event = job["event"]
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        event = event_data.event
         attribute = comparison.get("attribute", "")
         attribute_values = EventAttributeConditionHandler.get_attribute_values(event, attribute)
 

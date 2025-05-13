@@ -1,12 +1,11 @@
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
 import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-
-import type {DashboardDetails} from '../types';
+import type {DashboardDetails} from 'sentry/views/dashboards/types';
 
 interface Props {
   dashboardTitle: DashboardDetails['title'];

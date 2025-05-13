@@ -211,23 +211,18 @@ def get_owners(
 
     if event:
         owners, _ = ProjectOwnership.get_owners(project.id, event.data)
+        if not owners:
+            outcome = "empty"
+            recipients = []
+        else:
+            outcome = "match"
+            recipients = owners[-1:]
     else:
-        owners = ProjectOwnership.Everyone
-
-    if not owners:
-        outcome = "empty"
-        recipients: list[Actor] = list()
-
-    elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
         users = user_service.get_many_by_id(
             ids=list(project.member_set.values_list("user_id", flat=True))
         )
         recipients = Actor.many_from_object(users)
-
-    else:
-        outcome = "match"
-        recipients = owners[-1:]
     return (recipients, outcome)
 
 
@@ -523,23 +518,6 @@ def get_notification_recipients(
         key = get_provider_enum_from_string(provider)
         out[key] = actors
     return out
-
-
-# TODO(Steve): Remove once reference is gone from getsentry
-def get_notification_recipients_v2(
-    recipients: Iterable[Actor],
-    type: NotificationSettingEnum,
-    organization_id: int | None = None,
-    project_ids: list[int] | None = None,
-    actor_type: ActorType | None = None,
-) -> Mapping[ExternalProviders, set[Actor]]:
-    return get_notification_recipients(
-        recipients=recipients,
-        type=type,
-        organization_id=organization_id,
-        project_ids=project_ids,
-        actor_type=actor_type,
-    )
 
 
 def _get_recipients_by_provider(

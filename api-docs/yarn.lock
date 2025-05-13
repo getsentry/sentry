@@ -602,10 +602,10 @@ json-schema-traverse@^1.0.0:
   resolved "https://registry.yarnpkg.com/json-schema-traverse/-/json-schema-traverse-1.0.0.tgz#ae7bcb3656ab77a73ba5c49bf654f38e6b6860e2"
   integrity sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==
 
-jsonpath-plus@^10.2.0:
-  version "10.2.0"
-  resolved "https://registry.yarnpkg.com/jsonpath-plus/-/jsonpath-plus-10.2.0.tgz#84d680544d9868579cc7c8f59bbe153a5aad54c4"
-  integrity sha512-T9V+8iNYKFL2n2rF+w02LBOT2JjDnTjioaNFrxRy0Bv1y/hNsqR/EBK7Ojy2ythRHwmz2cRIls+9JitQGZC/sw==
+jsonpath-plus@^10.3.0:
+  version "10.3.0"
+  resolved "https://registry.yarnpkg.com/jsonpath-plus/-/jsonpath-plus-10.3.0.tgz#59e22e4fa2298c68dfcd70659bb47f0cad525238"
+  integrity sha512-8TNmfeTCk2Le33A3vRRwtuworG/L5RrgMvdjhKZxvyShO+mBu2fP50OWUjRLNtvw344DdDarFh9buFAZs5ujeA==
   dependencies:
     "@jsep-plugin/assignment" "^1.3.0"
     "@jsep-plugin/regex" "^1.0.4"
@@ -767,10 +767,10 @@ onetime@^5.1.0:
   dependencies:
     mimic-fn "^2.1.0"
 
-openapi-examples-validator@^6.0.0:
-  version "6.0.1"
-  resolved "https://registry.yarnpkg.com/openapi-examples-validator/-/openapi-examples-validator-6.0.1.tgz#26ed3d425e5601f55c17b202eee22c17445d2aea"
-  integrity sha512-R8+E8hoc/s0s54O8VWWRM6FM7M7lPUPScEiESDEy1ZDvaCgb/ghiQCP6ArfU4GFu7lTaS31ujGUNC8eTZltgAQ==
+openapi-examples-validator@^6.0.2:
+  version "6.0.2"
+  resolved "https://registry.yarnpkg.com/openapi-examples-validator/-/openapi-examples-validator-6.0.2.tgz#9ba1b9fa33d0dec9f24833898b0c0b060b3df465"
+  integrity sha512-oCNrhtfi0jimpYortjnABsQAdc6MyMIwe5IP6OVCpv70xINLre5JUzrYio5r1f5VrQ4Wkuvm2ClbXhpYbDxZEg==
   dependencies:
     ajv "^8.17.1"
     ajv-draft-04 "^1.0.0"
@@ -780,12 +780,12 @@ openapi-examples-validator@^6.0.0:
     glob "^8.1.0"
     json-pointer "^0.6.2"
     json-schema-ref-parser "^9.0.9"
-    jsonpath-plus "^10.2.0"
+    jsonpath-plus "^10.3.0"
     lodash.clonedeep "^4.5.0"
     lodash.flatmap "^4.5.0"
     lodash.flatten "^4.4.0"
     lodash.merge "^4.6.2"
-    yaml "^2.6.1"
+    yaml "^2.7.1"
 
 path-key@^3.0.0, path-key@^3.1.0:
   version "3.1.1"
@@ -1013,7 +1013,7 @@ wrappy@1:
   resolved "https://registry.yarnpkg.com/wrappy/-/wrappy-1.0.2.tgz#b5243d8f3ec1aa35f1364605bc0d1036e30ab69f"
   integrity sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==
 
-yaml@^2.6.1:
-  version "2.6.1"
-  resolved "https://registry.yarnpkg.com/yaml/-/yaml-2.6.1.tgz#42f2b1ba89203f374609572d5349fb8686500773"
-  integrity sha512-7r0XPzioN/Q9kXBro/XPnA6kznR73DHq+GXh5ON7ZozRO6aMjbmiBuKste2wslTFkC5d1dw0GooOCepZXJ2SAg==
+yaml@^2.7.1:
+  version "2.7.1"
+  resolved "https://registry.yarnpkg.com/yaml/-/yaml-2.7.1.tgz#44a247d1b88523855679ac7fa7cda6ed7e135cf6"
+  integrity sha512-10ULxpnOCQXxJvBgxsn9ptjq6uviG/htZKk9veJGhlqn3w/DxQ631zFF+nlQXLwmImeS5amR2dl2U8sg6U9jsQ==

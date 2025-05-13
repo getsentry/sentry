@@ -140,7 +140,7 @@ function GroupReleaseChart(props: Props) {
 
   const stats = group.stats[statsPeriod];
   const environmentPeriodStats = environmentStats?.[statsPeriod];
-  if (!stats || !stats.length || !environmentPeriodStats) {
+  if (!stats?.length || !environmentPeriodStats) {
     return null;
   }
 

@@ -1,8 +1,9 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import {Tooltip} from 'sentry/components/tooltip';
+import {tn} from 'sentry/locale';
 
 import {getAggregateStatus} from './utils/getAggregateStatus';
 import {getTickStyle} from './utils/getTickStyle';
@@ -29,12 +30,18 @@ interface CheckInTimelineConfig<Status extends string> {
   style?: React.CSSProperties;
 }
 
-export interface CheckInTimelineProps<Status extends string>
+interface CheckInTimelineProps<Status extends string>
   extends CheckInTimelineConfig<Status> {
   /**
    * Represents each check-in tick as bucketed check-in data.
    */
   bucketedData: Array<CheckInBucket<Status>>;
+  /**
+   * Status unit. Displayed on the check-in tooltip.
+   *
+   * Defaults to 'check-ins'
+   */
+  makeUnit?: (count: number) => React.ReactNode;
 }
 
 function getBucketedCheckInsPosition(
@@ -54,6 +61,7 @@ export function CheckInTimeline<Status extends string>({
   statusPrecedent,
   className,
   style,
+  makeUnit = count => tn('check-in', 'check-ins', count),
 }: CheckInTimelineProps<Status>) {
   const jobTicks = mergeBuckets(
     statusPrecedent,
@@ -76,6 +84,7 @@ export function CheckInTimeline<Status extends string>({
             timeWindowConfig={timeWindowConfig}
             skipWrapper
             key={startTs}
+            makeUnit={makeUnit}
           >
             <JobTick
               style={{left, width}}
@@ -91,7 +100,7 @@ export function CheckInTimeline<Status extends string>({
   );
 }
 
-export interface MockCheckInTimelineProps<Status extends string>
+interface MockCheckInTimelineProps<Status extends string>
   extends CheckInTimelineConfig<Status> {
   mockTimestamps: Date[];
   /**

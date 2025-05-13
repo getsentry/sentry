@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
@@ -27,7 +27,7 @@ from sentry.models.team import Team
 
 
 @region_silo_endpoint
-class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):
+class TeamIssueBreakdownEndpoint(TeamEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

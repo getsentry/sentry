@@ -43,7 +43,7 @@ type SentryAppSetting = {
 // only need required_fields and optional_fields
 type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
   optionsByField: Map<string, Array<{label: string; value: any}>>;
-  selectedOptions: {[name: string]: GeneralSelectValue};
+  selectedOptions: Record<string, GeneralSelectValue>;
 };
 
 type Props = {
@@ -62,11 +62,11 @@ type Props = {
   /**
    * Additional form data to submit with the request
    */
-  extraFields?: {[key: string]: any};
+  extraFields?: Record<string, any>;
   /**
    * Additional body parameters to submit with the request
    */
-  extraRequestBody?: {[key: string]: any};
+  extraRequestBody?: Record<string, any>;
   /**
    * Function to provide fields with pre-written data if a default is specified
    */
@@ -88,7 +88,7 @@ type Props = {
  *
  *  See (#28465) for more details.
  */
-export class SentryAppExternalForm extends Component<Props, State> {
+class SentryAppExternalForm extends Component<Props, State> {
   state: State = {optionsByField: new Map(), selectedOptions: {}};
 
   componentDidMount() {
@@ -243,7 +243,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
   makeExternalRequest = async (field: FieldFromSchema, input: FieldValue) => {
     const {extraRequestBody = {}, sentryAppInstallationUuid} = this.props;
-    const query: {[key: string]: any} = {
+    const query: Record<string, any> = {
       ...extraRequestBody,
       uri: field.uri,
       query: input,

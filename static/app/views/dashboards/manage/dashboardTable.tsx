@@ -29,6 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
@@ -37,8 +38,7 @@ import type {
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
-
-import {cloneDashboard} from '../utils';
+import {cloneDashboard} from 'sentry/views/dashboards/utils';
 
 type Props = {
   api: Client;
@@ -79,6 +79,7 @@ function FavoriteButton({
   dashboardId,
   onDashboardsChange,
 }: FavoriteButtonProps) {
+  const queryClient = useQueryClient();
   const [favorited, setFavorited] = useState(isFavorited);
   return (
     <Button
@@ -96,7 +97,13 @@ function FavoriteButton({
       onClick={async () => {
         try {
           setFavorited(!favorited);
-          await updateDashboardFavorite(api, organization.slug, dashboardId, !favorited);
+          await updateDashboardFavorite(
+            api,
+            queryClient,
+            organization.slug,
+            dashboardId,
+            !favorited
+          );
           onDashboardsChange();
           trackAnalytics('dashboards_manage.toggle_favorite', {
             organization,

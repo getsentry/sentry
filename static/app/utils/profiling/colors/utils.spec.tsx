@@ -1,3 +1,5 @@
+import {ThemeFixture} from 'sentry-fixture/theme';
+
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {
   makeColorMapByLibrary,
@@ -8,9 +10,8 @@ import {
 import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
-import {lightTheme} from 'sentry/utils/theme';
 
-const theme = makeLightFlamegraphTheme(lightTheme);
+const theme = makeLightFlamegraphTheme(ThemeFixture());
 
 const f = (key: number, name: string, file?: string, image?: string): FlamegraphFrame => {
   return {

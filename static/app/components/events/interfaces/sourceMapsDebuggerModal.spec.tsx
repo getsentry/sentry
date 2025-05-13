@@ -1,4 +1,9 @@
-import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 
@@ -29,6 +34,7 @@ const defaultSourceResolutionResults: FrameSourceMapDebuggerData = {
   releaseProgress: 0,
   releaseProgressPercent: 0,
   releaseSourceMapReference: null,
+  releaseUserAgent: null,
   scrapingProgress: 0,
   scrapingProgressPercent: 0,
   sdkDebugIdSupport: 'full',
@@ -46,63 +52,113 @@ const defaultSourceResolutionResults: FrameSourceMapDebuggerData = {
   projectPlatform: undefined,
 };
 
-const renderModal = (props?: Partial<SourceMapsDebuggerModalProps>) => {
+const renderModal = async (props?: Partial<SourceMapsDebuggerModalProps>) => {
   renderGlobalModal();
 
-  act(() => {
-    openModal(
-      modalProps => (
-        <SourceMapsDebuggerModal
-          analyticsParams={defaultAnalyticsParams}
-          sourceResolutionResults={defaultSourceResolutionResults}
-          {...props}
-          {...modalProps}
-        />
-      ),
-      {
-        onClose: () => {},
+  render(
+    <button
+      onClick={() =>
+        openModal(modalProps => (
+          <SourceMapsDebuggerModal
+            analyticsParams={defaultAnalyticsParams}
+            sourceResolutionResults={defaultSourceResolutionResults}
+            projectId="1"
+            orgSlug="org-slug"
+            {...props}
+            {...modalProps}
+          />
+        ))
       }
-    );
-  });
+    >
+      Unminify Code
+    </button>
+  );
+
+  await userEvent.click(screen.getByRole('button', {name: /unminify code/i}));
+
+  await screen.findByText(/Make Your Stack Traces Readable/i);
 };
 
 describe('SourceMapsDebuggerModal', () => {
   it(`renders proper message when active tab is 'release', release has some
-  artifact and release name fetching was unsuccessful`, () => {
-    const sourceResolutionResults = {
-      ...defaultSourceResolutionResults,
-      releaseProgressPercent: 100, // so the active tab is 'release'
-      releaseHasSomeArtifact: true,
-      sourceFileReleaseNameFetchingResult: 'unsuccessful' as const,
-    };
-
-    renderModal({sourceResolutionResults});
-
-    expect(
-      screen.getByText(
-        "This stack frame doesn't have a path. Check your SDK configuration to send a stack frame path!"
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('does not render "Debug IDs" tab if the SDK does not support it', function () {
-    renderModal({
+    artifact and release name fetching was unsuccessful`, async function () {
+    await renderModal({
       sourceResolutionResults: {
         ...defaultSourceResolutionResults,
+        releaseProgressPercent: 100, // so the active tab is 'release'
+        releaseHasSomeArtifact: true,
+        sourceFileReleaseNameFetchingResult: 'unsuccessful' as const,
         sdkDebugIdSupport: 'not-supported',
       },
     });
 
-    expect(screen.queryByRole('tab', {name: /debug ids/i})).not.toBeInTheDocument();
+    expect(screen.getByText(/This stack frame doesn't have a path/)).toBeInTheDocument();
+
+    // Close modal
+    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
   });
-  it('renders "Debug IDs" tab if the SDK does support it', function () {
-    renderModal({
+
+  it('hides all tabs - when full Debug ID support and no scraping data', async function () {
+    await renderModal({
       sourceResolutionResults: {
         ...defaultSourceResolutionResults,
         sdkDebugIdSupport: 'full',
+        hasScrapingData: false,
+      },
+    });
+
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+
+    // Close modal
+    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+  });
+
+  it('hides all tabs - when unsupported Debug ID and no scraping data', async function () {
+    await renderModal({
+      sourceResolutionResults: {
+        ...defaultSourceResolutionResults,
+        sdkDebugIdSupport: 'not-supported',
+        hasScrapingData: false,
+      },
+    });
+
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+
+    // Close modal
+    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+  });
+
+  it('display tabs - except releases', async function () {
+    await renderModal({
+      sourceResolutionResults: {
+        ...defaultSourceResolutionResults,
+        sdkDebugIdSupport: 'full',
+        hasScrapingData: true,
       },
     });
 
     expect(screen.getByRole('tab', {name: /debug ids/i})).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: /releases/i})).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: /hosting publicly/i})).toBeInTheDocument();
+
+    // Close modal
+    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+  });
+
+  it('display tabs - except debug ids', async function () {
+    await renderModal({
+      sourceResolutionResults: {
+        ...defaultSourceResolutionResults,
+        sdkDebugIdSupport: 'not-supported',
+        hasScrapingData: true,
+      },
+    });
+
+    expect(screen.queryByRole('tab', {name: /debug ids/i})).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: /releases/i})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: /hosting publicly/i})).toBeInTheDocument();
+
+    // Close modal
+    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
   });
 });

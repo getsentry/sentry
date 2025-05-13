@@ -30,15 +30,17 @@ type Query = {
   transaction: string;
 };
 
+export type TabKey = 'app_start' | 'screen_load' | 'screen_rendering';
+
 type Tab = {
   content: () => React.ReactNode;
-  key: string;
+  key: TabKey;
   label: string;
   feature?: string;
   featureBadge?: FeatureBadgeProps['type'];
 };
 
-export function ScreenDetailsPage() {
+function ScreenDetailsPage() {
   const navigate = useNavigate();
   const location = useLocation<Query>();
   const organization = useOrganization();
@@ -82,7 +84,7 @@ export function ScreenDetailsPage() {
   const moduleURL = useModuleURL(moduleName);
 
   function handleTabChange(tabKey: string) {
-    setSelectedTabKey(tabKey);
+    setSelectedTabKey(tabKey as TabKey);
 
     const newQuery = {...location.query, tab: tabKey};
 

@@ -3,7 +3,7 @@ import {Fragment, useCallback, useState} from 'react';
 import {Button} from 'sentry/components/core/button';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
-import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
+import useQueryBasedColumnResize from 'sentry/components/gridEditable/useQueryBasedColumnResize';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import Matrix from 'sentry/components/stories/matrix';

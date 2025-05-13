@@ -20,12 +20,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import Projects from 'sentry/utils/projects';
-
-import FilterBar from '../../filterBar';
-import type {Incident} from '../../types';
-import {getQueryStatus, getTeamParams} from '../../utils';
-import AlertHeader from '../header';
-import Onboarding from '../onboarding';
+import FilterBar from 'sentry/views/alerts/filterBar';
+import AlertHeader from 'sentry/views/alerts/list/header';
+import Onboarding from 'sentry/views/alerts/list/onboarding';
+import type {Incident} from 'sentry/views/alerts/types';
+import {getQueryStatus, getTeamParams} from 'sentry/views/alerts/utils';
 
 import AlertListRow from './row';
 

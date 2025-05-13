@@ -417,7 +417,7 @@ class AvatarUploader extends Component<Props, State> {
     return (
       <Fragment>
         {!src && uploader}
-        {src && <HiddenCanvas ref={this.canvas} />}
+        {src && <HiddenCanvas ref={this.canvas} className="sentry-block" />}
         {this.renderImageCrop()}
         <div className="form-group">
           {src && (
@@ -482,7 +482,7 @@ const Resizer = styled('div')<{position: Position}>`
   width: 10px;
   height: 10px;
   position: absolute;
-  background-color: ${p => p.theme.gray300};
+  background-color: ${p => p.theme.subText};
   cursor: ${p => `${p.position}-resize`};
   ${p => resizerPositions[p.position].map(pos => `${pos}: -5px;`)}
 `;

@@ -87,7 +87,6 @@ export default function ActionTargetSelector(props: Props) {
           type="text"
           autoComplete="off"
           disabled={disabled}
-          required={action.type === 'discord'} // Only required for discord channel ID
           key={action.type}
           value={action.targetIdentifier || ''}
           onChange={handleChangeSpecificTargetIdentifier}

@@ -2,8 +2,10 @@ import {RateUnit} from 'sentry/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
   formatAbbreviatedNumberWithDynamicPrecision,
+  formatPercentRate,
   formatRate,
   formatSpanOperation,
+  formatTimeDuration,
   userDisplayName,
 } from 'sentry/utils/formatters';
 
@@ -212,5 +214,55 @@ describe('formatSpanOperation', () => {
     ['resource.img', 'image'],
   ])('formats long description for %s span operation', (operation, description) => {
     expect(formatSpanOperation(operation, 'long')).toEqual(description);
+  });
+});
+
+describe('formatPercentRate', () => {
+  it('formats positive numbers', () => {
+    expect(formatPercentRate(0.1)).toBe('+0.10%');
+    expect(formatPercentRate(1)).toBe('+1.00%');
+    expect(formatPercentRate(10)).toBe('+10.00%');
+  });
+
+  it('formats negative numbers', () => {
+    expect(formatPercentRate(-0.1)).toBe('-0.10%');
+    expect(formatPercentRate(-1)).toBe('-1.00%');
+    expect(formatPercentRate(-10)).toBe('-10.00%');
+  });
+
+  it('formats zero', () => {
+    expect(formatPercentRate(0)).toBe('0.00%');
+  });
+});
+
+describe('formatTimeDuration', () => {
+  describe('numbers less than 1 second', () => {
+    it('formats 0', () => {
+      expect(formatTimeDuration(0)).toBe('0s');
+    });
+  });
+
+  describe('numbers greater than 1 second', () => {
+    it('formats 1 second', () => {
+      expect(formatTimeDuration(1000)).toBe('1s');
+    });
+  });
+
+  describe('numbers greater than 1 minute', () => {
+    it('formats 1 minute', () => {
+      expect(formatTimeDuration(60000)).toBe('1m 0s');
+    });
+  });
+
+  describe('numbers greater than 1 hour', () => {
+    it('formats 1 hour', () => {
+      expect(formatTimeDuration(3600000)).toBe('1h 0m 0s');
+    });
+  });
+
+  describe('numbers greater than 1 day', () => {
+    it('formats 1 day', () => {
+      expect(formatTimeDuration(86400000)).toBe('1d 0h 0m 0s');
+    });
   });
 });

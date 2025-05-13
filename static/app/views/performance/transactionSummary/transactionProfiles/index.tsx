@@ -18,9 +18,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import PageLayout, {
+  redirectToPerformanceHomepage,
+} from 'sentry/views/performance/transactionSummary/pageLayout';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
-
-import PageLayout, {redirectToPerformanceHomepage} from '../pageLayout';
 
 import {TransactionProfilesContent} from './content';
 

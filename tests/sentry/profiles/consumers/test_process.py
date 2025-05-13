@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from base64 import b64encode
 from datetime import datetime
 from typing import Any
 from unittest.mock import Mock, patch
@@ -20,7 +21,7 @@ class TestProcessProfileConsumerStrategy(TestCase):
     def processing_factory():
         return ProcessProfileStrategyFactory()
 
-    @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
+    @patch("sentry.profiles.consumers.process.factory.process_profile_task.delay")
     def test_basic_profile_to_celery(self, process_profile_task):
         processing_strategy = self.processing_factory().create_with_partitions(
             commit=Mock(), partitions=None
@@ -52,7 +53,9 @@ class TestProcessProfileConsumerStrategy(TestCase):
         processing_strategy.join(1)
         processing_strategy.terminate()
 
-        process_profile_task.assert_called_with(payload=payload, sampled=True)
+        process_profile_task.assert_called_with(
+            payload=b64encode(payload).decode("utf-8"), sampled=True
+        )
 
 
 def test_adjust_instruction_addr_sample_format():

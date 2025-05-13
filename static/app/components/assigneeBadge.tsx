@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
-import {type DO_NOT_USE_ChonkTheme, useTheme} from '@emotion/react';
+import {type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Chevron} from 'sentry/components/chevron';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
@@ -34,7 +34,6 @@ export function AssigneeBadge({
   loading = false,
   isTooltipDisabled,
 }: AssigneeBadgeProps) {
-  const theme = useTheme();
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
     suspectCommit: tct('Based on [commit:commit data]', {
       commit: (
@@ -62,20 +61,18 @@ export function AssigneeBadge({
           }}
         />
         {showLabel && (
-          <div
-            style={{color: theme.textColor}}
-          >{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</div>
+          <StyledText>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</StyledText>
         )}
-        <Chevron light color="subText" direction={chevronDirection} size="small" />
+        <IconChevron color="subText" direction={chevronDirection} size="xs" />
       </Fragment>
     );
   };
 
   const loadingIcon = (
     <Fragment>
-      <StyledLoadingIndicator mini hideMessage relative size={AVATAR_SIZE} />
+      <StyledLoadingIndicator mini relative size={AVATAR_SIZE} />
       {showLabel && 'Loading...'}
-      <Chevron light color="subText" direction={chevronDirection} size="small" />
+      <IconChevron color="subText" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
@@ -88,7 +85,7 @@ export function AssigneeBadge({
         height={`${AVATAR_SIZE}px`}
       />
       {showLabel && <Fragment>Unassigned</Fragment>}
-      <Chevron light color="subText" direction={chevronDirection} size="small" />
+      <IconChevron color="subText" direction={chevronDirection} size="xs" />
     </Fragment>
   );
 
@@ -144,6 +141,12 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const TooltipWrapper = styled('div')`
   text-align: left;
+`;
+
+const StyledText = styled('div')`
+  color: ${p => p.theme.textColor};
+  max-width: 114px;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledTag = styled(Tag)`

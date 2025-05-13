@@ -4,7 +4,7 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectkey import ProjectKey
 from sentry.monitors.constants import PermitCheckInStatus
-from sentry.monitors.models import Monitor, MonitorType
+from sentry.monitors.models import Monitor
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope, SeatAssignmentResult
 from sentry.testutils.cases import TestCase
 from sentry.utils.outcomes import Outcome
@@ -18,7 +18,7 @@ class QuotaTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        with self.assertNumQueries(7), self.settings(SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE=0):
+        with self.settings(SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE=0):
             with self.options({"system.rate-limit": 0}):
                 assert self.backend.get_project_quota(project) == (None, 60)
 
@@ -29,6 +29,20 @@ class QuotaTest(TestCase):
 
             with self.options({"system.rate-limit": 0}):
                 assert self.backend.get_project_quota(project) == (None, 60)
+
+    def test_get_project_quota_use_cache(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        # Prime the organization options cache.
+        org.get_option("sentry:account-rate-limit")
+
+        with (
+            self.assertNumQueries(0),
+            self.settings(SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE=0),
+            self.options({"system.rate-limit": 0}),
+        ):
+            assert self.backend.get_project_quota(project) == (None, 60)
 
     def test_get_key_quota(self):
         key = ProjectKey.objects.create(
@@ -105,7 +119,6 @@ class QuotaTest(TestCase):
             project_id=self.project.id,
             name="test monitor",
             status=ObjectStatus.ACTIVE,
-            type=MonitorType.CRON_JOB,
         )
         assert self.backend.assign_monitor_seat(monitor) == Outcome.ACCEPTED
 
@@ -116,7 +129,6 @@ class QuotaTest(TestCase):
             project_id=self.project.id,
             name="test monitor",
             status=ObjectStatus.ACTIVE,
-            type=MonitorType.CRON_JOB,
         )
         assert (
             self.backend.check_accept_monitor_checkin(

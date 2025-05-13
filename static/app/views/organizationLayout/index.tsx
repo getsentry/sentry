@@ -1,13 +1,12 @@
+import {ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
-import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
+import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Footer from 'sentry/components/footer';
+import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import Nav from 'sentry/components/nav';
-import {NavContextProvider} from 'sentry/components/nav/context';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
@@ -20,7 +19,11 @@ import useDevToolbar from 'sentry/utils/useDevToolbar';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
+import Nav from 'sentry/views/nav';
+import {NavContextProvider} from 'sentry/views/nav/context';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import OrganizationContainer from 'sentry/views/organizationContainer';
+import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
 import OrganizationDetailsBody from './body';
 
@@ -57,8 +60,11 @@ function OrganizationLayout({children}: Props) {
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <OrganizationContainer>
-        <App organization={organization}>{children}</App>
+        <GlobalDrawer>
+          <App organization={organization}>{children}</App>
+        </GlobalDrawer>
       </OrganizationContainer>
+      <ScrollRestoration />
     </SentryDocumentTitle>
   );
 }
@@ -73,6 +79,7 @@ function AppLayout({children, organization}: LayoutProps) {
   usePerformanceOnboardingDrawer();
   useProfilingOnboardingDrawer();
   useFeatureFlagOnboardingDrawer();
+  useReleasesDrawer();
 
   return (
     <NavContextProvider>
@@ -93,6 +100,8 @@ function AppLayout({children, organization}: LayoutProps) {
 }
 
 function LegacyAppLayout({children, organization}: LayoutProps) {
+  useReleasesDrawer();
+
   return (
     <div className="app">
       <DemoHeader />

@@ -19,6 +19,9 @@ from sentry.search.events.types import SnubaParams
 from sentry.silo.base import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import telemetry_experience_tasks
+from sentry.taskworker.retry import Retry
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
 
@@ -33,6 +36,14 @@ MIN_SAMPLES_FOR_NOTIFICATION = 10
     soft_time_limit=1 * 60,  # 1 minute
     time_limit=1 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=1 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def custom_rule_notifications(context: TaskContext) -> None:
@@ -185,6 +196,14 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: list[int]) -
     soft_time_limit=3 * 60,  # 3 minutes
     time_limit=3 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=3 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task
 def clean_custom_rule_notifications() -> None:

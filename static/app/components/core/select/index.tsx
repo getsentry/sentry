@@ -1,4 +1,4 @@
-import {forwardRef, useMemo} from 'react';
+import {useMemo} from 'react';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
@@ -7,7 +7,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Chevron} from 'sentry/components/chevron';
 import {
   ChonkClearIndicator,
   ChonkDropdownIndicator,
@@ -27,7 +26,7 @@ import {
   ReactSelect,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconClose} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Choices, SelectValue} from 'sentry/types/core';
@@ -70,7 +69,7 @@ function DropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <Chevron light color="subText" direction="down" size="medium" />
+      <IconChevron color="subText" direction="down" size="xs" />
     </selectComponents.DropdownIndicator>
   );
 }
@@ -151,6 +150,7 @@ export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectV
    * Handler for changes. Narrower than the types in react-select.
    */
   onChange?: (value?: OptionType | null) => void;
+  ref?: React.Ref<typeof ReactSelect>;
   /**
    * Show line dividers between options
    */
@@ -163,18 +163,6 @@ export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectV
    * can't have a good type here.
    */
   value?: any;
-}
-
-/**
- * Additional props provided by forwardRef
- */
-interface WrappedControlProps<OptionType extends OptionTypeBase>
-  extends ControlProps<OptionType> {
-  /**
-   * Ref forwarded into ReactSelect component.
-   * The any is inherited from react-select.
-   */
-  forwardedRef: React.Ref<typeof ReactSelect>;
 }
 
 // TODO(ts) The exported component uses forwardRef.
@@ -210,7 +198,7 @@ const getStylesConfig = ({
   return {
     control: (_, state: any) => ({
       display: 'flex',
-      color: theme.formText,
+      color: theme.gray400,
       background: theme.background,
       border: `1px solid ${theme.border}`,
       boxShadow: theme.dropShadowMedium,
@@ -280,12 +268,12 @@ const getStylesConfig = ({
     }),
     input: provided => ({
       ...provided,
-      color: theme.formText,
+      color: theme.gray400,
       margin: 0,
     }),
     singleValue: provided => ({
       ...provided,
-      color: theme.formText,
+      color: theme.gray400,
       display: 'flex',
       alignItems: 'center',
       marginLeft: 0,
@@ -372,10 +360,13 @@ const getStylesConfig = ({
 };
 
 function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
-  props: WrappedControlProps<OptionType>
+  props: ControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, maxMenuWidth, isInsideModal, isSearchable, isDisabled} = props;
+  const {size, maxMenuWidth, isInsideModal} = props;
+
+  const isSearchable = props.isSearchable || props.searchable;
+  const isDisabled = props.isDisabled || props.disabled;
 
   const defaultStyles = useMemo(() => {
     return theme.isChonk
@@ -507,7 +498,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-export interface PickerProps<OptionType extends OptionTypeBase>
+interface PickerProps<OptionType extends OptionTypeBase>
   extends ControlProps<OptionType> {
   /**
    * Enable async option loading.
@@ -526,7 +517,7 @@ export interface PickerProps<OptionType extends OptionTypeBase>
 function SelectPicker<OptionType extends OptionTypeBase>({
   async,
   creatable,
-  forwardedRef,
+  ref,
   ...props
 }: PickerProps<OptionType>) {
   // Pick the right component to use
@@ -542,12 +533,13 @@ function SelectPicker<OptionType extends OptionTypeBase>({
     Component = ReactSelect;
   }
 
-  return <Component ref={forwardedRef} {...props} />;
+  return <Component ref={ref as any} {...props} />;
 }
 
-// The generics need to be filled here as forwardRef can't expose generics.
-export const Select = forwardRef<typeof ReactSelect<GeneralSelectValue>, ControlProps>(
-  function RefForwardedSelectControl(props, ref) {
-    return <SelectControl forwardedRef={ref as any} {...props} />;
-  }
-);
+// XXX (tkdodo): this type assertion is a leftover from when we had forwardRef
+// Omit on the ControlProps messes up the union type
+// the fix is to remove this type assertion, export Select directly and fix the type issues
+export const Select = SelectControl as (
+  props: Omit<ControlProps, 'ref'> &
+    React.RefAttributes<typeof ReactSelect<GeneralSelectValue>>
+) => React.JSX.Element;

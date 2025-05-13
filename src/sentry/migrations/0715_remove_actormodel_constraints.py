@@ -5,6 +5,7 @@ from django.db import migrations, models
 
 import sentry.db.models.fields.foreignkey
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -22,8 +23,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0714_drop_project_team_avatar"),
     ]
@@ -31,7 +30,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     -- drop team_id index & constraint
                     ALTER TABLE "sentry_actor" DROP CONSTRAINT IF EXISTS "sentry_actor_team_id_6ca8eba5_fk_sentry_team_id";
@@ -43,6 +42,7 @@ class Migration(CheckedMigration):
                     """,
                     reverse_sql="",
                     hints={"tables": ["sentry_actor"]},
+                    use_statement_timeout=False,
                 ),
             ],
             state_operations=[

@@ -106,8 +106,8 @@ def sourcemap_images_from_data(data):
 
 # Most people don't upload release artifacts for their third-party libraries,
 # so ignore missing node_modules files or chrome extensions
-def should_skip_missing_source_error(abs_path):
-    "node_modules" in abs_path or abs_path.startswith("chrome-extension:")
+def should_skip_missing_source_error(abs_path) -> bool:
+    return "node_modules" in abs_path or abs_path.startswith("chrome-extension:")
 
 
 def map_symbolicator_process_js_errors(errors):
@@ -270,6 +270,9 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
+    has_in_app_frames = False
+    all_in_app_frames_symbolicated = True
+
     for sinfo, raw_stacktrace, complete_stacktrace in zip(
         stacktrace_infos, response["raw_stacktraces"], response["stacktraces"]
     ):
@@ -290,6 +293,19 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             new_raw_frames.append(merged_context_frame)
 
             merged_frame = _merge_frame(sinfo_frame, complete_frame)
+
+            # Apply is_in_app logic after merging frame data
+            in_app = is_in_app(merged_frame)
+            if in_app is not None:
+                merged_frame["in_app"] = in_app
+
+            # Track symbolication status for in-app frames
+            if merged_frame.get("in_app"):
+                has_in_app_frames = True
+                frame_data = merged_frame.get("data", {})
+                if frame_data and not frame_data.get("symbolicated", False):
+                    all_in_app_frames_symbolicated = False
+
             new_frames.append(merged_frame)
 
         sinfo.stacktrace["frames"] = new_frames
@@ -299,4 +315,31 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
                 "frames": new_raw_frames,
             }
 
+    # Set symbolicated_in_app field based on our findings
+    data["symbolicated_in_app"] = all_in_app_frames_symbolicated if has_in_app_frames else None
+
     return data
+
+
+NODE_MODULES_RE = re.compile(r"\bnode_modules/")
+
+
+# Port from symbolicator-js
+def is_in_app(frame):
+    """
+    Determine if a frame is part of the application code.
+    Returns None if we can't determine, otherwise returns a boolean.
+    """
+    abs_path = frame.get("abs_path", "")
+    filename = frame.get("filename", "")
+
+    if abs_path.startswith("webpack:"):
+        # This diverges from the original logic. Previously we would only consider
+        # a filename starting with `./` as in-app, but that seems to be overly strict.
+        return not filename.startswith("~/") and "/node_modules/" not in filename
+    elif abs_path.startswith("app:"):
+        return not NODE_MODULES_RE.search(filename)
+    elif "/node_modules/" in abs_path:
+        return False
+    else:
+        return None

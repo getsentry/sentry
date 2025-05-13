@@ -13,7 +13,7 @@ from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
-from sentry.models.group import get_open_periods_for_group
+from sentry.models.groupopenperiod import get_open_periods_for_group
 
 if TYPE_CHECKING:
     from sentry.models.group import Group

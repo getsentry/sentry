@@ -281,15 +281,10 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             dataset=Dataset.EventsAnalyticsPlatform,
             time_window=time_window,
         )
-        with patch("sentry.utils.snuba_rpc._snuba_pool") as pool:
-            resp = Mock()
-            resp.status = 202
-            resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
-            pool.urlopen.return_value = resp
-
+        with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
             create_subscription_in_snuba(sub.id)
 
-            rpc_request_body = pool.urlopen.call_args[1]["body"]
+            rpc_request_body = urlopen.call_args[1]["body"]
             createSubscriptionRequest = CreateSubscriptionRequest.FromString(rpc_request_body)
 
             assert createSubscriptionRequest.time_window_secs == time_window
@@ -306,11 +301,11 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
                 == "http.client"
             )
             assert (
-                createSubscriptionRequest.time_series_request.aggregations[0].aggregate
+                createSubscriptionRequest.time_series_request.expressions[0].aggregation.aggregate
                 == FUNCTION_COUNT
             )
             assert (
-                createSubscriptionRequest.time_series_request.aggregations[0].key.name
+                createSubscriptionRequest.time_series_request.expressions[0].aggregation.key.name
                 == "sentry.duration_ms"
             )
             # Validate that the spm function uses the correct time window

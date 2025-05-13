@@ -35,6 +35,11 @@ const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
   border-radius: ${p => p.theme.radius.sm};
   font-size: ${p => p.theme.fontSizeSmall};
 
+  display: inline-flex;
+  align-items: center;
+  line-height: initial;
+  height: 20px;
+  font-weight: ${p => p.theme.fontWeightBold};
   padding: ${p => p.theme.space.micro} ${p => p.theme.space.mini};
 
   // @TODO(jonasbadalic): this exists on the old badge, but should be removed
@@ -78,27 +83,27 @@ function makeChonkBadgeTheme(
     case 'highlight':
     case 'info':
       return {
-        color: theme.colors.blue500,
+        color: theme.colors.content.accent,
         background: theme.colors.blue100,
       };
     case 'promotion':
       return {
-        color: theme.colors.pink500,
+        color: theme.colors.content.promotion,
         background: theme.colors.pink100,
       };
     case 'danger':
       return {
-        color: theme.colors.red500,
+        color: theme.colors.content.danger,
         background: theme.colors.red100,
       };
     case 'warning':
       return {
-        color: theme.colors.yellow500,
+        color: theme.colors.content.warning,
         background: theme.colors.yellow100,
       };
     case 'success':
       return {
-        color: theme.colors.green500,
+        color: theme.colors.content.success,
         background: theme.colors.green100,
       };
     default:

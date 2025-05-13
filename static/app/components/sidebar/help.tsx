@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import {Badge} from 'sentry/components/core/badge';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
-import {useNavPrompts} from 'sentry/components/nav/useNavPrompts';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -11,8 +11,11 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {useChonkPrompt} from 'sentry/utils/theme/useChonkPrompt';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
+import {useUser} from 'sentry/utils/useUser';
+import {useNavPrompts} from 'sentry/views/nav/useNavPrompts';
 
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 import SidebarMenuItem from './sidebarMenuItem';
@@ -26,15 +29,22 @@ type Props = Pick<
 };
 
 function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
-  const {shouldShowHelpMenuDot, onOpenHelpMenu} = useNavPrompts({
+  const user = useUser();
+  const navPrompts = useNavPrompts({
     collapsed,
     organization,
   });
+  const chonkPrompts = useChonkPrompt();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const openForm = useFeedbackForm();
 
   return (
-    <DeprecatedDropdownMenu onOpen={onOpenHelpMenu}>
+    <DeprecatedDropdownMenu
+      onOpen={() => {
+        navPrompts.onOpenHelpMenu();
+        chonkPrompts.dismissDotIndicatorPrompt();
+      }}
+    >
       {({isOpen, getActorProps, getMenuProps}) => (
         <HelpRoot>
           <HelpActor {...getActorProps({onClick: hidePanel})}>
@@ -47,7 +57,8 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
               label={t('Help')}
               id="help"
             />
-            {shouldShowHelpMenuDot && (
+            {(navPrompts.shouldShowHelpMenuDot ||
+              chonkPrompts.showDotIndicatorPrompt) && (
               <IndicatorDot
                 orientation={orientation}
                 collapsed={collapsed}
@@ -99,9 +110,34 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                     );
                   }}
                 >
-                  {t('Try New Navigation ✨')}
+                  {t('Try New Navigation')} <Badge type="beta">{t('Beta')}</Badge>
                 </SidebarMenuItem>
               )}
+              {organization?.features?.includes('chonk-ui') ? (
+                user.options.prefersChonkUI ? (
+                  <SidebarMenuItem
+                    onClick={() => {
+                      mutateUserOptions({prefersChonkUI: false});
+                      trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
+                        organization,
+                      });
+                    }}
+                  >
+                    {t('Switch Back To Our Old Look')}
+                  </SidebarMenuItem>
+                ) : (
+                  <SidebarMenuItem
+                    onClick={() => {
+                      mutateUserOptions({prefersChonkUI: true});
+                      trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
+                        organization,
+                      });
+                    }}
+                  >
+                    {t('Try Our New Look')} <Badge type="internal">{t('Internal')}</Badge>
+                  </SidebarMenuItem>
+                )
+              ) : null}
             </HelpMenu>
           )}
         </HelpRoot>

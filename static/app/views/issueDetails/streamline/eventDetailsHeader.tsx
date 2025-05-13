@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -37,7 +38,11 @@ import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrence
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+  useEnvironmentsFromUrl,
+} from 'sentry/views/issueDetails/utils';
 
 interface EventDetailsHeaderProps {
   group: Group;
@@ -53,6 +58,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const searchQuery = useEventQuery({groupId: group.id});
   const issueTypeConfig = getConfigForIssueType(group, project);
   const {dispatch} = useIssueDetails();
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
@@ -85,6 +91,10 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     'Filter %s\u2026',
     issueTypeConfig.customCopy.eventUnits.toLocaleLowerCase()
   );
+
+  if (groupReprocessingStatus === ReprocessingStatus.REPROCESSING) {
+    return null;
+  }
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
@@ -126,18 +136,19 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                     ...props.defaultOptions,
                   };
                 }}
-                onChange={selection => {
-                  const {relative, ...rest} = selection;
+                onChange={({relative, start, end, utc}) => {
                   navigate({
                     ...location,
                     query: {
                       ...location.query,
-                      ...rest,
                       // If selecting the issue open period, remove the stats period query param
                       statsPeriod:
                         relative === defaultStatsPeriod?.statsPeriod
                           ? undefined
                           : relative,
+                      start: start ? getUtcDateString(start) : undefined,
+                      end: end ? getUtcDateString(end) : undefined,
+                      utc: utc ? 'true' : undefined,
                     },
                   });
                 }}
@@ -153,7 +164,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                   },
                 }}
               />
-              <Flex>
+              <Flex gap={space(0.5)}>
                 <SearchFilter
                   group={group}
                   handleSearch={query => {

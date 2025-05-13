@@ -33,7 +33,7 @@ function RecoveryOptionsModal({
   });
   const [skipSms, setSkipSms] = useState<boolean>(false);
 
-  const {recovery, sms} = authenticators.reduce<{[key: string]: Authenticator}>(
+  const {recovery, sms} = authenticators.reduce<Record<string, Authenticator>>(
     (obj, item) => {
       obj[item.id] = item;
       return obj;

@@ -58,6 +58,7 @@ class Rule(Model):
     # for use in other parts of the product (e.g. cron monitor alerting rules)
     source = BoundedPositiveIntegerField(
         default=RuleSource.ISSUE,
+        db_default=RuleSource.ISSUE,
         choices=RuleSource.as_choices(),
     )
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")

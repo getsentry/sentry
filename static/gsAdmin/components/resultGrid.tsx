@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -13,7 +13,6 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
@@ -449,7 +448,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
         <SortSearchForm onSubmit={this.onSearch}>
           {this.props.isRegional && (
             <CompactSelect
-              triggerProps={{prefix: t('Region')}}
+              triggerProps={{prefix: 'Region'}}
               value={this.state.region ? this.state.region.url : undefined}
               options={ConfigStore.get('regions').map((r: any) => ({
                 label: r.name,
@@ -494,7 +493,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
                 icon={<IconSearch />}
                 priority="primary"
                 size="sm"
-                aria-label={t('Search')}
+                aria-label={'Search'}
               />
             </SearchBar>
           )}
@@ -505,7 +504,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
               <Filter
                 key={filterKey}
                 queryKey={filterKey}
-                value={extractQuery(this.state.filters[filterKey]!)}
+                value={extractQuery(this.state.filters[filterKey])}
                 path={path}
                 location={location}
                 {...ensuredFilters[filterKey]!}
@@ -583,7 +582,5 @@ const ErrorAlert = styled(Alert)`
 
 export default withApi(
   // TODO(TS): Type cast added as part of react 18 upgrade, can remove after?
-  withSentryRouter(ResultGrid) as React.ComponentType<
-    Omit<ResultGridProps, keyof WithRouterProps>
-  >
+  withSentryRouter(ResultGrid)
 );

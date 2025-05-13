@@ -8,7 +8,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
-import {ANNUAL, MONTHLY} from 'getsentry/constants';
+import {ANNUAL, MONTHLY, SEER_MONTHLY_PRICE_CENTS} from 'getsentry/constants';
 import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
@@ -69,9 +69,7 @@ class CheckoutOverview extends Component<Props> {
 
     return activePlan.checkoutCategories.map(category => {
       const eventBucket = utils.getBucket({
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         events: formData.reserved[category],
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         buckets: activePlan.planCategories[category],
       });
       const price = utils.displayPrice({cents: eventBucket.price});
@@ -79,7 +77,12 @@ class CheckoutOverview extends Component<Props> {
       return (
         <DetailItem key={category} data-test-id={category}>
           <div>
-            <DetailTitle>{getPlanCategoryName({plan: activePlan, category})}</DetailTitle>
+            <DetailTitle>
+              {getPlanCategoryName({
+                plan: activePlan,
+                category,
+              })}
+            </DetailTitle>
             {
               // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               formatReservedWithUnits(formData.reserved[category], category)
@@ -140,15 +143,16 @@ class CheckoutOverview extends Component<Props> {
       );
     } else if (onDemandBudget) {
       activePlan.onDemandCategories.forEach(category => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (onDemandBudget.budgets[category]) {
           details.push(
             <Fragment key={`${category}-per-category-ondemand`}>
-              {getPlanCategoryName({plan: activePlan, category})}
+              {getPlanCategoryName({
+                plan: activePlan,
+                category,
+              })}
               <OnDemandPrice>
                 {tct('up to [onDemandPrice]/mo', {
                   onDemandPrice: utils.displayPrice({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudget.budgets[category],
                   }),
                 })}
@@ -168,6 +172,47 @@ class CheckoutOverview extends Component<Props> {
         <OnDemandDetailItems>{details}</OnDemandDetailItems>
       </OnDemandDetailItem>
     );
+  }
+
+  renderAdditionalFeature({
+    featureKey,
+    title,
+    description,
+    priceCents,
+    enabledField,
+  }: {
+    description: string;
+    enabledField: string;
+    featureKey: string;
+    priceCents: number;
+    title: string;
+  }) {
+    const {formData} = this.props;
+    const isEnabled = formData[enabledField as keyof CheckoutFormData];
+
+    if (!isEnabled) {
+      return null;
+    }
+
+    return (
+      <DetailItem key={featureKey} data-test-id={featureKey}>
+        <div>
+          <DetailTitle>{title}</DetailTitle>
+          {description}
+        </div>
+        <DetailPrice>{`${utils.displayPrice({cents: priceCents})}/mo`}</DetailPrice>
+      </DetailItem>
+    );
+  }
+
+  renderSeer() {
+    return this.renderAdditionalFeature({
+      featureKey: 'seer',
+      title: t('Seer: Sentry AI Enhancements'),
+      description: t('Surface insights and propose solutions to fix bugs faster.'),
+      priceCents: SEER_MONTHLY_PRICE_CENTS,
+      enabledField: 'seerEnabled',
+    });
   }
 
   renderDetailItems = () => {
@@ -220,6 +265,7 @@ class CheckoutOverview extends Component<Props> {
           </PriceContainer>
         </DetailItem>
         {this.renderDataOptions()}
+        {this.renderSeer()}
         {this.renderOnDemand()}
       </Fragment>
     );
@@ -368,7 +414,7 @@ const DetailTitle = styled('div')<{noBottomMargin?: boolean}>`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
   ${p => !p.noBottomMargin && `margin-bottom: ${space(1)};`}
 `;
@@ -395,7 +441,7 @@ const OnDemandPrice = styled('div')`
 `;
 
 const OriginalPrice = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: line-through;
 `;
 
@@ -416,7 +462,7 @@ const DiscountWrapper = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const DurationText = styled('div')`
@@ -430,7 +476,7 @@ const ProminantPlanName = styled('span')`
 
 const ChurnPromoText = styled('span')`
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: bold;
 `;
 

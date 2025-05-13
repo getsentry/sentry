@@ -10,14 +10,14 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
+from sentry.api.bases.group import GroupAiEndpoint
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
@@ -46,11 +46,6 @@ def get_autofix_integration_setup_problems(
 
     if not installation:
         return "integration_missing"
-
-    code_mappings = get_sorted_code_mapping_configs(project)
-
-    if not code_mappings:
-        return "integration_no_code_mappings"
 
     return None
 
@@ -94,7 +89,7 @@ def get_repos_and_access(project: Project) -> list[dict]:
 
 
 @region_silo_endpoint
-class GroupAutofixSetupCheck(GroupEndpoint):
+class GroupAutofixSetupCheck(GroupAiEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -105,7 +100,6 @@ class GroupAutofixSetupCheck(GroupEndpoint):
         Checks if we are able to run Autofix on the given group.
         """
         org: Organization = request.organization
-        has_gen_ai_consent = org.get_option("sentry:gen_ai_consent_v2024_11_14", False)
 
         integration_check = None
         # This check is to skip using the GitHub integration for Autofix in s4s.
@@ -124,16 +118,21 @@ class GroupAutofixSetupCheck(GroupEndpoint):
                 "repos": repos,
             }
 
+        user_acknowledgement = get_seer_user_acknowledgement(user_id=request.user.id, org_id=org.id)
+        org_acknowledgement = True
+        if not user_acknowledgement:  # If the user has acknowledged, the org must have too.
+            org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
+
         return Response(
             {
-                "genAIConsent": {
-                    "ok": has_gen_ai_consent,
-                    "reason": None,
-                },
                 "integration": {
                     "ok": integration_check is None,
                     "reason": integration_check,
                 },
                 "githubWriteIntegration": write_integration_check,
+                "setupAcknowledgement": {
+                    "orgHasAcknowledged": org_acknowledgement,
+                    "userHasAcknowledged": user_acknowledgement,
+                },
             }
         )

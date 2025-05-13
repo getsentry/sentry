@@ -1,10 +1,13 @@
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {BACKEND_PLATFORMS} from 'sentry/views/insights/pages/backend/settings';
+import {FRONTEND_PLATFORMS} from 'sentry/views/insights/pages/frontend/settings';
+import {MOBILE_PLATFORMS} from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_MODULES} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   MODULE_FEATURE_MAP,
   MODULE_FEATURE_VISIBLE_MAP,
-  MODULES_CONSIDERED_BETA,
   MODULES_CONSIDERED_NEW,
 } from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
@@ -14,9 +17,6 @@ export const isModuleEnabled = (module: ModuleName, organization: Organization) 
 
 export const isModuleVisible = (module: ModuleName, organization: Organization) =>
   MODULE_FEATURE_VISIBLE_MAP[module].every(f => organization.features.includes(f));
-
-export const isModuleConsideredBeta = (module: ModuleName) =>
-  MODULES_CONSIDERED_BETA.has(module);
 
 export const isModuleConsideredNew = (module: ModuleName) =>
   MODULES_CONSIDERED_NEW.has(module);
@@ -35,4 +35,25 @@ export const getModuleView = (module: ModuleName): DomainView => {
     return 'ai';
   }
   return 'backend';
+};
+
+export const categorizeProjects = (projects: Project[]) => {
+  const otherProjects: Project[] = [];
+  const backendProjects: Project[] = [];
+  const frontendProjects: Project[] = [];
+  const mobileProjects: Project[] = [];
+
+  projects.forEach(project => {
+    if (project?.platform && FRONTEND_PLATFORMS.includes(project.platform)) {
+      frontendProjects.push(project);
+    } else if (project?.platform && MOBILE_PLATFORMS.includes(project.platform)) {
+      mobileProjects.push(project);
+    } else if (project?.platform && BACKEND_PLATFORMS.includes(project.platform)) {
+      backendProjects.push(project);
+    } else {
+      otherProjects.push(project);
+    }
+  });
+
+  return {otherProjects, frontendProjects, mobileProjects, backendProjects};
 };

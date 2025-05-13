@@ -21,13 +21,12 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
-from sentry.issues.auto_source_code_config.utils import get_supported_platforms
+from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
     PerformanceNPlusOneGroupType,
     PerformanceP95EndpointRegressionGroupType,
-    ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
@@ -500,6 +499,32 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
 
 
 class ServiceHooksTestMixin(BasePostProgressGroupMixin):
+    @override_options({"process_service_hook.payload.rollout": 1.0})
+    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    def test_service_hook_fires_on_new_event_payload_param(self, mock_process_service_hook):
+        event = self.create_event(data={}, project_id=self.project.id)
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.created"],
+        )
+
+        with self.feature("projects:servicehooks"):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+
+        mock_process_service_hook.delay.assert_called_once_with(
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+        )
+
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
     def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -519,7 +544,8 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
             )
 
         mock_process_service_hook.delay.assert_called_once_with(
-            servicehook_id=hook.id, event=EventMatcher(event)
+            servicehook_id=hook.id,
+            event=EventMatcher(event),
         )
 
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
@@ -548,7 +574,8 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
             )
 
         mock_process_service_hook.delay.assert_called_once_with(
-            servicehook_id=hook.id, event=EventMatcher(event)
+            servicehook_id=hook.id,
+            event=EventMatcher(event),
         )
 
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
@@ -2470,6 +2497,100 @@ class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
         self.assert_not_called_with(mock_safe_execute)
 
 
+class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("projects:trigger-issue-summary-on-alerts")
+    def test_kick_off_seer_automation_with_features(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_called_once_with(event.group.id)
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("projects:trigger-issue-summary-on-alerts")
+    def test_kick_off_seer_automation_without_org_feature(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    def test_kick_off_seer_automation_without_proj_feature(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=False,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("projects:trigger-issue-summary-on-alerts")
+    def test_kick_off_seer_automation_without_seer_enabled(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
+
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -2478,6 +2599,7 @@ class PostProcessGroupErrorTest(
     DeriveCodeMappingsProcessGroupTestMixin,
     InboxTestMixin,
     ResourceChangeBoundsTestMixin,
+    KickOffSeerAutomationTestMixin,
     RuleProcessorTestMixin,
     ServiceHooksTestMixin,
     SnoozeTestMixin,
@@ -2701,17 +2823,16 @@ class PostProcessGroupGenericTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with self.feature(ProfileFileIOGroupType.build_post_process_group_feature_name()):
-            post_process_group(
-                is_new=is_new,
-                is_regression=is_regression,
-                is_new_group_environment=is_new_group_environment,
-                cache_key=None,
-                group_id=event.group_id,
-                occurrence_id=event.occurrence.id,
-                project_id=event.group.project_id,
-                eventstream_type=EventStreamEventType.Generic,
-            )
+        post_process_group(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            cache_key=None,
+            group_id=event.group_id,
+            occurrence_id=event.occurrence.id,
+            project_id=event.group.project_id,
+            eventstream_type=EventStreamEventType.Generic,
+        )
         return cache_key
 
     def test_issueless(self):

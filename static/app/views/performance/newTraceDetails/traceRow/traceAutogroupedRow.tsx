@@ -1,16 +1,18 @@
 import {t} from 'sentry/locale';
-
-import {TraceIcons} from '../traceIcons';
-import type {ParentAutogroupNode} from '../traceModels/parentAutogroupNode';
-import type {SiblingAutogroupNode} from '../traceModels/siblingAutogroupNode';
-import {AutogroupedTraceBar, makeTraceNodeBarColor} from '../traceRow/traceBar';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
+import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
+import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
+import {
+  AutogroupedTraceBar,
+  makeTraceNodeBarColor,
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from '../traceRow/traceRow';
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 export function TraceAutogroupedRow(
   props: TraceRowProps<ParentAutogroupNode | SiblingAutogroupNode>
@@ -68,7 +70,7 @@ export function TraceAutogroupedRow(
           virtualized_index={props.virtualized_index}
           color={makeTraceNodeBarColor(props.theme, props.node)}
           node_spaces={props.node.autogroupedSegments}
-          performance_issues={props.node.performance_issues}
+          occurrences={props.node.occurrences}
           profiles={props.node.profiles}
         />
         <button

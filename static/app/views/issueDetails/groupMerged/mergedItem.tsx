@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
@@ -156,7 +156,6 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
               <EventDetails>
                 <EventOrGroupHeader
                   data={latestEvent}
-                  organization={organization}
                   hideIcons
                   hideLevel
                   source="merged-item"

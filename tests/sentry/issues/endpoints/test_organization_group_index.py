@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import functools
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from time import sleep
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
+from django.db import OperationalError
 from django.urls import reverse
 from django.utils import timezone
 
@@ -16,7 +20,6 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
-    ProfileFileIOGroupType,
 )
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
@@ -37,6 +40,7 @@ from sentry.models.groupinbox import (
     remove_group_from_inbox,
 )
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsearchview import GroupSearchView
@@ -2377,7 +2381,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         default_view = GroupSearchView.objects.create(
             organization=self.organization,
             user_id=self.user.id,
-            position=0,
             name="Default View",
             query="ZeroDivisionError",
             query_sort="date",
@@ -2422,7 +2425,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         GroupSearchView.objects.create(
             organization=self.organization,
             user_id=self.user.id,
-            position=0,
             name="Default View",
             query="TypeError",
             query_sort="date",
@@ -2431,7 +2433,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         view = GroupSearchView.objects.create(
             organization=self.organization,
             user_id=self.user.id,
-            position=1,
             name="Custom View",
             query="ZeroDivisionError",
             query_sort="date",
@@ -3196,11 +3197,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         # give time for consumers to run and propogate changes to clickhouse
         sleep(1)
-        with self.feature([ProfileFileIOGroupType.build_visible_feature_name()]):
-            response = self.get_success_response(
-                sort="new",
-                query="user.email:myemail@example.com",
-            )
+        response = self.get_success_response(
+            sort="new",
+            query="user.email:myemail@example.com",
+        )
         assert len(response.data) == 2
         assert {r["id"] for r in response.data} == {
             str(perf_group_id),
@@ -4062,6 +4062,32 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             response = self.get_success_response(query='flags["test:flag"]:false')
             assert len(json.loads(response.content)) == 0
 
+    def test_postgres_query_timeout(self, mock_query: MagicMock) -> None:
+        """Test that a Postgres OperationalError with QueryCanceled pgcode becomes a 429 error
+        only when it's a statement timeout, and remains a 500 for user cancellation"""
+
+        class TimeoutError(OperationalError):
+            def __str__(self):
+                return "canceling statement due to statement timeout"
+
+        class UserCancelError(OperationalError):
+            def __str__(self):
+                return "canceling statement due to user request"
+
+        self.login_as(user=self.user)
+
+        mock_query.side_effect = TimeoutError()
+        response = self.get_response()
+        assert response.status_code == 429
+        assert (
+            response.data["detail"]
+            == "Query timeout. Please try with a smaller date range or fewer conditions."
+        )
+
+        mock_query.side_effect = UserCancelError()
+        response = self.get_response()
+        assert response.status_code == 500
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
@@ -4624,6 +4650,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert new_group4.resolved_at is None
         assert new_group4.status == GroupStatus.UNRESOLVED
 
+    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_current_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -4660,6 +4687,52 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
         ).exists()
 
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.date_ended == group.resolved_at
+        assert open_period.resolution_activity == activity
+
+    @with_feature("organizations:issue-open-periods")
+    def test_set_resolved_in_current_release_without_open_period(self) -> None:
+        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
+        release.add_project(self.project)
+
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        GroupOpenPeriod.objects.all().delete()
+
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inRelease"] == release.version
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.actor_id == self.user.id
+
+        assert GroupSubscription.objects.filter(
+            user_id=self.user.id, group=group, is_active=True
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
+        assert activity.data["version"] == release.version
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
+        ).exists()
+
+        assert GroupOpenPeriod.objects.filter(group=group).count() == 0
+
+    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -4698,6 +4771,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == release.version
 
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.date_ended == group.resolved_at
+        assert open_period.resolution_activity == activity
+
+    @with_feature("organizations:issue-open-periods")
     def test_in_semver_projects_set_resolved_in_explicit_release(self) -> None:
         release_1 = self.create_release(version="fake_package@3.0.0")
         release_2 = self.create_release(version="fake_package@2.0.0")
@@ -4744,6 +4823,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert GroupResolution.has_resolution(group=group, release=release_2)
         assert not GroupResolution.has_resolution(group=group, release=release_3)
+
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.date_ended == group.resolved_at
+        assert open_period.resolution_activity == activity
 
     def test_set_resolved_in_next_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
@@ -4851,6 +4935,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
+    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_commit_released(self) -> None:
         release = self.create_release(project=self.project)
         repo = self.create_repo(project=self.project, name=self.project.name)
@@ -4893,6 +4978,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.date_ended == group.resolved_at
+        assert open_period.resolution_activity == activity
+
+    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_commit_missing(self) -> None:
         repo = self.create_repo(project=self.project, name=self.project.name)
         group = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -4912,6 +5003,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
+
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.date_ended is None
 
     def test_set_unresolved(self) -> None:
         release = self.create_release(project=self.project, version="abc")
@@ -5491,9 +5586,34 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
+    def create_n_groups(self, n: int, type: int | None = None) -> list[Group]:
+        groups = []
+        for _ in range(n):
+            if type:
+                group = self.create_group(
+                    project=self.project, status=GroupStatus.RESOLVED, type=type
+                )
+            else:
+                group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
+            hash = uuid4().hex
+            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+            groups.append(group)
+
+        return groups
+
+    def assert_pending_deletion_groups(self, groups: Sequence[Group]) -> None:
+        for group in groups:
+            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+    def assert_deleted_groups(self, groups: Sequence[Group]) -> None:
+        for group in groups:
+            assert not Group.objects.filter(id=group.id).exists()
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
+
     @patch("sentry.eventstream.backend")
     def test_delete_by_id(self, mock_eventstream: MagicMock) -> None:
-        eventstream_state = {"event_stream_state": uuid4()}
+        eventstream_state = {"event_stream_state": str(uuid4())}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(status=GroupStatus.RESOLVED)
@@ -5566,7 +5686,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.eventstream.backend")
     def test_delete_performance_issue_by_id(self, mock_eventstream: MagicMock) -> None:
-        eventstream_state = {"event_stream_state": uuid4()}
+        eventstream_state = {"event_stream_state": str(uuid4())}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(
@@ -5583,78 +5703,47 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             GroupHash.objects.create(project=g.project, hash=hash, group=g)
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
+        with self.feature("organizations:global-views"), self.tasks():
             response = self.get_response(qs_params={"id": [group1.id, group2.id]})
 
-        assert response.status_code == 400
-
-        assert Group.objects.filter(id=group1.id).exists()
-        assert GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert Group.objects.filter(id=group2.id).exists()
-        assert GroupHash.objects.filter(group_id=group2.id).exists()
-
-    def test_bulk_delete(self) -> None:
-        groups = []
-        for i in range(10, 41):
-            groups.append(
-                self.create_group(
-                    project=self.project,
-                    status=GroupStatus.RESOLVED,
-                )
-            )
-
-        hashes = []
-        for group in groups:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=group.project, hash=hash, group=group)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(qs_params={"query": ""})
         assert response.status_code == 204
 
-        for group in groups:
-            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
+        self.assert_deleted_groups([group1, group2])
 
+    def test_bulk_delete(self) -> None:
+        groups = self.create_n_groups(20)
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(qs_params={"query": ""})
+        assert response.status_code == 204
+        self.assert_pending_deletion_groups(groups)
+
+        # This is needed to put the groups in the unresolved state before also triggering the task
         Group.objects.filter(id__in=[group.id for group in groups]).update(
             status=GroupStatus.UNRESOLVED
         )
 
         with self.tasks():
             response = self.get_success_response(qs_params={"query": ""})
+            assert response.status_code == 204
 
-        assert response.status_code == 204
-
-        for group in groups:
-            assert not Group.objects.filter(id=group.id).exists()
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
+        self.assert_deleted_groups(groups)
 
     def test_bulk_delete_performance_issues(self) -> None:
-        groups = []
-        for i in range(10, 41):
-            groups.append(
-                self.create_group(
-                    project=self.project,
-                    status=GroupStatus.RESOLVED,
-                    type=PerformanceSlowDBQueryGroupType.type_id,
-                )
-            )
-
-        hashes = []
-        for group in groups:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+        groups = self.create_n_groups(20, PerformanceSlowDBQueryGroupType.type_id)
 
         self.login_as(user=self.user)
+        response = self.get_success_response(qs_params={"query": ""})
+        assert response.status_code == 204
+        self.assert_pending_deletion_groups(groups)
 
-        # if query is '' it defaults to is:unresolved
-        response = self.get_response(qs_params={"query": ""})
-        assert response.status_code == 400
+        # This is needed to put the groups in the unresolved state before also triggering the task
+        Group.objects.filter(id__in=[group.id for group in groups]).update(
+            status=GroupStatus.UNRESOLVED
+        )
+        with self.tasks():
+            # if query is '' it defaults to is:unresolved
+            response = self.get_response(qs_params={"query": ""})
+            assert response.status_code == 204
 
-        for group in groups:
-            assert Group.objects.filter(id=group.id).exists()
-            assert GroupHash.objects.filter(group_id=group.id).exists()
+        self.assert_deleted_groups(groups)

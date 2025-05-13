@@ -4,19 +4,18 @@ from django.utils import timezone
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from tests.sentry.issues.endpoints.test_organization_group_search_views import BaseGSVTestCase
+from tests.sentry.issues.endpoints.test_organization_group_search_views import (
+    GroupSearchViewAPITestCase,
+)
 
 
-class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
+class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
     endpoint = "sentry-api-0-organization-group-search-view-visit"
     method = "post"
 
     def setUp(self) -> None:
         self.login_as(user=self.user)
-        self.base_data = self.create_base_data()
-
-        # Get the first view's ID for testing
-        self.view = self.base_data["user_one_views"][0]
+        self.view = self.create_view(self.user)
 
         self.url = reverse(
             "sentry-api-0-organization-group-search-view-visit",
@@ -89,8 +88,11 @@ class OrganizationGroupSearchViewVisitTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_update_view_from_another_user(self) -> None:
+        user_two = self.create_user()
+        self.create_member(organization=self.organization, user=user_two)
+
         # Get a view ID from user_two
-        view = self.base_data["user_two_views"][0]
+        view = self.create_view(user_two)
         url = reverse(
             "sentry-api-0-organization-group-search-view-visit",
             kwargs={"organization_id_or_slug": self.organization.slug, "view_id": view.id},

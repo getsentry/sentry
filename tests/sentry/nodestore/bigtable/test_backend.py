@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 from google.cloud.bigtable import table
+from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 from google.rpc.status_pb2 import Status
 
 from sentry.nodestore.bigtable.backend import BigtableNodeStorage
@@ -46,7 +47,7 @@ class MockedBigtableKVStorage(BigtableKVStorage):
         def direct_row(self, key):
             return MockedBigtableKVStorage.Row(self, key)
 
-        def read_row(self, row_key, filter_=None):
+        def read_row(self, row_key, filter_=None, retry=DEFAULT_RETRY_READ_ROWS):
             return MockedBigtableKVStorage.Row(self, row_key)
 
         def read_rows(
