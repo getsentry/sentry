@@ -88,7 +88,8 @@ function EAPMobileOverviewPage() {
     categorizeProjects(getSelectedProjectList(selection.projects, projects));
 
   const existingQuery = new MutableSearch(eventView.query);
-  existingQuery.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addOp('(');
+  existingQuery.addFilterValue('span.op', `[${OVERVIEW_PAGE_ALLOWED_OPS.join(',')}]`);
   if (selectedMobileProjects.length > 0) {
     existingQuery.addOp('OR');
     existingQuery.addFilterValue(
@@ -96,6 +97,7 @@ function EAPMobileOverviewPage() {
       `[${selectedMobileProjects.map(({id}) => id).join(',')}]`
     );
   }
+  existingQuery.addOp(')');
 
   eventView.query = existingQuery.formatString();
 
