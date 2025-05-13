@@ -16,7 +16,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
     FEATURES = [
         "organizations:performance-view",
         "organizations:trace-view-load-more",
-        "organizations:performance-slow-db-issue",
     ]
 
     def setUp(self):
