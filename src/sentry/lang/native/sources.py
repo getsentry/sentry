@@ -11,7 +11,7 @@ import google.auth
 import jsonschema
 import orjson
 import sentry_sdk
-from cachetools import TTLCache
+from cachetools.func import ttl_cache
 from django.conf import settings
 from django.urls import reverse
 from google.auth import impersonated_credentials
@@ -257,9 +257,6 @@ REDACTED_SOURCES_SCHEMA = {
 LAST_UPLOAD_TTL = 24 * 3600
 
 TOKEN_TTL_SECONDS = 3600
-# Set the TTL a little shorter than the actual token expiration to acomodate a bit of delay
-# while obtaining the token and storing it
-token_cache: TTLCache[Any, Any] = TTLCache(maxsize=128, ttl=TOKEN_TTL_SECONDS - 100)
 
 
 def _get_cluster() -> RedisCluster:
@@ -612,37 +609,30 @@ def get_sources_for_project(project):
     return sources
 
 
+# Expire the cached token 10 minutes earlier so that we can confidently pass it
+# to symbolicator with its configured timeout of 5 minutes
+@ttl_cache(ttl=TOKEN_TTL_SECONDS - 600)
 def get_gcp_token(client_email):
-    """
-    Returns a cached GCP token or fetches it if not cached.
+    # Fetch the regular credentials for GCP
+    source_credentials, _ = google.auth.default()
 
-    :param client_email: GCP client email
-    """
-    if client_email in token_cache:
-        return token_cache[client_email]
-    else:
-        # Fetch the regular credentials for GCP
-        source_credentials, _ = google.auth.default()
+    if source_credentials.token is None:
+        return None
 
-        if source_credentials.token is None:
-            return None
+    # Impersonate the service account to give the token for symbolicator a proper scope
+    target_credentials = impersonated_credentials.Credentials(
+        source_credentials=source_credentials,
+        target_principal=client_email,
+        target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
+        lifetime=TOKEN_TTL_SECONDS,
+    )
 
-        # Impersonate the service account to give the token for symbolicator a proper scope
-        target_credentials = impersonated_credentials.Credentials(
-            source_credentials=source_credentials,
-            target_principal=client_email,
-            target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
-            lifetime=TOKEN_TTL_SECONDS,
-        )
+    target_credentials.refresh(Request())
 
-        target_credentials.refresh(Request())
+    if target_credentials.token is None:
+        return None
 
-        if target_credentials.token is None:
-            return None
-
-        token_cache[client_email] = target_credentials.token
-
-        return target_credentials.token
+    return target_credentials.token
 
 
 def reverse_aliases_map(builtin_sources):
