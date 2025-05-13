@@ -1,4 +1,5 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 
 import {getChonkButtonStyles} from 'sentry/components/core/button/index.chonk';
 import type {FormSize} from 'sentry/utils/theme';
@@ -6,7 +7,19 @@ import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
 export type Priority = 'default' | 'primary';
 
+const getChildTransforms = (count: number) => {
+  return Array.from(
+    {length: count},
+    (_, index) => css`
+      label:nth-of-type(${index + 1}) {
+        transform: translateX(-${index}px);
+      }
+    `
+  );
+};
+
 export const ChonkStyledGroupWrap = chonkStyled('div')<{
+  listSize: number;
   priority: Priority;
   size: FormSize;
 }>`
@@ -20,7 +33,6 @@ export const ChonkStyledGroupWrap = chonkStyled('div')<{
   & > label:first-child {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
-    border-right: 0;
   }
 
   & > label:not(:first-child):not(:last-child) {
@@ -32,10 +44,7 @@ export const ChonkStyledGroupWrap = chonkStyled('div')<{
     border-bottom-left-radius: 0;
   }
 
-  /* don't turn off border if the 2nd element is also the last element */
-  & > label:last-child:not(:nth-child(2)) {
-    border-left: 0;
-  }
+  ${p => getChildTransforms(p.listSize)}
 `;
 
 export const ChonkStyledSegmentWrap = chonkStyled('label')<{
