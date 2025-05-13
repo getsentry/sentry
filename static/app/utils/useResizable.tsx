@@ -9,32 +9,26 @@ interface UseResizableOptions {
    * then this will be ignored in favor of the size stored in local storage.
    */
   initialSize: number;
-
   /**
    * The maximum width the container can be resized to. Defaults to Infinity.
    */
   maxWidth: number;
-
   /**
    * The minimum width the container can be resized to. Defaults to 100.
    */
   minWidth: number;
-
   /**
    * The ref to the element to be resized.
    */
   ref: RefObject<HTMLElement | null>;
-
   /**
    * Triggered when the user finishes dragging the resize handle.
    */
   onResizeEnd?: (newWidth: number) => void;
-
   /**
    * Triggered when the user starts dragging the resize handle.
    */
   onResizeStart?: () => void;
-
   /**
    * The local storage key used to persist the size of the container. If not provided,
    * the size will not be persisted and the defaultWidth will be used.
