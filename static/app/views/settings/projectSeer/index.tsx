@@ -1,6 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -20,43 +21,49 @@ interface ProjectSeerProps {
   project: Project;
 }
 
-const THRESHOLD_MAP = ['off', 'low', 'medium', 'high'] as const;
+export const SEER_THRESHOLD_MAP = ['off', 'low', 'medium', 'high', 'always'] as const;
 
-const autofixAutomatingTuningField: FieldObject = {
+export function formatSeerValue(value: string | undefined) {
+  switch (value) {
+    case 'off':
+      return t('Off');
+    case 'low':
+      return t('Low');
+    case 'medium':
+      return t('Medium');
+    case 'high':
+      return t('High');
+    case 'always':
+      return t('Always');
+    default:
+      return null;
+  }
+}
+
+export const autofixAutomatingTuningField = {
   name: 'autofixAutomationTuning',
   label: t('Automatically Fix Issues with Seer'),
   help: t(
-    "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a High setting enables Seer to be more eager."
+    "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager."
   ),
   type: 'range',
   min: 0,
-  max: THRESHOLD_MAP.length - 1,
-  ticks: THRESHOLD_MAP.length - 1,
-  tickValues: THRESHOLD_MAP.map((_, i) => i),
+  max: SEER_THRESHOLD_MAP.length - 1,
+  ticks: SEER_THRESHOLD_MAP.length - 1,
+  tickValues: SEER_THRESHOLD_MAP.map((_, i) => i),
   formatLabel: (val: number | '') => {
     const numVal =
-      typeof val === 'string' || val < 0 || val >= THRESHOLD_MAP.length ? 0 : val;
-    const level = THRESHOLD_MAP[numVal];
-    switch (level) {
-      case 'off':
-        return t('Off');
-      case 'low':
-        return t('Low');
-      case 'medium':
-        return t('Medium');
-      case 'high':
-        return t('High');
-      default:
-        return t('Off');
-    }
+      typeof val === 'string' || val < 0 || val >= SEER_THRESHOLD_MAP.length ? 0 : val;
+    const level = SEER_THRESHOLD_MAP[numVal];
+    return formatSeerValue(level);
   },
   getValue: (val: number): string => {
-    return THRESHOLD_MAP[val]!;
+    return SEER_THRESHOLD_MAP[val]!;
   },
   saveOnBlur: true,
   showTickLabels: true,
   saveMessage: t('Automatic Seer settings updated'),
-};
+} satisfies FieldObject;
 
 const seerFormGroups: JsonFormObject[] = [
   {
@@ -68,6 +75,8 @@ const seerFormGroups: JsonFormObject[] = [
 function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+
+  const canWriteProject = hasEveryAccess(['project:write'], {organization, project});
 
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
@@ -89,13 +98,13 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
       apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
       allowUndo
       initialData={{
-        autofixAutomationTuning: THRESHOLD_MAP.indexOf(
+        autofixAutomationTuning: SEER_THRESHOLD_MAP.indexOf(
           project.autofixAutomationTuning ?? 'off'
         ),
       }}
       onSubmitSuccess={handleSubmitSuccess}
     >
-      <JsonForm forms={seerFormGroups} />
+      <JsonForm forms={seerFormGroups} disabled={!canWriteProject} />
     </Form>
   );
 }

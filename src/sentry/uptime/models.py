@@ -113,7 +113,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False, db_default=False)
-    # Tracks the curernt status of this subscrioption. This is possibly going
+    # Tracks the current status of this subscription. This is possibly going
     # to be replaced in the future with open-periods as we replace
     # ProjectUptimeSubscription with Detectors.
     uptime_status = models.PositiveSmallIntegerField(db_default=UptimeStatus.OK.value)
@@ -184,11 +184,6 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
         default=ProjectUptimeSubscriptionMode.MANUAL.value,
         db_default=ProjectUptimeSubscriptionMode.MANUAL.value,
     )
-    uptime_status = models.PositiveSmallIntegerField(
-        default=UptimeStatus.OK.value, db_default=UptimeStatus.OK.value
-    )
-    # (Likely) temporary column to keep track of the current uptime status of this monitor
-    uptime_status_update_date = models.DateTimeField(db_default=Now())
     # Date of the last time we updated the status for this monitor
     name = models.TextField()
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
@@ -204,7 +199,6 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
 
         indexes = [
             models.Index(fields=("project", "mode")),
-            models.Index(fields=("uptime_status", "uptime_status_update_date")),
         ]
 
         constraints = [
@@ -377,9 +371,6 @@ def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscrip
     condition_group = DataConditionGroup.objects.create(
         organization=project_sub.project.organization,
     )
-    # TODO(epurkhiser): Should we be creating a new data condition + group for
-    # every uptime detector, or is there an intention to be able to re-use the
-    # groups for multiple detectors?
     DataCondition.objects.create(
         comparison=CHECKSTATUS_FAILURE,
         type=Condition.EQUAL,

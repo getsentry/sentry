@@ -6,7 +6,9 @@ import {
   type SearchGroup,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
 import {
+  FixabilityScoreThresholds,
   getIssueTitleFromType,
+  ISSUE_CATEGORY_TO_DESCRIPTION,
   IssueCategory,
   PriorityLevel,
   type Tag,
@@ -290,7 +292,15 @@ function builtInIssuesFields({
             IssueCategory.HTTP_CLIENT,
             IssueCategory.FRONTEND,
             IssueCategory.MOBILE,
-          ]
+          ].map(value => ({
+            icon: null,
+            title: value,
+            name: value,
+            documentation: ISSUE_CATEGORY_TO_DESCRIPTION[value],
+            value,
+            type: ItemType.TAG_VALUE,
+            children: [],
+          }))
         : [
             IssueCategory.ERROR,
             IssueCategory.PERFORMANCE,
@@ -352,6 +362,22 @@ function builtInIssuesFields({
       name: 'Issue Priority',
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
       predefined: true,
+    },
+    [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_ACTIONABILITY]!,
+      name: 'Issue Fixability',
+      values: [
+        FixabilityScoreThresholds.HIGH,
+        FixabilityScoreThresholds.MEDIUM,
+        FixabilityScoreThresholds.LOW,
+      ],
+      predefined: true,
+    },
+    [FieldKey.ISSUE_SEER_LAST_RUN]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_LAST_RUN]!,
+      name: 'Issue Fix Last Triggered',
+      values: [],
+      predefined: false,
     },
   };
 

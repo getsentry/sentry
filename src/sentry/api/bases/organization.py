@@ -58,7 +58,10 @@ class OrganizationPermission(DemoSafePermission):
         if not organization.flags.require_2fa:
             return False
 
-        if request.user.has_2fa():  # type: ignore[union-attr]
+        if request.user.is_authenticated and request.user.has_2fa():
+            return False
+
+        if request.user.is_authenticated and request.user.is_sentry_app:
             return False
 
         if is_active_superuser(request):
@@ -230,15 +233,6 @@ class OrgAuthTokenPermission(OrganizationPermission):
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:write", "org:admin"],
-    }
-
-
-class OrganizationMetricsPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:write", "org:admin"],
-        "DELETE": ["org:admin"],
     }
 
 
