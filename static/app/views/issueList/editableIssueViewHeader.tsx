@@ -19,14 +19,7 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
   const [isEditing, setIsEditing] = useState(false);
   const user = useUser();
 
-  const {mutate: updateGroupSearchView} = useUpdateGroupSearchView({
-    onSuccess: () => {
-      trackAnalytics('issue_views.renamed_view', {
-        leftNav: true,
-        organization: organization.slug,
-      });
-    },
-  });
+  const {mutate: updateGroupSearchView} = useUpdateGroupSearchView();
 
   const handleOnSave = (title: string) => {
     if (title !== view.name) {

@@ -147,7 +147,7 @@ function IssueViewEditMenu() {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
-  const {mutate: deleteIssueView} = useDeleteGroupSearchView();
+  const {mutateAsync: deleteIssueView} = useDeleteGroupSearchView();
   const navigate = useNavigate();
 
   if (!organization.features.includes('enforce-stacked-navigation') || !groupSearchView) {

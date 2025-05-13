@@ -136,6 +136,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
     openModal(props => (
       <CreateIssueViewModal
         {...props}
+        analyticsSurface={viewId ? 'issue-view-details' : 'issues-feed'}
         name={view ? `${view.name} (Copy)` : undefined}
         query={query}
         querySort={sort}

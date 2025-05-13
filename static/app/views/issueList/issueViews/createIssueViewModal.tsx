@@ -21,7 +21,9 @@ interface CreateIssueViewModalProps
         GroupSearchView,
         'name' | 'query' | 'querySort' | 'projects' | 'environments' | 'timeFilters'
       >
-    > {}
+    > {
+  analyticsSurface: 'issue-view-details' | 'issues-feed' | 'issue-views-list';
+}
 
 export function CreateIssueViewModal({
   Header,
@@ -33,6 +35,7 @@ export function CreateIssueViewModal({
   environments: incomingEnvironments,
   timeFilters: incomingTimeFilters,
   name: incomingName,
+  analyticsSurface,
 }: CreateIssueViewModalProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -52,6 +55,7 @@ export function CreateIssueViewModal({
 
       trackAnalytics('issue_views.save_as.created', {
         organization,
+        surface: analyticsSurface,
         starred: variables.starred ?? false,
       });
       closeModal();

@@ -31,7 +31,7 @@ function IssueViewNavEditableTitle({
   const {mutate: updateIssueView} = useUpdateGroupSearchView({
     onSuccess: () => {
       trackAnalytics('issue_views.renamed_view', {
-        leftNav: true,
+        surface: 'issue-view-details',
         organization: organization.slug,
       });
     },
