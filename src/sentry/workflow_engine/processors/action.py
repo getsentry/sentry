@@ -1,7 +1,6 @@
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import TypedDict
 
 from django.db.models import DurationField, ExpressionWrapper, F, IntegerField, Value
 from django.db.models.fields.json import KeyTextTransform
@@ -32,11 +31,6 @@ from sentry.workflow_engine.types import WorkflowEventData
 logger = logging.getLogger(__name__)
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
-
-
-class WorkflowFireHistoryUpdates(TypedDict):
-    has_passed_filters: bool
-    has_fired_actions: bool
 
 
 def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action], group: Group):

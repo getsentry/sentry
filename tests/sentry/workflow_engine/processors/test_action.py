@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.workflow_engine.models import DataConditionGroup, WorkflowFireHistory
+from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 from sentry.workflow_engine.processors.action import (
     create_workflow_fire_histories,
@@ -87,13 +87,14 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
         self.event_data = WorkflowEventData(event=self.group_event)
 
     def test_create_workflow_fire_histories(self):
-        create_workflow_fire_histories({self.action}, self.event_data)
+        create_workflow_fire_histories(Action.objects.filter(id=self.action.id), self.event_data)
         assert (
             WorkflowFireHistory.objects.filter(
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
-                has_fired_actions=False,
+                has_passed_filters=True,
+                has_fired_actions=True,
             ).count()
             == 1
         )
