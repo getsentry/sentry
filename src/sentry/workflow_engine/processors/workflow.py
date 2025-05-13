@@ -242,6 +242,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                 "event_id": event_data.event.event_id,
                 "event_environment_id": environment.id,
                 "workflows": [workflow.id for workflow in workflows],
+                "detector_type": detector.type,
+                "detector_id": detector.id,
             },
         )
 
