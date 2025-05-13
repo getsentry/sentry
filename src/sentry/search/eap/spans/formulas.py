@@ -56,15 +56,56 @@ def get_total_span_count(settings: ResolverSettings) -> Column:
     )
 
 
-def division(args: ResolvedArguments, _: ResolverSettings) -> Column.BinaryFormula:
+def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    dividend = cast(AttributeKey, args[0])
+    divisor = cast(AttributeKey, args[1])
+    key = cast(AttributeKey, args[2])
+    value = cast(str, args[3])
+
+    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, value])
+
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_SUM,
+                key=dividend,
+                filter=key_equal_value_filter,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_SUM,
+                key=divisor,
+                filter=key_equal_value_filter,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+    )
+
+
+def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     dividend = cast(AttributeKey, args[0])
     divisor = cast(AttributeKey, args[1])
 
+    extrapolation_mode = settings["extrapolation_mode"]
+
     return Column.BinaryFormula(
         default_value_double=0.0,
-        left=Column(key=dividend),
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_SUM, key=dividend, extrapolation_mode=extrapolation_mode
+            )
+        ),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(key=divisor),
+        right=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_SUM, key=divisor, extrapolation_mode=extrapolation_mode
+            )
+        ),
     )
 
 
@@ -315,6 +356,72 @@ def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
         # A bit of a hack, but the rcp expects an aggregate formula to be returned so that `group_by` can be applied. otherwise it will break on the frontend
         vital_score_key = AttributeKey(name="score.lcp", type=AttributeKey.TYPE_DOUBLE)
         return opportunity_score([vital_score_key], settings)
+
+    if len(vital_score_columns) == 1:
+        return vital_score_columns[0].formula
+
+    return operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
+
+
+def performance_score(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    score_attribute = cast(AttributeKey, args[0])
+    ratio_attribute = transform_vital_score_to_ratio([score_attribute])
+    if ratio_attribute.name == "score.total":
+        return total_performance_score(args, settings)
+
+    web_vital = score_attribute.name.split(".")[-1]
+    vital_count = get_count_of_vital(web_vital, settings)
+
+    return Column.BinaryFormula(
+        default_value_double=0.0,
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_AVG,
+                key=ratio_attribute,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+        op=Column.BinaryFormula.OP_MULTIPLY,
+        right=Column(literal=LiteralValue(val_double=1.0 if vital_count > 0 else 0.0)),
+    )
+
+
+def total_performance_score(
+    _: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
+    vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+    vital_score_columns: list[Column] = []
+
+    performance_score_formulas: list[tuple[Column.BinaryFormula, str]] = []
+    total_weight = 0.0
+    for vital in vitals:
+        vital_score = f"score.{vital}"
+        vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
+        vital_performance_score = performance_score([vital_score_key], settings)
+        hasVitalCount = vital_performance_score.right.literal.val_double > 0
+        if hasVitalCount:
+            performance_score_formulas.append((vital_performance_score, vital))
+            total_weight += WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
+
+    for formula, vital in performance_score_formulas:
+        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital] / total_weight
+        vital_score_columns.append(
+            Column(
+                formula=Column.BinaryFormula(
+                    default_value_double=0.0,
+                    left=Column(formula=formula),
+                    op=Column.BinaryFormula.OP_MULTIPLY,
+                    right=Column(literal=LiteralValue(val_double=weight)),
+                )
+            )
+        )
+
+    if len(vital_score_columns) == 0:
+        # A bit of a hack, but the rcp expects an aggregate formula to be returned so that `group_by` can be applied. otherwise it will break on the frontend
+        vital_score_key = AttributeKey(name="score.lcp", type=AttributeKey.TYPE_DOUBLE)
+        return performance_score([vital_score_key], settings)
 
     if len(vital_score_columns) == 1:
         return vital_score_columns[0].formula
@@ -667,6 +774,20 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=opportunity_score,
         is_aggregate=True,
     ),
+    "performance_score": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                },
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+            ),
+        ],
+        formula_resolver=performance_score,
+        is_aggregate=True,
+    ),
     "avg_compare": FormulaDefinition(
         default_search_type="percentage",
         infer_search_type_from_arguments=False,
@@ -685,6 +806,33 @@ SPAN_FORMULA_DEFINITIONS = {
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         formula_resolver=avg_compare,
+        is_aggregate=True,
+    ),
+    "division_if": FormulaDefinition(
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        formula_resolver=division_if,
         is_aggregate=True,
     ),
     "division": FormulaDefinition(

@@ -697,11 +697,15 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
+    // We only want to consider a value to be `contains` if it is at least one character being wrapped in `*`
+    const isContains = value.length > 2 && value.startsWith('*') && value.endsWith('*');
+
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
+      contains: isContains,
     };
   };
 

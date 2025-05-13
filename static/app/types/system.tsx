@@ -11,7 +11,7 @@ export enum SentryInitRenderReactComponent {
   INDICATORS = 'Indicators',
   SETUP_WIZARD = 'SetupWizard',
   SYSTEM_ALERTS = 'SystemAlerts',
-  U2F_SIGN = 'U2fSign',
+  WEB_AUTHN_ASSSERT = 'WebAuthnAssert',
   SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
 

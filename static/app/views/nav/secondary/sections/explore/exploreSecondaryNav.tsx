@@ -75,7 +75,7 @@ export function ExploreSecondaryNav() {
             {t('Releases')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <Feature features={['performance-trace-explorer', 'performance-view']}>
+        <Feature features={['visibility-explore-view', 'performance-view']}>
           <SecondaryNav.Section id="explore-all-queries">
             <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
               {t('All Queries')}

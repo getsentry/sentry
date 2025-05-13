@@ -20,5 +20,3 @@ export const automationRoutes = (
     </Route>
   </Route>
 );
-
-export const AUTOMATIONS_BASE_URL = '/issues/automations';

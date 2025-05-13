@@ -32,7 +32,7 @@ export const EXPLORE_SPANS_TOUR_GUIDE_KEY = 'tour.explore.spans';
 export const ExploreSpansTourContext =
   createContext<TourContextType<ExploreSpansTour> | null>(null);
 
-export function useExploreSpansTour(): TourContextType<ExploreSpansTour> {
+function useExploreSpansTour(): TourContextType<ExploreSpansTour> {
   const tourContext = useContext(ExploreSpansTourContext);
   if (!tourContext) {
     throw new Error('Must be used within a TourContextProvider<ExploreSpansTour>');

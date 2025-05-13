@@ -388,7 +388,7 @@ const ChangesContainer = styled('div')`
 `;
 
 const Content = styled('div')`
-  padding: 0 ${space(1)} ${space(1)} ${space(1)};
+  padding: 0 0 ${space(1)};
 `;
 
 const Title = styled('div')`
@@ -440,9 +440,6 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-left: ${space(0.5)};
-  padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
   flex-wrap: wrap;
   gap: ${space(1)};
 `;
