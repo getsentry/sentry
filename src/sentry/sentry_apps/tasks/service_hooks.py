@@ -50,7 +50,7 @@ def get_payload_v0(event):
 )
 @retry
 def process_service_hook(
-    servicehook_id: int, project_id: int, group_id: int, event_id: str, **kwargs
+    servicehook_id: int, project_id: int, group_id: int, event_id: str
 ) -> None:
     try:
         servicehook = ServiceHook.objects.get(id=servicehook_id)
