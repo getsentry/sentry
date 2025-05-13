@@ -61,7 +61,7 @@ interface UseResizableResult {
  *
  * Currently only supports resizing width and not height.
  */
-export const useResizable = ({
+const useResizable = ({
   ref,
   initialSize,
   maxWidth,
