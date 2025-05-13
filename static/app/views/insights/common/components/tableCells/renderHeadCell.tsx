@@ -111,7 +111,14 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
   const {key, name} = column;
   const alignment = getAlignment(key);
 
-  const newSort = getNewSort(sort, column);
+  let newSortDirection: Sort['kind'] = 'desc';
+  if (sort?.field === column.key) {
+    if (sort.kind === 'desc') {
+      newSortDirection = 'asc';
+    }
+  }
+
+  const newSort = `${newSortDirection === 'desc' ? '-' : ''}${key}`;
 
   const hasTooltip = column.tooltip;
 
@@ -161,24 +168,11 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
   return sortLink;
 };
 
-const getNewSort = (sort: Sort | undefined, column: GridColumnHeader<string>) => {
-  const {key} = column;
-  let newSortDirection: Sort['kind'] = 'desc';
-  if (sort?.field === column.key) {
-    if (sort.kind === 'desc') {
-      newSortDirection = 'asc';
-    }
-  }
-
-  return `${newSortDirection === 'desc' ? '-' : ''}${key}`;
-};
-
 const getAlignment = (key: string): Alignments => {
   const result = parseFunction(key);
 
   if (result) {
     const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);
-
     if (outputType) {
       return fieldAlignment(key, outputType);
     }
