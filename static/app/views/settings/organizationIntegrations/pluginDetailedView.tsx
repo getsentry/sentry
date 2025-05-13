@@ -67,7 +67,6 @@ function PluginDetailedView() {
   const installationStatus: IntegrationInstallationStatus = plugin?.projectList?.length
     ? INSTALLED
     : NOT_INSTALLED;
-  console.log('plugin', plugin);
   const integrationName = useMemo(
     () => `${plugin?.name}${plugin?.isHidden ? t(' (Legacy)') : ''}`,
     [plugin]
