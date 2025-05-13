@@ -17,11 +17,12 @@ import usePrevious from 'sentry/utils/usePrevious';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/nav/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type Props = {
   children: React.ReactNode;
+  title?: string;
 };
 
 function useUpdateViewLastVisited({view}: {view: GroupSearchView | undefined}) {
@@ -47,10 +48,10 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
 
     if (
       view &&
-      !previousViewData &&
       !query[URL_PARAM.PROJECT] &&
       !query[URL_PARAM.ENVIRONMENT] &&
-      !DATE_TIME_KEYS.some(key => query[key])
+      !DATE_TIME_KEYS.some(key => query[key]) &&
+      !query.sort
     ) {
       navigate(
         normalizeUrl({
@@ -103,19 +104,25 @@ function IssueViewWrapper({children}: Props) {
     return <NotFound />;
   }
 
-  return (
-    <SentryDocumentTitle title={groupSearchView?.name} orgSlug={organization.slug}>
-      <StreamWrapper>{children}</StreamWrapper>
-    </SentryDocumentTitle>
-  );
+  if (groupSearchView) {
+    return (
+      <SentryDocumentTitle title={groupSearchView.name} orgSlug={organization.slug}>
+        <StreamWrapper>{children}</StreamWrapper>
+      </SentryDocumentTitle>
+    );
+  }
+
+  return <StreamWrapper>{children}</StreamWrapper>;
 }
 
-function IssueListContainer({children}: Props) {
+function IssueListContainer({children, title = t('Issues')}: Props) {
   const organization = useOrganization();
-  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
+  const hasIssueViewSharing = organization?.features.includes(
+    'enforce-stacked-navigation'
+  );
 
   return (
-    <SentryDocumentTitle title={t('Issues')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       {hasIssueViewSharing ? (
         <IssueViewWrapper>{children}</IssueViewWrapper>
       ) : (

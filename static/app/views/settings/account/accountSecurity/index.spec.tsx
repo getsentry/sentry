@@ -52,12 +52,7 @@ describe('AccountSecurity', function () {
           routeParams={router.params}
           params={{...router.params, authId: '15'}}
         />
-      </AccountSecurityWrapper>,
-      {
-        router: {
-          params: {authId: '15'},
-        },
-      }
+      </AccountSecurityWrapper>
     );
   }
 
@@ -286,7 +281,7 @@ describe('AccountSecurity', function () {
     renderComponent();
 
     expect(await screen.findByText('Authenticator App')).toBeInTheDocument();
-    expect(screen.getByText('U2F (Universal 2nd Factor)')).toBeInTheDocument();
+    expect(screen.getByText('Passkey / Biometric / Security Key')).toBeInTheDocument();
     expect(screen.queryByText('Text Message')).not.toBeInTheDocument();
   });
 

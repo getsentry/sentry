@@ -50,7 +50,7 @@ export type VitalStatus = {
   value: MetricValue | undefined;
 };
 
-export type GenericVitalItem<
+type GenericVitalItem<
   T extends DiscoverDatasets.SPANS_METRICS | DiscoverDatasets.METRICS,
 > = {
   dataset: T;

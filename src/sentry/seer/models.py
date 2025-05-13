@@ -27,3 +27,17 @@ class SeerRepoDefinition(BaseModel):
     instructions: str | None = None
     base_commit_sha: str | None = None
     provider_raw: str | None = None
+
+
+class SpanInsight(BaseModel):
+    explanation: str
+    span_id: str
+    span_op: str
+
+
+class SummarizeTraceResponse(BaseModel):
+    trace_id: str
+    summary: str
+    key_observations: str
+    performance_characteristics: str
+    suggested_investigations: list[SpanInsight]

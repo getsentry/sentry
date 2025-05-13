@@ -45,7 +45,7 @@ interface DrawerPanelProps {
   transitionProps?: AnimationProps['transition'];
 }
 
-export function DrawerPanel({
+function DrawerPanel({
   ref,
   ariaLabel,
   children,
@@ -219,7 +219,6 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
 
     /* Apply to all scrollable children */
     * {
-      overflow: hidden !important;
       scrollbar-width: none;
 
       &::-webkit-scrollbar {

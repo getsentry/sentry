@@ -1,6 +1,6 @@
 import {Client} from 'sentry/api';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import type {Anomaly, Incident} from 'sentry/views/alerts/types';
+import type {Incident} from 'sentry/views/alerts/types';
 
 // Use this api for requests that are getting cancelled
 const uncancellableApi = new Client();
@@ -40,21 +40,4 @@ export function fetchIncident(
   alertId: string
 ): Promise<Incident> {
   return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`);
-}
-
-export function fetchAnomaliesForRule(
-  orgId: string,
-  ruleId: string,
-  start: string,
-  end: string
-): Promise<Anomaly[]> {
-  return uncancellableApi.requestPromise(
-    `/organizations/${orgId}/alert-rules/${ruleId}/anomalies/`,
-    {
-      query: {
-        start,
-        end,
-      },
-    }
-  );
 }

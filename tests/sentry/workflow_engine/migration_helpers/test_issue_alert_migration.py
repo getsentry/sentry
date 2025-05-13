@@ -5,7 +5,6 @@ from jsonschema.exceptions import ValidationError
 
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.locks import locks
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import (
@@ -21,7 +20,6 @@ from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import (
     Action,
@@ -344,6 +342,7 @@ class IssueAlertMigratorTest(TestCase):
     def test_run__every_event_condition__any(self):
         conditions = [
             {"id": EveryEventCondition.id},
+            {"id": EveryEventCondition.id},
             {"id": RegressionEventCondition.id},
         ]
         issue_alert = self.create_project_rule(
@@ -374,17 +373,6 @@ class IssueAlertMigratorTest(TestCase):
         assert DataCondition.objects.all().count() == 1
         dc = DataCondition.objects.get(type=Condition.REGRESSION_EVENT)
         assert dc.condition_group.logic_type == DataConditionGroup.Type.ALL
-
-    def test_run__lock(self):
-        lock = locks.get(
-            f"workflow-engine-project-error-detector:{self.project.id}",
-            duration=10,
-            name="workflow_engine_issue_alert",
-        )
-        lock.acquire()
-
-        with pytest.raises(UnableToAcquireLock):
-            IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
     def test_dry_run(self):
         IssueAlertMigrator(self.issue_alert, self.user.id, is_dry_run=True).run()

@@ -1,3 +1,4 @@
+import logging
 from copy import deepcopy
 from datetime import UTC, datetime
 
@@ -48,6 +49,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
+from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -67,12 +69,11 @@ from sentry.relay.config.metric_extraction import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
-from sentry.uptime.models import (
-    ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
-    UptimeStatus,
-)
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils.cursors import Cursor, StringCursor
+
+logger = logging.getLogger(__name__)
 
 
 def create_metric_alert(
@@ -130,6 +131,14 @@ class AlertRuleIndexMixin(Endpoint):
 
         if not features.has("organizations:performance-view", organization):
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
+
+        if "latestIncident" in request.GET.getlist("expand", []) and not is_frontend_request(
+            request
+        ):
+            logger.info(
+                "organization_alert_rule_index.passed_latest_incident",
+                extra={"organization": organization.id},
+            )
 
         response = self.paginate(
             request,
@@ -328,7 +337,10 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 incident_status=Case(
                     # If an uptime monitor is failing we want to treat it the same as if an alert is failing, so sort
                     # by the critical status
-                    When(uptime_status=UptimeStatus.FAILED, then=IncidentStatus.CRITICAL.value),
+                    When(
+                        uptime_subscription__uptime_status=UptimeStatus.FAILED,
+                        then=IncidentStatus.CRITICAL.value,
+                    ),
                     default=-2,
                 )
             )

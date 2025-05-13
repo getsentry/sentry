@@ -22,18 +22,18 @@ export enum EventsDisplayFilterName {
   P100 = 'p100',
 }
 
-export type PercentileValues = Record<EventsDisplayFilterName, number>;
+type PercentileValues = Record<EventsDisplayFilterName, number>;
 
-export type EventsDisplayFilter = {
+type EventsDisplayFilter = {
   label: string;
   name: EventsDisplayFilterName;
   query?: string[][];
   sort?: {field: string; kind: 'desc' | 'asc'};
 };
 
-export type EventsFilterOptions = Record<EventsDisplayFilterName, EventsDisplayFilter>;
+type EventsFilterOptions = Record<EventsDisplayFilterName, EventsDisplayFilter>;
 
-export type EventsFilterPercentileValues = Record<
+type EventsFilterPercentileValues = Record<
   Exclude<EventsDisplayFilterName, EventsDisplayFilterName.P100>,
   number
 >;

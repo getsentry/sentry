@@ -283,6 +283,35 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             client.check_file(repo, path, version)
 
     @responses.activate
+    def test_get_file(self):
+        self.assert_installation()
+        integration, installation = self._get_integration_and_install()
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                provider="visualstudio",
+                name="example",
+                organization_id=self.organization.id,
+                config={
+                    "instance": self.vsts_base_url,
+                    "project": "project-name",
+                    "name": "example",
+                },
+                integration_id=integration.id,
+                external_id="albertos-apples",
+            )
+
+        client = installation.get_client()
+
+        path = "README.md"
+        version = "master"
+        url = f"https://myvstsaccount.visualstudio.com/project-name/_apis/git/repositories/{repo.name}/items?path={path}&api-version=7.0&versionDescriptor.version={version}&download=true"
+
+        responses.add(method=responses.GET, url=url, body="Hello, world!")
+
+        resp = client.get_file(repo, path, version)
+        assert resp == "Hello, world!"
+
+    @responses.activate
     def test_get_stacktrace_link(self):
         self.assert_installation()
         integration, installation = self._get_integration_and_install()

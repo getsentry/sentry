@@ -184,7 +184,7 @@ jobs:
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
   # This check is the only required Github check
   frontend-required-check:
-    needs: [files-changed, frontend-jest-tests, typescript]
+    needs: [files-changed, frontend-jest-tests, typescript, eslint]
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()

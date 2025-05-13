@@ -280,7 +280,7 @@ export function getCodeOwnerIcon(
       return <IconSentry size={iconSize} />;
   }
 }
-export const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {
+const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {
   return integrations.every(
     integration =>
       integration.provider.key !== 'slack' || integration.scopes?.includes('commands')

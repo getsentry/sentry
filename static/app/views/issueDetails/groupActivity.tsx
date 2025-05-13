@@ -35,13 +35,13 @@ import {
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
 
-export type MutateActivityOptions = MutateOptions<TData, TError, TVariables, TContext>;
+type MutateActivityOptions = MutateOptions<TData, TError, TVariables, TContext>;
 
 interface GroupActivityProps {
   group: Group;
 }
 
-export function GroupActivity({group}: GroupActivityProps) {
+function GroupActivity({group}: GroupActivityProps) {
   const organization = useOrganization();
   const {activity: activities, count, id: groupId} = group;
   const groupCount = Number(count);

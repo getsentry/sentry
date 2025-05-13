@@ -1,3 +1,5 @@
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -25,6 +27,10 @@ describe('IssueViewNavEllipsisMenu', () => {
     key: 'test-view',
     label: 'Test View',
     lastVisited: null,
+    createdBy: UserFixture(),
+    stars: 1,
+    dateCreated: '2025-04-25',
+    dateUpdated: '2025-04-25',
   };
 
   const defaultProps: IssueViewNavEllipsisMenuProps = {
@@ -73,7 +79,6 @@ describe('IssueViewNavEllipsisMenu', () => {
     const user = userEvent.setup();
 
     render(<IssueViewNavEllipsisMenu {...defaultProps} view={mockView} />, {
-      enableRouterMocks: false,
       initialRouterConfig: {
         route: '/organizations/:orgId/issues/views/:viewId/',
         location: {

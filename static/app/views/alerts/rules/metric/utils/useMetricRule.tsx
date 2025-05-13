@@ -13,11 +13,7 @@ interface MetricRuleParams {
   };
 }
 
-export function makeMetricRuleQueryKey({
-  orgSlug,
-  ruleId,
-  query,
-}: MetricRuleParams): ApiQueryKey {
+function makeMetricRuleQueryKey({orgSlug, ruleId, query}: MetricRuleParams): ApiQueryKey {
   return [`/organizations/${orgSlug}/alert-rules/${ruleId}/`, {query}];
 }
 

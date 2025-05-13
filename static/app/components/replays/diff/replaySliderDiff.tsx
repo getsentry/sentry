@@ -1,9 +1,6 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {type CSSProperties, Fragment, useCallback, useRef} from 'react';
 
-import {
-  ContentSliderDiff,
-  type ContentSliderDiffBodyProps,
-} from 'sentry/components/contentSliderDiff';
+import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import {After, Before} from 'sentry/components/replays/diff/utils';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
@@ -14,9 +11,11 @@ import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/pr
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export function ReplaySliderDiff({
-  minHeight,
-}: Pick<ContentSliderDiffBodyProps, 'minHeight'>) {
+interface Props {
+  minHeight?: CSSProperties['minHeight'];
+}
+
+export function ReplaySliderDiff({minHeight}: Props) {
   const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
   const organization = useOrganization();
   const dividerClickedRef = useRef(false); // once set, never flips back to false

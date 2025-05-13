@@ -102,7 +102,7 @@ function trackDataComponentClicks(
   });
 }
 
-export function DataDisplay<T extends WidgetDataConstraint>(
+function DataDisplay<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> &
     WidgetDataProps<T> & {
       containerType: PerformanceWidgetContainerTypes;

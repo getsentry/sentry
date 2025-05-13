@@ -7,7 +7,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-export type ScoreCardProps = {
+type ScoreCardProps = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
@@ -82,7 +82,7 @@ export const ScorePanel = styled(Panel)`
   min-height: 96px;
 `;
 
-export const HeaderTitle = styled('div')`
+const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
   gap: ${space(1)};

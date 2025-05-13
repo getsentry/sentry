@@ -89,6 +89,7 @@ describe('instance level OAuth client details', function () {
   it('renders client details properly', async function () {
     render(<InstanceLevelOAuthDetails />, {
       router: defaultInit.router,
+      deprecatedRouterMocks: true,
     });
     expect(
       await screen.findByText('Details For Instance Level OAuth Client: CodeCov')
@@ -122,6 +123,7 @@ describe('instance level OAuth client details', function () {
   it('allows a client to be updated', async function () {
     render(<InstanceLevelOAuthDetails />, {
       router: defaultInit.router,
+      deprecatedRouterMocks: true,
     });
 
     // Wait for page load then clear current client details
@@ -168,6 +170,7 @@ describe('instance level OAuth client details', function () {
   it('deletes a client correctly', async function () {
     render(<InstanceLevelOAuthDetails />, {
       router: defaultInit.router,
+      deprecatedRouterMocks: true,
     });
     await userEvent.click(await screen.findByRole('button', {name: 'Delete client'}));
     renderGlobalModal();

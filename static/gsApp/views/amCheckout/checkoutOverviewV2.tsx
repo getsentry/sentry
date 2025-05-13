@@ -11,7 +11,11 @@ import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
-import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
+import {
+  PAYG_BUSINESS_DEFAULT,
+  PAYG_TEAM_DEFAULT,
+  SEER_MONTHLY_PRICE_CENTS,
+} from 'getsentry/constants';
 import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
 import {formatReservedWithUnits, isBizPlanFamily} from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
@@ -28,7 +32,12 @@ type Props = {
   discountInfo?: Promotion['discountInfo'];
 };
 
-function CheckoutOverviewV2({activePlan, formData}: Props) {
+function CheckoutOverviewV2({
+  activePlan,
+  formData,
+  onUpdate: _onUpdate,
+  organization,
+}: Props) {
   const shortInterval = useMemo(() => {
     return utils.getShortInterval(activePlan.billingInterval);
   }, [activePlan.billingInterval]);
@@ -44,6 +53,9 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
     () => (formData.onDemandMaxSpend ?? 0) > 0,
     [formData.onDemandMaxSpend]
   );
+
+  const hasSeerEnabled = !!formData.seerEnabled;
+  const hasSeerFeature = organization.features.includes('seer-billing');
 
   const renderPlanDetails = () => {
     return (
@@ -66,6 +78,56 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
         </SpaceBetweenRow>
       </PanelChild>
     );
+  };
+
+  const renderAdditionalFeatureSummary = ({
+    featureKey,
+    featureEnabled,
+    featureAvailable,
+    title,
+    tooltipTitle,
+    priceCents,
+  }: {
+    featureAvailable: boolean;
+    featureEnabled: boolean;
+    featureKey: string;
+    priceCents: number;
+    title: string;
+    tooltipTitle: string;
+  }) => {
+    return (
+      featureAvailable &&
+      featureEnabled && (
+        <PanelChild data-test-id={`${featureKey}-summary`}>
+          <SpaceBetweenRow style={{alignItems: 'start'}}>
+            <Column>
+              <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
+                <Title>
+                  {title}
+                  &nbsp;&nbsp;
+                  <QuestionTooltip size="xs" title={tooltipTitle} />
+                </Title>
+              </div>
+            </Column>
+            <Column minWidth="150px" alignItems="end">
+              <Title>{`+${utils.displayPrice({cents: priceCents})}/mo`}</Title>
+              <Description>Additional usage billed separately</Description>
+            </Column>
+          </SpaceBetweenRow>
+        </PanelChild>
+      )
+    );
+  };
+
+  const renderSeerSummary = () => {
+    return renderAdditionalFeatureSummary({
+      featureKey: 'seer',
+      featureEnabled: hasSeerEnabled,
+      featureAvailable: hasSeerFeature,
+      title: t('Sentry AI Agent'),
+      tooltipTitle: t('Additional Seer information.'),
+      priceCents: SEER_MONTHLY_PRICE_CENTS,
+    });
   };
 
   const renderPayAsYouGoBudget = (paygBudgetTotal: number) => {
@@ -122,13 +184,11 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
         <ReservedVolumes>
           {activePlan.categories.map(category => {
             const eventBucket =
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              activePlan.planCategories[category] &&
               activePlan.planCategories[category].length <= 1
                 ? null
                 : utils.getBucket({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     events: formData.reserved[category],
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     buckets: activePlan.planCategories[category],
                   });
             const price = utils.displayPrice({
@@ -157,23 +217,27 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
                       </Fragment>
                     )
                   }
-                  {
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    formData.reserved[category] === 1 &&
-                    category !== DataCategory.ATTACHMENTS
-                      ? getSingularCategoryName({
-                          plan: activePlan,
-                          category,
-                          title: true,
-                        })
-                      : getPlanCategoryName({plan: activePlan, category, title: true})
-                  }
-                  {paygCategories.includes(category as DataCategory) ? (
+                  {formData.reserved[category] === 1 &&
+                  category !== DataCategory.ATTACHMENTS
+                    ? getSingularCategoryName({
+                        plan: activePlan,
+                        category,
+                        title: true,
+                      })
+                    : getPlanCategoryName({
+                        plan: activePlan,
+                        category,
+                        title: true,
+                      })}
+                  {paygCategories.includes(category) ? (
                     <QuestionTooltip
                       size="xs"
                       title={t(
                         "%s use your pay-as-you-go budget. You'll only be charged for actual usage.",
-                        getPlanCategoryName({plan: activePlan, category})
+                        getPlanCategoryName({
+                          plan: activePlan,
+                          category,
+                        })
                       )}
                     />
                   ) : null}
@@ -243,7 +307,7 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
                     <QuestionTooltip
                       size="xs"
                       title={t(
-                        "This is your pay-as-you-go budget, which ensures continued monitoring after you've used up your reserved event volume. We’ll only charge you for actual usage, so this is your maximum charge for overage."
+                        "This is your pay-as-you-go budget, which ensures continued monitoring after you've used up your reserved event volume. We'll only charge you for actual usage, so this is your maximum charge for overage."
                       )}
                     />
                   </AdditionalMonthlyCharge>
@@ -263,11 +327,17 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
     <StyledPanel data-test-id="checkout-overview-v2">
       {renderPlanDetails()}
       <Separator />
+      {hasSeerEnabled && renderSeerSummary()}
+      <Separator />
       {renderPayAsYouGoBudget(paygMonthlyBudget)}
       <Separator />
       {renderProductBreakdown()}
       <TotalSeparator />
-      {renderTotals(committedTotal, paygMonthlyBudget)}
+      {renderTotals(
+        committedTotal +
+          (hasSeerFeature && formData.seerEnabled ? SEER_MONTHLY_PRICE_CENTS : 0),
+        paygMonthlyBudget
+      )}
     </StyledPanel>
   );
 }

@@ -389,6 +389,28 @@ class ProjectTest(APITestCase, TestCase):
         teams = self.project.teams.all()
         assert team.id in {t.id for t in teams}
 
+    @patch("sentry.models.project.locks.get")
+    def test_lock_is_acquired_when_creating_project(self, mock_lock):
+        # self.organization is cached property, which means it will be created
+        # only if it is accessed, so we need to simulate access and all potential mock
+        # calls before resetting the mock
+        assert self.organization
+        # Ensure the mock starts clean before the save operation
+        mock_lock.reset_mock()
+        Project.objects.create(organization=self.organization)
+        assert mock_lock.call_count == 1
+
+    @patch("sentry.models.project.locks.get")
+    def test_lock_is_not_acquired_when_updating_project(self, mock_lock):
+        # self.project is cached property, which means it will be created
+        # only if it is accessed, so we need to simulate access and all potential mock
+        # calls before resetting the mock
+        assert self.project
+        # Ensure the mock starts clean before the save operation
+        mock_lock.reset_mock()
+        self.project.save()
+        assert mock_lock.call_count == 0
+
     def test_remove_team_clears_alerts(self):
         team = self.create_team(organization=self.organization)
         assert self.project.add_team(team)

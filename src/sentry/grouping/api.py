@@ -16,7 +16,7 @@ from sentry.grouping.component import (
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
-from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
+from sentry.grouping.enhancer import LATEST_VERSION, Enhancements, get_enhancements_version
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
@@ -121,8 +121,10 @@ class GroupingConfigLoader:
                     if enhancements_string
                     else derived_enhancements
                 )
-            enhancements = Enhancements.from_config_string(
-                enhancements_string, bases=[enhancements_base] if enhancements_base else []
+            enhancements = Enhancements.from_rules_text(
+                enhancements_string,
+                bases=[enhancements_base] if enhancements_base else [],
+                version=get_enhancements_version(project, config_id),
             ).base64_string
         except InvalidEnhancerConfig:
             enhancements = get_default_enhancements()
@@ -188,7 +190,7 @@ def get_default_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
-    return Enhancements.from_config_string("", bases=[base] if base else []).base64_string
+    return Enhancements.from_rules_text("", bases=[base] if base else []).base64_string
 
 
 def get_projects_default_fingerprinting_bases(

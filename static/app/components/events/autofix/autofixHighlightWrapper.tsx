@@ -1,4 +1,6 @@
 import React, {useRef} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
@@ -34,9 +36,9 @@ export function AutofixHighlightWrapper({
 
   return (
     <React.Fragment>
-      <div ref={containerRef} className={className}>
+      <Wrapper ref={containerRef} className={className} isSelected={!!selection}>
         {children}
-      </div>
+      </Wrapper>
 
       <AnimatePresence>
         {selection && (
@@ -55,3 +57,17 @@ export function AutofixHighlightWrapper({
     </React.Fragment>
   );
 }
+
+const Wrapper = styled('div')<{isSelected: boolean}>`
+  &:hover {
+    ${p =>
+      !p.isSelected &&
+      css`
+        cursor: pointer;
+
+        * {
+          ${p.theme.tooltipUnderline('gray200')};
+        }
+      `};
+  }
+`;

@@ -174,8 +174,7 @@ class SourceField extends Component<Props, State> {
 
     const splittedValue = newValue.split(' ');
 
-    for (const splittedValueIndex in splittedValue) {
-      const value = splittedValue[splittedValueIndex]!;
+    for (const value of splittedValue) {
       const lastFieldValue = fieldValues[fieldValues.length - 1]!;
 
       if (
@@ -242,8 +241,7 @@ class SourceField extends Component<Props, State> {
     const {fieldValues} = this.state;
     const newValue: string[] = [];
 
-    for (const index in fieldValues) {
-      const fieldValue = fieldValues[index]!;
+    for (const fieldValue of fieldValues) {
       if (Array.isArray(fieldValue)) {
         if (fieldValue[0]?.value || fieldValue[1]?.value) {
           newValue.push(`${fieldValue[0]?.value ?? ''}${fieldValue[1]?.value ?? ''}`);

@@ -1,4 +1,7 @@
 import logging
+from typing import Any
+
+from django.core.mail import EmailMultiAlternatives
 
 from sentry.auth import access
 from sentry.models.group import Group
@@ -6,9 +9,11 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import notifications_control_tasks, notifications_tasks
+from sentry.taskworker.retry import Retry
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import send_messages
+from sentry.utils.email.message_builder import message_from_dict
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +30,7 @@ def _get_user_from_email(group: Group, email: str) -> RpcUser | None:
     return None
 
 
-def process_inbound_email(mailfrom: str, group_id: int, payload: str):
+def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
     from sentry.models.group import Group
     from sentry.web.forms import NewNoteForm
 
@@ -53,9 +58,14 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str):
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=notifications_tasks,
+        retry=Retry(
+            delay=60 * 5,
+        ),
     ),
 )
-def send_email(message):
+def send_email(message: EmailMultiAlternatives | dict[str, Any]) -> None:
+    if not isinstance(message, EmailMultiAlternatives):
+        message = message_from_dict(message)
     send_messages([message])
 
 
@@ -67,7 +77,12 @@ def send_email(message):
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=notifications_control_tasks,
+        retry=Retry(
+            delay=60 * 5,
+        ),
     ),
 )
-def send_email_control(message):
+def send_email_control(message: EmailMultiAlternatives | dict[str, Any]) -> None:
+    if not isinstance(message, EmailMultiAlternatives):
+        message = message_from_dict(message)
     send_messages([message])

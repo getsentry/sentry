@@ -6,7 +6,7 @@ from sentry.issues.auto_source_code_config.utils.platform import PlatformConfig
 from sentry.models.project import Project
 from sentry.utils import metrics
 
-from .constants import DERIVED_ENHANCEMENTS_OPTION_KEY, METRIC_PREFIX
+from .constants import DERIVED_ENHANCEMENTS_OPTION_KEY, METRIC_PREFIX, STACK_ROOT_MAX_LEVEL
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,12 @@ def save_in_app_stack_trace_rules(
     current_enhancements = project.get_option(DERIVED_ENHANCEMENTS_OPTION_KEY)
     current_rules = set(current_enhancements.split("\n")) if current_enhancements else set()
 
-    united_rules = rules_from_code_mappings.union(current_rules)
+    developer_enhancements = project.get_option("sentry:grouping_enhancements")
+    developer_rules = set(developer_enhancements.split("\n")) if developer_enhancements else set()
+
+    # We do not want to duplicate rules from the developer enhancements
+    united_rules = rules_from_code_mappings.union(current_rules).difference(developer_rules)
+
     dry_run = platform_config.is_dry_run_platform(project.organization)
     if not dry_run and united_rules != current_rules:
         project.update_option(DERIVED_ENHANCEMENTS_OPTION_KEY, "\n".join(sorted(united_rules)))
@@ -49,14 +54,16 @@ def generate_rule_for_code_mapping(code_mapping: CodeMapping) -> str:
         raise ValueError("Stacktrace root is empty")
 
     parts = stacktrace_root.rstrip("/").split("/")
-    module = ".".join(parts)
 
-    if module == "":
+    if len(parts) == 0:
         raise ValueError("Module is empty")
-
-    # a/ -> a.**
-    # x/y/ -> x.y.**
-    # com/example/foo/bar/ -> com.example.**
-    # We add an extra level of granularity
-    # uk/co/example/foo/bar/ -> uk.co.example.**
-    return f"stack.module:{module}.** +app"
+    elif len(parts) >= STACK_ROOT_MAX_LEVEL - 1:
+        # com/example/foo/ -> com.example.**
+        # uk/co/example/foo/ -> uk.co.example.**
+        module = ".".join(parts[:-1])
+        return f"stack.module:{module}.** +app"
+    else:
+        # a/ -> a.**
+        # x/y/ -> x.y.**
+        module = ".".join(parts)
+        return f"stack.module:{module}.** +app"

@@ -63,7 +63,7 @@ export function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
   );
 }
 
-export function getRepeatedFrameIndices(data: StacktraceType) {
+function getRepeatedFrameIndices(data: StacktraceType) {
   const repeats: number[] = [];
   (data.frames ?? []).forEach((frame, frameIdx) => {
     const nextFrame = (data.frames ?? [])[frameIdx + 1];

@@ -14,7 +14,8 @@ from django.utils import timezone
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.constants import ObjectStatus
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -384,6 +385,13 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def test_removed_project(self):
         message = self.build_subscription_update(self.sub)
         self.project.delete()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.ignore_deleted_project")
+
+    def test_pending_deletion_project(self):
+        message = self.build_subscription_update(self.sub)
+        self.project.update(status=ObjectStatus.DELETION_IN_PROGRESS)
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with("incidents.alert_rules.ignore_deleted_project")
@@ -3760,7 +3768,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
         assert occurrence.type == MetricIssuePOC
         assert occurrence.issue_title == incident.title
-        assert occurrence.initial_issue_priority == PriorityLevel.HIGH
+        assert occurrence.priority == PriorityLevel.HIGH
         assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
 
     @with_feature("organizations:metric-issue-poc")
@@ -3795,7 +3803,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert mock_produce_occurrence_to_kafka.call_count == 1
         occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
         assert occurrence.type == MetricIssuePOC
-        assert occurrence.initial_issue_priority == PriorityLevel.HIGH
+        assert occurrence.priority == PriorityLevel.HIGH
         assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
         mock_produce_occurrence_to_kafka.reset_mock()
 
@@ -3823,7 +3831,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert mock_produce_occurrence_to_kafka.call_count == 2
         occurrence = mock_produce_occurrence_to_kafka.call_args_list[0][1]["occurrence"]
         assert occurrence.type == MetricIssuePOC
-        assert occurrence.initial_issue_priority == PriorityLevel.MEDIUM
+        assert occurrence.priority == PriorityLevel.MEDIUM
         assert occurrence.evidence_data["metric_value"] == rule.resolve_threshold - 1
 
         status_change = mock_produce_occurrence_to_kafka.call_args_list[1][1]["status_change"]
@@ -3834,7 +3842,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
     def test_process_data_packets_called(self, mock_process_data_packets):
         rule = self.rule
-        detector = self.create_detector(name="hojicha", type=MetricAlertFire.slug)
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
         data_source = self.create_data_source(source_id=str(self.sub.id))
         data_source.detectors.set([detector])
         self.send_update(rule, 10)

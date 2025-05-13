@@ -15,7 +15,7 @@ import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 
 interface DetailsSectionProps {
   isMetaError: boolean;
-  projectSlug: string;
+  projectSlug: string | undefined;
   release: string;
   releaseMeta?: ReleaseMeta;
 }
@@ -78,7 +78,11 @@ export function GeneralCard({
         key: t('First Event'),
         subject: t('First Event'),
         value: releaseDetails ? (
-          <TimeSince date={releaseDetails.firstEvent} />
+          releaseDetails.firstEvent ? (
+            <TimeSince date={releaseDetails.firstEvent} />
+          ) : (
+            '-'
+          )
         ) : (
           <TinyPlaceholder />
         ),
@@ -89,7 +93,11 @@ export function GeneralCard({
         key: t('Last Event'),
         subject: t('Last Event'),
         value: releaseDetails ? (
-          <TimeSince date={releaseDetails.lastEvent} />
+          releaseDetails.lastEvent ? (
+            <TimeSince date={releaseDetails.lastEvent} />
+          ) : (
+            '-'
+          )
         ) : (
           <TinyPlaceholder />
         ),
@@ -100,7 +108,7 @@ export function GeneralCard({
         key: t('Source Maps'),
         subject: t('Source Maps'),
         value:
-          releaseMeta && releaseDetails ? (
+          releaseMeta && releaseDetails && projectSlug ? (
             <Link
               to={
                 releaseMeta.isArtifactBundle

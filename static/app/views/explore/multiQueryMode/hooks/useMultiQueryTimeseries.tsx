@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -23,7 +23,7 @@ interface UseMultiQueryTimeseriesOptions {
   queryExtras?: SpansRPCQueryExtras;
 }
 
-export interface UseMultiQueryTimeseriesResults {
+interface UseMultiQueryTimeseriesResults {
   canUsePreviousResults: boolean;
   result: ReturnType<typeof useSortedTimeSeries>;
 }
@@ -34,9 +34,31 @@ export function useMultiQueryTimeseries({
   enabled,
   index,
 }: UseMultiQueryTimeseriesOptions) {
+  const canTriggerHighAccuracy = useCallback(
+    (results: ReturnType<typeof useMultiQueryTimeseriesImpl>['result']) => {
+      const hasData = Object.values(results.data).some(result => {
+        return Object.values(result).some(series => {
+          return series.sampleCount?.some(({value}) => {
+            return value > 0;
+          });
+        });
+      });
+      const canGetMoreData = Object.values(results.data).some(result => {
+        return Object.values(result).some(series => {
+          return series.dataScanned === 'partial';
+        });
+      });
+
+      return !hasData && canGetMoreData;
+    },
+    []
+  );
   return useProgressiveQuery<typeof useMultiQueryTimeseriesImpl>({
     queryHookImplementation: useMultiQueryTimeseriesImpl,
     queryHookArgs: {enabled, index},
+    queryOptions: {
+      canTriggerHighAccuracy,
+    },
   });
 }
 

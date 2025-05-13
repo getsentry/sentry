@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Input} from 'sentry/components/core/input';
 import {Radio} from 'sentry/components/core/radio';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {Tooltip} from 'sentry/components/tooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -141,7 +141,6 @@ class OnDemandBudgetEdit extends Component<Props> {
                         pattern="[0-9]*"
                         maxLength={7}
                         placeholder="e.g. 50"
-                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={coerceValue(onDemandBudget.budgets[category] ?? 0)}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           const inputValue = parseInputValue(e);

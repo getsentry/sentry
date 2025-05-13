@@ -103,6 +103,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)
 
+        compression = (
+            [] if organization.id in options.get("chunk-upload.no-compression") else ["gzip"]
+        )
         accept = CHUNK_UPLOAD_ACCEPT
 
         # Sentry CLI versions ≤2.39.1 require "chunkSize" to be a power of two, and will error otherwise,
@@ -119,7 +122,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 "maxRequestSize": MAX_REQUEST_SIZE,
                 "concurrency": MAX_CONCURRENCY,
                 "hashAlgorithm": HASH_ALGORITHM,
-                "compression": ["gzip"],
+                "compression": compression,
                 "accept": accept,
             }
         )

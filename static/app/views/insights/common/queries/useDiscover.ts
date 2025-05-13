@@ -31,7 +31,7 @@ interface UseDiscoverOptions<Fields> {
   orderby?: string | string[];
   pageFilters?: PageFilters;
   projectIds?: number[];
-  samplingMode?: SamplingMode | 'NONE';
+  samplingMode?: SamplingMode;
   /**
    * TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
    */
@@ -40,7 +40,7 @@ interface UseDiscoverOptions<Fields> {
 }
 
 // The default sampling mode for eap queries
-export const DEFAULT_SAMPLING_MODE: SamplingMode = 'BEST_EFFORT';
+export const DEFAULT_SAMPLING_MODE: SamplingMode = 'NORMAL';
 
 export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
@@ -159,8 +159,7 @@ export const useDiscover = <
     referrer,
     cursor,
     noPagination,
-    samplingMode:
-      samplingMode === 'NONE' || !shouldSetSamplingMode ? undefined : samplingMode,
+    samplingMode: shouldSetSamplingMode ? samplingMode : undefined,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
@@ -173,7 +172,7 @@ export const useDiscover = <
   };
 };
 
-export function getEventView(
+function getEventView(
   search: MutableSearch | string | undefined,
   fields: string[] = [],
   sorts: Sort[] = [],

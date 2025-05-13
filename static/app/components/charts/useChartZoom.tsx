@@ -199,17 +199,24 @@ export function useChartZoom({
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
     evt => {
-      const {startValue, endValue} = (evt as any).batch[0] as {
+      let {startValue, endValue} = (evt as any).batch[0] as {
         endValue: number | null;
         startValue: number | null;
       };
 
       // if `rangeStart` and `rangeEnd` are null, then we are going back
       if (startValue && endValue) {
+        // round off the bounds to the minute
+        startValue = Math.floor(startValue / 60_000) * 60_000;
+        endValue = Math.ceil(endValue / 60_000) * 60_000;
+
+        // ensure the bounds has 1 minute resolution
+        startValue = Math.min(startValue, endValue - 60_000);
+
         setPeriod({
           period: null,
-          start: startValue ? getUtcDateString(startValue) : null,
-          end: endValue ? getUtcDateString(endValue) : null,
+          start: getUtcDateString(startValue),
+          end: getUtcDateString(endValue),
         });
       }
     },
@@ -281,11 +288,3 @@ export function useChartZoom({
 
   return renderProps;
 }
-
-function ChartZoom(props: Props) {
-  const renderProps = useChartZoom(props);
-
-  return props.children(renderProps);
-}
-
-export default ChartZoom;

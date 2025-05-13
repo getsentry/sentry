@@ -11,11 +11,11 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import OnCallServiceForm from 'sentry/components/notificationActions/forms/onCallServiceForm';
 import SlackForm from 'sentry/components/notificationActions/forms/slackForm';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -375,14 +375,14 @@ const NotificationActionContainer = styled('div')`
   width: 100%;
 `;
 
-export const NotificationActionCell = styled('div')`
+const NotificationActionCell = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: ${space(0.5)};
 `;
 
-export const NotificationActionFormContainer = styled('div')`
+const NotificationActionFormContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   width: 100%;

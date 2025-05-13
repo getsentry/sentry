@@ -1,7 +1,7 @@
 from unittest import mock
 
 from sentry.api.serializers import serialize
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
@@ -35,23 +35,6 @@ class ProjectDetectorIndexBaseTest(APITestCase):
 
 
 @region_silo_test
-class ProjectDetectorIndexGetTest(ProjectDetectorIndexBaseTest):
-    def test_simple(self):
-        detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector", type=MetricAlertFire.slug
-        )
-        detector_2 = self.create_detector(
-            project_id=self.project.id, name="Test Detector 2", type=MetricAlertFire.slug
-        )
-        response = self.get_success_response(self.organization.slug, self.project.slug)
-        assert response.data == serialize([detector, detector_2])
-
-    def test_empty_result(self):
-        response = self.get_success_response(self.organization.slug, self.project.slug)
-        assert len(response.data) == 0
-
-
-@region_silo_test
 class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
     method = "POST"
 
@@ -59,7 +42,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         super().setUp()
         self.valid_data = {
             "name": "Test Detector",
-            "detectorType": MetricAlertFire.slug,
+            "detectorType": MetricIssue.slug,
             "dataSource": {
                 "queryType": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.name.lower(),
@@ -111,7 +94,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
 
     def test_incompatible_group_type(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
-            mock_get.return_value = mock.Mock(detector_validator=None)
+            mock_get.return_value = mock.Mock(detector_settings=None)
             data = {**self.valid_data, "detectorType": "incompatible_type"}
             response = self.get_error_response(
                 self.organization.slug,
@@ -136,7 +119,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         detector = Detector.objects.get(id=response.data["id"])
         assert response.data == serialize([detector])[0]
         assert detector.name == "Test Detector"
-        assert detector.type == MetricAlertFire.slug
+        assert detector.type == MetricIssue.slug
         assert detector.project_id == self.project.id
 
         # Verify data source

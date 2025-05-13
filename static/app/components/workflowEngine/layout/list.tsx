@@ -4,7 +4,7 @@ import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
 import {space} from 'sentry/styles/space';
 
-export interface WorkflowEngineListLayoutProps {
+interface WorkflowEngineListLayoutProps {
   /** The main content for this page */
   children: React.ReactNode;
 }

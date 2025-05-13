@@ -301,4 +301,4 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   );
 }
 
-export const TrendsChart = withProjects(Chart);
+const TrendsChart = withProjects(Chart);

@@ -161,6 +161,10 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,`
       : ''
   }
+
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });
 
 hydrateRoot(document, <StartClient router={router} />);`,
@@ -193,6 +197,10 @@ Sentry.init({
   tracesSampleRate: 1.0,`
       : ''
   }
+
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });`,
             },
           ],

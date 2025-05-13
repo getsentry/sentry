@@ -40,6 +40,7 @@ backend_dependencies: &backend_dependencies
 
 backend_build_changes: &backend_build_changes
   - '.github/workflows/backend.yml'
+  - '.github/actions/collect-test-data/**'
   - '.pre-commit-config.yaml'
   - 'Makefile'
   - 'pyproject.toml'
@@ -75,6 +76,7 @@ acceptance: &acceptance
   - *frontend_all
   - *backend_all
   - '.github/workflows/acceptance.yml'
+  - '.github/actions/collect-test-data/**'
 
 api_docs: &api_docs
   - *backend_all

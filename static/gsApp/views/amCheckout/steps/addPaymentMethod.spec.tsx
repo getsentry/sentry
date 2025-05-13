@@ -6,35 +6,48 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {DataCategory} from 'sentry/types/core';
+
+import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as SubscriptionType} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
+import {FTCConsentLocation, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import AddPaymentMethod from 'getsentry/views/amCheckout/steps/addPaymentMethod';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
-jest.mock('getsentry/utils/stripe', () => {
-  return {
-    loadStripe: (cb: (fn: () => {elements: any}) => void) => {
-      if (!cb) {
-        return;
-      }
-      cb(() => {
-        return {
-          elements: jest.fn(() => ({
-            create: jest.fn(() => ({
-              mount: jest.fn(),
-              on(_name: any, handler: any) {
-                handler();
-              },
-              update: jest.fn(),
-            })),
-          })),
-        };
-      });
-    },
-  };
-});
+jest.mock('getsentry/utils/stripe', () => ({
+  loadStripe: (cb: any) => {
+    if (!cb) {
+      return;
+    }
+    cb(() => ({
+      createToken: jest.fn(
+        () =>
+          new Promise(resolve => {
+            resolve({token: {id: 'STRIPE_TOKEN'}});
+          })
+      ),
+      confirmCardSetup(secretKey: string, _options: any) {
+        if (secretKey !== 'ERROR') {
+          return new Promise(resolve => {
+            resolve({setupIntent: {payment_method: 'pm_abc123'}});
+          });
+        }
+        return new Promise(resolve => {
+          resolve({error: {message: 'card invalid'}});
+        });
+      },
+      elements: jest.fn(() => ({
+        create: jest.fn(() => ({
+          mount: jest.fn(),
+          on: jest.fn(),
+          update: jest.fn(),
+        })),
+      })),
+    }));
+  },
+}));
 
 describe('AddPaymentMethod', function () {
   const api = new MockApiClient();
@@ -212,5 +225,90 @@ describe('AddPaymentMethod', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(onCompleteStep).toHaveBeenCalledWith(stepNumber);
+  });
+
+  it('calls customer endpoint with correct ftcConsentLocation', async function () {
+    const sub = {...subscription, paymentSource: null};
+    const props = {...stepProps, subscription: sub, organization};
+
+    const customerEndpoint = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'PUT',
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/setup/`,
+      method: 'POST',
+      body: {
+        id: '123',
+        clientSecret: 'seti_abc123',
+        status: 'require_payment_method',
+        lastError: null,
+      },
+    });
+
+    render(<AddPaymentMethod {...props} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    expect(customerEndpoint).toHaveBeenCalledWith(
+      `/customers/${organization.slug}/`,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          paymentMethod: 'pm_abc123',
+          ftcConsentLocation: FTCConsentLocation.CHECKOUT,
+        }),
+      })
+    );
+  });
+
+  it('displays fine print text on-demand', async function () {
+    const sub = {...subscription, paymentSource: null};
+    const props = {...stepProps, subscription: sub};
+
+    render(<AddPaymentMethod {...props} />);
+
+    await waitFor(() => expect(setupIntent).toHaveBeenCalled());
+
+    expect(
+      screen.getByText(/Payments are processed securely through/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('displays fine print text pay-as-you-go', async function () {
+    const sub = {
+      ...subscription,
+      paymentSource: null,
+      planDetails: PlanFixture({
+        name: 'Team',
+        contractInterval: 'annual',
+        billingInterval: 'annual',
+        onDemandCategories: [
+          DataCategory.ERRORS,
+          DataCategory.TRANSACTIONS,
+          DataCategory.ATTACHMENTS,
+        ],
+        budgetTerm: 'pay-as-you-go',
+      }),
+    };
+    const props = {...stepProps, subscription: sub};
+
+    render(<AddPaymentMethod {...props} />);
+
+    await waitFor(() => expect(setupIntent).toHaveBeenCalled());
+
+    expect(
+      screen.getByText(/Payments are processed securely through/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable pay-as-you-go fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for pay-as-you-go fees. You may cancel your subscription at any time/
+      )
+    ).toBeInTheDocument();
   });
 });

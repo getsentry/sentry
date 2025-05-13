@@ -74,12 +74,15 @@ describe('EventList', () => {
   function renderAllEvents() {
     render(<EventList group={group} />, {
       organization,
+
       router: RouterFixture({
         location: LocationFixture({
           pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
         }),
         routes: [{name: '', path: 'events/'}],
       }),
+
+      deprecatedRouterMocks: true,
     });
   }
 
@@ -131,6 +134,7 @@ describe('EventList', () => {
     };
     render(<EventList group={group} />, {
       organization,
+
       router: RouterFixture({
         location: LocationFixture({
           pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
@@ -138,6 +142,8 @@ describe('EventList', () => {
         }),
         routes: [{name: '', path: 'events/'}],
       }),
+
+      deprecatedRouterMocks: true,
     });
 
     const expectedArgs = [

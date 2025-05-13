@@ -11,9 +11,11 @@ import type {PageFilters} from 'sentry/types/core';
 import type {SavedSearch} from 'sentry/types/group';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useLocation} from 'sentry/utils/useLocation';
 import IssueListActions from 'sentry/views/issueList/actions';
 import AddViewPage from 'sentry/views/issueList/addViewPage';
 import GroupListBody from 'sentry/views/issueList/groupListBody';
+import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
@@ -23,6 +25,7 @@ interface IssueListTableProps {
   error: string | null;
   groupIds: string[];
   issuesLoading: boolean;
+  issuesSuccessfullyLoaded: boolean;
   memberList: IndexedMembersByProject;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   onCursor: CursorHandler;
@@ -62,8 +65,20 @@ function IssueListTable({
   paginationAnalyticsEvent,
   personalSavedSearches,
   organizationSavedSearches,
+  issuesSuccessfullyLoaded,
 }: IssueListTableProps) {
+  const location = useLocation();
   const {newViewActive} = useContext(NewTabContext);
+
+  const isNewViewEmptyStateActive =
+    location.query.new === 'true' &&
+    !issuesLoading &&
+    !error &&
+    !issuesSuccessfullyLoaded;
+
+  if (isNewViewEmptyStateActive) {
+    return <NewViewEmptyState />;
+  }
 
   return newViewActive ? (
     <AddViewPage

@@ -37,6 +37,7 @@ describe('Discover DatasetSelector', function () {
       />,
       {
         router,
+        deprecatedRouterMocks: true,
       }
     );
     expect(screen.getByRole('tab', {name: 'Errors'})).toBeInTheDocument();
@@ -73,6 +74,7 @@ describe('Discover DatasetSelector', function () {
       />,
       {
         router,
+        deprecatedRouterMocks: true,
       }
     );
     await userEvent.click(screen.getByRole('tab', {name: 'Transactions'}));
@@ -104,6 +106,7 @@ describe('Discover DatasetSelector', function () {
       />,
       {
         router,
+        deprecatedRouterMocks: true,
       }
     );
     await userEvent.click(screen.getByRole('tab', {name: 'Transactions'}));

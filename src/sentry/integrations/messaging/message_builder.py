@@ -15,8 +15,9 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.notifications.notifications.rules import AlertRuleNotification, get_key_from_rule_data
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 

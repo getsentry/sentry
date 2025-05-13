@@ -1,21 +1,12 @@
-import styled from '@emotion/styled';
-
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
-import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {Tooltip} from 'sentry/components/tooltip';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import type {
-  OnboardingSupplementComponentProps,
-  OnboardingTask,
-  OnboardingTaskDescriptor,
-} from 'sentry/types/onboarding';
+import type {OnboardingTask, OnboardingTaskDescriptor} from 'sentry/types/onboarding';
 import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -46,7 +37,7 @@ type Options = {
 };
 
 function getIssueAlertUrl({projects, organization}: Options) {
-  if (!projects || !projects.length) {
+  if (!projects?.length) {
     return makeAlertsPathname({
       path: '/rules/',
       organization,
@@ -65,7 +56,7 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // This shall never be the case, since this is step is locked until a project is created,
   // but if the user falls into this case for some reason,
   // he needs to select the platform again since it is not available as a parameter here
-  if (!projects || !projects.length) {
+  if (!projects?.length) {
     return `/${organization.slug}/:projectId/getting-started/`;
   }
 
@@ -117,7 +108,7 @@ export function getOnboardingTasks({
         description: t('Press the start button for a guided tour through each tab.'),
         skippable: false,
         actionType: 'app',
-        location: makeProjectsPathname({path: '/', orgSlug: organization.slug}),
+        location: makeProjectsPathname({path: '/', organization}),
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },
@@ -160,7 +151,7 @@ export function getOnboardingTasks({
       ),
       skippable: false,
       actionType: 'app',
-      location: makeProjectsPathname({path: '/new/', orgSlug: organization.slug}),
+      location: makeProjectsPathname({path: '/new/', organization}),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
     },
@@ -174,12 +165,6 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: getOnboardingInstructionsUrl({projects, organization}),
       display: true,
-      SupplementComponent: ({task}: OnboardingSupplementComponentProps) => {
-        if (!projects?.length || taskIsDone(task)) {
-          return null;
-        }
-        return <EventWaitingIndicator text={t('Waiting for error')} />;
-      },
       group: OnboardingTaskGroup.GETTING_STARTED,
     },
     {
@@ -228,7 +213,7 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'app',
-      location: makeProjectsPathname({path: '/new/', orgSlug: organization.slug}),
+      location: makeProjectsPathname({path: '/new/', organization}),
       display: true,
     },
     {
@@ -278,12 +263,6 @@ export function getOnboardingTasks({
         );
       },
       display: true,
-      SupplementComponent: ({task}: OnboardingSupplementComponentProps) => {
-        if (!projects?.length || taskIsDone(task)) {
-          return null;
-        }
-        return <EventWaitingIndicator />;
-      },
     },
     {
       task: OnboardingTaskKey.SESSION_REPLAY,
@@ -308,13 +287,6 @@ export function getOnboardingTasks({
         }, 0);
       },
       display: organization.features?.includes('session-replay'),
-      SupplementComponent: ({task}: OnboardingSupplementComponentProps) => {
-        if (!projects?.length || taskIsDone(task)) {
-          return null;
-        }
-
-        return <EventWaitingIndicator text={t('Waiting for user session')} />;
-      },
     },
     {
       task: OnboardingTaskKey.RELEASE_TRACKING,
@@ -378,29 +350,3 @@ export function getMergedTasks({organization, projects}: Options) {
   const supportedTasks = filterSupportedTasks(projects, allTasks);
   return supportedTasks;
 }
-
-const PulsingIndicator = styled('div')`
-  ${pulsingIndicatorStyles};
-  margin: 0;
-`;
-
-const EventWaitingIndicator = styled(
-  ({
-    text,
-    ...p
-  }: React.HTMLAttributes<HTMLDivElement> & {
-    text?: string;
-  }) => {
-    return (
-      <div {...p}>
-        <Tooltip title={text || t('Waiting for event')}>
-          <PulsingIndicator />
-        </Tooltip>
-      </div>
-    );
-  }
-)`
-  display: flex;
-  align-items: center;
-  height: 16px;
-`;

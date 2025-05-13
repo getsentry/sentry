@@ -80,6 +80,7 @@ descendants, such as Event, so it can more efficiently bulk delete rows.
 
 from __future__ import annotations
 
+import functools
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -193,9 +194,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     # fmt: on
 
 
-_default_manager = None
-
-
+@functools.cache
 def get_manager() -> DeletionTaskManager:
     """
     Get the deletions default_manager
@@ -205,13 +204,10 @@ def get_manager() -> DeletionTaskManager:
     """
     from sentry.deletions.base import ModelDeletionTask
 
-    global _default_manager
+    default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
+    load_defaults(default_manager)
 
-    if _default_manager is None:
-        _default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
-        load_defaults(_default_manager)
-
-    return _default_manager
+    return default_manager
 
 
 def get(

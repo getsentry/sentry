@@ -3,11 +3,13 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   SearchQueryBuilderContext,
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {useOnChange} from 'sentry/components/searchQueryBuilder/hooks/useOnChange';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
@@ -18,15 +20,12 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
-import usePrevious from 'sentry/utils/usePrevious';
 
 export interface SearchQueryBuilderProps {
   /**
@@ -41,6 +40,7 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  autoFocus?: boolean;
   className?: string;
   disabled?: boolean;
   /**
@@ -109,6 +109,10 @@ export interface SearchQueryBuilderProps {
    */
   recentSearches?: SavedSearchType;
   /**
+   * When true, will trigger the `onSearch` callback when the query changes.
+   */
+  searchOnChange?: boolean;
+  /**
    * When true, will display a visual indicator when there are unsaved changes.
    * This search is considered unsubmitted when query !== initialQuery.
    */
@@ -176,30 +180,26 @@ function ActionButtons({
   );
 }
 
-export function SearchQueryBuilderUI({
+function SearchQueryBuilderUI({
+  autoFocus,
   className,
   disabled = false,
   label,
   initialQuery,
-  onChange,
   onBlur,
   queryInterface = QueryInterfaceType.TOKENIZED,
   showUnsubmittedIndicator,
   trailingItems,
+  onChange,
+  searchOnChange,
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch, wrapperRef, actionBarRef, size} =
     useSearchQueryBuilder();
 
+  useOnChange({onChange, searchOnChange});
   useLayoutEffect(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
   }, [dispatch, initialQuery]);
-
-  const previousQuery = usePrevious(query);
-  useEffectAfterFirstRender(() => {
-    if (previousQuery !== query) {
-      onChange?.(query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)});
-    }
-  }, [onChange, query, previousQuery, parsedQuery]);
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 
@@ -216,12 +216,16 @@ export function SearchQueryBuilderUI({
       <PanelProvider>
         <SearchIndicator
           initialQuery={initialQuery}
-          showUnsubmittedIndicator={showUnsubmittedIndicator}
+          showUnsubmittedIndicator={showUnsubmittedIndicator && !searchOnChange}
         />
         {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
           <PlainTextQueryInput label={label} />
         ) : (
-          <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
+          <TokenizedQueryGrid
+            autoFocus={autoFocus || false}
+            label={label}
+            actionBarWidth={actionBarWidth}
+          />
         )}
         {size !== 'small' && (
           <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
@@ -257,7 +261,8 @@ const Wrapper = styled(Input.withComponent('div'))`
 const ButtonsWrapper = styled('div')`
   position: absolute;
   right: 9px;
-  top: 9px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   gap: ${space(0.5)};

@@ -15,9 +15,9 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
-export const DEFAULT_EAP_AGGREGATION = 'count';
-export const DEFAULT_EAP_FIELD = 'span.duration';
-export const DEFAULT_EAP_METRICS_ALERT_FIELD = `${DEFAULT_EAP_AGGREGATION}(${DEFAULT_EAP_FIELD})`;
+const DEFAULT_EAP_AGGREGATION = 'count';
+const DEFAULT_EAP_FIELD = 'span.duration';
+const DEFAULT_EAP_METRICS_ALERT_FIELD = `${DEFAULT_EAP_AGGREGATION}(${DEFAULT_EAP_FIELD})`;
 
 interface Props {
   aggregate: string;

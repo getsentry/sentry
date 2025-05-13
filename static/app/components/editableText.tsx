@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -181,7 +182,7 @@ function EditableText({
 
 export default EditableText;
 
-export const Label = styled('div')<{isDisabled: boolean}>`
+const Label = styled('div')<{isDisabled: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
@@ -231,7 +232,7 @@ const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
 
   ${p =>
     p.isDisabled &&
-    `
+    css`
       ${InnerLabel} {
         border-bottom-color: transparent;
       }

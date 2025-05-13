@@ -40,11 +40,11 @@ class IntegrationTestCase(TestCase):
         assert integration.model.id == self.model.id
         assert integration.org_integration is not None
         assert integration.org_integration.id == self.org_integration.id
-        assert integration.get_default_identity() == serialize_identity(self.identity)
+        assert integration.default_identity == serialize_identity(self.identity)
 
     def test_missing_org_integration(self):
         with pytest.raises(Identity.DoesNotExist):
-            ExampleIntegration(self.model, -1).get_default_identity()
+            ExampleIntegration(self.model, -1).default_identity
 
     def test_model_default_fields(self):
         # These fields are added through the DefaultFieldsModel

@@ -27,6 +27,8 @@ from sentry.models.release import Release
 from sentry.models.userreport import UserReport
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
@@ -493,6 +495,9 @@ def unlock_hashes(project_id, locked_primary_hashes):
     name="sentry.tasks.unmerge",
     queue="unmerge",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+    ),
 )
 def unmerge(*posargs, **kwargs):
     args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)

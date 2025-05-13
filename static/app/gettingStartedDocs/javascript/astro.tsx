@@ -47,6 +47,9 @@ export default defineConfig({
       replaysSessionSampleRate: 0,
       replaysOnErrorSampleRate: 0,`
       }
+      // Setting this option to true will send default PII data to Sentry.
+      // For example, automatic IP address collection on events
+      sendDefaultPii: true,
       sourceMapsUploadOptions: {
         project: "${params.projectSlug}",
         authToken: process.env.SENTRY_AUTH_TOKEN,

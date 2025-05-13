@@ -6,6 +6,9 @@ from typing import Any, Literal, cast
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
@@ -52,7 +55,7 @@ from sentry.search.eap.utils import validate_sampling
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 
 
 @dataclass(frozen=True)
@@ -90,7 +93,9 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Unknown function {function_name}")
 
     @sentry_sdk.trace
-    def resolve_meta(self, referrer: str, sampling_mode: str | None = None) -> RequestMeta:
+    def resolve_meta(
+        self, referrer: str, sampling_mode: SAMPLING_MODES | None = None
+    ) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
         span = sentry_sdk.get_current_span()
@@ -152,23 +157,18 @@ class SearchResolver:
         if not isinstance(resolved_column.proto_definition, AttributeKey):
             return None
 
-        # TODO: replace this with an IN condition when the RPC supports it
-        filters = [
-            TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=resolved_column.proto_definition,
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(val_str=environment.name),
-                )
-            )
-            for environment in self.params.environments
-            if environment is not None
-        ]
+        envs = [env.name for env in self.params.environments if env is not None]
 
-        if not filters:
+        if not envs:
             return None
 
-        return TraceItemFilter(or_filter=OrFilter(filters=filters))
+        return TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=resolved_column.proto_definition,
+                op=ComparisonFilter.OP_IN,
+                value=AttributeValue(val_str_array=StrArray(values=envs)),
+            )
+        )
 
     def __resolve_query(
         self, querystring: str | None
@@ -406,7 +406,9 @@ class SearchResolver:
 
         value = term.value.value
         if self.params.is_timeseries_request and context_definition is not None:
-            resolved_column, value = self.map_context_to_original_column(term, context_definition)
+            resolved_column, value = self.map_search_term_context_to_original_column(
+                term, context_definition
+            )
             context_definition = None
 
         if not isinstance(resolved_column.proto_definition, AttributeKey):
@@ -454,12 +456,44 @@ class SearchResolver:
                     key=resolved_column.proto_definition,
                 )
             )
-            if term.operator == "=":
+            if term.operator == "!=":
+                filters = [exists_filter]
+                if resolved_column.proto_definition.type == constants.STRING:
+                    filters.append(
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=resolved_column.proto_definition,
+                                op=operator,
+                                value=self._resolve_search_value(
+                                    resolved_column, term.operator, value
+                                ),
+                            )
+                        )
+                    )
                 return (
-                    TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))
-                ), context_definition
+                    TraceItemFilter(and_filter=AndFilter(filters=filters)),
+                    context_definition,
+                )
+            elif term.operator == "=":
+                filters = [TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))]
+                if resolved_column.proto_definition.type == constants.STRING:
+                    filters.append(
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=resolved_column.proto_definition,
+                                op=operator,
+                                value=self._resolve_search_value(
+                                    resolved_column, term.operator, value
+                                ),
+                            )
+                        )
+                    )
+                return (
+                    TraceItemFilter(or_filter=OrFilter(filters=filters)),
+                    context_definition,
+                )
             else:
-                return exists_filter, context_definition
+                raise InvalidSearchQuery(f"Unsupported operator for empty strings {term.operator}")
 
         return (
             TraceItemFilter(
@@ -474,9 +508,8 @@ class SearchResolver:
 
     def map_context_to_original_column(
         self,
-        term: event_search.SearchFilter,
         context_definition: VirtualColumnDefinition,
-    ) -> tuple[ResolvedAttribute, str | int | list[str]]:
+    ) -> ResolvedAttribute:
         """
         Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
         (see https://github.com/getsentry/eap-planning/issues/236)
@@ -496,10 +529,30 @@ class SearchResolver:
         if public_alias is None:
             raise InvalidSearchQuery(f"Cannot map {context.from_column_name} to a public alias")
 
-        value = term.value.value
         resolved_column, _ = self.resolve_column(public_alias)
+
         if not isinstance(resolved_column.proto_definition, AttributeKey):
-            raise ValueError(f"{term.key.name} is not valid search term")
+            raise ValueError(f"{resolved_column.public_alias} is not valid search term")
+
+        return resolved_column
+
+    def map_search_term_context_to_original_column(
+        self,
+        term: event_search.SearchFilter,
+        context_definition: VirtualColumnDefinition,
+    ) -> tuple[ResolvedAttribute, str | int | list[str]]:
+        """
+        Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
+        (see https://github.com/getsentry/eap-planning/issues/236)
+        """
+        context = context_definition.constructor(self.params)
+        is_number_column = (
+            context.from_column_name in SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"]
+        )
+
+        resolved_column = self.map_context_to_original_column(context_definition)
+
+        value = term.value.value
 
         inverse_value_map: dict[str, list[str]] = {}
         for key, val in context.value_map.items():
@@ -536,8 +589,11 @@ class SearchResolver:
         self, term: event_search.AggregateFilter
     ) -> tuple[AggregationFilter, VirtualColumnDefinition | None]:
         resolved_column, context = self.resolve_column(term.key.name)
+        proto_definition = resolved_column.proto_definition
 
-        if not isinstance(resolved_column.proto_definition, AttributeAggregation):
+        if not isinstance(
+            proto_definition, (AttributeAggregation, AttributeConditionalAggregation)
+        ):
             raise ValueError(f"{term.key.name} is not valid search term")
 
         # TODO: Handle different units properly
@@ -548,13 +604,16 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
+        kwargs = {"op": operator, "val": value}
+        aggregation_key = (
+            "conditional_aggregation"
+            if isinstance(proto_definition, AttributeConditionalAggregation)
+            else "aggregation"
+        )
+        kwargs[aggregation_key] = proto_definition
         return (
             AggregationFilter(
-                comparison_filter=AggregationComparisonFilter(
-                    aggregation=resolved_column.proto_definition,
-                    op=operator,
-                    val=value,
-                ),
+                comparison_filter=AggregationComparisonFilter(**kwargs),
             ),
             context,
         )
@@ -616,6 +675,8 @@ class SearchResolver:
                         )
                     bool_value = lowered_value in constants.TRUTHY_VALUES
                     return AttributeValue(val_bool=bool_value)
+                elif isinstance(value, bool):
+                    return AttributeValue(val_bool=value)
             raise InvalidSearchQuery(
                 f"{value} is not a valid filter value for {column.public_alias}, expecting {constants.TYPE_TO_STRING_MAP[column_type]}, but got a {type(value)}"
             )
@@ -740,7 +801,8 @@ class SearchResolver:
                 field_type = "string"
             else:
                 field_type = None
-            field = tag_match.group("tag") if tag_match else column
+            # make sure to remove surrounding quotes if it's a tag
+            field = tag_match.group("tag").strip('"') if tag_match else column
             if field is None:
                 raise InvalidSearchQuery(f"Could not parse {column}")
             # Assume string if a type isn't passed. eg. tags[foo]

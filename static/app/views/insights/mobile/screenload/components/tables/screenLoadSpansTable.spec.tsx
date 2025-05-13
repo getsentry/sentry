@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
@@ -25,22 +26,7 @@ describe('ScreenLoadSpansTable', function () {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    },
-  });
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
   let eventsMock: jest.Mock;
   beforeEach(function () {
@@ -111,7 +97,6 @@ describe('ScreenLoadSpansTable', function () {
             'ttid_contribution_rate()',
             'ttfd_contribution_rate()',
             'count()',
-            'time_spent_percentage()',
             'sum(span.self_time)',
           ],
           per_page: 25,
@@ -119,7 +104,7 @@ describe('ScreenLoadSpansTable', function () {
           query:
             'transaction.op:ui.load transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] ( release:io.sentry.samples.android@7.0.0+2 OR release:io.sentry.samples.android@6.27.0+2 )',
           referrer: 'api.starfish.mobile-span-table',
-          sort: '-time_spent_percentage()',
+          sort: '-sum(span.self_time)',
           statsPeriod: '14d',
         }),
       })

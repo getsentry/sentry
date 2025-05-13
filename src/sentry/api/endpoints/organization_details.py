@@ -45,8 +45,10 @@ from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
+    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -57,10 +59,8 @@ from sentry.constants import (
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ROLLBACK_ENABLED_DEFAULT,
-    SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
-    SENSITIVE_FIELDS_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
@@ -124,8 +124,8 @@ ORG_OPTIONS = (
         ACCOUNT_RATE_LIMIT_DEFAULT,
     ),
     ("dataScrubber", "sentry:require_scrub_data", bool, REQUIRE_SCRUB_DATA_DEFAULT),
-    ("sensitiveFields", "sentry:sensitive_fields", list, SENSITIVE_FIELDS_DEFAULT),
-    ("safeFields", "sentry:safe_fields", list, SAFE_FIELDS_DEFAULT),
+    ("sensitiveFields", "sentry:sensitive_fields", list, None),
+    ("safeFields", "sentry:safe_fields", list, None),
     (
         "scrapeJavaScript",
         "sentry:scrape_javascript",
@@ -202,6 +202,12 @@ ORG_OPTIONS = (
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
     (
+        "gitlabPRBot",
+        "sentry:gitlab_pr_bot",
+        bool,
+        GITLAB_COMMENT_BOT_DEFAULT,
+    ),
+    (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
         bool,
@@ -216,6 +222,13 @@ ORG_OPTIONS = (
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
     ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
     ("rollbackEnabled", "sentry:rollback_enabled", bool, ROLLBACK_ENABLED_DEFAULT),
+    (
+        # Sets the default value for new projects created in this organization
+        "defaultAutofixAutomationTuning",
+        "sentry:default_autofix_automation_tuning",
+        str,
+        DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -265,6 +278,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
+    gitlabPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -276,6 +290,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     samplingMode = serializers.ChoiceField(choices=DynamicSamplingMode.choices, required=False)
     rollbackEnabled = serializers.BooleanField(required=False)
     rollbackSharingEnabled = serializers.BooleanField(required=False)
+    defaultAutofixAutomationTuning = serializers.ChoiceField(
+        choices=["off", "low", "medium", "high", "always"],
+        required=False,
+        help_text="The default automation tuning setting for new projects.",
+    )
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -387,6 +406,17 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         # as this is handled by a choice field, we don't need to check the values of the field
 
+        return value
+
+    def validate_defaultAutofixAutomationTuning(self, value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=request.user
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
         return value
 
     def validate(self, attrs):
@@ -621,6 +651,7 @@ def post_org_pending_deletion(
         "projectRateLimit",
         "apdexThreshold",
         "genAIConsent",
+        "defaultAutofixAutomationTuning",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -792,6 +823,12 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     )
     githubNudgeInvite = serializers.BooleanField(
         help_text="Specify `true` to allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization. Requires a GitHub integration.",
+        required=False,
+    )
+
+    # gitlab features
+    gitlabPRBot = serializers.BooleanField(
+        help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitLab integration.",
         required=False,
     )
 
@@ -978,6 +1015,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 ):
                     boost_low_volume_projects_of_org_with_query.delay(
                         organization.id,
+                    )
+
+                if is_org_mode and "defaultAutofixAutomationTuning" in changed_data:
+                    organization.update_option(
+                        "sentry:default_autofix_automation_tuning",
+                        serializer.validated_data["defaultAutofixAutomationTuning"],
                     )
 
             if was_pending_deletion:

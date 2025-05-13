@@ -1,129 +1,143 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
+import {DeadRageClicksWidget} from 'sentry/views/insights/pages/platform/nextjs/deadRageClickWidget';
+import SSRTreeWidget from 'sentry/views/insights/pages/platform/nextjs/ssrTreeWidget';
+import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
+import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {PagesTable} from 'sentry/views/insights/pages/platform/shared/pagesTable';
+import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
+import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
+import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 
-function PlaceholderWidget() {
-  return <Widget Title={<Widget.WidgetTitle title="Placeholder Widget" />} />;
-}
+type View = 'api' | 'pages';
+type SpanOperation = 'pageload' | 'navigation';
 
-export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}) {
+// Define cursor parameter names based on span operation
+const CURSOR_PARAM_NAMES: Record<SpanOperation, string> = {
+  pageload: 'pageCursor',
+  navigation: 'navCursor',
+};
+const spanOperationOptions: Array<SelectOption<SpanOperation>> = [
+  {value: 'pageload', label: t('Pageloads')},
+  {value: 'navigation', label: t('Navigations')},
+];
+
+export function NextJsOverviewPage({
+  performanceType,
+}: {
+  performanceType: 'backend' | 'frontend';
+}) {
   const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const activeView: View = (location.query.view as View) ?? 'api';
+  const spanOperationFilter: SpanOperation =
+    (location.query.spanOp as SpanOperation) ?? 'pageload';
+
+  const updateQuery = (newParams: Record<string, string>) => {
+    const newQuery = {
+      ...location.query,
+      ...newParams,
+    };
+    if ('spanOp' in newParams && newParams.spanOp !== spanOperationFilter) {
+      const oldCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
+      delete newQuery[oldCursorParamName];
+    }
+
+    navigate(
+      {
+        pathname: location.pathname,
+        query: newQuery,
+      },
+      {replace: true}
+    );
+  };
 
   useEffect(() => {
     trackAnalytics('nextjs-insights.page-view', {
       organization,
+      view: activeView,
+      spanOp: spanOperationFilter,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const {query, setTransactionFilter} = useTransactionNameQuery();
+  }, [organization, activeView, spanOperationFilter]);
 
   return (
-    <PlatformLandingPageLayout headerTitle={headerTitle}>
+    <PlatformLandingPageLayout performanceType={performanceType}>
       <WidgetGrid>
-        <RequestsContainer>
-          <PlaceholderWidget />
-        </RequestsContainer>
-        <IssuesContainer>
-          <IssuesWidget query={query} />
-        </IssuesContainer>
-        <DurationContainer>
-          <PlaceholderWidget />
-        </DurationContainer>
-        <JobsContainer>
-          <PlaceholderWidget />
-        </JobsContainer>
-        <QueriesContainer>
-          <PlaceholderWidget />
-        </QueriesContainer>
-        <CachesContainer>
-          <PlaceholderWidget />
-        </CachesContainer>
+        <WidgetGrid.Position1>
+          <TrafficWidget
+            title={t('Traffic')}
+            trafficSeriesName={t('Page views')}
+            baseQuery={'span.op:[navigation,pageload]'}
+          />
+        </WidgetGrid.Position1>
+        <WidgetGrid.Position2>
+          <DurationWidget />
+        </WidgetGrid.Position2>
+        <WidgetGrid.Position3>
+          <IssuesWidget />
+        </WidgetGrid.Position3>
+        <WidgetGrid.Position4>
+          <WebVitalsWidget />
+        </WidgetGrid.Position4>
+        <WidgetGrid.Position5>
+          <DeadRageClicksWidget />
+        </WidgetGrid.Position5>
+        <WidgetGrid.Position6>
+          <SSRTreeWidget />
+        </WidgetGrid.Position6>
       </WidgetGrid>
-      <PathsTable handleAddTransactionFilter={setTransactionFilter} query={query} />
+      <ControlsWrapper>
+        <SegmentedControl
+          value={activeView}
+          onChange={value => updateQuery({view: value})}
+          size="sm"
+        >
+          <SegmentedControl.Item key="api">{t('API')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="pages">{t('Pages')}</SegmentedControl.Item>
+        </SegmentedControl>
+        {activeView === 'pages' && (
+          <CompactSelect<SpanOperation>
+            size="sm"
+            triggerProps={{prefix: t('Display')}}
+            options={spanOperationOptions}
+            value={spanOperationFilter}
+            onChange={(option: SelectOption<SpanOperation>) =>
+              updateQuery({spanOp: option.value})
+            }
+          />
+        )}
+      </ControlsWrapper>
+
+      {activeView === 'api' && (
+        <PathsTable showHttpMethodColumn={false} showUsersColumn={false} />
+      )}
+
+      {activeView === 'pages' && (
+        // Set key to force the PagesTable component to rerender the table & column order
+        // when the user switches between navigations and pageloads
+        <PagesTable key={spanOperationFilter} spanOperationFilter={spanOperationFilter} />
+      )}
     </PlatformLandingPageLayout>
   );
 }
 
-const WidgetGrid = styled('div')`
-  display: grid;
-  gap: ${space(2)};
-  padding-bottom: ${space(2)};
-
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 180px 180px 300px 240px 300px 300px;
-  grid-template-areas:
-    'requests'
-    'duration'
-    'issues'
-    'jobs'
-    'queries'
-    'caches';
-
-  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 180px 300px 240px 300px;
-    grid-template-areas:
-      'requests duration'
-      'issues issues'
-      'jobs jobs'
-      'queries caches';
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: 180px 180px 300px;
-    grid-template-areas:
-      'requests issues issues'
-      'duration issues issues'
-      'jobs queries caches';
-  }
-`;
-
-const RequestsContainer = styled('div')`
-  grid-area: requests;
-`;
-
-// TODO(aknaus): Remove css hacks and build custom IssuesWidget
-const IssuesContainer = styled('div')`
-  grid-area: issues;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr;
-  & > * {
-    min-width: 0;
-    overflow-y: auto;
-    margin-bottom: 0 !important;
-  }
-
-  & ${PanelHeader} {
-    position: sticky;
-    top: 0;
-    z-index: ${p => p.theme.zIndex.header};
-  }
-`;
-
-const DurationContainer = styled('div')`
-  grid-area: duration;
-`;
-
-const JobsContainer = styled('div')`
-  grid-area: jobs;
-`;
-
-const QueriesContainer = styled('div')`
-  grid-area: queries;
-`;
-
-const CachesContainer = styled('div')`
-  grid-area: caches;
+const ControlsWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(1)};
+  margin: ${space(2)} 0;
 `;

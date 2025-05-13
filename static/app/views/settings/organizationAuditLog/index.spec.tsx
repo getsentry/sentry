@@ -67,9 +67,7 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     expect(await screen.findByText('project.remove')).toBeInTheDocument();
     expect(screen.getByText('org.create')).toBeInTheDocument();
@@ -128,9 +126,7 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     // Enabled dynamic sampling priority
     expect(await screen.findByText('sampling_priority.enabled')).toBeInTheDocument();

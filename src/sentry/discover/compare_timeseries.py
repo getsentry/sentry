@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, TypedDict
 from urllib.parse import urlencode
@@ -9,10 +9,14 @@ import sentry_sdk
 from django.urls import reverse
 
 from sentry import features
-from sentry.api.bases.organization import NoProjects
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleDetectionType,
+    AlertRuleThresholdType,
+    AlertRuleTrigger,
+)
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.fields import get_function_alias
@@ -20,7 +24,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.metrics import parse_mri_field
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.snuba.metrics_performance import timeseries_query
+from sentry.snuba.metrics_enhanced_performance import timeseries_query
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import run_timeseries_query
@@ -30,12 +34,18 @@ logger = logging.getLogger(__name__)
 
 
 def format_api_call(organization_slug, **kwargs):
-    url = reverse(
+    path = reverse(
         "sentry-api-0-organization-events-stats",
         kwargs={"organization_id_or_slug": organization_slug},
     )
 
-    return url, urlencode({**kwargs})
+    from sentry.api.utils import generate_region_url
+
+    query = urlencode({**kwargs})
+    region_url = generate_region_url()
+    api_call = f"{region_url}{path}?{query}"
+
+    return api_call
 
 
 class MismatchType(Enum):
@@ -50,13 +60,13 @@ class MismatchType(Enum):
 
 
 def get_time_window_for_interval(interval: int):
-    if interval in [60, 300, 600]:
+    if interval == 60:
         return timedelta(days=1)
 
     if interval == 24 * 60 * 60:
         return timedelta(days=14)
 
-    return timedelta(days=3)
+    return timedelta(days=7)
 
 
 class TSResultForComparison(TypedDict):
@@ -87,19 +97,17 @@ def make_rpc_request(
     assert snuba_params.start is not None
     assert snuba_params.end is not None
 
-    path, query = format_api_call(
+    api_call = format_api_call(
         organization.slug,
         query=query_parts["query"],
-        useRpc=1,
         project=snuba_params.project_ids[0],
         yAxis=query_parts["selected_columns"][0],
         dataset="spans",
         interval=snuba_params.granularity_secs,
         start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        sampling="BEST_EFFORT",
+        sampling="NORMAL",
     )
-    api_call = organization.absolute_url(path, query)
     sentry_sdk.set_extra("eap_call", api_call)
 
     return TSResultForComparison(result=results, agg_alias=query_parts["selected_columns"][0])
@@ -108,7 +116,7 @@ def make_rpc_request(
 def make_snql_request(
     query: str,
     aggregate: str,
-    time_window: int,
+    granularity_secs: int,
     on_demand_metrics_enabled: bool,
     snuba_params: SnubaParams,
     organization: Organization,
@@ -119,7 +127,7 @@ def make_snql_request(
         [aggregate],
         query,
         snuba_params=snuba_params,
-        rollup=time_window,
+        rollup=granularity_secs,
         referrer=Referrer.JOB_COMPARE_TIMESERIES.value,
         on_demand_metrics_enabled=on_demand_metrics_enabled,
         on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
@@ -129,7 +137,7 @@ def make_snql_request(
     assert snuba_params.start is not None
     assert snuba_params.end is not None
 
-    path, query = format_api_call(
+    api_call = format_api_call(
         organization.slug,
         query=query,
         project=snuba_params.project_ids[0],
@@ -139,13 +147,12 @@ def make_snql_request(
         start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
     )
-    api_call = organization.absolute_url(path, query)
     sentry_sdk.set_extra("metrics_call", api_call)
 
     return TSResultForComparison(result=results, agg_alias=get_function_alias(aggregate))
 
 
-def get_mismatch_type(mismatches: dict[int, dict[str, float]]):
+def get_mismatch_type(mismatches: dict[int, dict[str, float]], total_buckets: int):
     all_snql_values_zero = True
     all_rpc_values_zero = True
     snql_always_lower = True
@@ -160,8 +167,8 @@ def get_mismatch_type(mismatches: dict[int, dict[str, float]]):
         snql_value = values["snql_value"]
         rpc_value = values["rpc_value"]
         diff = values["mismatch_percentage"]
-        confidence = values["confidence"]
-        sampling_rate = values["sampling_rate"]
+        confidence = values.get("confidence")
+        sampling_rate = values.get("sampling_rate")
 
         if snql_value > 0:
             all_snql_values_zero = False
@@ -175,7 +182,7 @@ def get_mismatch_type(mismatches: dict[int, dict[str, float]]):
         if snql_value >= rpc_value:
             snql_always_lower = False
 
-        if snql_value > 0 and rpc_value > 0 and diff > 0.2:
+        if diff > 0.2:
             has_high_diff = True
 
         if confidence == "low":
@@ -193,10 +200,10 @@ def get_mismatch_type(mismatches: dict[int, dict[str, float]]):
     if all_rpc_values_zero:
         return MismatchType.RPC_ALWAYS_ZERO, many_low_conf_buckets, many_low_sample_rate_buckets
 
-    if snql_always_lower:
+    if snql_always_lower and total_buckets - len(mismatches) < 2:
         return MismatchType.SNQL_ALWAYS_LOWER, many_low_conf_buckets, many_low_sample_rate_buckets
 
-    if rpc_always_lower:
+    if rpc_always_lower and total_buckets - len(mismatches) < 2:
         return MismatchType.RPC_ALWAYS_LOWER, many_low_conf_buckets, many_low_sample_rate_buckets
 
     if has_high_diff:
@@ -232,6 +239,9 @@ def align_timeseries(snql_result: TSResultForComparison, rpc_result: TSResultFor
 
 def assert_timeseries_close(aligned_timeseries, alert_rule):
     mismatches: dict[int, dict[str, float]] = {}
+    false_positive_misfire = 0
+    false_negative_misfire = 0
+    rule_triggers = AlertRuleTrigger.objects.get_for_alert_rule(alert_rule)
     missing_buckets = 0
     all_zeros = True
     for timestamp, values in aligned_timeseries.items():
@@ -240,6 +250,42 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
         if rpc_value is None or snql_value is None:
             missing_buckets += 1
             continue
+
+        if alert_rule.detection_type == AlertRuleDetectionType.STATIC:
+            for trigger in rule_triggers:
+                would_fire = False
+                threshold = trigger.alert_threshold
+                comparison_type = (
+                    alert_rule.threshold_type
+                    if alert_rule.threshold_type is not None
+                    else trigger.threshold_type
+                )  # greater or less than
+
+                if (
+                    comparison_type == AlertRuleThresholdType.ABOVE.value and snql_value > threshold
+                ) or (
+                    comparison_type == AlertRuleThresholdType.BELOW.value and snql_value < threshold
+                ):
+                    would_fire = True
+
+                if would_fire:
+                    if (
+                        comparison_type == AlertRuleThresholdType.ABOVE.value
+                        and rpc_value < threshold
+                    ) or (
+                        comparison_type == AlertRuleThresholdType.BELOW.value
+                        and rpc_value > threshold
+                    ):
+                        false_negative_misfire += 1
+                else:
+                    if (
+                        comparison_type == AlertRuleThresholdType.ABOVE.value
+                        and rpc_value > threshold
+                    ) or (
+                        comparison_type == AlertRuleThresholdType.BELOW.value
+                        and rpc_value < threshold
+                    ):
+                        false_positive_misfire += 1
 
         # If the sum is 0, we assume that the numbers must be 0, since we have all positive integers. We still do
         # check the sum in order to protect the division by zero in case for some reason we have -x + x inside of
@@ -257,9 +303,12 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
                 "rpc_value": rpc_value,
                 "snql_value": snql_value,
                 "mismatch_percentage": diff,
-                "sampling_rate": values["sampling_rate"],
-                "confidence": values["confidence"],
+                "sampling_rate": values.get("sampling_rate"),
+                "confidence": values.get("confidence"),
             }
+
+    sentry_sdk.set_tag("false_positive_misfires", false_positive_misfire)
+    sentry_sdk.set_tag("false_negative_misfires", false_negative_misfire)
 
     if mismatches:
         with sentry_sdk.isolation_scope() as scope:
@@ -271,24 +320,21 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
             scope.set_tag("buckets_mismatch.count", len(mismatches))
 
             mismatch_type, many_low_conf_buckets, many_low_sample_rate_buckets = get_mismatch_type(
-                mismatches
+                mismatches, len(aligned_timeseries)
             )
             scope.set_tag("mismatch_type", mismatch_type.value)
             scope.set_tag("many_low_conf_buckets", many_low_conf_buckets)
             scope.set_tag("many_low_sample_rate_buckets", many_low_sample_rate_buckets)
 
             sentry_sdk.capture_message("Timeseries mismatch", level="info")
-            logger.info("Alert %s has too many mismatches", alert_rule.id)
 
             return False, mismatches, all_zeros
 
     if missing_buckets > 1:
         sentry_sdk.capture_message("Multiple missing buckets", level="info")
-        logger.info("Alert %s has multiple missing buckets", alert_rule.id)
 
         return False, mismatches, all_zeros
 
-    logger.info("Alert %s timeseries is close", alert_rule.id)
     return True, mismatches, all_zeros
 
 
@@ -296,9 +342,9 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     snuba_query: SnubaQuery = alert_rule.snuba_query
     project = alert_rule.projects.first()
     if not project:
-        raise NoProjects
+        return {"is_close": False, "skipped": True, "mismatches": {}}
 
-    if snuba_query.aggregate in ["apdex()"]:
+    if "apdex" in snuba_query.aggregate or "percentile" in snuba_query.aggregate:
         logger.info(
             "Skipping alert %s, %s aggregate not yet supported by RPC",
             alert_rule.id,
@@ -317,27 +363,46 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     sentry_sdk.set_tag("organization", organization.slug)
-    sentry_sdk.set_extra("alert_id", alert_rule.id)
+    sentry_sdk.set_tag("alert_id", alert_rule.id)
+    sentry_sdk.set_tag("detection_type", alert_rule.detection_type)
 
     on_demand_metrics_enabled = features.has(
         "organizations:on-demand-metrics-extraction",
         organization,
     )
 
-    # Align time to the nearest hour because RPCs roll up on exact timestamps.
-    now = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
+    time_window = get_time_window_for_interval(snuba_query.time_window)
+
+    # EAP timeseries don't round time buckets to the nearest time window snql does,
+    # So for example, if start was 7:01 with a 15 min interval, EAP would
+    # bucket it as 7:01, 7:16 etc. Force rounding the start and end times so we
+    # get the buckets snql returns so we can match time buckets.
+    rounded_end = (
+        int(datetime.now(tz=timezone.utc).timestamp() / snuba_query.time_window)
+        * snuba_query.time_window
+    )
+    rounded_end_datetime = datetime.fromtimestamp(rounded_end, UTC)
+
+    rounded_start = (
+        int(
+            (datetime.fromtimestamp(rounded_end, UTC) - time_window).timestamp()
+            / snuba_query.time_window
+        )
+        * snuba_query.time_window
+    )
+
+    rounded_start_datetime = datetime.fromtimestamp(rounded_start, UTC)
 
     environments = []
     if snuba_query.environment:
         environments = [snuba_query.environment]
 
-    time_window = get_time_window_for_interval(snuba_query.time_window)
     snuba_params = SnubaParams(
         environments=environments,
         projects=[project],
         organization=organization,
-        start=now - time_window,
-        end=now,
+        start=rounded_start_datetime,
+        end=rounded_end_datetime,
         granularity_secs=snuba_query.time_window,
     )
 
@@ -352,7 +417,7 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
         snql_result = make_snql_request(
             snuba_query.query,
             snuba_query.aggregate,
-            time_window=snuba_query.time_window,
+            granularity_secs=snuba_query.time_window,
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             snuba_params=snuba_params,
             organization=organization,
@@ -366,6 +431,8 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
 
     aligned_timeseries = align_timeseries(snql_result=snql_result, rpc_result=rpc_result)
     is_close, mismatches, all_zeros = assert_timeseries_close(aligned_timeseries, alert_rule)
+
+    sentry_sdk.set_tag("aggregate", snuba_query.aggregate)
 
     if all_zeros:
         with sentry_sdk.isolation_scope() as scope:

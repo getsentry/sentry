@@ -1,4 +1,6 @@
 import gc
+import logging
+import random
 from datetime import datetime
 from itertools import chain
 from typing import Any
@@ -7,8 +9,11 @@ from celery import Celery, Task, signals
 from celery.worker.request import Request
 from django.conf import settings
 from django.db import models
+from django.utils.safestring import SafeString
 
 from sentry.utils import metrics
+
+logger = logging.getLogger("celery.pickle")
 
 # XXX: Pickle parameters are not allowed going forward
 LEGACY_PICKLE_TASKS: frozenset[str] = frozenset([])
@@ -42,8 +47,17 @@ def holds_bad_pickle_object(value, memo=None):
         )
     app_module = type(value).__module__
     if app_module.startswith(("sentry.", "getsentry.")):
-        return value, "do not pickle custom classes"
-
+        return value, "do not pickle application classes"
+    elif app_module.startswith("kombu."):
+        # Celery injects these into calls, they don't get passed with taskworker
+        return None
+    elif isinstance(value, SafeString):
+        # Django string wrappers json encode fine
+        return None
+    elif value is None:
+        return None
+    elif not isinstance(value, (dict, list, str, float, int, bool, tuple, frozenset)):
+        return value, "do not pickle stdlib classes"
     return None
 
 
@@ -91,13 +105,22 @@ class SentryTask(Task):
 
     def apply_async(self, *args, **kwargs):
         self._add_metadata(kwargs)
-        # If intended detect bad uses of pickle and make the tasks fail in tests.  This should
-        # in theory pick up a lot of bad uses without accidentally failing tasks in prod.
-        if (
+        # If there is a bad use of pickle create a sentry exception to be found and fixed later.
+        # If this is running in tests, instead raise the exception and fail outright.
+        should_complain = (
             settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE
             and self.name not in LEGACY_PICKLE_TASKS
-        ):
-            good_use_of_pickle_or_bad_use_of_pickle(self, args, kwargs)
+        )
+        should_sample = random.random() <= settings.CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE
+        if should_complain or should_sample:
+            try:
+                good_use_of_pickle_or_bad_use_of_pickle(self, args, kwargs)
+            except TypeError:
+                logger.exception(
+                    "Task args contain unserializable objects",
+                )
+                if should_complain:
+                    raise
 
         with metrics.timer("jobs.delay", instance=self.name):
             return Task.apply_async(self, *args, **kwargs)

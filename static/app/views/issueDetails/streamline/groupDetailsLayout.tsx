@@ -7,6 +7,8 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -20,6 +22,10 @@ import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNa
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from 'sentry/views/issueDetails/utils';
 
 function GroupLayoutBody({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
@@ -45,6 +51,7 @@ export function GroupDetailsLayout({
 }: GroupDetailsLayoutProps) {
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   return (
     <IssueDetailsContextProvider>
@@ -74,11 +81,13 @@ export function GroupDetailsLayout({
             position="top"
           >
             <GroupContent>
-              <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-                <IssueEventNavigation event={event} group={group} />
-                {/* Since the event details header is disabled, display the sidebar toggle here */}
-                {!hasFilterBar && <ToggleSidebar size="sm" />}
-              </NavigationSidebarWrapper>
+              {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
+                <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
+                  <IssueEventNavigation event={event} group={group} />
+                  {/* Since the event details header is disabled, display the sidebar toggle here */}
+                  {!hasFilterBar && <ToggleSidebar size="sm" />}
+                </NavigationSidebarWrapper>
+              )}
               <ContentPadding>{children}</ContentPadding>
             </GroupContent>
           </SharedTourElement>
@@ -115,16 +124,29 @@ const GroupContent = styled('section')`
   }
 `;
 
-const NavigationSidebarWrapper = styled('div')<{
-  hasToggleSidebar: boolean;
-}>`
-  position: relative;
-  display: flex;
-  padding: ${p =>
-    p.hasToggleSidebar
-      ? `${space(1)} 0 ${space(0.5)} ${space(1.5)}`
-      : `10px ${space(1.5)} ${space(0.25)} ${space(1.5)}`};
-`;
+const NavigationSidebarWrapper = withChonk(
+  styled('div')<{
+    hasToggleSidebar: boolean;
+  }>`
+    position: relative;
+    display: flex;
+    padding: ${p =>
+      p.hasToggleSidebar
+        ? `${space(1)} 0 ${space(0.5)} ${space(1.5)}`
+        : `10px ${space(1.5)} ${space(0.25)} ${space(1.5)}`};
+  `,
+  chonkStyled('div')<{
+    hasToggleSidebar: boolean;
+  }>`
+    position: relative;
+    display: flex;
+    gap: ${space(0.5)};
+    padding: ${p =>
+      p.hasToggleSidebar
+        ? `${space(1)} 0 ${space(0.5)} ${space(1.5)}`
+        : `10px ${space(1.5)} ${space(0.25)} ${space(1.5)}`};
+  `
+);
 
 const ContentPadding = styled('div')`
   min-height: 100vh;

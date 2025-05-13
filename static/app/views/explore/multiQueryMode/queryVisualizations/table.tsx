@@ -2,12 +2,12 @@ import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import type {Alignments} from 'sentry/components/gridEditable/sortLink';
 import {GridBodyCell, GridHeadCell} from 'sentry/components/gridEditable/styles';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -22,7 +22,6 @@ import {
   prettifyTagKey,
 } from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   TableBody,
   TableHead,
@@ -52,7 +51,6 @@ const TABLE_HEIGHT = 258;
 interface MultiQueryTableBaseProps {
   confidences: Confidence[];
   index: number;
-  isProgressivelyLoading: boolean;
   mode: Mode;
   query: ReadableExploreQueryParts;
 }
@@ -85,7 +83,6 @@ function AggregatesTable({
   aggregatesTableResult,
   query: queryParts,
   index,
-  isProgressivelyLoading,
 }: AggregateTableProps) {
   const theme = useTheme();
   const location = useLocation();
@@ -117,9 +114,7 @@ function AggregatesTable({
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
-              <TableHeadCellContent>
-                {getProgressiveLoadingIndicator(isProgressivelyLoading)}
-              </TableHeadCellContent>
+              <TableHeadCellContent />
             </TableHeadCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined

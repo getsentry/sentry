@@ -30,7 +30,6 @@ import {
   getSearchInExploreTarget,
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
@@ -129,7 +128,6 @@ function EventTagsTreeRowDropdown({
   project,
 }: Pick<EventTagsTreeRowProps, 'content' | 'event' | 'project'>) {
   const location = useLocation();
-  const hasNewTraceUi = useHasTraceNewUi();
   const organization = useOrganization();
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {onClick: handleCopy} = useCopyToClipboard({
@@ -196,7 +194,7 @@ function EventTagsTreeRowDropdown({
     },
   ];
 
-  if (hasNewTraceUi && hasExploreEnabled) {
+  if (hasExploreEnabled) {
     items.push({
       key: 'view-traces',
       label: t('Find more samples with this value'),

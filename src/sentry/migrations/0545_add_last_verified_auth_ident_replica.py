@@ -4,6 +4,7 @@ import django.utils.timezone
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -19,8 +20,6 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0544_remove_groupsubscription_columns"),
     ]
@@ -28,7 +27,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "sentry_authidentityreplica" ADD COLUMN IF NOT EXISTS "last_verified" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
                     """,

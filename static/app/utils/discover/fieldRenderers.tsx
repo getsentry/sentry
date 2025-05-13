@@ -6,6 +6,7 @@ import partial from 'lodash/partial';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -19,7 +20,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
@@ -57,6 +57,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
@@ -128,8 +129,6 @@ type FieldFormatters = {
   size: FieldFormatter;
   string: FieldFormatter;
 };
-
-export type FieldTypes = keyof FieldFormatters;
 
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.subText};
@@ -380,6 +379,7 @@ type SpecialFields = {
   issue: SpecialField;
   'issue.id': SpecialField;
   minidump: SpecialField;
+  'performance_score(measurements.score.total)': SpecialField;
   'profile.id': SpecialField;
   project: SpecialField;
   release: SpecialField;
@@ -403,6 +403,11 @@ const DownloadCount = styled('span')`
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
   margin-right: 0;
+`;
+
+const CenterAlignedContainer = styled('span')`
+  text-align: center;
+  width: 100%;
 `;
 
 /**
@@ -829,6 +834,20 @@ const SPECIAL_FIELDS: SpecialFields = {
       </Container>
     ),
   },
+  'performance_score(measurements.score.total)': {
+    sortField: 'performance_score(measurements.score.total)',
+    renderFunc: data => {
+      const score = data['performance_score(measurements.score.total)'];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <CenterAlignedContainer>
+          <PerformanceBadge score={Math.round(score * 100)} />
+        </CenterAlignedContainer>
+      );
+    },
+  },
 };
 
 type SpecialFunctionFieldRenderer = (
@@ -1128,35 +1147,6 @@ export function getFieldRenderer(
       return SPECIAL_FUNCTIONS[alias](fieldName);
     }
   }
-
-  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
-  }
-  return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
-}
-
-type FieldTypeFormatterRenderFunctionPartial = (
-  data: EventData,
-  baggage?: RenderFunctionBaggage
-) => React.ReactNode;
-
-/**
- * Get the field renderer for the named field only based on its type from the given
- * metadata.
- *
- * @param {String} field name
- * @param {object} metadata mapping.
- * @param {boolean} isAlias convert the name with getAggregateAlias
- * @returns {Function}
- */
-export function getFieldFormatter(
-  field: string,
-  meta: MetaType,
-  isAlias = true
-): FieldTypeFormatterRenderFunctionPartial {
-  const fieldName = isAlias ? getAggregateAlias(field) : field;
-  const fieldType = meta[fieldName] || meta.fields?.[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

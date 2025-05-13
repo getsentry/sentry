@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 export type TypeCellProps = {
-  type: 'metric' | 'errors' | 'performance' | 'trace' | 'replay' | 'uptime';
+  type: DetectorType;
   className?: string;
   disabled?: boolean;
 };

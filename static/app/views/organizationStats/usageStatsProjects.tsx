@@ -49,7 +49,7 @@ type Props = {
 
 const MAX_ROWS_USAGE_TABLE = 25;
 
-export enum SortBy {
+enum SortBy {
   PROJECT = 'project',
   TOTAL = 'total',
   ACCEPTED = 'accepted',

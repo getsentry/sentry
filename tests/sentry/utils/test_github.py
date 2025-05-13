@@ -24,7 +24,7 @@ GITHUB_META_PUBLIC_KEYS_RESPONSE = {
 class TestGitHub(TestCase):
     def setUp(self):
         # https://docs.github.com/en/code-security/secret-scanning/secret-scanning-partner-program#implement-signature-verification-in-your-secret-alert-service
-        self.payload = """[{"source":"commit","token":"some_token","type":"some_type","url":"https://example.com/base-repo-url/"}]"""
+        self.payload = b"""[{"source":"commit","token":"some_token","type":"some_type","url":"https://example.com/base-repo-url/"}]"""
         self.signature = "MEQCIQDaMKqrGnE27S0kgMrEK0eYBmyG0LeZismAEz/BgZyt7AIfXt9fErtRS4XaeSt/AO1RtBY66YcAdjxji410VQV4xg=="
         self.key_id = "bcb53661c06b4728e59d897fb6165d5c9cda0fd9cdf9d09ead458168deb7518c"
         self.subpath = "secret_scanning"
@@ -56,7 +56,7 @@ class TestGitHub(TestCase):
         assert "No public key found matching key identifier" in str(excinfo.value)
 
     def test_verify_signature_invalid_signature(self):
-        self.payload = "[]"
+        self.payload = b"[]"
         with pytest.raises(ValueError) as excinfo:
             self._verify()
         assert "Signature does not match payload" in str(excinfo.value)

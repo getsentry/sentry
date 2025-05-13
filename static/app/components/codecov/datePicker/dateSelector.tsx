@@ -22,7 +22,7 @@ const SelectorItemsHook = HookOrDefault({
   defaultComponent: SelectorItems,
 });
 
-export type ChangeData = {
+type ChangeData = {
   relative: string | null;
 };
 

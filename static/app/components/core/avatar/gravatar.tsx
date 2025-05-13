@@ -9,7 +9,7 @@ import {
 } from 'sentry/components/core/avatar/baseAvatarComponentStyles';
 import ConfigStore from 'sentry/stores/configStore';
 
-export interface GravatarProps extends BaseAvatarComponentProps {
+interface GravatarProps extends BaseAvatarComponentProps {
   remoteSize: number;
   gravatarId?: string;
   onError?: () => void;

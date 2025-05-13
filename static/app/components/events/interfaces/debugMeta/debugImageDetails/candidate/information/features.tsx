@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {getImageFeatureDescription} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import type {CandidateDownload} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageFeature} from 'sentry/types/debugImage';
 
