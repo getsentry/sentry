@@ -58,7 +58,9 @@
                 "quoted": false,
                 "type": "valueText",
                 "value": "*",
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             }
           ],
@@ -96,7 +98,9 @@
           "type": "valueText",
           "value": "*",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         },
         "invalid": {
           "type": "wildcard-not-allowed",

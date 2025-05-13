@@ -10,7 +10,14 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "foo", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "bar", "quoted": false, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "bar",
+          "quoted": false,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -26,7 +33,14 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "foo", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "*", "quoted": false, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "*",
+          "quoted": false,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -42,7 +56,14 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "foo", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "**", "quoted": false, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "**",
+          "quoted": false,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -62,7 +83,9 @@
           "type": "valueText",
           "value": "*bar*",
           "quoted": false,
-          "contains": true
+          "contains": true,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -83,7 +106,9 @@
           "type": "valueText",
           "value": "*em*",
           "quoted": true,
-          "contains": true
+          "contains": true,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -104,7 +129,9 @@
           "type": "valueText",
           "value": "*e m*",
           "quoted": true,
-          "contains": true
+          "contains": true,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}

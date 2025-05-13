@@ -13,7 +13,9 @@
           "quoted": false,
           "type": "valueText",
           "value": "1.2.3",
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -33,7 +35,9 @@
           "quoted": false,
           "type": "valueText",
           "value": "1.2.3-hi",
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -53,7 +57,9 @@
           "quoted": false,
           "type": "valueText",
           "value": "1.2.3-hi",
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -73,7 +79,9 @@
           "quoted": false,
           "type": "valueText",
           "value": "1.2.3-hi",
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}

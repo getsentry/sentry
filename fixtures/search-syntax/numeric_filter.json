@@ -14,7 +14,9 @@
           "type": "valueText",
           "value": ">500",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -35,7 +37,9 @@
           "type": "valueText",
           "value": ">500",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -51,7 +55,14 @@
         "negated": true,
         "key": {"type": "keySimple", "value": "random_field", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "500", "quoted": false, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "500",
+          "quoted": false,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

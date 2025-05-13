@@ -15,7 +15,9 @@
           "type": "valueText",
           "value": "foo@example.com",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -31,7 +33,9 @@
           "type": "valueText",
           "value": "1.2.1",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -75,7 +79,14 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "there", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "bye", "quoted": false, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "bye",
+          "quoted": false,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
