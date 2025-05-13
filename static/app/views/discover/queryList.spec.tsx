@@ -140,12 +140,7 @@ describe('Discover > QueryList', function () {
 
   it('renders pre-built queries with dataset', async function () {
     organization = OrganizationFixture({
-      features: [
-        'discover-basic',
-        'discover-query',
-        'performance-view',
-        'performance-discover-dataset-selector',
-      ],
+      features: ['discover-basic', 'discover-query', 'performance-view'],
     });
     render(
       <QueryList
@@ -204,11 +199,7 @@ describe('Discover > QueryList', function () {
 
   it('passes dataset to the query if flag is enabled', async function () {
     const org = OrganizationFixture({
-      features: [
-        'discover-basic',
-        'discover-query',
-        'performance-discover-dataset-selector',
-      ],
+      features: ['discover-basic', 'discover-query'],
     });
     render(
       <QueryList
@@ -630,7 +621,7 @@ describe('Discover > QueryList', function () {
 
   it('passes dataset to open modal', async function () {
     const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit', 'performance-discover-dataset-selector'],
+      features: ['dashboards-edit'],
     });
     render(
       <QueryList

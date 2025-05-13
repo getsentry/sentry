@@ -1310,11 +1310,7 @@ describe('Results', function () {
 
     it('uses split decision to populate dataset selector', async function () {
       const organization = OrganizationFixture({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'performance-discover-dataset-selector',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const {router} = initializeOrg({
@@ -1356,11 +1352,7 @@ describe('Results', function () {
 
     it('calls events endpoint with the right dataset', async function () {
       const organization = OrganizationFixture({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'performance-discover-dataset-selector',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const {router} = initializeOrg({
@@ -1527,11 +1519,7 @@ describe('Results', function () {
 
     it('shows the search history for the error dataset', async function () {
       const organization = OrganizationFixture({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'performance-discover-dataset-selector',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const {router} = initializeOrg({
@@ -1617,11 +1605,7 @@ describe('Results', function () {
 
     it('shows the search history for the transaction dataset', async function () {
       const organization = OrganizationFixture({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'performance-discover-dataset-selector',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const {router} = initializeOrg({

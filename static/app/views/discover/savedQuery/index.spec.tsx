@@ -146,11 +146,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
     it('opens dashboard modal with the right props', async () => {
       organization = OrganizationFixture({
-        features: [
-          'discover-query',
-          'dashboards-edit',
-          'performance-discover-dataset-selector',
-        ],
+        features: ['discover-query', 'dashboards-edit'],
       });
       mount(
         location,
@@ -450,7 +446,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
     it('uses the throughput alert type for transaction queries', () => {
       const metricAlertOrg = {
         ...organization,
-        features: ['incidents', 'performance-discover-dataset-selector'],
+        features: ['incidents'],
       };
       const transactionSavedQuery = {
         ...savedQuery,
@@ -478,7 +474,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
     it('uses the num errors alert type for error queries', () => {
       const metricAlertOrg = {
         ...organization,
-        features: ['incidents', 'performance-discover-dataset-selector'],
+        features: ['incidents'],
       };
       const errorSavedQuery = {
         ...savedQuery,

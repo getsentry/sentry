@@ -152,9 +152,7 @@ describe('Incident Rules Create', () => {
   });
 
   it('queries the errors dataset if dataset is errors', async () => {
-    const {organization, project, router} = initializeOrg({
-      organization: {features: ['performance-discover-dataset-selector']},
-    });
+    const {organization, project, router} = initializeOrg();
 
     render(
       <TriggersChart
