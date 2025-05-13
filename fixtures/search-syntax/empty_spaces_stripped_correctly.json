@@ -13,7 +13,9 @@
           "type": "valueText",
           "value": "transaction",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": "   "},
@@ -27,7 +29,9 @@
           "type": "valueText",
           "value": "/organizations/:orgId/discover/results/",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}

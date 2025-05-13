@@ -17,7 +17,9 @@
           "type": "valueText",
           "value": "apple",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -31,7 +33,9 @@
           "type": "valueText",
           "value": "1.2.1",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -45,7 +49,14 @@
           "key": {"type": "keySimple", "value": "project_id", "quoted": false}
         },
         "operator": "",
-        "value": {"type": "valueText", "value": "123", "quoted": false, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "123",
+          "quoted": false,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

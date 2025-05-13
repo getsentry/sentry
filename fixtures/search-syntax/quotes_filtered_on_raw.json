@@ -14,7 +14,9 @@
           "type": "valueText",
           "value": "unknown",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": " "},

@@ -9,7 +9,14 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "", "quoted": true, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "",
+          "quoted": true,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -28,7 +35,14 @@
         },
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "", "quoted": false, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "",
+          "quoted": false,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

@@ -18,7 +18,9 @@
           "type": "valueText",
           "value": "hello",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -39,7 +41,14 @@
         },
         "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "123", "quoted": false, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "123",
+          "quoted": false,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -63,7 +72,9 @@
           "type": "valueText",
           "value": "2018-01-01T00:01ZZ",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}

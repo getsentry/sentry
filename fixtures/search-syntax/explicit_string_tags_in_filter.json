@@ -22,7 +22,9 @@
                 "type": "valueText",
                 "value": "apple",
                 "quoted": false,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             },
             {
@@ -31,7 +33,9 @@
                 "type": "valueText",
                 "value": "pear",
                 "quoted": false,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             }
           ]
@@ -63,7 +67,9 @@
                 "type": "valueText",
                 "value": "apple wow",
                 "quoted": true,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             },
             {
@@ -72,7 +78,9 @@
                 "type": "valueText",
                 "value": "pear",
                 "quoted": true,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             }
           ]

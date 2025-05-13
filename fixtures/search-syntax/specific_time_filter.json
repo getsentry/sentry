@@ -120,7 +120,9 @@
           "type": "valueText",
           "value": "2018-01-01T05:06:07",
           "quoted": false,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {

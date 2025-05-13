@@ -22,7 +22,9 @@
                 "type": "valueText",
                 "value": "123",
                 "quoted": false,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             },
             {
@@ -31,7 +33,9 @@
                 "type": "valueText",
                 "value": "456",
                 "quoted": false,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             }
           ]

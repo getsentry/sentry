@@ -13,7 +13,9 @@
           "type": "valueText",
           "value": "a release",
           "quoted": true,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -33,7 +35,9 @@
           "type": "valueText",
           "value": "a release",
           "quoted": true,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -58,7 +62,9 @@
                 "type": "valueText",
                 "value": "a release",
                 "quoted": true,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             }
           ]
@@ -86,7 +92,9 @@
                 "type": "valueText",
                 "value": "a release",
                 "quoted": true,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             },
             {
@@ -95,7 +103,9 @@
                 "type": "valueText",
                 "value": "b release",
                 "quoted": true,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             }
           ]
@@ -123,7 +133,9 @@
                 "type": "valueText",
                 "value": "a release",
                 "quoted": true,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             },
             {
@@ -132,7 +144,9 @@
                 "type": "valueText",
                 "value": "b release",
                 "quoted": true,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             },
             {
@@ -141,7 +155,9 @@
                 "type": "valueText",
                 "value": "c release",
                 "quoted": true,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             }
           ]
@@ -169,7 +185,9 @@
                 "type": "valueText",
                 "value": "a release",
                 "quoted": true,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             },
             {
@@ -178,7 +196,9 @@
                 "type": "valueText",
                 "value": "b release",
                 "quoted": true,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             }
           ]
@@ -206,7 +226,9 @@
                 "type": "valueText",
                 "value": "a release",
                 "quoted": true,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             }
           ]
@@ -228,7 +250,9 @@
                 "type": "valueText",
                 "value": "123",
                 "quoted": true,
-                "contains": false
+                "contains": false,
+                "startsWith": false,
+                "endsWith": false
               }
             }
           ]

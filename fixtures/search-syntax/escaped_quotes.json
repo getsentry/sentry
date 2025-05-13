@@ -13,7 +13,9 @@
           "type": "valueText",
           "value": "a\\\"thing\\\"",
           "quoted": true,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -33,7 +35,9 @@
           "type": "valueText",
           "value": "a\\\"\\\"release",
           "quoted": true,
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}

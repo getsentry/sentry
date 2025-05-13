@@ -18,7 +18,9 @@
           "quoted": false,
           "type": "valueText",
           "value": ">..500s",
-          "contains": false
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
         }
       },
       {"type": "spaces", "value": ""}
