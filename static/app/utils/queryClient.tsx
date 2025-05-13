@@ -49,6 +49,17 @@ export type ApiQueryKey =
         Record<string, any>
       >,
     ];
+export type InfiniteApiQueryKey =
+  | readonly ['infinite', url: string]
+  | readonly [
+      'infinite',
+      url: string,
+      options: QueryKeyEndpointOptions<
+        Record<string, string>,
+        Record<string, any>,
+        Record<string, any>
+      >,
+    ];
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   extends Omit<
@@ -242,7 +253,7 @@ export function useInfiniteApiQuery<TResponseData>({
   enabled,
   staleTime,
 }: {
-  queryKey: ApiQueryKey;
+  queryKey: InfiniteApiQueryKey;
   enabled?: boolean;
   staleTime?: number;
 }) {
@@ -251,13 +262,13 @@ export function useInfiniteApiQuery<TResponseData>({
     // crash due to a cache conflict between normal queries and "infinite"
     // queries. Read more
     // here: https://tkdodo.eu/blog/effective-react-query-keys#caching-data
-    queryKey:
-      queryKey.length === 1
-        ? ([...queryKey, {}, 'infinite'] as const)
-        : ([...queryKey, 'infinite'] as const),
+    queryKey,
+    // queryKey.length === 1
+    //   ? ([...queryKey, {}, 'infinite'] as const)
+    //   : ([...queryKey, 'infinite'] as const),
     queryFn: ({
       pageParam,
-      queryKey: [url, endpointOptions],
+      queryKey: [, url, endpointOptions],
     }): Promise<ApiResult<TResponseData>> => {
       return QUERY_API_CLIENT.requestPromise(url, {
         includeAllArgs: true,
