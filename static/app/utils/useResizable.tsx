@@ -1,33 +1,29 @@
 import type {RefObject} from 'react';
 import {useCallback, useEffect, useRef, useState} from 'react';
 
-export const RESIZABLE_DEFAULT_WIDTH = 200;
-export const RESIZABLE_MIN_WIDTH = 100;
-export const RESIZABLE_MAX_WIDTH = Infinity;
-
 interface UseResizableOptions {
-  /**
-   * The ref to the element to be resized.
-   */
-  ref: RefObject<HTMLElement | null>;
-
   /**
    * The starting size of the container, and the size that is set in the onDoubleClick handler.
    *
    * If `sizeStorageKey` is provided and exists in local storage,
    * then this will be ignored in favor of the size stored in local storage.
    */
-  initialSize?: number;
+  initialSize: number;
 
   /**
    * The maximum width the container can be resized to. Defaults to Infinity.
    */
-  maxWidth?: number;
+  maxWidth: number;
 
   /**
    * The minimum width the container can be resized to. Defaults to 100.
    */
-  minWidth?: number;
+  minWidth: number;
+
+  /**
+   * The ref to the element to be resized.
+   */
+  ref: RefObject<HTMLElement | null>;
 
   /**
    * Triggered when the user finishes dragging the resize handle.
@@ -53,9 +49,9 @@ interface UseResizableOptions {
  */
 export const useResizable = ({
   ref,
-  initialSize = RESIZABLE_DEFAULT_WIDTH,
-  maxWidth = RESIZABLE_MAX_WIDTH,
-  minWidth = RESIZABLE_MIN_WIDTH,
+  initialSize,
+  maxWidth,
+  minWidth,
   onResizeEnd,
   onResizeStart,
   sizeStorageKey,
