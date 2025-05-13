@@ -75,7 +75,7 @@ class GroupEventAttachmentsTest(APITestCase):
         )
         self.create_attachment(file_name="screenshot.png", event_id=group1_event.event_id)
         self.create_attachment(file_name="screenshot-1.png", event_id=group1_event.event_id)
-
+        self.create_attachment(file_name="foo.png", event_id=group1_event.event_id)
         group2_event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
@@ -87,6 +87,7 @@ class GroupEventAttachmentsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
         for attachment in response.data:
+            # foo.png will not be included
             assert attachment["name"] in [
                 "screenshot.png",
                 "screenshot-1.png",
