@@ -209,7 +209,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       );
 
       // Click on Save in the Dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save for Organization'}));
 
       expect(mockUtils).toHaveBeenCalledWith(
         expect.anything(), // api
@@ -217,6 +217,31 @@ describe('Discover > SaveQueryButtonGroup', function () {
         expect.objectContaining({
           ...errorsView,
           name: 'My New Query Name',
+        }),
+        yAxis,
+        true
+      );
+    });
+
+    it('saves on enter', async () => {
+      mount(location, organization, router, errorsView, undefined, yAxis);
+
+      // Click on ButtonSaveAs to open dropdown
+      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+
+      // Fill in the Input
+      const input = screen.getByPlaceholderText('Display name');
+      await userEvent.type(input, 'My New Query');
+
+      // Press Enter
+      await userEvent.keyboard('{enter}');
+
+      expect(mockUtils).toHaveBeenCalledWith(
+        expect.anything(),
+        organization,
+        expect.objectContaining({
+          ...errorsView,
+          name: 'My New Query',
         }),
         yAxis,
         true
@@ -232,7 +257,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       // Do not fill in Input
 
       // Click on Save in the Dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save for Organization'}));
 
       // Check that EventView has a name
       expect(errorsView.name).toBe('Errors by Title');
@@ -415,7 +440,9 @@ describe('Discover > SaveQueryButtonGroup', function () {
         await userEvent.type(screen.getByPlaceholderText('Display name'), 'Forked Query');
 
         // Click on Save in the Dropdown
-        await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Save for Organization'})
+        );
 
         expect(mockUtils).toHaveBeenCalledWith(
           expect.anything(), // api
