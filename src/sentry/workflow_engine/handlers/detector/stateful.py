@@ -351,7 +351,7 @@ class StatefulDetectorHandler(
         """
         This method evaluates the detector's conditions against the data packet's value.
 
-        If the conditions are met, it will call `create_occurrence` in the implmenting class
+        If the conditions are met, it will call `create_occurrence` in the implementing class
         to create a detector occurrence.
         """
         detector_result: IssueOccurrence | StatusChangeMessage
