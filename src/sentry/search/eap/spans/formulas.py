@@ -94,7 +94,6 @@ def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bina
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_SUM, key=dividend, extrapolation_mode=extrapolation_mode
@@ -147,10 +146,8 @@ def avg_compare(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
     )
 
     percentage_change = Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             formula=Column.BinaryFormula(
-                default_value_double=0.0,
                 left=avg_second,
                 op=Column.BinaryFormula.OP_SUBTRACT,
                 right=avg_first,
@@ -171,7 +168,6 @@ def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Colu
     (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, value])
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -219,7 +215,6 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -436,7 +431,6 @@ def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> C
 
     response_codes = RESPONSE_CODE_MAP[code]
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -481,7 +475,6 @@ def trace_status_rate(args: ResolvedArguments, settings: ResolverSettings) -> Co
     status = cast(str, args[0])
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -513,7 +506,6 @@ def cache_miss_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -556,7 +548,6 @@ def ttfd_contribution_rate(
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -582,7 +573,6 @@ def ttid_contribution_rate(
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -630,7 +620,6 @@ def time_spent_percentage(
     total_time = rpc_res["data"][0][f"sum({column})"]
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_SUM,
@@ -656,7 +645,6 @@ def tpm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -689,7 +677,6 @@ def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_COUNT,
