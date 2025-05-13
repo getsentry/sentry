@@ -11,6 +11,7 @@ interface Props {
   segmentName: string;
 }
 
+// The query key used for the starred segments table request, this key is used to reference that query and update the starred segment state
 export const STARRED_SEGMENT_TABLE_QUERY_KEY = ['starred-segment-table'];
 
 export function StarredSegmentCell({segmentName, initialIsStarred, projectSlug}: Props) {
