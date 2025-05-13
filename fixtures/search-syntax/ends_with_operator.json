@@ -1,0 +1,94 @@
+[
+  {
+    "desc": "Basic text filter sets endsWith to false",
+    "query": "foo:bar",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "foo", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "bar",
+          "quoted": false,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": false
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Value with leading asterisk, sets endsWith to true",
+    "query": "foo:*bar",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "foo", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "*bar",
+          "quoted": false,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": true
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Value with quotes, sets endsWith to true",
+    "query": "foo:\"*bar\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "foo", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "*bar",
+          "quoted": true,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": true
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Value with quotes and spaces, sets endsWith to true",
+    "query": "foo:\"*e m\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "foo", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "*e m",
+          "quoted": true,
+          "contains": false,
+          "startsWith": false,
+          "endsWith": true
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]
