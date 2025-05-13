@@ -8,7 +8,6 @@ from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.workflow_engine.migration_helpers.alert_rule import migrate_metric_action
 from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
 
@@ -33,9 +32,6 @@ class TestDetectorSerializer(TestWorklowEngineSerializer):
             incident=past_incident,
             alert_rule_trigger=self.critical_trigger,
             status=TriggerStatus.ACTIVE.value,
-        )
-        GroupOpenPeriod.objects.create(
-            group=self.group, project=self.detector.project, date_started=past_incident.date_started
         )
 
         serialized_detector = serialize(
