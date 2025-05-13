@@ -4581,3 +4581,32 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 'tags["flag.evaluation.feature.organizations:foo",number]': 1,
             },
         ]
+
+    def test_count_if_two_args(self):
+        self.store_spans(
+            [
+                self.create_span({"sentry_tags": {"release": "foo"}}),
+                self.create_span(
+                    {"sentry_tags": {"release": "bar"}},
+                    duration=10,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["count_if(release,foo)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["count_if(release,foo)"] == 1
+        assert meta["dataset"] == self.dataset

@@ -169,6 +169,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
+                default_arg="span.self_time",
             ),
             AttributeArgumentDefinition(attribute_types={"string"}),
             ValueArgumentDefinition(argument_types={"string"}),
