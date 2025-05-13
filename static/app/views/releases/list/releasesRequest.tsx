@@ -29,13 +29,7 @@ import {getCrashFreePercent} from 'sentry/views/releases/utils';
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
 function omitIgnoredProps(props: Props) {
-  return omit(props, [
-    'api',
-    'organization',
-    'children',
-    'selection.datetime.utc',
-    'location',
-  ]);
+  return omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 }
 
 function getInterval(datetimeObj: DateTimeObject) {
