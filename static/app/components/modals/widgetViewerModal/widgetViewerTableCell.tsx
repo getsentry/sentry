@@ -96,6 +96,7 @@ export const renderIssueGridHeaderCell = ({
             order: 'desc',
           });
         }}
+        preventScrollReset
       />
     );
   };
@@ -324,6 +325,7 @@ export const renderReleaseGridHeaderCell = ({
             order: sort?.kind === 'desc' ? 'asc' : 'desc',
           });
         }}
+        preventScrollReset
       />
     );
   };
