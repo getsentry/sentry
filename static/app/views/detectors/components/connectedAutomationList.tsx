@@ -31,7 +31,7 @@ const columns = defineColumns<ConnectedAutomationData>({
   },
 });
 
-export interface ConnectedAutomationsListProps {
+interface ConnectedAutomationsListProps {
   automations: ConnectedAutomationData[];
 }
 export function ConnectedAutomationsList({automations}: ConnectedAutomationsListProps) {
