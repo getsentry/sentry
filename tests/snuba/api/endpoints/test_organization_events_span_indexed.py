@@ -2584,7 +2584,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["http_response_rate(5)"] == 0.0
+        assert data[0]["http_response_rate(5)"] is None
         assert meta["dataset"] == self.dataset
 
     def test_http_response_rate_invalid_param(self):
