@@ -69,7 +69,7 @@ def fetch_alert_rule(
     if features.has("organizations:workflow-engine-rule-serializers", organization):
         try:
             detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
-            resp = Response(
+            return Response(
                 serialize(
                     detector,
                     request.user,
@@ -78,7 +78,6 @@ def fetch_alert_rule(
             )
         except Detector.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        return resp
 
     serialized_rule = serialize(
         alert_rule,
