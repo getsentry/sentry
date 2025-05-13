@@ -165,6 +165,7 @@ export function IssueViewsTable({
                         <CreateIssueViewModal
                           {...props}
                           {...view}
+                          name={`${view.name} (Copy)`}
                           analyticsSurface="issue-views-list"
                         />
                       ));
