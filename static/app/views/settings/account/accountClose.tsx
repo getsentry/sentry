@@ -109,10 +109,8 @@ function AccountClose() {
         data: {organizations: Array.from(orgsToRemove)},
       });
 
-      requestAnimationFrame(() => {
-        openModal(GoodbyeModalContent, {
-          onClose: leaveRedirect,
-        });
+      openModal(GoodbyeModalContent, {
+        onClose: leaveRedirect,
       });
 
       // Redirect after 10 seconds
