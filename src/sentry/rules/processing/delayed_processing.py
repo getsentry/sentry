@@ -544,20 +544,21 @@ def fire_rules(
 
 
 def cleanup_redis_buffer(
-    project_id: int, rules_to_groups: DefaultDict[int, set[int]], batch_key: str | None
+    project: Project, rules_to_groups: DefaultDict[int, set[int]], batch_key: str | None
 ) -> None:
     hashes_to_delete = [
         f"{rule}:{group}" for rule, groups in rules_to_groups.items() for group in groups
     ]
-    filters: dict[str, BufferField] = {"project_id": project_id}
+    filters: dict[str, BufferField] = {"project_id": project.id}
     if batch_key:
         filters["batch_key"] = batch_key
 
     buffer.backend.delete_hash(model=Project, filters=filters, fields=hashes_to_delete)
-    logger.info(
-        "delayed_processing.cleanup_redis_buffer",
-        extra={"hashes_to_delete": hashes_to_delete, "project_id": project_id},
-    )
+    if features.has("projects:num-events-issue-debugging", project):
+        logger.info(
+            "delayed_processing.cleanup_redis_buffer",
+            extra={"hashes_to_delete": hashes_to_delete, "project_id": project.id},
+        )
 
 
 @instrumented_task(
@@ -649,7 +650,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     with metrics.timer("delayed_processing.fire_rules.duration"):
         fire_rules(rules_to_fire, parsed_rulegroup_to_event_data, alert_rules, project)
 
-    cleanup_redis_buffer(project_id, rules_to_groups, batch_key)
+    cleanup_redis_buffer(project, rules_to_groups, batch_key)
 
 
 @delayed_processing_registry.register("delayed_processing")  # default delayed processing
