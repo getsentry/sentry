@@ -2,16 +2,13 @@ from dataclasses import dataclass
 from typing import Any
 
 from sentry.integrations.slack.integration import SlackIntegration
-from sentry.platform_example.notification_provider import (
-    NotificationProvider,
-    NotificationProviderNames,
-)
+from sentry.platform_example.notification_provider import NotificationProvider
 from sentry.platform_example.notification_renderer import NotificationRenderer
 from sentry.platform_example.notification_target import (
     NotificationIntegrationTargetValidator,
     NotificationTarget,
 )
-from sentry.platform_example.notification_types import NotificationType
+from sentry.platform_example.notification_types import NotificationProviderNames, NotificationType
 from sentry.platform_example.registry import ProviderRegistry
 from sentry.platform_example.template_base import NotificationTemplate, TemplateData
 
@@ -73,15 +70,10 @@ class SlackNotificationProvider(NotificationProvider[SlackBlockKitData]):
 
         assert isinstance(install, SlackIntegration)
 
-        # Hack, because we don't inherently support sending messages with Slack Blocks just yet
-        concatted_blocks = "\n".join(
-            [
-                block["text"]
-                for block in notification_content.blocks
-                if block.get("text") is not None
-            ]
+        install.get_client().chat_postMessage(
+            channel=str(target.resource_value),
+            blocks=notification_content.blocks,
         )
-        install.send_message(str(target.resource_value), concatted_blocks)
 
     def get_renderer(
         self, notification_type: NotificationType
@@ -93,8 +85,8 @@ class SlackNotificationProvider(NotificationProvider[SlackBlockKitData]):
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
             "properties": {
-                "additional_metadata": {
-                    "type": "string",
+                "meta": {
+                    "type": ["string", "null"],
                     "description": "An additional string that will be appended to the notification",
                 },
                 "additionalProperties": False,
@@ -109,8 +101,19 @@ class SlackNotificationRenderer(NotificationRenderer[SlackBlockKitData]):
         notification_template: NotificationTemplate,
     ) -> SlackBlockKitData:
 
+        rendered_template = notification_template.render_integration_template(notification_content)
+
         return SlackBlockKitData(
-            blocks=[],
+            blocks=[
+                {
+                    "type": "header",
+                    "text": {"type": "plain_text", "text": rendered_template.subject},
+                },
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": rendered_template.body},
+                },
+            ],
         )
 
 
@@ -135,6 +138,13 @@ class EmailNotificationProvider(NotificationProvider[tuple[str, str]]):
         return {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
+            "properties": {
+                "stuff": {
+                    "type": ["string", "null"],
+                    "description": "An additional string that will be appended to the notification",
+                },
+            },
+            "additionalProperties": False,
         }
 
 

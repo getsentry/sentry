@@ -1,6 +1,5 @@
 import abc
 from dataclasses import dataclass
-from enum import StrEnum
 from typing import Any, Generic, TypeVar
 
 from sentry.platform_example.notification_renderer import NotificationRenderer
@@ -8,12 +7,6 @@ from sentry.platform_example.notification_target import NotificationTarget
 from sentry.platform_example.notification_types import NotificationType, ProviderResourceType
 
 RendererReturnTypeT = TypeVar("RendererReturnTypeT")
-
-
-class NotificationProviderNames(StrEnum):
-    EMAIL = "email"
-    SLACK = "slack"
-    DISCORD = "discord"
 
 
 @dataclass

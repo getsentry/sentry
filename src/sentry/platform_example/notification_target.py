@@ -5,9 +5,10 @@ from jsonschema import validate
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.platform_example.notification_provider import NotificationProviderNames
-from sentry.platform_example.notification_types import ProviderResourceType
-from sentry.platform_example.registry import ProviderRegistry
+from sentry.platform_example.notification_types import (
+    NotificationProviderNames,
+    ProviderResourceType,
+)
 
 
 # Target Types
@@ -40,6 +41,8 @@ class NotificationIntegrationTargetValidator:
         self.target = target
 
     def validate_notification_target(self):
+        from sentry.platform_example.registry import ProviderRegistry
+
         if not self.target.organization_id:
             raise InvalidNotificationTargetError("Organization ID is not valid")
 
@@ -67,8 +70,9 @@ class NotificationIntegrationTargetValidator:
         installation = install_class.org_integration
 
         if installation is None:
+
             raise InvalidNotificationTargetError(
                 f"Integration installation not found for target: {self.target}"
             )
 
-        return installation
+        return install_class

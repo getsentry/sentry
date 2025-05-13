@@ -61,7 +61,7 @@ class NotificationService(Generic[NotificationTemplateDataT]):
         else:
             raise NotImplementedError("Other targets are not yet supported")
 
-        provider = ProviderRegistry.get_provider(target.provider)
+        provider = ProviderRegistry.get_provider(target.provider.value)
         renderer = provider.get_renderer(template.notification_type)
         notification_content = renderer.render(data, template)
 

@@ -22,3 +22,9 @@ class ProviderResourceType(StrEnum):
     CHANNEL = "channel"
     DIRECT_MESSAGE = "direct_message"
     EMAIL = "email"
+
+
+class NotificationProviderNames(StrEnum):
+    EMAIL = "email"
+    SLACK = "slack"
+    DISCORD = "discord"
