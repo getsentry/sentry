@@ -1,6 +1,6 @@
 import {createContext, useState} from 'react';
 
-export type NewView = {
+type NewView = {
   label: string;
   query: string;
   /**

@@ -324,7 +324,7 @@ export interface UsageStatsOrganizationProps {
   projectDetails?: React.ReactNode[];
 }
 
-export type CardMetadata = Record<
+type CardMetadata = Record<
   'total' | 'accepted' | 'filtered' | 'rateLimited' | 'invalid',
   {
     title: React.ReactNode;

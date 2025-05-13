@@ -118,7 +118,7 @@ function isValidMissingInstrumentation(
   return true;
 }
 
-export function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
+function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
   const stored = localStorage.getItem(key);
 
   if (stored) {

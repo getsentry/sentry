@@ -115,7 +115,7 @@ function QueryTokens({result}: QueryTokensProps) {
   return <React.Fragment>{tokens}</React.Fragment>;
 }
 
-export function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
+function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [response, setResponse] = useState<React.ReactNode>(null);
   const [rawResult, setRawResult] = useState<any>(null);

@@ -479,7 +479,7 @@ export default function TraceView({
   return traceView;
 }
 
-export const StyledTracePanel = styled(Panel)`
+const StyledTracePanel = styled(Panel)`
   height: 100%;
   overflow-x: visible;
 
