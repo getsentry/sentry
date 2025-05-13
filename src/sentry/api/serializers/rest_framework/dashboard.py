@@ -364,9 +364,14 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 },
             )
             sentry_sdk.capture_message("Created or updated widget with discover dataset.")
-            raise serializers.ValidationError(
-                "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
-            )
+            if features.has(
+                "organizations:deprecate-discover-widget-type",
+                self.context["organization"],
+                actor=self.context["request"].user,
+            ):
+                raise serializers.ValidationError(
+                    "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+                )
         return widget_type
 
     validate_id = validate_id
