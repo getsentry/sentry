@@ -106,7 +106,7 @@ def update_alert_rule(
     request: Request, organization: Organization, alert_rule: AlertRule
 ) -> Response:
     data = request.data
-    serializer = DrfAlertRuleSerializer(
+    validator = DrfAlertRuleSerializer(
         context={
             "organization": organization,
             "access": request.access,
@@ -120,9 +120,9 @@ def update_alert_rule(
         data=data,
         partial=True,
     )
-    if serializer.is_valid():
+    if validator.is_valid():
         try:
-            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+            trigger_sentry_app_action_creators_for_incidents(validator.validated_data)
         except SentryAppBaseError as e:
             return e.response_from_exception()
 
@@ -140,9 +140,24 @@ def update_alert_rule(
             # The user has requested a new Slack channel and we tell the client to check again in a bit
             return Response({"uuid": client.uuid}, status=202)
         else:
-            return Response(serialize(serializer.save(), request.user), status=status.HTTP_200_OK)
+            alert_rule = validator.save()
+            if features.has("organizations:workflow-engine-rule-serializers", organization):
+                try:
+                    detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+                    return Response(
+                        serialize(
+                            detector,
+                            request.user,
+                            WorkflowEngineDetectorSerializer(),
+                        ),
+                        status=status.HTTP_200_OK,
+                    )
+                except Detector.DoesNotExist:
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 def remove_alert_rule(
