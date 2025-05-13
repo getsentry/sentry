@@ -15,9 +15,13 @@ export function useAutomationActions(automation: Automation): ActionType[] {
   ] as ActionType[];
 }
 
-export function useConnectedIds(key: string) {
+export function useConnectedIds(storageKey: string, initialIds?: string[]) {
   const [connectedIds, setConnectedIds] = useState<Set<string>>(() => {
-    const stored = localStorage.getItem(key);
+    if (initialIds) {
+      localStorage.setItem(storageKey, JSON.stringify(initialIds));
+      return new Set(initialIds);
+    }
+    const stored = localStorage.getItem(storageKey);
     return stored ? new Set(JSON.parse(stored)) : new Set();
   });
 
@@ -29,7 +33,7 @@ export function useConnectedIds(key: string) {
       } else {
         newSet.add(id);
       }
-      localStorage.setItem(key, JSON.stringify(Array.from(newSet)));
+      localStorage.setItem(storageKey, JSON.stringify(Array.from(newSet)));
       return newSet;
     });
   };

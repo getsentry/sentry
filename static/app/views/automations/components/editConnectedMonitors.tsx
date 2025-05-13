@@ -9,12 +9,12 @@ import ConnectedMonitorsList from 'sentry/views/automations/components/connected
 import {useConnectedIds} from 'sentry/views/automations/hooks/utils';
 
 interface Props {
-  key: string;
+  storageKey: string;
 }
 
-export default function EditConnectedMonitors({key}: Props) {
+export default function EditConnectedMonitors({storageKey}: Props) {
   const monitors: Detector[] = []; // TODO: Fetch monitors from API
-  const {connectedIds, toggleConnected} = useConnectedIds(key);
+  const {connectedIds, toggleConnected} = useConnectedIds(storageKey);
 
   const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
   const unconnectedMonitors = monitors.filter(monitor => !connectedIds.has(monitor.id));

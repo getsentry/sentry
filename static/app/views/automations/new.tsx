@@ -26,7 +26,7 @@ export default function AutomationNew() {
       <ContentWrapper>
         <Flex column gap={space(1.5)} style={{padding: space(2)}}>
           <Card>
-            <EditConnectedMonitors key={NEW_AUTOMATION_CONNECTED_IDS_KEY} />
+            <EditConnectedMonitors storageKey={NEW_AUTOMATION_CONNECTED_IDS_KEY} />
           </Card>
           <span>
             <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
