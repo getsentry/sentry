@@ -32,6 +32,7 @@ const query: ParseResult = [
         end: {offset: 27, line: 1, column: 28},
         source: {},
       },
+      contains: false,
     },
     invalid: null,
     warning: null,

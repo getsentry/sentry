@@ -14,7 +14,7 @@
         },
         "key": {"type": "keySimple", "value": "project.id", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "one", "quoted": false}
+        "value": {"type": "valueText", "value": "one", "quoted": false, "contains": false}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -34,7 +34,7 @@
         },
         "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "two", "quoted": false}
+        "value": {"type": "valueText", "value": "two", "quoted": false, "contains": false}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -54,7 +54,12 @@
         },
         "key": {"type": "keySimple", "value": "transaction.duration", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": ">hotdog", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": ">hotdog",
+          "quoted": false,
+          "contains": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -74,7 +79,12 @@
         },
         "key": {"type": "keySimple", "value": "measurements.lcp", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": ">hotdog", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": ">hotdog",
+          "quoted": false,
+          "contains": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -94,7 +104,12 @@
         },
         "key": {"type": "keySimple", "value": "spans.db", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": ">hotdog", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": ">hotdog",
+          "quoted": false,
+          "contains": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
