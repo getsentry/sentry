@@ -74,6 +74,46 @@ export enum CheckoutType {
   BUNDLE = 'bundle',
 }
 
+export enum ReservedBudgetCategoryType {
+  DYNAMIC_SAMPLING = 'dynamicSampling',
+  SEER = 'seer',
+}
+
+export type ReservedBudgetCategory = {
+  /**
+   * Backend name of the category (all caps, snake case)
+   */
+  budgetCategoryType: string;
+  /**
+   * whether a customer can use product trials for this budget
+   */
+  canProductTrial: boolean;
+  /**
+   * the categories that are included in the budget
+   */
+  dataCategories: DataCategory[];
+  /**
+   * Default budget for the category, in cents
+   */
+  defaultBudget: number;
+  /**
+   * Link to the quotas documentation for the budget
+   */
+  docLink: string;
+  /**
+   * Whether the budget is fixed or variable
+   */
+  isFixed: boolean;
+  /**
+   * Display name of the budget
+   */
+  name: string;
+  /**
+   * the product associated with the budget
+   */
+  productName: string;
+};
+
 export type Plan = {
   allowAdditionalReservedEvents: boolean;
   allowOnDemand: boolean;
@@ -82,6 +122,9 @@ export type Plan = {
    * Can be used for category upsells.
    */
   availableCategories: DataCategory[];
+  availableReservedBudgetTypes: Partial<
+    Record<ReservedBudgetCategoryType, ReservedBudgetCategory>
+  >;
   basePrice: number;
   billingInterval: 'monthly' | 'annual';
   budgetTerm: 'pay-as-you-go' | 'on-demand';
@@ -879,11 +922,33 @@ type PendingReservedBudget = {
 };
 
 export type ReservedBudget = {
+  /**
+   * The categories included in the budget and their respective ReservedBudgetMetricHistory
+   */
   categories: Partial<Record<DataCategory, ReservedBudgetMetricHistory>>;
+  /**
+   * The amount of free budget gifted in the associated usage cycle
+   */
   freeBudget: number;
+  /**
+   * The id of the ReservedBudgetHistory object
+   */
   id: string;
+  /**
+   * Information about the budget type
+   */
+  info: ReservedBudgetCategory;
+  /**
+   * The percentage of the budget used, including gifted budget
+   */
   percentUsed: number;
+  /**
+   * The amount of budget in the associated usage cycle, excluding gifted budget
+   */
   reservedBudget: number;
+  /**
+   * The amount of budget used in the associated usage cycle
+   */
   totalReservedSpend: number;
 };
 
