@@ -1,7 +1,6 @@
 import datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Never
 
 import orjson
 import sentry_sdk
@@ -85,7 +84,7 @@ class DeliveryFailed(Exception):
         namespace=hybridcloud_control_tasks,
     ),
 )
-def schedule_webhook_delivery(**kwargs: Never) -> None:
+def schedule_webhook_delivery() -> None:
     """
     Find mailboxes that contain undelivered webhooks that were scheduled
     to be delivered now or in the past.
