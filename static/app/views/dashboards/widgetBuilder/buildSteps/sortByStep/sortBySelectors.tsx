@@ -16,11 +16,13 @@ import {
   getEquation,
   isEquation,
   isEquationAlias,
+  parseFunction,
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {getColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {
   type SortDirection,
   sortDirections,
@@ -28,6 +30,7 @@ import {
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 import {CUSTOM_EQUATION_VALUE} from '.';
 
@@ -87,7 +90,12 @@ export function SortBySelectors({
     let options: Record<string, SelectValue<FieldValue>> = {};
     if (displayType !== DisplayType.TABLE) {
       options = datasetConfig.getTimeseriesSortOptions!(organization, widgetQuery, tags);
-      if (widgetType === WidgetType.SPANS && options['measurement:span.duration']) {
+      const parsedFunction = parseFunction(values.sortBy);
+      if (
+        widgetType === WidgetType.SPANS &&
+        parsedFunction?.name === 'count' &&
+        options['measurement:span.duration']
+      ) {
         // Re-map the span duration measurement label so we can simply render
         // `spans` in the parameter UI
         options['measurement:span.duration'] = {
@@ -97,7 +105,15 @@ export function SortBySelectors({
       }
     }
     return options;
-  }, [datasetConfig, organization, tags, widgetQuery, widgetType, displayType]);
+  }, [
+    datasetConfig,
+    organization,
+    tags,
+    widgetQuery,
+    widgetType,
+    displayType,
+    values.sortBy,
+  ]);
 
   return (
     <Wrapper>
@@ -177,12 +193,42 @@ export function SortBySelectors({
                 return;
               }
 
-              const parsedValue = generateFieldAsString(value);
+              let parsedValue = generateFieldAsString(value);
               const isSortingByCustomEquation = isEquation(parsedValue);
               setShowCustomEquation(isSortingByCustomEquation);
               if (isSortingByCustomEquation) {
                 onChange(customEquation);
                 return;
+              }
+              if (
+                widgetType === WidgetType.SPANS &&
+                value.kind === FieldValueKind.FUNCTION
+              ) {
+                // A spans function is selected, check if the argument is compatible with the function
+                const functionName = value.function[0];
+                const newValidOptions = getColumnOptions(
+                  widgetType,
+                  value,
+                  timeseriesSortOptions,
+                  datasetConfig.filterAggregateParams ?? (() => true),
+                  true
+                );
+                const newOptionSet = new Set(newValidOptions.map(option => option.value));
+                const newFunctionOption =
+                  timeseriesSortOptions[`function:${functionName}`];
+                if (
+                  value.function[1] &&
+                  !newOptionSet.has(value.function[1]) &&
+                  newFunctionOption?.value?.kind === FieldValueKind.FUNCTION
+                ) {
+                  // Select the default value if it exists, otherwise get the first option from
+                  // the new valid options
+                  const defaultValue: string =
+                    newFunctionOption.value?.meta?.parameters?.[0]?.defaultValue ??
+                    newValidOptions[0]?.value ??
+                    '';
+                  parsedValue = `${functionName}(${defaultValue})`;
+                }
               }
               onChange({
                 sortBy: parsedValue,

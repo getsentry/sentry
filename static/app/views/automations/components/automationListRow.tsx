@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -9,8 +10,9 @@ import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connecti
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
-import {AUTOMATIONS_BASE_URL} from 'sentry/views/automations/routes';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 
 type AutomationListRowProps = {
   automation: Automation;
@@ -23,6 +25,7 @@ export function AutomationListRow({
   handleSelect,
   selected,
 }: AutomationListRowProps) {
+  const organization = useOrganization();
   const actions = useAutomationActions(automation);
   const {id, name, disabled, lastTriggered, detectorIds = []} = automation;
   return (
@@ -36,7 +39,9 @@ export function AutomationListRow({
           }}
         />
         <CellWrapper>
-          <TitleCell to={`${AUTOMATIONS_BASE_URL}/${id}/`}>{name}</TitleCell>
+          <TitleCell to={makeAutomationDetailsPathname(organization.slug, id)}>
+            {name}
+          </TitleCell>
         </CellWrapper>
       </Flex>
       <CellWrapper className="last-triggered">
@@ -88,7 +93,7 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
 
   ${p =>
     p.disabled &&
-    `
+    css`
       ${CellWrapper} {
         opacity: 0.6;
       }

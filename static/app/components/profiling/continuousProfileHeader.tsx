@@ -47,7 +47,6 @@ export function ContinuousProfileHeader({
   const handleGoToTransaction = useCallback(() => {
     trackAnalytics('profiling_views.go_to_transaction', {
       organization,
-      source: 'transaction_details',
     });
   }, [organization]);
 

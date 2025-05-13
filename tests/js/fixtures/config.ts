@@ -59,7 +59,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     demoMode: false,
     customerDomain: null,
     links: {
-      sentryUrl: "https://sentry.io",
+      sentryUrl: 'https://sentry.io',
       organizationUrl: undefined,
       regionUrl: undefined,
     },

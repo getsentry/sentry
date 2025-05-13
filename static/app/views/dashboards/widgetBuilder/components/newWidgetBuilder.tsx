@@ -165,7 +165,7 @@ function WidgetBuilderV2({
                 >
                   <SpanTagsProvider
                     dataset={DiscoverDatasets.SPANS_EAP}
-                    enabled={organization.features.includes('dashboards-eap')}
+                    enabled={organization.features.includes('visibility-explore-view')}
                   >
                     <ContainerWithoutSidebar
                       sidebarCollapsed={sidebarCollapsed}

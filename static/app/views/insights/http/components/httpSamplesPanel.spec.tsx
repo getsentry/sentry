@@ -225,7 +225,6 @@ describe('HTTPSamplesPanel', () => {
               'http_response_rate(3)',
               'http_response_rate(4)',
               'http_response_rate(5)',
-              'time_spent_percentage()',
             ],
             per_page: 50,
             project: [],

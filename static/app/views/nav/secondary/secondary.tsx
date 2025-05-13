@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 import type {To} from 'react-router-dom';
+import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -86,62 +87,100 @@ SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode})
   return <Body layout={layout}>{children}</Body>;
 };
 
+function SectionTitle({
+  title,
+  trailingItems,
+  canCollapse,
+  isCollapsed,
+  setIsCollapsed,
+}: {
+  canCollapse: boolean;
+  isCollapsed: boolean;
+  setIsCollapsed: (isCollapsed: boolean) => void;
+  title: ReactNode;
+  trailingItems?: ReactNode;
+}) {
+  const {layout} = useNavContext();
+
+  if (canCollapse) {
+    return (
+      <SectionTitleCollapsible
+        size="sm"
+        borderless
+        isMobile={layout === NavLayout.MOBILE}
+        onClick={() => {
+          setIsCollapsed(!isCollapsed);
+        }}
+        isCollapsed={isCollapsed}
+      >
+        <SectionTitleLabelWrap>{title}</SectionTitleLabelWrap>
+        <TrailingItems>
+          {trailingItems ? (
+            <div
+              onClick={e => {
+                e.stopPropagation();
+              }}
+            >
+              {trailingItems}
+            </div>
+          ) : (
+            canCollapse && (
+              <IconChevron
+                direction={isCollapsed ? 'down' : 'up'}
+                size="xs"
+                color="subText"
+              />
+            )
+          )}
+        </TrailingItems>
+      </SectionTitleCollapsible>
+    );
+  }
+
+  return (
+    <SectionTitleUnCollapsible isMobile={layout === NavLayout.MOBILE}>
+      {title}
+      {trailingItems}
+    </SectionTitleUnCollapsible>
+  );
+}
+
 SecondaryNav.Section = function SecondaryNavSection({
   id,
   title,
   children,
   className,
   trailingItems,
+  collapsible = true,
 }: {
   children: ReactNode;
   id: string;
   className?: string;
+  collapsible?: boolean;
   title?: ReactNode;
   trailingItems?: ReactNode;
 }) {
   const {layout} = useNavContext();
-  const [isCollapsed, setIsCollapsed] = useLocalStorageState(
+  const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
     `secondary-nav-section-${id}-collapsed`,
     false
   );
+  const canCollapse = collapsible && layout === NavLayout.SIDEBAR;
+  const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
-    <Section className={className} data-nav-section>
+    <Section className={className} layout={layout} data-nav-section>
       <SectionSeparator />
-      {title && (
+      {title ? (
         <SectionTitle
-          size="sm"
-          borderless
-          layout={layout}
-          onClick={() => {
-            setIsCollapsed(!isCollapsed);
-          }}
+          title={title}
+          trailingItems={trailingItems}
+          canCollapse={canCollapse}
           isCollapsed={isCollapsed}
-          disabled={layout === NavLayout.MOBILE}
-        >
-          <SectionTitleLabelWrap>{title}</SectionTitleLabelWrap>
-          <TrailingItems>
-            {trailingItems ? (
-              <div
-                onClick={e => {
-                  e.stopPropagation();
-                }}
-              >
-                {trailingItems}
-              </div>
-            ) : (
-              layout === NavLayout.SIDEBAR && (
-                <IconChevron
-                  direction={isCollapsed ? 'down' : 'up'}
-                  size="xs"
-                  color="subText"
-                />
-              )
-            )}
-          </TrailingItems>
-        </SectionTitle>
-      )}
-      {isCollapsed && layout === NavLayout.SIDEBAR ? null : children}
+          setIsCollapsed={setIsCollapsedState}
+        />
+      ) : null}
+      {isCollapsed ? null : children}
     </Section>
   );
 };
@@ -223,8 +262,12 @@ const Body = styled('div')<{layout: NavLayout}>`
     `}
 `;
 
-const Section = styled('div')`
-  padding: 0 ${space(1)};
+const Section = styled('div')<{layout: NavLayout}>`
+  ${p =>
+    p.layout === NavLayout.SIDEBAR &&
+    css`
+      padding: 0 ${space(1)};
+    `}
 
   &:first-child {
     padding-top: ${space(1)};
@@ -242,21 +285,31 @@ const Section = styled('div')`
   }
 `;
 
-const SectionTitle = styled(Button)<{isCollapsed: boolean; layout: NavLayout}>`
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => (p.isCollapsed ? p.theme.subText : p.theme.textColor)};
+const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
+  font-weight: ${p.theme.fontWeightBold};
+  color: ${p.theme.textColor};
   margin: ${space(1)} 0 ${space(0.5)} 0;
   padding: ${space(0.75)} ${space(1)};
   width: 100%;
+  ${p.isMobile &&
+  css`
+    padding: ${space(1)} ${space(1.5)} ${space(1)} 48px;
+  `}
+`;
+
+const SectionTitleUnCollapsible = styled('div')<{isMobile: boolean}>`
+  ${sectionTitleStyles}
+  display: flex;
+  justify-content: space-between;
+`;
+
+const SectionTitleCollapsible = styled(Button, {
+  shouldForwardProp: (prop: string) => !['isMobile', 'isCollapsed'].includes(prop),
+})<{isCollapsed: boolean; isMobile: boolean}>`
+  ${sectionTitleStyles}
   display: flex;
   justify-content: space-between;
   font-size: ${p => p.theme.fontSizeMedium};
-
-  ${p =>
-    p.layout === NavLayout.MOBILE &&
-    css`
-      padding: 0 ${space(1.5)} 0 48px;
-    `}
 
   & > span:last-child {
     flex: 1;
@@ -295,7 +348,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
   justify-content: center;
   align-items: center;
   position: relative;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.muted};
   padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
   border-radius: ${p => (p.layout === NavLayout.MOBILE ? '0' : p.theme.radius.lg)};
 
@@ -320,7 +373,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
   }
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.muted};
     background-color: ${p => p.theme.colors.gray100};
   }
 

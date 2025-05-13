@@ -1,5 +1,5 @@
 import isPropValid from '@emotion/is-prop-valid';
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
@@ -92,13 +92,13 @@ export const ChonkInnerWrap = chonkStyled('div', {
 
     ${p =>
       p.isFocused &&
-      `
-      z-index: 1;
-      /* Background to hide the previous item's divider */
-      ::before {
-        background: ${p.theme.backgroundElevated};
-      }
-    `}
+      css`
+        z-index: 1;
+        /* Background to hide the previous item's divider */
+        ::before {
+          background: ${p.theme.backgroundElevated};
+        }
+      `}
   `;
 
 export const ChonkContentWrap = chonkStyled('div')<{

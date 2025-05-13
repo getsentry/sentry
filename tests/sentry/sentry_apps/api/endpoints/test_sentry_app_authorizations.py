@@ -23,14 +23,14 @@ class TestSentryAppAuthorizations(APITestCase):
         self.sentry_app = self.create_sentry_app(
             name="nulldb",
             organization=self.create_organization(),
-            scopes=("org:read",),
+            scopes=["org:read"],
             webhook_url="http://example.com",
         )
 
         self.other_sentry_app = self.create_sentry_app(
             name="slowdb",
             organization=self.create_organization(),
-            scopes=(),
+            scopes=[],
             webhook_url="http://example.com",
         )
 

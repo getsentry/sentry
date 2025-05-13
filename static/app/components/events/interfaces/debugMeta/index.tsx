@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
@@ -138,6 +138,8 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const [isOpen, setIsOpen] = useState(false);
   const hasStreamlinedUI = useHasStreamlinedUI();
 
+  const isJSPlatform = event.platform?.includes('javascript');
+
   const getRelevantImages = useCallback(() => {
     // There are a bunch of images in debug_meta that are not relevant to this
     // component. Filter those out to reduce the noise. Most importantly, this
@@ -165,7 +167,10 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       releventImage => {
         return {
           ...releventImage,
-          status: combineStatus(releventImage.debug_status, releventImage.unwind_status),
+          // 'debug_status' and 'unwind_status' are only used by native platforms
+          status: isJSPlatform
+            ? ImageStatus.FOUND
+            : combineStatus(releventImage.debug_status, releventImage.unwind_status),
         };
       }
     );
@@ -209,7 +214,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       filterOptions,
       filterSelections: defaultFilterSelections,
     });
-  }, [data]);
+  }, [data, isJSPlatform]);
 
   const handleReprocessEvent = useCallback(
     (id: Group['id']) => {
@@ -252,7 +257,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         const hasActiveFilter = filterSelections.length > 0;
 
         return {
-          emptyMessage: t('Sorry, no images match your search query'),
+          emptyMessage: isJSPlatform
+            ? t('No source maps match your search query')
+            : t('No images match your search query'),
           emptyAction: hasActiveFilter ? (
             <Button
               onClick={() => setFilterState(fs => ({...fs, filterSelections: []}))}
@@ -269,10 +276,12 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       }
 
       return {
-        emptyMessage: t('There are no images to be displayed'),
+        emptyMessage: isJSPlatform
+          ? t('There are no source maps to be displayed')
+          : t('There are no images to be displayed'),
       };
     },
-    [filterState, searchTerm]
+    [filterState, searchTerm, isJSPlatform]
   );
 
   const handleOpenImageDetailsModal = useCallback(
@@ -385,8 +394,6 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     />
   );
 
-  const isJSPlatform = event.platform?.includes('javascript');
-
   return (
     <InterimSection
       type={SectionKey.DEBUGMETA}
@@ -442,7 +449,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
       grid-column: 1/-1;
       ${p =>
         !p.isEmpty &&
-        `
+        css`
           display: grid;
           padding: 0;
         `}
