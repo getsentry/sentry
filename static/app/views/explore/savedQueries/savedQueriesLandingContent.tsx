@@ -39,7 +39,7 @@ export function SavedQueriesLandingContent() {
                 query: {...location.query, query: newQuery},
               });
             }}
-            value={searchQuery}
+            defaultQuery={searchQuery}
             placeholder={t('Search for a query')}
           />
         </SearchBarContainer>
