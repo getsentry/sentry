@@ -1,5 +1,4 @@
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -15,6 +14,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import {DEFAULT_SAMPLING_MODE} from 'sentry/views/insights/common/queries/useDiscover';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {
   getRetryDelay,
   shouldRetryHandler,
@@ -28,10 +28,6 @@ import type {
 } from 'sentry/views/insights/types';
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
-
-export type DiscoverSeries = Series & {
-  meta: EventsMetaType;
-};
 
 interface UseMetricsSeriesOptions<Fields> {
   fields: Fields;
@@ -74,38 +70,6 @@ export const useTopNSpanEAPSeries = <
   referrer: string
 ) => {
   return useTopNDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_EAP_RPC, referrer);
-};
-
-export const useTopNMetricsSeries = <Fields extends MetricsProperty[]>(
-  options: UseMetricsSeriesOptions<Fields>,
-  referrer: string,
-  pageFilters?: PageFilters
-) => {
-  const useEap = useInsightsEap();
-  return useTopNDiscoverSeries<Fields>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
-    referrer,
-    pageFilters
-  );
-};
-
-/**
- * TODO: Remove string type, added to fix types for 'count()'
- */
-export const useTopNSpanIndexedSeries = <
-  Fields extends SpanIndexedField[] | SpanFunctions[] | string[],
->(
-  options: UseMetricsSeriesOptions<Fields>,
-  referrer: string,
-  dataset?: DiscoverDatasets
-) => {
-  const useEap = useInsightsEap();
-  return useTopNDiscoverSeries<Fields>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : (dataset ?? DiscoverDatasets.SPANS_INDEXED),
-    referrer
-  );
 };
 
 const useTopNDiscoverSeries = <T extends string[]>(
