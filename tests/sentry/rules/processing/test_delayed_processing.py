@@ -1363,7 +1363,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rules_to_groups: defaultdict[int, set[int]] = defaultdict(set)
         rules_to_groups[self.rule.id].add(self.group.id)
 
-        cleanup_redis_buffer(self.project.id, rules_to_groups, None)
+        cleanup_redis_buffer(self.project, rules_to_groups, None)
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
         assert rule_group_data == {}
 
@@ -1390,7 +1390,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
         assert rule_group_data == {}
 
-        cleanup_redis_buffer(self.project.id, rules_to_groups, batch_one_key)
+        cleanup_redis_buffer(self.project, rules_to_groups, batch_one_key)
 
         # Verify the batch we "executed" is removed
         rule_group_data = buffer.backend.get_hash(
