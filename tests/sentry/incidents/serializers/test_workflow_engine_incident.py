@@ -16,10 +16,12 @@ from sentry.issues.priority import PriorityChangeReason
 from sentry.models.activity import Activity
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
-from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
+from tests.sentry.incidents.serializers.test_workflow_engine_base import (
+    TestWorkflowEngineSerializer,
+)
 
 
-class TestDetectorSerializer(TestWorklowEngineSerializer):
+class TestDetectorSerializer(TestWorkflowEngineSerializer):
     def setUp(self) -> None:
         super().setUp()
         self.add_warning_trigger()

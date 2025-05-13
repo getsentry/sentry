@@ -21,7 +21,7 @@ from sentry.workflow_engine.models import ActionGroupStatus, IncidentGroupOpenPe
 
 
 @freeze_time("2024-12-11 03:21:34")
-class TestWorklowEngineSerializer(TestCase):
+class TestWorkflowEngineSerializer(TestCase):
     @assume_test_silo_mode(SiloMode.REGION)
     def setUp(self) -> None:
         self.now = timezone.now()
