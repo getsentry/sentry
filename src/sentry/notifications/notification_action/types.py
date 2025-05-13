@@ -2,6 +2,7 @@ import logging
 import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
+from dataclasses import asdict
 from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
@@ -263,6 +264,19 @@ class BaseIssueAlertHandler(ABC):
             # Create a rule
             rule = cls.create_rule_instance_from_action(action, detector, job)
 
+            logger.info(
+                "notification_action.execute_via_issue_alert_handler",
+                extra={
+                    "action_id": action.id,
+                    "detector_id": detector.id,
+                    "job": asdict(job),
+                    "rule_id": rule.id,
+                    "rule_project_id": rule.project.id,
+                    "rule_environment_id": rule.environment_id,
+                    "rule_label": rule.label,
+                    "rule_data": rule.data,
+                },
+            )
             # Get the futures
             futures = cls.get_rule_futures(job, rule, notification_uuid)
 
@@ -342,6 +356,7 @@ class BaseMetricAlertHandler(ABC):
     ) -> None:
         raise NotImplementedError
 
+    @classmethod
     def invoke_legacy_registry(
         cls,
         job: WorkflowEventData,
@@ -370,6 +385,19 @@ class BaseMetricAlertHandler(ABC):
 
             notification_uuid = str(uuid.uuid4())
 
+            logger.info(
+                "notification_action.execute_via_metric_alert_handler",
+                extra={
+                    "action_id": action.id,
+                    "detector_id": detector.id,
+                    "job": asdict(job),
+                    "notification_context": asdict(notification_context),
+                    "alert_context": asdict(alert_context),
+                    "metric_issue_context": asdict(metric_issue_context),
+                    "open_period_context": asdict(open_period_context),
+                    "trigger_status": trigger_status,
+                },
+            )
             cls.send_alert(
                 notification_context=notification_context,
                 alert_context=alert_context,
