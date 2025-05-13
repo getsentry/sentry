@@ -111,6 +111,33 @@ export enum FilterType {
   IS = 'is',
 }
 
+/**
+ * The type of wildcard operator based off of positions of asterisks in the token value.
+ * These can be used to determine the type of wildcard operator used in the token value,
+ * and include the following:
+ *
+ * - `leading` (ends with): The value is prefixed with `*` e.g. `*value`
+ * - `trailing` (starts with): The value is suffixed with `*` e.g. `value*`
+ * - `surrounded` (contains): The value is prefixed and suffixed with `*` e.g. `*value*`
+ */
+export enum WildcardOperators {
+  /**
+   * The value is leads with `*`, e.g. `*value`, i.e. the user is searching for values
+   * that end with `<value>`.
+   */
+  LEADING = 'leading',
+  /**
+   * The value is trails with `*`, e.g. `value*`, i.e. the user is searching for values
+   * that start with `<value>`.
+   */
+  TRAILING = 'trailing',
+  /**
+   * The value is lead and trailed with `*`, e.g. `*value*`, i.e. the user is
+   * searching for values that contain `<value>`.
+   */
+  SURROUNDED = 'surrounded',
+}
+
 export const allOperators = [
   TermOperator.DEFAULT,
   TermOperator.GREATER_THAN_EQUAL,
@@ -698,18 +725,21 @@ export class TokenConverter {
 
   tokenValueText = (value: string, quoted: boolean) => {
     // We only want to consider a value to be `contains` if it is at least one character being wrapped in `*`
-    const isContains = value.length > 2 && value.startsWith('*') && value.endsWith('*');
-    const isStartsWith = value.length > 2 && !isContains && value.endsWith('*');
-    const isEndsWith = value.length > 2 && !isContains && value.startsWith('*');
+    let wildcard: WildcardOperators | false = false;
+    if (value.length > 2 && value.startsWith('*') && value.endsWith('*')) {
+      wildcard = WildcardOperators.SURROUNDED;
+    } else if (value.length > 2 && value.endsWith('*')) {
+      wildcard = WildcardOperators.TRAILING;
+    } else if (value.length > 2 && value.startsWith('*')) {
+      wildcard = WildcardOperators.LEADING;
+    }
 
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
-      contains: isContains,
-      startsWith: isStartsWith,
-      endsWith: isEndsWith,
+      wildcard,
     };
   };
 
