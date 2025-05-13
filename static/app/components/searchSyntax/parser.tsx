@@ -724,13 +724,17 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
-    // We only want to consider a value to be `contains` if it is at least one character being wrapped in `*`
+    // we want to ignore setting the wildcard if the value is only asterisks because the
+    // value is solely matching anything and we don't want to consider it to be any of
+    // our new operators
+    const onlyAsterisks = new Set(value).size === 1 && value.includes('*');
+
     let wildcard: WildcardOperators | false = false;
-    if (value.length > 2 && value.startsWith('*') && value.endsWith('*')) {
+    if (!onlyAsterisks && value.startsWith('*') && value.endsWith('*')) {
       wildcard = WildcardOperators.SURROUNDED;
-    } else if (value.length > 2 && value.endsWith('*')) {
+    } else if (!onlyAsterisks && value.endsWith('*')) {
       wildcard = WildcardOperators.TRAILING;
-    } else if (value.length > 2 && value.startsWith('*')) {
+    } else if (!onlyAsterisks && value.startsWith('*')) {
       wildcard = WildcardOperators.LEADING;
     }
 
