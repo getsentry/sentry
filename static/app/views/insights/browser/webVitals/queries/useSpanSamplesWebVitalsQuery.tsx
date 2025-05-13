@@ -133,6 +133,8 @@ export function useSpanSamplesWebVitalsQuery({
             inpScore: Math.round((row[SpanIndexedField.INP_SCORE_RATIO] ?? 0) * 100),
             lcpScore: Math.round((row[SpanIndexedField.LCP_SCORE_RATIO] ?? 0) * 100),
             clsScore: Math.round((row[SpanIndexedField.CLS_SCORE_RATIO] ?? 0) * 100),
+            fcpScore: Math.round((row[SpanIndexedField.FCP_SCORE_RATIO] ?? 0) * 100),
+            ttfbScore: Math.round((row[SpanIndexedField.TTFB_SCORE_RATIO] ?? 0) * 100),
             projectSlug: row[SpanIndexedField.PROJECT],
           };
         })
