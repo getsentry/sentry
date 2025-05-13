@@ -202,7 +202,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
 
     def test_invalid_field(self):
-        self.features["organizations:performance-discover-dataset-selector"] = True
         self.create_project()
         query: dict[str, Any] = {"field": ["foo[…]bar"], "dataset": "transactions"}
         model = DiscoverSavedQuery.objects.create(
@@ -5744,27 +5743,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
         assert model.dataset_source == DatasetSourcesTypes.UNKNOWN.value
 
-        features = {
-            "organizations:discover-basic": True,
-            "organizations:global-views": True,
-            "organizations:performance-discover-dataset-selector": False,
-        }
-        query = {
-            "field": ["project", "user"],
-            "query": "has:user event.type:transaction",
-            "statsPeriod": "14d",
-            "discoverSavedQueryId": model.id,
-        }
-        response = self.do_request(query, features=features)
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert "discoverSplitDecision" not in response.data["meta"]
-
-        model = DiscoverSavedQuery.objects.get(id=model.id)
-        assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
-        assert model.dataset_source == DatasetSourcesTypes.UNKNOWN.value
-
     def test_saves_discover_saved_query_split_transaction(self):
         self.store_event(self.transaction_data, project_id=self.project.id)
         query = {"fields": ["message"], "query": "", "limit": 10}
@@ -5783,7 +5761,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         features = {
             "organizations:discover-basic": True,
             "organizations:global-views": True,
-            "organizations:performance-discover-dataset-selector": True,
         }
         query = {
             "field": ["project", "user"],
@@ -5824,7 +5801,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         features = {
             "organizations:discover-basic": True,
             "organizations:global-views": True,
-            "organizations:performance-discover-dataset-selector": True,
         }
         query = {
             "field": ["project", "user"],
@@ -5864,7 +5840,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         features = {
             "organizations:discover-basic": True,
             "organizations:global-views": True,
-            "organizations:performance-discover-dataset-selector": True,
         }
         query = {
             "field": ["transaction"],
@@ -5904,7 +5879,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         features = {
             "organizations:discover-basic": True,
             "organizations:global-views": True,
-            "organizations:performance-discover-dataset-selector": True,
         }
         query = {
             "field": ["transaction.status"],
@@ -5957,7 +5931,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=self.project.id,
         )
         features = {
-            "organizations:performance-discover-dataset-selector": True,
             "organizations:discover-basic": True,
             "organizations:global-views": True,
         }

@@ -258,7 +258,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(model.id)
         assert response.data["queryDataset"] == "error-events"
-        assert response.data["datasetSource"] == "unknown"
+        assert response.data["datasetSource"] == "user"
 
     def test_put_with_interval(self):
         with self.feature(self.feature_name):

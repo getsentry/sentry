@@ -128,20 +128,11 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["id"] == "default-overview"
 
     def test_prebuilt_dashboard_with_discover_split_feature_flag(self):
-        with self.feature({"organizations:performance-discover-dataset-selector": True}):
-            response = self.do_request("get", self.url("default-overview"))
+        response = self.do_request("get", self.url("default-overview"))
         assert response.status_code == 200, response.data
 
         for widget in response.data["widgets"]:
             assert widget["widgetType"] in {"issue", "transaction-like", "error-events"}
-
-    def test_prebuilt_dashboard_without_discover_split_feature_flag(self):
-        with self.feature({"organizations:performance-discover-dataset-selector": False}):
-            response = self.do_request("get", self.url("default-overview"))
-        assert response.status_code == 200, response.data
-
-        for widget in response.data["widgets"]:
-            assert widget["widgetType"] in {"issue", "discover"}
 
     def test_get_prebuilt_dashboard_tombstoned(self):
         DashboardTombstone.objects.create(organization=self.organization, slug="default-overview")
@@ -273,11 +264,10 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
         )
 
-        with self.feature({"organizations:performance-discover-dataset-selector": True}):
-            response = self.do_request(
-                "get",
-                self.url(dashboard.id),
-            )
+        response = self.do_request(
+            "get",
+            self.url(dashboard.id),
+        )
         assert response.status_code == 200, response.content
         assert response.data["widgets"][0]["widgetType"] == "error-events"
         assert response.data["widgets"][1]["widgetType"] == "transaction-like"
@@ -2627,12 +2617,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        with self.feature(
-            {
-                "organizations:performance-discover-dataset-selector": True,
-            }
-        ):
-            response = self.do_request("put", self.url(dashboard.id), data=data)
+
+        response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
         assert response.data["widgets"][0]["widgetType"] == "metrics"

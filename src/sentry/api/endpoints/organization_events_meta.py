@@ -95,11 +95,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 # query_source=(
                 #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
                 # ),
-                fallback_to_transactions=features.has(
-                    "organizations:performance-discover-dataset-selector",
-                    organization,
-                    actor=request.user,
-                ),
+                fallback_to_transactions=True,
             )
 
         return Response({"count": result["data"][0]["count"]})

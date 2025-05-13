@@ -6,7 +6,6 @@ from typing import Any
 from django.db import models
 from django.utils import timezone
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
@@ -173,20 +172,8 @@ class DashboardTombstone(Model):
 
 
 def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
-    DISCOVER = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.DISCOVER)
-    has_discover_split = features.has(
-        "organizations:performance-discover-dataset-selector", organization, actor=user
-    )
-    error_events_type = (
-        DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
-        if has_discover_split
-        else DISCOVER
-    )
-    transaction_type = (
-        DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
-        if has_discover_split
-        else DISCOVER
-    )
+    error_events_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+    transaction_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
     return [
         {
             # This should match the general template in static/app/views/dashboardsV2/data.tsx
@@ -205,7 +192,7 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "",
-                            "conditions": "" if has_discover_split else "!event.type:transaction",
+                            "conditions": "",
                             "fields": ["count()"],
                             "aggregates": ["count()"],
                             "columns": [],
@@ -221,7 +208,7 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "",
-                            "conditions": "" if has_discover_split else "!event.type:transaction",
+                            "conditions": "",
                             "fields": ["count_unique(issue)"],
                             "aggregates": ["count_unique(issue)"],
                             "columns": [],
@@ -237,7 +224,7 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "Events",
-                            "conditions": "" if has_discover_split else "!event.type:transaction",
+                            "conditions": "",
                             "fields": ["count()"],
                             "aggregates": ["count()"],
                             "columns": [],
@@ -253,11 +240,7 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "Known Users",
-                            "conditions": (
-                                "has:user.email"
-                                if has_discover_split
-                                else "has:user.email !event.type:transaction"
-                            ),
+                            "conditions": "has:user.email",
                             "fields": ["count_unique(user)"],
                             "aggregates": ["count_unique(user)"],
                             "columns": [],
@@ -265,11 +248,7 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                         },
                         {
                             "name": "Anonymous Users",
-                            "conditions": (
-                                "!has:user.email"
-                                if has_discover_split
-                                else "!has:user.email !event.type:transaction"
-                            ),
+                            "conditions": "!has:user.email",
                             "fields": ["count_unique(user)"],
                             "aggregates": ["count_unique(user)"],
                             "columns": [],
@@ -309,11 +288,7 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "Error counts",
-                            "conditions": (
-                                "has:geo.country_code"
-                                if has_discover_split
-                                else "has:geo.country_code !event.type:transaction"
-                            ),
+                            "conditions": "has:geo.country_code",
                             "fields": ["geo.country_code", "geo.region", "count()"],
                             "aggregates": ["count()"],
                             "columns": ["geo.country_code", "geo.region"],
@@ -329,11 +304,7 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "",
-                            "conditions": (
-                                "has:browser.name"
-                                if has_discover_split
-                                else "has:browser.name !event.type:transaction"
-                            ),
+                            "conditions": "has:browser.name",
                             "fields": ["browser.name", "count()"],
                             "aggregates": ["count()"],
                             "columns": ["browser.name"],
@@ -352,7 +323,7 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                             "fields": ["count()", "transaction"],
                             "aggregates": ["count()"],
                             "columns": ["transaction"],
-                            "conditions": "" if has_discover_split else "event.type:transaction",
+                            "conditions": "",
                             "orderby": "-count()",
                         },
                     ],
@@ -384,7 +355,7 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                             "fields": ["transaction", "count()"],
                             "aggregates": ["count()"],
                             "columns": ["transaction"],
-                            "conditions": "" if has_discover_split else "event.type:transaction",
+                            "conditions": "",
                             "orderby": "-count()",
                         },
                     ],

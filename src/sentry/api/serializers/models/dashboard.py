@@ -4,7 +4,6 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
-from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
@@ -97,12 +96,7 @@ class DashboardWidgetSerializer(Serializer):
         )
 
         if (
-            features.has(
-                "organizations:performance-discover-dataset-selector",
-                obj.dashboard.organization,
-                actor=user,
-            )
-            and obj.widget_type == DashboardWidgetTypes.DISCOVER
+            obj.widget_type == DashboardWidgetTypes.DISCOVER
             and obj.discover_widget_split is not None
         ):
             widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
