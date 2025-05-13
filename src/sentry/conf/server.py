@@ -394,7 +394,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.sites",
     "drf_spectacular",
     "crispy_forms",
-    "pgtrigger",
     "rest_framework",
     "sentry",
     "sentry.analytics",
