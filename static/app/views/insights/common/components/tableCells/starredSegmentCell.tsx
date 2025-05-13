@@ -35,6 +35,7 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
 
   const disabled = !project || !segmentName || isPending;
 
+  // Updates the corresponding table data with starred segments, this triggers a state update which stars the segment in the ui
   const updateTableData = (newIsStarred: boolean) => {
     queryClient.setQueriesData(
       {queryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
