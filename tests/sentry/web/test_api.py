@@ -82,8 +82,22 @@ class RobotsTxtTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "text/plain"
 
-    def test_simple(self):
-        response = self.client.get("/robots.txt")
+    def test_self_hosted_mode(self):
+        with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/robots.txt")
+
+        assert response.status_code == 200
+        assert (
+            response.content
+            == b"""User-agent: *
+Disallow: /
+"""
+        )
+        assert response["Content-Type"] == "text/plain"
+
+    def test_saas_mode(self):
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/robots.txt")
 
         assert response.status_code == 200
         assert (
