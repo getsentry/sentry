@@ -13,7 +13,7 @@ hybridcloud: 0020_fix_scope_list_type
 
 insights: 0001_add_starred_transactions_model
 
-monitors: 0002_fix_drift_default_to_db_default
+monitors: 0003_record_date_in_progress
 
 nodestore: 0002_nodestore_no_dictfield
 
