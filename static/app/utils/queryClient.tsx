@@ -258,14 +258,7 @@ export function useInfiniteApiQuery<TResponseData>({
   staleTime?: number;
 }) {
   return useInfiniteQuery({
-    // We append an additional string to the queryKey here to prevent a hard
-    // crash due to a cache conflict between normal queries and "infinite"
-    // queries. Read more
-    // here: https://tkdodo.eu/blog/effective-react-query-keys#caching-data
     queryKey,
-    // queryKey.length === 1
-    //   ? ([...queryKey, {}, 'infinite'] as const)
-    //   : ([...queryKey, 'infinite'] as const),
     queryFn: ({
       pageParam,
       queryKey: [, url, endpointOptions],

@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 
 import type {ApiResult} from 'sentry/api';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
@@ -23,10 +23,6 @@ function isIssueEndpointUrl(query: any) {
 export default function useFeedbackCache() {
   const queryClient = useQueryClient();
   const {getItemQueryKeys, listQueryKey} = useFeedbackQueryKeys();
-  const infiniteListQueryKey = useMemo(
-    () => (listQueryKey ? [...listQueryKey, 'infinite'] : undefined),
-    [listQueryKey]
-  );
 
   const updateCachedQueryKey = useCallback(
     (queryKey: ApiQueryKey, payload: Partial<FeedbackIssue>) => {
@@ -57,10 +53,10 @@ export default function useFeedbackCache() {
 
   const updateCachedListPage = useCallback(
     (ids: TFeedbackIds, payload: Partial<FeedbackIssue>) => {
-      if (!infiniteListQueryKey) {
+      if (!listQueryKey) {
         return;
       }
-      const listData = queryClient.getQueryData<ListCache>(infiniteListQueryKey);
+      const listData = queryClient.getQueryData<ListCache>(listQueryKey);
       if (listData) {
         const pages = listData.pages.map(([data, statusText, resp]) => [
           data.map(item =>
@@ -69,10 +65,10 @@ export default function useFeedbackCache() {
           statusText,
           resp,
         ]);
-        queryClient.setQueryData(infiniteListQueryKey, {...listData, pages});
+        queryClient.setQueryData(listQueryKey, {...listData, pages});
       }
     },
-    [infiniteListQueryKey, queryClient]
+    [listQueryKey, queryClient]
   );
 
   const updateCached = useCallback(
@@ -100,17 +96,17 @@ export default function useFeedbackCache() {
 
   const invalidateCachedListPage = useCallback(
     (ids: TFeedbackIds) => {
-      if (!infiniteListQueryKey) {
+      if (!listQueryKey) {
         return;
       }
       if (ids === 'all') {
         queryClient.invalidateQueries({
-          queryKey: infiniteListQueryKey,
+          queryKey: listQueryKey,
           type: 'all',
         });
       } else {
         queryClient.refetchQueries({
-          queryKey: infiniteListQueryKey,
+          queryKey: listQueryKey,
           predicate: query => {
             // Check if any of the pages contain the items we want to invalidate
             return Boolean(
@@ -122,7 +118,7 @@ export default function useFeedbackCache() {
         });
       }
     },
-    [infiniteListQueryKey, queryClient]
+    [listQueryKey, queryClient]
   );
 
   const invalidateCached = useCallback(
