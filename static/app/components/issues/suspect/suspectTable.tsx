@@ -18,6 +18,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 interface Props {
   debugSuspectScores: boolean;
@@ -29,6 +31,7 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
   const organization = useOrganization();
   const location = useLocation();
   const [threshold, setThreshold] = useSuspectFlagScoreThreshold();
+  const {baseUrl} = useGroupDetailsRoute();
 
   const {displayFlags, isPending} = useGroupFlagDrawerData({
     environments,
@@ -110,7 +113,7 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
               >
                 <StyledLink
                   to={{
-                    pathname: `${location.pathname}${flag.key}/`,
+                    pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${flag.key}/`,
                     query: {
                       ...location.query,
                       tab: DrawerTab.FEATURE_FLAGS,
