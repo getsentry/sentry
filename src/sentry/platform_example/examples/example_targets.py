@@ -12,7 +12,7 @@ class UserEmailsOnlyStrategy(NotificationTargetStrategy):
                 resource_type=ProviderResourceType.EMAIL,
                 resource_value=user.email,
                 provider=NotificationProviderNames.EMAIL,
-                additional_data={"respond_to": "help_me@sentry.io"},
+                additional_data={"reply_to": "help_me@example.com"},
             )
             for user in User.objects.filter(email__isnull=False)
         ]

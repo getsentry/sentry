@@ -1,9 +1,16 @@
 from dataclasses import dataclass
 from typing import Any
 
-from sentry.platform_example.notification_provider import NotificationProvider
+from sentry.integrations.slack.integration import SlackIntegration
+from sentry.platform_example.notification_provider import (
+    NotificationProvider,
+    NotificationProviderNames,
+)
 from sentry.platform_example.notification_renderer import NotificationRenderer
-from sentry.platform_example.notification_target import NotificationTarget
+from sentry.platform_example.notification_target import (
+    NotificationIntegrationTargetValidator,
+    NotificationTarget,
+)
 from sentry.platform_example.notification_types import NotificationType
 from sentry.platform_example.registry import ProviderRegistry
 from sentry.platform_example.template_base import NotificationTemplate, TemplateData
@@ -40,6 +47,9 @@ class ExampleNotificationProvider(NotificationProvider[str]):
     def get_renderer(self, notification_type: NotificationType) -> NotificationRenderer[str]:
         return ExampleNotificationRenderer()
 
+    def get_additional_data_schema(self) -> dict[str, Any] | None:
+        return None
+
 
 ProviderRegistry.register_provider(ExampleNotificationProvider(), "example")
 
@@ -57,12 +67,39 @@ class SlackNotificationProvider(NotificationProvider[SlackBlockKitData]):
         notification_type: NotificationType,
         target: NotificationTarget,
     ) -> None:
-        pass
+        validator = NotificationIntegrationTargetValidator(target)
+        validator.validate_notification_target()
+        install = validator.get_integration_installation()
+
+        assert isinstance(install, SlackIntegration)
+
+        # Hack, because we don't inherently support sending messages with Slack Blocks just yet
+        concatted_blocks = "\n".join(
+            [
+                block["text"]
+                for block in notification_content.blocks
+                if block.get("text") is not None
+            ]
+        )
+        install.send_message(str(target.resource_value), concatted_blocks)
 
     def get_renderer(
         self, notification_type: NotificationType
     ) -> NotificationRenderer[SlackBlockKitData]:
         return SlackNotificationRenderer()
+
+    def get_additional_data_schema(self) -> dict[str, Any]:
+        return {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+                "additional_metadata": {
+                    "type": "string",
+                    "description": "An additional string that will be appended to the notification",
+                },
+                "additionalProperties": False,
+            },
+        }
 
 
 class SlackNotificationRenderer(NotificationRenderer[SlackBlockKitData]):
@@ -75,3 +112,40 @@ class SlackNotificationRenderer(NotificationRenderer[SlackBlockKitData]):
         return SlackBlockKitData(
             blocks=[],
         )
+
+
+ProviderRegistry.register_provider(SlackNotificationProvider(), NotificationProviderNames.SLACK)
+
+
+class EmailNotificationProvider(NotificationProvider[tuple[str, str]]):
+    def send_notification(
+        self,
+        notification_content: tuple[str, str],
+        notification_type: NotificationType,
+        target: NotificationTarget,
+    ) -> None:
+        pass
+
+    def get_renderer(
+        self, notification_type: NotificationType
+    ) -> NotificationRenderer[tuple[str, str]]:
+        return EmailNotificationRenderer()
+
+    def get_additional_data_schema(self) -> dict[str, str]:
+        return {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+        }
+
+
+class EmailNotificationRenderer(NotificationRenderer[tuple[str, str]]):
+    def render(
+        self,
+        notification_content: TemplateData,
+        notification_template: NotificationTemplate,
+    ) -> tuple[str, str]:
+        # Returns a tuple containing HTML and plain text content
+        return ("<html><body>Hello, World!</body></html>", "Hello, World!")
+
+
+ProviderRegistry.register_provider(EmailNotificationProvider(), NotificationProviderNames.EMAIL)
