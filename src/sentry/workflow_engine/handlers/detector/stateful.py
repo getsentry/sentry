@@ -122,13 +122,16 @@ class DetectorStateManager:
             for detector_state in self.detector.detectorstate_set.filter(query_filter)
         }
 
-    def _build_key(self, group_key: DetectorGroupKey, postfix: str) -> str:
+    def build_key(self, group_key: DetectorGroupKey = None, postfix: str | None = None) -> str:
         group_postfix = f"{group_key if group_key is not None else ''}"
 
         if postfix:
-            group_postfix = f"{group_key if group_key is not None else ''}:{postfix}"
+            group_postfix = f"{group_postfix}:{postfix}"
 
-        return f"{self.detector.id}:{group_postfix}"
+        if group_postfix:
+            return f"{self.detector.id}:{group_postfix}"
+
+        return f"{self.detector.id}"
 
     def commit_state_updates(self):
         self._bulk_commit_detector_state()
@@ -136,12 +139,12 @@ class DetectorStateManager:
 
     def _bulk_commit_dedupe_values(self, pipeline):
         for group_key, dedupe_value in self.dedupe_updates.items():
-            pipeline.set(self._build_key(group_key, "dedupe_value"), dedupe_value, ex=REDIS_TTL)
+            pipeline.set(self.build_key(group_key, "dedupe_value"), dedupe_value, ex=REDIS_TTL)
 
     def _bulk_commit_counter_updates(self, pipeline):
         for group_key, counter_updates in self.counter_updates.items():
             for counter_name, counter_value in counter_updates.items():
-                key_name = self._build_key(group_key, counter_name)
+                key_name = self.build_key(group_key, counter_name)
 
                 if counter_value is None:
                     pipeline.delete(key_name)
@@ -202,9 +205,7 @@ class DetectorStateManager:
         If data isn't currently stored, falls back to default values.
         """
         group_key_detectors = self.bulk_get_detector_state(group_keys)
-        dedupe_lookup_keys = [
-            self._build_key(group_key, "dedupe_value") for group_key in group_keys
-        ]
+        dedupe_lookup_keys = [self.build_key(group_key, "dedupe_value") for group_key in group_keys]
         dedupe_keys = self.get_dedupe_keys(dedupe_lookup_keys)
         pipeline = get_redis_client().pipeline()
 
@@ -217,7 +218,7 @@ class DetectorStateManager:
 
         if self.counter_names:
             counter_keys = [
-                self._build_key(group_key, counter_name)
+                self.build_key(group_key, counter_name)
                 for group_key in group_keys
                 for counter_name in self.counter_names
             ]
@@ -271,21 +272,13 @@ class StatefulDetectorHandler(
         """
         pass
 
-    def build_fingerprint(self, postfix: str | None = None) -> str:
-        """
-        Builds a fingerprint to uniquely identify a detected issue
-        """
-        if not postfix:
-            return f"{self.detector.id}"
-        return f"{self.detector.id}:{postfix}"
-
     def create_resolve_message(self) -> StatusChangeMessage:
         """
         Create a resolve message for the detectors issue. This is overridable in the subclass, but
         will work for the majority of cases.
         """
         return StatusChangeMessage(
-            fingerprint=self.build_fingerprint(),
+            fingerprint=[self.state_manager.build_key()],
             project_id=self.detector.project_id,
             new_status=GroupStatus.RESOLVED,
             new_substatus=None,
@@ -315,7 +308,7 @@ class StatefulDetectorHandler(
             status=new_priority,
             detection_time=datetime.now(UTC),
             additional_evidence_data=evidence_data,
-            fingerprint=[self.build_fingerprint()],
+            fingerprint=[self.state_manager.build_key()],
         )
 
     def _evaluation_detector_conditions(
@@ -410,27 +403,6 @@ class StatefulGroupingDetectorHandler(
         """
         pass
 
-    def build_group_fingerprint(self, group_key: DetectorGroupKey) -> list[str]:
-        """
-        Builds a fingerprint to uniquely identify a detected issue
-
-        TODO - Take into account the data source / query that triggered the detector,
-        we'll want to create a new issue if the query changes.
-        """
-        return [self.build_key_for_group(group_key)]
-
-    def build_key_for_group(self, group_key: DetectorGroupKey, postfix: str | None = None) -> str:
-        """
-        Builds a key for the given group key. This is used to store the state of the detector in Redis.
-        """
-        group_postfix = f"{group_key if group_key is not None else ''}"
-
-        if postfix:
-            group_postfix = f"{group_key if group_key is not None else ''}:{postfix}"
-
-        fingerprint = self.build_fingerprint(group_postfix)
-        return fingerprint
-
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
@@ -476,7 +448,7 @@ class StatefulGroupingDetectorHandler(
         Evaluates a value associated with a given `group_key` and returns a `DetectorEvaluationResult` with the results
         and any state changes that need to be made.
 
-        Checks that we haven't already processed this datapacket for this group_key, and skips evaluation if we have.
+        Checks that we haven't already processed this data-packet for this group_key, and skips evaluation if we have.
         """
         # TODO - compose this method using the helpers in the base class.
         if dedupe_value <= state_data.dedupe_value:
@@ -492,7 +464,7 @@ class StatefulGroupingDetectorHandler(
         new_status = DetectorPriorityLevel.OK
         processed_data_condition, new_status = self._evaluation_detector_conditions(value)
 
-        # TODO - add upate for the thresholds here...
+        # TODO - add update for the thresholds here...
         # self.state_manager.update_thresholds(group_key, new_status)
         self.state_manager.enqueue_counter_update(group_key, {})
 
@@ -507,7 +479,7 @@ class StatefulGroupingDetectorHandler(
 
         if new_status == DetectorPriorityLevel.OK:
             result = StatusChangeMessage(
-                fingerprint=self.build_group_fingerprint(group_key),
+                fingerprint=[self.state_manager.build_key(group_key)],
                 project_id=self.detector.project_id,
                 new_status=GroupStatus.RESOLVED,
                 new_substatus=None,
@@ -527,7 +499,7 @@ class StatefulGroupingDetectorHandler(
                 status=new_status,
                 detection_time=datetime.now(UTC),
                 additional_evidence_data=evidence_data,
-                fingerprint=self.build_group_fingerprint(group_key),
+                fingerprint=[self.state_manager.build_key(group_key)],
             )
             event_data["timestamp"] = result.detection_time
             event_data["project_id"] = result.project_id
