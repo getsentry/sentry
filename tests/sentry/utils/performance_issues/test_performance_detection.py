@@ -14,12 +14,12 @@ from sentry.issues.grouptype import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.performance_issues.experiments import exclude_experimental_detectors
 from sentry.utils.performance_issues.base import DetectorType, total_span_time
 from sentry.utils.performance_issues.detectors.n_plus_one_db_span_detector import (
     NPlusOneDBSpanDetector,
 )
 from sentry.utils.performance_issues.performance_detection import (
-    DETECTOR_CLASSES,
     EventPerformanceProblem,
     _detect_performance_problems,
     detect_performance_problems,
@@ -83,6 +83,7 @@ def assert_n_plus_one_db_problem(perf_problems):
 
 
 @pytest.mark.django_db
+@exclude_experimental_detectors
 class PerformanceDetectionTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -100,13 +101,6 @@ class PerformanceDetectionTest(TestCase):
         self.addCleanup(patch_organization.stop)
 
         self.project = self.create_project()
-        # Exclude experimental detectors from detection in this test suite
-        self.patch_detector_classes = patch(
-            "sentry.utils.performance_issues.performance_detection.DETECTOR_CLASSES",
-            [cls for cls in DETECTOR_CLASSES if "Experimental" not in cls.__name__],
-        )
-        self.patch_detector_classes.start()
-        self.addCleanup(self.patch_detector_classes.stop)
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):

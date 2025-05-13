@@ -5,14 +5,16 @@ from unittest.mock import Mock, call
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import (
+    PerformanceMNPlusOneDBQueriesExperimentalGroupType,
+    PerformanceNPlusOneExperimentalGroupType,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.performance_issues.experiments import exclude_experimental_detectors
 from sentry.utils.performance_issues.base import DetectorType
-from sentry.utils.performance_issues.detectors.mn_plus_one_db_span_detector import (
-    MNPlusOneDBSpanDetector,
+from sentry.utils.performance_issues.detectors.experiments.mn_plus_one_db_span_detector import (
+    MNPlusOneDBSpanExperimentalDetector,
 )
 from sentry.utils.performance_issues.performance_detection import (
     _detect_performance_problems,
@@ -23,8 +25,11 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 
 
 @pytest.mark.django_db
-@exclude_experimental_detectors
 class MNPlusOneDBDetectorTest(TestCase):
+    detector = MNPlusOneDBSpanExperimentalDetector
+    fingerprint_type_id = PerformanceMNPlusOneDBQueriesExperimentalGroupType.type_id
+    group_type = PerformanceNPlusOneExperimentalGroupType
+
     def setUp(self):
         super().setUp()
         self._settings = get_detection_settings()
@@ -33,7 +38,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         self, event: dict[str, Any], settings: dict[DetectorType, Any] | None = None
     ) -> list[PerformanceProblem]:
         detector_settings = settings or self._settings
-        detector = MNPlusOneDBSpanDetector(detector_settings, event)
+        detector = self.detector(detector_settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -43,9 +48,9 @@ class MNPlusOneDBDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-1011-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8",
+                fingerprint=f"1-{self.fingerprint_type_id}-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8",
                 op="db",
-                type=PerformanceNPlusOneGroupType,
+                type=self.group_type,
                 desc="SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
                 parent_span_ids=[],
                 cause_span_ids=[],
@@ -109,7 +114,7 @@ class MNPlusOneDBDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
-        assert problems[0].title == "N+1 Query"
+        assert problems[0].title == "N+1 Query (Experimental)"
 
     def test_does_not_detect_truncated_m_n_plus_one(self):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql-truncated")
@@ -129,15 +134,20 @@ class MNPlusOneDBDetectorTest(TestCase):
         _detect_performance_problems(event, sdk_span_mock, self.create_project())
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
-                call("_pi_all_issue_count", 1),
+                # Current + Experimental Detector
+                call("_pi_all_issue_count", 2),
                 call("_pi_sdk_name", "sentry.javascript.node"),
                 call("is_standalone_spans", False),
                 call("_pi_transaction", "3818ae4f54ba4fa6ac6f68c9e32793c4"),
-                call(
-                    "_pi_m_n_plus_one_db_fp",
-                    "1-1011-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8",
-                ),
+                # Current Detector
+                call("_pi_m_n_plus_one_db_fp", "1-1011-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8"),
                 call("_pi_m_n_plus_one_db", "9c5049407f37a364"),
+                # Experimental Detector
+                call(
+                    "_pi_experimental_m_n_plus_one_db_queries_fp",
+                    f"1-{self.fingerprint_type_id}-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8",
+                ),
+                call("_pi_experimental_m_n_plus_one_db_queries", "9c5049407f37a364"),
             ]
         )
 
@@ -159,7 +169,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         event["project_id"] = project.id
 
         settings = get_detection_settings(project.id)
-        detector = MNPlusOneDBSpanDetector(settings, event)
+        detector = self.detector(settings, event)
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -170,7 +180,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         )
 
         settings = get_detection_settings(project.id)
-        detector = MNPlusOneDBSpanDetector(settings, event)
+        detector = self.detector(settings, event)
 
         assert not detector.is_creation_allowed_for_project(project)
 
