@@ -70,7 +70,9 @@ const renderDisabled = (p: any) => (
 
 type SaveAsDropdownProps = {
   disabled: boolean;
-  modifiedHandleCreateQuery: (e: React.MouseEvent<Element>) => void;
+  modifiedHandleCreateQuery: (
+    e: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>
+  ) => void;
   onChangeInput: (e: React.FormEvent<HTMLInputElement>) => void;
   queryName: string;
 };
@@ -97,27 +99,30 @@ function SaveAsDropdown({
       </Button>
       <AnimatePresence>
         {isOpen && (
-          <FocusScope contain restoreFocus autoFocus>
-            <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
-              <StyledOverlay arrowProps={arrowProps} animated>
-                <SaveAsInput
-                  type="text"
-                  name="query_name"
-                  placeholder={t('Display name')}
-                  value={queryName || ''}
-                  onChange={onChangeInput}
-                  disabled={disabled}
-                />
-                <SaveAsButton
-                  onClick={modifiedHandleCreateQuery}
-                  priority="primary"
-                  disabled={disabled || !queryName}
-                >
-                  {t('Save for Org')}
-                </SaveAsButton>
-              </StyledOverlay>
-            </PositionWrapper>
-          </FocusScope>
+          <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+            <StyledOverlay arrowProps={arrowProps} animated>
+              <FocusScope contain restoreFocus autoFocus>
+                <form onSubmit={modifiedHandleCreateQuery}>
+                  <SaveAsInput
+                    type="text"
+                    name="query_name"
+                    placeholder={t('Display name')}
+                    value={queryName || ''}
+                    onChange={onChangeInput}
+                    disabled={disabled}
+                  />
+                  <SaveAsButton
+                    type="submit"
+                    onClick={modifiedHandleCreateQuery}
+                    priority="primary"
+                    disabled={disabled || !queryName}
+                  >
+                    {t('Save for Org')}
+                  </SaveAsButton>
+                </form>
+              </FocusScope>
+            </StyledOverlay>
+          </PositionWrapper>
         )}
       </AnimatePresence>
     </div>
@@ -245,7 +250,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
    * 1) Creating a query from scratch and saving it
    * 2) Modifying an existing query and saving it
    */
-  handleCreateQuery = (event: React.MouseEvent<Element>) => {
+  handleCreateQuery = (
+    event: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>
+  ) => {
     event.preventDefault();
     event.stopPropagation();
 

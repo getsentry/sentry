@@ -223,6 +223,31 @@ describe('Discover > SaveQueryButtonGroup', function () {
       );
     });
 
+    it('saves on enter', async () => {
+      mount(location, organization, router, errorsView, undefined, yAxis);
+
+      // Click on ButtonSaveAs to open dropdown
+      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+
+      // Fill in the Input
+      const input = screen.getByPlaceholderText('Display name');
+      await userEvent.type(input, 'My New Query');
+
+      // Press Enter
+      await userEvent.keyboard('{enter}');
+
+      expect(mockUtils).toHaveBeenCalledWith(
+        expect.anything(),
+        organization,
+        expect.objectContaining({
+          ...errorsView,
+          name: 'My New Query',
+        }),
+        yAxis,
+        true
+      );
+    });
+
     it('rejects if query.name is empty', async () => {
       mount(location, organization, router, errorsView, undefined, yAxis);
 
