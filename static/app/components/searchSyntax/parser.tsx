@@ -727,7 +727,8 @@ export class TokenConverter {
     // we want to ignore setting the wildcard if the value is only asterisks because the
     // value is solely matching anything and we don't want to consider it to be any of
     // our new operators
-    const onlyAsterisks = new Set(value).size === 1 && value.includes('*');
+    const valueSet = new Set(value);
+    const onlyAsterisks = valueSet.size === 1 && valueSet.has('*');
 
     let wildcard: WildcardOperators | false = false;
     if (!onlyAsterisks && value.startsWith('*') && value.endsWith('*')) {
