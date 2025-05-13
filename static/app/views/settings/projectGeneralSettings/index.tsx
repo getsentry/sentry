@@ -214,9 +214,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
 
         {isOrgOwner && !isInternal && (
           <Confirm
-            onConfirm={() => {
-              handleTransferProject();
-            }}
+            onConfirm={handleTransferProject}
             priority="danger"
             confirmText={t('Transfer project')}
             renderMessage={({confirm}) => (

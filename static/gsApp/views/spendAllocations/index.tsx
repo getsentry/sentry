@@ -488,9 +488,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
         )}
       {!isLoading && orgEnabledFlag && canViewSpendAllocation && (
         <Confirm
-          onConfirm={() => {
-            disableSpendAllocations();
-          }}
+          onConfirm={disableSpendAllocations}
           renderMessage={confirmDisableContent}
         >
           <Button
