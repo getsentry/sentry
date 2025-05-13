@@ -169,6 +169,7 @@ export const renderDiscoverGridHeaderCell = ({
             order: currentSort?.kind === 'desc' ? 'asc' : 'desc',
           });
         }}
+        preventScrollReset
       />
     );
   };
