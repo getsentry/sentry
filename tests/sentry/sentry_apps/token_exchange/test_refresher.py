@@ -96,7 +96,7 @@ class TestRefresher(TestCase):
     @patch("sentry.sentry_apps.token_exchange.refresher.Refresher._validate")
     @patch("sentry.models.ApiApplication.objects.get", side_effect=ApiApplication.DoesNotExist)
     def test_api_application_must_exist(self, _, mock_validate):
-        with pytest.raises(SentryAppIntegratorError) as e:
+        with pytest.raises(SentryAppSentryError) as e:
             self.refresher.run()
 
         assert e.value.message == "Could not find matching Application for given client_id"

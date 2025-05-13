@@ -119,7 +119,7 @@ class Refresher:
         try:
             return ApiApplication.objects.get(client_id=self.client_id)
         except ApiApplication.DoesNotExist:
-            raise SentryAppIntegratorError(
+            raise SentryAppSentryError(
                 message="Could not find matching Application for given client_id",
                 status_code=401,
                 webhook_context={
