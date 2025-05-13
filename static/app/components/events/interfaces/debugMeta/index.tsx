@@ -403,7 +403,6 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       )}
       actions={actions}
       initialCollapse
-      disableCollapsePersistence
     >
       {isOpen || hasStreamlinedUI ? (
         <Fragment>
