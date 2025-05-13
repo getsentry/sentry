@@ -6,6 +6,7 @@ import moment from 'moment-timezone';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -38,7 +39,7 @@ import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidge
 
 const sampleDurationTimeSeriesP50: TimeSeries = {
   ...sampleDurationTimeSeries,
-  field: 'p50(span.duration)',
+  yAxis: 'p50(span.duration)',
   values: sampleDurationTimeSeries.values.map(datum => {
     return {
       ...datum,
@@ -49,7 +50,7 @@ const sampleDurationTimeSeriesP50: TimeSeries = {
 
 const sampleDurationTimeSeriesP75: TimeSeries = {
   ...sampleDurationTimeSeries,
-  field: 'p75(span.duration)',
+  yAxis: 'p75(span.duration)',
   values: sampleDurationTimeSeries.values.map(datum => {
     return {
       ...datum,
@@ -313,9 +314,15 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {delay: 90}),
-                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {delay: 90}),
-                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeriesP50), {delay: 90}),
+                new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {
+                  delay: 90,
+                }),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
+                  delay: 90,
+                }),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeriesP50), {
+                  delay: 90,
+                }),
               ]}
             />
           </MediumWidget>
@@ -333,12 +340,12 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line({
                   ...sampleThroughputTimeSeries,
-                  field: 'equation|spm() + 1',
+                  yAxis: 'equation|spm() + 1',
                   meta: NULL_META,
                 }),
                 new Line({
                   ...sampleDurationTimeSeries,
-                  field: 'custom_aggregate()',
+                  yAxis: 'custom_aggregate()',
                   meta: NULL_META,
                 }),
               ]}
@@ -350,15 +357,16 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line({
                   ...sampleThroughputTimeSeries,
-                  field: 'equation|spm() + 1',
+                  yAxis: 'equation|spm() + 1',
                   meta: {
+                    ...sampleThroughputTimeSeries.meta,
                     valueType: 'number',
                     valueUnit: null,
                   },
                 }),
                 new Line({
                   ...sampleDurationTimeSeries,
-                  field: 'custom_aggregate()',
+                  yAxis: 'custom_aggregate()',
                   meta: NULL_META,
                 }),
               ]}
@@ -370,24 +378,27 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line({
                   ...sampleDurationTimeSeries,
-                  field: 'custom_agg(duration)',
+                  yAxis: 'custom_agg(duration)',
                   meta: {
+                    ...sampleThroughputTimeSeries.meta,
                     valueType: 'number',
                     valueUnit: null,
                   },
                 }),
                 new Line({
                   ...sampleDurationTimeSeriesP50,
-                  field: 'custom_agg2(duration)',
+                  yAxis: 'custom_agg2(duration)',
                   meta: {
+                    ...sampleThroughputTimeSeries.meta,
                     valueType: 'integer',
                     valueUnit: null,
                   },
                 }),
                 new Line({
                   ...sampleThroughputTimeSeries,
-                  field: 'custom_agg3(duration)',
+                  yAxis: 'custom_agg3(duration)',
                   meta: {
+                    ...sampleThroughputTimeSeries.meta,
                     valueType: 'duration',
                     valueUnit: DurationUnit.MILLISECOND,
                   },
@@ -427,7 +438,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
     // Create a very similar series, but with a different unit to demonstrate automatic scaling
     const secondsSeries: TimeSeries = {
-      field: 'p99(span.self_time)',
+      yAxis: 'p99(span.self_time)',
       values: sampleDurationTimeSeries.values.map(datum => {
         return {
           ...datum,
@@ -435,6 +446,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         };
       }),
       meta: {
+        ...sampleThroughputTimeSeries.meta,
         valueType: 'duration',
         valueUnit: DurationUnit.SECOND,
       },
@@ -580,8 +592,14 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Bars(shiftedSampleDurationTimeSeries, {delay, stack: 'all'}),
-                new Bars(shiftedSampleDurationTimeSeries2, {delay, stack: 'all'}),
+                new Bars(shiftedSampleDurationTimeSeries, {
+                  delay,
+                  stack: 'all',
+                }),
+                new Bars(shiftedSampleDurationTimeSeries2, {
+                  delay,
+                  stack: 'all',
+                }),
               ]}
             />
           </MediumWidget>
@@ -716,8 +734,9 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
     const timeSeries: TimeSeries = {
       ...sampleThroughputTimeSeries,
-      field: 'error_rate()',
+      yAxis: 'error_rate()',
       meta: {
+        ...sampleThroughputTimeSeries.meta,
         valueType: 'rate',
         valueUnit: RateUnit.PER_SECOND,
       },
@@ -899,7 +918,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line({
                   ...sampleThroughputTimeSeries,
-                  field: 'error_rate()',
+                  yAxis: 'error_rate()',
                 }),
               ]}
               releases={releases}
@@ -911,7 +930,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line({
                   ...sampleThroughputTimeSeries,
-                  field: 'error_rate()',
+                  yAxis: 'error_rate()',
                 }),
               ]}
               showReleaseAs="bubble"
@@ -922,6 +941,115 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       </Fragment>
     );
   });
+  story('Deep-Linking', () => (
+    <div>
+      <p>
+        Deep-linking to a chart works by mapping a unique ID to a self-contained component
+        that renders a chart and handles all the data-fetching required to do so. The{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
+          <JSXNode name="ChartWidgetLoader" />
+        </ExternalLink>{' '}
+        component is where this mapping occurs and handles loading the module and
+        rendering the component.
+      </p>
+
+      <p>The following are the required steps in order to deep-link to a chart:</p>
+
+      <ul>
+        <li>
+          Create a new component in{' '}
+          <ExternalLink href="https://github.com/getsentry/sentry/tree/master/static/app/views/insights/common/components/widgets">
+            <code>static/app/views/insights/common/components/widgets</code>
+          </ExternalLink>
+          . These currently are only used in Insights, but we can move them to a more
+          common location if they are useful elsewhere. We want a specific location so
+          that we can enforce lint rules.
+        </li>
+        <li>
+          Components need to be self-contained: they should not accept any additional
+          props beyond <code>LoadableChartWidgetProps</code> and should manage their own
+          data-fetching
+        </li>
+        <li>
+          Components need to pass a unique <code>id</code> prop to{' '}
+          <JSXNode name="TimeSeriesWidgetVisualization" />. This <code>id</code> should
+          also match the filename.
+        </li>
+        <li>
+          Components need to be a <code>default</code> export
+        </li>
+        <li>
+          Component must be manually mapped in{' '}
+          <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
+            <JSXNode name="ChartWidgetLoader" />
+          </ExternalLink>{' '}
+          so that these paths are statically analyzable
+        </li>
+      </ul>
+
+      <p>
+        Here's an example component, it would be in a file named{' '}
+        <code>databaseLandingDurationChartWidget.tsx</code>. Also, in{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
+          <JSXNode name="ChartWidgetLoader" />
+        </ExternalLink>
+        , be sure to also map its id to a a function that dynamically imports the
+        component.
+      </p>
+
+      <CodeSnippet language="tsx">
+        {`
+// In the file static/app/views/insights/common/components/widgets/databaseLandingDurationChartWidget.tsx
+export default function DatabaseLandingDurationChartWidget(
+  props: LoadableChartWidgetProps
+) {
+  const {isPending, data, error} = useDatabaseLandingDurationQuery();
+
+
+  // Note that id matches the filename
+  // it also needs to spread props to the underlying component
+  return (
+    <InsightsLineChartWidget
+      {...props}
+      id="databaseLandingDurationChartWidget"
+      title={getDurationChartTitle('db')}
+      series={[data[\`\${DEFAULT_DURATION_AGGREGATE}(span.self_time)\`]]}
+      isLoading={isPending}
+      error={error}
+    />
+  );
+}
+
+
+// In static/app/components/charts/chartWidgetLoader.tsx, add this to the CHART_MAP table
+{
+  "databaseLandingDurationChartWidget": () => import('sentry/views/insights/common/components/widgets/databaseLandingDurationChartWidget')
+}
+`}
+      </CodeSnippet>
+
+      <p>
+        Please take a look at{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/tree/master/static/app/views/insights/common/components/widgets">
+          <code>static/app/views/insights/common/components/widgets</code>
+        </ExternalLink>{' '}
+        for more examples.
+      </p>
+
+      <p>
+        Note that there are lint rules to disallow importing of insights chart widget
+        comopnents, as well as automated testing on all components in the root of the{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/tree/master/static/app/views/insights/common/components/widgets">
+          <code>widgets/</code>
+        </ExternalLink>{' '}
+        directory to ensure that{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
+          <JSXNode name="ChartWidgetLoader" />
+        </ExternalLink>{' '}
+        is able to load them all.
+      </p>
+    </div>
+  ));
 });
 
 const FillParent = styled('div')`
@@ -980,4 +1108,5 @@ function hasTimestamp(release: Partial<Release>): release is Release {
 const NULL_META: TimeSeriesMeta = {
   valueType: null,
   valueUnit: null,
+  interval: 0,
 };

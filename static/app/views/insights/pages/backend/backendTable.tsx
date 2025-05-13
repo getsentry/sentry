@@ -36,7 +36,6 @@ type Row = Pick<
   | 'p95(span.duration)'
   | 'failure_rate()'
   | 'count_unique(user)'
-  | 'time_spent_percentage(span.duration)'
   | 'sum(span.duration)'
 >;
 
@@ -51,7 +50,6 @@ type Column = GridColumnHeader<
   | 'p95(span.duration)'
   | 'failure_rate()'
   | 'count_unique(user)'
-  | 'time_spent_percentage(span.duration)'
   | 'sum(span.duration)'
 >;
 
@@ -102,7 +100,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(span.duration)',
+    key: 'sum(span.duration)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -119,7 +117,7 @@ const SORTABLE_FIELDS = [
   'p95(span.duration)',
   'failure_rate()',
   'count_unique(user)',
-  'time_spent_percentage(span.duration)',
+  'sum(span.duration)',
 ] as const;
 
 export type ValidSort = Sort & {
@@ -201,7 +199,7 @@ function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
   return [
     <StarredSegmentCell
       key={row.transaction}
-      initialIsStarred={row.is_starred_transaction}
+      isStarred={row.is_starred_transaction}
       projectSlug={row.project}
       segmentName={row.transaction}
     />,

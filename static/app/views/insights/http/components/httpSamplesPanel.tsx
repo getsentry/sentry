@@ -27,13 +27,14 @@ import useProjects from 'sentry/utils/useProjects';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
+// TODO(release-drawer): Move InsightsLineChartWidget into separate, self-contained component
+// eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useSpanMetrics,
   useSpansIndexed,
@@ -180,7 +181,6 @@ export function HTTPSamplesPanel() {
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
-        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       ],
       enabled: isPanelOpen,
     },
@@ -378,10 +378,6 @@ export function HTTPSamplesPanel() {
                 title={DataTitles.timeSpent}
                 value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
-                tooltip={getTimeSpentExplanation(
-                  domainTransactionMetrics?.[0]?.['time_spent_percentage()']!,
-                  'http.client'
-                )}
                 isLoading={areDomainTransactionMetricsFetching}
               />
             </ReadoutRibbon>

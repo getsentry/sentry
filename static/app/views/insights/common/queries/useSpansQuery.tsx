@@ -205,7 +205,7 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
   };
 }
 
-export function useWrappedDiscoverTimeseriesQuery<T>(
+function useWrappedDiscoverTimeseriesQuery<T>(
   props: WrappedDiscoverTimeseriesQueryProps
 ) {
   const {isReady} = usePageFilters();
@@ -215,7 +215,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>(
   });
 }
 
-export function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
+function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
   props: WrappedDiscoverTimeseriesQueryProps
 ) {
   return useWrappedDiscoverTimeseriesQueryBase<T>(props);
@@ -223,6 +223,7 @@ export function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
 
 type WrappedDiscoverQueryProps<T> = {
   eventView: EventView;
+  additionalQueryKey?: string[];
   allowAggregateConditions?: boolean;
   cursor?: string;
   enabled?: boolean;
@@ -244,6 +245,7 @@ function useWrappedDiscoverQueryBase<T>({
   allowAggregateConditions,
   samplingMode,
   pageFiltersReady,
+  additionalQueryKey,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
@@ -281,6 +283,7 @@ function useWrappedDiscoverQueryBase<T>({
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       staleTime: usesRelativeDateRange ? staleTimeForRelativePeriod : Infinity,
+      additionalQueryKey,
     },
     queryExtras,
     noPagination,
@@ -305,7 +308,7 @@ export function useWrappedDiscoverQuery<T>(props: WrappedDiscoverQueryProps<T>) 
   return useWrappedDiscoverQueryBase({...props, pageFiltersReady});
 }
 
-export function useWrappedDiscoverQueryWithoutPageFilters<T>(
+function useWrappedDiscoverQueryWithoutPageFilters<T>(
   props: WrappedDiscoverQueryProps<T>
 ) {
   return useWrappedDiscoverQueryBase({...props, pageFiltersReady: true});

@@ -61,13 +61,6 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
         return any(org_features.get(feature) for feature in self.feature_flags)
 
 
-class OrganizationTraceItemAttributesEndpointSnakeCaseSerializer(serializers.Serializer):
-    item_type = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=True)
-    attribute_type = serializers.ChoiceField(["string", "number"], required=True)
-    substring_match = serializers.CharField(required=False)
-    query = serializers.CharField(required=False)
-
-
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
     itemType = serializers.ChoiceField(
         [e.value for e in SupportedTraceItemType], required=True, source="item_type"
@@ -129,19 +122,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        serializer: (
-            OrganizationTraceItemAttributesEndpointSerializer
-            | OrganizationTraceItemAttributesEndpointSnakeCaseSerializer
-        )
-        serializer = OrganizationTraceItemAttributesEndpointSnakeCaseSerializer(data=request.GET)
+        serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
-            serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=400)
-            else:
-                sentry_sdk.set_tag("param.casing", "camel")
-        else:
-            sentry_sdk.set_tag("param.casing", "snake")
+            return Response(serializer.errors, status=400)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -192,7 +175,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             intersecting_attributes_filter=filter,
         )
 
-        rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+        with handle_query_errors():
+            rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
         paginator = ChainPaginator(
             [
@@ -220,19 +204,9 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        serializer: (
-            OrganizationTraceItemAttributesEndpointSerializer
-            | OrganizationTraceItemAttributesEndpointSnakeCaseSerializer
-        )
-        serializer = OrganizationTraceItemAttributesEndpointSnakeCaseSerializer(data=request.GET)
+        serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
-            serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=400)
-            else:
-                sentry_sdk.set_tag("param.casing", "camel")
-        else:
-            sentry_sdk.set_tag("param.casing", "snake")
+            return Response(serializer.errors, status=400)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

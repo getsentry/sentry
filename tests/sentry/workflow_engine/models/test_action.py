@@ -7,12 +7,12 @@ from jsonschema import ValidationError
 from sentry.eventstore.models import GroupEvent
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import ActionHandler
+from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
 
 class TestAction(TestCase):
     def setUp(self):
-        self.mock_event = Mock(spec=GroupEvent)
+        self.mock_event = WorkflowEventData(event=Mock(spec=GroupEvent))
         self.mock_detector = Mock(name="detector")
         self.action = Action(type=Action.Type.SLACK)
         self.config_schema = {

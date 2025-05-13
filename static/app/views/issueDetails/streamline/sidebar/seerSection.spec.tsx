@@ -101,7 +101,7 @@ describe('SeerSection', () => {
   });
 
   describe('Seer button text', () => {
-    it('shows "Set Up Seer" with summary when Seer needs setup', async () => {
+    it('shows "Find Root Cause" when Seer needs setup and no run already', async () => {
       const customOrganization = OrganizationFixture({
         hideAiFeatures: false,
         features: ['gen-ai-features'],
@@ -119,18 +119,14 @@ describe('SeerSection', () => {
         }),
       });
 
-      MockApiClient.addMockResponse({
-        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
-        method: 'POST',
-        body: {whatsWrong: 'Test summary'},
-      });
-
       render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
         organization: customOrganization,
       });
 
-      expect(await screen.findByText('Test summary')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Set Up Seer'})).toBeInTheDocument();
+      expect(
+        await screen.findByText('Explore potential root causes and solutions with Seer.')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
     });
 
     it('shows "Find Root Cause" even when autofix needs setup', async () => {
