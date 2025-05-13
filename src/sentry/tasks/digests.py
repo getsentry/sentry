@@ -1,5 +1,6 @@
 import logging
 import time
+from datetime import datetime
 
 from sentry.digests import get_option_key
 from sentry.digests.backends.base import InvalidState
@@ -53,7 +54,7 @@ def schedule_digests() -> None:
 )
 def deliver_digest(
     key: str,
-    schedule_timestamp: float | None = None,
+    schedule_timestamp: datetime | None = None,
     notification_uuid: str | None = None,
 ) -> None:
     from sentry import digests
