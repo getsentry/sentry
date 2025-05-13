@@ -6,7 +6,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconChevron, IconCode, IconFile, IconProject} from 'sentry/icons';
+import {IconChevron, IconFile, IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventsStats} from 'sentry/types/organization';
@@ -194,7 +194,8 @@ function TreeWidgetVisualization({tree}: {tree: TreeContainer}) {
   return (
     <TreeGrid>
       <HeaderCell>{t('Path')}</HeaderCell>
-      <HeaderCell>{t('Avg Duration')}</HeaderCell>
+      <HeaderCell>{t('Component')}</HeaderCell>
+      <HeaderCell>{t('generateMetadata')}</HeaderCell>
       {tree.children.toSorted(sortTreeChildren).map((item, index) => {
         return <TreeNodeRenderer key={index} item={item} />;
       })}
@@ -206,56 +207,81 @@ function TreeNodeRenderer({item, indent = 0}: {item: TreeNode; indent?: number})
   const theme = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  if (item.type === 'component') {
-    const durationMs = item['avg(span.duration)'];
-
+  const getDurationDisplay = (durationMs: number | undefined) => {
+    if (typeof durationMs !== 'number') {
+      // Ensure this div will be a grid item, even if empty-ish
+      return <div style={{textAlign: 'right'}}>{'–'}</div>;
+    }
     const valueColor =
       durationMs > 500
         ? theme.errorText
         : durationMs > 200
           ? theme.warningText
           : undefined;
+    return (
+      <div style={{color: valueColor, textAlign: 'right'}}>
+        {getDuration(durationMs / 1000, 2, true, true)}
+      </div>
+    );
+  };
 
+  if (item.type === 'folder') {
     return (
       <Fragment>
+        {/* Path cell for folder */}
         <div>
           <PathWrapper style={{paddingLeft: indent * 18}}>
-            <IconCode color="subText" size="xs" />
+            <StyledIconChevron
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              direction={isCollapsed ? 'right' : 'down'}
+            />
+            <IconProject color="subText" size="xs" />
             <TextOverflow>{item.name}</TextOverflow>
           </PathWrapper>
         </div>
-        <div style={{color: valueColor}}>
-          {getDuration(durationMs / 1000, 2, true, true)}
-        </div>
+        {/* Component duration placeholder for folder row */}
+        <div style={{textAlign: 'right'}}>{'–'}</div>
+        {/* generateMetadata duration placeholder for folder row */}
+        <div style={{textAlign: 'right'}}>{'–'}</div>
+
+        {!isCollapsed &&
+          item.children
+            .toSorted(sortTreeChildren)
+            .map((child, index) => (
+              <TreeNodeRenderer key={index} item={child} indent={indent + 1} />
+            ))}
       </Fragment>
     );
   }
 
-  return (
-    <Fragment>
-      <div>
-        <PathWrapper style={{paddingLeft: indent * 18}}>
-          <StyledIconChevron
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            direction={isCollapsed ? 'right' : 'down'}
-          />
-          {item.type === 'file' ? (
+  if (item.type === 'file') {
+    const componentChild = item.children?.find(
+      c => c.name === 'Component' && c.type === 'component'
+    ) as TreeLeaf | undefined;
+    const metadataChild = item.children?.find(
+      c => c.name === 'generateMetadata' && c.type === 'component'
+    ) as TreeLeaf | undefined;
+
+    return (
+      <Fragment>
+        {/* Path cell for file */}
+        <div>
+          <PathWrapper style={{paddingLeft: indent * 18}}>
+            {/* Spacer for chevron alignment. Chevron width is 10px. PathWrapper uses gap for spacing after. */}
+            <div style={{width: '10px', height: '10px', flexShrink: 0}} />
             <IconFile color="subText" size="xs" />
-          ) : (
-            <IconProject color="subText" size="xs" />
-          )}
-          <TextOverflow>{item.name}</TextOverflow>
-        </PathWrapper>
-      </div>
-      <div />
-      {!isCollapsed &&
-        item.children
-          .toSorted(sortTreeChildren)
-          .map((child, index) => (
-            <TreeNodeRenderer key={index} item={child} indent={indent + 1} />
-          ))}
-    </Fragment>
-  );
+            <TextOverflow>{item.name}</TextOverflow>
+          </PathWrapper>
+        </div>
+        {/* Component Duration cell for file row */}
+        {getDurationDisplay(componentChild?.['avg(span.duration)'])}
+        {/* generateMetadata Duration cell for file row */}
+        {getDurationDisplay(metadataChild?.['avg(span.duration)'])}
+      </Fragment>
+    );
+  }
+
+  return null; // Do not render other types like 'component' directly at this level
 }
 
 TreeWidgetVisualization.LoadingPlaceholder =
@@ -299,26 +325,32 @@ const StyledIconChevron = styled(IconChevron)`
 
 const TreeGrid = styled('div')`
   display: grid;
-  grid-template-columns: 1fr min-content;
+  grid-template-columns: 1fr min-content min-content;
   font-size: ${p => p.theme.codeFontSize};
 
   & > * {
     padding: ${space(0.25)};
   }
 
-  & > *:nth-child(2n + 1) {
+  & > *:nth-child(3n + 1) {
     text-align: left;
     padding-left: ${space(2)};
     min-width: 0;
   }
 
-  & > *:nth-child(2n) {
+  & > *:nth-child(3n + 2) {
     text-align: right;
     padding-right: ${space(2)};
   }
 
-  & > *:nth-child(4n + 1),
-  & > *:nth-child(4n + 2) {
+  & > *:nth-child(3n) {
+    text-align: right;
+    padding-right: ${space(2)};
+  }
+
+  & > *:nth-child(6n + 1),
+  & > *:nth-child(6n + 2),
+  & > *:nth-child(6n + 3) {
     background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
