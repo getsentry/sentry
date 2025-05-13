@@ -423,8 +423,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
-    viewManager.syncResetZoomButton();
-
     if (!isLoadingSubscriptionDetails) {
       traceAnalytics.trackTraceShape(
         props.tree,
