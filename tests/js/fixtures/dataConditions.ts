@@ -1,16 +1,14 @@
 import type {
   DataCondition,
   DataConditionGroup,
-  NewDataCondition,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 
-export function DataConditionFixture(params: Partial<NewDataCondition>): DataCondition {
+export function DataConditionFixture(params: Partial<DataCondition>): DataCondition {
   return {
-    type: DataConditionGroupLogicType.ALL,
     comparison_type: DataConditionType.EQUAL,
     comparison: '8',
     id: '1',
