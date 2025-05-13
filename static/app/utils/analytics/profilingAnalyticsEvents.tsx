@@ -1,6 +1,6 @@
 import type {PlatformKey} from 'sentry/types/project';
 
-export type ProfilingEventSource =
+type ProfilingEventSource =
   | 'discover.transactions_table'
   | 'performance.trace_view.details'
   | 'performance.trace_view.missing_instrumentation'

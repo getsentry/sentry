@@ -87,6 +87,7 @@ export enum SpanFields {
   SPAN_GROUP = 'span.group',
   SPAN_OP = 'span.op',
   RELEASE = 'release',
+  PROJECT_ID = 'project.id',
 }
 
 type WebVitalsMeasurements =
@@ -266,10 +267,6 @@ export type SpanMetricsResponse = {
   } & {
     [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   };
-
-export type MetricsFilters = {
-  [Property in SpanStringFields as `${Property}`]?: string | string[];
-};
 
 export type SpanMetricsProperty = keyof SpanMetricsResponse;
 

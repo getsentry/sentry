@@ -258,6 +258,28 @@ def test_detect_function_trends_options(
     assert query_functions.called == (task_enabled and option_enabled)
 
 
+@mock.patch("sentry.tasks.statistical_detectors.query_functions")
+@django_db_all
+def test_detect_function_trends_options_with_str(
+    query_functions,
+    timestamp,
+    project,
+):
+    ProjectOption.objects.set_value(
+        project=project,
+        key="sentry:performance_issue_settings",
+        value={InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: True},
+    )
+
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    with override_options(options):
+        detect_function_trends([project.id], timestamp.isoformat())
+    assert query_functions.called == (True and True)
+
+
 @mock.patch("sentry.snuba.functions.query")
 @django_db_all
 def test_detect_function_trends_query_timerange(functions_query, timestamp, project):
@@ -969,6 +991,7 @@ def test_detect_function_change_points(
 
     with override_options(options):
         detect_function_change_points([(project.id, fingerprint)], timestamp.isoformat())
+
     assert mock_emit_function_regression_issue.called
 
 
