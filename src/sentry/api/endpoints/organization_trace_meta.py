@@ -16,7 +16,7 @@ from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import SnubaData, SnubaParams
-from sentry.snuba import spans_rpc
+from sentry.snuba import ourlogs, spans_rpc
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery, run_bulk_table_queries
@@ -26,6 +26,7 @@ _query_thread_pool = ThreadPoolExecutor(max_workers=3)
 
 
 class SerializedResponse(TypedDict):
+    logs: int
     errors: int
     performance_issues: int
     span_count: int
@@ -66,8 +67,9 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
         trace_id: str,
         snuba_params: SnubaParams,
     ) -> dict[str, EAPResponse]:
-        config = SearchResolverConfig()
-        resolver = spans_rpc.get_resolver(snuba_params, config)
+        config = SearchResolverConfig(disable_aggregate_extrapolation=True)
+        spans_resolver = spans_rpc.get_resolver(snuba_params, config)
+        logs_resolver = ourlogs.get_resolver(snuba_params, config)
         return run_bulk_table_queries(
             [
                 TableQuery(
@@ -76,9 +78,9 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                     orderby=None,
                     offset=0,
                     limit=1,
-                    referrer="TODO",
+                    referrer=Referrer.API_TRACE_VIEW_SPAN_META.value,
                     sampling_mode=None,
-                    resolver=resolver,
+                    resolver=spans_resolver,
                     name="spans_meta",
                 ),
                 TableQuery(
@@ -90,9 +92,9 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                     orderby=["-count()"],
                     offset=0,
                     limit=10_000,
-                    referrer="TODO",
+                    referrer=Referrer.API_TRACE_VIEW_SPAN_OP_META.value,
                     sampling_mode=None,
-                    resolver=resolver,
+                    resolver=spans_resolver,
                     name="spans_op_count",
                 ),
                 TableQuery(
@@ -104,10 +106,23 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                     orderby=["transaction.event_id"],
                     offset=0,
                     limit=10_000,
-                    referrer="TODO",
+                    referrer=Referrer.API_TRACE_VIEW_TRANSACTION_CHILDREN.value,
                     sampling_mode=None,
-                    resolver=resolver,
+                    resolver=spans_resolver,
                     name="transaction_children",
+                ),
+                TableQuery(
+                    query_string=f"trace:{trace_id}",
+                    selected_columns=[
+                        "count()",
+                    ],
+                    orderby=None,
+                    offset=0,
+                    limit=1,
+                    referrer=Referrer.API_TRACE_VIEW_LOGS_META.value,
+                    sampling_mode=None,
+                    resolver=logs_resolver,
+                    name="logs_meta",
                 ),
             ]
         )
@@ -155,6 +170,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
     def serialize(self, results: dict[str, EAPResponse], perf_issues: int) -> SerializedResponse:
         return {
             # Values can be null if there's no result
+            "logs": results["logs_meta"]["data"][0].get("count()") or 0,
             "errors": results["errors"]["data"][0].get("errors") or 0,
             "performance_issues": perf_issues,
             "span_count": results["spans_meta"]["data"][0].get("count()") or 0,

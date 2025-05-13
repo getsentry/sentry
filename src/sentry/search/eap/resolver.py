@@ -953,6 +953,7 @@ class SearchResolver:
             search_type=search_type,
             resolved_arguments=resolved_arguments,
             snuba_params=self.params,
+            extrapolation_override=self.config.disable_aggregate_extrapolation,
         )
 
         resolved_context = None
