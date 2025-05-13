@@ -86,7 +86,7 @@ type BaseDiscoverQueryProps = {
   options?: Omit<
     UseQueryOptions<[any, string | undefined, ResponseMeta<any> | undefined], QueryError>,
     'queryKey' | 'queryFn'
-  >;
+  > & {additionalQueryKey?: UseQueryOptions['queryKey']};
   /**
    * A container for query batching data and functions.
    */
@@ -423,10 +423,11 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const {orgSlug, route, options} = props;
   const url = `/organizations/${orgSlug}/${route}/`;
   const apiPayload = getPayload<T, P>(props);
+  const additionalQueryKey = props.options?.additionalQueryKey ?? [];
 
   const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: [route, apiPayload],
+    queryKey: [...additionalQueryKey, route, apiPayload],
     queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
         queryBatching: props.queryBatching,

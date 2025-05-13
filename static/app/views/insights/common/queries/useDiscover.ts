@@ -22,6 +22,10 @@ import type {
   SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
+interface UseDiscoverQueryOptions {
+  additonalQueryKey?: string[];
+}
+
 interface UseDiscoverOptions<Fields> {
   cursor?: string;
   enabled?: boolean;
@@ -37,6 +41,7 @@ interface UseDiscoverOptions<Fields> {
    */
   search?: MutableSearch | string;
   sorts?: Sort[];
+  useQueryOptions?: UseDiscoverQueryOptions;
 }
 
 // The default sampling mode for eap queries
@@ -134,6 +139,7 @@ export const useDiscover = <
     projectIds,
     orderby,
     samplingMode = DEFAULT_SAMPLING_MODE,
+    useQueryOptions,
   } = options;
 
   // TODO: remove this check with eap
@@ -160,6 +166,7 @@ export const useDiscover = <
     cursor,
     noPagination,
     samplingMode: shouldSetSamplingMode ? samplingMode : undefined,
+    additionalQueryKey: useQueryOptions?.additonalQueryKey,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data

@@ -223,6 +223,7 @@ function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
 
 type WrappedDiscoverQueryProps<T> = {
   eventView: EventView;
+  additionalQueryKey?: string[];
   allowAggregateConditions?: boolean;
   cursor?: string;
   enabled?: boolean;
@@ -244,6 +245,7 @@ function useWrappedDiscoverQueryBase<T>({
   allowAggregateConditions,
   samplingMode,
   pageFiltersReady,
+  additionalQueryKey,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
@@ -281,6 +283,7 @@ function useWrappedDiscoverQueryBase<T>({
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       staleTime: usesRelativeDateRange ? staleTimeForRelativePeriod : Infinity,
+      additionalQueryKey,
     },
     queryExtras,
     noPagination,
