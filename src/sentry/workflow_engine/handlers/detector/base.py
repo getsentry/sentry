@@ -132,14 +132,3 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]
         This value is used to determine if the data condition group is in a triggered state.
         """
         pass
-
-    # TODO should this be a required method? :thinking:
-    @abc.abstractmethod
-    def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
-        """
-        Extracts the deduplication value from a passed data packet. This duplication
-        value is used to determine if we've already processed data to this point or not.
-
-        This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
-        """
-        pass
