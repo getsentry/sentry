@@ -33,6 +33,8 @@ const query: ParseResult = [
         source: {},
       },
       contains: false,
+      startsWith: false,
+      endsWith: false,
     },
     invalid: null,
     warning: null,
