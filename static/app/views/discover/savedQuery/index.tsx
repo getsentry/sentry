@@ -11,6 +11,7 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
+import {Flex} from 'sentry/components/container/flex';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
@@ -83,7 +84,9 @@ function SaveAsDropdown({
   onChangeInput,
   modifiedHandleCreateQuery,
 }: SaveAsDropdownProps) {
-  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay();
+  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay({
+    position: 'bottom',
+  });
   const theme = useTheme();
 
   return (
@@ -103,22 +106,24 @@ function SaveAsDropdown({
             <StyledOverlay arrowProps={arrowProps} animated>
               <FocusScope contain restoreFocus autoFocus>
                 <form onSubmit={modifiedHandleCreateQuery}>
-                  <SaveAsInput
-                    type="text"
-                    name="query_name"
-                    placeholder={t('Display name')}
-                    value={queryName || ''}
-                    onChange={onChangeInput}
-                    disabled={disabled}
-                  />
-                  <SaveAsButton
-                    type="submit"
-                    onClick={modifiedHandleCreateQuery}
-                    priority="primary"
-                    disabled={disabled || !queryName}
-                  >
-                    {t('Save for Organization')}
-                  </SaveAsButton>
+                  <Flex gap={space(1)} column>
+                    <Input
+                      type="text"
+                      name="query_name"
+                      placeholder={t('Display name')}
+                      value={queryName || ''}
+                      onChange={onChangeInput}
+                      disabled={disabled}
+                    />
+                    <SaveAsButton
+                      type="submit"
+                      onClick={modifiedHandleCreateQuery}
+                      priority="primary"
+                      disabled={disabled || !queryName}
+                    >
+                      {t('Save for Organization')}
+                    </SaveAsButton>
+                  </Flex>
                 </form>
               </FocusScope>
             </StyledOverlay>
@@ -655,10 +660,6 @@ const StyledOverlay = styled(Overlay)`
 
 const SaveAsButton = styled(Button)`
   width: 100%;
-`;
-
-const SaveAsInput = styled(Input)`
-  margin-bottom: ${space(1)};
 `;
 
 const IconUpdate = styled('div')`
