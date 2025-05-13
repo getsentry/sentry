@@ -951,7 +951,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "per_page": 50,
                 "dashboardWidgetId": widget.id,
             },
-            features={"organizations:performance-discover-dataset-selector": True},
         )
 
         assert response.status_code == 200, response.content
@@ -1017,7 +1016,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             project_id=self.project.id,
         )
         features = {
-            "organizations:performance-discover-dataset-selector": True,
             "organizations:discover-basic": True,
             "organizations:global-views": True,
         }
