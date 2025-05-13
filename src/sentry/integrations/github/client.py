@@ -386,13 +386,12 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get_with_pagination("/installation/repositories", response_key="repositories")
 
-    # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
         Find repositories matching a query.
-        NOTE: All search APIs share a rate limit of 30 requests/minute
+        https://docs.github.com/en/rest/search/search?apiVersion=2022-11-28#search-repositories
 
-        https://docs.github.com/en/rest/search#search-repositories
+        NOTE: All search APIs (except code search) share a rate limit of 30 requests/minute
         """
         return self.get("/search/repositories", params={"q": query})
 
@@ -442,8 +441,9 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         """
-        https://docs.github.com/en/rest/search?#search-issues-and-pull-requests
-        NOTE: All search APIs share a rate limit of 30 requests/minute
+        https://docs.github.com/en/rest/search?apiVersion=2022-11-28#search-issues-and-pull-requests
+
+        NOTE: All search APIs (except code search) share a rate limit of 30 requests/minute
         """
         return self.get("/search/issues", params={"q": query})
 
@@ -498,12 +498,15 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get(f"/users/{gh_username}")
 
-    def get_labels(self, repo: str) -> Sequence[Any]:
+    def get_labels(self, owner: str, repo: str, paginated: bool = False) -> list[Any]:
         """
-        Fetches up to the first 100 labels for a repository.
+        Fetches all labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
-        return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
+        if paginated:
+            return self.get_with_pagination(f"/repos/{owner}/{repo}/labels")
+        else:
+            return self.get(f"/repos/{owner}/{repo}/labels")
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
