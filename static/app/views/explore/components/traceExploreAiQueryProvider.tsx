@@ -115,7 +115,7 @@ function QueryTokens({result}: QueryTokensProps) {
   return <React.Fragment>{tokens}</React.Fragment>;
 }
 
-export function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
+function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [response, setResponse] = useState<React.ReactNode>(null);
   const [rawResult, setRawResult] = useState<any>(null);
@@ -277,7 +277,11 @@ export function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
                           ['feedback.source']: 'trace_explorer_ai_query',
                           ['feedback.owner']: 'ml-ai',
                           ['feedback.natural_language_query']: searchQuery,
-                          ['feedback.generated_query']: rawResult?.query || '',
+                          ['feedback.generated_query']: JSON.stringify(
+                            rawResult,
+                            null,
+                            2
+                          ),
                         },
                       });
                     } else {

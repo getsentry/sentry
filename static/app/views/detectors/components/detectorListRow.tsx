@@ -13,6 +13,8 @@ import {UserCell} from 'sentry/components/workflowEngine/gridCell/userCell';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 interface DetectorListRowProps {
   detector: Detector;
@@ -25,7 +27,8 @@ export function DetectorListRow({
   handleSelect,
   selected,
 }: DetectorListRowProps) {
-  const link = `/issues/monitors/${id}/`;
+  const organization = useOrganization();
+  const link = makeMonitorDetailsPathname(organization.slug, id);
   const issues: Group[] = [];
   return (
     <RowWrapper disabled={disabled}>

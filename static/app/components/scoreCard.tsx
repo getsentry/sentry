@@ -7,7 +7,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-export type ScoreCardProps = {
+type ScoreCardProps = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
