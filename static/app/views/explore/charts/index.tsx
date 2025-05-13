@@ -325,10 +325,6 @@ export function ExploreCharts({
                       stack: chartInfo.stack,
                     });
                   })}
-                  legendSelection={{
-                    // disable the 'Other' series by default since its large values can cause the other lines to be insignificant
-                    Other: false,
-                  }}
                 />
               }
               Footer={
