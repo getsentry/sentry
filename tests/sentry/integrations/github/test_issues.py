@@ -193,7 +193,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "sentry.integrations.github.client.GitHubBaseClient.page_size", new=len(labels) - 1
         ):
             # results should be sorted alphabetically
-            assert self.install.get_repo_labels("getsentry", "sentry", paginated=True) == (
+            assert self.install.get_repo_labels("getsentry", "sentry") == (
                 ("1", "1"),
                 ("2", "2"),
                 ("10", "10"),
