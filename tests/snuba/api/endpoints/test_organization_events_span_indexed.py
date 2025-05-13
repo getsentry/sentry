@@ -3267,6 +3267,149 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.06
         assert meta["dataset"] == self.dataset
 
+    def test_division_if(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.slow": {"value": 10},
+                            "frames.frozen": {"value": 20},
+                        },
+                        "sentry_tags": {"browser.name": "Chrome"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.slow": {"value": 50},
+                            "frames.frozen": {"value": 60},
+                        },
+                        "sentry_tags": {"browser.name": "Firefox"},
+                    }
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Chrome)",
+                    "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Firefox)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert (
+            data[0]["division_if(mobile.slow_frames,mobile.total_frames,browser.name,Chrome)"]
+            == 10 / 100
+        )
+        assert (
+            data[0]["division_if(mobile.slow_frames,mobile.total_frames,browser.name,Firefox)"]
+            == 50 / 100
+        )
+        assert meta["dataset"] == self.dataset
+
+    def test_total_performance_score(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.0},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.02},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.04},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.cls": {"value": 0.08},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.inp": {"value": 0.5},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.08},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.ttfb": {"value": 0.5},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "performance_score(measurements.score.lcp)",
+                    "performance_score(measurements.score.cls)",
+                    "performance_score(measurements.score.ttfb)",
+                    "performance_score(measurements.score.fcp)",
+                    "performance_score(measurements.score.inp)",
+                    "performance_score(measurements.score.total)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["performance_score(measurements.score.lcp)"] == 0.02
+        assert data[0]["performance_score(measurements.score.cls)"] == 0.08
+        assert data[0]["performance_score(measurements.score.ttfb)"] == 0.5
+        assert data[0]["performance_score(measurements.score.fcp)"] == 0.08
+        assert data[0]["performance_score(measurements.score.inp)"] == 0.5
+        self.assertAlmostEqual(data[0]["performance_score(measurements.score.total)"], 0.23)
+
+        assert meta["dataset"] == self.dataset
+
     def test_division(self):
         self.store_spans(
             [
@@ -4404,3 +4547,37 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
         assert meta["dataset"] == self.dataset
         assert meta["dataset"] == self.dataset
+
+    def test_typed_attributes_with_colons(self):
+        span = self.create_span(
+            {
+                "data": {
+                    "flag.evaluation.feature.organizations:foo": True,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans(
+            [
+                self.create_span(start_ts=self.ten_mins_ago),
+                span,
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ['tags["flag.evaluation.feature.organizations:foo",number]'],
+                "query": 'has:tags["flag.evaluation.feature.organizations:foo",number]',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span["span_id"],
+                "project.name": self.project.slug,
+                'tags["flag.evaluation.feature.organizations:foo",number]': 1,
+            },
+        ]

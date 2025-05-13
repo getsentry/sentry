@@ -586,18 +586,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Disable semantic partitioning of spans by trace ID. Use this in case there is
-# partition imbalance on the spans topic produced to by Relay (either
-# snuba-spans or ingest-spans). This will break the span buffer, and anything
-# that depends on segments being assembled by it (performance issue, etc). As
-# of 2025-05-06, the span buffer is not yet rolled out to most regions though.
-register(
-    "relay.spans-ignore-trace-id-partitioning",
-    type=Bool,
-    default=False,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -1697,7 +1685,7 @@ register(
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=500.0,  # ms
+    default=1000.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3343,3 +3331,5 @@ register(
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+register("process_service_hook.payload.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
