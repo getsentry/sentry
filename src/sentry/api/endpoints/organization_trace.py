@@ -40,7 +40,7 @@ class SerializedEvent(TypedDict):
     event_type: str
     project_id: int
     project_slug: str
-    start_timestamp: datetime
+    start_timestamp: str
     transaction: str
 
 
