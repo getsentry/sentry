@@ -78,6 +78,16 @@ describe('Nav', function () {
       body: {},
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/explore/saved/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/dashboards/`,
+      body: [],
+    });
+
     ConfigStore.set('user', {
       ...ConfigStore.get('user'),
       options: {
@@ -243,13 +253,19 @@ describe('Nav', function () {
 
         await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
 
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
+        await waitFor(() => {
+          expect(
+            screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+          ).not.toBeInTheDocument();
+        });
 
-        await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+        await userEvent.hover(screen.getByRole('link', {name: 'Issues'}));
 
         expect(
-          screen.queryByTestId('collapsed-secondary-sidebar')
-        ).not.toBeInTheDocument();
+          await screen.findByRole('navigation', {name: 'Secondary Navigation'})
+        ).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
       });
 
       it('remembers collapsed state', async function () {
@@ -257,44 +273,28 @@ describe('Nav', function () {
 
         renderNav();
 
-        expect(
-          await screen.findByTestId('collapsed-secondary-sidebar')
-        ).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
+        await waitFor(() => {
+          expect(
+            screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+          ).not.toBeInTheDocument();
+        });
       });
 
-      it('expands on hover', async function () {
+      it('closes secondary nav overlay when navigating to a new route', async function () {
         localStorage.setItem(NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
         renderNav();
 
-        expect(
-          await screen.findByTestId('collapsed-secondary-sidebar')
-        ).toBeInTheDocument();
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
 
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-          'data-visible',
-          'false'
-        );
+        await screen.findByRole('navigation', {name: 'Secondary Navigation'});
 
-        // Moving pointer over the primary navigation should expand the sidebar
-        await userEvent.hover(
-          screen.getByRole('navigation', {name: 'Primary Navigation'})
-        );
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-          'data-visible',
-          'true'
-        );
+        await userEvent.click(screen.getByRole('link', {name: 'Traces'}));
 
-        // Moving pointer away should hide the sidebar
-        await userEvent.unhover(
-          screen.getByRole('navigation', {name: 'Primary Navigation'})
-        );
         await waitFor(() => {
-          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-            'data-visible',
-            'false'
-          );
+          expect(
+            screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+          ).not.toBeInTheDocument();
         });
       });
     });

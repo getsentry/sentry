@@ -1,7 +1,8 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {createContext, Fragment, useCallback, useContext, useMemo, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {State} from '@popperjs/core';
 import {useResizeObserver} from '@react-aria/utils';
 import {AnimatePresence} from 'framer-motion';
 
@@ -16,6 +17,10 @@ interface HovercardProps extends Omit<UseHoverOverlayProps, 'isHoverable'> {
    * Classname to apply to the hovercard
    */
   children: React.ReactNode;
+  /**
+   * Whether to animate the hovercard in/out
+   */
+  animated?: boolean;
   /**
    * Element to display in the body
    */
@@ -47,9 +52,31 @@ type UseOverOverlayState = ReturnType<typeof useHoverOverlay>;
 interface HovercardContentProps
   extends Pick<
     HovercardProps,
-    'bodyClassName' | 'className' | 'header' | 'body' | 'tipColor' | 'tipBorderColor'
+    | 'animated'
+    | 'bodyClassName'
+    | 'className'
+    | 'header'
+    | 'body'
+    | 'tipColor'
+    | 'tipBorderColor'
   > {
   hoverOverlayState: Omit<UseOverOverlayState, 'isOpen' | 'wrapTrigger'>;
+}
+
+interface HovercardProviderValue {
+  isOpen: boolean;
+  reset: () => void;
+  update: (() => Promise<Partial<State>>) | null;
+}
+
+const HovercardContext = createContext<HovercardProviderValue>({
+  isOpen: false,
+  reset: () => {},
+  update: null,
+});
+
+export function useHovercardContext() {
+  return useContext(HovercardContext);
 }
 
 function useUpdateOverlayPositionOnContentChange({
@@ -70,6 +97,7 @@ function useUpdateOverlayPositionOnContentChange({
 }
 
 function HovercardContent({
+  animated,
   body,
   bodyClassName,
   className,
@@ -84,7 +112,7 @@ function HovercardContent({
   return (
     <PositionWrapper zIndex={theme.zIndex.hovercard} {...overlayProps}>
       <StyledHovercard
-        animated
+        animated={animated}
         arrowProps={{
           ...arrowProps,
           size: 20,
@@ -114,6 +142,7 @@ function Hovercard({
   displayTimeout = 100,
   tipBorderColor = 'translucentBorder',
   tipColor = 'backgroundElevated',
+  animated = true,
   ...hoverOverlayProps
 }: HovercardProps): React.ReactElement {
   const {wrapTrigger, isOpen, ...hoverOverlayState} = useHoverOverlay({
@@ -124,6 +153,14 @@ function Hovercard({
     ...hoverOverlayProps,
   });
 
+  const contextValue = useMemo<HovercardProviderValue>(
+    () => ({
+      isOpen,
+      reset: hoverOverlayState.reset,
+      update: hoverOverlayState.update,
+    }),
+    [isOpen, hoverOverlayState.reset, hoverOverlayState.update]
+  );
   // Nothing to render if no header or body. Be consistent with wrapping the
   // children with the trigger in the case that the body / header is set while
   // the trigger is hovered.
@@ -131,9 +168,10 @@ function Hovercard({
     return <Fragment>{wrapTrigger(children)}</Fragment>;
   }
 
-  const hovercardContent = isOpen && (
+  const hovercardContent = isOpen ? (
     <HovercardContent
       {...{
+        animated,
         body,
         bodyClassName,
         className,
@@ -143,13 +181,20 @@ function Hovercard({
         hoverOverlayState,
       }}
     />
-  );
+  ) : null;
 
   return (
-    <Fragment>
+    <HovercardContext.Provider value={contextValue}>
       {wrapTrigger(children)}
-      {createPortal(<AnimatePresence>{hovercardContent}</AnimatePresence>, document.body)}
-    </Fragment>
+      {createPortal(
+        animated ? (
+          <AnimatePresence>{hovercardContent}</AnimatePresence>
+        ) : (
+          hovercardContent
+        ),
+        document.body
+      )}
+    </HovercardContext.Provider>
   );
 }
 
