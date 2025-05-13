@@ -1,6 +1,5 @@
 import logging
 
-from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.utils import metrics
 
@@ -52,24 +51,13 @@ def get_crash_rate_alert_metrics_aggregation_value_helper(
     return aggregation_value
 
 
-def get_aggregation_value_helper(
-    subscription_update: QuerySubscriptionUpdate, rule: AlertRule | None = None
-) -> float:
+def get_aggregation_value_helper(subscription_update: QuerySubscriptionUpdate) -> float:
     aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
     # In some cases Snuba can return a None value for an aggregation. This means
     # there were no rows present when we made the query for certain types of aggregations
     # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
     # the update in the future.
     if aggregation_value is None:
-        if rule:
-            logger.info(
-                "Setting aggregation value to 0",
-                extra={
-                    "result": subscription_update,
-                    "aggregation_value": aggregation_value,
-                    "rule_id": rule.id,
-                },
-            )
         aggregation_value = 0
 
     return aggregation_value

@@ -217,20 +217,11 @@ class SubscriptionProcessor:
         return threshold
 
     def get_comparison_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate, rule: AlertRule | None = None
+        self, subscription_update: QuerySubscriptionUpdate
     ) -> float | None:
         # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
         aggregation_value = get_aggregation_value_helper(subscription_update)
         if self.alert_rule.comparison_delta is None:
-            if rule:
-                logger.info(
-                    "Returning aggregation value",
-                    extra={
-                        "result": subscription_update,
-                        "aggregation_value": aggregation_value,
-                        "rule_id": rule.id,
-                    },
-                )
             return aggregation_value
 
         # For comparison alerts run a query over the comparison period and use it to calculate the
@@ -351,15 +342,13 @@ class SubscriptionProcessor:
             self.reset_trigger_counts()
         return aggregation_value
 
-    def get_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate, rule: AlertRule | None = None
-    ) -> float | None:
+    def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
         if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
             aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
                 subscription_update
             )
         else:
-            aggregation_value = self.get_comparison_aggregation_value(subscription_update, rule)
+            aggregation_value = self.get_comparison_aggregation_value(subscription_update)
 
         return aggregation_value
 
@@ -401,7 +390,7 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
 
-        aggregation_value = self.get_aggregation_value(subscription_update, self.alert_rule)
+        aggregation_value = self.get_aggregation_value(subscription_update)
 
         self.last_update = subscription_update["timestamp"]
 
