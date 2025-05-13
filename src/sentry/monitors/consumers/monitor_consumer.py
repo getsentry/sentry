@@ -418,7 +418,7 @@ def update_existing_check_in(
 def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
     params = item.payload
 
-    # XXX: The start_time is when relay recieved the original envelope store
+    # XXX: The start_time is when relay received the original envelope store
     # request sent by the SDK.
     start_time = to_datetime(float(item.message["start_time"]))
 
