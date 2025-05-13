@@ -625,6 +625,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     onTraceLoad,
     pathToNodeOrEventId: scrollQueueRef.current,
     tree: props.tree,
+    meta: props.meta,
   });
 
   // Sync part of the state with the URL
