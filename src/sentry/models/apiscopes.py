@@ -1,11 +1,11 @@
 from collections.abc import Sequence
 from typing import TypedDict
 
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 
 from bitfield import typed_dict_bitfield
 from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
-from sentry.db.models import ArrayField
 
 
 def add_scope_hierarchy(curr_scopes: Sequence[str]) -> list[str]:
@@ -91,7 +91,7 @@ class HasApiScopes(models.Model):
     scopes = typed_dict_bitfield(ScopesDict)
 
     # Human readable list of scopes
-    scope_list = ArrayField(of=models.TextField)
+    scope_list = ArrayField(models.TextField(), default=list)
 
     def get_scopes(self) -> list[str]:
         """
