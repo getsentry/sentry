@@ -70,6 +70,7 @@ def split_discover_dataset_saved_queries(
         except Exception:
             saved_query.dataset = DiscoverSavedQueryTypes.ERROR_EVENTS
             saved_query.dataset_source = DatasetSourcesTypes.FORCED.value
+            saved_query.save()
 
 
 def reverse_split_discover_dataset_saved_queries(
