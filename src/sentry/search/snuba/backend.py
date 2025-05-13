@@ -690,10 +690,8 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         if environments is not None:
             environment_ids = [environment.id for environment in environments]
             group_queryset = group_queryset.filter(
-                id__in=GroupEnvironment.objects.filter(environment__in=environment_ids).values_list(
-                    "group_id"
-                )
-            )
+                groupenvironment__environment_id__in=environment_ids
+            ).distinct()
         return group_queryset
 
     @abstractmethod
