@@ -6,7 +6,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {useStarredSegment} from 'sentry/views/insights/common/utils/useStarredSegment';
 
 interface Props {
-  initialIsStarred: boolean;
+  isStarred: boolean;
   projectSlug: string;
   segmentName: string;
 }
@@ -14,7 +14,7 @@ interface Props {
 // The query key used for the starred segments table request, this key is used to reference that query and update the starred segment state
 export const STARRED_SEGMENT_TABLE_QUERY_KEY = ['starred-segment-table'];
 
-export function StarredSegmentCell({segmentName, initialIsStarred, projectSlug}: Props) {
+export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props) {
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === projectSlug);
 
@@ -35,8 +35,8 @@ export function StarredSegmentCell({segmentName, initialIsStarred, projectSlug}:
         size="zero"
         icon={
           <IconStar
-            color={initialIsStarred ? 'yellow300' : 'gray200'}
-            isSolid={initialIsStarred}
+            color={isStarred ? 'yellow300' : 'gray200'}
+            isSolid={isStarred}
             data-test-id="starred-transaction-column"
           />
         }
