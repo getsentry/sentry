@@ -2,13 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
-
 import {EAPChartsWidget} from './eapChartsWidget';
-
-jest.mock('sentry/utils/useLocation');
-
-const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
 
 describe('EAPChartsWidget', function () {
   const transactionName = 'test-transaction';
