@@ -56,7 +56,9 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction, AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import DataCondition
-from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
+from tests.sentry.incidents.serializers.test_workflow_engine_base import (
+    TestWorkflowEngineSerializer,
+)
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_alert_rule_migrated,
     assert_alert_rule_resolve_trigger_migrated,
@@ -170,7 +172,7 @@ class AlertRuleIndexBase(AlertRuleBase):
         ]
 
 
-class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorklowEngineSerializer):
+class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
     def test_simple(self):
         team = self.create_team(organization=self.organization, members=[self.user])
         ProjectTeam.objects.create(project=self.project, team=team)
