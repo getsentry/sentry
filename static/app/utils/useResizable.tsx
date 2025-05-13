@@ -42,20 +42,7 @@ interface UseResizableOptions {
   sizeStorageKey?: string;
 }
 
-/**
- * Performant hook to support draggable container resizing.
- *
- * Currently only supports resizing width and not height.
- */
-export const useResizable = ({
-  ref,
-  initialSize,
-  maxWidth,
-  minWidth,
-  onResizeEnd,
-  onResizeStart,
-  sizeStorageKey,
-}: UseResizableOptions): {
+interface UseResizableResult {
   /**
    * Whether the drag handle is held.
    */
@@ -73,7 +60,22 @@ export const useResizable = ({
    * event, only after the user finishes dragging.
    */
   size: number;
-} => {
+}
+
+/**
+ * Performant hook to support draggable container resizing.
+ *
+ * Currently only supports resizing width and not height.
+ */
+export const useResizable = ({
+  ref,
+  initialSize,
+  maxWidth,
+  minWidth,
+  onResizeEnd,
+  onResizeStart,
+  sizeStorageKey,
+}: UseResizableOptions): UseResizableResult => {
   const [isHeld, setIsHeld] = useState(false);
 
   const isDraggingRef = useRef<boolean>(false);
