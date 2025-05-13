@@ -16,6 +16,8 @@ import {logsPickableDays} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
+import {LOGS_INSTRUCTIONS_URL} from './logsTable';
+
 function FeedbackButton() {
   const openForm = useFeedbackForm();
 
@@ -84,7 +86,7 @@ export default function LogsPage() {
                 <LinkButton
                   icon={<IconOpen />}
                   priority="primary"
-                  href="https://docs.sentry.io/product/explore/logs/getting-started/"
+                  href={LOGS_INSTRUCTIONS_URL}
                   external
                   size="xs"
                 >
