@@ -4,8 +4,8 @@ from sentry.utils.samples import load_data
 
 
 class SplitDiscoverDatasetSavedQueryTest(TestMigrations, SnubaTestCase):
-    migrate_from = "0884_delete_incident_snapshot_tables_pt2"
-    migrate_to = "0885_split_discover_dataset_saved_queries"
+    migrate_from = "0885_remove_project_integrations_table"
+    migrate_to = "0886_split_discover_dataset_saved_queries"
 
     def setup_before_migration(self, apps):
         organization = self.create_organization(name="test", slug="test")

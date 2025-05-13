@@ -46,7 +46,7 @@ export interface TabsProps<T>
   value?: T;
 }
 
-export interface TabContext {
+interface TabContext {
   rootProps: Omit<TabsProps<any>, 'children' | 'className'>;
   setTabListState: (state: TabListState<any>) => void;
   tabListState?: TabListState<any>;

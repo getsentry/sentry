@@ -268,10 +268,6 @@ export type SpanMetricsResponse = {
     [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   };
 
-export type MetricsFilters = {
-  [Property in SpanStringFields as `${Property}`]?: string | string[];
-};
-
 export type SpanMetricsProperty = keyof SpanMetricsResponse;
 
 export type EAPSpanResponse = {
