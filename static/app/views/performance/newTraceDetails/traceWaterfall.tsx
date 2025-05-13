@@ -38,6 +38,7 @@ import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTrace
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
@@ -422,6 +423,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
+    viewManager.syncResetZoomButton();
+
     if (!isLoadingSubscriptionDetails) {
       traceAnalytics.trackTraceShape(
         props.tree,
@@ -774,6 +777,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       />
       <TraceToolbar>
         <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
+        <TraceOpenInExploreButton
+          trace_id={props.traceSlug}
+          traceEventView={props.traceEventView}
+        />
         <TraceResetZoomButton
           viewManager={viewManager}
           organization={props.organization}
@@ -784,6 +791,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           traceEventView={props.traceEventView}
         />
         <TracePreferencesDropdown
+          rootEventResults={props.rootEventResults}
           autogroup={
             traceState.preferences.autogroup.parent &&
             traceState.preferences.autogroup.sibling
@@ -896,9 +904,7 @@ const GrabberContainer = styled('div')`
 `;
 
 const TraceToolbar = styled('div')`
-  flex-grow: 0;
-  display: grid;
-  grid-template-columns: 1fr min-content min-content min-content;
+  display: flex;
   gap: ${space(1)};
 `;
 

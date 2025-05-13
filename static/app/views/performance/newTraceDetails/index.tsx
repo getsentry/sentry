@@ -240,7 +240,7 @@ const TraceExternalLayout = styled('div')`
 const FlexBox = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${space(1)};
 `;
 
 const TraceInnerLayout = styled(FlexBox)`
