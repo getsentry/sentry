@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 from unittest.mock import Mock, call, patch
 
@@ -329,4 +330,15 @@ class MNPlusOneDBDetectorTest(TestCase):
                 previous_parent_span_id = span.get("span_id")
 
         assert self.find_problems(event) == []
+        metrics_mock.incr.assert_called_with("mn_plus_one_db_span_detector.no_parent_span")
+
+    @patch(
+        "sentry.utils.performance_issues.detectors.experiments.mn_plus_one_db_span_detector.metrics"
+    )
+    def test_ignores_prisma_client_if_depth_config_is_too_small(self, metrics_mock):
+        settings = deepcopy(self._settings)
+        settings[self.detector.settings_key]["max_allowable_depth"] = 1
+
+        event = get_event("m-n-plus-one-db/m-n-plus-one-prisma-client")
+        assert self.find_problems(event, settings) == []
         metrics_mock.incr.assert_called_with("mn_plus_one_db_span_detector.no_parent_span")
