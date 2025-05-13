@@ -297,6 +297,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboard,
       location,
       router,
+      navigate,
     } = this.props;
     const {
       seriesData,
@@ -337,10 +338,13 @@ class DashboardDetail extends Component<Props, State> {
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
-            router.push({
-              pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
-              query,
-            });
+            navigate(
+              {
+                pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
+                query,
+              },
+              {preventScrollReset: true}
+            );
           },
           onEdit: () => {
             const widgetIndex = dashboard.widgets.findIndex(
