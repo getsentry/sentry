@@ -117,7 +117,7 @@ function SaveAsDropdown({
                     priority="primary"
                     disabled={disabled || !queryName}
                   >
-                    {t('Save for Org')}
+                    {t('Save for Organization')}
                   </SaveAsButton>
                 </form>
               </FocusScope>
