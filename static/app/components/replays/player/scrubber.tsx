@@ -113,7 +113,7 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
 }
 
 const Meter = styled(Progress.Meter)`
-  background: ${p => p.theme.gray200};
+  background: 'rebeccapurple';
 `;
 
 const RangeWrapper = styled('div')`
@@ -258,7 +258,7 @@ export const PlayerScrubber = styled(Scrubber)`
      *      MouseTrackingValue @ 10s
      */
     :after {
-      background: ${p => p.theme.gray300};
+      background: ${p => p.theme.gray400};
     }
   }
 
