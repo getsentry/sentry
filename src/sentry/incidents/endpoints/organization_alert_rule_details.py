@@ -10,6 +10,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -29,6 +30,9 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
     DetailedAlertRuleSerializer,
 )
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+    WorkflowEngineDetectorSerializer,
+)
 from sentry.incidents.logic import (
     AlreadyDeletedError,
     delete_alert_rule,
@@ -47,6 +51,7 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
+from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +65,20 @@ def fetch_alert_rule(
 ) -> Response:
     # Serialize Alert Rule
     expand = request.GET.getlist("expand", [])
+
+    if features.has("organizations:workflow-engine-rule-serializers", organization):
+        try:
+            detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+            return Response(
+                serialize(
+                    detector,
+                    request.user,
+                    WorkflowEngineDetectorSerializer(expand=expand, prepare_component_fields=True),
+                )
+            )
+        except Detector.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
     serialized_rule = serialize(
         alert_rule,
         request.user,

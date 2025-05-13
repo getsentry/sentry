@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 import signal
 import time
 from multiprocessing import cpu_count
@@ -438,8 +439,10 @@ def taskbroker_send_tasks(
     task_kwargs = {} if not kwargs else eval(kwargs)
 
     if extra_arg_bytes is not None:
-        extra_padding_args = ["x" * extra_arg_bytes]
-        task_args.extend(extra_padding_args)
+        extra_padding_arg = "".join(
+            [chr(ord("a") + random.randint(0, ord("z") - ord("a"))) for _ in range(extra_arg_bytes)]
+        )
+        task_args.append(extra_padding_arg)
 
     checkmarks = {int(repeat * (i / 10)) for i in range(1, 10)}
     for i in range(repeat):
