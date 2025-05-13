@@ -14,9 +14,7 @@
           "type": "valueText",
           "value": "foo@example.com",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -30,9 +28,7 @@
           "type": "valueText",
           "value": "1.2.1",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -56,9 +52,7 @@
           "type": "valueText",
           "value": "foo@example.com",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -72,9 +66,7 @@
           "type": "valueText",
           "value": "1.2.1",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}

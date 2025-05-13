@@ -1,6 +1,6 @@
 [
   {
-    "desc": "Basic text filter, sets contains to false",
+    "desc": "Basic text filter, sets wildcard to false",
     "query": "foo:bar",
     "result": [
       {"type": "spaces", "value": ""},
@@ -14,16 +14,14 @@
           "type": "valueText",
           "value": "bar",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
     ]
   },
   {
-    "desc": "Single asterisk, sets contains to false",
+    "desc": "Single asterisk, sets wildcard to false",
     "query": "foo:*",
     "result": [
       {"type": "spaces", "value": ""},
@@ -37,16 +35,14 @@
           "type": "valueText",
           "value": "*",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
     ]
   },
   {
-    "desc": "Double asterisk, sets contains to false",
+    "desc": "Double asterisk, sets wildcard to false",
     "query": "foo:**",
     "result": [
       {"type": "spaces", "value": ""},
@@ -60,16 +56,14 @@
           "type": "valueText",
           "value": "**",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
     ]
   },
   {
-    "desc": "Value with asterisk, sets contains to true",
+    "desc": "Value with asterisk, sets wildcard to surrounded",
     "query": "foo:*bar*",
     "result": [
       {"type": "spaces", "value": ""},
@@ -83,16 +77,14 @@
           "type": "valueText",
           "value": "*bar*",
           "quoted": false,
-          "contains": true,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": "surrounded"
         }
       },
       {"type": "spaces", "value": ""}
     ]
   },
   {
-    "desc": "Value with quotes, sets contains to true",
+    "desc": "Value with quotes, sets wildcard to surrounded",
     "query": "foo:\"*em*\"",
     "result": [
       {"type": "spaces", "value": ""},
@@ -106,16 +98,14 @@
           "type": "valueText",
           "value": "*em*",
           "quoted": true,
-          "contains": true,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": "surrounded"
         }
       },
       {"type": "spaces", "value": ""}
     ]
   },
   {
-    "desc": "Value with quotes and spaces, sets contains to true",
+    "desc": "Value with quotes and spaces, sets wildcard to surrounded",
     "query": "foo:\"*e m*\"",
     "result": [
       {"type": "spaces", "value": ""},
@@ -129,9 +119,7 @@
           "type": "valueText",
           "value": "*e m*",
           "quoted": true,
-          "contains": true,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": "surrounded"
         }
       },
       {"type": "spaces", "value": ""}

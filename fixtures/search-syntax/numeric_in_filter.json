@@ -297,9 +297,7 @@
                 "type": "valueText",
                 "value": "500",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             },
             {
@@ -308,9 +306,7 @@
                 "type": "valueText",
                 "value": "501",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             },
             {
@@ -319,9 +315,7 @@
                 "type": "valueText",
                 "value": "502",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             }
           ]

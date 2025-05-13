@@ -18,9 +18,7 @@
           "type": "valueText",
           "value": ">3s",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}

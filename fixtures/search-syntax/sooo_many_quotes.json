@@ -13,9 +13,7 @@
           "type": "valueText",
           "value": "\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"",
           "quoted": true,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
