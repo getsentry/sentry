@@ -10,7 +10,7 @@ from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
 from sentry.types.condition_activity import ConditionActivity
 
-CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).title()) for gc in GroupCategory])
+CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).lower()) for gc in GroupCategory])
 
 
 class IssueCategoryForm(forms.Form):
