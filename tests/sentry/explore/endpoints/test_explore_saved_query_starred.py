@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 
 
 class ExploreSavedQueryStarredTest(APITestCase, SnubaTestCase):
-    feature_name = "organizations:performance-trace-explorer"
+    feature_name = "organizations:visibility-explore-view"
 
     def setUp(self):
         super().setUp()

@@ -37,7 +37,7 @@ class ExploreSavedQueryStarredOrderEndpoint(OrganizationEndpoint):
 
     def has_feature(self, organization, request):
         return features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
+            "organizations:visibility-explore-view", organization, actor=request.user
         )
 
     def put(self, request: Request, organization: Organization) -> Response:
