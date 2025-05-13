@@ -240,7 +240,9 @@ def build_group_to_groupevent(
             logger.info(
                 "delayed_processing.build_group_to_groupevent_input",
                 extra={
-                    "parsed_rulegroup_to_event_data": parsed_rulegroup_to_event_data,
+                    "parsed_rulegroup_to_event_data": {
+                        f"{k[0]}:{k[1]}": v for k, v in parsed_rulegroup_to_event_data.items()
+                    },
                     "bulk_event_id_to_events": bulk_event_id_to_events,
                     "bulk_occurrence_id_to_occurrence": bulk_occurrence_id_to_occurrence,
                     "group_id_to_group": group_id_to_group,
