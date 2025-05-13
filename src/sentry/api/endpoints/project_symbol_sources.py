@@ -149,7 +149,7 @@ class SourceSerializer(serializers.Serializer):
     )
     private_key = serializers.CharField(
         required=False,
-        help_text="The GCS private key. Required for GCS sources, invalid for all others.",
+        help_text="The GCS private key. Required for GCS sources if not using impersonated tokens. Invalid for all others.",
     )
 
     def validate(self, data):
@@ -160,8 +160,8 @@ class SourceSerializer(serializers.Serializer):
             required = ["type", "name", "bucket", "region", "access_key", "secret_key", "layout"]
             allowed = required + ["prefix"]
         else:
-            required = ["type", "name", "bucket", "client_email", "private_key", "layout"]
-            allowed = required + ["prefix"]
+            required = ["type", "name", "bucket", "client_email", "layout"]
+            allowed = required + ["prefix", "private_key"]
 
         missing = [field for field in required if field not in data]
         invalid = [field for field in data if field not in allowed]
