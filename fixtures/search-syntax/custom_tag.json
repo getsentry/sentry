@@ -13,9 +13,7 @@
           "type": "valueText",
           "value": "apple",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -29,9 +27,7 @@
           "type": "valueText",
           "value": "1.2.1",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -51,9 +47,7 @@
           "type": "valueText",
           "value": ">5s",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -73,9 +67,7 @@
           "type": "valueText",
           "value": ">5k",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}

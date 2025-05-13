@@ -23,9 +23,7 @@
           "type": "valueText",
           "value": "chrome",
           "quoted": true,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -43,9 +41,7 @@
           "type": "valueText",
           "value": "*windows*",
           "quoted": false,
-          "contains": true,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": "surrounded"
         }
       },
       {"type": "spaces", "value": ""}
@@ -75,9 +71,7 @@
           "type": "valueText",
           "value": "chrome",
           "quoted": true,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": " "},

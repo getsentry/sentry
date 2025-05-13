@@ -1,6 +1,6 @@
 [
   {
-    "desc": "Basic text filter sets endsWith to false",
+    "desc": "Basic text filter sets wildcard to false",
     "query": "foo:bar",
     "result": [
       {"type": "spaces", "value": ""},
@@ -14,16 +14,14 @@
           "type": "valueText",
           "value": "bar",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
     ]
   },
   {
-    "desc": "Value with leading asterisk, sets endsWith to true",
+    "desc": "Value with leading asterisk, sets wildcard to leading",
     "query": "foo:*bar",
     "result": [
       {"type": "spaces", "value": ""},
@@ -37,16 +35,14 @@
           "type": "valueText",
           "value": "*bar",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": true
+          "wildcard": "leading"
         }
       },
       {"type": "spaces", "value": ""}
     ]
   },
   {
-    "desc": "Value with quotes, sets endsWith to true",
+    "desc": "Value with quotes, sets wildcard to leading",
     "query": "foo:\"*bar\"",
     "result": [
       {"type": "spaces", "value": ""},
@@ -60,16 +56,14 @@
           "type": "valueText",
           "value": "*bar",
           "quoted": true,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": true
+          "wildcard": "leading"
         }
       },
       {"type": "spaces", "value": ""}
     ]
   },
   {
-    "desc": "Value with quotes and spaces, sets endsWith to true",
+    "desc": "Value with quotes and spaces, sets wildcard to leading",
     "query": "foo:\"*e m\"",
     "result": [
       {"type": "spaces", "value": ""},
@@ -83,9 +77,7 @@
           "type": "valueText",
           "value": "*e m",
           "quoted": true,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": true
+          "wildcard": "leading"
         }
       },
       {"type": "spaces", "value": ""}

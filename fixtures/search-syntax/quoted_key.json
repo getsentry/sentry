@@ -13,9 +13,7 @@
           "quoted": false,
           "type": "valueText",
           "value": "value",
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -35,9 +33,7 @@
           "quoted": false,
           "type": "valueText",
           "value": "value",
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}

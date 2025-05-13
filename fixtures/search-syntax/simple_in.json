@@ -18,9 +18,7 @@
                 "type": "valueText",
                 "value": "test@test.com",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             }
           ]
@@ -42,9 +40,7 @@
                 "type": "valueText",
                 "value": "hello",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             }
           ]
@@ -72,9 +68,7 @@
                 "type": "valueText",
                 "value": "test@test.com",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             },
             {
@@ -83,9 +77,7 @@
                 "type": "valueText",
                 "value": "test2@test.com",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             },
             {
@@ -94,9 +86,7 @@
                 "type": "valueText",
                 "value": "test3@test.com",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             }
           ]
@@ -118,9 +108,7 @@
                 "type": "valueText",
                 "value": "hello",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             }
           ]
@@ -148,9 +136,7 @@
                 "type": "valueText",
                 "value": "test@test.com",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             },
             {
@@ -159,9 +145,7 @@
                 "type": "valueText",
                 "value": "test@test2.com",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             },
             {
@@ -170,9 +154,7 @@
                 "type": "valueText",
                 "value": "test@test3.com",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             }
           ]
@@ -194,9 +176,7 @@
                 "type": "valueText",
                 "value": "hello",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             }
           ]
@@ -219,9 +199,7 @@
           "type": "valueText",
           "value": "h[e]llo]",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -241,9 +219,7 @@
           "type": "valueText",
           "value": "[h[e]llo",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -263,9 +239,7 @@
           "type": "valueText",
           "value": "[h]",
           "quoted": true,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -285,9 +259,7 @@
           "type": "valueText",
           "value": "[h]*",
           "quoted": false,
-          "contains": false,
-          "startsWith": true,
-          "endsWith": false
+          "wildcard": "trailing"
         }
       },
       {"type": "spaces", "value": ""}
@@ -307,9 +279,7 @@
           "type": "valueText",
           "value": "[h",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -331,9 +301,7 @@
           "type": "valueText",
           "value": "[]",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -358,9 +326,7 @@
                 "type": "valueText",
                 "value": "test@test.com",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             },
             {
@@ -369,9 +335,7 @@
                 "type": "valueText",
                 "value": "hi",
                 "quoted": true,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             },
             {
@@ -380,9 +344,7 @@
                 "type": "valueText",
                 "value": "1",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             }
           ]
@@ -410,9 +372,7 @@
                 "type": "valueText",
                 "value": "test@test.com",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             },
             {
@@ -421,9 +381,7 @@
                 "type": "valueText",
                 "value": "hi",
                 "quoted": true,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             },
             {
@@ -432,9 +390,7 @@
                 "type": "valueText",
                 "value": "1.0",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             }
           ]
@@ -462,9 +418,7 @@
                 "type": "valueText",
                 "value": "[h]",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             }
           ]
@@ -492,9 +446,7 @@
                 "type": "valueText",
                 "value": "a",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             },
             {
@@ -503,9 +455,7 @@
                 "type": "valueText",
                 "value": "[h]",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             }
           ]
@@ -528,9 +478,7 @@
           "type": "valueText",
           "value": "[test@test.com]user.email:hello@hello.com",
           "quoted": false,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -559,9 +507,7 @@
                 "type": "valueText",
                 "value": "test@test.com",
                 "quoted": false,
-                "contains": false,
-                "startsWith": false,
-                "endsWith": false
+                "wildcard": false
               }
             },
             {

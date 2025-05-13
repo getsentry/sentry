@@ -13,9 +13,7 @@
           "type": "valueText",
           "value": "",
           "quoted": true,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -29,9 +27,7 @@
           "type": "valueText",
           "value": "Chrome",
           "quoted": true,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -51,9 +47,7 @@
           "type": "valueText",
           "value": "\\\"",
           "quoted": true,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": " "},
@@ -67,9 +61,7 @@
           "type": "valueText",
           "value": "Chrome",
           "quoted": true,
-          "contains": false,
-          "startsWith": false,
-          "endsWith": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
