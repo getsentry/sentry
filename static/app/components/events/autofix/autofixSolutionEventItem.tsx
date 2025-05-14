@@ -194,7 +194,7 @@ export function SolutionEventItem({
                 >
                   <StyledSpan text={event.code_snippet_and_analysis} inline />
                 </AutofixHighlightWrapper>
-                {event.relevant_code_file && (
+                {event.relevant_code_file && event.relevant_code_file.url && (
                   <SourcesWrapper>
                     <AutofixInsightSources codeUrls={[event.relevant_code_file.url]} />
                   </SourcesWrapper>

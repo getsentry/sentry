@@ -177,7 +177,7 @@ type AutofixRelevantCodeFile = {
 };
 
 export type AutofixRelevantCodeFileWithUrl = AutofixRelevantCodeFile & {
-  url: string;
+  url?: string;
 };
 
 export type AutofixTimelineEvent = {
