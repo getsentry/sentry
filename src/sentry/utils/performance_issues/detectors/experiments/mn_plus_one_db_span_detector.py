@@ -58,7 +58,7 @@ class SearchingForMNPlusOne(MNPlusOneState):
     it transitions to the ContinuingMNPlusOne state.
     """
 
-    __slots__ = ("settings", "event", "recent_spans")
+    __slots__ = ("settings", "event", "recent_spans", "parent_map")
 
     def __init__(
         self,
@@ -72,6 +72,11 @@ class SearchingForMNPlusOne(MNPlusOneState):
         self.event = event
         self.recent_spans = deque(initial_spans or [], self.settings["max_sequence_length"])
         self.parent_map = parent_map or {}
+        """
+        A mapping of all visited spans IDs to their parent span IDs (span_id -> parent_span_id).
+        In practice, this parent_map is passed back and forth between states to maintain a stable
+        reference for any visited span regardless of whether a pattern is found.
+        """
 
     def next(self, span: Span) -> tuple[MNPlusOneState, PerformanceProblem | None]:
         span_id = span.get("span_id")
@@ -140,7 +145,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
     PerformanceProblem if the detected sequence met our thresholds.
     """
 
-    __slots__ = ("settings", "event", "pattern", "spans", "pattern_index")
+    __slots__ = ("settings", "event", "pattern", "spans", "pattern_index", "parent_map")
 
     def __init__(
         self,
@@ -155,6 +160,11 @@ class ContinuingMNPlusOne(MNPlusOneState):
         self.event = event
         self.pattern = pattern
         self.parent_map = parent_map
+        """
+        A mapping of all visited spans IDs to their parent span IDs (span_id -> parent_span_id).
+        In practice, this parent_map is passed back and forth between states to maintain a stable
+        reference for any visited span regardless of whether a pattern is found.
+        """
         # The full list of spans involved in the MN pattern.
         self.spans = pattern.copy()
         self.spans.append(first_span)
@@ -271,7 +281,41 @@ class ContinuingMNPlusOne(MNPlusOneState):
         return None
 
     def _find_common_parent_span(self, spans: Sequence[Span]) -> Span | None:
-        span_id_to_parent_list = self._build_span_id_to_parent_list(spans=spans)
+        """
+        Using the self.parent_map, identify the common parent within the configured depth
+        of the every span in the list. Returns None if no common parent is found, or the common
+        parent is not within the event.
+        """
+
+        # Build a mapping of span_id to an ordered list of parent_span_ids.
+        # Ordered in proximity to the initial span, (e.g. [parent, grandparent, ...]) with
+        # a maximum length configured via the `max_allowable_depth` setting.
+        span_id_to_parent_list: dict[str, list[str]] = {}
+        for span in spans:
+            span_id = span.get("span_id")
+            if not span_id:
+                continue
+
+            current_span_id = span_id
+            parent_list: list[str] = []
+
+            # This will run at most `max_allowable_depth` times for n spans.
+            # For that reason, `max_allowable_depth` cannot be user-configurable -- to avoid
+            # O(n^2) complexity and load issues.
+            for _ in range(self.settings["max_allowable_depth"]):
+                parent_span_id = self.parent_map.get(current_span_id)
+                if not parent_span_id:
+                    break
+                parent_list.append(parent_span_id)
+                current_span_id = parent_span_id
+
+            # If, while building the span_id_to_parent_list dictionary, we ever see an entry that
+            # has no parents, we can immediately bail out and save some cycles.
+            if not parent_list:
+                return None
+
+            span_id_to_parent_list[span_id] = parent_list
+
         first_span_id = spans[0].get("span_id")
         if not first_span_id:
             return None
@@ -302,36 +346,6 @@ class ContinuingMNPlusOne(MNPlusOneState):
                 return span
         return None
 
-    def _build_span_id_to_parent_list(self, spans: Sequence[Span]) -> dict[str, list[str]]:
-        """
-        Build a mapping of span_id to an ordered list of parent_span_ids.
-        Ordered in proximity to the initial span, (e.g. [parent, grandparent, ...]) with
-        a maximum length configured via the `max_allowable_depth` setting.
-        """
-        span_id_to_parent_list: dict[str, list[str]] = {}
-        for span in spans:
-            span_id = span.get("span_id")
-            if not span_id:
-                continue
-
-            parent_span_id = span.get("parent_span_id")
-            if not parent_span_id:
-                continue
-
-            parent_list: list[str] = []
-            parent_list.append(parent_span_id)
-
-            # Subtract 1 because the first parent is already available without a lookup on the parent_map
-            for _ in range(self.settings["max_allowable_depth"] - 1):
-                parent_list.append(parent_span_id)
-                parent_parent_span_id = self.parent_map.get(parent_span_id)
-                if parent_parent_span_id:
-                    parent_list.append(parent_parent_span_id)
-                parent_span_id = parent_parent_span_id
-
-            span_id_to_parent_list[span_id] = parent_list
-        return span_id_to_parent_list
-
     def _fingerprint(self, db_hash: str, parent_span: Span) -> str:
         parent_op = parent_span.get("op") or ""
         parent_hash = parent_span.get("hash") or ""
@@ -347,8 +361,12 @@ class MNPlusOneDBSpanExperimentalDetector(PerformanceDetector):
     other spans (which may or may not be other queries) that all repeat together
     (hence, MN+1).
 
-    Currently does not consider parent or source spans, and only looks for a
-    repeating pattern of spans (A B C A B C etc).
+    To create a problem from a set a spans, this detector looks for the following:
+    - A pattern of at least one db span and one non-db span (set by `max_sequence_length`)
+    - The pattern is repeated sequentially with no intervening spans (set by `min_occurrences_of_pattern`)
+    - The total duration of the repeated pattern is above the threshold (set by `total_duration_threshold`)
+    - The total duration of the db spans is above the percentage threshold for the whole sequence (set by `min_percentage_of_db_spans`)
+    - The pattern has at least one common parent span within the event, and within the configured depth (set by `max_allowable_depth`)
 
     Uses a small state machine internally.
     """
