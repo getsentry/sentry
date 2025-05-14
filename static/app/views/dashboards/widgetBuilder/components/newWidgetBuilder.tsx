@@ -553,4 +553,17 @@ const FilterBarContainer = styled(motion.div)`
   margin-top: ${space(1)};
   background-color: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    width: 40vw;
+    min-width: 300px;
+    z-index: ${p => p.theme.zIndex.modal};
+    cursor: auto;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) and (min-width: ${p =>
+      p.theme.breakpoints.medium}) {
+    width: 30vw;
+    min-width: 100px;
+  }
 `;
