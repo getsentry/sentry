@@ -18,6 +18,7 @@ import {TransactionSearchQueryBuilder} from 'sentry/components/performance/trans
 import {
   ContinuousProfilingBetaAlertBanner,
   ContinuousProfilingBetaSDKAlertBanner,
+  ContinuousProfilingNoQuotaAlertBanner,
   ProfilingBetaAlertBanner,
 } from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
@@ -146,6 +147,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
           <Feature features="continuous-profiling-beta-ui">
             <ContinuousProfilingBetaAlertBanner organization={organization} />
             <ContinuousProfilingBetaSDKAlertBanner />
+            <ContinuousProfilingNoQuotaAlertBanner organization={organization} />
           </Feature>
           <ProfilingContentPageHeader />
           <LayoutBody>
