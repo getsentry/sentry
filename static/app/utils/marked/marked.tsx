@@ -50,12 +50,6 @@ class NoParagraphRenderer extends SafeRenderer {
   }
 }
 
-function preprocess(markdown: string) {
-  // Allow no html tags at all in the preprocess step.
-  // GitHub and others allow this, we could in the future.
-  return dompurify.sanitize(markdown, {ALLOWED_TAGS: []});
-}
-
 function postprocess(html: string) {
   return dompurify.sanitize(html);
 }
@@ -64,7 +58,6 @@ const noHighlightingMarked = new Marked({
   async: false,
   renderer: new SafeRenderer(),
   hooks: {
-    preprocess,
     postprocess,
   },
 });
@@ -108,7 +101,6 @@ const highlightingMarked = new Marked(
   async: true,
   renderer: new SafeRenderer(),
   hooks: {
-    preprocess,
     postprocess,
   },
 });

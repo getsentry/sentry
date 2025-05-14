@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
 
@@ -10,12 +10,13 @@ import {
   getBootstrapProjectsQueryOptions,
 } from 'sentry/bootstrap/bootstrapRequests';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import U2fContainer from 'sentry/components/u2f/u2fContainer';
+import {WebAuthn} from 'sentry/components/webAuthn';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -29,7 +30,13 @@ import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
+interface WebAuthnParams {
+  challenge: string;
+  response: string;
+  isSuperuserModal?: boolean;
+  superuserAccessCategory?: string;
+  superuserReason?: string;
+}
 
 type DefaultProps = {
   closeButton?: boolean;
@@ -113,6 +120,25 @@ function SudoModal({
     }));
   };
 
+  const handleChangeReason = (e: React.MouseEvent) => {
+    // XXX(epurkhiser): We have to prevent default here to avoid react from
+    // propagating this event up to the form and causing the form to be
+    // submitted. This is happening because when the form is rendered the same
+    // button is replaced with a button that has type="submit", this happens
+    // before the event is propegated to the form, and by the time that handler
+    // is run react thinks the button is type submit and will submit the form.
+    //
+    // See https://github.com/facebook/react/issues/8554#issuecomment-278580583
+    e.preventDefault();
+
+    setState(prevState => ({
+      ...prevState,
+      showAccessForms: true,
+      superuserAccessCategory: '',
+      superuserReason: '',
+    }));
+  };
+
   const handleSubmit = async (data: any) => {
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
@@ -142,7 +168,7 @@ function SudoModal({
     }
   };
 
-  const handleSuccess = () => {
+  const handleSuccess = useCallback(() => {
     if (isSuperuser) {
       navigate(
         {pathname: location.pathname, state: {forceUpdate: new Date()}},
@@ -163,9 +189,9 @@ function SudoModal({
       setState(prevState => ({...prevState, showAccessForms: true}));
       closeModal();
     });
-  };
+  }, [closeModal, isSuperuser, location.pathname, navigate, needsReload, retryRequest]);
 
-  const handleError = (err: any) => {
+  const handleError = useCallback((err: any) => {
     let newErrorType = ''; // Create a new variable to store the error type
 
     if (err.status === 403) {
@@ -190,16 +216,25 @@ function SudoModal({
       errorType: newErrorType,
       showAccessForms: true,
     }));
-  };
+  }, []);
 
-  const handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
-    data.isSuperuserModal = isSuperuser;
-    data.superuserAccessCategory = state.superuserAccessCategory;
-    data.superuserReason = state.superuserReason;
-    // It's ok to throw from here, u2fInterface will handle it.
-    await api.requestPromise('/auth/', {method: 'PUT', data});
-    handleSuccess();
-  };
+  const handleWebAuthn = useCallback(
+    async (data: WebAuthnParams) => {
+      data.isSuperuserModal = isSuperuser;
+      data.superuserAccessCategory = state.superuserAccessCategory;
+      data.superuserReason = state.superuserReason;
+      // It's ok to throw from here, u2fInterface will handle it.
+      await api.requestPromise('/auth/', {method: 'PUT', data});
+      handleSuccess();
+    },
+    [
+      api,
+      handleSuccess,
+      isSuperuser,
+      state.superuserAccessCategory,
+      state.superuserReason,
+    ]
+  );
 
   const getAuthLoginPath = (): string => {
     const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
@@ -252,9 +287,15 @@ function SudoModal({
               initialData={{isSuperuserModal: isSuperuser}}
               extraButton={
                 <BackWrapper>
-                  <Button type="submit" onClick={handleSubmitCOPS}>
-                    {t('COPS/CSM')}
-                  </Button>
+                  {showAccessForms ? (
+                    <Button type="submit" onClick={handleSubmitCOPS}>
+                      {t('COPS/CSM')}
+                    </Button>
+                  ) : (
+                    <Button borderless size="sm" onClick={handleChangeReason}>
+                      {t('Change reason')}
+                    </Button>
+                  )}
                 </BackWrapper>
               }
               resetOnError
@@ -263,10 +304,10 @@ function SudoModal({
                 <Hook name="component:superuser-access-category" />
               )}
               {!isSelfHosted && !showAccessForms && (
-                <U2fContainer
+                <WebAuthn
+                  mode="sudo"
                   authenticators={authenticators}
-                  displayMode="sudo"
-                  onTap={handleU2fTap}
+                  onWebAuthn={handleWebAuthn}
                 />
               )}
             </Form>
@@ -315,10 +356,10 @@ function SudoModal({
             />
           )}
 
-          <U2fContainer
+          <WebAuthn
+            mode="sudo"
             authenticators={authenticators}
-            displayMode="sudo"
-            onTap={handleU2fTap}
+            onWebAuthn={handleWebAuthn}
           />
         </Form>
       </Fragment>

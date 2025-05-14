@@ -157,6 +157,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if not span_id or not op or not hash or not description:
             return False
 
+        if not op.startswith("http.client"):
+            return False
+
         if (
             not description.strip().upper().startswith(("GET", "POST", "DELETE", "PUT", "PATCH"))
         ):  # Just using all methods to see if anything interesting pops up

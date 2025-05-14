@@ -5,6 +5,7 @@ import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -30,21 +31,15 @@ import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 type LeftNavViewsHeaderProps = {
   selectedProjectIds: number[];
   title: ReactNode;
+  description?: ReactNode;
 };
 
-function PageTitle({title}: {title: ReactNode}) {
+function PageTitle({title, description}: {title: ReactNode; description?: ReactNode}) {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
-  const hasIssueViewSharing = organization.features.includes(
-    'enforce-stacked-navigation'
-  );
 
-  if (
-    hasIssueViewSharing &&
-    groupSearchView &&
-    canEditIssueView({groupSearchView, user, organization})
-  ) {
+  if (groupSearchView && canEditIssueView({groupSearchView, user, organization})) {
     return <EditableIssueViewHeader view={groupSearchView} />;
   }
 
@@ -52,7 +47,19 @@ function PageTitle({title}: {title: ReactNode}) {
     return <Layout.Title>{groupSearchView?.name ?? title}</Layout.Title>;
   }
 
-  return <Layout.Title>{title}</Layout.Title>;
+  return (
+    <Layout.Title>
+      {title}
+      {description && (
+        <QuestionTooltip
+          isHoverable
+          position="right"
+          size="sm"
+          title={<LeftAlignContainer>{description}</LeftAlignContainer>}
+        />
+      )}
+    </Layout.Title>
+  );
 }
 
 function IssueViewStarButton() {
@@ -133,7 +140,7 @@ function IssueViewEditMenu() {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
-  const {mutate: deleteIssueView} = useDeleteGroupSearchView();
+  const {mutateAsync: deleteIssueView} = useDeleteGroupSearchView();
   const navigate = useNavigate();
 
   if (!organization.features.includes('enforce-stacked-navigation') || !groupSearchView) {
@@ -193,7 +200,11 @@ function IssueViewEditMenu() {
   );
 }
 
-function LeftNavViewsHeader({selectedProjectIds, title}: LeftNavViewsHeaderProps) {
+function LeftNavViewsHeader({
+  selectedProjectIds,
+  title,
+  description,
+}: LeftNavViewsHeaderProps) {
   const {projects} = useProjects();
   const prefersStackedNav = usePrefersStackedNav();
   const selectedProjects = projects.filter(({id}) =>
@@ -204,7 +215,7 @@ function LeftNavViewsHeader({selectedProjectIds, title}: LeftNavViewsHeaderProps
     <Layout.Header noActionWrap unified={prefersStackedNav}>
       <Layout.HeaderContent unified={prefersStackedNav}>
         <StyledLayoutTitle>
-          <PageTitle title={title} />
+          <PageTitle title={title} description={description} />
           <Actions>
             <IssueViewStarButton />
             <IssueViewEditMenu />
@@ -239,4 +250,8 @@ const Actions = styled('div')`
   align-items: center;
   display: flex;
   gap: ${space(1)};
+`;
+
+const LeftAlignContainer = styled('div')`
+  text-align: left;
 `;

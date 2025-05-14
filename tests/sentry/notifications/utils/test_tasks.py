@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.notifications.class_manager import NotificationClassNotSetException, manager, register
 from sentry.notifications.utils.tasks import _send_notification, async_send_notification
@@ -60,6 +61,25 @@ class NotificationTaskTests(TestCase):
                     "key": "organization",
                 },
                 {"type": "other", "value": "bar", "key": "foo"},
+            ],
+        )
+
+    @patch("sentry.notifications.utils.tasks._send_notification.delay")
+    def test_call_task_with_anonymous_user(self, mock_delay):
+        register()(AnotherDummyNotification)
+        async_send_notification(
+            AnotherDummyNotification, "some_value", user=AnonymousUser(), key="value"
+        )
+        mock_delay.assert_called_with(
+            "AnotherDummyNotification",
+            [
+                {"type": "other", "value": "some_value", "key": None},
+                {
+                    "type": "anonymoususer",
+                    "data": {},
+                    "key": "user",
+                },
+                {"type": "other", "value": "value", "key": "key"},
             ],
         )
 

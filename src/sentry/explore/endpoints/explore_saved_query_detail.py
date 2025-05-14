@@ -23,7 +23,7 @@ from sentry.apidocs.examples.explore_saved_query_examples import ExploreExamples
 from sentry.apidocs.parameters import ExploreSavedQueryParams, GlobalParams
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
-from sentry.explore.models import ExploreSavedQuery
+from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryLastVisited
 
 
 class ExploreSavedQueryBase(OrganizationEndpoint):
@@ -55,7 +55,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
 
     def has_feature(self, organization, request):
         return features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
+            "organizations:visibility-explore-view", organization, actor=request.user
         )
 
     @extend_schema(
@@ -104,6 +104,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
 
         self.check_object_permissions(request, query)
 
+        if query.prebuilt_id is not None:
+            return self.respond(status=400, message="Cannot modify prebuilt queries")
+
         try:
             params = self.get_filter_params(
                 request, organization, project_ids=request.data.get("projects")
@@ -148,6 +151,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
 
         self.check_object_permissions(request, query)
 
+        if query.prebuilt_id is not None:
+            return self.respond(status=400, message="Cannot delete prebuilt queries")
+
         query.delete()
 
         return Response(status=204)
@@ -161,7 +167,7 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
 
     def has_feature(self, organization, request):
         return features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
+            "organizations:visibility-explore-view", organization, actor=request.user
         )
 
     def post(self, request: Request, organization, query) -> Response:
@@ -174,5 +180,12 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
         query.visits = F("visits") + 1
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
+
+        ExploreSavedQueryLastVisited.objects.create_or_update(
+            organization=organization,
+            user_id=request.user.id,
+            explore_saved_query=query,
+            values={"last_visited": timezone.now()},
+        )
 
         return Response(status=204)

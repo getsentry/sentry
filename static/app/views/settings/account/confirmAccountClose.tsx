@@ -13,7 +13,9 @@ export function ConfirmAccountClose({
       message={t(
         'WARNING! This is permanent and cannot be undone, are you really sure you want to do this?'
       )}
-      onConfirm={handleRemoveAccount}
+      onConfirm={() => {
+        handleRemoveAccount();
+      }}
     >
       <Button priority="danger">{t('Close Account')}</Button>
     </Confirm>

@@ -221,7 +221,7 @@ function ReviewAndConfirmHeader({
   const {effectiveAt} = previewData;
   const effectiveNow = new Date(effectiveAt).getTime() <= Date.now() + 3600;
 
-  let subText;
+  let subText: React.ReactNode;
   if (subscription.isSelfServePartner) {
     subText = tct(
       'These changes will apply [applyDate], and you will be billed by [partnerName] monthly for any recurring subscription fees and incurred [budgetType] fees.',

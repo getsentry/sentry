@@ -3,18 +3,18 @@ import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {getTraceProject} from 'sentry/views/performance/newTraceDetails/tracePreferencesDropdown';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
+import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
 import {
   getSearchInExploreTarget,
   TraceDrawerActionKind,
@@ -28,7 +28,7 @@ function TraceActionsMenu({
   rootEventResults,
   traceEventView,
 }: {
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  rootEventResults: TraceRootEventQueryResults;
   traceEventView: EventView;
   traceSlug: string | undefined;
 }) {
@@ -37,10 +37,13 @@ function TraceActionsMenu({
   const {projects} = useProjects();
   const navigate = useNavigate();
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
+  const hasTraceTabsUi = useHasTraceTabsUI();
 
-  const traceProject = rootEventResults.data
-    ? projects.find(p => p.id === rootEventResults.data.projectID)
-    : undefined;
+  if (hasTraceTabsUi) {
+    return null;
+  }
+
+  const traceProject = getTraceProject(projects, rootEventResults);
 
   return (
     <DropdownMenu
@@ -51,7 +54,9 @@ function TraceActionsMenu({
             ? t('Open Events in Explore')
             : t('Open Events in Discover'),
           onAction: () => {
-            let target;
+            let target:
+              | ReturnType<typeof getSearchInExploreTarget>
+              | ReturnType<typeof traceEventView.getResultsViewUrlTarget>;
 
             if (hasExploreEnabled) {
               const key = 'trace';

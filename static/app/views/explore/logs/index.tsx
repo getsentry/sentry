@@ -1,10 +1,11 @@
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconMegaphone} from 'sentry/icons';
+import {IconMegaphone, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -15,6 +16,8 @@ import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {logsPickableDays} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+
+import {LOGS_INSTRUCTIONS_URL} from './logsTable';
 
 function FeedbackButton() {
   const openForm = useFeedbackForm();
@@ -44,7 +47,8 @@ function FeedbackButton() {
 
 export default function LogsPage() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} = logsPickableDays();
+  const {defaultPeriod, maxPickableDays, relativeOptions} =
+    logsPickableDays(organization);
 
   const prefersStackedNav = usePrefersStackedNav();
 
@@ -78,8 +82,17 @@ export default function LogsPage() {
               </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
-              <ButtonBar>
+              <ButtonBar gap={1}>
                 <FeedbackButton />
+                <LinkButton
+                  icon={<IconOpen />}
+                  priority="primary"
+                  href={LOGS_INSTRUCTIONS_URL}
+                  external
+                  size="xs"
+                >
+                  {t('Set Up Logs')}
+                </LinkButton>
               </ButtonBar>
             </Layout.HeaderActions>
           </Layout.Header>

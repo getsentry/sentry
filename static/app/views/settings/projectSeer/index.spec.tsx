@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -38,7 +39,7 @@ describe('ProjectSeer', function () {
     ModalStore.init();
     project = ProjectFixture();
     organization = OrganizationFixture({
-      features: ['autofix-seer-preferences'],
+      features: ['autofix-seer-preferences', 'trigger-autofix-on-issue-summary'],
     });
 
     MockApiClient.addMockResponse({
@@ -244,5 +245,47 @@ describe('ProjectSeer', function () {
       );
     });
     expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('can update the autofix autorun threshold slider', async function () {
+    const initialProject: Project = {
+      ...project,
+      autofixAutomationTuning: 'medium', // Start from medium
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'GET',
+      body: initialProject,
+    });
+
+    const projectPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {},
+    });
+
+    render(<ProjectSeer project={initialProject} />, {organization});
+
+    const slider = await screen.findByRole('slider', {
+      name: /Automatically Fix Issues with Seer/i,
+    });
+
+    act(() => {
+      slider.focus();
+    });
+
+    await userEvent.keyboard('{ArrowRight}');
+
+    // Form has saveOnBlur=true, so wait for the PUT request
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {autofixAutomationTuning: 'high'}})
+      );
+    });
   });
 });

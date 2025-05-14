@@ -1,5 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SavedQueriesTable} from 'sentry/views/explore/savedQueries/savedQueriesTable';
 
@@ -55,7 +62,7 @@ describe('SavedQueriesTable', () => {
   });
 
   it('should render', async () => {
-    render(<SavedQueriesTable mode="owned" />, {
+    render(<SavedQueriesTable mode="owned" title="title" />, {
       deprecatedRouterMocks: true,
     });
     expect(screen.getByText('Name')).toBeInTheDocument();
@@ -67,7 +74,7 @@ describe('SavedQueriesTable', () => {
   });
 
   it('should request for owned queries', async () => {
-    render(<SavedQueriesTable mode="owned" />, {
+    render(<SavedQueriesTable mode="owned" title="title" />, {
       deprecatedRouterMocks: true,
     });
     await waitFor(() =>
@@ -85,7 +92,7 @@ describe('SavedQueriesTable', () => {
   });
 
   it('should request for shared queries', async () => {
-    render(<SavedQueriesTable mode="shared" />, {
+    render(<SavedQueriesTable mode="shared" title="title" />, {
       deprecatedRouterMocks: true,
     });
     await waitFor(() =>
@@ -103,12 +110,20 @@ describe('SavedQueriesTable', () => {
   });
 
   it('deletes a query', async () => {
-    render(<SavedQueriesTable mode="owned" />, {
+    render(<SavedQueriesTable mode="owned" title="title" />, {
       deprecatedRouterMocks: true,
     });
+    renderGlobalModal();
     await screen.findByText('Query Name');
     await userEvent.click(screen.getByLabelText('More options'));
     await userEvent.click(screen.getByText('Delete'));
+    await screen.findByText('Are you sure you want to delete the query "Query Name"?');
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Delete Query',
+      })
+    );
+
     await waitFor(() =>
       expect(deleteQueryMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/explore/saved/1/`,
@@ -120,12 +135,12 @@ describe('SavedQueriesTable', () => {
   });
 
   it('should link to a single query view', async () => {
-    render(<SavedQueriesTable mode="owned" />, {
+    render(<SavedQueriesTable mode="owned" title="title" />, {
       deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/traces/?dataset=spansRpc&environment=production&groupBy=&id=1&project=1&title=Query%20Name'
+      '/organizations/org-slug/traces/?environment=production&groupBy=&id=1&project=1&title=Query%20Name'
     );
   });
 
@@ -154,12 +169,12 @@ describe('SavedQueriesTable', () => {
         },
       ],
     });
-    render(<SavedQueriesTable mode="owned" />, {
+    render(<SavedQueriesTable mode="owned" title="title" />, {
       deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/traces/compare/?dataset=spansRpc&environment=production&id=1&project=1&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
+      '/organizations/org-slug/explore/traces/compare/?environment=production&id=1&project=1&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
     );
   });
 
@@ -201,7 +216,7 @@ describe('SavedQueriesTable', () => {
         },
       ],
     });
-    render(<SavedQueriesTable mode="owned" />, {
+    render(<SavedQueriesTable mode="owned" title="title" />, {
       deprecatedRouterMocks: true,
     });
     await screen.findByText('Query Name');
@@ -235,7 +250,7 @@ describe('SavedQueriesTable', () => {
   });
 
   it('should sort by most popular', async () => {
-    render(<SavedQueriesTable mode="owned" sort="mostPopular" />, {
+    render(<SavedQueriesTable mode="owned" sort="mostPopular" title="title" />, {
       deprecatedRouterMocks: true,
     });
     await screen.findByText('Query Name');
@@ -248,7 +263,7 @@ describe('SavedQueriesTable', () => {
   });
 
   it('should search for a query', async () => {
-    render(<SavedQueriesTable mode="owned" searchQuery="Query Name" />, {
+    render(<SavedQueriesTable mode="owned" searchQuery="Query Name" title="title" />, {
       deprecatedRouterMocks: true,
     });
     await screen.findByText('Query Name');
@@ -261,7 +276,7 @@ describe('SavedQueriesTable', () => {
   });
 
   it('should duplicate a query', async () => {
-    render(<SavedQueriesTable mode="owned" />, {
+    render(<SavedQueriesTable mode="owned" title="title" />, {
       deprecatedRouterMocks: true,
     });
     await screen.findByText('Query Name');

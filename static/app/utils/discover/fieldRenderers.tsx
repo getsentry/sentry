@@ -405,11 +405,6 @@ const RightAlignedContainer = styled('span')`
   margin-right: 0;
 `;
 
-const CenterAlignedContainer = styled('span')`
-  text-align: center;
-  width: 100%;
-`;
-
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,
  * or they require custom UI formatting that can't be handled by the datatype formatters.
@@ -775,7 +770,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       <StarredSegmentCell
         projectSlug={data.project}
         segmentName={data.transaction}
-        initialIsStarred={data.is_starred_transaction}
+        isStarred={data.is_starred_transaction}
       />
     ),
   },
@@ -842,9 +837,9 @@ const SPECIAL_FIELDS: SpecialFields = {
         return <Container>{emptyValue}</Container>;
       }
       return (
-        <CenterAlignedContainer>
+        <RightAlignedContainer>
           <PerformanceBadge score={Math.round(score * 100)} />
-        </CenterAlignedContainer>
+        </RightAlignedContainer>
       );
     },
   },

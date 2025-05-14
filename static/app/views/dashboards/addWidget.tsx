@@ -2,12 +2,10 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {DisplayType} from './types';
@@ -23,38 +21,28 @@ const initialStyles = {
 };
 
 type Props = {
-  onAddWidget: (dataset: DataSet) => void;
-  onAddWidgetFromNewWidgetBuilder?: (
-    dataset: DataSet,
-    openWidgetTemplates?: boolean
-  ) => void;
+  onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
 };
 
-function AddWidget({onAddWidget, onAddWidgetFromNewWidgetBuilder}: Props) {
+function AddWidget({onAddWidget}: Props) {
   const {setNodeRef, transform} = useSortable({
     disabled: true,
     id: ADD_WIDGET_BUTTON_DRAG_ID,
     transition: null,
   });
 
-  const organization = useOrganization();
-
-  const defaultDataset = organization.features.includes(
-    'performance-discover-dataset-selector'
-  )
-    ? DataSet.ERRORS
-    : DataSet.EVENTS;
+  const defaultDataset = DataSet.ERRORS;
 
   const addWidgetDropdownItems: MenuItemProps[] = [
     {
       key: 'create-custom-widget',
       label: t('Create Custom Widget'),
-      onAction: () => onAddWidgetFromNewWidgetBuilder?.(defaultDataset, false),
+      onAction: () => onAddWidget?.(defaultDataset, false),
     },
     {
       key: 'from-widget-library',
       label: t('From Widget Library'),
-      onAction: () => onAddWidgetFromNewWidgetBuilder?.(defaultDataset, true),
+      onAction: () => onAddWidget?.(defaultDataset, true),
     },
   ];
 
@@ -80,44 +68,23 @@ function AddWidget({onAddWidget, onAddWidgetFromNewWidgetBuilder}: Props) {
           duration: 0.25,
         }}
       >
-        {organization.features.includes('dashboards-widget-builder-redesign') ? (
-          <InnerWrapper onClick={() => onAddWidgetFromNewWidgetBuilder?.(defaultDataset)}>
-            <DropdownMenu
-              items={addWidgetDropdownItems}
-              data-test-id="widget-add"
-              triggerProps={{
-                'aria-label': t('Add Widget'),
-                size: 'md',
-                showChevron: false,
-                icon: <IconAdd isCircled size="lg" color="subText" />,
-                borderless: true,
-              }}
-            />
-          </InnerWrapper>
-        ) : (
-          <InnerWrapper onClick={() => onAddWidget(defaultDataset)}>
-            <AddButton
-              data-test-id="widget-add"
-              icon={<IconAdd size="lg" isCircled color="subText" />}
-              aria-label={t('Add widget')}
-            />
-          </InnerWrapper>
-        )}
+        <InnerWrapper onClick={() => onAddWidget?.(defaultDataset)}>
+          <DropdownMenu
+            items={addWidgetDropdownItems}
+            data-test-id="widget-add"
+            triggerProps={{
+              'aria-label': t('Add Widget'),
+              size: 'md',
+              showChevron: false,
+              icon: <IconAdd isCircled size="lg" color="subText" />,
+              borderless: true,
+            }}
+          />
+        </InnerWrapper>
       </WidgetWrapper>
     </Feature>
   );
 }
-
-const AddButton = styled(Button)`
-  border: none;
-  &,
-  &:focus,
-  &:active,
-  &:hover {
-    background: transparent;
-    box-shadow: none;
-  }
-`;
 
 export default AddWidget;
 

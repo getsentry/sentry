@@ -178,12 +178,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             except NoProjects:
                 return Response([], status=200)
 
-        self.validate_comparison_delta(comparison_delta, snuba_params, organization)
-        rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
-        snuba_params.granularity_secs = rollup
-        axes = request.GET.getlist("yAxis", ["count()"])
-
         with handle_query_errors():
+            self.validate_comparison_delta(comparison_delta, snuba_params, organization)
+            rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
+            snuba_params.granularity_secs = rollup
+            axes = request.GET.getlist("yAxis", ["count()"])
             events_stats = self.get_event_stats(
                 request,
                 organization,
@@ -268,11 +267,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 include_other=include_other,
                 query_source=query_source,
                 transform_alias_to_input_format=True,
-                fallback_to_transactions=features.has(
-                    "organizations:performance-discover-dataset-selector",
-                    organization,
-                    actor=request.user,
-                ),
+                fallback_to_transactions=True,
             )
 
         if dataset in {spans_rpc, ourlogs}:
@@ -300,11 +295,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             allow_metric_aggregates=allow_metric_aggregates,
             has_metrics=use_metrics,
             query_source=query_source,
-            fallback_to_transactions=features.has(
-                "organizations:performance-discover-dataset-selector",
-                organization,
-                actor=request.user,
-            ),
+            fallback_to_transactions=True,
             transform_alias_to_input_format=True,
         )
 

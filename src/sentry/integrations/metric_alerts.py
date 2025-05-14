@@ -240,11 +240,7 @@ def incident_attachment_info(
 
         workflow_engine_params = title_link_params.copy()
 
-        incident_identifier = Incident.objects.values_list("identifier", flat=True).get(
-            id=open_period_incident.incident_id
-        )
-
-        workflow_engine_params["alert"] = str(incident_identifier)
+        workflow_engine_params["alert"] = str(open_period_incident.incident_identifier)
 
         title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
 

@@ -2,10 +2,13 @@ import type React from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Panel from 'sentry/components/panels/panel';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   LogsPageDataProvider,
   useLogsPageData,
@@ -13,13 +16,14 @@ import {
 import {
   LogsPageParamsProvider,
   useLogsSearch,
-  useSetLogsQuery,
+  useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
@@ -32,7 +36,7 @@ export function TraceViewLogsDataProvider({
 }: UseTraceViewLogsDataProps) {
   return (
     <LogsPageParamsProvider
-      isOnEmbeddedView
+      isTableFrozen
       limitToTraceId={traceSlug}
       analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
     >
@@ -43,9 +47,24 @@ export function TraceViewLogsDataProvider({
 
 export function TraceViewLogsSection() {
   const tableData = useLogsPageData();
-  if (!tableData?.logsData || tableData.logsData.data.length === 0) {
+  const logsSearch = useLogsSearch();
+  const hasTraceTabsUi = useHasTraceTabsUI();
+
+  if (hasTraceTabsUi) {
+    return (
+      <StyledPanel>
+        <LogsSectionContent tableData={tableData.logsData} />
+      </StyledPanel>
+    );
+  }
+
+  if (
+    !tableData?.logsData ||
+    (tableData.logsData.data.length === 0 && logsSearch.isEmpty())
+  ) {
     return null;
   }
+
   return (
     <FoldSection
       sectionKey={TraceContextSectionKeys.LOGS as string as SectionKey}
@@ -60,18 +79,20 @@ export function TraceViewLogsSection() {
 }
 
 function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult}) {
-  const setLogsQuery = useSetLogsQuery();
+  const organization = useOrganization();
+  const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
 
   return (
     <Fragment>
       <SearchQueryBuilder
+        searchOnChange={organization.features.includes('ui-search-on-change')}
         placeholder={t('Search logs for this event')}
         filterKeys={{}}
         getTagValues={() => new Promise<string[]>(() => [])}
         initialQuery={logsSearch.formatString()}
         searchSource="ourlogs"
-        onSearch={setLogsQuery}
+        onSearch={query => setLogsSearch(new MutableSearch(query))}
       />
       <TableContainer>
         <LogsTable tableData={tableData} showHeader={false} />
@@ -82,4 +103,9 @@ function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult})
 
 const TableContainer = styled('div')`
   margin-top: ${space(2)};
+`;
+
+const StyledPanel = styled(Panel)`
+  padding: ${space(2)};
+  margin: 0;
 `;

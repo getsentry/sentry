@@ -7,11 +7,11 @@ import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumb
 import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
-import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
@@ -161,6 +161,11 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     return () => {};
   }, [location.query.scrollTo, scrollToSection]);
 
+  let lastTriggeredAt = autofixData?.last_triggered_at;
+  if (lastTriggeredAt && !lastTriggeredAt.endsWith('Z')) {
+    lastTriggeredAt = lastTriggeredAt + 'Z';
+  }
+
   return (
     <SeerDrawerContainer className="seer-drawer-container">
       <SeerDrawerHeader>
@@ -210,7 +215,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                   {tct('Seer can be turned off in [settingsDocs:Settings].', {
                     settingsDocs: (
                       <Link
-                        to={`/settings/${organization.slug}/general-settings/#hideAiFeatures`}
+                        to={{
+                          pathname: `/settings/${organization.slug}/`,
+                          hash: '#hideAiFeatures',
+                        }}
                       />
                     ),
                   })}
@@ -240,7 +248,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                   title={
                     autofixData?.last_triggered_at
                       ? tct('Last run at [date]', {
-                          date: <DateTime date={autofixData.last_triggered_at} />,
+                          date: <DateTime date={lastTriggeredAt} />,
                         })
                       : null
                   }
@@ -254,9 +262,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         )}
       </SeerDrawerNavigator>
 
-      {!aiConfig.isAutofixSetupLoading &&
-        !aiConfig.needsGenAiAcknowledgement &&
-        autofixData && <AutofixProgressBar autofixData={autofixData} />}
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
@@ -310,9 +315,14 @@ export const useOpenSeerDrawer = ({
   const {openDrawer} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
 
   const openSeerDrawer = useCallback(() => {
-    if (!event) {
+    if (
+      !event ||
+      !organization.features.includes('gen-ai-features') ||
+      organization.hideAiFeatures
+    ) {
       return;
     }
 
@@ -374,7 +384,7 @@ export const useOpenSeerDrawer = ({
         });
       },
     });
-  }, [openDrawer, buttonRef, event, group, project, location, navigate]);
+  }, [openDrawer, buttonRef, event, group, project, location, navigate, organization]);
 
   return {openSeerDrawer};
 };
@@ -384,7 +394,7 @@ const StyledCard = styled('div')`
   overflow: visible;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(3)};
+  padding: ${space(2)} ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 

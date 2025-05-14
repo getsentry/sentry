@@ -7,6 +7,7 @@ from sentry.testutils.cases import TestMigrations
 from sentry.types.group import GroupSubStatus
 
 
+@pytest.mark.skip(reason="Migration has been run")
 class RemoveGroupsFromGroupInbox(TestMigrations):
     migrate_from = "0778_userreport_comments_max_length"
     migrate_to = "0779_remove_groups_from_group_inbox"

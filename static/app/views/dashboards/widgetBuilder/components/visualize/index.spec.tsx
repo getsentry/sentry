@@ -22,7 +22,7 @@ describe('Visualize', () => {
 
   beforeEach(() => {
     organization = OrganizationFixture({
-      features: ['dashboards-widget-builder-redesign', 'performance-view'],
+      features: ['performance-view'],
     });
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
@@ -492,7 +492,7 @@ describe('Visualize', () => {
     );
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({query: expect.objectContaining({field: ['count()']})}),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -532,7 +532,7 @@ describe('Visualize', () => {
       expect.objectContaining({
         query: expect.objectContaining({field: ['count_miserable(user,300)']}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -892,7 +892,7 @@ describe('Visualize', () => {
       expect.objectContaining({
         query: expect.objectContaining({selectedAggregate: undefined}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 

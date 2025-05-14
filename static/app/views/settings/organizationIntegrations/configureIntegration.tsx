@@ -5,7 +5,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
@@ -148,9 +149,11 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   }
 
   const onTabChange = (value: Tab) => {
+    // XXX: Omit the cursor to prevent paginating the next tab's queries.
+    const {cursor: _, ...query} = location.query;
     router.push({
       pathname: location.pathname,
-      query: {...location.query, tab: value},
+      query: {...query, tab: value},
     });
   };
 

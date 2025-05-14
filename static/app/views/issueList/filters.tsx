@@ -12,6 +12,7 @@ import IssueListSortOptions from 'sentry/views/issueList/actions/sortOptions';
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
 import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface Props {
   onSearch: (query: string) => void;
@@ -24,12 +25,10 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   const organization = useOrganization();
 
   const hasIssueViews = organization.features.includes('issue-stream-custom-views');
-  const hasIssueViewSharing = organization.features.includes(
-    'enforce-stacked-navigation'
-  );
+  const prefersStackedNav = usePrefersStackedNav();
 
   return (
-    <FiltersContainer hasIssueViewSharing={hasIssueViewSharing}>
+    <FiltersContainer prefersStackedNav={prefersStackedNav}>
       <GuideAnchor
         target="issue_views_page_filters_persistence"
         disabled={!hasIssueViews}
@@ -52,13 +51,13 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
           showIcon={false}
         />
 
-        {hasIssueViewSharing && <IssueViewSaveButton query={query} sort={sort} />}
+        {prefersStackedNav && <IssueViewSaveButton query={query} sort={sort} />}
       </SortSaveContainer>
     </FiltersContainer>
   );
 }
 
-const FiltersContainer = styled('div')<{hasIssueViewSharing: boolean}>`
+const FiltersContainer = styled('div')<{prefersStackedNav: boolean}>`
   display: grid;
   column-gap: ${space(1)};
   row-gap: ${space(1)};
@@ -66,7 +65,7 @@ const FiltersContainer = styled('div')<{hasIssueViewSharing: boolean}>`
   width: 100%;
 
   ${p =>
-    p.hasIssueViewSharing
+    p.prefersStackedNav
       ? css`
           grid-template-columns: 100%;
           grid-template-areas:

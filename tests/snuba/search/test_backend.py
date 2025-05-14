@@ -30,6 +30,7 @@ from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend, SnubaSearchBackendBase
 from sentry.search.snuba.executors import TrendsSortWeights
+from sentry.seer.seer_utils import FixabilityScoreThresholds
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase, TransactionTestCase
 from sentry.testutils.helpers import Feature, apply_feature_flag_on_cls
@@ -154,6 +155,8 @@ class EventsDatasetTestSetup(SharedSnubaMixin):
         self.group1.substatus = GroupSubStatus.ONGOING
         self.group1.priority = PriorityLevel.HIGH
         self.group1.update(type=ErrorGroupType.type_id)
+        self.group1.seer_fixability_score = FixabilityScoreThresholds.HIGH.value + 0.01
+        self.group1.seer_autofix_last_triggered = self.event3.datetime
         self.group1.save()
         self.store_group(self.group1)
 
@@ -184,6 +187,8 @@ class EventsDatasetTestSetup(SharedSnubaMixin):
         self.group2.times_seen = 10
         self.group2.update(type=ErrorGroupType.type_id)
         self.group2.priority = PriorityLevel.HIGH
+        self.group2.seer_fixability_score = FixabilityScoreThresholds.MEDIUM.value
+        self.group2.seer_autofix_last_triggered = self.event2.datetime
         self.group2.save()
         self.store_group(self.group2)
 
@@ -2625,6 +2630,43 @@ class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnub
 
         with pytest.raises(InvalidSearchQuery):
             self.make_query(search_filter_query="issue.category:wrong")
+
+    def test_seer_actionability(self):
+        results = self.make_query(search_filter_query="issue.seer_actionability:high")
+        assert set(results) == {self.group1}
+
+        results = self.make_query(search_filter_query="issue.seer_actionability:medium")
+        assert set(results) == {self.group2}
+
+        event_3 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group3"],
+                "event_id": "c" * 32,
+                "timestamp": (self.base_datetime - timedelta(days=20)).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_3 = event_3.group
+        group_3.update(seer_fixability_score=0.0)
+
+        results = self.make_query(search_filter_query="issue.seer_actionability:low")
+        assert set(results) == {group_3}
+
+    def test_seer_last_run(self):
+        results = self.make_query(
+            search_filter_query=f"issue.seer_last_run:{self.event3.datetime.isoformat()}"
+        )
+        assert set(results) == {self.group1}
+
+        results = self.make_query(
+            search_filter_query=f"issue.seer_last_run:<={(self.event3.datetime + timedelta(days=1)).isoformat()}"
+        )
+        assert set(results) == set({self.group1, self.group2})
+
+        results = self.make_query(
+            search_filter_query=f"issue.seer_last_run:<={self.event2.datetime.isoformat()}"
+        )
+        assert set(results) == {self.group2}
 
 
 class EventsTrendsTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):

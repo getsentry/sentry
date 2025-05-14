@@ -108,7 +108,22 @@ export type AutofixInsight = {
   insight: string;
   justification: string;
   change_diff?: FilePatch[];
+  markdown_snippets?: string;
+  sources?: InsightSources;
   type?: 'insight' | 'file_change';
+};
+
+export type InsightSources = {
+  breadcrumbs_used: boolean;
+  code_used_urls: string[];
+  connected_error_ids_used: string[];
+  diff_urls: string[];
+  http_request_used: boolean;
+  profile_ids_used: string[];
+  stacktrace_used: boolean;
+  thoughts: string;
+  trace_event_ids_used: string[];
+  event_trace_id?: string;
 };
 
 export interface AutofixDefaultStep extends BaseStep {
@@ -161,6 +176,10 @@ type AutofixRelevantCodeFile = {
   repo_name: string;
 };
 
+export type AutofixRelevantCodeFileWithUrl = AutofixRelevantCodeFile & {
+  url?: string;
+};
+
 export type AutofixTimelineEvent = {
   code_snippet_and_analysis: string;
   relevant_code_file: AutofixRelevantCodeFile;
@@ -175,12 +194,13 @@ export type AutofixSolutionTimelineEvent = {
   code_snippet_and_analysis?: string;
   is_active?: boolean;
   is_most_important_event?: boolean;
-  relevant_code_file?: AutofixRelevantCodeFile;
+  relevant_code_file?: AutofixRelevantCodeFileWithUrl;
 };
 
 export type AutofixRootCauseData = {
   id: string;
-  description?: string; // TODO: this is for backwards compatibility with old runs, we should remove it soon
+  description?: string;
+  reproduction_urls?: Array<string | null>;
   root_cause_reproduction?: AutofixTimelineEvent[];
 };
 
@@ -251,3 +271,5 @@ export interface SeerRepoDefinition {
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
 }
+
+export const AUTOFIX_TTL_IN_DAYS = 30;

@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
@@ -66,6 +66,7 @@ import {
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
 } from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -117,11 +118,11 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const metricsDataset = useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.METRICS;
 
   const spanQueryParams: Record<string, string> = useEap
-    ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
+    ? {...EAP_QUERY_PARAMS}
     : {dataset: DiscoverDatasets.SPANS_METRICS};
 
   const metricsQueryParams: Record<string, string> = useEap
-    ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
+    ? {...EAP_QUERY_PARAMS}
     : {dataset: DiscoverDatasets.METRICS};
 
   let emptyComponent: any;
@@ -292,7 +293,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           removeTransactionOpFilter({eventView, mutableSearch, useEap});
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
-          eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
+          eventView.additionalConditions.setFilterValues('count()', ['>1']);
           extraQueryParams = {
             ...extraQueryParams,
             ...metricsQueryParams,
@@ -487,6 +488,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             eventView.query = mutableSearch.formatString();
           } else {
             eventView.fields = [{field: 'transaction'}, {field}];
+          }
+
+          if (useEap) {
+            eventView.dataset = DiscoverDatasets.SPANS_EAP_RPC;
+            extraQueryParams = {
+              ...extraQueryParams,
+              ...spanQueryParams,
+            };
           }
 
           return (

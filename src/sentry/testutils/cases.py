@@ -35,6 +35,7 @@ from django.test import override_settings
 from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
+from google.protobuf.timestamp_pb2 import Timestamp
 from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.request import Request
@@ -50,6 +51,8 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckStatus,
     CheckStatusReason,
 )
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from slack_sdk.web import SlackResponse
 from snuba_sdk import Granularity, Limit, Offset
@@ -75,7 +78,7 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import (
     NoiseConfig,
@@ -380,7 +383,8 @@ class BaseTestCase(Fixtures):
         with open(get_fixture_path(filepath), "rb") as fp:
             return fp.read()
 
-    def _pre_setup(self):
+    @classmethod
+    def _pre_setup(cls):
         super()._pre_setup()
 
         cache.clear()
@@ -790,6 +794,9 @@ class RuleTestCase(TestCase):
     def get_event(self):
         return self.event
 
+    def get_group_event(self):
+        return GroupEvent.from_event(self.event, self.event.group)
+
     def get_rule(self, **kwargs):
         kwargs.setdefault("project", self.project)
         kwargs.setdefault("data", {})
@@ -1139,50 +1146,25 @@ class SnubaTestCase(BaseTestCase):
         )
 
     def store_span(self, span, is_eap=False):
-        span["ingest_in_eap"] = is_eap
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
-                data=json.dumps([span]),
-            ).status_code
-            == 200
-        )
-        if is_eap:
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
-                    data=json.dumps([span]),
-                ).status_code
-                == 200
-            )
+        self.store_spans([span], is_eap=is_eap)
 
     def store_spans(self, spans, is_eap=False):
-        for span in spans:
-            span["ingest_in_eap"] = is_eap
+        entity = "eap_items_span" if is_eap else "spans"
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert",
                 data=json.dumps(spans),
             ).status_code
             == 200
         )
-        if is_eap:
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
-                    data=json.dumps(spans),
-                ).status_code
-                == 200
-            )
 
     def store_ourlogs(self, ourlogs):
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/eap_items_log/insert",
-                data=json.dumps(ourlogs),
-            ).status_code
-            == 200
+        files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            files=files,
         )
+        assert response.status_code == 200
 
     def store_issues(self, issues):
         assert (
@@ -2250,7 +2232,7 @@ class ProfilesSnubaTestCase(
         if is_eap:
             assert (
                 requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
                     data=json.dumps([span]),
                 ).status_code
                 == 200
@@ -2269,7 +2251,7 @@ class ProfilesSnubaTestCase(
         if is_eap:
             assert (
                 requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
                     data=json.dumps(spans),
                 ).status_code
                 == 200
@@ -2309,7 +2291,8 @@ class ReplaysSnubaTestCase(TestCase):
 class UptimeCheckSnubaTestCase(TestCase):
     def store_uptime_check(self, uptime_check):
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert", json=[uptime_check]
+            settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert",
+            json=[uptime_check],
         )
         assert response.status_code == 200
 
@@ -3151,12 +3134,6 @@ class UptimeTestCaseMixin:
         self.mock_resolve_rdap_provider_ctx.__exit__(None, None, None)
         self.mock_requests_get_ctx.__exit__(None, None, None)
 
-
-class _OptionalCheckResult(TypedDict, total=False):
-    region: str
-
-
-class UptimeTestCase(UptimeTestCaseMixin, TestCase):
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
@@ -3187,6 +3164,14 @@ class UptimeTestCase(UptimeTestCaseMixin, TestCase):
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
             **optional_fields,
         }
+
+
+class _OptionalCheckResult(TypedDict, total=False):
+    region: str
+
+
+class UptimeTestCase(UptimeTestCaseMixin, TestCase):
+    pass
 
 
 class IntegratedApiTestCase(BaseTestCase):
@@ -3295,12 +3280,21 @@ class _OptionalOurLogData(TypedDict, total=False):
     item_id: int
 
 
-class OurLogTestCase(BaseTestCase):
-    base_log: dict[str, Any] = {
-        "retention_days": 90,
-        "attributes": {},
-    }
+def scalar_to_any_value(value: Any) -> AnyValue:
+    if isinstance(value, str):
+        return AnyValue(string_value=value)
+    if isinstance(value, int):
+        return AnyValue(int_value=value)
+    if isinstance(value, float):
+        return AnyValue(double_value=value)
+    if isinstance(value, bool):
+        return AnyValue(bool_value=value)
+    if isinstance(value, dict):
+        return AnyValue(**value)
+    raise Exception(f"cannot convert {value} of type {type(value)} to AnyValue")
 
+
+class OurLogTestCase(BaseTestCase):
     def create_ourlog(
         self,
         extra_data: _OptionalOurLogData | None = None,
@@ -3308,8 +3302,7 @@ class OurLogTestCase(BaseTestCase):
         project: Project | None = None,
         timestamp: datetime | None = None,
         attributes: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-
+    ) -> TraceItem:
         if organization is None:
             organization = self.organization
         if project is None:
@@ -3321,29 +3314,46 @@ class OurLogTestCase(BaseTestCase):
         if extra_data is None:
             extra_data = {}
 
+        trace_id = extra_data.pop("trace_id", uuid4().hex)
+
         # Set defaults for required fields if not in extra_data
         if "body" not in extra_data:
             extra_data["body"] = "hello world!"
-        if "trace_id" not in extra_data:
-            extra_data["trace_id"] = uuid4().hex
+        if "severity_text" not in extra_data:
+            extra_data["severity_text"] = "INFO"
+        if "severity_number" not in extra_data:
+            extra_data["severity_number"] = 0
 
-        log = self.base_log.copy()
-        # Required fields
-        log.update(
-            {
-                "organization_id": organization.id,
-                "project_id": project.id,
-                "timestamp_nanos": int(timestamp.timestamp() * 1_000_000_000),
-                "observed_timestamp_nanos": int(timestamp.timestamp() * 1_000_000_000),
-                "received": int(timestamp.timestamp()),
-                "attributes": attributes,
-            }
+        attributes_proto = {}
+
+        for k, v in attributes.items():
+            attributes_proto[k] = scalar_to_any_value(v)
+
+        for k, v in extra_data.items():
+            attributes_proto[f"sentry.{k}"] = scalar_to_any_value(v)
+
+        timestamp_proto = Timestamp()
+
+        timestamp_proto.FromDatetime(timestamp)
+
+        attributes_proto["sentry.timestamp_nanos"] = AnyValue(
+            int_value=int(timestamp.timestamp() * 1e9)
+        )
+        attributes_proto["sentry.timestamp_precise"] = AnyValue(
+            int_value=int(timestamp.timestamp() * 1e9)
         )
 
-        # Add all extra data fields
-        log.update(extra_data)
-
-        return log
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
+            timestamp=timestamp_proto,
+            trace_id=trace_id,
+            item_id=uuid4().bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )
 
 
 class TraceTestCase(SpanTestCase):

@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
@@ -82,16 +83,16 @@ export const Grid = styled('table')<{height?: string | number; scrollable?: bool
   z-index: ${Z_INDEX_GRID};
   ${p =>
     p.scrollable &&
-    `
-    overflow-x: auto;
-    overflow-y: scroll;
+    css`
+      overflow-x: auto;
+      overflow-y: scroll;
     `}
   ${p =>
     p.height
-      ? `
-      height: 100%;
-      max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height}
-      `
+      ? css`
+          height: 100%;
+          max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
+        `
       : ''}
 `;
 

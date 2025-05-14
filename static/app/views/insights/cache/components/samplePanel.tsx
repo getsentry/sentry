@@ -29,7 +29,6 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useDiscoverOrEap,
   useEAPSpans,
@@ -119,7 +118,6 @@ export function CacheSamplePanel() {
         fields: [
           `${SpanFunction.EPM}()`,
           `${SpanFunction.CACHE_MISS_RATE}()`,
-          `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
           `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
           `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`,
         ],
@@ -338,9 +336,6 @@ export function CacheSamplePanel() {
                 title={DataTitles.timeSpent}
                 value={cacheTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
-                tooltip={getTimeSpentExplanation(
-                  cacheTransactionMetrics?.[0]?.['time_spent_percentage()']!
-                )}
                 isLoading={areCacheTransactionMetricsFetching}
               />
             </ReadoutRibbon>
@@ -441,7 +436,7 @@ const CACHE_STATUS_OPTIONS = [
   },
 ];
 
-export const useTransactionDuration = ({transaction}: {transaction: string}) => {
+const useTransactionDuration = ({transaction}: {transaction: string}) => {
   const useEap = useInsightsEap();
 
   const metricsResult = useMetrics(
