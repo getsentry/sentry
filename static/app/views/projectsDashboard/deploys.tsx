@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
@@ -116,7 +116,7 @@ const Environment = styled('div')`
 `;
 
 const DeployTime = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   overflow: hidden;
   text-align: right;
   text-overflow: ellipsis;

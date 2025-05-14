@@ -1,11 +1,12 @@
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from typing import Any
 
 from django.contrib import messages
 from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
-from rest_framework.request import Request
 
+from sentry.integrations.base import IntegrationData
 from sentry.integrations.vsts.integration import AccountConfigView, VstsIntegrationProvider
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.utils.http import absolute_uri
@@ -25,17 +26,20 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
         views.append(VstsExtensionFinishedView())
         return views
 
-    def build_integration(self, state: MutableMapping[str, Any]) -> Mapping[str, Any]:
-        state["account"] = {
-            "accountId": state["vsts"]["accountId"],
-            "accountName": state["vsts"]["accountName"],
-        }
-
-        return super().build_integration(state)
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
+        return super().build_integration(
+            {
+                **state,
+                "account": {
+                    "accountId": state["vsts"]["accountId"],
+                    "accountName": state["vsts"]["accountName"],
+                },
+            }
+        )
 
 
 class VstsExtensionFinishedView(PipelineView):
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         response = pipeline.finish_pipeline()
 
         integration = getattr(pipeline, "integration", None)
@@ -44,6 +48,7 @@ class VstsExtensionFinishedView(PipelineView):
 
         messages.add_message(request, messages.SUCCESS, "VSTS Extension installed.")
 
+        assert pipeline.organization is not None
         return HttpResponseRedirect(
             absolute_uri(
                 f"/settings/{pipeline.organization.slug}/integrations/vsts-extension/{integration.id}/"

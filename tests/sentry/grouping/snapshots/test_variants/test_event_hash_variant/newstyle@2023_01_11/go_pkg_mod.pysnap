@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:13.485235+00:00'
+created: '2025-04-25T21:22:03.909577+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,7 +17,7 @@ app:
               "cron.go"
             function*
               "FuncJob.Run"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "main"
             filename (module takes precedence)
@@ -36,7 +36,7 @@ system:
     system*
       exception*
         stacktrace*
-          frame* (marked out of app by stack trace rule (path:**/go/pkg/mod/** -app))
+          frame*
             module*
               "github.com/robfig/cron/v3"
             filename (module takes precedence)

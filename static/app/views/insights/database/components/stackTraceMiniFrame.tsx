@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -104,7 +104,7 @@ const Emphasize = styled('span')`
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const PushRight = styled('span')`
@@ -155,7 +155,7 @@ const DeemphasizedExternalLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledIconWrapper = styled('span')`

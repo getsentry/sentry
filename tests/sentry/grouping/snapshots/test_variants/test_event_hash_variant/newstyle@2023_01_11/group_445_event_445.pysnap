@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:14.406993+00:00'
+created: '2025-02-26T00:34:07.049436+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -75,7 +75,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "DispatchMessageWorker"
           frame (non app frame)
@@ -176,7 +176,7 @@ system:
               "winmain.cpp"
             function*
               "wWinMain"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "xstring"
             function*
@@ -186,7 +186,7 @@ system:
               "xstring"
             function*
               "std::basic_string<T>::assign"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored due to recursion)
             filename*
               "xstring"
             function*

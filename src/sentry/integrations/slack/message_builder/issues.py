@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
@@ -9,7 +10,7 @@ import orjson
 from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.constants import LOG_LEVELS
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
@@ -17,10 +18,10 @@ from sentry.integrations.messaging.message_builder import (
     build_attachment_replay_link,
     build_attachment_text,
     build_attachment_title,
-    build_footer,
     format_actor_option_slack,
     format_actor_options_slack,
     get_title_link,
+    get_title_link_workflow_engine_ui,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
@@ -32,9 +33,15 @@ from sentry.integrations.slack.message_builder.types import (
     SLACK_URL_FORMAT,
     SlackBlock,
 )
-from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
+from sentry.integrations.slack.message_builder.util import build_slack_footer
+from sentry.integrations.slack.utils.escape import (
+    escape_slack_markdown_asterisks,
+    escape_slack_markdown_text,
+    escape_slack_text,
+)
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.issue_summary_for_alerts import fetch_issue_summary
 from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import GroupCategory, NotificationContextField
 from sentry.models.commit import Commit
@@ -52,6 +59,7 @@ from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
+from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
@@ -70,6 +78,7 @@ SUPPORTED_COMMIT_PROVIDERS = (
 
 MAX_BLOCK_TEXT_LENGTH = 256
 USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
+MAX_SUMMARY_HEADLINE_LENGTH = 50
 
 
 def get_group_users_count(group: Group, rules: list[Rule] | None = None) -> int:
@@ -260,12 +269,7 @@ def get_suggested_assignees(
     project: Project, event: Event | GroupEvent, current_assignee: RpcUser | Team | None
 ) -> list[str]:
     """Get suggested assignees as a list of formatted strings"""
-    suggested_assignees = []
-    issue_owners, _ = ProjectOwnership.get_owners(project.id, event.data)
-    if (
-        issue_owners != ProjectOwnership.Everyone
-    ):  # we don't want every user in the project to be a suggested assignee
-        suggested_assignees = issue_owners
+    suggested_assignees, _ = ProjectOwnership.get_owners(project.id, event.data)
     try:
         suspect_commit_users = Actor.many_from_object(get_suspect_commit_users(project, event))
         suggested_assignees.extend(suspect_commit_users)
@@ -395,7 +399,6 @@ def build_actions(
             label="Select Assignee...",
             type="select",
             selected_options=format_actor_options_slack([assignee]) if assignee else [],
-            option_groups=get_option_groups(group),
         )
         return assign_button
 
@@ -445,27 +448,24 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
         self.notes = notes
+        self.issue_summary: dict[str, Any] | None = None
 
     def get_title_block(
         self,
         event_or_group: Event | GroupEvent | Group,
         has_action: bool,
-        rule_id: int | None = None,
-        notification_uuid: str | None = None,
+        title_link: str | None = None,
     ) -> SlackBlock:
-        title_link = get_title_link(
-            self.group,
-            self.event,
-            self.link_to_event,
-            self.issue_details,
-            self.notification,
-            ExternalProviders.SLACK,
-            rule_id,
-            notification_uuid=notification_uuid,
-        )
-        title = build_attachment_title(event_or_group)
+        summary_headline = self.get_issue_summary_headline(event_or_group)
+        title = summary_headline or build_attachment_title(event_or_group)
+        title_emoji = self.get_title_emoji(has_action)
 
+        title_text = f"{title_emoji}<{title_link}|*{escape_slack_text(title)}*>"
+        return self.get_markdown_block(title_text)
+
+    def get_title_emoji(self, has_action: bool) -> str | None:
         is_error_issue = self.group.issue_category == GroupCategory.ERROR
+
         title_emoji = None
         if has_action:
             # if issue is resolved, archived, or assigned, replace circle emojis with white circle
@@ -481,22 +481,58 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
 
         title_emoji = title_emoji + " " if title_emoji else ""
-        title_text = title_emoji + f"<{title_link}|*{escape_slack_text(title)}*>"
+        return title_emoji
 
-        return self.get_markdown_block(title_text)
+    def get_issue_summary_headline(self, event_or_group: Event | GroupEvent | Group) -> str | None:
+        if self.issue_summary is None:
+            return None
+
+        # issue summary headline is formatted like ErrorType: message...
+        error_type = build_attachment_title(event_or_group)
+        text = build_attachment_text(self.group, self.event) or ""
+        text = text.strip(" \r\n\u2028\u2029")
+        text = escape_slack_markdown_text(text)
+        text = text.lstrip(" ")
+
+        linebreak_match = re.search(r"\r?\n|\u2028|\u2029", text)
+        if linebreak_match:
+            text = text[: linebreak_match.start()].strip() + "..."
+
+        if len(text) > MAX_SUMMARY_HEADLINE_LENGTH:
+            text = text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
+
+        headline = f"{error_type}: {text}" if text else error_type
+        return headline
+
+    def get_issue_summary_text(self) -> str | None:
+        """Generate formatted text from issue summary fields."""
+        if self.issue_summary is None:
+            return None
+
+        parts = []
+
+        if possible_cause := self.issue_summary.get("possibleCause"):
+            parts.append(escape_slack_markdown_asterisks(possible_cause))
+
+        if not parts:
+            return None
+        return escape_slack_markdown_text("\n\n".join(parts))
 
     def get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
             return self.get_context_block(event_or_group.culprit)
         return None
 
-    def get_text_block(self, text) -> SlackBlock:
+    def get_text_block(self, text, small: bool = False) -> SlackBlock:
         if self.group.issue_category == GroupCategory.FEEDBACK:
             max_block_text_length = USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH
         else:
             max_block_text_length = MAX_BLOCK_TEXT_LENGTH
 
-        return self.get_markdown_quote_block(text, max_block_text_length)
+        if not small:
+            return self.get_markdown_quote_block(text, max_block_text_length)
+        else:
+            return self.get_context_block(text)
 
     def get_suggested_assignees_block(self, suggested_assignees: list[str]) -> SlackBlock:
         suggested_assignee_text = "Suggested Assignees: "
@@ -506,7 +542,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
     def get_footer(self) -> SlackBlock:
         # This link does not contain user input (it's a static label and a url), must not escape it.
-        replay_link = build_attachment_replay_link(self.group, self.event)
+        replay_link = build_attachment_replay_link(
+            group=self.group,
+            url_format=SLACK_URL_FORMAT,
+            event=self.event,
+        )
 
         timestamp = None
         if not self.issue_details:
@@ -517,7 +557,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         footer = (
             self.notification.build_notification_footer(self.recipient, ExternalProviders.SLACK)
             if self.notification and self.recipient
-            else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
+            else build_slack_footer(
+                group=self.group,
+                project=project,
+                rules=self.rules,
+            )
         )
 
         if not self.notification:
@@ -535,11 +579,19 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 footer_text += replay_link
             else:
                 footer_text = footer_text[:-4]  # chop off the empty space
+
+            if self.issue_summary:
+                footer_text += "    Powered by Seer"
+
             return self.get_context_block(text=footer_text)
         else:
+            if self.issue_summary:
+                footer += " | Powered by Seer"
             return self.get_context_block(text=footer, timestamp=timestamp)
 
     def build(self, notification_uuid: str | None = None) -> SlackBlock:
+        self.issue_summary = fetch_issue_summary(self.group)
+
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         text = text.strip(" \n")
@@ -566,8 +618,16 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             has_action = False
 
         rule_id = None
+        rule_environment_id = None
         if self.rules:
-            rule_id = self.rules[0].id
+            if features.has("organizations:workflow-engine-ui-links", self.group.organization):
+                rule_id = int(get_key_from_rule_data(self.rules[0], "workflow_id"))
+            elif features.has(
+                "organizations:workflow-engine-trigger-actions", self.group.organization
+            ):
+                rule_id = int(get_key_from_rule_data(self.rules[0], "legacy_rule_id"))
+            else:
+                rule_id = self.rules[0].id
 
         # build up actions text
         if self.actions and self.identity and not action_text:
@@ -575,16 +635,45 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_text = get_action_text(self.actions, self.identity)
             has_action = True
 
-        blocks = [self.get_title_block(event_or_group, has_action, rule_id, notification_uuid)]
+        title_link = None
+        if features.has("organizations:workflow-engine-ui-links", self.group.organization):
+            title_link = get_title_link_workflow_engine_ui(
+                self.group,
+                self.event,
+                self.link_to_event,
+                self.issue_details,
+                self.notification,
+                ExternalProviders.SLACK,
+                rule_id,
+                rule_environment_id,
+                notification_uuid=notification_uuid,
+            )
+        else:
+            title_link = get_title_link(
+                self.group,
+                self.event,
+                self.link_to_event,
+                self.issue_details,
+                self.notification,
+                ExternalProviders.SLACK,
+                rule_id,
+                rule_environment_id,
+                notification_uuid=notification_uuid,
+            )
+
+        blocks = [self.get_title_block(event_or_group, has_action, title_link)]
 
         if culprit_block := self.get_culprit_block(event_or_group):
             blocks.append(culprit_block)
 
-        # build up text block
-        text = text.lstrip(" ")
-        # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
-        if text:
-            blocks.append(self.get_text_block(text))
+        # Use issue summary if available, otherwise use the default text
+        if summary_text := self.get_issue_summary_text():
+            blocks.append(self.get_text_block(summary_text, small=True))
+        else:
+            text = text.lstrip(" ")
+            # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
+            if text:
+                blocks.append(self.get_text_block(text))
 
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))

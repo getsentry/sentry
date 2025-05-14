@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {Fragment, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -27,7 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface Props {
   eventData: Event | undefined;
   feedbackItem: FeedbackIssue;
-  tags: Record<string, string>;
+  tags: Record<string, string | ReactNode>;
 }
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
@@ -50,7 +51,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   const URL_NOT_FOUND = t('URL not found');
   const displayUrl =
-    eventData?.contexts?.feedback || eventData?.tags ? url ?? URL_NOT_FOUND : '';
+    eventData?.contexts?.feedback || eventData?.tags ? (url ?? URL_NOT_FOUND) : '';
   const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
 
   return (

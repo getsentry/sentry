@@ -13,7 +13,7 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "name": uptime_monitor.name,
             "environment": uptime_monitor.environment.name if uptime_monitor.environment else None,
             "status": uptime_monitor.get_status_display(),
-            "uptimeStatus": uptime_monitor.uptime_status,
+            "uptimeStatus": uptime_monitor.uptime_subscription.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
             "method": uptime_monitor.uptime_subscription.method,
@@ -38,7 +38,7 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "name": f"Uptime Monitoring for {uptime_monitor.uptime_subscription.url}",
             "environment": uptime_monitor.environment.name if uptime_monitor.environment else None,
             "status": uptime_monitor.get_status_display(),
-            "uptimeStatus": uptime_monitor.uptime_status,
+            "uptimeStatus": uptime_monitor.uptime_subscription.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
             "method": uptime_monitor.uptime_subscription.method,
@@ -60,7 +60,7 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "name": uptime_monitor.name,
             "environment": uptime_monitor.environment.name if uptime_monitor.environment else None,
             "status": uptime_monitor.get_status_display(),
-            "uptimeStatus": uptime_monitor.uptime_status,
+            "uptimeStatus": uptime_monitor.uptime_subscription.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
             "method": uptime_monitor.uptime_subscription.method,
@@ -83,16 +83,3 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
         result = serialize(uptime_monitor)
 
         assert result["traceSampling"] is True
-
-    def test_header_translation(self):
-        """
-        TODO(epurkhiser): This may be removed once we clean up the object-style
-        headers from the database.
-        """
-        subscription = self.create_uptime_subscription(headers={"legacy": "format"})
-        uptime_monitor = self.create_project_uptime_subscription(
-            owner=self.user,
-            uptime_subscription=subscription,
-        )
-        result = serialize(uptime_monitor)
-        assert result["headers"] == [["legacy", "format"]]

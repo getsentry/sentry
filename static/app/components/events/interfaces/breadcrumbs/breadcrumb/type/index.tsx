@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 import Icon from './icon';

@@ -1,4 +1,5 @@
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {Dataset, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
 import {getAlertRuleExploreUrl} from 'sentry/views/alerts/rules/utils';
@@ -13,12 +14,12 @@ describe('getExploreUrl', () => {
     rule.environment = 'prod';
     const url = getAlertRuleExploreUrl({
       rule,
-      orgSlug: 'slug',
+      organization: OrganizationFixture({slug: 'slug'}),
       period: '7d',
       projectId: '1',
     });
     expect(url).toBe(
-      '/organizations/slug/traces/?dataset=spansRpc&environment=prod&interval=30m&project=1&query=span.op%3Ahttp.client&statsPeriod=7d&visualize=%7B%22chartType%22%3A1%2C%22yAxes%22%3A%5B%22p75%28span.duration%29%22%5D%7D'
+      '/organizations/slug/traces/?environment=prod&interval=30m&project=1&query=span.op%3Ahttp.client&statsPeriod=7d&visualize=%7B%22chartType%22%3A1%2C%22yAxes%22%3A%5B%22p75%28span.duration%29%22%5D%7D'
     );
   });
   it('should return the correct url for 9998m', () => {
@@ -30,12 +31,12 @@ describe('getExploreUrl', () => {
     rule.environment = 'prod';
     const url = getAlertRuleExploreUrl({
       rule,
-      orgSlug: 'slug',
+      organization: OrganizationFixture({slug: 'slug'}),
       period: '9998m',
       projectId: '1',
     });
     expect(url).toBe(
-      '/organizations/slug/traces/?dataset=spansRpc&environment=prod&interval=30m&project=1&query=span.op%3Ahttp.client&statsPeriod=7d&visualize=%7B%22chartType%22%3A1%2C%22yAxes%22%3A%5B%22p75%28span.duration%29%22%5D%7D'
+      '/organizations/slug/traces/?environment=prod&interval=30m&project=1&query=span.op%3Ahttp.client&statsPeriod=7d&visualize=%7B%22chartType%22%3A1%2C%22yAxes%22%3A%5B%22p75%28span.duration%29%22%5D%7D'
     );
   });
 });

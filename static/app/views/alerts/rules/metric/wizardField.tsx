@@ -1,8 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
@@ -112,17 +111,7 @@ export default function WizardField({
         ...(hasEAPAlerts(organization)
           ? [
               {
-                label: (
-                  <span>
-                    {AlertWizardAlertNames.eap_metrics}
-                    <FeatureBadge
-                      type="beta"
-                      title={t(
-                        'This feature is available for early adopters and the UX may change'
-                      )}
-                    />
-                  </span>
-                ),
+                label: AlertWizardAlertNames.eap_metrics,
                 value: 'eap_metrics' as const,
               },
             ]
@@ -174,7 +163,7 @@ export default function WizardField({
 
         return (
           <Container alertType={alertType} hideGap={gridColumns < 1}>
-            <SelectControl
+            <Select
               value={selectedTemplate}
               options={menuOptions}
               disabled={disabled}

@@ -15,7 +15,7 @@ import type {
 import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
@@ -89,7 +89,7 @@ export function ArithmeticTokenFunction({
 interface InternalInputProps {
   attribute: TokenAttribute;
   item: Node<Token>;
-  rowRef: RefObject<HTMLDivElement>;
+  rowRef: RefObject<HTMLDivElement | null>;
   state: ListState<Token>;
   token: TokenFunction;
 }

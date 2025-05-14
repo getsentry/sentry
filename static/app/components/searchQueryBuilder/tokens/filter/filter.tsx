@@ -1,4 +1,5 @@
 import {Fragment, useLayoutEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -39,7 +40,7 @@ interface SearchQueryTokenProps {
 }
 
 interface FilterValueProps extends SearchQueryTokenProps {
-  filterRef: React.RefObject<HTMLDivElement>;
+  filterRef: React.RefObject<HTMLDivElement | null>;
   onActiveChange: (active: boolean) => void;
 }
 
@@ -135,6 +136,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
           onCommit={() => {
             setIsEditing(false);
             onActiveChange(false);
+            dispatch({type: 'COMMIT_QUERY'});
             if (state.collection.getKeyAfter(item.key)) {
               state.selectionManager.setFocusedKey(
                 state.collection.getKeyAfter(item.key)
@@ -169,7 +171,9 @@ function FilterDelete({token, state, item}: SearchQueryTokenProps) {
   return (
     <DeleteButton
       aria-label={t('Remove filter: %s', getKeyName(token.key))}
-      onClick={() => dispatch({type: 'DELETE_TOKEN', token})}
+      onClick={() => {
+        dispatch({type: 'DELETE_TOKEN', token});
+      }}
       disabled={disabled}
       {...filterButtonProps}
     >
@@ -285,15 +289,15 @@ const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
 
   ${p =>
     p.state === 'invalid'
-      ? `
-      border-color: ${p.theme.red200};
-      background-color: ${p.theme.red100};
-    `
+      ? css`
+          border-color: ${p.theme.red200};
+          background-color: ${p.theme.red100};
+        `
       : p.state === 'warning'
-        ? `
-      border-color: ${p.theme.gray300};
-      background-color: ${p.theme.gray100};
-    `
+        ? css`
+            border-color: ${p.theme.gray300};
+            background-color: ${p.theme.gray100};
+          `
         : ''}
 
   &[aria-selected='true'] {

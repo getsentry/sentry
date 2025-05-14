@@ -1,4 +1,4 @@
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';

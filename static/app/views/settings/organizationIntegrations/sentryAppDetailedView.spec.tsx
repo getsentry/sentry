@@ -1,7 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -12,29 +11,32 @@ import {
 
 import SentryAppDetailedView from 'sentry/views/settings/organizationIntegrations/sentryAppDetailedView';
 
-describe('SentryAppDetailedView', function () {
-  const org = OrganizationFixture();
+const mockNavigate = jest.fn();
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: () => mockNavigate,
+}));
 
-  const {router} = initializeOrg({
-    projects: [
-      {isMember: true, isBookmarked: true},
-      {isMember: true, slug: 'new-project', id: '3'},
-    ],
-    organization: {
-      features: ['events'],
-    },
-    router: {
-      location: {
-        pathname: '/organizations/org-slug/events/',
-        query: {},
-      },
-    },
-  });
+describe('SentryAppDetailedView', function () {
+  const organization = OrganizationFixture({features: ['events']});
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });
+
+  async function renderSentryAppDetailedView({
+    integrationSlug,
+  }: {
+    integrationSlug: string;
+  }) {
+    render(<SentryAppDetailedView />, {
+      router: {...RouterFixture(), params: {integrationSlug}},
+      organization,
+      deprecatedRouterMocks: true,
+    });
+    renderGlobalModal();
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+  }
 
   describe('Published Sentry App', function () {
     let createRequest: jest.Mock;
@@ -83,15 +85,15 @@ describe('SentryAppDetailedView', function () {
         ],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        url: `/organizations/${organization.slug}/sentry-app-installations/`,
         body: [],
       });
 
       createRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        url: `/organizations/${organization.slug}/sentry-app-installations/`,
         body: {
           status: 'installed',
-          organization: {slug: `${org.slug}`},
+          organization: {slug: `${organization.slug}`},
           app: {uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526', slug: 'clickup'},
           code: '1dc8b0a28b7f45959d01bbc99d9bd568',
           uuid: '687323fd-9fa4-4f8f-9bee-ca0089224b3e',
@@ -106,13 +108,9 @@ describe('SentryAppDetailedView', function () {
       });
     });
 
-    it('renders a published sentry app', () => {
-      render(
-        <SentryAppDetailedView
-          {...RouteComponentPropsFixture()}
-          params={{integrationSlug: 'clickup'}}
-        />
-      );
+    it('renders a published sentry app', async () => {
+      await renderSentryAppDetailedView({integrationSlug: 'clickup'});
+
       expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
         `/sentry-apps/clickup/interaction/`,
         expect.objectContaining({
@@ -132,13 +130,7 @@ describe('SentryAppDetailedView', function () {
     });
 
     it('installs and uninstalls', async function () {
-      render(
-        <SentryAppDetailedView
-          {...RouteComponentPropsFixture()}
-          params={{integrationSlug: 'clickup'}}
-        />
-      );
-      renderGlobalModal();
+      await renderSentryAppDetailedView({integrationSlug: 'clickup'});
 
       await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
       expect(createRequest).toHaveBeenCalledTimes(1);
@@ -201,21 +193,16 @@ describe('SentryAppDetailedView', function () {
         ],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        url: `/organizations/${organization.slug}/sentry-app-installations/`,
         body: [],
       });
     });
 
-    it('should get redirected to Developer Settings', () => {
-      render(
-        <SentryAppDetailedView
-          {...RouteComponentPropsFixture()}
-          params={{integrationSlug: 'my-headband-washer-289499'}}
-          router={router}
-        />
-      );
-      expect(router.push).toHaveBeenLastCalledWith(
-        `/settings/${org.slug}/developer-settings/my-headband-washer-289499/`
+    it('should get redirected to Developer Settings', async () => {
+      await renderSentryAppDetailedView({integrationSlug: 'my-headband-washer-289499'});
+
+      expect(mockNavigate).toHaveBeenLastCalledWith(
+        `/settings/${organization.slug}/developer-settings/my-headband-washer-289499/`
       );
     });
   });
@@ -271,12 +258,12 @@ describe('SentryAppDetailedView', function () {
         ],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        url: `/organizations/${organization.slug}/sentry-app-installations/`,
         body: [],
       });
 
       createRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        url: `/organizations/${organization.slug}/sentry-app-installations/`,
         method: 'POST',
         body: {
           status: 'installed',
@@ -287,25 +274,14 @@ describe('SentryAppDetailedView', function () {
         },
       });
     });
-    it('shows the Integration name and install status', function () {
-      render(
-        <SentryAppDetailedView
-          {...RouteComponentPropsFixture()}
-          params={{integrationSlug: 'la-croix-monitor'}}
-        />
-      );
+    it('shows the Integration name and install status', async function () {
+      await renderSentryAppDetailedView({integrationSlug: 'la-croix-monitor'});
       expect(screen.getByText('La Croix Monitor')).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
     });
 
     it('installs and uninstalls', async function () {
-      render(
-        <SentryAppDetailedView
-          {...RouteComponentPropsFixture()}
-          params={{integrationSlug: 'la-croix-monitor'}}
-        />
-      );
-      renderGlobalModal();
+      await renderSentryAppDetailedView({integrationSlug: 'la-croix-monitor'});
       await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
       expect(createRequest).toHaveBeenCalledTimes(1);
     });
@@ -354,12 +330,12 @@ describe('SentryAppDetailedView', function () {
         ],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        url: `/organizations/${organization.slug}/sentry-app-installations/`,
         body: [],
       });
 
       createRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        url: `/organizations/${organization.slug}/sentry-app-installations/`,
         body: {
           status: 'installed',
           organization: {slug: 'sentry'},
@@ -370,13 +346,8 @@ describe('SentryAppDetailedView', function () {
         method: 'POST',
       });
     });
-    it('shows the Integration name and install status', function () {
-      render(
-        <SentryAppDetailedView
-          {...RouteComponentPropsFixture()}
-          params={{integrationSlug: 'go-to-google'}}
-        />
-      );
+    it('shows the Integration name and install status', async function () {
+      await renderSentryAppDetailedView({integrationSlug: 'go-to-google'});
       expect(screen.getByText('Go to Google')).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
 
@@ -384,19 +355,13 @@ describe('SentryAppDetailedView', function () {
       expect(screen.getByRole('button', {name: 'Accept & Install'})).toBeEnabled();
     });
     it('onClick: redirects url', async function () {
-      render(
-        <SentryAppDetailedView
-          {...RouteComponentPropsFixture()}
-          params={{integrationSlug: 'go-to-google'}}
-        />
-      );
-      const locationAssignSpy = jest.spyOn(window.location, 'assign');
+      await renderSentryAppDetailedView({integrationSlug: 'go-to-google'});
 
       await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
 
       expect(createRequest).toHaveBeenCalled();
       await waitFor(() => {
-        expect(locationAssignSpy).toHaveBeenLastCalledWith(
+        expect(window.location.assign).toHaveBeenLastCalledWith(
           'https://www.google.com/?code=1f0e7c1b99b940abac7a19b86e69bbe1&installationId=4d803538-fd42-4278-b410-492f5ab677b5&orgSlug=org-slug'
         );
       });

@@ -6,9 +6,8 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
-
-import {IssuesConfig} from '../datasetConfig/issues';
-import type {DashboardFilters, Widget} from '../types';
+import {IssuesConfig} from 'sentry/views/dashboards/datasetConfig/issues';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 
 import type {
   GenericWidgetQueriesChildrenProps,
@@ -18,7 +17,7 @@ import GenericWidgetQueries from './genericWidgetQueries';
 
 type Props = {
   api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
+  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;

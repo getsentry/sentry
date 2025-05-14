@@ -14,8 +14,14 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
   },
-  [SpanFunction.SPM]: {
-    desc: t('Spans per minute'),
+  [SpanFunction.EPM]: {
+    desc: t('Events per second'),
+    kind: FieldKind.FUNCTION,
+    defaultOutputType: 'number',
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.TPM]: {
+    desc: t('Transactions per minute'),
     kind: FieldKind.FUNCTION,
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
@@ -26,8 +32,8 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [SpanFunction.HTTP_ERROR_COUNT]: {
-    desc: t('Count of 5XX http errors'),
+  [SpanFunction.HTTP_RESPONSE_COUNT]: {
+    desc: t('Count of HTTP responses by code'),
     defaultOutputType: 'integer',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,

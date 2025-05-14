@@ -1,7 +1,7 @@
 import {Component, createRef} from 'react';
 
-import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import type {ControlProps} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 
 type Props = Pick<
   ControlProps,
@@ -24,7 +24,7 @@ class SelectField extends Component<Props> {
 
   render() {
     return (
-      <SelectControl
+      <Select
         {...this.props}
         isSearchable={false}
         options={this.props.options.map((opt: any) => ({

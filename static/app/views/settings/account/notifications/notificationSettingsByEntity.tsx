@@ -2,8 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/button';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button} from 'sentry/components/core/button';
+import {Select} from 'sentry/components/core/select';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,7 +19,7 @@ import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
 
-import type {NotificationOptionsObject} from './constants';
+import type {NotificationOptionsObject, NotificationSettingsType} from './constants';
 import {NOTIFICATION_SETTING_FIELDS} from './fields2';
 import {OrganizationSelectHeader} from './organizationSelectHeader';
 
@@ -112,7 +112,8 @@ function NotificationSettingsByEntity({
     handleAddNotificationOption(data);
   };
 
-  const valueOptions = NOTIFICATION_SETTING_FIELDS[notificationType]!.choices;
+  const valueOptions =
+    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType].choices;
 
   const renderOverrides = () => {
     const matchedOptions = notificationOptions.filter(
@@ -140,7 +141,7 @@ function NotificationSettingsByEntity({
               disableLink
             />
           </div>
-          <SelectControl
+          <Select
             placeholder={t('Value\u2026')}
             value={option.value}
             name={`${entity.id}-value`}
@@ -234,7 +235,7 @@ function NotificationSettingsByEntity({
         </StyledPanelHeader>
         <ControlItem>
           {/* TODO: enable search for sentry projects */}
-          <SelectControl
+          <Select
             placeholder={
               entityType === 'project'
                 ? t('Project\u2026')
@@ -247,7 +248,7 @@ function NotificationSettingsByEntity({
             }}
             value={selectedEntityId}
           />
-          <SelectControl
+          <Select
             placeholder={t('Value\u2026')}
             value={selectedValue}
             name="value"

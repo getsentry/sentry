@@ -10,7 +10,7 @@ from sentry.celery import app
 
 @all_silo_endpoint
 class InternalQueueTasksEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

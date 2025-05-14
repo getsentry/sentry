@@ -16,10 +16,20 @@ jest.unmock('sentry/api');
 
 // Mimicks native AbortError class
 class AbortError extends Error {
+  constructor() {
+    super();
+    this.name = 'AbortError';
+  }
+
   name = 'AbortError';
 }
 
 class NetworkError extends Error {
+  constructor() {
+    super();
+    this.name = 'NetworkError';
+  }
+
   name = 'NetworkError';
 }
 
@@ -639,7 +649,7 @@ describe('resolveHostname', function () {
   });
 
   afterEach(() => {
-    window.location = location;
+    window.location = location as typeof window.location & string;
     window.__SENTRY_DEV_UI = devUi;
     ConfigStore.loadInitialData(configstate);
   });

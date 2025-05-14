@@ -35,7 +35,11 @@ describe('AlertRuleDetails', () => {
         router={router}
         {...props}
       />,
-      {router, organization: org}
+      {
+        router,
+        organization: org,
+        deprecatedRouterMocks: true,
+      }
     );
   };
 
@@ -94,7 +98,7 @@ describe('AlertRuleDetails', () => {
     expect(screen.getByText('RequestError:')).toHaveAttribute(
       'href',
       expect.stringMatching(
-        RegExp(
+        new RegExp(
           `/organizations/${organization.slug}/issues/${
             GroupFixture().id
           }/events/eventId.*`

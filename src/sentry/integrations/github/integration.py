@@ -2,34 +2,49 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from enum import StrEnum
 from typing import Any
 from urllib.parse import parse_qsl
 
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.identity.github import GitHubIdentityProvider, get_user_info
+from sentry.identity.github.provider import GitHubIdentityProvider
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationDomain,
     IntegrationFeatures,
+    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
+from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
+from sentry.integrations.github.tasks.utils import GithubAPIErrorType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
-from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    OPEN_PR_MAX_FILES_CHANGED,
+    OPEN_PR_MAX_LINES_CHANGED,
+    OPEN_PR_METRICS_BASE,
+    CommitContextIntegration,
+    OpenPRCommentWorkflow,
+    PRCommentWorkflow,
+    PullRequestFile,
+    PullRequestIssue,
+    _open_pr_comment_log,
+)
+from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
@@ -37,18 +52,24 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.snuba.referrer import Referrer
+from sentry.templatetags.sentry_helpers import small_count
+from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER, GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import determine_active_organization
 from sentry.web.helpers import render_to_response
 
-from .client import GitHubApiClient, GitHubBaseClient
+from .client import GitHubApiClient, GitHubBaseClient, GithubSetupApiClient
 from .issues import GitHubIssuesSpec
 from .repository import GitHubRepositoryProvider
 
@@ -171,11 +192,9 @@ def get_document_origin(org) -> str:
 class GitHubIntegration(
     RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
 ):
-    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
+    integration_name = "github"
 
-    @property
-    def integration_name(self) -> str:
-        return "github"
+    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubBaseClient:
         if not self.org_integration:
@@ -184,7 +203,7 @@ class GitHubIntegration(
 
     # IntegrationInstallation methods
 
-    def is_rate_limited_error(self, exc: Exception) -> bool:
+    def is_rate_limited_error(self, exc: ApiError) -> bool:
         if exc.json and RATE_LIMITED_MESSAGE in exc.json.get("message", ""):
             metrics.incr("github.link_all_repos.rate_limited_error")
             return True
@@ -284,16 +303,345 @@ class GitHubIntegration(
         return True
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        if query is None:
+            query = ""
         resp = self.get_client().search_issues(query)
         assert isinstance(resp, dict)
         return resp
+
+    def get_account_id(self):
+        installation_metadata = self.model.metadata
+        github_account_id = installation_metadata.get("account_id")
+
+        # Attempt to backfill the id if it does not exist
+        if github_account_id is None:
+            client: GitHubBaseClient = self.get_client()
+            installation_id = self.model.external_id
+            updated_installation_info: Mapping[str, Any] = client.get_installation_info(
+                installation_id
+            )
+
+            github_account_id = updated_installation_info["account"]["id"]
+            installation_metadata["account_id"] = github_account_id
+            integration_service.update_integration(
+                integration_id=self.model.id, metadata=installation_metadata
+            )
+
+        return github_account_id
+
+    # CommitContextIntegration methods
+
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        if api_error.json:
+            if ISSUE_LOCKED_ERROR_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "issue_locked_error"},
+                )
+                return True
+
+            elif RATE_LIMITED_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "rate_limited_error"},
+                )
+                return True
+
+        return False
+
+    def get_pr_comment_workflow(self) -> PRCommentWorkflow:
+        return GitHubPRCommentWorkflow(integration=self)
+
+    def get_open_pr_comment_workflow(self) -> OpenPRCommentWorkflow:
+        return GitHubOpenPRCommentWorkflow(integration=self)
+
+
+MERGED_PR_COMMENT_BODY_TEMPLATE = """\
+## Suspect Issues
+This pull request was deployed and Sentry observed the following issues:
+
+{issue_list}
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
+
+
+class GitHubPRCommentWorkflow(PRCommentWorkflow):
+    organization_option_key = "sentry:github_pr_bot"
+    referrer = Referrer.GITHUB_PR_COMMENT_BOT
+    referrer_id = GITHUB_PR_BOT_REFERRER
+
+    @staticmethod
+    def format_comment_subtitle(subtitle: str) -> str:
+        return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
+
+    @staticmethod
+    def format_comment_url(url: str, referrer: str) -> str:
+        return url + "?referrer=" + referrer
+
+    def get_comment_body(self, issue_ids: list[int]) -> str:
+        issues = Group.objects.filter(id__in=issue_ids).order_by("id").all()
+
+        issue_list = "\n".join(
+            [
+                MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+                    title=issue.title,
+                    subtitle=self.format_comment_subtitle(issue.culprit or "unknown culprit"),
+                    url=self.format_comment_url(issue.get_absolute_url(), self.referrer_id),
+                )
+                for issue in issues
+            ]
+        )
+
+        return MERGED_PR_COMMENT_BODY_TEMPLATE.format(issue_list=issue_list)
+
+    def get_comment_data(
+        self,
+        organization: Organization,
+        repo: Repository,
+        pr: PullRequest,
+        comment_body: str,
+        issue_ids: list[int],
+    ) -> dict[str, Any]:
+        enabled_copilot = features.has("organizations:gen-ai-features", organization)
+
+        comment_data: dict[str, Any] = {
+            "body": comment_body,
+        }
+        if enabled_copilot:
+            comment_data["actions"] = [
+                {
+                    "name": f"Root cause #{i + 1}",
+                    "type": "copilot-chat",
+                    "prompt": f"@sentry root cause issue {str(issue_id)} with PR URL https://github.com/{repo.name}/pull/{str(pr.key)}",
+                }
+                for i, issue_id in enumerate(issue_ids[:3])
+            ]
+
+        return comment_data
+
+
+OPEN_PR_COMMENT_BODY_TEMPLATE = """\
+## 🔍 Existing Issues For Review
+Your pull request is modifying functions with the following pre-existing issues:
+
+{issue_tables}
+---
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+
+OPEN_PR_ISSUE_TABLE_TEMPLATE = """\
+📄 File: **{filename}**
+
+| Function | Unhandled Issue |
+| :------- | :----- |
+{issue_rows}"""
+
+OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
+<details>
+<summary><b>📄 File: {filename} (Click to Expand)</b></summary>
+
+| Function | Unhandled Issue |
+| :------- | :----- |
+{issue_rows}
+</details>"""
+
+OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
+
+
+class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
+    integration: GitHubIntegration
+    organization_option_key = "sentry:github_open_pr_bot"
+    referrer = Referrer.GITHUB_PR_COMMENT_BOT
+    referrer_id = GITHUB_OPEN_PR_BOT_REFERRER
+
+    def safe_for_comment(self, repo: Repository, pr: PullRequest) -> list[dict[str, Any]]:
+        client = self.integration.get_client()
+        logger.info(
+            _open_pr_comment_log(
+                integration_name=self.integration.integration_name, suffix="check_safe_for_comment"
+            )
+        )
+        try:
+            pr_files = client.get_pullrequest_files(repo=repo.name, pull_number=pr.key)
+        except ApiError as e:
+            logger.info(
+                _open_pr_comment_log(
+                    integration_name=self.integration.integration_name, suffix="api_error"
+                )
+            )
+            if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(
+                        integration=self.integration.integration_name, key="api_error"
+                    ),
+                    tags={"type": GithubAPIErrorType.RATE_LIMITED.value, "code": e.code},
+                )
+            elif e.code == 404:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(
+                        integration=self.integration.integration_name, key="api_error"
+                    ),
+                    tags={"type": GithubAPIErrorType.MISSING_PULL_REQUEST.value, "code": e.code},
+                )
+            else:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(
+                        integration=self.integration.integration_name, key="api_error"
+                    ),
+                    tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
+                )
+                logger.exception(
+                    _open_pr_comment_log(
+                        integration_name=self.integration.integration_name,
+                        suffix="unknown_api_error",
+                    ),
+                    extra={"error": str(e)},
+                )
+            return []
+
+        changed_file_count = 0
+        changed_lines_count = 0
+        filtered_pr_files = []
+
+        patch_parsers = PATCH_PARSERS
+        # NOTE: if we are testing beta patch parsers, add check here
+
+        for file in pr_files:
+            filename = file["filename"]
+            # we only count the file if it's modified and if the file extension is in the list of supported file extensions
+            # we cannot look at deleted or newly added files because we cannot extract functions from the diffs
+            if file["status"] != "modified" or filename.split(".")[-1] not in patch_parsers:
+                continue
+
+            changed_file_count += 1
+            changed_lines_count += file["changes"]
+            filtered_pr_files.append(file)
+
+            if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(
+                        integration=self.integration.integration_name, key="rejected_comment"
+                    ),
+                    tags={"reason": "too_many_files"},
+                )
+                return []
+            if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(
+                        integration=self.integration.integration_name, key="rejected_comment"
+                    ),
+                    tags={"reason": "too_many_lines"},
+                )
+                return []
+
+        return filtered_pr_files
+
+    def get_pr_files(self, pr_files: list[dict[str, Any]]) -> list[PullRequestFile]:
+        # new files will not have sentry issues associated with them
+        # only fetch Python files
+        pullrequest_files = [
+            PullRequestFile(filename=file["filename"], patch=file["patch"])
+            for file in pr_files
+            if "patch" in file
+        ]
+
+        logger.info(
+            _open_pr_comment_log(
+                integration_name=self.integration.integration_name,
+                suffix="pr_filenames",
+            ),
+            extra={"count": len(pullrequest_files)},
+        )
+
+        return pullrequest_files
+
+    def get_pr_files_safe_for_comment(
+        self, repo: Repository, pr: PullRequest
+    ) -> list[PullRequestFile]:
+        pr_files = self.safe_for_comment(repo=repo, pr=pr)
+
+        if len(pr_files) == 0:
+            logger.info(
+                _open_pr_comment_log(
+                    integration_name=self.integration.integration_name,
+                    suffix="not_safe_for_comment",
+                ),
+                extra={"file_count": len(pr_files)},
+            )
+            metrics.incr(
+                OPEN_PR_METRICS_BASE.format(
+                    integration=self.integration.integration_name, key="error"
+                ),
+                tags={"type": "unsafe_for_comment"},
+            )
+            return []
+
+        return self.get_pr_files(pr_files)
+
+    def get_comment_data(self, comment_body: str) -> dict[str, Any]:
+        return {
+            "body": comment_body,
+        }
+
+    @staticmethod
+    def format_comment_url(url: str, referrer: str) -> str:
+        return url + "?referrer=" + referrer
+
+    @staticmethod
+    def format_open_pr_comment(issue_tables: list[str]) -> str:
+        return OPEN_PR_COMMENT_BODY_TEMPLATE.format(issue_tables="\n".join(issue_tables))
+
+    @staticmethod
+    def format_open_pr_comment_subtitle(title_length, subtitle):
+        # the title length + " " + subtitle should be <= 52
+        subtitle_length = OPEN_PR_ISSUE_DESCRIPTION_LENGTH - title_length - 1
+        return (
+            subtitle[: subtitle_length - 3] + "..." if len(subtitle) > subtitle_length else subtitle
+        )
+
+    def format_issue_table(
+        self,
+        diff_filename: str,
+        issues: list[PullRequestIssue],
+        patch_parsers: dict[str, Any],
+        toggle: bool,
+    ) -> str:
+        language_parser = patch_parsers.get(diff_filename.split(".")[-1], None)
+
+        if not language_parser:
+            return ""
+
+        issue_row_template = language_parser.issue_row_template
+
+        issue_rows = "\n".join(
+            [
+                issue_row_template.format(
+                    title=issue.title,
+                    subtitle=self.format_open_pr_comment_subtitle(len(issue.title), issue.subtitle),
+                    url=self.format_comment_url(issue.url, GITHUB_OPEN_PR_BOT_REFERRER),
+                    event_count=small_count(issue.event_count),
+                    function_name=issue.function_name,
+                    affected_users=small_count(issue.affected_users),
+                )
+                for issue in issues
+            ]
+        )
+
+        if toggle:
+            return OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE.format(
+                filename=diff_filename, issue_rows=issue_rows
+            )
+
+        return OPEN_PR_ISSUE_TABLE_TEMPLATE.format(filename=diff_filename, issue_rows=issue_rows)
 
 
 class GitHubIntegrationProvider(IntegrationProvider):
     key = "github"
     name = "GitHub"
     metadata = metadata
-    integration_cls = GitHubIntegration
+    integration_cls: type[IntegrationInstallation] = GitHubIntegration
     features = frozenset(
         [
             IntegrationFeatures.COMMITS,
@@ -305,17 +653,17 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_client(self) -> GitHubBaseClient:
-        # XXX: This is very awkward behaviour as we're not passing the client an Integration
-        # object it expects. Instead we're passing the Installation object and hoping the client
-        # doesn't try to invoke any bad fields/attributes on it.
-        return GitHubApiClient(integration=self.integration_cls)
+    @property
+    def client(self) -> GithubSetupApiClient:
+        # The endpoints we need to hit at this step authenticate via JWT so no need for access token in client
+        return GithubSetupApiClient()
 
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Mapping[str, Any] | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         repos = repository_service.get_repositories(
             organization_id=organization.id,
@@ -340,23 +688,24 @@ class GitHubIntegrationProvider(IntegrationProvider):
             }
         )
 
-    def get_pipeline_views(self) -> list[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
         return [OAuthLoginView(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
-        client = self.get_client()
-        resp: Mapping[str, Any] = client.get(f"/app/installations/{installation_id}")
+        resp: Mapping[str, Any] = self.client.get_installation_info(installation_id=installation_id)
         return resp
 
-    def build_integration(self, state: Mapping[str, str]) -> Mapping[str, Any]:
+    def build_integration(self, state: Mapping[str, str]) -> IntegrationData:
         try:
-            installation = self.get_installation_info(state["installation_id"])
+            installation = self.get_installation_info(
+                state["installation_id"],
+            )
         except ApiError as api_error:
             if api_error.code == 404:
                 raise IntegrationError("The GitHub installation could not be found.")
             raise
 
-        integration = {
+        integration: IntegrationData = {
             "name": installation["account"]["login"],
             # TODO(adhiraj): This should be a constant representing the entire github cloud.
             "external_id": installation["id"],
@@ -370,6 +719,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 "icon": installation["account"]["avatar_url"],
                 "domain_name": installation["account"]["html_url"].replace("https://", ""),
                 "account_type": installation["account"]["type"],
+                "account_id": installation["account"]["id"],
             },
         }
 
@@ -403,7 +753,7 @@ def record_event(event: IntegrationPipelineViewType):
 
 
 class OAuthLoginView(PipelineView):
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
             self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
@@ -461,8 +811,9 @@ class OAuthLoginView(PipelineView):
                     self.active_organization,
                     error_short=GitHubInstallationError.MISSING_TOKEN,
                 )
+            client = GithubSetupApiClient(access_token=payload["access_token"])
+            authenticated_user_info = client.get_user_info()
 
-            authenticated_user_info = get_user_info(payload["access_token"])
             if "login" not in authenticated_user_info:
                 lifecycle.record_failure(GitHubInstallationError.MISSING_LOGIN)
                 return error(
@@ -480,7 +831,7 @@ class GitHubInstallation(PipelineView):
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")

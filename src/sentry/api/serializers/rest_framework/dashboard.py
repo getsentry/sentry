@@ -2,6 +2,7 @@ import re
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
+from math import floor
 from typing import TypedDict
 
 import sentry_sdk
@@ -397,6 +398,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     def validate(self, data):
         query_errors = []
         all_columns: set[str] = set()
+        has_columns = False
         has_query_error = False
         self.query_warnings = {"queries": [], "columns": {}}
         max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
@@ -410,6 +412,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
+                if len(query.get("columns", [])) > 0:
+                    has_columns = True
                 if (
                     data.get("widget_type") == DashboardWidgetTypes.ISSUE
                     and "issue_query_error" in query
@@ -478,6 +482,32 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     {"displayType": "displayType is required during creation."}
                 )
 
+        # Validate limit on chart widgets with group-by columns:
+        # if there are too many groups the server cannot serve the
+        # request to get widget data and hence the chart fails to load.
+        if (
+            data.get("display_type") != DashboardWidgetDisplayTypes.TABLE
+            and data.get("display_type") != DashboardWidgetDisplayTypes.BIG_NUMBER
+            and data.get("limit") is None
+            and has_columns
+        ):
+            defaultLimit = 5
+            maxLimit = 10
+            numQueries = len(data.get("queries", []))
+            numYAxes = len(data.get("queries", [])[0].get("aggregates", []))
+            limit = defaultLimit
+
+            if numQueries == 0 or numYAxes == 0:
+                limit = defaultLimit
+            else:
+                limit = floor(maxLimit / (numQueries * numYAxes))
+
+            sentry_sdk.capture_message(
+                f"Dashboard Widget limit was not set. Suggested maximum limit is {limit}."
+            )
+            raise serializers.ValidationError(
+                {"limit": f"limit is required. The maximum limit is ${limit}."}
+            )
         # Validate widget thresholds
         thresholds = data.get("thresholds")
         if thresholds:

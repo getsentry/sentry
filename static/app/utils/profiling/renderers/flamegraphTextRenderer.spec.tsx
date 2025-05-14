@@ -1,11 +1,14 @@
 import {mat3} from 'gl-matrix';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {LightFlamegraphTheme as Theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
 import {Rect, trimTextCenter} from 'sentry/utils/profiling/speedscope';
+
+const theme = makeLightFlamegraphTheme(ThemeFixture());
 
 const makeBaseFlamegraph = (): Flamegraph => {
   const profile = EventedProfile.FromProfile(
@@ -46,7 +49,7 @@ describe('TextRenderer', () => {
 
     const textRenderer = new FlamegraphTextRenderer(
       canvas as HTMLCanvasElement,
-      Theme,
+      theme,
       makeBaseFlamegraph()
     );
 
@@ -73,7 +76,7 @@ describe('TextRenderer', () => {
 
     const textRenderer = new FlamegraphTextRenderer(
       canvas as HTMLCanvasElement,
-      Theme,
+      theme,
       makeBaseFlamegraph()
     );
     textRenderer.measureAndCacheText('text');
@@ -118,7 +121,7 @@ describe('TextRenderer', () => {
 
     const textRenderer = new FlamegraphTextRenderer(
       canvas as HTMLCanvasElement,
-      Theme,
+      theme,
       flamegraph
     );
 
@@ -161,7 +164,7 @@ describe('TextRenderer', () => {
 
     const textRenderer = new FlamegraphTextRenderer(
       canvas as HTMLCanvasElement,
-      Theme,
+      theme,
       flamegraph
     );
 
@@ -175,10 +178,10 @@ describe('TextRenderer', () => {
     expect(context.fillText).toHaveBeenCalledWith(
       trimTextCenter(
         longFrameName,
-        Math.floor(longFrameName.length / 2) - Theme.SIZES.BAR_PADDING * 2
+        Math.floor(longFrameName.length / 2) - theme.SIZES.BAR_PADDING * 2
       ).text,
-      Theme.SIZES.BAR_PADDING,
-      Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
+      theme.SIZES.BAR_PADDING,
+      theme.SIZES.BAR_HEIGHT - theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
     );
   });
   it('pins text to left and respects right boundary', () => {
@@ -216,7 +219,7 @@ describe('TextRenderer', () => {
 
     const textRenderer = new FlamegraphTextRenderer(
       canvas as HTMLCanvasElement,
-      Theme,
+      theme,
       flamegraph
     );
 
@@ -235,10 +238,10 @@ describe('TextRenderer', () => {
     expect(context.fillText).toHaveBeenCalledWith(
       trimTextCenter(
         longFrameName,
-        Math.floor(longFrameName.length / 2 / 2) - Theme.SIZES.BAR_PADDING * 2
+        Math.floor(longFrameName.length / 2 / 2) - theme.SIZES.BAR_PADDING * 2
       ).text,
-      Math.floor(longFrameName.length / 2) + Theme.SIZES.BAR_PADDING,
-      Theme.SIZES.BAR_HEIGHT - Theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
+      Math.floor(longFrameName.length / 2) + theme.SIZES.BAR_PADDING,
+      theme.SIZES.BAR_HEIGHT - theme.SIZES.BAR_FONT_SIZE / 2 // center text vertically inside the rect
     );
   });
 });

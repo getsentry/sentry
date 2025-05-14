@@ -2,9 +2,9 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -99,7 +99,7 @@ export function IssueDetailsEventNavigation({
   };
 
   const EventNavTooltips = {
-    [EventNavOptions.RECOMMENDED]: t('Recommended event matching filters'),
+    [EventNavOptions.RECOMMENDED]: t('Recent event with richer content'),
     [EventNavOptions.OLDEST]: t('First event matching filters'),
     [EventNavOptions.LATEST]: t('Last event matching filters'),
   };
@@ -134,6 +134,7 @@ export function IssueDetailsEventNavigation({
               pathname: `${baseEventsPath}${event?.previousEventID}/`,
               query: {...location.query, referrer: 'previous-event'},
             }}
+            preventScrollReset
             css={grayText}
             onMouseEnter={handleHoverPagination(
               'previous',
@@ -158,6 +159,7 @@ export function IssueDetailsEventNavigation({
               pathname: `${baseEventsPath}${event?.nextEventID}/`,
               query: {...location.query, referrer: 'next-event'},
             }}
+            preventScrollReset
             css={grayText}
             onMouseEnter={handleHoverPagination('next', defined(event?.nextEventID))}
             onClick={() => {

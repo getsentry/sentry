@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import AlertBadge from 'sentry/components/badge/alertBadge';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';

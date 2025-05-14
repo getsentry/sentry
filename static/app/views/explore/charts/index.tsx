@@ -1,47 +1,53 @@
 import {useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
-import {Tooltip} from 'sentry/components/tooltip';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Confidence, NewQuery} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import EventView from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import usePrevious from 'sentry/utils/usePrevious';
-import {determineSeriesSampleCount} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
-import {
-  useExploreDataset,
-  useExploreVisualizes,
-  useSetExploreVisualizes,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import type {
+  BaseVisualize,
+  Visualize,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {
+  SAMPLING_MODE,
+  type SamplingMode,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-
-import {CHART_HEIGHT, INGESTION_DELAY} from '../settings';
 
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
   query: string;
+  setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  visualizes: Visualize[];
+  hideContextMenu?: boolean;
+  samplingMode?: SamplingMode;
 }
 
 export const EXPLORE_CHART_TYPE_OPTIONS = [
@@ -59,17 +65,19 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
   },
 ];
 
-export const EXPLORE_CHART_GROUP = 'explore-charts_group';
+const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 export function ExploreCharts({
   canUsePreviousResults,
   confidences,
   query,
   timeseriesResult,
+  visualizes,
+  setVisualizes,
+  hideContextMenu,
+  samplingMode,
 }: ExploreChartsProps) {
-  const dataset = useExploreDataset();
-  const visualizes = useExploreVisualizes();
-  const setVisualizes = useSetExploreVisualizes();
+  const theme = useTheme();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
@@ -94,7 +102,7 @@ export function ExploreCharts({
           //
           // We can't do this in top N mode as the series name uses the row
           // values instead of the aggregate function.
-          if (s.field === yAxis) {
+          if (s.yAxis === yAxis) {
             return {
               ...s,
               seriesName: formattedYAxes[i] ?? yAxis,
@@ -135,11 +143,13 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
-      const sampleCount = determineSeriesSampleCount(data, isTopN);
+      const {sampleCount, isSampled, dataScanned} =
+        determineSeriesSampleCountAndIsSampled(data, isTopN);
 
       return {
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
+        stack: visualize.stack,
         label: visualize.label,
         yAxes: visualize.yAxes,
         formattedYAxes,
@@ -148,14 +158,20 @@ export function ExploreCharts({
         loading,
         confidence: confidences[index],
         sampleCount,
+        isSampled,
+        dataScanned,
       };
     });
   }, [confidences, getSeries, visualizes, isTopN]);
 
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
-      const newVisualizes = visualizes.slice();
-      newVisualizes[index] = {...newVisualizes[index]!, chartType};
+      const newVisualizes = visualizes.map((visualize, i) => {
+        if (i === index) {
+          visualize = visualize.replace({chartType});
+        }
+        return visualize.toJSON();
+      });
       setVisualizes(newVisualizes);
     },
     [visualizes, setVisualizes]
@@ -183,12 +199,23 @@ export function ExploreCharts({
           );
 
           if (chartInfo.loading) {
+            const loadingMessage =
+              timeseriesResult.isFetching && samplingMode === SAMPLING_MODE.HIGH_ACCURACY
+                ? t(
+                    "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
+                  )
+                : undefined;
             return (
               <Widget
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
-                Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
+                Visualization={
+                  <TimeSeriesWidgetVisualization.LoadingPlaceholder
+                    loadingMessage={loadingMessage}
+                    expectMessage
+                  />
+                }
                 revealActions="always"
               />
             );
@@ -220,6 +247,13 @@ export function ExploreCharts({
               />
             );
           }
+
+          const DataPlottableConstructor =
+            chartInfo.chartType === ChartType.LINE
+              ? Line
+              : chartInfo.chartType === ChartType.AREA
+                ? Area
+                : Bars;
 
           return (
             <Widget
@@ -261,36 +295,46 @@ export function ExploreCharts({
                     options={intervalOptions}
                   />
                 </Tooltip>,
-                <ChartContextMenu
-                  key="context"
-                  visualizeYAxes={chartInfo.yAxes}
-                  query={query}
-                  interval={interval}
-                  visualizeIndex={index}
-                />,
+                [
+                  ...(hideContextMenu
+                    ? []
+                    : [
+                        <ChartContextMenu
+                          key="context"
+                          visualizeYAxes={chartInfo.yAxes}
+                          query={query}
+                          interval={interval}
+                          visualizeIndex={index}
+                        />,
+                      ]),
+                ],
               ]}
               revealActions="always"
               Visualization={
                 <TimeSeriesWidgetVisualization
-                  dataCompletenessDelay={INGESTION_DELAY}
-                  visualizationType={
-                    chartInfo.chartType === ChartType.AREA
-                      ? 'area'
-                      : chartInfo.chartType === ChartType.LINE
-                        ? 'line'
-                        : 'bar'
-                  }
-                  timeSeries={chartInfo.data}
+                  plottables={chartInfo.data.map(timeSeries => {
+                    return new DataPlottableConstructor(timeSeries, {
+                      delay: INGESTION_DELAY,
+                      color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
+                      stack: chartInfo.stack,
+                    });
+                  })}
+                  legendSelection={{
+                    // disable the 'Other' series by default since its large values can cause the other lines to be insignificant
+                    Other: false,
+                  }}
                 />
               }
               Footer={
-                dataset === DiscoverDatasets.SPANS_EAP_RPC && (
-                  <ConfidenceFooter
-                    sampleCount={chartInfo.sampleCount}
-                    confidence={chartInfo.confidence}
-                    topEvents={topEvents}
-                  />
-                )
+                <ConfidenceFooter
+                  sampleCount={chartInfo.sampleCount}
+                  isSampled={chartInfo.isSampled}
+                  confidence={chartInfo.confidence}
+                  topEvents={
+                    topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
+                  }
+                  dataScanned={chartInfo.dataScanned}
+                />
               }
             />
           );
@@ -300,59 +344,17 @@ export function ExploreCharts({
   );
 }
 
-export function useExtrapolationMeta({
-  dataset,
-  query,
-  isAllowedSelection,
-}: {
-  dataset: DiscoverDatasets;
-  query: string;
-  isAllowedSelection?: boolean;
-}) {
-  const {selection} = usePageFilters();
-
-  const extrapolationMetaEventView = useMemo(() => {
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
-    const discoverQuery: NewQuery = {
-      id: undefined,
-      name: 'Explore - Extrapolation Meta',
-      fields: ['count_sample()', 'min(sampling_rate)'],
-      query: search.formatString(),
-      version: 2,
-      dataset,
-    };
-
-    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, query, selection]);
-
-  return useSpansQuery({
-    eventView: extrapolationMetaEventView,
-    initialData: [],
-    referrer: 'api.explore.spans-extrapolation-meta',
-    enabled:
-      (defined(isAllowedSelection) ? isAllowedSelection : true) &&
-      dataset === DiscoverDatasets.SPANS_EAP_RPC,
-    trackResponseAnalytics: false,
-  });
-}
-
 const ChartList = styled('div')`
   display: grid;
-  row-gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  row-gap: ${space(1)};
+  margin-bottom: ${space(1)};
 `;
 
 const ChartLabel = styled('div')`
   background-color: ${p => p.theme.purple100};
   border-radius: ${p => p.theme.borderRadius};
   text-align: center;
-  min-width: 32px;
+  min-width: 24px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};
@@ -362,5 +364,4 @@ const ChartLabel = styled('div')`
 
 const ChartTitle = styled('div')`
   display: flex;
-  margin-left: ${space(2)};
 `;

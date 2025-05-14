@@ -2,8 +2,8 @@ import {useCallback, useId} from 'react';
 import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import type {InputProps} from 'sentry/components/inputGroup';
-import {InputGroup} from 'sentry/components/inputGroup';
+import type {InputProps} from 'sentry/components/core/input/inputGroup';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 

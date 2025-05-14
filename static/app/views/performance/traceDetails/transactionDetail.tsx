@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import Link from 'sentry/components/links/link';
@@ -144,7 +144,7 @@ class TransactionDetail extends Component<Props> {
     function handleOnClick() {
       trackAnalytics('profiling_views.go_to_flamegraph', {
         organization,
-        source: 'performance.trace_view',
+        source: 'performance.trace_view.details',
       });
     }
 

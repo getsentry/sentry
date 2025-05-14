@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import Link from 'sentry/components/links/link';
@@ -178,7 +178,7 @@ function TeamRow({
 
 const GRID_TEMPLATE = `
   display: grid;
-  grid-template-columns: minmax(100px, 1fr) minmax(0px, 100px) 200px 95px;
+  grid-template-columns: minmax(100px, 1fr) minmax(0px, 100px) 200px;
   gap: ${space(1)};
 
   > div:last-child {

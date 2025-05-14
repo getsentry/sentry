@@ -1,3 +1,6 @@
+import type {Measurement} from 'sentry/types/event';
+import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
+
 import {MissingInstrumentationNode} from './traceModels/missingInstrumentationNode';
 import {ParentAutogroupNode} from './traceModels/parentAutogroupNode';
 import {SiblingAutogroupNode} from './traceModels/siblingAutogroupNode';
@@ -21,10 +24,56 @@ export function isSpanNode(
   );
 }
 
+export function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
+  return !!(value && 'is_transaction' in value);
+}
+
+export function isEAPTransaction(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
+  return isEAPSpan(value) && value.is_transaction;
+}
+
+export function isEAPTransactionNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPSpan> {
+  return isEAPTransaction(node.value);
+}
+
+export function isEAPSpanNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPSpan> {
+  return isEAPSpan(node.value);
+}
+
+export function isNonTransactionEAPSpanNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPSpan> {
+  return isEAPSpanNode(node) && !isEAPTransactionNode(node);
+}
+
 export function isTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.Transaction> {
-  return !!(node.value && 'transaction' in node.value) && !isAutogroupedNode(node);
+  return (
+    !!(node.value && 'transaction' in node.value) &&
+    !isAutogroupedNode(node) &&
+    !isEAPSpanNode(node) &&
+    !isEAPErrorNode(node)
+  );
+}
+
+export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPError {
+  return !!(
+    value &&
+    'event_type' in value &&
+    value.event_type === 'error' &&
+    'description' in value // a bit gross, but we won't need this soon as we remove the legacy error type
+  );
+}
+
+export function isEAPErrorNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPError> {
+  return isEAPError(node.value);
 }
 
 export function isParentAutogroupedNode(
@@ -51,10 +100,14 @@ export function isCollapsedNode(
   return node instanceof CollapsedNode;
 }
 
+export function isTraceError(value: TraceTree.NodeValue): value is TraceTree.TraceError {
+  return !!(value && 'level' in value && 'message' in value);
+}
+
 export function isTraceErrorNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.TraceError> {
-  return !!(node.value && 'level' in node.value);
+  return isTraceError(node.value);
 }
 
 export function isRootNode(
@@ -65,11 +118,17 @@ export function isRootNode(
 
 export function isTraceNode(
   node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.Trace> {
+): node is TraceTreeNode<TraceSplitResults<TraceTree.Transaction>> {
   return !!(
     node.value &&
     ('orphan_errors' in node.value || 'transactions' in node.value)
   );
+}
+
+export function isEAPTraceNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPTrace> {
+  return !!node.value && Array.isArray(node.value) && !isTraceNode(node);
 }
 
 export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): boolean {
@@ -104,9 +163,13 @@ export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): bo
   }
 }
 
-export function isJavascriptSDKTransaction(transaction: TraceTree.Transaction): boolean {
-  return /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
-    transaction.sdk_name
+export function isJavascriptSDKEvent(value: TraceTree.NodeValue): boolean {
+  return (
+    !!value &&
+    'sdk_name' in value &&
+    /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
+      value.sdk_name
+    )
   );
 }
 
@@ -145,8 +208,24 @@ export function getPageloadTransactionChildCount(
   return count;
 }
 
-export function isTracePerformanceIssue(
-  issue: TraceTree.TraceError | TraceTree.TracePerformanceIssue
-): issue is TraceTree.TracePerformanceIssue {
-  return 'suspect_spans' in issue;
+export function isTraceOccurence(
+  issue: TraceTree.TraceIssue
+): issue is TraceTree.TraceOccurrence {
+  return 'issue_id' in issue && issue.event_type !== 'error';
+}
+
+export function isEAPMeasurementValue(
+  value: number | Measurement | undefined
+): value is number {
+  return value !== undefined && typeof value === 'number';
+}
+
+export function isEAPMeasurements(
+  value: Record<string, Measurement> | Record<string, number> | undefined
+): value is Record<string, number> {
+  if (value === undefined) {
+    return false;
+  }
+
+  return Object.values(value).every(isEAPMeasurementValue);
 }

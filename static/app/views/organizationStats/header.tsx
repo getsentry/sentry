@@ -4,7 +4,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {makeStatsPathname} from 'sentry/views/organizationStats/pathname';
 
 type Props = {
   activeTab: 'stats' | 'issues' | 'health';
@@ -34,19 +34,28 @@ function StatsHeader({organization, activeTab}: Props) {
         <TabList hideBorder>
           <TabList.Item
             key="stats"
-            to={normalizeUrl(`/organizations/${organization.slug}/stats/`)}
+            to={makeStatsPathname({
+              path: '/',
+              organization,
+            })}
           >
             {t('Usage')}
           </TabList.Item>
           <TabList.Item
             key="issues"
-            to={normalizeUrl(`/organizations/${organization.slug}/stats/issues/`)}
+            to={makeStatsPathname({
+              path: '/issues/',
+              organization,
+            })}
           >
             {t('Issues')}
           </TabList.Item>
           <TabList.Item
             key="health"
-            to={normalizeUrl(`/organizations/${organization.slug}/stats/health/`)}
+            to={makeStatsPathname({
+              path: '/health/',
+              organization,
+            })}
           >
             {t('Health')}
           </TabList.Item>

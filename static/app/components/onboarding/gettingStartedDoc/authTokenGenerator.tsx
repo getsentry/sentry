@@ -1,4 +1,5 @@
 import {createContext, Fragment, useContext, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -62,11 +63,11 @@ export function AuthTokenGeneratorProvider({
   });
 
   return (
-    <AuthTokenGeneratorContext.Provider
+    <AuthTokenGeneratorContext
       value={{authToken, isLoading: isPending, generateAuthToken}}
     >
       {children}
-    </AuthTokenGeneratorContext.Provider>
+    </AuthTokenGeneratorContext>
   );
 }
 
@@ -113,10 +114,11 @@ const Wrapper = styled('span')<{isInteractive: boolean}>`
 
   ${p =>
     p.isInteractive &&
-    `
-  cursor: pointer;
+    css`
+      cursor: pointer;
 
-  &:hover {
-    background: var(--prism-highlight-background);
-  }`}
+      &:hover {
+        background: var(--prism-highlight-background);
+      }
+    `}
 `;

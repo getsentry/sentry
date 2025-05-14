@@ -18,14 +18,15 @@ import TimeRangeItemLabel from './timeRangeItemLabel';
 type PeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
 type RelativePeriodUnit = Exclude<PeriodUnit, 's'>;
 
-export type RelativeUnitsMapping = {
-  [Unit: string]: {
+type RelativeUnitsMapping = Record<
+  string,
+  {
     convertToDaysMultiplier: number;
     label: (num: number) => string;
     momentUnit: moment.unitOfTime.DurationConstructor;
     searchKey: string;
-  };
-};
+  }
+>;
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 

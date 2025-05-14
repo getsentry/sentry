@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -14,9 +14,10 @@ import {percent} from 'sentry/utils';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-type GroupedAuthorCommits = {
-  [key: string]: {author: User | undefined; commitCount: number};
-};
+type GroupedAuthorCommits = Record<
+  string,
+  {author: User | undefined; commitCount: number}
+>;
 
 type Props = {
   orgId: string;

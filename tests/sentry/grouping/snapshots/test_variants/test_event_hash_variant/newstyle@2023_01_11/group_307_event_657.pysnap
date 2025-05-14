@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:13.962182+00:00'
+created: '2025-02-26T00:34:06.203034+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -68,9 +68,9 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
           frame*
             function*
               "stripped_application_code"
@@ -107,7 +107,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)

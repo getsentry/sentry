@@ -6,9 +6,15 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {mockTour} from 'sentry/components/tours/testUtils';
 import {IssueCategory, PriorityLevel} from 'sentry/types/group';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+
+jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+  useIssueDetailsTour: () => mockTour(),
+}));
 
 describe('GroupHeader', () => {
   const baseUrl = 'BASE_URL/';
@@ -53,7 +59,11 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={jsProjectWithSimilarityView}
         />,
-        {organization: orgWithFeatures, router}
+        {
+          organization: orgWithFeatures,
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /details/i}));
@@ -81,7 +91,7 @@ describe('GroupHeader', () => {
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
       expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/tags/',
+        pathname: 'BASE_URL/distributions/',
         query: {},
       });
 
@@ -142,7 +152,11 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={mobileProjectWithSimilarityView}
         />,
-        {organization: orgWithFeatures, router}
+        {
+          organization: orgWithFeatures,
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /similar issues/i}));
@@ -190,7 +204,11 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={projectWithSimilarityView}
         />,
-        {organization: orgWithFeatures, router}
+        {
+          organization: orgWithFeatures,
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /details/i}));
@@ -200,7 +218,7 @@ describe('GroupHeader', () => {
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
       expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/tags/',
+        pathname: 'BASE_URL/distributions/',
         query: {},
       });
 
@@ -244,7 +262,10 @@ describe('GroupHeader', () => {
           })}
           project={ProjectFixture()}
           event={null}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByText('Priority')).toBeInTheDocument();
@@ -265,7 +286,10 @@ describe('GroupHeader', () => {
           group={GroupFixture({priority: PriorityLevel.MEDIUM})}
           project={ProjectFixture()}
           event={null}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Modify issue priority'}));

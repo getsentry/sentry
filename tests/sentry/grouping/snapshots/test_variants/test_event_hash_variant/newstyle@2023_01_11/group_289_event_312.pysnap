@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:13.714453+00:00'
+created: '2025-02-26T00:34:05.707221+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -173,7 +173,7 @@ system:
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "abort"
           frame (ignored by stack trace rule (category:throw ^-group))

@@ -20,7 +20,7 @@ export default function useErrorCountByProject({replayErrors, replayRecord}: Pro
           return {project, count};
         })
         // sort to prioritize the replay errors first
-        .sort(a => (a.project?.id !== replayRecord.project_id ? 1 : -1))
+        .sort(a => (a.project?.id === replayRecord.project_id ? -1 : 1))
     );
   }, [projects, replayErrors, replayRecord]);
 }

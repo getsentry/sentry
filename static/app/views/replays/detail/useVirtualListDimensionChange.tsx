@@ -4,10 +4,8 @@ import type {CellMeasurerCache, List} from 'react-virtualized';
 
 type Opts = {
   cache: CellMeasurerCache;
-  listRef: RefObject<List>;
+  listRef: RefObject<List | null>;
 };
-
-export type OnDimensionChange = (index: number) => void;
 
 export default function useVirtualListDimensionChange({cache, listRef}: Opts) {
   const handleDimensionChange = useCallback(

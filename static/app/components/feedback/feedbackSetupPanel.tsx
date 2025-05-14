@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -29,7 +29,7 @@ export default function FeedbackSetupPanel() {
         </IlloBox>
         <StyledBox>
           <Fragment>
-            <h3>{t('Introducing the New User Feedback')}</h3>
+            <h3>{t('Set Up User Feedback')}</h3>
             <p>
               {t(
                 'Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, tags, and errors, making fixing the issue dead simple.'

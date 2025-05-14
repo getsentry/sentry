@@ -1,11 +1,12 @@
 import {css} from '@emotion/react';
 
-import {smallCss} from '../styles/typography';
+import {smallCss} from 'sentry/components/devtoolbar/styles/typography';
 
 const variants = {
   red: css`
     background: var(--red400);
     color: var(--gray100);
+    z-index: 1;
   `,
 };
 
@@ -27,7 +28,7 @@ const badgeCss = css`
   line-height: 1rem;
   position: absolute;
   right: 2px;
-  top: 18px;
+  bottom: 2px;
   width: 0.55rem;
   display: flex;
   align-items: center;

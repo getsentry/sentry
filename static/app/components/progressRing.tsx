@@ -62,7 +62,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   ${p => p.textCss?.(p)}
 `;
 
-const AnimatedText = motion(Text);
+const AnimatedText = motion.create(Text);
 
 const animatedTextDefaultProps = {
   initial: {opacity: 0, y: -10},
@@ -98,7 +98,7 @@ function ProgressRing({
 
   let textNode = (
     <TextComponent
-      key={text?.toString()}
+      key={typeof text === 'object' && text !== null ? 'text-node' : text?.toString()}
       {...(animate ? animatedTextDefaultProps : {})}
       {...{textCss, percent}}
     >
@@ -183,7 +183,7 @@ const RingBar = styled('circle')<{
     stroke 100ms;
 `;
 
-const MotionRingBar = motion(RingBar);
+const MotionRingBar = motion.create(RingBar);
 
 export default ProgressRing;
 

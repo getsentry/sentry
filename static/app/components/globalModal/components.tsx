@@ -1,12 +1,17 @@
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
 const ModalHeader = styled('header')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(1)};
   position: relative;
   border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(3)} ${space(3)};
@@ -30,22 +35,39 @@ const ModalHeader = styled('header')`
   }
 `;
 
-const CloseButton = styled((p: Omit<ButtonProps, 'aria-label'>) => (
-  <Button
-    aria-label={t('Close Modal')}
-    icon={<IconClose legacySize="10px" />}
-    size="zero"
-    {...p}
-  />
-))`
-  position: absolute;
-  top: 0;
-  right: 0;
-  transform: translate(50%, -50%);
-  border-radius: 50%;
-  height: 24px;
-  width: 24px;
-`;
+function ChonkCloseButton(p: Omit<ButtonProps, 'aria-label'>) {
+  return (
+    <Button
+      aria-label={t('Close Modal')}
+      size="xs"
+      icon={<IconClose size="xs" />}
+      borderless
+      {...p}
+    />
+  );
+}
+
+const CloseButton = withChonk(
+  styled((p: Omit<ButtonProps, 'aria-label'>) => {
+    return (
+      <Button
+        aria-label={t('Close Modal')}
+        icon={<IconClose size="xs" />}
+        size={'zero'}
+        {...p}
+      />
+    );
+  })`
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(50%, -50%);
+    border-radius: 50%;
+    height: 24px;
+    width: 24px;
+  `,
+  ChonkCloseButton
+);
 
 const ModalBody = styled('section')`
   font-size: ${p => p.theme.fontSizeMedium};

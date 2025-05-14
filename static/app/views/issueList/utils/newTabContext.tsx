@@ -1,6 +1,6 @@
 import {createContext, useState} from 'react';
 
-export type NewView = {
+type NewView = {
   label: string;
   query: string;
   /**
@@ -31,7 +31,7 @@ export function NewTabContextProvider({children}: {children: React.ReactNode}) {
   >(() => () => {});
 
   return (
-    <NewTabContext.Provider
+    <NewTabContext
       value={{
         newViewActive,
         setNewViewActive,
@@ -40,6 +40,6 @@ export function NewTabContextProvider({children}: {children: React.ReactNode}) {
       }}
     >
       {children}
-    </NewTabContext.Provider>
+    </NewTabContext>
   );
 }

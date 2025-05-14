@@ -4,12 +4,12 @@ from snuba_sdk import Column, Condition
 
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.eap.uptime_check_columns import UPTIME_CHECK_DEFINITIONS
+from sentry.search.eap.uptime_checks.definitions import UPTIME_CHECK_DEFINITIONS
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.rpc_dataset_common import run_table_query
+from sentry.snuba.rpc_dataset_common import TableQuery, run_table_query
 
 logger = logging.getLogger("sentry.snuba.uptime_checks")
 
@@ -51,17 +51,20 @@ def query(
     query_source: QuerySource | None = None,
 ) -> EventsResponse:
     return run_table_query(
-        query_string=query or "",
-        selected_columns=selected_columns,
-        orderby=orderby,
-        offset=offset or 0,
-        limit=limit,
-        referrer=referrer or "referrer unset",
-        resolver=get_resolver(
-            params=snuba_params,
-            config=SearchResolverConfig(
-                auto_fields=False,
-                use_aggregate_conditions=use_aggregate_conditions,
+        TableQuery(
+            query_string=query or "",
+            selected_columns=selected_columns,
+            orderby=orderby,
+            offset=offset or 0,
+            limit=limit,
+            referrer=referrer or "referrer unset",
+            sampling_mode=None,
+            resolver=get_resolver(
+                params=snuba_params,
+                config=SearchResolverConfig(
+                    auto_fields=False,
+                    use_aggregate_conditions=use_aggregate_conditions,
+                ),
             ),
-        ),
+        )
     )

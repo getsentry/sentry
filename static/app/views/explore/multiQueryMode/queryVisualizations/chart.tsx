@@ -1,40 +1,75 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
-import {Tooltip} from 'sentry/components/tooltip';
+import Feature from 'sentry/components/acl/feature';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconClock} from 'sentry/icons/iconClock';
+import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
+import useProjects from 'sentry/utils/useProjects';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
-import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
+import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
+import {DEFAULT_TOP_EVENTS} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {
   type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {INGESTION_DELAY} from 'sentry/views/explore/settings';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 const CHART_HEIGHT = 260;
-export interface MultiQueryChartProps {
+interface MultiQueryChartProps {
+  canUsePreviousResults: boolean;
   index: number;
   mode: Mode;
   query: ReadableExploreQueryParts;
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
-export const EXPLORE_CHART_GROUP = 'multi-query-charts_group';
+export function MultiQueryModeChart({
+  index,
+  query: queryParts,
+  mode,
+  timeseriesResult,
+  canUsePreviousResults,
+}: MultiQueryChartProps) {
+  const theme = useTheme();
 
-export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartProps) {
-  const {timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
-    index,
-    enabled: true,
-  });
   const yAxes = queryParts.yAxes;
+  const isTopN = mode === Mode.AGGREGATE;
+
+  const [confidence, numSeries] = useMemo(() => {
+    const series = yAxes.flatMap(yAxis => timeseriesResult.data[yAxis]).filter(defined);
+    return [
+      combineConfidenceForSeries(series),
+      Math.min(series.length, DEFAULT_TOP_EVENTS),
+    ];
+  }, [timeseriesResult.data, yAxes]);
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
@@ -63,7 +98,7 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
         //
         // We can't do this in top N mode as the series name uses the row
         // values instead of the aggregate function.
-        if (s.field === yAxis) {
+        if (s.yAxis === yAxis) {
           return {
             ...s,
             seriesName: formattedYAxes[i] ?? yAxis,
@@ -94,23 +129,30 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
   ]);
 
   const {data, error, loading} = getSeries();
+  const {sampleCount, isSampled, dataScanned} = determineSeriesSampleCountAndIsSampled(
+    data,
+    isTopN
+  );
+
+  const chartType = queryParts.chartType || determineDefaultChartType(yAxes);
 
   const visualizationType =
-    queryParts.chartType === ChartType.LINE
-      ? 'line'
-      : queryParts.chartType === ChartType.AREA
-        ? 'area'
-        : 'bar';
+    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
 
   const chartInfo = {
     chartIcon: <IconGraph type={visualizationType} />,
-    chartType: queryParts.chartType,
+    chartType,
     yAxes,
     formattedYAxes,
     data,
     error,
     loading,
   };
+
+  const organization = useOrganization();
+  const {addToDashboard} = useAddCompareQueryToDashboard(queryParts);
+  const pageFilters = usePageFilters();
+  const {projects} = useProjects();
 
   const Title = (
     <Fragment>
@@ -140,6 +182,71 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
       />
     );
   }
+
+  const items: MenuItemProps[] = [];
+
+  const project =
+    projects.length === 1
+      ? projects[0]
+      : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
+
+  if (defined(yAxes[0])) {
+    items.push({
+      key: 'create-alert',
+      textValue: t('Create an Alert'),
+      label: t('Create an Alert'),
+      to: getAlertsUrl({
+        project,
+        query: queryParts.query,
+        pageFilters: pageFilters.selection,
+        aggregate: yAxes[0],
+        organization,
+        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+        interval,
+      }),
+      onAction: () => {
+        trackAnalytics('trace_explorer.save_as', {
+          save_type: 'alert',
+          ui_source: 'compare chart',
+          organization,
+        });
+      },
+    });
+  }
+
+  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+  items.push({
+    key: 'add-to-dashboard',
+    textValue: t('Add to Dashboard'),
+    label: (
+      <Feature
+        hookName="feature-disabled:dashboards-edit"
+        features="organizations:dashboards-edit"
+        renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+      >
+        {t('Add to Dashboard')}
+      </Feature>
+    ),
+    disabled: disableAddToDashboard,
+    onAction: () => {
+      if (disableAddToDashboard) {
+        return undefined;
+      }
+      trackAnalytics('trace_explorer.save_as', {
+        save_type: 'dashboard',
+        ui_source: 'compare chart',
+        organization,
+      });
+      return addToDashboard();
+    },
+  });
+
+  const DataPlottableConstructor =
+    chartInfo.chartType === ChartType.LINE
+      ? Line
+      : chartInfo.chartType === ChartType.AREA
+        ? Area
+        : Bars;
 
   return (
     <Widget
@@ -183,15 +290,45 @@ export function MultiQueryModeChart({index, query: queryParts}: MultiQueryChartP
             options={intervalOptions}
           />
         </Tooltip>,
+        items && (
+          <DropdownMenu
+            key="contextMenu"
+            triggerProps={{
+              size: 'xs',
+              borderless: true,
+              showChevron: false,
+              icon: <IconEllipsis />,
+            }}
+            position="bottom-end"
+            items={items}
+          />
+        ),
       ]}
       revealActions="always"
       Visualization={
         <TimeSeriesWidgetVisualization
-          dataCompletenessDelay={INGESTION_DELAY}
-          visualizationType={visualizationType}
-          timeSeries={chartInfo.data}
+          plottables={chartInfo.data.map(timeSeries => {
+            return new DataPlottableConstructor(timeSeries, {
+              delay: INGESTION_DELAY,
+              color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
+              stack: 'all',
+            });
+          })}
+        />
+      }
+      Footer={
+        <ConfidenceFooter
+          sampleCount={sampleCount}
+          isSampled={isSampled}
+          confidence={confidence}
+          topEvents={isTopN ? numSeries : undefined}
+          dataScanned={dataScanned}
         />
       }
     />
   );
 }
+
+const DisabledText = styled('span')`
+  color: ${p => p.theme.disabled};
+`;

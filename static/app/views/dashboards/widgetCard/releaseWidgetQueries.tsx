@@ -13,21 +13,21 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
+import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
+import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
+import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
+import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
-
-import {ReleasesConfig} from '../datasetConfig/releases';
-import type {DashboardFilters, Widget, WidgetQuery} from '../types';
-import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
   DISABLED_SORT,
   METRICS_EXPRESSION_TO_FIELD,
-} from '../widgetBuilder/releaseWidget/fields';
+} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 import type {
   GenericWidgetQueriesChildrenProps,
@@ -37,7 +37,7 @@ import GenericWidgetQueries from './genericWidgetQueries';
 
 type Props = {
   api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
+  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
@@ -64,15 +64,12 @@ function getReleasesQuery(releases: Release[]): {
   releaseQueryString: string;
   releasesUsed: string[];
 } {
-  let releaseCondition = '';
   const releasesArray: string[] = [];
-  releaseCondition += 'release:[' + releases[0]!.version;
   releasesArray.push(releases[0]!.version);
   for (let i = 1; i < releases.length; i++) {
-    releaseCondition += ',' + releases[i]!.version;
     releasesArray.push(releases[i]!.version);
   }
-  releaseCondition += ']';
+  const releaseCondition = `release:[${releasesArray.map(v => (new RegExp(TAG_VALUE_ESCAPE_PATTERN, 'g').test(v) ? `"${escapeDoubleQuotes(v)}"` : v))}]`;
   if (releases.length < 10) {
     return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
   }
@@ -360,6 +357,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       cursor,
       dashboardFilters,
       onDataFetched,
+      limit,
     } = this.props;
     const config = ReleasesConfig;
 
@@ -372,7 +370,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         widget={this.transformWidget(widget)}
         dashboardFilters={dashboardFilters}
         cursor={cursor}
-        limit={this.limit}
+        limit={limit}
         onDataFetched={onDataFetched}
         loading={
           requiresCustomReleaseSorting(widget.queries[0]!)

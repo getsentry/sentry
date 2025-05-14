@@ -31,6 +31,7 @@ import {
   ModuleName,
   SpanIndexedField,
   SpanMetricsField,
+  type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
 const {
@@ -41,13 +42,14 @@ const {
   USER_GEO_SUBREGION,
 } = SpanMetricsField;
 
-type Row = {
-  'avg(http.response_content_length)': number;
-  'avg(span.self_time)': number;
-  'resource.render_blocking_status': '' | 'non-blocking' | 'blocking';
-  'spm()': number;
-  transaction: string;
-};
+type Row = Pick<
+  SpanMetricsResponse,
+  | 'avg(http.response_content_length)'
+  | 'avg(span.self_time)'
+  | 'epm()'
+  | 'resource.render_blocking_status'
+  | 'transaction'
+>;
 
 type Column = GridColumnHeader<keyof Row>;
 
@@ -68,7 +70,7 @@ function ResourceSummaryTable() {
   const columnOrder: Array<GridColumnOrder<keyof Row>> = [
     {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Found on page'},
     {
-      key: 'spm()',
+      key: 'epm()',
       width: COL_WIDTH_UNDEFINED,
       name: getThroughputTitle('http'),
     },
@@ -91,7 +93,7 @@ function ResourceSummaryTable() {
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
-    if (key === 'spm()') {
+    if (key === 'epm()') {
       return <ThroughputCell rate={row[key]} unit={RESOURCE_THROUGHPUT_UNIT} />;
     }
     if (key === 'avg(span.self_time)') {
@@ -192,15 +194,6 @@ function ResourceSummaryTable() {
     </Fragment>
   );
 }
-
-export const getActionName = (transactionOp: string) => {
-  switch (transactionOp) {
-    case 'ui.action.click':
-      return 'Click';
-    default:
-      return transactionOp;
-  }
-};
 
 const TitleWrapper = styled('div')`
   margin-bottom: ${space(1)};

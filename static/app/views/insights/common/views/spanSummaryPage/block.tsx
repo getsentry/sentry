@@ -42,7 +42,7 @@ const BlockWrapper = styled('div')`
 `;
 
 const BlockTitle = styled('h3')<{alignment: 'left' | 'right'}>`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   white-space: nowrap;

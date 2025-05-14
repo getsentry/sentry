@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -65,6 +65,7 @@ const AccordionContainer = styled('ul')`
 
 const ItemContainer = styled('div')`
   display: flex;
+  align-items: center;
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};

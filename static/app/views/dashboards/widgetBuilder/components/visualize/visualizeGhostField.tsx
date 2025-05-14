@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -105,7 +105,6 @@ function VisualizeGhostField({
               key="parameter:text"
               type="text"
               placeholder={t('Equation')}
-              required
               value={draggingField?.field ?? ''}
               onUpdate={() => {}}
             />
@@ -139,20 +138,22 @@ function VisualizeGhostField({
                       {
                         label:
                           draggingField?.kind === FieldValueKind.FUNCTION
-                            ? parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                                ?.arguments[0] ?? ''
+                            ? (parseFunction(
+                                fields?.map(generateFieldAsString)[activeId]!
+                              )?.arguments[0] ?? '')
                             : draggingField?.field,
                         value:
                           draggingField?.kind === FieldValueKind.FUNCTION
-                            ? parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                                ?.arguments[0] ?? ''
+                            ? (parseFunction(
+                                fields?.map(generateFieldAsString)[activeId]!
+                              )?.arguments[0] ?? '')
                             : draggingField?.field!,
                       },
                     ]}
                     value={
                       draggingField?.kind === FieldValueKind.FUNCTION
-                        ? parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                            ?.arguments[0] ?? ''
+                        ? (parseFunction(fields?.map(generateFieldAsString)[activeId]!)
+                            ?.arguments[0] ?? '')
                         : draggingField?.field
                     }
                     onChange={() => {}}
@@ -166,13 +167,13 @@ function VisualizeGhostField({
                       (parameter: any, parameterIndex: number) => {
                         const currentValue =
                           draggingField?.function[parameterIndex + 2] || '';
-                        const key = `${draggingField.function!.join('_')}-${parameterIndex}`;
+                        const key = `${draggingField.function.join('_')}-${parameterIndex}`;
 
                         return (
                           <AggregateParameterField
                             key={key}
                             parameter={parameter}
-                            fieldValue={draggingField!}
+                            fieldValue={draggingField}
                             currentValue={currentValue}
                             onChange={() => {}}
                           />
@@ -185,7 +186,7 @@ function VisualizeGhostField({
                 draggingField?.kind === FieldValueKind.FUNCTION && (
                   <AggregateParameterField
                     parameter={draggableMatchingAggregate?.value.meta.parameters[0]}
-                    fieldValue={draggingField!}
+                    fieldValue={draggingField}
                     currentValue={draggingField?.function[1]}
                     onChange={() => {}}
                   />
@@ -240,5 +241,5 @@ const Ghost = styled('div')`
 `;
 
 const DragAndReorderButton = styled(Button)`
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;

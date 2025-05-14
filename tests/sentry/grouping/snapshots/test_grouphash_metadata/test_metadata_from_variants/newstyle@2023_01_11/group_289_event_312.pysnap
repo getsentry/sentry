@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:36.603142+00:00'
+created: '2025-02-26T00:32:11.817120+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -45,6 +45,6 @@ contributing variants:
             frame*
               function*
                 "gldCreateDevice"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "abort"

@@ -4,8 +4,12 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {space} from 'sentry/styles/space';
-
-import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from '../common/settings';
+import {
+  MIN_HEIGHT,
+  MIN_WIDTH,
+  X_GUTTER,
+  Y_GUTTER,
+} from 'sentry/views/dashboards/widgets/common/settings';
 
 import {WidgetDescription} from './widgetDescription';
 import {WidgetError} from './widgetError';
@@ -25,6 +29,10 @@ export interface Widget {
    * Placed in the top left of the frame
    */
   Title?: React.ReactNode;
+  /**
+   * Placed to the immediate right of the title
+   */
+  TitleBadges?: React.ReactNode;
   /**
    * Placed in the main area of the frame
    */
@@ -68,15 +76,16 @@ function WidgetLayout(props: Widget) {
     >
       <Header noPadding={props.noHeaderPadding}>
         {props.Title && <Fragment>{props.Title}</Fragment>}
+        {props.TitleBadges && <TitleBadges>{props.TitleBadges}</TitleBadges>}
         {props.Actions && <TitleHoverItems>{props.Actions}</TitleHoverItems>}
       </Header>
 
       {props.Visualization && (
         <VisualizationWrapper noPadding={props.noVisualizationPadding}>
           <ErrorBoundary
-            customComponent={({error}) => (
-              <WidgetError error={error?.message ?? undefined} />
-            )}
+            customComponent={({error}) => {
+              return <WidgetError error={error ?? undefined} />;
+            }}
           >
             {props.Visualization}
           </ErrorBoundary>
@@ -103,6 +112,12 @@ const exported = Object.assign(WidgetLayout, {
 export {exported as Widget};
 
 const HEADER_HEIGHT = '26px';
+
+const TitleBadges = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
 
 const TitleHoverItems = styled('div')`
   display: flex;

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import format from 'date-fns/format';
 
 import {DatePicker} from 'sentry/components/calendar';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {Overlay} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -185,7 +185,7 @@ const Input = styled('input')`
   padding: 0 ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   box-shadow: none;
 `;
 
@@ -197,7 +197,7 @@ const DatePickerFooter = styled('div')`
 `;
 
 const UtcPickerLabel = styled('label')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
   display: flex;
   align-items: center;

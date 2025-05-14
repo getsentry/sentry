@@ -2,8 +2,10 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
+import {Button} from 'sentry/components/core/button';
+import SelectAsyncField, {
+  type SelectAsyncFieldProps,
+} from 'sentry/components/deprecatedforms/selectAsyncField';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -27,7 +29,9 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
     setVersion(selection as string);
   };
 
-  const onAsyncFieldResults = (results: Release[]) => {
+  const onAsyncFieldResults: SelectAsyncFieldProps['onResults'] = (
+    results: Release[]
+  ) => {
     return results.map(release => {
       const isAuthor = release.authors.some(
         author => author.email && author.email === currentUser?.email

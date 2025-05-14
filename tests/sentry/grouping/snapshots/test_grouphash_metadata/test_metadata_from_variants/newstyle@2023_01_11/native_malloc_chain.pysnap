@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:41.985200+00:00'
+created: '2025-02-26T00:32:21.509341+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -33,6 +33,6 @@ contributing variants:
             frame*
               function*
                 "application_frame"
-            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            frame*
               function*
                 "malloc_zone_malloc"

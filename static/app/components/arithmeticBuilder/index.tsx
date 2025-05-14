@@ -10,10 +10,10 @@ import type {
   AggregateFunction,
   FunctionArgument,
 } from 'sentry/components/arithmeticBuilder/types';
-import {inputStyles} from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import PanelProvider from 'sentry/utils/panelProvider';
 
-export interface ArithmeticBuilderProps {
+interface ArithmeticBuilderProps {
   aggregateFunctions: AggregateFunction[];
   expression: string;
   functionArguments: FunctionArgument[];
@@ -46,7 +46,7 @@ export function ArithmeticBuilder({
 
   return (
     <PanelProvider>
-      <ArithmeticBuilderContext.Provider value={contextValue}>
+      <ArithmeticBuilderContext value={contextValue}>
         <Wrapper
           className={className}
           aria-disabled={disabled}
@@ -55,13 +55,12 @@ export function ArithmeticBuilder({
         >
           <TokenGrid tokens={state.expression.tokens} />
         </Wrapper>
-      </ArithmeticBuilderContext.Provider>
+      </ArithmeticBuilderContext>
     </PanelProvider>
   );
 }
 
-const Wrapper = styled('div')<{state: 'valid' | 'invalid'}>`
-  ${inputStyles}
+const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>`
   min-height: 38px;
   padding: 0;
   height: auto;

@@ -40,7 +40,6 @@ from sentry.monitors.models import (
     MonitorEnvironmentLimitsExceeded,
     MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
-    MonitorType,
 )
 from sentry.monitors.processing_errors.errors import (
     CheckinEnvironmentMismatch,
@@ -154,7 +153,6 @@ def _ensure_monitor_with_config(
             defaults={
                 "name": monitor_slug,
                 "status": ObjectStatus.ACTIVE,
-                "type": MonitorType.CRON_JOB,
                 "config": validated_config,
                 "owner_user_id": owner_user_id,
                 "owner_team_id": owner_team_id,
@@ -219,7 +217,7 @@ def check_ratelimit(metric_kwargs: dict[str, str], item: CheckinItem) -> bool:
 
 
 class _CheckinUpdateKwargs(TypedDict):
-    status: NotRequired[CheckInStatus]
+    status: NotRequired[int]
     duration: int | None
     timeout_at: NotRequired[datetime | None]
     date_updated: NotRequired[datetime]
@@ -277,7 +275,7 @@ def update_existing_check_in(
     monitor_environment: MonitorEnvironment,
     start_time: datetime,
     existing_check_in: MonitorCheckIn,
-    updated_status: CheckInStatus,
+    updated_status: int,
     updated_duration: int | None,
 ) -> None:
     monitor = monitor_environment.monitor
@@ -409,6 +407,9 @@ def update_existing_check_in(
 
     # IN_PROGRESS heartbeats bump the date_updated
     if updated_status == CheckInStatus.IN_PROGRESS:
+        # XXX(epurkhiser): Tracking metrics on updating the date_updated since
+        # we may weant to remove this 'heart-beat' feature.
+        metrics.incr("monitors.in_progress_heart_beat", tags=metric_kwargs)
         updated_checkin["date_updated"] = start_time
 
     existing_check_in.update(**updated_checkin)
@@ -417,7 +418,7 @@ def update_existing_check_in(
 def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
     params = item.payload
 
-    # XXX: The start_time is when relay recieved the original envelope store
+    # XXX: The start_time is when relay received the original envelope store
     # request sent by the SDK.
     start_time = to_datetime(float(item.message["start_time"]))
 
@@ -736,9 +737,9 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
 
     try:
         with transaction.atomic(router.db_for_write(Monitor)):
-            status = getattr(CheckInStatus, validated_params["status"].upper())
-            trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
-            duration = validated_params.get("duration")
+            status: int = getattr(CheckInStatus, validated_params["status"].upper())
+            trace_id: str = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
+            duration: int = validated_params.get("duration")
 
             # 03-A
             # Retrieve existing check-in for update
@@ -834,6 +835,9 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                 # to UTC
                 clock_time = item.ts.replace(tzinfo=UTC)
 
+                # Record the reported in_progress time when the check is in progress
+                date_in_progress = start_time if status == CheckInStatus.IN_PROGRESS else None
+
                 check_in, created = MonitorCheckIn.objects.get_or_create(
                     defaults={
                         "duration": duration,
@@ -841,6 +845,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                         "date_added": date_added,
                         "date_clock": clock_time,
                         "date_updated": start_time,
+                        "date_in_progress": date_in_progress,
                         "expected_time": expected_time,
                         "timeout_at": timeout_at,
                         "monitor_config": monitor_config,
@@ -905,7 +910,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
             # the clock forward, if that is delayed it's possible for the
             # check-in to come in late
             kafka_delay = item.ts - start_time.replace(tzinfo=None)
-            metrics.gauge("monitors.checkin.relay_kafka_delay", kafka_delay.total_seconds())
+            metrics.timing("monitors.checkin.relay_kafka_delay", kafka_delay.total_seconds())
 
             # how long in wall-clock time did it take for us to process this
             # check-in. This records from when the message was first appended
@@ -913,7 +918,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
             #
             # XXX: We are ONLY recording this metric for completed check-ins.
             delay = datetime.now() - item.ts
-            metrics.gauge("monitors.checkin.completion_time", delay.total_seconds())
+            metrics.timing("monitors.checkin.completion_time", delay.total_seconds())
 
             metrics.incr(
                 "monitors.checkin.result",

@@ -22,7 +22,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {performanceScoreTooltip} from 'sentry/views/dashboards/utils';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
-jest.mock('echarts-for-react/lib/core', () => {
+jest.mock('echarts-for-react/lib/core', function () {
   return jest.fn(({style}) => {
     return <div style={{...style, background: 'green'}}>echarts mock</div>;
   });
@@ -59,7 +59,7 @@ async function renderModal({
     location: router.location,
     dashboard: DashboardFixture([widget], {id: 'new', title: 'Dashboard'}),
     organization,
-    router,
+    navigate: router.navigate,
   });
   const rendered = render(
     <div style={{padding: space(4)}}>
@@ -83,6 +83,7 @@ async function renderModal({
     {
       router,
       organization,
+      deprecatedRouterMocks: true,
     }
   );
   // Need to wait since WidgetViewerModal will make a request to events-meta
@@ -119,7 +120,7 @@ describe('Modals -> WidgetViewerModal', function () {
       location: initialData.router.location,
       dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
       organization: initialData.organization,
-      router: initialData.router,
+      navigate: jest.fn(),
     });
 
     MockApiClient.addMockResponse({
@@ -189,7 +190,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
       beforeEach(function () {
         mockQuery = {
-          conditions: 'title:/organizations/:orgId/performance/summary/',
+          conditions: 'title:/organizations/:orgId/insights/summary/',
           fields: ['count()'],
           aggregates: ['count()'],
           columns: [],
@@ -285,7 +286,7 @@ describe('Modals -> WidgetViewerModal', function () {
             query: expect.objectContaining({
               query:
                 // The release was injected into the discover query
-                '(title:/organizations/:orgId/performance/summary/) release:"project-release@1.2.0" ',
+                '(title:/organizations/:orgId/insights/summary/) release:"project-release@1.2.0" ',
             }),
           })
         );
@@ -311,7 +312,7 @@ describe('Modals -> WidgetViewerModal', function () {
         await renderModal({initialData, widget: mockWidget});
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
@@ -390,7 +391,7 @@ describe('Modals -> WidgetViewerModal', function () {
         await renderModal({initialData, widget: mockWidget});
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
@@ -411,15 +412,18 @@ describe('Modals -> WidgetViewerModal', function () {
           unselectedSeries: [`${mockWidget.id}:Query Name`],
         };
         await renderModal({initialData, widget: mockWidget});
-        expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+
+        const echartsMock = jest.mocked(ReactEchartsCore);
+        const lastCall = echartsMock.mock.calls[echartsMock.mock.calls.length - 1]![0];
+        // TODO(react19): Can change this back to expect(ReactEchartsCore).toHaveBeenLastCalledWith()
+        expect(lastCall).toEqual(
           expect.objectContaining({
             option: expect.objectContaining({
               legend: expect.objectContaining({
                 selected: {[`Query Name;${mockWidget.id}`]: false},
               }),
             }),
-          }),
-          {}
+          })
         );
       });
 
@@ -439,7 +443,7 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         });
         await userEvent.click(
-          await screen.findByText('/organizations/:orgId/performance/summary/')
+          await screen.findByText('/organizations/:orgId/insights/summary/')
         );
       });
 
@@ -447,7 +451,7 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEvents();
         mockWidget.queries = [
           {
-            conditions: 'title:/organizations/:orgId/performance/summary/',
+            conditions: 'title:/organizations/:orgId/insights/summary/',
             fields: ['count()'],
             aggregates: ['count()'],
             columns: ['transaction'],
@@ -463,7 +467,7 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEvents();
         mockWidget.queries = [
           {
-            conditions: 'title:/organizations/:orgId/performance/summary/',
+            conditions: 'title:/organizations/:orgId/insights/summary/',
             fields: ['count()'],
             aggregates: ['count()'],
             columns: ['transaction'],
@@ -479,7 +483,7 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEvents();
         mockWidget.queries = [
           {
-            conditions: 'title:/organizations/:orgId/performance/summary/',
+            conditions: 'title:/organizations/:orgId/insights/summary/',
             fields: ['count()'],
             aggregates: ['count()'],
             columns: ['transaction'],
@@ -583,7 +587,7 @@ describe('Modals -> WidgetViewerModal', function () {
         });
         mockWidget.queries = [
           {
-            conditions: 'title:/organizations/:orgId/performance/summary/',
+            conditions: 'title:/organizations/:orgId/insights/summary/',
             fields: [''],
             aggregates: [''],
             columns: ['transaction'],
@@ -602,8 +606,8 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(link).toHaveAttribute(
           'href',
           expect.stringMatching(
-            RegExp(
-              '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
+            new RegExp(
+              '/organizations/org-slug/insights/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
             )
           )
         );
@@ -679,7 +683,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
       beforeEach(function () {
         mockQuery = {
-          conditions: 'title:/organizations/:orgId/performance/summary/',
+          conditions: 'title:/organizations/:orgId/insights/summary/',
           fields: ['error.type', 'count()'],
           aggregates: ['count()'],
           columns: ['error.type'],
@@ -847,11 +851,40 @@ describe('Modals -> WidgetViewerModal', function () {
         await waitForMetaToHaveBeenCalled();
         expect(eventsStatsMock).toHaveBeenCalledTimes(1);
       });
+
+      it('appends the orderby to the query if it is not already selected as an aggregate', async function () {
+        const eventsStatsMock = mockEventsStats();
+        mockEvents();
+
+        const widget = WidgetFixture({
+          widgetType: WidgetType.TRANSACTIONS,
+          queries: [
+            {
+              orderby: '-epm()',
+              aggregates: ['count()'],
+              columns: ['country'],
+              conditions: '',
+              name: '',
+            },
+          ],
+        });
+
+        await renderModal({initialData, widget});
+        expect(await screen.findByText('epm()')).toBeInTheDocument();
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events-stats/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              field: ['country', 'count()', 'epm()'],
+            }),
+          })
+        );
+      });
     });
 
     describe('Table Widget', function () {
       const mockQuery = {
-        conditions: 'title:/organizations/:orgId/performance/summary/',
+        conditions: 'title:/organizations/:orgId/insights/summary/',
         fields: ['title', 'count()'],
         aggregates: ['count()'],
         columns: ['title'],
@@ -900,7 +933,7 @@ describe('Modals -> WidgetViewerModal', function () {
         await act(tick);
         expect(eventsMock).not.toHaveBeenCalled();
         await userEvent.click(await screen.findByLabelText('Next'));
-        await waitFor(() => {
+        await waitFor(function () {
           expect(eventsMock).toHaveBeenCalled();
         });
       });
@@ -1379,6 +1412,41 @@ describe('Modals -> WidgetViewerModal', function () {
       });
       await renderModal({initialData, widget: mockWidget});
       expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
+    });
+
+    it('does not make an events-stats request with an arbitrary table sort as a y-axis', async function () {
+      const eventsStatsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {},
+      });
+      const mockWidget = WidgetFixture({
+        widgetType: WidgetType.SPANS,
+        queries: [
+          {
+            fields: [],
+            aggregates: ['p90(span.duration)'],
+            columns: ['span.description'],
+            conditions: '',
+            orderby: '-count(span.duration)',
+            name: '',
+          },
+        ],
+      });
+      await renderModal({initialData, widget: mockWidget});
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            orderby: '-count(span.duration)',
+
+            // The orderby should not appear as a yAxis
+            yAxis: ['p90(span.duration)'],
+
+            // The orderby should appear in the field array
+            field: ['span.description', 'p90(span.duration)', 'count(span.duration)'],
+          }),
+        })
+      );
     });
   });
 });

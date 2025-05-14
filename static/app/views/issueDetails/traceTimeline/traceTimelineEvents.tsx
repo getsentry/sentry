@@ -2,8 +2,8 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -168,10 +168,10 @@ function NodeGroup({
                 groupEvents
                   .slice(0, 5)
                   .map(groupEvent =>
-                    groupEvent['event.type'] !== '' ? (
-                      <IconNode key={groupEvent.id} />
-                    ) : (
+                    groupEvent['event.type'] === '' ? (
                       <PerformanceIconNode key={groupEvent.id} />
+                    ) : (
+                      <IconNode key={groupEvent.id} />
                     )
                   )
               )}

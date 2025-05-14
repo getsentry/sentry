@@ -3,11 +3,11 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
+import {Switch} from 'sentry/components/core/switch';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Plugin} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -32,7 +32,7 @@ class ProjectPluginRow extends PureComponent<Props> {
   handleChange = () => {
     const {onChange, id, enabled} = this.props;
     onChange(id, !enabled);
-    const eventKey = !enabled ? 'integrations.enabled' : 'integrations.disabled';
+    const eventKey = enabled ? 'integrations.disabled' : 'integrations.enabled';
     trackIntegrationAnalytics(eventKey, {
       integration: id,
       integration_type: 'plugin',
@@ -58,8 +58,6 @@ class ProjectPluginRow extends PureComponent<Props> {
     return (
       <Access access={['project:write']} project={project}>
         {({hasAccess}) => {
-          const LinkOrSpan = hasAccess ? Link : 'span';
-
           return (
             <PluginItem key={id} className={slug}>
               <PluginInfo>
@@ -84,9 +82,9 @@ class ProjectPluginRow extends PureComponent<Props> {
                       <span>
                         {' '}
                         &middot;{' '}
-                        <LinkOrSpan css={grayText} to={configureUrl}>
-                          {t('Configure plugin')}
-                        </LinkOrSpan>
+                        <Link css={grayText} to={configureUrl}>
+                          {hasAccess ? t('Configure plugin') : t('View plugin')}
+                        </Link>
                       </span>
                     )}
                   </div>
@@ -94,9 +92,9 @@ class ProjectPluginRow extends PureComponent<Props> {
               </PluginInfo>
               <Switch
                 size="lg"
-                isDisabled={!hasAccess || !canDisable}
-                isActive={enabled}
-                toggle={this.handleChange}
+                disabled={!hasAccess || !canDisable}
+                checked={enabled}
+                onChange={this.handleChange}
               />
             </PluginItem>
           );

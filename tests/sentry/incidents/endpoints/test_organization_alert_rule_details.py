@@ -37,13 +37,14 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.incidents.serializers import AlertRuleSerializer
+from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, AlertRuleSerializer
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
@@ -118,6 +119,9 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
     @cached_property
     def valid_params(self):
+        email_action_type = AlertRuleTriggerAction.get_registered_factory(
+            AlertRuleTriggerAction.Type.EMAIL
+        ).slug
         return {
             "name": "hello",
             "time_window": 10,
@@ -133,17 +137,31 @@ class AlertRuleDetailsBase(AlertRuleBase):
                     "label": "critical",
                     "alertThreshold": 200,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                        {
+                            "type": email_action_type,
+                            "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                                AlertRuleTriggerAction.TargetType.TEAM
+                            ],
+                            "targetIdentifier": self.team.id,
+                        },
                     ],
                 },
                 {
                     "label": "warning",
                     "alertThreshold": 150,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {
-                            "type": "email",
-                            "targetType": "user",
+                            "type": email_action_type,
+                            "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                                AlertRuleTriggerAction.TargetType.TEAM
+                            ],
+                            "targetIdentifier": self.team.id,
+                        },
+                        {
+                            "type": email_action_type,
+                            "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                                AlertRuleTriggerAction.TargetType.USER
+                            ],
                             "targetIdentifier": self.user.id,
                         },
                     ],
@@ -175,6 +193,16 @@ class AlertRuleDetailsBase(AlertRuleBase):
         )
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug, self.alert_rule.id)
+        assert resp.status_code == 404
+
+    def test_no_project(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        project = self.alert_rule.projects.get()
+        Project.objects.get(id=project.id).delete()
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug, self.alert_rule.id)
+
         assert resp.status_code == 404
 
 
@@ -921,6 +949,29 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
         # resolve threshold changes to the warning threshold
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_dual_update_resolve_all_triggers_removed_and_recreated(self):
+        """
+        If a PUT request is made via the API and the trigger IDs are not specified in the
+        request (as is usually the case), then the triggers + their actions are deleted and
+        recreated. Make sure that we can update the resolution threshold accordingly
+        in this case.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        test_params = self.valid_params.copy()
+        test_params["resolve_threshold"] = None
+        test_params["triggers"][0]["alertThreshold"] = 300
+        test_params["triggers"][1]["alertThreshold"] = 50
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            self.get_success_response(self.organization.slug, self.alert_rule.id, **test_params)
+
+        # resolve threshold changes to the warning threshold
+        assert_dual_written_resolution_threshold_equals(self.alert_rule, 50)
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")

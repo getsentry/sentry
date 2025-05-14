@@ -1,17 +1,23 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {AggregationKey, ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_FIELD,
+  updateVisualizeAggregate,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
-export const DEFAULT_EAP_FIELD = 'span.duration';
-export const DEFAULT_EAP_METRICS_ALERT_FIELD = `count(${DEFAULT_EAP_FIELD})`;
+const DEFAULT_EAP_AGGREGATION = 'count';
+const DEFAULT_EAP_FIELD = 'span.duration';
+const DEFAULT_EAP_METRICS_ALERT_FIELD = `${DEFAULT_EAP_AGGREGATION}(${DEFAULT_EAP_FIELD})`;
 
 interface Props {
   aggregate: string;
@@ -37,15 +43,20 @@ function EAPField({aggregate, onChange}: Props) {
     name: aggregation,
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
+  //
+  // We want to lock down the fields dropdown when using count so that we can
+  // render `count(spans)` for better legibility. However, for backwards
+  // compatibility, we don't want to lock down all `count` queries immediately.
+  const lockOptions = aggregate === DEFAULT_VISUALIZATION;
 
-  const storedTags = useSpanTags('number');
+  const {tags: storedStringTags} = useSpanTags('string');
+  const {tags: storedNumberTags} = useSpanTags('number');
+  const storedTags =
+    aggregation === AggregationKey.COUNT_UNIQUE ? storedStringTags : storedNumberTags;
   const numberTags: TagCollection = useMemo(() => {
     const availableTags: TagCollection = storedTags;
     if (field && !defined(storedTags[field])) {
-      availableTags[field] = {
-        key: field,
-        name: prettifyTagKey(field),
-      };
+      availableTags[field] = {key: field, name: prettifyTagKey(field)};
     }
     return availableTags;
   }, [field, storedTags]);
@@ -77,13 +88,14 @@ function EAPField({aggregate, onChange}: Props) {
 
   const handleOperationChange = useCallback(
     (option: any) => {
-      if (field) {
-        onChange(`${option.value}(${field})`, {});
-      } else {
-        onChange(`${option.value}(${DEFAULT_EAP_FIELD})`, {});
-      }
+      const newAggregate = updateVisualizeAggregate({
+        newAggregate: option.value,
+        oldAggregate: aggregation || DEFAULT_EAP_AGGREGATION,
+        oldArgument: field || DEFAULT_EAP_FIELD,
+      });
+      onChange(newAggregate, {});
     },
-    [field, onChange]
+    [aggregation, field, onChange]
   );
 
   // As SelectControl does not support an options size limit out of the box
@@ -96,10 +108,7 @@ function EAPField({aggregate, onChange}: Props) {
       );
 
       const options = filteredMeta.map(metric => {
-        return {
-          label: metric.name,
-          value: metric.key,
-        };
+        return {label: metric.name, value: metric.key};
       });
       return options;
     },
@@ -109,10 +118,9 @@ function EAPField({aggregate, onChange}: Props) {
   const fieldName = fieldsArray.find(f => f.key === field)?.name;
 
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
-  const selectedOption = field && {
-    label: fieldName,
-    value: field,
-  };
+  const selectedOption = lockOptions
+    ? {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD}
+    : field && {label: fieldName, value: field};
 
   return (
     <Wrapper>
@@ -134,6 +142,7 @@ function EAPField({aggregate, onChange}: Props) {
         loadOptions={(searchText: any) => Promise.resolve(getFieldOptions(searchText))}
         value={selectedOption}
         onChange={handleFieldChange}
+        disabled={lockOptions}
       />
     </Wrapper>
   );
@@ -146,6 +155,6 @@ const Wrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   width: 200px;
 `;

@@ -1,15 +1,17 @@
 import type {Client} from 'sentry/api';
+import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
+  isEAPErrorNode,
+  isEAPSpanNode,
   isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {CollapsedNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceCollapsedNode';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
-import {CollapsedNode} from '../traceModels/traceCollapsedNode';
 
 import {makeExampleTrace} from './makeExampleTrace';
 import type {TraceTreeNode} from './traceTreeNode';
@@ -54,7 +56,7 @@ export class IssuesTraceTree extends TraceTree {
 
   static ExpandToEvent(
     tree: IssuesTraceTree,
-    eventId: string,
+    event: Event,
     options: {
       api: Client;
       organization: Organization;
@@ -62,22 +64,26 @@ export class IssuesTraceTree extends TraceTree {
     }
   ): Promise<void> {
     const node = TraceTree.Find(tree.root, n => {
-      if (isTraceErrorNode(n)) {
-        return n.value.event_id === eventId;
+      if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
+        return n.value.event_id === event.eventID;
       }
-      if (isTransactionNode(n)) {
-        if (n.value.event_id === eventId) {
+      if (isTransactionNode(n) || isEAPSpanNode(n)) {
+        if (n.value.event_id === event.eventID) {
           return true;
         }
 
         for (const e of n.errors) {
-          if (e.event_id === eventId) {
+          if (e.event_id === event.eventID) {
             return true;
           }
         }
 
-        for (const p of n.performance_issues) {
-          if (p.event_id === eventId) {
+        for (const o of n.occurrences) {
+          if (isTransactionNode(n)) {
+            if (o.event_id === event.eventID) {
+              return true;
+            }
+          } else if (o.event_id === event.occurrence?.id) {
             return true;
           }
         }
@@ -85,18 +91,36 @@ export class IssuesTraceTree extends TraceTree {
       return false;
     });
 
-    if (node && isTransactionNode(node)) {
-      return tree.zoom(node, true, options).then(() => {});
+    if (node) {
+      if (isTransactionNode(node)) {
+        return tree.zoom(node, true, options).then(() => {});
+      }
+
+      if (isEAPSpanNode(node)) {
+        tree.expand(node, true);
+      }
     }
 
     return Promise.resolve();
   }
 
-  collapseList(preserveLeafNodes: TraceTreeNode[]) {
+  /**
+   * Collapse the list of nodes to only include the preserveLeafNodes and the surrounding nodes.
+   * @param preserveLeafNodes - The nodes to preserve.
+   * @param numSurroundingNodes - The number of surrounding nodes to preserve.
+   */
+  collapseList(
+    preserveLeafNodes: TraceTreeNode[],
+    numSurroundingNodes: number,
+    minShownNodes: number
+  ) {
+    // Create set of nodes to preserve from input parameters
     const preserveNodes = new Set(preserveLeafNodes);
 
     for (const node of preserveLeafNodes) {
-      const parentTransaction = TraceTree.ParentTransaction(node);
+      const parentTransaction = isEAPSpanNode(node)
+        ? TraceTree.ParentEAPTransaction(node)
+        : TraceTree.ParentTransaction(node);
       if (parentTransaction) {
         preserveNodes.add(parentTransaction);
       }
@@ -108,22 +132,37 @@ export class IssuesTraceTree extends TraceTree {
         continue;
       }
 
-      // Preserve the previous 2 nodes
+      // Preserve the previous n nodes
       let i = Math.max(index - 1, 0);
-      while (i > index - 3) {
+      while (i > index - numSurroundingNodes) {
         if (this.list[i]) {
           preserveNodes.add(this.list[i]!);
         }
         i--;
       }
 
-      // Preserve the next 2 nodes
+      // Preserve the next n nodes
       let j = Math.min(index + 1, this.list.length - 1);
-      while (j < index + 3) {
+      while (j < index + numSurroundingNodes) {
         if (this.list[j]) {
           preserveNodes.add(this.list[j]!);
         }
         j++;
+      }
+    }
+
+    // Preserve a minimum number of nodes so it doesn't feel overly sparse
+    if (preserveNodes.size < minShownNodes && this.list.length > 0) {
+      let additionalNodesNeeded = minShownNodes - preserveNodes.size;
+      // Start from the root of the issue and go down the list
+      let index = Math.max(0, this.list.indexOf(preserveLeafNodes[0]!));
+
+      while (additionalNodesNeeded > 0 && index < this.list.length) {
+        if (!preserveNodes.has(this.list[index]!)) {
+          preserveNodes.add(this.list[index]!);
+          additionalNodesNeeded--;
+        }
+        index++;
       }
     }
 

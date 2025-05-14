@@ -1,13 +1,15 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
 type Props = {
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
+  isSampled?: boolean | null;
   sampleCount?: number;
   topEvents?: number;
 };
@@ -16,99 +18,82 @@ export function ConfidenceFooter(props: Props) {
   return <Container>{confidenceMessage(props)}</Container>;
 }
 
-function confidenceMessage({sampleCount, confidence, topEvents}: Props) {
-  const isTopN = defined(topEvents) && topEvents > 0;
+function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Props) {
+  const isTopN = defined(topEvents) && topEvents > 1;
   if (!defined(sampleCount)) {
     return isTopN
       ? t('* Chart for top %s groups extrapolated from \u2026', topEvents)
       : t('* Chart extrapolated from \u2026');
   }
 
+  const noSampling = defined(isSampled) && !isSampled;
+
+  const lowAccuracyFullSampleCount = <_LowAccuracyFullTooltip noSampling={noSampling} />;
+  const sampleCountComponent = <Count value={sampleCount} />;
   if (confidence === 'low') {
     if (isTopN) {
-      if (sampleCount === 1) {
-        return tct(
-          '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample ([lowAccuracy])',
-          {
-            topEvents,
-            sampleCount: <Count value={sampleCount} />,
-            lowAccuracy: <LowAccuracy />,
-          }
-        );
-      }
       return tct(
-        '* Chart for top [topEvents] groups extrapolated from [sampleCount] samples ([lowAccuracy])',
+        'Top [topEvents] groups based on [tooltip:[sampleCountComponent] samples]',
         {
           topEvents,
-          sampleCount: <Count value={sampleCount} />,
-          lowAccuracy: <LowAccuracy />,
+          tooltip: lowAccuracyFullSampleCount,
+          sampleCountComponent,
         }
       );
     }
 
-    if (sampleCount === 1) {
-      return tct('* Chart extrapolated from [sampleCount] sample ([lowAccuracy])', {
-        sampleCount: <Count value={sampleCount} />,
-        lowAccuracy: <LowAccuracy />,
-      });
-    }
-
-    return tct('* Chart extrapolated from [sampleCount] samples ([lowAccuracy])', {
-      sampleCount: <Count value={sampleCount} />,
-      lowAccuracy: <LowAccuracy />,
+    return tct('Based on [tooltip:[sampleCountComponent] samples]', {
+      tooltip: lowAccuracyFullSampleCount,
+      sampleCountComponent,
     });
   }
 
   if (isTopN) {
-    if (sampleCount === 1) {
-      return tct(
-        '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample',
-        {
-          topEvents,
-          sampleCount: <Count value={sampleCount} />,
-        }
-      );
-    }
-
-    return tct(
-      '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample',
-      {
-        topEvents,
-        sampleCount: <Count value={sampleCount} />,
-      }
-    );
-  }
-
-  if (sampleCount === 1) {
-    return tct('* Chart extrapolated from [sampleCount] sample', {
-      sampleCount: <Count value={sampleCount} />,
+    return tct('Top [topEvents] groups based on [sampleCountComponent] samples', {
+      topEvents,
+      sampleCountComponent,
     });
   }
 
-  return tct('* Chart extrapolated from [sampleCount] samples', {
-    sampleCount: <Count value={sampleCount} />,
+  return tct('Based on [sampleCountComponent] samples', {
+    sampleCountComponent,
   });
 }
 
-function LowAccuracy() {
+function _LowAccuracyFullTooltip({
+  noSampling,
+  children,
+}: {
+  noSampling: boolean;
+  children?: React.ReactNode;
+}) {
   return (
     <Tooltip
-      title={t(
-        'Increase your sampling rates to get more samples and more accurate trends.'
-      )}
+      title={
+        <div>
+          {t('You may not have enough samples for high accuracy.')}
+          <br />
+          <br />
+          {t(
+            'You can try adjusting your query by removing filters or increasing the time interval.'
+          )}
+          <br />
+          <br />
+          {t(
+            'You can also increase your sampling rates to get more samples and accurate trends.'
+          )}
+        </div>
+      }
+      disabled={noSampling}
+      maxWidth={270}
+      showUnderline
     >
-      <InsufficientSamples>
-        {t('Sampling rate may be low for accuracy')}
-      </InsufficientSamples>
+      {children}
     </Tooltip>
   );
 }
 
-const InsufficientSamples = styled('span')`
-  text-decoration: underline dotted ${p => p.theme.gray300};
-`;
-
 const Container = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

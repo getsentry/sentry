@@ -4,6 +4,7 @@ import django.utils.timezone
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -18,8 +19,6 @@ class Migration(CheckedMigration):
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
-
-    allow_run_sql = True
 
     dependencies = [
         ("sentry", "0504_add_artifact_bundle_index"),
@@ -36,7 +35,7 @@ class Migration(CheckedMigration):
                 # Also according to <https://www.postgresql.org/docs/current/xfunc-volatility.html>:
                 # > Another important example is that the current_timestamp family of functions qualify as STABLE,
                 # > since their values do not change within a transaction.
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "sentry_projectdsymfile" ADD COLUMN "date_accessed" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP;
                     """,

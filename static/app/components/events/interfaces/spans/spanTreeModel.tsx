@@ -33,7 +33,7 @@ import {
   subTimingMarkToTime,
 } from './utils';
 
-export const MIN_SIBLING_GROUP_SIZE = 5;
+const MIN_SIBLING_GROUP_SIZE = 5;
 
 class SpanTreeModel {
   api: Client;
@@ -338,10 +338,10 @@ class SpanTreeModel {
 
       const groupKey = `${prevSpanModel.span.op}.${prevSpanModel.span.description}`;
 
-      if (!siblingGroupOccurrenceMap[groupKey]) {
-        siblingGroupOccurrenceMap[groupKey] = 1;
-      } else {
+      if (siblingGroupOccurrenceMap[groupKey]) {
         siblingGroupOccurrenceMap[groupKey] += 1;
+      } else {
+        siblingGroupOccurrenceMap[groupKey] = 1;
       }
 
       groupedDescendants.push({

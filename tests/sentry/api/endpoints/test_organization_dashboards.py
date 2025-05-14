@@ -1019,6 +1019,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "displayType": "line",
                     "interval": "5m",
                     "title": "Transaction count()",
+                    "limit": 5,
                     "queries": [
                         {
                             "name": "Transactions",
@@ -1056,6 +1057,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "displayType": "line",
                     "interval": "5m",
                     "title": "Transaction count()",
+                    "limit": 5,
                     "queries": [
                         {
                             "name": "Transactions",
@@ -1093,6 +1095,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "displayType": "line",
                     "interval": "5m",
                     "title": f"Widget {i}",
+                    "limit": 5,
                     "queries": [
                         {
                             "name": "Transactions",

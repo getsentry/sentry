@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:40.674330+00:00'
+created: '2025-02-26T00:33:46.991043+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -68,9 +68,9 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
           frame
             function (function name is not used if module or filename are available)
               "stripped_application_code"
@@ -107,7 +107,7 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
         type*
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value*

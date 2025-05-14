@@ -1,13 +1,11 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -68,7 +66,16 @@ describe('EventGraph', () => {
   });
 
   it('displays allows toggling data sets', async function () {
-    render(<EventDetailsHeader {...defaultProps} />, {organization});
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {statsPeriod: '14d'},
+        },
+      },
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     const eventsToggle = screen.getByRole('button', {
@@ -100,7 +107,16 @@ describe('EventGraph', () => {
   });
 
   it('renders the graph using a discover event stats query', async function () {
-    render(<EventGraph {...defaultProps} />, {organization});
+    render(<EventGraph {...defaultProps} />, {
+      organization,
+
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {statsPeriod: '14d'},
+        },
+      },
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     expect(mockEventStats).toHaveBeenCalledWith(
@@ -124,50 +140,66 @@ describe('EventGraph', () => {
   });
 
   it('allows filtering by environment, and shows unfiltered stats', async function () {
-    render(<EventDetailsHeader {...defaultProps} />, {organization});
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {statsPeriod: '14d'},
+        },
+      },
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
+    await waitFor(() => {
+      expect(mockEventStats).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: [],
+          }),
+        })
+      );
+    });
+
     await userEvent.click(screen.getByRole('row', {name: 'production'}));
 
-    expect(mockEventStats).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['production'],
-        }),
-      })
-    );
     // Also makes request without environment filter
-    expect(mockEventStats).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: [],
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(mockEventStats).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: ['production'],
+          }),
+        })
+      );
+    });
   });
 
   it('updates query from location param change', async function () {
     const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
-    const locationQuery = {
-      query: {
-        query: `${tagKey}:${tagValue}`,
-      },
-    };
-    const router = RouterFixture({
-      location: LocationFixture(locationQuery),
-    });
+    const query = `${tagKey}:${tagValue}`;
 
-    render(<EventDetailsHeader {...defaultProps} />, {organization, router});
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {statsPeriod: '14d', query},
+        },
+      },
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     expect(mockEventStats).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: [persistantQuery, locationQuery.query.query].join(' '),
+          query: [persistantQuery, query].join(' '),
         }),
       })
     );
@@ -183,7 +215,16 @@ describe('EventGraph', () => {
   });
 
   it('allows filtering by date', async function () {
-    render(<EventDetailsHeader {...defaultProps} />, {organization});
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {statsPeriod: '14d'},
+        },
+      },
+    });
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: '14D'}));
@@ -208,11 +249,20 @@ describe('EventGraph', () => {
       statusCode: 400,
     });
 
-    render(<EventDetailsHeader {...defaultProps} />, {organization});
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {statsPeriod: '14d'},
+        },
+      },
+    });
     await screen.findByRole('button', {name: '14D'});
 
     expect(mockStats).toHaveBeenCalled();
-    expect(screen.getByText(RegExp(errorMessage))).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(errorMessage))).toBeInTheDocument();
     // Omit the graph
     expect(screen.queryByRole('figure')).not.toBeInTheDocument();
   });

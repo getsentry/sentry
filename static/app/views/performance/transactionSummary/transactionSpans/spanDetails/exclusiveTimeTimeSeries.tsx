@@ -23,8 +23,7 @@ import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
-import {getExclusiveTimeDisplayedValue} from '../utils';
+import {getExclusiveTimeDisplayedValue} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
 
 type Props = {
   eventView: EventView;
@@ -121,7 +120,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
                   top: '40px',
                   bottom: '0px',
                 },
-                colors: theme.charts.getColorPalette(yAxis.length - 2),
+                colors: theme.chart.getColorPalette(yAxis.length - 2),
                 seriesOptions: {
                   showSymbol: false,
                 },

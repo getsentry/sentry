@@ -1,7 +1,11 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {
+  SelectOption,
+  SelectOptionOrSection,
+} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
@@ -86,7 +90,7 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
 
   ${p =>
     p.blendWithFilter &&
-    `
+    css`
       input {
         border-radius: 0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0;
         border-left-width: 0;

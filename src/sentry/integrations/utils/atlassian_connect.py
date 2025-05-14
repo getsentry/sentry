@@ -6,7 +6,6 @@ from collections.abc import Mapping, Sequence
 import requests
 from django.http import HttpRequest
 from jwt import ExpiredSignatureError, InvalidSignatureError
-from rest_framework.request import Request
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -134,7 +133,7 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
     return decoded_claims
 
 
-def get_integration_from_request(request: Request, provider: str) -> RpcIntegration:
+def get_integration_from_request(request: HttpRequest, provider: str) -> RpcIntegration:
     return get_integration_from_jwt(request.GET.get("jwt"), request.path, provider, request.GET)
 
 

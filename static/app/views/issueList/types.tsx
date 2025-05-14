@@ -5,6 +5,7 @@ import type {
   PriorityLevel,
   TagValue,
 } from 'sentry/types/group';
+import type {AvatarUser} from 'sentry/types/user';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export type TagValueLoader = (key: string, search: string) => Promise<TagValue[]>;
@@ -16,21 +17,54 @@ export type IssueUpdateData =
   | MarkReviewed
   | GroupStatusResolution;
 
-export type GroupSearchView = {
+export enum GroupSearchViewVisibility {
+  OWNER = 'owner',
+  ORGANIZATION = 'organization',
+}
+
+export enum GroupSearchViewCreatedBy {
+  ME = 'me',
+  OTHERS = 'others',
+}
+
+export type StarredGroupSearchView = {
+  createdBy: AvatarUser;
+  dateCreated: string;
+  dateUpdated: string;
   environments: string[];
   id: string;
-  isAllProjects: boolean;
+  lastVisited: string | null;
   name: string;
   projects: number[];
   query: string;
   querySort: IssueSortOptions;
+  stars: number;
   timeFilters: PageFilters['datetime'];
 };
 
-export interface UpdateGroupSearchViewPayload extends Omit<GroupSearchView, 'id'> {
+export type GroupSearchView = StarredGroupSearchView & {
+  starred: boolean;
+  visibility: GroupSearchViewVisibility;
+};
+
+export interface UpdateGroupSearchViewPayload
+  extends Omit<
+    GroupSearchView,
+    'id' | 'lastVisited' | 'visibility' | 'starred' | 'dateCreated' | 'dateUpdated'
+  > {
   environments: string[];
-  isAllProjects: boolean;
   projects: number[];
   timeFilters: PageFilters['datetime'];
   id?: string;
+  isAllProjects?: boolean;
+}
+
+// Frontend sort options which map to multiple backend sorts
+export enum GroupSearchViewSort {
+  VIEWED = 'visited',
+  POPULARITY = 'popularity',
+  NAME_ASC = 'name',
+  NAME_DESC = '-name',
+  CREATED_ASC = 'created',
+  CREATED_DESC = '-created',
 }

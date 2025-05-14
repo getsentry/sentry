@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import ConfirmDelete from 'sentry/components/confirmDelete';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

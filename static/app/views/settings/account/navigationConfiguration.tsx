@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
@@ -11,15 +12,14 @@ type ConfigParams = {
 };
 
 function getConfiguration({organization}: ConfigParams): NavigationSection[] {
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
-
-  if (organization && hasNavigationV2) {
+  if (organization && prefersStackedNav(organization)) {
     return getUserOrgNavigationConfiguration({organization});
   }
 
   return [
     {
       name: t('Account'),
+      id: 'settings-account',
       items: [
         {
           path: `${pathPrefix}/details/`,
@@ -74,6 +74,7 @@ function getConfiguration({organization}: ConfigParams): NavigationSection[] {
       ],
     },
     {
+      id: 'settings-api',
       name: t('API'),
       items: [
         {

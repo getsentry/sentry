@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
-import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, models, router, transaction
+from django.db import models
+from django.db.models import SET_NULL
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -39,21 +39,9 @@ class OnboardingTask:
 
 class OnboardingTaskStatus:
     COMPLETE = 1
-    PENDING = 2
+    # deprecated - no longer used
+    # PENDING = 2
     SKIPPED = 3
-
-
-# NOTE: data fields for some event types are as follows:
-#
-#   FIRST_EVENT:      { 'platform':  'flask', }
-#   INVITE_MEMBER:    { 'invited_member': user.id, 'teams': [team.id] }
-#   SECOND_PLATFORM:  { 'platform': 'javascript' }
-#
-# NOTE: Currently the `PENDING` status is applicable for the following
-# onboarding tasks:
-#
-#   FIRST_EVENT:     User confirms that sdk has been installed
-#   INVITE_MEMBER:   Until the member has successfully joined org
 
 
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
@@ -61,27 +49,16 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
         if cache.get(cache_key) is None:
-            try:
-                with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
-                    self.create(organization_id=organization_id, task=task, **kwargs)
-                    return True
-            except IntegrityError as error:
-                if task == OnboardingTask.FIRST_PROJECT:
-                    scope = sentry_sdk.get_current_scope()
-                    scope.set_extra("error", error)
-                    sentry_sdk.capture_message(
-                        f"Integrity error while creating first project task for org {organization_id}",
-                        level="warning",
-                    )
-                pass
+            _, created = self.update_or_create(
+                organization_id=organization_id,
+                task=task,
+                defaults=kwargs,
+            )
 
             # Store marker to prevent running all the time
             cache.set(cache_key, 1, 3600)
-        if task == OnboardingTask.FIRST_PROJECT:
-            sentry_sdk.capture_message(
-                f"First project task not created for org {organization_id}, cache key {cache_key} set",
-                level="warning",
-            )
+            if created:
+                return True
         return False
 
 
@@ -95,7 +72,6 @@ class AbstractOnboardingTask(Model):
 
     STATUS_CHOICES = (
         (OnboardingTaskStatus.COMPLETE, "complete"),
-        (OnboardingTaskStatus.PENDING, "pending"),
         (OnboardingTaskStatus.SKIPPED, "skipped"),
     )
 
@@ -107,7 +83,9 @@ class AbstractOnboardingTask(Model):
     status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
+    project = FlexibleForeignKey(
+        "sentry.Project", db_constraint=False, null=True, on_delete=SET_NULL
+    )
     # INVITE_MEMBER { invited_member: user.id }
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
@@ -181,6 +159,20 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.SESSION_REPLAY,
             OnboardingTask.REAL_TIME_NOTIFICATIONS,
             OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+        ]
+    )
+
+    # These are tasks that can be tightened to a project
+    TRANSFERABLE_TASKS = frozenset(
+        [
+            OnboardingTask.FIRST_PROJECT,
+            OnboardingTask.FIRST_EVENT,
+            OnboardingTask.SECOND_PLATFORM,
+            OnboardingTask.RELEASE_TRACKING,
+            OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
+            OnboardingTask.SESSION_REPLAY,
+            OnboardingTask.SOURCEMAPS,
         ]
     )
 

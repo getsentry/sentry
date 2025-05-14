@@ -1,9 +1,10 @@
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 export type ChonkPropMapping<LegacyProps, ChonkProps> = (
-  props: Omit<LegacyProps, 'theme'>
-) => Omit<ChonkProps, 'theme'>;
+  props: Omit<LegacyProps, 'theme' | 'ref'>
+) => Omit<ChonkProps, 'theme' | 'ref'>;
 
 /**
  * Higher order utility function that manages the migration layer between chonk and legacy components.
@@ -16,23 +17,23 @@ export type ChonkPropMapping<LegacyProps, ChonkProps> = (
  * @returns A new component that is a wrapper around the legacy component.
  */
 export function withChonk<
-  LegacyProps extends {children?: React.ReactNode},
-  ChonkProps extends {children?: React.ReactNode; theme?: DO_NOT_USE_ChonkTheme},
+  LegacyProps extends {children?: React.ReactNode} & React.RefAttributes<any>,
+  ChonkProps extends {
+    children?: React.ReactNode;
+    theme?: DO_NOT_USE_ChonkTheme;
+  } & React.RefAttributes<any>,
 >(
   legacyComponent: React.ComponentType<LegacyProps>,
   chonkComponent: React.ComponentType<ChonkProps>,
-  propMapping: ChonkPropMapping<LegacyProps, ChonkProps>
-): (props: LegacyProps, theme: DO_NOT_USE_ChonkTheme) => React.ReactNode {
-  return function (props: LegacyProps) {
+  propMapping: ChonkPropMapping<LegacyProps, ChonkProps> = identity
+) {
+  function ChonkSwitch(props: LegacyProps) {
     const theme = useTheme();
 
-    if (theme.isChonk) {
+    if (isChonkTheme(theme)) {
       const ChonkComponent: any = chonkComponent;
       return (
-        <ChonkComponent
-          {...propMapping(props)}
-          theme={theme as unknown as DO_NOT_USE_ChonkTheme}
-        >
+        <ChonkComponent {...propMapping(props)} ref={props.ref} theme={theme}>
           {props.children}
         </ChonkComponent>
       );
@@ -40,5 +41,17 @@ export function withChonk<
 
     const LegacyComponent: any = legacyComponent;
     return <LegacyComponent {...props}>{props.children}</LegacyComponent>;
-  };
+  }
+
+  return styled(ChonkSwitch)``;
+}
+
+function identity<T, U>(props: T): U {
+  return props as unknown as U;
+}
+
+export function isChonkTheme(
+  theme: Theme | DO_NOT_USE_ChonkTheme
+): theme is DO_NOT_USE_ChonkTheme {
+  return theme.isChonk;
 }

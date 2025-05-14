@@ -46,7 +46,34 @@ describe('useFeedbackForm', function () {
     expect(mockForm.open).toHaveBeenCalledTimes(1);
   });
 
-  it('uses a new form instance each time', async function () {
+  it('reuses the old form instance if same options are provided', async function () {
+    const {result} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
+    const openForm = result.current;
+
+    await openForm!({formTitle: 'foo'});
+    expect(mockFeedback.createForm).toHaveBeenLastCalledWith(
+      expect.objectContaining({...defaultOptions, formTitle: 'foo'})
+    );
+
+    expect(mockForm.removeFromDom).not.toHaveBeenCalled();
+
+    await openForm!({formTitle: 'foo'});
+    expect(mockFeedback.createForm).toHaveBeenLastCalledWith(
+      expect.objectContaining({...defaultOptions, formTitle: 'foo'})
+    );
+
+    // Should not be removed from DOM
+    expect(mockForm.removeFromDom).toHaveBeenCalledTimes(0);
+
+    // Should only have been created once
+    expect(mockFeedback.createForm).toHaveBeenCalledTimes(1);
+    expect(mockForm.appendToDom).toHaveBeenCalledTimes(1);
+
+    // Should have been opened twice
+    expect(mockForm.open).toHaveBeenCalledTimes(2);
+  });
+
+  it('creates a new form instance if different options are provided', async function () {
     const {result} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
     const openForm = result.current;
 

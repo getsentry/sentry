@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime, timezone
 
-from sentry.api.event_search import ParenExpression, SearchFilter
+from sentry.api.event_search import ParenExpression, QueryToken
 from sentry.replays.lib.new_query.conditions import (
     NonEmptyStringScalar,
     StringArray,
@@ -69,6 +69,8 @@ varying_search_config["error_id"] = varying_search_config["error_ids"]
 varying_search_config["trace_id"] = varying_search_config["trace_ids"]
 varying_search_config["trace"] = varying_search_config["trace_ids"]
 varying_search_config["url"] = varying_search_config["urls"]
+varying_search_config["screens"] = varying_search_config["urls"]
+varying_search_config["screen"] = varying_search_config["urls"]
 varying_search_config["*"] = TagField(query=TagScalar)
 
 
@@ -96,7 +98,7 @@ scalar_search_config = {**static_search_config, **varying_search_config}
 
 
 def can_scalar_search_subquery(
-    search_filters: Sequence[ParenExpression | SearchFilter | str],
+    search_filters: Sequence[QueryToken],
     started_at: datetime,
 ) -> bool:
     """Return "True" if a scalar event search can be performed."""

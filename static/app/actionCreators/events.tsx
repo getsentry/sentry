@@ -32,6 +32,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 type Options = {
   organization: OrganizationSummary;
@@ -53,15 +54,15 @@ type Options = {
   queryBatching?: QueryBatching;
   queryExtras?: Record<string, string | boolean | number>;
   referrer?: string;
+  sampling?: SamplingMode;
   start?: DateString;
   team?: Readonly<string | string[]>;
   topEvents?: number;
-  useRpc?: boolean;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
 };
 
-export type EventsStatsOptions<T extends boolean> = {includeAllArgs?: T} & Options;
+export type EventsStatsOptions<T extends boolean> = {includeAllArgs: T} & Options;
 
 /**
  * Make requests to `events-stats` endpoint
@@ -83,7 +84,7 @@ export type EventsStatsOptions<T extends boolean> = {includeAllArgs?: T} & Optio
  * @param {Record<string, string>} options.queryExtras A list of extra query parameters
  * @param {(org: OrganizationSummary) => string} options.generatePathname A function that returns an override for the pathname
  */
-export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
+export const doEventsRequest = <IncludeAllArgsType extends boolean>(
   api: Client,
   {
     organization,
@@ -110,7 +111,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     excludeOther,
     includeAllArgs,
     dataset,
-    useRpc,
+    sampling,
   }: EventsStatsOptions<IncludeAllArgsType>
 ): IncludeAllArgsType extends true
   ? Promise<ApiResult<EventsStats | MultiSeriesEventsStats>>
@@ -137,7 +138,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
       dataset,
-      useRpc: useRpc ? '1' : undefined,
+      sampling,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -176,7 +177,6 @@ export type EventQuery = {
   referrer?: string;
   sort?: string | string[];
   team?: string | string[];
-  useRpc?: '1';
 };
 
 export type TagSegment = {
@@ -242,7 +242,7 @@ type FetchEventAttachmentParameters = {
 
 type FetchEventAttachmentResponse = IssueAttachment[];
 
-export const makeFetchEventAttachmentsQueryKey = ({
+const makeFetchEventAttachmentsQueryKey = ({
   orgSlug,
   projectSlug,
   eventId,

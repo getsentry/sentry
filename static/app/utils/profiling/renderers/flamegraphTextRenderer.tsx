@@ -1,6 +1,10 @@
 import type {mat3} from 'gl-matrix';
 
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeHighlightedBounds,
   ELLIPSIS,
@@ -10,13 +14,8 @@ import {
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
-
-import type {Flamegraph} from '../flamegraph';
-import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import type {FlamegraphFrame} from '../flamegraphFrame';
-import {getFlamegraphFrameSearchId} from '../flamegraphFrame';
-import type {Rect} from '../speedscope';
-import {findRangeBinarySearch, trimTextCenter} from '../speedscope';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
+import {findRangeBinarySearch, trimTextCenter} from 'sentry/utils/profiling/speedscope';
 
 class FlamegraphTextRenderer extends TextRenderer {
   flamegraph: Flamegraph;
@@ -51,9 +50,7 @@ class FlamegraphTextRenderer extends TextRenderer {
       (this.theme.SIZES.BAR_HEIGHT - this.theme.SIZES.BAR_FONT_SIZE / 2) *
       window.devicePixelRatio;
 
-    const HIGHLIGHT_BACKGROUND_COLOR = `rgb(${this.theme.COLORS.HIGHLIGHTED_LABEL_COLOR.join(
-      ', '
-    )})`;
+    const HIGHLIGHT_BACKGROUND_COLOR = this.theme.COLORS.HIGHLIGHTED_LABEL_COLOR;
 
     const TOP_BOUNDARY = configView.top - 1;
     const BOTTOM_BOUNDARY = configView.bottom + 1;

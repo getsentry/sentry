@@ -8,7 +8,6 @@ import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, type Sort} from 'sentry/utils/discover/fields';
 import {decodeList, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -18,23 +17,23 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 // Read utils begin
 
 export type ReadableExploreQueryParts = {
-  chartType: ChartType;
   fields: string[];
   groupBys: string[];
   query: string;
   sortBys: Sort[];
   yAxes: string[];
+  chartType?: ChartType;
 };
 
 const DEFAULT_QUERY: ReadableExploreQueryParts = {
-  chartType: ChartType.LINE,
   yAxes: [DEFAULT_VISUALIZATION],
-  sortBys: [{kind: 'desc', field: DEFAULT_VISUALIZATION_FIELD!}],
-  fields: ['id', DEFAULT_VISUALIZATION_FIELD!],
+  sortBys: [{kind: 'desc', field: 'timestamp'}],
+  fields: ['id', DEFAULT_VISUALIZATION_FIELD, 'timestamp'],
   groupBys: [],
   query: '',
 };
@@ -48,12 +47,18 @@ function validateSortBys(
   const mode = getQueryMode(groupBys);
 
   if (parsedSortBys.length > 0) {
-    if (
-      mode === Mode.SAMPLES &&
-      parsedSortBys.every(sort => fields?.includes(sort.field))
-    ) {
-      return parsedSortBys;
+    if (mode === Mode.SAMPLES) {
+      if (parsedSortBys.every(sort => fields?.includes(sort.field))) {
+        return parsedSortBys;
+      }
+      return [
+        {
+          field: 'timestamp',
+          kind: 'desc' as const,
+        },
+      ];
     }
+
     if (
       mode === Mode.AGGREGATE &&
       parsedSortBys.every(
@@ -79,9 +84,9 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
       return DEFAULT_QUERY;
     }
 
-    let chartType = Number(parsed.chartType);
+    let chartType: number | undefined = Number(parsed.chartType);
     if (isNaN(chartType) || !Object.values(ChartType).includes(chartType)) {
-      chartType = ChartType.LINE;
+      chartType = undefined;
     }
 
     const groupBys: string[] = parsed.groupBys ?? [];
@@ -121,7 +126,7 @@ export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
 
 // Write utils begin
 
-export type WritableExploreQueryParts = {
+type WritableExploreQueryParts = {
   chartType?: ChartType;
   fields?: string[];
   groupBys?: string[];
@@ -253,6 +258,8 @@ export function getFieldsForConstructedQuery(yAxes: string[]): string[] {
     fields.push(arg);
   }
 
+  fields.push('timestamp');
+
   return fields;
 }
 
@@ -261,7 +268,10 @@ export function getQueryMode(groupBys?: string[]): Mode {
 }
 
 function getCompareBaseUrl(organization: Organization) {
-  return normalizeUrl(`/organizations/${organization.slug}/traces/compare`);
+  return makeTracesPathname({
+    organization,
+    path: '/compare/',
+  });
 }
 
 type CompareRouteProps = {
@@ -289,7 +299,10 @@ export function generateExploreCompareRoute({
   const url = getCompareBaseUrl(organization);
   const compareQuery: WritableExploreQueryParts = {
     chartType,
-    groupBys: mode === Mode.AGGREGATE ? groupBys : [],
+    // Filter out empty strings which are used to indicate no grouping
+    // in Trace Explorer. The same assumption does not exist for the
+    // comparison view.
+    groupBys: mode === Mode.AGGREGATE ? groupBys?.filter(Boolean) : [],
     query,
     sortBys,
     yAxes,

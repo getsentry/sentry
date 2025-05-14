@@ -164,7 +164,7 @@ describe('InvestigationRule', function () {
     expect(getRule).toHaveBeenCalledTimes(0);
   });
 
-  it('does not render when there is an unknown error but shows an error', async function () {
+  it('does not render when there is an unknown error', async function () {
     initComponentEnvironment({hasRule: false});
     const getRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
@@ -178,7 +178,7 @@ describe('InvestigationRule', function () {
     );
     await expectNotToRender();
 
-    expect(addErrorMessage).toHaveBeenCalledTimes(1);
+    expect(addErrorMessage).toHaveBeenCalledTimes(0);
     // check we did call the endpoint to check if a rule exists
     expect(getRule).toHaveBeenCalledTimes(1);
   });

@@ -21,7 +21,7 @@ from sentry.relocation.api.endpoints.index import (
     validate_relocation_uniqueness,
 )
 from sentry.relocation.models.relocation import Relocation, RelocationFile
-from sentry.relocation.tasks import uploading_start
+from sentry.relocation.tasks.process import uploading_start
 from sentry.signals import relocation_retry_link_promo_code
 from sentry.users.services.user.service import user_service
 from sentry.utils.db import atomic_transaction
@@ -34,12 +34,12 @@ ERR_FILE_NO_LONGER_EXISTS = (
     "The relocation file no longer exists, probably due to data retention requirements."
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 @region_silo_endpoint
 class RelocationRetryEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "POST": ApiPublishStatus.EXPERIMENTAL,

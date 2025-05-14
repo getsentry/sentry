@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import router, transaction
-from django.db.models import F, Q
+from django.db.models import Exists, F, OuterRef, Q
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -12,11 +12,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases.organizationmember import MemberAndStaffPermission
+from sentry.api.endpoints.organization_member.utils import (
+    ERR_RATE_LIMITED,
+    ROLE_CHOICES,
+    MemberConflictValidationError,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSerializer
 from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
-from sentry.api.validators import AllowedEmailField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_member_examples import OrganizationMemberExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -24,48 +28,16 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
+from sentry.users.api.parsers.email import AllowedEmailField
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 from . import get_allowed_org_roles, save_team_assignments
-
-ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-
-# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
-# has the wrong descriptions, includes deprecated admin, and excludes billing
-ROLE_CHOICES = [
-    ("billing", "Can manage payment and compliance details."),
-    (
-        "member",
-        "Can view and act on events, as well as view most other data within the organization.",
-    ),
-    (
-        "manager",
-        """Has full management access to all teams and projects. Can also manage
-        the organization's membership.""",
-    ),
-    (
-        "owner",
-        """Has unrestricted access to the organization, its data, and its
-        settings. Can add, modify, and delete projects and members, as well as
-        make billing and plan changes.""",
-    ),
-    (
-        "admin",
-        """Can edit global integrations, manage projects, and add/remove teams.
-        They automatically assume the Team Admin role for teams they join.
-        Note: This role can no longer be assigned in Business and Enterprise plans. Use `TeamRoles` instead.
-        """,
-    ),
-]
-
-
-class MemberConflictValidationError(serializers.ValidationError):
-    pass
 
 
 @extend_schema_serializer(
@@ -131,6 +103,7 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
                 raise MemberConflictValidationError(
                     "There is an existing invite request for %s" % email
                 )
+
         return email
 
     def validate_role(self, role):
@@ -211,11 +184,19 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         Response includes pending invites that are approved by organization owners or managers but waiting to be accepted by the invitee.
         """
-        queryset = OrganizationMember.objects.filter(
-            Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
-            organization=organization,
-            invite_status=InviteStatus.APPROVED.value,
-        ).order_by("id")
+        queryset = (
+            OrganizationMember.objects.filter(
+                Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
+                organization=organization,
+                invite_status=InviteStatus.APPROVED.value,
+            )
+            .filter(
+                ~Exists(
+                    OrganizationMemberInvite.objects.filter(organization_member_id=OuterRef("id"))
+                )
+            )
+            .order_by("id")
+        )
 
         query = request.GET.get("query")
         if query:
@@ -277,12 +258,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     else:
                         queryset = queryset.exclude(user_id__in=externalactor_user_ids)
                 elif key == "query":
-                    value = " ".join(value)
+                    value_s = " ".join(value)
                     query_user_ids = user_service.get_many_ids(
-                        filter=dict(query=value, organization_id=organization.id)
+                        filter=dict(query=value_s, organization_id=organization.id)
                     )
                     queryset = queryset.filter(
-                        Q(user_id__in=query_user_ids) | Q(email__icontains=value)
+                        Q(user_id__in=query_user_ids) | Q(email__icontains=value_s)
                     )
                 else:
                     queryset = queryset.none()
@@ -318,7 +299,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         Add or invite a member to an organization.
         """
-        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
+        assigned_org_role = (
+            request.data.get("orgRole")
+            or request.data.get("role")
+            or organization_roles.get_default().id
+        )
         billing_bypass = assigned_org_role == "billing" and features.has(
             "organizations:invite-billing", organization
         )

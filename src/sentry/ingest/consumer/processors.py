@@ -18,6 +18,7 @@ from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, is_
 from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event, save_event_feedback, save_event_transaction
@@ -228,6 +229,19 @@ def process_event(
         except Exception:
             pass
 
+        try:
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
+        except Organization.DoesNotExist:
+            logger.warning(
+                "Organization does not exist",
+                extra={
+                    "project_id": project_id,
+                    "organization_id": project.organization_id,
+                },
+            )
+            return
         if data.get("type") == "transaction":
             if no_celery_mode:
                 with sentry_sdk.start_span(op="ingest_consumer.process_transaction_no_celery"):

@@ -8,7 +8,7 @@ interface Props<Element extends HTMLElement> {
    * Calling `useFullscreen()` a second time will create a different instance of
    * `ref` and `enter.
    */
-  elementRef: RefObject<Element>;
+  elementRef: RefObject<Element | null>;
 }
 
 interface Return {

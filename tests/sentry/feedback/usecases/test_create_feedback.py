@@ -74,7 +74,10 @@ def create_dummy_response(*args, **kwargs):
     )
 
 
-def mock_feedback_event(project_id: int, dt: datetime):
+def mock_feedback_event(project_id: int, dt: datetime | None = None):
+    if dt is None:
+        dt = datetime.now(UTC)
+
     return {
         "project_id": project_id,
         "request": {
@@ -297,6 +300,21 @@ def test_corrected_still_works():
         "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
     }
     assert isinstance(fixed_event["received"], str)
+
+
+@pytest.mark.parametrize("environment", ("missing", None, "", "my-environment"))
+def test_fix_for_issue_platform_environment(environment):
+    event = mock_feedback_event(1)
+    if environment == "missing":
+        event.pop("environment", "")
+    else:
+        event["environment"] = environment
+
+    fixed_event = fix_for_issue_platform(event)
+    if environment == "my-environment":
+        assert fixed_event["environment"] == environment
+    else:
+        assert fixed_event["environment"] == "production"
 
 
 @django_db_all
@@ -773,17 +791,18 @@ def test_create_feedback_adds_associated_event_id(
 @django_db_all
 def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka):
     """We want to surface these tags in the UI. We also use user.email for alert conditions."""
-    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    event = mock_feedback_event(default_project.id)
     event["user"]["email"] = "josh.ferge@sentry.io"
     event["contexts"]["feedback"]["contact_email"] = "andrew@sentry.io"
     event["contexts"]["trace"] = {"trace_id": "abc123"}
+    event_id = "a" * 32
+    event["contexts"]["feedback"]["associated_event_id"] = event_id
     create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
     tags = produced_event["tags"]
     assert tags["user.email"] == "josh.ferge@sentry.io"
-    assert tags["trace.id"] == "abc123"
 
     # Uses feedback contact_email if user context doesn't have one
     del event["user"]["email"]
@@ -794,67 +813,100 @@ def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka)
     tags = produced_event["tags"]
     assert tags["user.email"] == "andrew@sentry.io"
 
+    # Adds associated_event_id and has_linked_error to tags
+    assert tags["associated_event_id"] == event_id
+    assert tags["has_linked_error"] == "true"
+
+    # Adds release to tags
+    assert tags["release"] == "frontend@daf1316f209d961443664cd6eb4231ca154db502"
+
+
+@django_db_all
+def test_create_feedback_tags_no_associated_event_id(
+    default_project, mock_produce_occurrence_to_kafka
+):
+    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    tags = produced_event["tags"]
+
+    # No associated_event_id in tags and has_linked_error is false
+    assert tags.get("associated_event_id") is None
+    assert tags["has_linked_error"] == "false"
+
 
 @django_db_all
 def test_create_feedback_tags_skips_if_empty(default_project, mock_produce_occurrence_to_kafka):
-    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    event = mock_feedback_event(default_project.id)
     event["user"].pop("email", None)
     event["contexts"]["feedback"].pop("contact_email", None)
-    event["contexts"].pop("trace", None)
     create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
     tags = produced_event["tags"]
     assert "user.email" not in tags
-    assert "trace.id" not in tags
 
 
 @django_db_all
-def test_create_feedback_large_message_truncated(
-    default_project, mock_produce_occurrence_to_kafka, set_sentry_option
+@pytest.mark.parametrize("spam_enabled", (True, False))
+def test_create_feedback_filters_large_message(
+    default_project, mock_produce_occurrence_to_kafka, monkeypatch, set_sentry_option, spam_enabled
 ):
-    """Large messages are truncated before producing to kafka."""
-    with set_sentry_option("feedback.message.max-size", 4096):
-        event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    """Large messages are filtered before spam detection and producing to kafka."""
+    features = (
+        {
+            "organizations:user-feedback-spam-filter-actions": True,
+            "organizations:user-feedback-spam-filter-ingest": True,
+        }
+        if spam_enabled
+        else {}
+    )
+
+    mock_complete_prompt = Mock()
+    monkeypatch.setattr("sentry.llm.usecases.complete_prompt", mock_complete_prompt)
+
+    with Feature(features), set_sentry_option("feedback.message.max-size", 4096):
+        event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "a" * 7007
         create_feedback_issue(
             event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
 
-    kwargs = mock_produce_occurrence_to_kafka.call_args[1]
-    assert len(kwargs["occurrence"].subtitle) == 4096
+    assert mock_complete_prompt.call_count == 0
+    assert mock_produce_occurrence_to_kafka.call_count == 0
 
 
 @django_db_all
-def test_create_feedback_large_message_skips_spam_detection(
-    default_project, set_sentry_option, monkeypatch
+def test_create_feedback_evidence_has_source(default_project, mock_produce_occurrence_to_kafka):
+    """We need this evidence field in post process, to determine if we should send alerts."""
+    event = mock_feedback_event(default_project.id)
+    source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+    create_feedback_issue(event, default_project.id, source)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    assert evidence["source"] == source.value
+
+
+@django_db_all
+def test_create_feedback_evidence_has_spam(
+    default_project, mock_produce_occurrence_to_kafka, monkeypatch
 ):
-    """If spam is enabled, large messages are marked as spam without making an LLM request."""
-    with (
-        Feature(
-            {
-                "organizations:user-feedback-spam-filter-actions": True,
-                "organizations:user-feedback-spam-filter-ingest": True,
-            }
-        ),
-        set_sentry_option("feedback.message.max-size", 4096),
-    ):
+    """We need this evidence field in post process, to determine if we should send alerts."""
+    monkeypatch.setattr("sentry.feedback.usecases.create_feedback.is_spam", lambda _: True)
+    default_project.update_option("sentry:feedback_ai_spam_detection", True)
 
-        event = mock_feedback_event(default_project.id, datetime.now(UTC))
-        event["contexts"]["feedback"]["message"] = "a" * 7007
+    with Feature({"organizations:user-feedback-spam-filter-ingest": True}):
+        event = mock_feedback_event(default_project.id)
+        source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        create_feedback_issue(event, default_project.id, source)
 
-        mock_complete_prompt = Mock()
-        monkeypatch.setattr("sentry.llm.usecases.complete_prompt", mock_complete_prompt)
-
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
-        assert mock_complete_prompt.call_count == 0
-
-        group = Group.objects.get()
-        assert group.status == GroupStatus.IGNORED
-        assert group.substatus == GroupSubStatus.FOREVER
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    assert evidence["is_spam"] is True
 
 
 """
@@ -915,3 +967,14 @@ def test_denylist(set_sentry_option, default_project):
 def test_denylist_not_in_list(set_sentry_option, default_project):
     with set_sentry_option("feedback.organizations.slug-denylist", ["not-in-list"]):
         assert is_in_feedback_denylist(default_project.organization) is False
+
+
+@django_db_all
+def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka):
+    event = mock_feedback_event(default_project.id)
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event.get("release") is not None
+    assert produced_event.get("release") == "frontend@daf1316f209d961443664cd6eb4231ca154db502"

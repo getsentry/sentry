@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:34.874174+00:00'
+created: '2025-02-26T00:32:10.033910+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -29,12 +29,12 @@ contributing variants:
     component:
       system*
         stacktrace*
-          frame* (marked out of app by stack trace rule (module:sun.* -app))
+          frame*
             module* (removed reflection marker)
               "sun.reflect.GeneratedMethodAccessor"
             function*
               "invoke"
-          frame* (marked out of app by stack trace rule (module:jdk.* -app))
+          frame*
             module* (removed reflection marker)
               "jdk.internal.reflect.GeneratedMethodAccessor"
             function*

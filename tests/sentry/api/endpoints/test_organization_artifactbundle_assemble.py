@@ -10,9 +10,8 @@ from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
-from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
+from sentry.tasks.assemble import ChunkFileState
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
@@ -29,7 +28,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             args=[self.organization.slug],
         )
 
-    @with_feature("organizations:find-missing-chunks-new")
     def test_assemble_json_schema(self):
         response = self.client.post(
             self.url, data={"lol": "test"}, HTTP_AUTHORIZATION=f"Bearer {self.token.token}"
@@ -118,7 +116,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.NOT_FOUND
 
-    @with_feature("organizations:find-missing-chunks-new")
     def test_assemble_with_invalid_projects(self):
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
@@ -144,7 +141,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 400, response.content
         assert response.data["error"] == "One or more projects are invalid"
 
-    @with_feature("organizations:find-missing-chunks-new")
     def test_assemble_with_valid_project_slugs(self):
         # Test with all valid project slugs
         valid_project = self.create_project()
@@ -170,7 +166,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         self.assertEqual(response.status_code, 200)
 
-    @with_feature("organizations:find-missing-chunks-new")
     def test_assemble_with_valid_project_ids(self):
         # Test with all valid project IDs
         valid_project = self.create_project()
@@ -196,7 +191,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         self.assertEqual(response.status_code, 200)
 
-    @with_feature("organizations:find-missing-chunks-new")
     def test_assemble_with_mix_of_slugs_and_ids(self):
         # Test with a mix of valid project slugs and IDs
         valid_project = self.create_project()
@@ -227,7 +221,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         self.assertEqual(response.status_code, 200)
 
-    @with_feature("organizations:find-missing-chunks-new")
     @patch("sentry.tasks.assemble.assemble_artifacts")
     def test_assemble_without_version_and_dist(self, mock_assemble_artifacts):
         bundle_file = self.create_artifact_bundle_zip(
@@ -260,11 +253,9 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
                 "dist": None,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
-                "upload_as_artifact_bundle": True,
             }
         )
 
-    @with_feature("organizations:find-missing-chunks-new")
     @patch("sentry.tasks.assemble.assemble_artifacts")
     def test_assemble_with_version_and_no_dist(self, mock_assemble_artifacts):
         bundle_file = self.create_artifact_bundle_zip(
@@ -298,11 +289,9 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
                 "dist": None,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
-                "upload_as_artifact_bundle": True,
             }
         )
 
-    @with_feature("organizations:find-missing-chunks-new")
     @patch("sentry.tasks.assemble.assemble_artifacts")
     def test_assemble_with_version_and_dist(self, mock_assemble_artifacts):
         dist = "android"
@@ -338,11 +327,9 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
                 "dist": dist,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
-                "upload_as_artifact_bundle": True,
             }
         )
 
-    @with_feature("organizations:find-missing-chunks-new")
     def test_assemble_with_missing_chunks(self):
         dist = "android"
         bundle_file = self.create_artifact_bundle_zip(
@@ -387,7 +374,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
 
-    @with_feature("organizations:find-missing-chunks-new")
     def test_assemble_response(self):
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
@@ -395,14 +381,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         total_checksum = sha1(bundle_file).hexdigest()
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
-
-        assemble_artifacts(
-            org_id=self.organization.id,
-            version=self.release.version,
-            checksum=total_checksum,
-            chunks=[blob1.checksum],
-            upload_as_artifact_bundle=False,
-        )
 
         response = self.client.post(
             self.url,
@@ -417,7 +395,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
 
-    @with_feature("organizations:find-missing-chunks-new")
     def test_assemble_org_auth_token(self):
         org2 = self.create_organization(owner=self.user)
 
@@ -427,14 +404,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         total_checksum = sha1(bundle_file).hexdigest()
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
-
-        assemble_artifacts(
-            org_id=self.organization.id,
-            version=self.release.version,
-            checksum=total_checksum,
-            chunks=[blob1.checksum],
-            upload_as_artifact_bundle=False,
-        )
 
         # right org, wrong permission level
         with assume_test_silo_mode(SiloMode.CONTROL):

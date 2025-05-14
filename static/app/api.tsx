@@ -13,6 +13,7 @@ import {
 import ConfigStore from 'sentry/stores/configStore';
 import {metric} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import RequestError from 'sentry/utils/requestError/requestError';
@@ -91,8 +92,10 @@ export const initApiClientErrorHandling = () =>
       return true;
     }
 
-    // Otherwise, the user has become unauthenticated. Send them to auth
-    Cookies.set('session_expired', '1');
+    if (!isDemoModeActive()) {
+      // Demo user can occasionally get 401s back. Otherwise, the user has become unauthenticated. Send them to auth
+      Cookies.set('session_expired', '1');
+    }
 
     if (EXPERIMENTAL_SPA) {
       browserHistory.replace('/auth/login/');
@@ -600,10 +603,9 @@ export class Client {
             });
           }
 
-          const shouldSkipErrorHandler =
-            globalErrorHandlers
-              .map(handler => handler(responseMeta, options))
-              .filter(Boolean).length > 0;
+          const shouldSkipErrorHandler = globalErrorHandlers
+            .map(handler => handler(responseMeta, options))
+            .some(Boolean);
 
           if (!shouldSkipErrorHandler) {
             metric.measure({

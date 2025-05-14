@@ -9,7 +9,7 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {getAllViews} from 'sentry/views/discover/data';
+import {getAllViews} from 'sentry/views/discover/results/data';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import * as utils from 'sentry/views/discover/savedQuery/utils';
 
@@ -184,7 +184,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
                 aggregates: ['count()', 'failure_count()'],
                 columns: [],
                 conditions: 'event.type:error',
-                fields: ['count()', 'failure_count()'],
+                fields: [],
                 name: '',
                 orderby: '-count()',
               },
@@ -192,40 +192,8 @@ describe('Discover > SaveQueryButtonGroup', function () {
             title: 'Errors by Title',
             widgetType: WidgetType.ERRORS,
           },
-          widgetAsQueryParams: expect.objectContaining({
-            dataset: WidgetType.ERRORS,
-            defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'project'],
-            defaultTitle: 'Errors by Title',
-            defaultWidgetQuery:
-              'name=&aggregates=count()%2Cfailure_count()&columns=&fields=count()%2Cfailure_count()&conditions=event.type%3Aerror&orderby=-count()',
-            displayType: 'area',
-            end: undefined,
-            limit: undefined,
-            source: 'discoverv2',
-            start: undefined,
-            statsPeriod: '24h',
-          }),
         })
       );
-    });
-
-    it('hides the banner when save is complete.', async () => {
-      mount(location, organization, router, errorsView, undefined, yAxis);
-
-      // Click on ButtonSaveAs to open dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
-
-      // Fill in the Input
-      await userEvent.type(
-        screen.getByPlaceholderText('Display name'),
-        'My New Query Name'
-      );
-
-      // Click on Save in the Dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
-
-      // The banner should not render
-      expect(screen.queryByText('Discover Trends')).not.toBeInTheDocument();
     });
 
     it('saves a well-formed query', async () => {

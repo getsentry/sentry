@@ -1,6 +1,9 @@
+import logging
+
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.utils import metrics
 
+logger = logging.getLogger(__name__)
 """
 We pull these methods out of the subscription processor to be used by the
 workflow engine data condition handlers.

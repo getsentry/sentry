@@ -17,6 +17,7 @@ import useInviteModal from 'sentry/components/modals/inviteMembersModal/useInvit
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import {ORG_ROLES} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -69,6 +70,10 @@ function InviteMembersModal({
     );
   }
 
+  const defaultOrgRoles =
+    HookStore.get('member-invite-modal:organization-roles')[0]?.(organization) ??
+    ORG_ROLES;
+
   return (
     <ErrorBoundary>
       <InviteModalHook
@@ -83,7 +88,7 @@ function InviteMembersModal({
           isOverMemberLimit: isOverMemberLimit,
         }) => {
           return (
-            <InviteMembersContext.Provider
+            <InviteMembersContext
               value={{
                 willInvite,
                 invites,
@@ -109,14 +114,14 @@ function InviteMembersModal({
                 <InviteMessage />
                 {headerInfo}
                 <StyledInviteRow
-                  roleOptions={memberResult.data?.orgRoleList ?? ORG_ROLES}
+                  roleOptions={memberResult.data?.orgRoleList ?? defaultOrgRoles}
                   roleDisabledUnallowed={willInvite}
                 />
               </Body>
               <Footer>
                 <InviteMembersFooter canSend={canSend} />
               </Footer>
-            </InviteMembersContext.Provider>
+            </InviteMembersContext>
           );
         }}
       </InviteModalHook>

@@ -4,13 +4,17 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
+  DiscoverProperty,
+  DiscoverResponse,
   EAPSpanProperty,
   EAPSpanResponse,
   MetricsProperty,
   MetricsResponse,
-  OurlogsFields,
   SpanIndexedField,
   SpanIndexedProperty,
   SpanIndexedResponse,
@@ -18,77 +22,104 @@ import type {
   SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
-interface UseMetricsOptions<Fields> {
+interface UseDiscoverOptions<Fields> {
   cursor?: string;
   enabled?: boolean;
   fields?: Fields;
   limit?: number;
   noPagination?: boolean;
+  orderby?: string | string[];
   pageFilters?: PageFilters;
-  search?: MutableSearch | string; // TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
+  projectIds?: number[];
+  samplingMode?: SamplingMode;
+  /**
+   * TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
+   */
+  search?: MutableSearch | string;
   sorts?: Sort[];
 }
 
+// The default sampling mode for eap queries
+export const DEFAULT_SAMPLING_MODE: SamplingMode = 'NORMAL';
+
 export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
-  options: UseMetricsOptions<Fields> = {},
+  options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
+  const useEap = useInsightsEap();
   // Indexed spans dataset always returns an `id`
   return useDiscover<Fields | [SpanIndexedField.ID], SpanIndexedResponse>(
     options,
-    DiscoverDatasets.SPANS_INDEXED,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_INDEXED,
     referrer
   );
 };
 
-export const useOurlogs = <Fields extends Array<keyof OurlogsFields>>(
-  options: UseMetricsOptions<Fields> = {},
+export const useOurlogs = <Fields extends OurLogFieldKey[]>(
+  options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
-  const {data, ...rest} = useDiscover<Fields, OurlogsFields>(
+  const {data, ...rest} = useDiscover<Fields, OurLogsResponseItem>(
     options,
     DiscoverDatasets.OURLOGS,
     referrer
   );
-  const castData = data as OurlogsFields[];
+  const castData = data as OurLogsResponseItem[];
   return {...rest, data: castData};
 };
 
 export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
-  options: UseMetricsOptions<Fields> = {},
+  options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
   return useDiscover<Fields, EAPSpanResponse>(
     options,
-    DiscoverDatasets.SPANS_EAP,
+    DiscoverDatasets.SPANS_EAP_RPC,
     referrer
   );
 };
 
 export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
-  options: UseMetricsOptions<Fields> = {},
+  options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
+  const useEap = useInsightsEap();
   return useDiscover<Fields, SpanMetricsResponse>(
     options,
-    DiscoverDatasets.SPANS_METRICS,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
     referrer
   );
 };
 
 export const useMetrics = <Fields extends MetricsProperty[]>(
-  options: UseMetricsOptions<Fields> = {},
+  options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
+  const useEap = useInsightsEap();
   return useDiscover<Fields, MetricsResponse>(
     options,
-    DiscoverDatasets.METRICS,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
     referrer
   );
 };
 
-const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
-  options: UseMetricsOptions<T> = {},
+export const useDiscoverOrEap = <Fields extends DiscoverProperty[]>(
+  options: UseDiscoverOptions<Fields> = {},
+  referrer: string
+) => {
+  const useEap = useInsightsEap();
+  return useDiscover<Fields, DiscoverResponse>(
+    options,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.DISCOVER,
+    referrer
+  );
+};
+
+export const useDiscover = <
+  T extends Array<Extract<keyof ResponseType, string>>,
+  ResponseType,
+>(
+  options: UseDiscoverOptions<T> = {},
   dataset: DiscoverDatasets,
   referrer: string
 ) => {
@@ -100,7 +131,13 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     cursor,
     pageFilters: pageFiltersFromOptions,
     noPagination,
+    projectIds,
+    orderby,
+    samplingMode = DEFAULT_SAMPLING_MODE,
   } = options;
+
+  // TODO: remove this check with eap
+  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
   const pageFilters = usePageFilters();
 
@@ -109,7 +146,9 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     fields,
     sorts,
     pageFiltersFromOptions ?? pageFilters.selection,
-    dataset
+    dataset,
+    projectIds,
+    orderby
   );
 
   const result = useWrappedDiscoverQuery({
@@ -120,6 +159,7 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     referrer,
     cursor,
     noPagination,
+    samplingMode: shouldSetSamplingMode ? samplingMode : undefined,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
@@ -137,9 +177,11 @@ function getEventView(
   fields: string[] = [],
   sorts: Sort[] = [],
   pageFilters: PageFilters,
-  dataset: DiscoverDatasets
+  dataset: DiscoverDatasets,
+  projectIds?: number[],
+  orderby?: string | string[]
 ) {
-  const query = typeof search === 'string' ? search : search?.formatString() ?? '';
+  const query = typeof search === 'string' ? search : (search?.formatString() ?? '');
 
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
@@ -148,9 +190,14 @@ function getEventView(
       fields,
       dataset,
       version: 2,
+      orderby,
     },
     pageFilters
   );
+
+  if (projectIds) {
+    eventView.project = projectIds;
+  }
 
   if (sorts.length > 0) {
     eventView.sorts = sorts;

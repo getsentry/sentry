@@ -1,7 +1,8 @@
 import pytest
 
 from sentry.testutils.cases import TestMigrations
-from sentry.uptime.models import ProjectUptimeSubscriptionMode, UptimeSubscription
+from sentry.uptime.models import UptimeSubscription
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 
 
 @pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")

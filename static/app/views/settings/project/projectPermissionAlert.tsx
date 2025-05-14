@@ -33,5 +33,3 @@ export function ProjectPermissionAlert({
     </Access>
   );
 }
-
-export default ProjectPermissionAlert;

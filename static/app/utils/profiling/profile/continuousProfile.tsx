@@ -1,8 +1,7 @@
 import {defined} from 'sentry/utils';
+import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import type {Frame} from 'sentry/utils/profiling/frame';
 import type {createContinuousProfileFrameIndex} from 'sentry/utils/profiling/profile/utils';
-
-import {CallTreeNode} from '../callTreeNode';
-import type {Frame} from '../frame';
 
 import {Profile} from './profile';
 import {sortProfileSamples} from './utils';

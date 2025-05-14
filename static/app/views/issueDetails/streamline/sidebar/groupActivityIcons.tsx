@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {
   IconAdd,
   IconAsana,

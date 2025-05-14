@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import GroupList from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -112,7 +112,6 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
             </TextButtonWrapper>
           </HeaderWrapper>
           <GroupList
-            orgSlug={organization.slug}
             queryParams={{
               query,
               ...(hasGlobalViewsFeature ? undefined : {project: group.project.id}),

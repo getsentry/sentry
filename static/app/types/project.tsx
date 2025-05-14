@@ -64,6 +64,7 @@ export type Project = {
   team: Team;
   teams: Team[];
   verifySSL: boolean;
+  autofixAutomationTuning?: 'off' | 'low' | 'medium' | 'high';
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   eventProcessing?: {
@@ -79,6 +80,9 @@ export type Project = {
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
+  performanceIssueCreationRate?: number;
+  performanceIssueCreationThroughPlatform?: boolean;
+  performanceIssueSendToPlatform?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
   sessionStats?: {
@@ -165,6 +169,7 @@ export type PlatformKey =
   | 'c'
   | 'capacitor'
   | 'cfml'
+  | 'clojure'
   | 'cocoa'
   | 'cocoa-objc'
   | 'cocoa-swift'
@@ -198,6 +203,7 @@ export type PlatformKey =
   | 'go-iris'
   | 'go-martini'
   | 'go-negroni'
+  | 'godot'
   | 'groovy'
   | 'ionic'
   | 'java'
@@ -228,6 +234,7 @@ export type PlatformKey =
   | 'javascript-solidstart'
   | 'javascript-svelte'
   | 'javascript-sveltekit'
+  | 'javascript-tanstackstart-react'
   | 'javascript-vue'
   | 'kotlin'
   | 'minidump'
@@ -296,6 +303,7 @@ export type PlatformKey =
   | 'ruby-rack'
   | 'ruby-rails'
   | 'rust'
+  | 'scala'
   | 'swift'
   | 'switt'
   | 'unity'

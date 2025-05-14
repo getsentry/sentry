@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {ExportQueryType} from 'sentry/components/dataExport';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

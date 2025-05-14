@@ -78,7 +78,7 @@ export function useModuleURLBuilder(bare = false, detectDomainView = true): URLB
   const {slug} = organization;
 
   return function (moduleName: RoutableModuleNames, domainView?: DomainView) {
-    let view = detectDomainView ? currentView : currentView ?? domainView;
+    let view = detectDomainView ? currentView : (currentView ?? domainView);
 
     if (!view) {
       view = getModuleView(moduleName as ModuleName);

@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import merge from 'lodash/merge';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Input from 'sentry/components/input';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
+import {NumberInput} from 'sentry/components/core/input/numberInput';
+import {Select} from 'sentry/components/core/select';
+import TicketRuleModal from 'sentry/components/externalIssues/ticketRuleModal';
 import ExternalLink from 'sentry/components/links/externalLink';
-import NumberInput from 'sentry/components/numberInput';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -30,7 +31,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
-import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 
 interface FieldProps {
   data: Props['data'];
@@ -378,13 +378,10 @@ function RuleNode({
             openModal(deps => (
               <TicketRuleModal
                 {...deps}
-                formFields={node.formFields || {}}
                 link={node.link}
                 ticketType={node.ticketType}
                 instance={data}
-                index={index}
                 onSubmitAction={updateParentFromTicketRule}
-                organization={organization}
               />
             ))
           }
@@ -428,7 +425,7 @@ function RuleNode({
     if (data.id === IssueAlertConditionType.EVENT_FREQUENCY_PERCENT) {
       if (!project.platform || !releaseHealth.includes(project.platform)) {
         return (
-          <MarginlessAlert type="error">
+          <FooterAlert type="error">
             {tct(
               "This project doesn't support sessions. [link:View supported platforms]",
               {
@@ -437,12 +434,12 @@ function RuleNode({
                 ),
               }
             )}
-          </MarginlessAlert>
+          </FooterAlert>
         );
       }
 
       return (
-        <MarginlessAlert type="warning">
+        <FooterAlert type="warning">
           {tct(
             'Percent of sessions affected is approximated by the ratio of the issue frequency to the number of sessions in the project. [link:Learn more.]',
             {
@@ -451,47 +448,39 @@ function RuleNode({
               ),
             }
           )}
-        </MarginlessAlert>
+        </FooterAlert>
       );
     }
 
     if (data.id === IssueAlertActionType.SLACK) {
       return (
-        <MarginlessAlert
+        <FooterAlert
           type="info"
           showIcon
           trailingItems={
-            <LinkButton
-              href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
-              external
-              size="xs"
-            >
+            <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
-            </LinkButton>
+            </ExternalLink>
           }
         >
           {t('Having rate limiting problems? Enter a channel or user ID.')}
-        </MarginlessAlert>
+        </FooterAlert>
       );
     }
 
     if (data.id === IssueAlertActionType.DISCORD) {
       return (
-        <MarginlessAlert
+        <FooterAlert
           type="info"
           showIcon
           trailingItems={
-            <LinkButton
-              href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts"
-              external
-              size="xs"
-            >
+            <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}
-            </LinkButton>
+            </ExternalLink>
           }
         >
           {t('Note that you must enter a Discord channel ID, not a channel name.')}
-        </MarginlessAlert>
+        </FooterAlert>
       );
     }
 
@@ -503,11 +492,11 @@ function RuleNode({
       return null;
     }
     return (
-      <MarginlessAlert type="error" showIcon>
+      <FooterAlert type="error" showIcon>
         {t(
           'The conditions highlighted in red are in conflict. They may prevent the alert from ever being triggered.'
         )}
-      </MarginlessAlert>
+      </FooterAlert>
     );
   }
 
@@ -593,7 +582,7 @@ const InlineNumberInput = styled(NumberInput)`
   min-height: 28px;
 `;
 
-const InlineSelectControl = styled(SelectControl)`
+const InlineSelectControl = styled(Select)`
   width: 180px;
 `;
 
@@ -627,10 +616,10 @@ const DeleteButton = styled(Button)`
   flex-shrink: 0;
 `;
 
-const MarginlessAlert = styled(Alert)`
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  border-width: 0;
-  border-top: 1px ${p => p.theme.innerBorder} solid;
-  padding: ${space(1)} ${space(1)};
+const FooterAlert = styled(Alert)`
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  margin-top: -1px; /* remove double border on panel bottom */
+  a {
+    white-space: nowrap;
+  }
 `;

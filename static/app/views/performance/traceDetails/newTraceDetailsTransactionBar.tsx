@@ -1,9 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {Observer} from 'mobx-react';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import NewTraceDetailsSpanTree from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanTree';
@@ -56,7 +58,6 @@ import {
   getHumanDuration,
 } from 'sentry/components/performance/waterfall/utils';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconZoom} from 'sentry/icons/iconZoom';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -107,7 +108,7 @@ type Props = {
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   toggleExpandedState: () => void;
   traceInfo: TraceInfo;
-  traceViewRef: React.RefObject<HTMLDivElement>;
+  traceViewRef: React.RefObject<HTMLDivElement | null>;
   transaction: TraceRoot | TraceFullDetailed | TraceError;
   barColor?: string;
   isOrphanError?: boolean;
@@ -118,6 +119,7 @@ type Props = {
 };
 
 function NewTraceDetailsTransactionBar(props: Props) {
+  const theme = useTheme();
   const hashValues = parseTraceDetailsURLHash(props.location.hash);
   const openPanel = decodeScalar(props.location.query.openPanel);
   const eventIDInQueryParam = !!(
@@ -391,8 +393,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
     );
 
     const embeddedChildrenLength =
-      (embeddedChildren && waterfallModel && waterfallModel.rootSpan.children.length) ??
-      0;
+      (embeddedChildren && waterfallModel?.rootSpan.children.length) ?? 0;
     if (
       hasToggle &&
       (isExpanded || (showEmbeddedChildren && embeddedChildrenLength > 0))
@@ -498,6 +499,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
                           <Observer>
                             {() => (
                               <NewTraceDetailsSpanTree
+                                theme={theme}
                                 measurements={props.measurements}
                                 quickTrace={results}
                                 location={props.location}

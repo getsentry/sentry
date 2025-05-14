@@ -1,4 +1,4 @@
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
@@ -15,6 +15,7 @@ export function getUserOrgNavigationConfiguration({
 }): NavigationSection[] {
   return [
     {
+      id: 'settings-account',
       name: t('Account'),
       items: [
         {
@@ -70,6 +71,7 @@ export function getUserOrgNavigationConfiguration({
       ],
     },
     {
+      id: 'settings-organization',
       name: t('Organization'),
       items: [
         {
@@ -78,6 +80,12 @@ export function getUserOrgNavigationConfiguration({
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/stats/`,
+          title: t('Stats & Usage'),
+          description: t('View organization stats and usage'),
+          id: 'stats',
         },
         {
           path: `${organizationSettingsPathPrefix}/projects/`,
@@ -172,22 +180,13 @@ export function getUserOrgNavigationConfiguration({
         {
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           title: t('Feature Flags'),
-          description: t('Set up your provider webhooks'),
+          description: t('Set up feature flag integrations'),
           badge: () => 'beta',
-          show: ({organization}) =>
-            !!organization && organization.features.includes('feature-flag-ui'),
-        },
-        {
-          path: `${organizationSettingsPathPrefix}/stats/`,
-          title: t('Stats & Usage'),
-          description: t('View organization stats and usage'),
-          id: 'stats',
-          show: ({organization}) =>
-            organization?.features.includes('navigation-sidebar-v2') ?? false,
         },
       ],
     },
     {
+      id: 'settings-developer',
       name: t('Developer Settings'),
       items: [
         {
@@ -205,6 +204,7 @@ export function getUserOrgNavigationConfiguration({
       ],
     },
     {
+      id: 'settings-api',
       name: t('API'),
       items: [
         {

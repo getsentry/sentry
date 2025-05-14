@@ -1,5 +1,5 @@
 import type {CSSProperties} from 'react';
-import {forwardRef, useCallback} from 'react';
+import {useCallback} from 'react';
 import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
@@ -23,21 +23,20 @@ interface Props {
   style: CSSProperties;
   breadcrumbIndex?: number[][];
   expandPaths?: string[];
+  ref?: React.Ref<HTMLDivElement>;
 }
 
-const BreadcrumbRow = forwardRef<HTMLDivElement, Props>(function BreadcrumbRow(
-  {
-    expandPaths,
-    extraction,
-    frame,
-    index,
-    onClick,
-    onInspectorExpanded,
-    startTimestampMs,
-    style,
-  },
-  ref
-) {
+function BreadcrumbRow({
+  expandPaths,
+  extraction,
+  frame,
+  index,
+  onClick,
+  onInspectorExpanded,
+  startTimestampMs,
+  style,
+  ref,
+}: Props) {
   const {currentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
 
@@ -58,8 +57,8 @@ const BreadcrumbRow = forwardRef<HTMLDivElement, Props>(function BreadcrumbRow(
       className={classNames({
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
-        beforeHoverTime: currentHoverTime !== undefined ? isBeforeHover : undefined,
-        afterHoverTime: currentHoverTime !== undefined ? !isBeforeHover : undefined,
+        beforeHoverTime: currentHoverTime === undefined ? undefined : isBeforeHover,
+        afterHoverTime: currentHoverTime === undefined ? undefined : !isBeforeHover,
       })}
       style={style}
       frame={frame}
@@ -72,6 +71,6 @@ const BreadcrumbRow = forwardRef<HTMLDivElement, Props>(function BreadcrumbRow(
       onInspectorExpanded={handleObjectInspectorExpanded}
     />
   );
-});
+}
 
 export default BreadcrumbRow;

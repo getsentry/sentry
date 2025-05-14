@@ -2,10 +2,10 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import Input from 'sentry/components/input';
 import {
   DEBUG_SOURCE_CASINGS,
   DEBUG_SOURCE_LAYOUTS,
@@ -86,9 +86,9 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
       password:
         validData.password === undefined
           ? {'hidden-secret': true}
-          : !validData.password
-            ? undefined
-            : validData.password,
+          : validData.password
+            ? validData.password
+            : undefined,
     });
   }
 

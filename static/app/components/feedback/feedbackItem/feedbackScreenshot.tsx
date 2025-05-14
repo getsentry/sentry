@@ -1,11 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -49,16 +49,7 @@ export default function FeedbackScreenshot({
     />
   );
 
-  return !imgLoadError ? (
-    <StyledPanel className={className}>
-      {isLoading && (
-        <StyledLoadingIndicator>
-          <LoadingIndicator mini />
-        </StyledLoadingIndicator>
-      )}
-      {onClick ? <StyledImageButton onClick={onClick}>{img}</StyledImageButton> : img}
-    </StyledPanel>
-  ) : (
+  return imgLoadError ? (
     <File onClick={onClick}>
       <NoPreviewFound>
         <IconImage />
@@ -73,6 +64,15 @@ export default function FeedbackScreenshot({
         </FileDownload>
       </Tooltip>
     </File>
+  ) : (
+    <StyledPanel className={className}>
+      {isLoading && (
+        <StyledLoadingIndicator>
+          <LoadingIndicator mini />
+        </StyledLoadingIndicator>
+      )}
+      {onClick ? <StyledImageButton onClick={onClick}>{img}</StyledImageButton> : img}
+    </StyledPanel>
   );
 }
 
@@ -130,7 +130,7 @@ const File = styled(StyledPanel)`
 `;
 
 const NoPreviewFound = styled('p')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   display: flex;
   flex-direction: column;
   align-items: center;

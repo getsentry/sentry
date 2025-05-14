@@ -45,15 +45,6 @@ class DatabaseBackedProjectService(ProjectService):
             return serialize_project(project)
         return None
 
-    def get_by_external_id(self, *, organization_id: int, external_id: str) -> RpcProject | None:
-        project: Project | None = Project.objects.filter(
-            organization=organization_id,
-            external_id=external_id,
-        ).first()
-        if project:
-            return serialize_project(project)
-        return None
-
     def get_many_by_organizations(
         self,
         *,
@@ -141,7 +132,7 @@ class DatabaseBackedProjectService(ProjectService):
 
             set_default_symbol_sources(project)
 
-            project_created.send(
+            project_created.send_robust(
                 project=project,
                 default_rules=True,
                 sender=self.create_project_for_organization,

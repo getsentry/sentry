@@ -2,8 +2,7 @@ import {useCallback} from 'react';
 
 import useDrawer from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
-
-import type {VitalItem} from '../../mobile/screens/utils';
+import type {VitalItem} from 'sentry/views/insights/mobile/screens/utils';
 
 interface UseMobileVitalsDrawerProps {
   Component: React.ReactNode;
@@ -26,7 +25,6 @@ export function useMobileVitalsDrawer({
     openDrawer(() => Component, {
       ariaLabel: t('%s Details', vital.title),
       onClose,
-      transitionProps: {stiffness: 1000},
     });
   }, [openDrawer, isDrawerOpen, onClose, Component, vital]);
 

@@ -74,7 +74,6 @@ function makeSourceCodeLink(frame: FlamegraphFrame['frame']): string | undefined
 }
 
 interface FlamegraphZoomViewProps {
-  canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
   contextMenu: (props: FlamegraphContextMenuProps) => React.ReactElement | null;
   flamegraph: Flamegraph | DifferentialFlamegraph;
@@ -98,7 +97,6 @@ interface FlamegraphZoomViewProps {
 
 function FlamegraphZoomView({
   canvasPoolManager,
-  canvasBounds,
   flamegraphRenderer,
   flamegraph,
   flamegraphCanvas,
@@ -811,7 +809,6 @@ function FlamegraphZoomView({
           flamegraphCanvas={flamegraphCanvas}
           flamegraphRenderer={flamegraphRenderer}
           flamegraphView={flamegraphView}
-          canvasBounds={canvasBounds}
           platform={profileGroup.metadata.platform}
         />
       ) : null}

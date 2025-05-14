@@ -1,32 +1,32 @@
-import {forwardRef, useRef} from 'react';
+import {useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaSliderThumbOptions} from '@react-aria/slider';
 import {useSliderThumb} from '@react-aria/slider';
+import {mergeRefs} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {SliderState} from '@react-stately/slider';
 
 import {space} from 'sentry/styles/space';
-import mergeRefs from 'sentry/utils/mergeRefs';
 
-export interface SliderThumbProps extends Omit<AriaSliderThumbOptions, 'inputRef'> {
+interface SliderThumbProps extends Omit<AriaSliderThumbOptions, 'inputRef'> {
   getFormattedValue: (value: number) => React.ReactNode;
   state: SliderState;
   error?: boolean;
+  ref?: React.Ref<HTMLInputElement>;
   showLabel?: boolean;
 }
 
-function BaseSliderThumb(
-  {
-    index,
-    state,
-    trackRef,
-    error = false,
-    getFormattedValue,
-    showLabel,
-    ...props
-  }: SliderThumbProps,
-  forwardedRef: React.ForwardedRef<HTMLInputElement>
-) {
+export function SliderThumb({
+  index,
+  state,
+  trackRef,
+  error = false,
+  getFormattedValue,
+  showLabel,
+  ref,
+  ...props
+}: SliderThumbProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const {thumbProps, inputProps, isDisabled, isFocused} = useSliderThumb(
     {...props, index, trackRef, inputRef, validationState: error ? 'invalid' : 'valid'},
@@ -55,15 +55,11 @@ function BaseSliderThumb(
         </SliderThumbLabel>
       )}
       <VisuallyHidden>
-        <input ref={mergeRefs([inputRef, forwardedRef])} {...inputProps} />
+        <input ref={mergeRefs(inputRef, ref)} {...inputProps} />
       </VisuallyHidden>
     </SliderThumbWrap>
   );
 }
-
-const SliderThumb = forwardRef(BaseSliderThumb);
-
-export {SliderThumb};
 
 const SliderThumbWrap = styled('div')<{
   error: boolean;
@@ -88,33 +84,33 @@ const SliderThumbWrap = styled('div')<{
 
   ${p =>
     p.error &&
-    `
-    background: ${p.theme.error};
-    color: ${p.theme.errorText};
-
-    &:hover {
+    css`
       background: ${p.theme.error};
-    }
-  `}
+      color: ${p.theme.errorText};
+
+      &:hover {
+        background: ${p.theme.error};
+      }
+    `}
 
   ${p =>
     p.isFocused &&
-    `
+    css`
       box-shadow: 0 0 0 2px ${p.error ? p.theme.errorFocus : p.theme.focus};
-      z-index:1;
+      z-index: 1;
     `}
 
     ${p =>
     p.isDisabled &&
-    `
-        cursor: initial;
-        background: ${p.theme.subText};
-        color: ${p.theme.subText};
+    css`
+      cursor: initial;
+      background: ${p.theme.subText};
+      color: ${p.theme.subText};
 
-        &:hover {
-          background: ${p.theme.subText};
-        }
-      `};
+      &:hover {
+        background: ${p.theme.subText};
+      }
+    `};
 
   /* Extend click area */
   &::before {

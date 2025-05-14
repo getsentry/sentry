@@ -1,4 +1,4 @@
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DatasetSource} from 'sentry/utils/discover/types';
@@ -12,7 +12,7 @@ interface DiscoverSplitAlertProps {
 export function useDiscoverSplitAlert({
   widget,
   onSetTransactionsDataset,
-}: DiscoverSplitAlertProps): JSX.Element | null {
+}: DiscoverSplitAlertProps): React.JSX.Element | null {
   if (
     widget?.datasetSource !== DatasetSource.FORCED ||
     widget?.widgetType !== WidgetType.ERRORS

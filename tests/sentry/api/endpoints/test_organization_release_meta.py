@@ -8,6 +8,7 @@ from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releasefile import ReleaseFile
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
@@ -28,6 +29,9 @@ class ReleaseMetaTest(APITestCase):
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
         release.add_project(project)
         release.add_project(project2)
+
+        ReleaseProject.objects.filter(project=project, release=release).update(new_groups=10)
+        ReleaseProject.objects.filter(project=project2, release=release).update(new_groups=10)
 
         ReleaseFile.objects.create(
             organization_id=project.organization_id,
@@ -61,7 +65,6 @@ class ReleaseMetaTest(APITestCase):
 
         release.commit_count = 2
         release.total_deploys = 1
-        release.new_groups = 42
         release.save()
 
         self.create_member(teams=[team1, team2], user=user, organization=org)
@@ -79,7 +82,7 @@ class ReleaseMetaTest(APITestCase):
         data = orjson.loads(response.content)
         assert data["deployCount"] == 1
         assert data["commitCount"] == 2
-        assert data["newGroups"] == 42
+        assert data["newGroups"] == 20
         assert data["commitFilesChanged"] == 2
         assert data["releaseFileCount"] == 1
         assert len(data["projects"]) == 2

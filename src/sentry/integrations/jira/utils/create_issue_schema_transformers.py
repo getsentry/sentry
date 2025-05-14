@@ -88,7 +88,10 @@ def transform_fields(
     transformed_data = {}
 
     # Special handling for fields that don't map cleanly to the transformer logic
-    data["summary"] = data.get("title")
+    # Also, we need to truncate the title field to prevent Jira from erroring
+    # when it's too long.
+    title = data.get("title")
+    data["summary"] = title[:255] if title else None
     if labels := data.get("labels"):
         data["labels"] = [label.strip() for label in labels.split(",") if label.strip()]
 

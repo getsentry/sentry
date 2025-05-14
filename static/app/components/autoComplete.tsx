@@ -446,7 +446,7 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
     }
 
     this.setState(state => ({
-      isOpen: !this.isOpenIsControlled ? false : state.isOpen,
+      isOpen: this.isOpenIsControlled ? state.isOpen : false,
       inputValue: resetInputOnClose ? '' : state.inputValue,
     }));
   };

@@ -76,7 +76,10 @@ describe('Issues Similar View', function () {
   };
 
   it('renders with mocked data', async function () {
-    render(<GroupSimilarIssues />, {router});
+    render(<GroupSimilarIssues />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
@@ -94,7 +97,10 @@ describe('Issues Similar View', function () {
       },
     });
 
-    render(<GroupSimilarIssues />, {router});
+    render(<GroupSimilarIssues />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     renderGlobalModal();
 
     await selectNthSimilarItem(0);
@@ -116,7 +122,10 @@ describe('Issues Similar View', function () {
   });
 
   it('correctly shows merge count', async function () {
-    render(<GroupSimilarIssues />, {router});
+    render(<GroupSimilarIssues />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     renderGlobalModal();
 
     await selectNthSimilarItem(0);
@@ -133,7 +142,10 @@ describe('Issues Similar View', function () {
       body: [],
     });
 
-    render(<GroupSimilarIssues />, {router});
+    render(<GroupSimilarIssues />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     renderGlobalModal();
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
@@ -208,7 +220,10 @@ describe('Issues Similar Embeddings View', function () {
   };
 
   it('renders with mocked data', async function () {
-    render(<GroupSimilarIssues />, {router});
+    render(<GroupSimilarIssues />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
@@ -224,7 +239,10 @@ describe('Issues Similar Embeddings View', function () {
       },
     });
 
-    render(<GroupSimilarIssues />, {router});
+    render(<GroupSimilarIssues />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     renderGlobalModal();
 
     await selectNthSimilarItem(0);
@@ -246,7 +264,10 @@ describe('Issues Similar Embeddings View', function () {
   });
 
   it('correctly shows merge count', async function () {
-    render(<GroupSimilarIssues />, {router});
+    render(<GroupSimilarIssues />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     renderGlobalModal();
 
     await selectNthSimilarItem(0);
@@ -263,7 +284,10 @@ describe('Issues Similar Embeddings View', function () {
       body: [],
     });
 
-    render(<GroupSimilarIssues />, {router});
+    render(<GroupSimilarIssues />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     renderGlobalModal();
 
     await waitFor(() => expect(mock).toHaveBeenCalled());

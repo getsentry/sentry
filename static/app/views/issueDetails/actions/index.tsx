@@ -12,17 +12,17 @@ import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archi
 import ResolveActions from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button, LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {renderResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
   IconEllipsis,
-  IconLink,
   IconSubscribed,
   IconUnsubscribed,
+  IconUpload,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -102,16 +102,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     customCopy: {resolution: resolvedCopyCap},
     discover: discoverCap,
   } = config;
-
-  // Update the deleteCap to be enabled if the feature flag is present
-  const hasIssuePlatformDeletionUI = organization.features.includes(
-    'issue-platform-deletion-ui'
-  );
-  const updatedDeleteCap = {
-    ...deleteCap,
-    enabled: hasIssuePlatformDeletionUI || deleteCap.enabled,
-    disabledReason: hasIssuePlatformDeletionUI ? null : deleteCap.disabledReason,
-  };
 
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
@@ -469,7 +459,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         <Button
           size="sm"
           onClick={openShareModal}
-          icon={<IconLink />}
+          icon={<IconUpload />}
           aria-label={t('Share')}
           title={t('Share Issue')}
           analyticsEventKey="issue_details.share_action_clicked"
@@ -499,15 +489,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                   children: archiveDropdownItems,
                 },
               ]),
-          {
-            key: 'open-in-discover',
-            // XXX: Always show for streamlined UI
-            className: hasStreamlinedUI ? undefined : 'hidden-sm hidden-md hidden-lg',
-            label: t('Open in Discover'),
-            to: disabled ? '' : getDiscoverUrl(),
-            onAction: () => trackIssueAction('open_in_discover'),
-          },
-          // We don't hide the subscribe button for streamlined UI
+          // We don't hide the subscribe or discover button for streamlined UI
           ...(hasStreamlinedUI
             ? []
             : [
@@ -517,6 +499,13 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                   label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
                   disabled: disabled || group.subscriptionDetails?.disabled,
                   onAction: onToggleSubscribe,
+                },
+                {
+                  key: 'open-in-discover',
+                  className: 'hidden-sm hidden-md hidden-lg',
+                  label: t('Open in Discover'),
+                  to: disabled ? '' : getDiscoverUrl(),
+                  onAction: () => trackIssueAction('open_in_discover'),
                 },
               ]),
           {
@@ -549,8 +538,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             priority: 'danger',
             label: t('Delete'),
             hidden: !hasDeleteAccess,
-            disabled: !updatedDeleteCap.enabled,
-            details: updatedDeleteCap.disabledReason,
+            disabled: !deleteCap.enabled,
+            details: deleteCap.disabledReason,
             onAction: openDeleteModal,
           },
           {

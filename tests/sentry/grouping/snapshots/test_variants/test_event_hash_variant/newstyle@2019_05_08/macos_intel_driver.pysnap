@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:53.648852+00:00'
+created: '2025-02-26T00:33:32.254673+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -193,10 +193,10 @@ system:
     system*
       exception*
         stacktrace*
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "start"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored due to recursion)
             function*
               "start"
           frame*
@@ -288,11 +288,11 @@ system:
           frame*
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "abort"
           frame
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "_sigtramp"
           frame*
@@ -358,10 +358,10 @@ system:
           frame*
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "abort"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "__pthread_kill"
         type (ignored because exception is synthetic)

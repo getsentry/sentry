@@ -4,14 +4,15 @@ import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
-import Checkbox from 'sentry/components/checkbox';
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
-import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import {getItemsWithKeys} from 'sentry/components/core/compactSelect/utils';
 import {
   ItemType,
   type SearchGroup,
   type SearchItem,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
+import {DeviceName} from 'sentry/components/deviceName';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
   type CustomComboboxMenu,
@@ -54,9 +55,9 @@ import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
+import {type FieldDefinition, FieldKey, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {keepPreviousData, type QueryKey, useQuery} from 'sentry/utils/queryClient';
+import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -65,7 +66,7 @@ type SearchQueryValueBuilderProps = {
   onCommit: () => void;
   onDelete: () => void;
   token: TokenResult<Token.FILTER>;
-  wrapperRef: React.RefObject<HTMLDivElement>;
+  wrapperRef: React.RefObject<HTMLDivElement | null>;
 };
 
 function isStringFilterValues(
@@ -107,7 +108,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
     parsed.items
       .map(item =>
         item.value?.quoted
-          ? item.value?.text ?? ''
+          ? (item.value?.text ?? '')
           : cleanFilterValue({valueType, value: item.value?.text ?? ''})
       )
       .filter(text => text?.length) ?? [];
@@ -116,7 +117,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
 
   return uniqueValues.length > 1
     ? `[${uniqueValues.join(',')}]`
-    : uniqueValues[0] ?? '""';
+    : (uniqueValues[0] ?? '""');
 }
 
 function getSelectedValuesFromText(
@@ -268,7 +269,7 @@ function useSelectionIndex({
   canSelectMultipleValues,
 }: {
   canSelectMultipleValues: boolean;
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
   inputValue: string;
 }) {
   const [selectionIndex, setSelectionIndex] = useState<number | null>(
@@ -282,10 +283,10 @@ function useSelectionIndex({
   }, [canSelectMultipleValues, inputValue]);
 
   const updateSelectionIndex = useCallback(() => {
-    if (inputRef.current?.selectionStart !== inputRef.current?.selectionEnd) {
-      setSelectionIndex(null);
-    } else {
+    if (inputRef.current?.selectionStart === inputRef.current?.selectionEnd) {
       setSelectionIndex(inputRef.current?.selectionStart ?? null);
+    } else {
+      setSelectionIndex(null);
     }
   }, [inputRef]);
 
@@ -327,17 +328,21 @@ function useFilterSuggestions({
     fieldDefinition
   );
 
-  const queryKey = useMemo<QueryKey>(
-    () => ['search-query-builder-tag-values', keyName, filterValue],
-    [filterValue, keyName]
+  const queryParams = useMemo(
+    () =>
+      [
+        key ? {key: key.key, name: key.name} : {key: keyName, name: keyName},
+        filterValue,
+      ] as const,
+    [filterValue, key, keyName]
   );
-
-  const debouncedQueryKey = useDebouncedValue(queryKey);
 
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
-    queryKey: debouncedQueryKey,
-    queryFn: () => getTagValues(key ? key : {key: keyName, name: keyName}, filterValue),
+    queryKey: useDebouncedValue(
+      useMemo(() => ['search-query-builder-tag-values', queryParams], [queryParams])
+    ),
+    queryFn: () => getTagValues(...queryParams),
     placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
   });
@@ -373,10 +378,26 @@ function useFilterSuggestions({
   );
 
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
-    return shouldFetchValues
-      ? [{sectionText: '', suggestions: data?.map(value => ({value})) ?? []}]
-      : predefinedValues ?? [];
-  }, [data, predefinedValues, shouldFetchValues]);
+    if (!shouldFetchValues) {
+      return predefinedValues ?? [];
+    }
+
+    const suggestions = data?.map(value => {
+      return {
+        value,
+        description:
+          // When the key is device, we can help users by displaying the readable name
+          key?.key === FieldKey.DEVICE ? (
+            <DeviceName value={value}>
+              {/* Prevent the same value from being displayed twice */}
+              {name => (name === value ? null : name)}
+            </DeviceName>
+          ) : undefined,
+      };
+    });
+
+    return [{sectionText: '', suggestions: suggestions ?? []}];
+  }, [data, predefinedValues, shouldFetchValues, key?.key]);
 
   // Grouped sections for rendering purposes
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
@@ -390,7 +411,17 @@ function useFilterSuggestions({
       {
         sectionText: '',
         items: getItemsWithKeys([
-          ...selectedValues.map(value => createItem({value}, true)),
+          ...selectedValues.map(value => {
+            const matchingSuggestion = suggestionGroups
+              .flatMap(group => group.suggestions)
+              .find(suggestion => suggestion.value === value);
+
+            if (matchingSuggestion) {
+              return createItem(matchingSuggestion, true);
+            }
+
+            return createItem({value}, true);
+          }),
           ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
         ]),
       },

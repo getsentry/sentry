@@ -1,12 +1,13 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import {CompositeSelect} from 'sentry/components/compactSelect/composite';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
@@ -14,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Field} from 'sentry/utils/discover/fields';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -22,20 +24,30 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {GenericPerformanceWidgetDataType} from 'sentry/views/performance/landing/widgets/types';
+import {
+  _setChartSetting,
+  filterAllowedChartsMetrics,
+  getChartSetting,
+} from 'sentry/views/performance/landing/widgets/utils';
+import type {
+  ChartDefinition,
+  PerformanceWidgetSetting,
+} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {WIDGET_DEFINITIONS} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {HistogramWidget} from 'sentry/views/performance/landing/widgets/widgets/histogramWidget';
+import {LineChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/lineChartListWidget';
 import MobileReleaseComparisonListWidget from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
 import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
-
-import {GenericPerformanceWidgetDataType} from '../types';
-import {_setChartSetting, filterAllowedChartsMetrics, getChartSetting} from '../utils';
-import type {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
-import {WIDGET_DEFINITIONS} from '../widgetDefinitions';
-import {HistogramWidget} from '../widgets/histogramWidget';
-import {LineChartListWidget} from '../widgets/lineChartListWidget';
-import {PerformanceScoreWidget} from '../widgets/performanceScoreWidget';
-import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
-import {StackedAreaChartListWidget} from '../widgets/stackedAreaChartListWidget';
-import {TrendsWidget} from '../widgets/trendsWidget';
-import {VitalWidget} from '../widgets/vitalWidget';
+import {PerformanceScoreWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreWidget';
+import {SingleFieldAreaWidget} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
+import {StackedAreaChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/stackedAreaChartListWidget';
+import {TrendsWidget} from 'sentry/views/performance/landing/widgets/widgets/trendsWidget';
+import {VitalWidget} from 'sentry/views/performance/landing/widgets/widgets/vitalWidget';
 
 import type {ChartRowProps} from './widgetChartRow';
 
@@ -77,6 +89,7 @@ function WidgetContainerInner(props: Props) {
     setRowChartSettings,
     ...rest
   } = props;
+  const theme = useTheme();
   const performanceType = usePerformanceDisplayType();
   let _chartSetting = getChartSetting(
     index,
@@ -118,7 +131,7 @@ function WidgetContainerInner(props: Props) {
     setChartSettingState(_chartSetting);
   }, [rest.defaultChartSetting, _chartSetting]);
 
-  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+  const chartDefinition = WIDGET_DEFINITIONS({organization, theme})[chartSetting];
 
   // Construct an EventView that matches this widget's definition. The
   // `eventView` from the props is the _landing page_ EventView, which is different
@@ -145,8 +158,9 @@ function WidgetContainerInner(props: Props) {
             />
           )
         : null,
-    ContainerActions: !showNewWidgetDesign
-      ? (containerProps: any) => (
+    ContainerActions: showNewWidgetDesign
+      ? null
+      : (containerProps: any) => (
           <WidgetContainerActions
             {...containerProps}
             eventView={widgetEventView}
@@ -155,8 +169,7 @@ function WidgetContainerInner(props: Props) {
             setChartSetting={setChartSetting}
             rowChartSettings={rowChartSettings}
           />
-        )
-      : null,
+        ),
   };
 
   const passedProps = pick(props, [
@@ -213,7 +226,7 @@ function WidgetContainerInner(props: Props) {
   }
 }
 
-export function WidgetInteractiveTitle({
+function WidgetInteractiveTitle({
   chartSetting,
   eventView,
   setChartSetting,
@@ -226,11 +239,13 @@ export function WidgetInteractiveTitle({
   rowChartSettings: PerformanceWidgetSetting[];
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const organization = useOrganization();
   const menuOptions: Array<SelectOption<string>> = [];
+  const useEap = useInsightsEap();
 
-  const settingsMap = WIDGET_DEFINITIONS({organization});
+  const settingsMap = WIDGET_DEFINITIONS({organization, theme});
   for (const setting of allowedCharts) {
     const options = settingsMap[setting];
     menuOptions.push({
@@ -240,14 +255,35 @@ export function WidgetInteractiveTitle({
     });
   }
 
-  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+  const chartDefinition = WIDGET_DEFINITIONS({organization, theme})[chartSetting];
 
   if (chartDefinition.allowsOpenInDiscover) {
-    menuOptions.push({label: t('Open in Discover'), value: 'open_in_discover'});
+    if (useEap) {
+      menuOptions.push({label: t('Open in Explore'), value: 'open_in_explore'});
+    } else {
+      menuOptions.push({label: t('Open in Discover'), value: 'open_in_discover'});
+    }
   }
 
   const handleChange = (option: {value: string | number}) => {
-    if (option.value === 'open_in_discover') {
+    if (option.value === 'open_in_explore') {
+      const yAxis =
+        typeof eventView.yAxis === 'string' ? [eventView.yAxis] : (eventView.yAxis ?? []);
+      navigate(
+        getExploreUrl({
+          organization,
+          visualize: yAxis?.map(y => ({
+            chartType: ChartType.LINE,
+            yAxes: [y],
+          })),
+          mode: Mode.AGGREGATE,
+          title: eventView.name,
+          query: eventView.getQueryWithAdditionalConditions(),
+          sort: eventView.sorts[0] ? encodeSort(eventView.sorts[0]) : undefined,
+          groupBy: eventView.fields.map(field => field.field),
+        })
+      );
+    } else if (option.value === 'open_in_discover') {
       navigate(getEventViewDiscoverPath(organization, eventView));
     } else {
       setChartSetting(option.value as PerformanceWidgetSetting);
@@ -267,7 +303,7 @@ export function WidgetInteractiveTitle({
 
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
-   * setting this higher up causes it to trickle into the menues */
+   * setting this higher up causes it to trickle into the menus */
   font-weight: ${p => p.theme.fontWeightNormal};
   margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
@@ -278,7 +314,7 @@ const StyledCompactSelect = styled(CompactSelect)`
   }
 `;
 
-export function WidgetContainerActions({
+function WidgetContainerActions({
   chartSetting,
   eventView,
   setChartSetting,
@@ -291,11 +327,12 @@ export function WidgetContainerActions({
   rowChartSettings: PerformanceWidgetSetting[];
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const organization = useOrganization();
   const menuOptions: Array<SelectOption<PerformanceWidgetSetting>> = [];
 
-  const settingsMap = WIDGET_DEFINITIONS({organization});
+  const settingsMap = WIDGET_DEFINITIONS({organization, theme});
   for (const setting of allowedCharts) {
     const options = settingsMap[setting];
     menuOptions.push({
@@ -305,7 +342,7 @@ export function WidgetContainerActions({
     });
   }
 
-  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+  const chartDefinition = WIDGET_DEFINITIONS({organization, theme})[chartSetting];
 
   function handleWidgetActionChange(value: string) {
     if (value === 'open_in_discover') {

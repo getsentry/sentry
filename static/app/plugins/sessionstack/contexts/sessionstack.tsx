@@ -22,18 +22,18 @@ class SessionStackContextType extends Component<Props, State> {
   };
 
   componentDidMount() {
-    window.addEventListener('resize', () => this.setIframeSize(), false);
+    window.addEventListener('resize', this.setIframeSize, false);
     this.setIframeSize();
   }
 
   componentWillUnmount() {
-    window.removeEventListener('resize', () => this.setIframeSize(), false);
+    window.removeEventListener('resize', this.setIframeSize, false);
   }
   iframeContainerId = uniqueId();
 
   getTitle = () => 'SessionStack';
 
-  setIframeSize() {
+  setIframeSize = () => {
     const parentNode = document.getElementById(this.iframeContainerId)?.parentElement;
     if (!this.state.showIframe || !parentNode) {
       return;
@@ -45,7 +45,7 @@ class SessionStackContextType extends Component<Props, State> {
       width: parentWidth,
       height: parentWidth / ASPECT_RATIO,
     });
-  }
+  };
 
   playSession() {
     this.setState({

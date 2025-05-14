@@ -3,58 +3,18 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
 import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/content';
-
-jest.mock('sentry/utils/useParams');
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
 
 describe('SpanSummaryPage', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
-    search: '',
-    query: {statsPeriod: '10d', project: '1'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
-
-  jest.mocked(useProjects).mockReturnValue({
-    projects: [],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    fetching: false,
-    hasMore: null,
-    fetchError: null,
-    initiallyLoaded: false,
-  });
-
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
+  const initialRouterConfig = {
+    route: '/organizations/:orgId/insights/summary/:spanSlug/',
+    location: {
+      // Sets spanSlug to 'db:aaaaaaaa'
+      pathname: '/organizations/org-slug/insights/summary/db:aaaaaaaa/',
     },
-  });
+  };
 
   let headerDataMock: jest.Mock;
   let avgDurationChartMock: jest.Mock;
@@ -62,10 +22,6 @@ describe('SpanSummaryPage', function () {
   let transactionThroughputChartMock: jest.Mock;
 
   beforeEach(() => {
-    jest.mocked(useParams).mockReturnValue({
-      spanSlug: 'db:aaaaaaaa',
-    });
-
     jest.clearAllMocks();
 
     avgDurationChartMock = MockApiClient.addMockResponse({
@@ -269,7 +225,8 @@ describe('SpanSummaryPage', function () {
         transactionName="transaction"
         organization={organization}
         project={undefined}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     expect(headerDataMock).toHaveBeenCalled();
@@ -299,7 +256,8 @@ describe('SpanSummaryPage', function () {
         transactionName="transaction"
         organization={organization}
         project={project}
-      />
+      />,
+      {initialRouterConfig}
     );
 
     expect(avgDurationChartMock).toHaveBeenCalled();

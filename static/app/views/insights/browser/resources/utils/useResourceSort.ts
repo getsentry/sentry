@@ -2,10 +2,10 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
-const {TIME_SPENT_PERCENTAGE} = SpanFunction;
+const {SPAN_SELF_TIME, NORMALIZED_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} =
+  SpanMetricsField;
 
 type Query = {
   sort?: string;
@@ -13,10 +13,10 @@ type Query = {
 
 const SORTABLE_FIELDS = [
   `avg(${SPAN_SELF_TIME})`,
-  SPAN_DESCRIPTION,
-  'spm()',
+  NORMALIZED_DESCRIPTION,
+  'epm()',
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-  `${TIME_SPENT_PERCENTAGE}()`,
+  `sum(${SPAN_SELF_TIME})`,
 ] as const;
 
 export type ValidSort = Sort & {
@@ -35,13 +35,13 @@ export function useResourceSort(
 
   return (
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    decodeSorts(location.query[sortParameterName]).filter(isAValidSort)[0] ?? fallback
+    decodeSorts(location.query[sortParameterName]).find(isAValidSort) ?? fallback
   );
 }
 
 const DEFAULT_SORT: ValidSort = {
   kind: 'desc',
-  field: SORTABLE_FIELDS[4],
+  field: 'sum(span.self_time)',
 };
 
 function isAValidSort(sort: Sort): sort is ValidSort {

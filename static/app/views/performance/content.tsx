@@ -29,7 +29,7 @@ import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {getLandingDisplayFromParam} from './landing/utils';
-import {generatePerformanceEventView, getDefaultStatsPeriod} from './data';
+import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import {PerformanceLanding} from './landing';
 import {
   addRoutePerformanceContext,
@@ -180,7 +180,7 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
                 start: null,
                 end: null,
                 utc: false,
-                period: getDefaultStatsPeriod(organization),
+                period: DEFAULT_STATS_PERIOD,
               },
             }}
           >

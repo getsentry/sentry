@@ -6,7 +6,7 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 type Options = {
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,
   // params should have `{orgId: slug}`
-  params: {[key: string]: string | undefined};
+  params: Record<string, string | undefined>;
 
   routes: PlainRoute[];
 
@@ -39,13 +39,13 @@ export default function recreateRoute(to: string | PlainRoute, options: Options)
   let routeIndex: number | undefined;
 
   // TODO(ts): typescript things
-  if (typeof to !== 'string') {
+  if (typeof to === 'string') {
+    lastRootIndex = paths.findLastIndex((path: any) => path[0] === '/');
+  } else {
     routeIndex = routes.indexOf(to) + 1;
     lastRootIndex = paths
       .slice(0, routeIndex)
       .findLastIndex((path: any) => path[0] === '/');
-  } else {
-    lastRootIndex = paths.findLastIndex((path: any) => path[0] === '/');
   }
 
   let baseRoute = paths.slice(lastRootIndex, routeIndex);
@@ -58,7 +58,7 @@ export default function recreateRoute(to: string | PlainRoute, options: Options)
   const hash = location?.hash ?? '';
 
   const fullRoute = `${baseRoute.join('')}${
-    typeof to !== 'string' ? '' : to
+    typeof to === 'string' ? to : ''
   }${search}${hash}`;
 
   return replaceRouterParams(fullRoute, params);

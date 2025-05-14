@@ -46,6 +46,8 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["stacktraceOrder"] == -1
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
+        assert not resp.data["options"]["prefersStackedNavigation"]
+        assert not resp.data["options"]["prefersChonkUI"]
         assert not resp.data["options"]["quickStartDisplay"]
 
     def test_superuser_simple(self):
@@ -117,6 +119,9 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "clock24Hours": True,
                 "extra": True,
                 "prefersIssueDetailsStreamlinedUI": True,
+                "prefersNextjsInsightsOverview": True,
+                "prefersStackedNavigation": True,
+                "prefersChonkUI": True,
                 "quickStartDisplay": {self.organization.id: 1},
             },
         )
@@ -137,6 +142,9 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(
             user=self.user, key="prefers_issue_details_streamlined_ui"
         )
+        assert UserOption.objects.get_value(user=self.user, key="prefers_stacked_navigation")
+        assert UserOption.objects.get_value(user=self.user, key="prefers_chonk_ui")
+        assert UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
         assert (
             UserOption.objects.get_value(user=self.user, key="quick_start_display").get(
                 str(self.organization.id)
@@ -174,11 +182,11 @@ class UserDetailsUpdateTest(UserDetailsTest):
         self.login_as(user=user, superuser=False)
 
         self.create_useremail(user, "new@example.com", is_verified=True)
-        self.get_success_response("me", username="new@example.com")
-
+        response = self.get_success_response("me", username="new@example.com")
         user = User.objects.get(id=user.id)
 
         assert user.email == "c@example.com"
+        assert response.data["email"] == "c@example.com"
         assert user.username == "new@example.com"
 
     def test_change_username_when_same(self):
@@ -207,6 +215,31 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
         assert user.email == "c@example.com"
         assert user.username == "c@example.com"
+
+    def test_saving_nextjs_insights_overview_option(self):
+        self.get_success_response(
+            "me",
+            options={"prefersNextjsInsightsOverview": True},
+        )
+        assert (
+            UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
+            is True
+        )
+
+        self.get_success_response(
+            "me",
+            options={"prefersNextjsInsightsOverview": False},
+        )
+        assert (
+            UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
+            is False
+        )
+
+    def test_default_nextjs_insights_overview_option_is_true(self):
+        resp = self.get_success_response(
+            "me",
+        )
+        assert resp.data["options"]["prefersNextjsInsightsOverview"] is True
 
     def test_saving_quick_start_display_option(self):
         org1_id = str(self.organization.id)

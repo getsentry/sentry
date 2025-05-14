@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 import orjson
 from django.db import router, transaction
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
 
 from sentry import options
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -21,8 +24,8 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.pagerduty.metrics import record_event
-from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.pipeline import PipelineView
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -178,8 +181,9 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         with record_event(OnCallInteractionType.POST_INSTALL).capture():
             services = integration.metadata["services"]
@@ -199,8 +203,8 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
                         service_name=service["name"],
                     )
 
-    def build_integration(self, state):
-        config = orjson.loads(state.get("config"))
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
+        config = orjson.loads(state["config"])
         account = config["account"]
         # PagerDuty gives us integration keys for various things, some of which
         # are not services. For now we only care about services.
@@ -223,7 +227,7 @@ class PagerDutyInstallationRedirect(PipelineView):
 
         return f"https://{account_name}.pagerduty.com/install/integration?app_id={app_id}&redirect_url={setup_url}&version=2"
 
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if "config" in request.GET:
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()

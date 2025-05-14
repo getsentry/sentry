@@ -4,6 +4,8 @@ import type {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import {
   isAutogroupedNode,
+  isEAPErrorNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isRootNode,
@@ -21,6 +23,9 @@ export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>)
   if (isSpanNode(node)) {
     return 'span';
   }
+  if (isEAPSpanNode(node)) {
+    return 'eap span';
+  }
   if (isTransactionNode(node)) {
     return 'transaction';
   }
@@ -35,6 +40,9 @@ export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>)
   }
   if (isTraceErrorNode(node)) {
     return 'error';
+  }
+  if (isEAPErrorNode(node)) {
+    return 'eap error';
   }
   return 'unknown';
 }

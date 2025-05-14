@@ -5,7 +5,6 @@ import {
   isTokenFreeText,
   isTokenFunction,
   Operator,
-  Parenthesis,
   type Token,
   TokenAttribute,
   TokenCloseParenthesis,
@@ -148,7 +147,12 @@ export function nextTokenKeyOfKind(
       makeTokenKey(kind);
 }
 
-class ArithmeticError extends Error {}
+class ArithmeticError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ArithmeticError';
+  }
+}
 
 class TokenConverter {
   tokenParenthesis(parenthesis: string, location: LocationRange): TokenParenthesis {
@@ -188,17 +192,6 @@ class TokenConverter {
   }
 }
 
-export function toParenthesis(parenthesis: string): Parenthesis {
-  switch (parenthesis) {
-    case '(':
-      return Parenthesis.OPEN;
-    case ')':
-      return Parenthesis.CLOSE;
-    default:
-      throw new ArithmeticError(`Unknown parenthesis: ${parenthesis}`);
-  }
-}
-
 export function toOperator(operator: string): Operator {
   switch (operator) {
     case '+':
@@ -214,7 +207,7 @@ export function toOperator(operator: string): Operator {
   }
 }
 
-export function toTokenKind(kind: string): TokenKind {
+function toTokenKind(kind: string): TokenKind {
   switch (kind) {
     case TokenKind.OPEN_PARENTHESIS:
       return TokenKind.OPEN_PARENTHESIS;

@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -26,22 +27,8 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -64,6 +51,10 @@ describe('PageOverview', function () {
       url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -71,7 +62,7 @@ describe('PageOverview', function () {
   });
 
   it('renders', () => {
-    render(<PageOverview />, {organization});
+    render(<PageOverview />, {organization, deprecatedRouterMocks: true});
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -85,12 +76,6 @@ describe('PageOverview', function () {
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
             'p75(measurements.inp)',
-            'p75(transaction.duration)',
-            'count_web_vitals(measurements.lcp, any)',
-            'count_web_vitals(measurements.fcp, any)',
-            'count_web_vitals(measurements.cls, any)',
-            'count_web_vitals(measurements.ttfb, any)',
-            'count_web_vitals(measurements.inp, any)',
             'count()',
           ],
           query:
@@ -145,7 +130,10 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />, {organization: organizationWithInp});
+    render(<PageOverview />, {
+      organization: organizationWithInp,
+      deprecatedRouterMocks: true,
+    });
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -154,11 +142,7 @@ describe('PageOverview', function () {
             dataset: 'spansIndexed',
             field: [
               'measurements.inp',
-              'measurements.lcp',
-              'measurements.cls',
               'measurements.score.ratio.inp',
-              'measurements.score.ratio.lcp',
-              'measurements.score.ratio.cls',
               'measurements.score.total',
               'trace',
               'profile_id',
@@ -169,9 +153,12 @@ describe('PageOverview', function () {
               'timestamp',
               'span.self_time',
               'transaction',
+              'span.op',
+              'lcp.element',
+              'cls.source.1',
             ],
             query:
-              'has:message !span.description:<unknown> transaction:/  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]',
+              'has:message !span.description:<unknown> transaction:/  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press] ',
           }),
         })
       )
@@ -194,7 +181,10 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />, {organization: organizationWithInp});
+    render(<PageOverview />, {
+      organization: organizationWithInp,
+      deprecatedRouterMocks: true,
+    });
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -203,11 +193,7 @@ describe('PageOverview', function () {
             dataset: 'spansIndexed',
             field: [
               'measurements.inp',
-              'measurements.lcp',
-              'measurements.cls',
               'measurements.score.ratio.inp',
-              'measurements.score.ratio.lcp',
-              'measurements.score.ratio.cls',
               'measurements.score.total',
               'trace',
               'profile_id',
@@ -218,9 +204,12 @@ describe('PageOverview', function () {
               'timestamp',
               'span.self_time',
               'transaction',
+              'span.op',
+              'lcp.element',
+              'cls.source.1',
             ],
             query:
-              'has:message !span.description:<unknown> transaction:"/page-with-a-\\*/"  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]',
+              'has:message !span.description:<unknown> transaction:"/page-with-a-\\*/"  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press] ',
           }),
         })
       )

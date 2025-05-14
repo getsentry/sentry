@@ -23,7 +23,7 @@ type Opts = {
   /**
    * The <MultiGrid> elem.
    */
-  gridRef: RefObject<MultiGrid>;
+  gridRef: RefObject<MultiGrid | null>;
 };
 
 const globalCellMeasurerCache = new WeakMap<CellMeasurerCacheParams, CellMeasurerCache>();

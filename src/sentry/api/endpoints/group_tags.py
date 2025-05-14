@@ -26,11 +26,14 @@ class GroupTagsEndpoint(GroupEndpoint):
 
     def get(self, request: Request, group: Group) -> Response:
 
+        if request.GET.get("useFlagsBackend") == "1":
+            backend = tagstore.flag_backend
+        else:
+            backend = tagstore.backend
+
         # optional queryparam `key` can be used to get results
         # only for specific keys.
-        keys = [
-            tagstore.backend.prefix_reserved_key(k) for k in request.GET.getlist("key") if k
-        ] or None
+        keys = [backend.prefix_reserved_key(k) for k in request.GET.getlist("key") if k] or None
 
         # There are 2 use-cases for this method. For the 'Tags' tab we
         # get the top 10 values, for the tag distribution bars we get 9
@@ -46,7 +49,7 @@ class GroupTagsEndpoint(GroupEndpoint):
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 
-        tag_keys = tagstore.backend.get_group_tag_keys_and_top_values(
+        tag_keys = backend.get_group_tag_keys_and_top_values(
             group,
             environment_ids,
             keys=keys,

@@ -66,6 +66,12 @@ jest
   .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
 
+jest.mock('getsentry/utils/stripe');
+jest.mock('getsentry/utils/trackMarketingEvent');
+jest.mock('getsentry/utils/trackAmplitudeEvent');
+jest.mock('getsentry/utils/trackReloadEvent');
+jest.mock('getsentry/utils/trackMetric');
+
 DANGEROUS_SET_TEST_HISTORY({
   goBack: jest.fn(),
   push: jest.fn(),
@@ -174,6 +180,8 @@ window.tick = () => new Promise(resolve => setTimeout(resolve));
 window.MockApiClient = jest.requireMock('sentry/api').Client;
 
 window.scrollTo = jest.fn();
+
+window.ra = {event: jest.fn()};
 
 // We need to re-define `window.location`, otherwise we can't spyOn certain
 // methods as `window.location` is read-only

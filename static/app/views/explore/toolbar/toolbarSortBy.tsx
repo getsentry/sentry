@@ -1,9 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useExploreMode} from 'sentry/views/explore/contexts/pageParamsContext';

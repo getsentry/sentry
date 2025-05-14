@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button, LinkButton} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {space} from 'sentry/styles/space';
 
 interface FooterWithButtonsProps {
@@ -29,10 +29,10 @@ export default function FooterWithButtons({
   } satisfies Partial<ButtonProps>;
 
   const button =
-    href !== undefined ? (
-      <LinkButton href={href} {...buttonProps} />
-    ) : (
+    href === undefined ? (
       <Button type="submit" {...buttonProps} />
+    ) : (
+      <LinkButton href={href} {...buttonProps} />
     );
 
   // We use a form post here to replicate what we do with standard HTML views

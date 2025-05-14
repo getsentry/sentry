@@ -21,6 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
@@ -52,17 +53,10 @@ export function GroupTagsTab() {
     refetch: refetchGroup,
   } = useGroup({groupId: params.groupId});
 
-  const {
-    data = [],
-    isPending,
-    isError,
-    refetch,
-  } = useGroupTags({
+  const {data, isPending, isError, refetch} = useGroupTags({
     groupId: group?.id,
     environment: environments,
   });
-
-  const alphabeticalTags = data.sort((a, b) => a.key.localeCompare(b.key));
 
   if (isPending || isGroupPending) {
     return <LoadingIndicator />;
@@ -82,11 +76,12 @@ export function GroupTagsTab() {
 
   const getTagKeyTarget = (tag: SimpleTag) => {
     return {
-      pathname: `${baseUrl}tags/${tag.key}/`,
+      pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${tag.key}/`,
       query: extractSelectionParameters(location.query),
     };
   };
 
+  const alphabeticalTags = data.toSorted((a, b) => a.key.localeCompare(b.key));
   return (
     <Layout.Body>
       <Layout.Main fullWidth>

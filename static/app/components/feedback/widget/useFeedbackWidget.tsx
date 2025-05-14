@@ -5,7 +5,7 @@ import type {UseFeedbackOptions} from 'sentry/components/feedback/widget/useFeed
 import {useFeedback} from 'sentry/components/feedback/widget/useFeedback';
 
 interface Props {
-  buttonRef?: RefObject<HTMLButtonElement> | RefObject<HTMLAnchorElement>;
+  buttonRef?: RefObject<HTMLButtonElement | null> | RefObject<HTMLAnchorElement | null>;
   formTitle?: string;
   messagePlaceholder?: string;
   optionOverrides?: UseFeedbackOptions;

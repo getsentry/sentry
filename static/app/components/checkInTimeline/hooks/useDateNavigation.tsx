@@ -49,7 +49,9 @@ export function useDateNavigation(): DateNavigation {
     );
     const nextSince = moment(nextUntil).subtract(windowMs, 'milliseconds');
 
-    updateDateTime({start: nextSince.toDate(), end: nextUntil.toDate()}, router);
+    updateDateTime({start: nextSince.toDate(), end: nextUntil.toDate()}, router, {
+      keepCursor: true,
+    });
   }, [until, windowMs, nowRef, router]);
 
   return {

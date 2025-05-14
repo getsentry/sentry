@@ -51,7 +51,7 @@ from sentry.organizations.services.organization import (
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
 from sentry.signals import sso_enabled, user_signup
-from sentry.tasks.auth import email_missing_links_control
+from sentry.tasks.auth.auth import email_missing_links_control
 from sentry.users.models.user import User
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
@@ -474,7 +474,7 @@ class AuthIdentityHandler:
             initial={"username": self._app_user and self._app_user.username},
         )
 
-    def _build_confirmation_response(self, is_new_account):
+    def _build_confirmation_response(self, is_new_account: bool) -> HttpResponse:
         existing_user, template = self._dispatch_to_confirmation(is_new_account)
         context = {
             "identity": self.identity,
@@ -729,11 +729,13 @@ class AuthHelper(Pipeline):
         self.organization: RpcOrganization = self.organization
         self.provider: Provider = self.provider
 
-    def get_provider(self, provider_key: str | None, **kwargs) -> PipelineProvider:
+    def get_provider(
+        self, provider_key: str | None, *, organization: RpcOrganization | None
+    ) -> PipelineProvider:
         if self.provider_model:
             return cast(PipelineProvider, self.provider_model.get_provider())
         elif provider_key:
-            return super().get_provider(provider_key)
+            return super().get_provider(provider_key, organization=organization)
         else:
             raise NotImplementedError
 

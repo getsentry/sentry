@@ -5,7 +5,7 @@ import {
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import Screenshot from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
 import ScreenshotModal, {
   modalCss,
@@ -114,7 +114,7 @@ export function ScreenshotDataSection({
   };
   const title = tn('Screenshot', 'Screenshots', screenshots.length);
 
-  return !showScreenshot ? null : (
+  return showScreenshot ? (
     <InterimSection
       title={hasStreamlinedUI ? title : <Link to={linkPath}>{title}</Link>}
       showPermalink={false}
@@ -143,5 +143,5 @@ export function ScreenshotDataSection({
         openVisualizationModal={handleOpenVisualizationModal}
       />
     </InterimSection>
-  );
+  ) : null;
 }

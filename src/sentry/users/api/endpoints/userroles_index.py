@@ -9,7 +9,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
-from sentry.api.validators.userrole import UserRoleValidator
+from sentry.users.api.parsers.userrole import UserRoleValidator
 from sentry.users.api.serializers.userrole import UserRoleSerializer
 from sentry.users.models.userrole import UserRole
 

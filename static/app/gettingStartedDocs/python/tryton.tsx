@@ -10,6 +10,7 @@ import {
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -40,12 +41,12 @@ sentry_sdk.init(
         : params.isProfilingSelected &&
             params.profilingOptions?.defaultProfilingMode === 'continuous'
           ? `
-    _experiments={
-        # Set continuous_profiling_auto_start to True
-        # to automatically start the profiler on when
-        # possible.
-        "continuous_profiling_auto_start": True,
-    },`
+    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0,
+    # Set profile_lifecycle to "trace" to automatically
+    # run the profiler on when there is an active transaction
+    profile_lifecycle="trace",`
           : ''
     }
 )
@@ -74,7 +75,15 @@ const onboarding: OnboardingConfig = {
     tct('The Tryton integration adds support for the [link:Tryton Framework Server].', {
       link: <ExternalLink href="https://www.tryton.org/" />,
     }),
-  install: () => [],
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct('Install [code:sentry-sdk] from PyPI:', {
+        code: <code />,
+      }),
+      configurations: getPythonInstallConfig(),
+    },
+  ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -118,6 +127,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
+  profilingOnboarding: onboarding,
   crashReportOnboarding: crashReportOnboardingPython,
 };
 

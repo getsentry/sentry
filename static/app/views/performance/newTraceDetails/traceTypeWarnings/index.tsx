@@ -1,7 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
-
-import type {TraceTree} from '../traceModels/traceTree';
-import {TraceShape} from '../traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 import {ErrorsOnlyWarnings} from './errorsOnlyWarnings';
 

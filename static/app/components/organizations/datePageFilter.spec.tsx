@@ -38,7 +38,11 @@ describe('DatePageFilter', function () {
   });
 
   it('can change period', async function () {
-    render(<DatePageFilter />, {router, organization});
+    render(<DatePageFilter />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     // Open time period dropdown
     await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
@@ -72,7 +76,11 @@ describe('DatePageFilter', function () {
   });
 
   it('can change absolute range', async function () {
-    render(<DatePageFilter />, {router, organization});
+    render(<DatePageFilter />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     // Open time period dropdown
     await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
@@ -148,6 +156,7 @@ describe('DatePageFilter', function () {
     render(<DatePageFilter />, {
       router: desyncRouter,
       organization: desyncOrganization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu

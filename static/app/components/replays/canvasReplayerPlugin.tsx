@@ -26,7 +26,12 @@ function isCanvasMutationEvent(e: eventWithTime): e is CanvasEventWithTime {
   );
 }
 
-class InvalidCanvasNodeError extends Error {}
+class InvalidCanvasNodeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidCanvasNodeError';
+  }
+}
 
 /**
  * Find the lowest matching index for event

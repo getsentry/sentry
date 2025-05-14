@@ -1,10 +1,10 @@
 import omit from 'lodash/omit';
 
+import type {TextAreaProps} from 'sentry/components/core/input/inputGroup';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
-import type {TextAreaProps} from 'sentry/components/inputGroup';
-import {InputGroup} from 'sentry/components/inputGroup';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -35,8 +35,9 @@ function TextareaField({
         <InputGroup>
           <InputGroup.TextArea
             {...{monospace, rows, autosize, name}}
-            // Do not forward required to `textarea` to avoid default browser behavior
-            {...omit(fieldProps, ['onKeyDown', 'children', 'required'])}
+            {...omit(fieldProps, ['onKeyDown', 'children'])}
+            // Do not forward required to avoid default browser behavior
+            required={undefined}
           />
           {!hideControlState && (
             <InputGroup.TrailingItems>

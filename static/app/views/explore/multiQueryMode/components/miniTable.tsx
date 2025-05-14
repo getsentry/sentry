@@ -1,12 +1,20 @@
-import React from 'react';
+import type React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Body, Grid} from 'sentry/components/gridEditable/styles';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {}
 
-export const Table = React.forwardRef<HTMLTableElement, TableProps>(
-  ({children, styles, ...props}, ref) => (
+export function Table({
+  ref,
+  children,
+  styles,
+  ...props
+}: TableProps & {
+  ref?: React.Ref<HTMLTableElement>;
+}) {
+  return (
     <_TableWrapper {...props}>
       <_Table
         ref={ref}
@@ -17,18 +25,18 @@ export const Table = React.forwardRef<HTMLTableElement, TableProps>(
         {children}
       </_Table>
     </_TableWrapper>
-  )
-);
+  );
+}
 
 const _TableWrapper = styled(Body)`
   overflow-x: hidden;
+  margin: 0;
 `;
 
 const _Table = styled(Grid)<{height?: string | number; scrollable?: boolean}>`
   ${p =>
     p.scrollable &&
-    `
-  overflow-x: scroll;
-  overflow-y: scroll;
-  `}
+    css`
+      overflow-y: auto;
+    `}
 `;

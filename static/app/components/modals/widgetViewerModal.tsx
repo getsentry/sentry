@@ -1,5 +1,5 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/core';
 import * as Sentry from '@sentry/react';
@@ -12,19 +12,19 @@ import moment from 'moment-timezone';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Select} from 'sentry/components/core/select';
+import {SelectOption} from 'sentry/components/core/select/option';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Option from 'sentry/components/forms/controls/selectOption';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
@@ -38,6 +38,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
+  getAggregateAlias,
   isAggregateField,
   isEquation,
   isEquationAlias,
@@ -115,6 +116,7 @@ export interface WidgetViewerModalOptions {
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
+  sampleCount?: number;
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
@@ -195,7 +197,9 @@ function WidgetViewerModal(props: Props) {
     dashboardPermissions,
     dashboardCreator,
     confidence,
+    sampleCount,
   } = props;
+  const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
@@ -280,32 +284,31 @@ function WidgetViewerModal(props: Props) {
       ? tableWidget.queries[0]!.fields
       : [...columns, ...aggregates];
 
-  // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
+  // Timeseries Widgets (Line, Area, Bar) allow the user to specify an orderby
   // that is not explicitly selected as an aggregate or column. We need to explicitly
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
-    widget.widgetType === WidgetType.DISCOVER &&
     orderby &&
     !isEquationAlias(rawOrderby) &&
-    !fields.includes(rawOrderby)
+    // Normalize to the aggregate alias because we may still have widgets
+    // that store that format
+    !fields.map(getAggregateAlias).includes(getAggregateAlias(rawOrderby))
   ) {
     fields.push(rawOrderby);
-    [tableWidget, primaryWidget].forEach(aggregatesAndColumns => {
-      if (isAggregateField(rawOrderby) || isEquation(rawOrderby)) {
-        aggregatesAndColumns.queries.forEach(query => {
-          if (!query.aggregates.includes(rawOrderby)) {
-            query.aggregates.push(rawOrderby);
-          }
-        });
-      } else {
-        aggregatesAndColumns.queries.forEach(query => {
-          if (!query.columns.includes(rawOrderby)) {
-            query.columns.push(rawOrderby);
-          }
-        });
-      }
-    });
+    if (isAggregateField(rawOrderby) || isEquation(rawOrderby)) {
+      tableWidget.queries.forEach(query => {
+        if (!query.aggregates.includes(rawOrderby)) {
+          query.aggregates.push(rawOrderby);
+        }
+      });
+    } else {
+      tableWidget.queries.forEach(query => {
+        if (!query.columns.includes(rawOrderby)) {
+          query.columns.push(rawOrderby);
+        }
+      });
+    }
   }
 
   // Need to set the orderby of the eventsv2 query to equation[index] format
@@ -413,11 +416,11 @@ function WidgetViewerModal(props: Props) {
     const getHighlightedQuery = (
       highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
     ) => {
-      return parsedQuery !== null ? (
+      return parsedQuery === null ? undefined : (
         <HighlightContainer {...highlightedContainerProps}>
           <HighlightQuery parsedQuery={parsedQuery} />
         </HighlightContainer>
-      ) : undefined;
+      );
     };
 
     return {
@@ -489,6 +492,7 @@ function WidgetViewerModal(props: Props) {
               location,
               widget: tableWidget,
               tableData: tableResults?.[0],
+              theme,
               onHeaderClick: () => {
                 if (
                   [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
@@ -506,6 +510,7 @@ function WidgetViewerModal(props: Props) {
               isFirstPage,
               projects,
               eventView,
+              theme,
             }),
             onResizeColumn,
           }}
@@ -562,6 +567,7 @@ function WidgetViewerModal(props: Props) {
             renderHeadCell: renderIssueGridHeaderCell({
               location,
               organization,
+              theme,
               selection,
               widget: tableWidget,
               onHeaderClick: () => {
@@ -570,6 +576,7 @@ function WidgetViewerModal(props: Props) {
             }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               location,
+              theme,
               organization,
               selection,
               widget: tableWidget,
@@ -636,6 +643,7 @@ function WidgetViewerModal(props: Props) {
             renderHeadCell: renderReleaseGridHeaderCell({
               ...props,
               location,
+              theme,
               widget: tableWidget,
               tableData: tableResults?.[0],
               onHeaderClick: () => {
@@ -650,6 +658,7 @@ function WidgetViewerModal(props: Props) {
             renderBodyCell: renderGridBodyCell({
               ...props,
               location,
+              theme,
               tableData: tableResults?.[0],
               isFirstPage,
             }),
@@ -825,9 +834,9 @@ function WidgetViewerModal(props: Props) {
         {widget.displayType !== DisplayType.TABLE && (
           <Container
             height={
-              widget.displayType !== DisplayType.BIG_NUMBER
-                ? HALF_CONTAINER_HEIGHT
-                : BIG_NUMBER_HEIGHT
+              widget.displayType === DisplayType.BIG_NUMBER
+                ? BIG_NUMBER_HEIGHT
+                : HALF_CONTAINER_HEIGHT
             }
           >
             {(!!seriesData || !!tableData) && chartUnmodified ? (
@@ -854,6 +863,7 @@ function WidgetViewerModal(props: Props) {
                 widgetLegendState={widgetLegendState}
                 showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
                 confidence={confidence}
+                sampleCount={sampleCount}
               />
             ) : (
               <MemoizedWidgetCardChartContainer
@@ -888,7 +898,7 @@ function WidgetViewerModal(props: Props) {
         )}
         {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
           <QueryContainer>
-            <SelectControl
+            <Select
               value={selectedQueryIndex}
               options={queryOptions}
               onChange={(option: SelectValue<number>) => {
@@ -940,7 +950,7 @@ function WidgetViewerModal(props: Props) {
                     display: 'flex',
                   });
                   return (
-                    <Option
+                    <SelectOption
                       {...(highlightedQuery
                         ? {
                             ...containerProps,

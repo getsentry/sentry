@@ -1,22 +1,24 @@
 import type {Theme} from '@emotion/react';
+import type {CustomSeriesOption} from 'echarts';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
 import {escape} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-
-import type {Release} from '../common/types';
+import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 
 export function ReleaseSeries(
   theme: Theme,
   releases: Release[],
   onClick: (release: Release) => void,
   utc: boolean
-): Series {
+): CustomSeriesOption {
   return {
-    seriesName: t('Releases'),
+    type: 'custom',
+    id: 'release-lines',
+    name: t('Releases'),
+    renderItem: () => null,
     color: theme.purple200,
     data: [],
     markLine: MarkLine({

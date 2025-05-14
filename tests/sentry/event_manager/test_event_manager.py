@@ -16,11 +16,12 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from django.conf import settings
 from django.core.cache import cache
+from django.db.models import F
 from django.utils import timezone
 
 from sentry import eventstore, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.constants import MAX_VERSION_LENGTH, DataCategory
+from sentry.constants import MAX_VERSION_LENGTH, DataCategory, InsightModules
 from sentry.dynamic_sampling import (
     ExtendedBoostedRelease,
     Platform,
@@ -56,14 +57,15 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.options import set
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
@@ -75,13 +77,14 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
-from sentry.usage_accountant import accountant
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.eventuser import EventUser
@@ -243,8 +246,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group.title == f"TypeError: {cause_error_value}"
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
+    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
-        ts = time() - 300
+        ts = before_now(minutes=5).isoformat()
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
         # later timestamp than event1.
@@ -258,13 +262,63 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group.save()
         assert group.is_resolved()
 
-        manager = EventManager(make_event(event_id="b" * 32, checksum="a" * 32, timestamp=ts + 50))
+        resolved_at = before_now(minutes=4)
+        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).update(
+            date_ended=resolved_at
+        )
+
+        manager = EventManager(
+            make_event(
+                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
+            )
+        )
         event2 = manager.save(self.project.id)
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=group.id)
         assert not group.is_resolved()
         assert send_robust.called
+
+        open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
+        assert len(open_periods) == 2
+        open_period = open_periods[0]
+        assert open_period.date_started == event2.datetime
+        assert open_period.date_ended is None
+        open_period = open_periods[1]
+        assert open_period.date_started == group.first_seen
+        assert open_period.date_ended == resolved_at
+
+    @mock.patch("sentry.signals.issue_unresolved.send_robust")
+    @with_feature("organizations:issue-open-periods")
+    def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:
+        ts = before_now(minutes=5).isoformat()
+
+        # N.B. EventManager won't unresolve the group unless the event2 has a
+        # later timestamp than event1.
+        manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        group = Group.objects.get(id=event.group_id)
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.save()
+        assert group.is_resolved()
+
+        GroupOpenPeriod.objects.all().delete()
+        manager = EventManager(
+            make_event(
+                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
+            )
+        )
+        event2 = manager.save(self.project.id)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=group.id)
+        assert not group.is_resolved()
+        assert send_robust.called
+
+        assert GroupOpenPeriod.objects.filter(group=group).count() == 0
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_unresolve_group(self, plugin_is_regression: mock.MagicMock) -> None:
@@ -937,16 +991,26 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
     @mock.patch("sentry.models.Group.is_resolved")
+    @with_feature("organizations:issue-open-periods")
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved: mock.MagicMock) -> None:
-        ts = time() - 100
+        ts = before_now(minutes=5).isoformat()
         mock_is_resolved.return_value = False
         manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
         with self.tasks():
             event = manager.save(self.project.id)
         assert event.group is not None
 
+        resolved_at = before_now(minutes=4)
+        GroupOpenPeriod.objects.get(group=event.group, date_ended__isnull=True).update(
+            date_ended=resolved_at
+        )
+
         mock_is_resolved.return_value = True
-        manager = EventManager(make_event(event_id="b" * 32, checksum="a" * 32, timestamp=ts + 100))
+        manager = EventManager(
+            make_event(
+                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
+            )
+        )
         with self.tasks():
             event2 = manager.save(self.project.id)
         assert event2.group is not None
@@ -956,6 +1020,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.active_at
         assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
         assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
+
+        open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
+        assert len(open_periods) == 2
+        open_period = open_periods[0]
+        assert open_period.date_started == event2.datetime
+        assert open_period.date_ended is None
+        open_period = open_periods[1]
+        assert open_period.date_started == group.first_seen
+        assert open_period.date_ended == resolved_at
 
     def test_invalid_transaction(self) -> None:
         dict_input = {"messages": "foo"}
@@ -981,12 +1054,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_culprit_after_stacktrace_processing(self) -> None:
         from sentry.grouping.enhancer import Enhancements
 
-        enhancements_str = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_rules_text(
             """
             function:in_app_function +app
             function:not_in_app_function -app
             """
-        ).dumps()
+        ).base64_string
 
         grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
@@ -1145,7 +1218,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
 
         def query(model: TSDBModel, key: int, **kwargs: Any) -> int:
-            return tsdb.backend.get_sums(
+            return tsdb.backend.get_timeseries_sums(
                 model,
                 [key],
                 event.datetime,
@@ -1390,7 +1463,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data["type"] == "default"
         assert group.data["metadata"]["title"] == "foo bar"
 
+    @with_feature("organizations:issue-open-periods")
     def test_error_event_type(self) -> None:
+        from sentry.models.groupopenperiod import GroupOpenPeriod
+
         manager = EventManager(
             make_event(**{"exception": {"values": [{"type": "Foo", "value": "bar"}]}})
         )
@@ -1406,6 +1482,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "value": "bar",
             "initial_priority": PriorityLevel.HIGH,
         }
+
+        open_period = GroupOpenPeriod.objects.filter(group=group)
+        assert len(open_period) == 1
+        assert open_period[0].group_id == group.id
+        assert open_period[0].project_id == self.project.id
+        assert open_period[0].date_started == group.first_seen
+        assert open_period[0].date_ended is None
 
     def test_csp_event_type(self) -> None:
         manager = EventManager(
@@ -1577,15 +1660,19 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         manager.save(self.project.id)
 
-    @patch("sentry.event_manager.record_event_processed")
+    @patch("sentry.event_manager.record_first_transaction")
+    @patch("sentry.event_manager.record_first_insight_span")
     @patch("sentry.event_manager.record_release_received")
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
     def test_transaction_sampler_and_receive_mock_called(
         self,
         mock_record_sample: mock.MagicMock,
         mock_record_release: mock.MagicMock,
-        mock_record_event: mock.MagicMock,
+        mock_record_insight: mock.MagicMock,
+        mock_record_transaction: mock.MagicMock,
     ) -> None:
+        self.project.update(flags=F("flags").bitand(~Project.flags.has_transactions))
+
         manager = EventManager(
             make_event(
                 **{
@@ -1606,8 +1693,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                             "start_timestamp": 0,
                             "timestamp": 1,
                             "same_process_as_parent": True,
-                            "op": "default",
-                            "description": "span a",
+                            "op": "db.redis",
+                            "description": "EXEC *",
+                            "sentry_tags": {
+                                "description": "EXEC *",
+                                "category": "db",
+                                "op": "db.redis",
+                                "transaction": "/app/index",
+                            },
                         },
                         {
                             "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
@@ -1633,6 +1726,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     "timestamp": "2019-06-14T14:01:40Z",
                     "start_timestamp": "2019-06-14T14:01:40Z",
                     "type": "transaction",
+                    "release": "foo@1.0.0",
                     "transaction_info": {
                         "source": "url",
                     },
@@ -1642,11 +1736,55 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         event = manager.save(self.project.id)
 
-        mock_record_event.assert_called_once_with(self.project, event)
-        mock_record_release.assert_called_once_with(self.project, event)
+        mock_record_release.assert_called_once_with(self.project, "foo@1.0.0")
+        mock_record_insight.assert_called_once_with(self.project, InsightModules.DB)
+        mock_record_transaction.assert_called_once_with(self.project, event.datetime)
         assert mock_record_sample.mock_calls == [
             mock.call(ClustererNamespace.TRANSACTIONS, self.project, "wait")
         ]
+
+    def test_first_insight_span(self) -> None:
+        event_data = make_event(
+            transaction="test_transaction",
+            contexts={
+                "trace": {
+                    "parent_span_id": "bce14471e0e9654d",
+                    "op": "foobar",
+                    "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                    "span_id": "bf5be759039ede9a",
+                }
+            },
+            spans=[
+                {
+                    "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                    "parent_span_id": "bf5be759039ede9a",
+                    "span_id": "a" * 16,
+                    "start_timestamp": 0,
+                    "timestamp": 1,
+                    "same_process_as_parent": True,
+                    "op": "db.redis",
+                    "description": "EXEC *",
+                    "sentry_tags": {
+                        "description": "EXEC *",
+                        "category": "db",
+                        "op": "db.redis",
+                        "transaction": "/app/index",
+                    },
+                }
+            ],
+            timestamp="2019-06-14T14:01:40Z",
+            start_timestamp="2019-06-14T14:01:40Z",
+            type="transaction",
+        )
+
+        assert not self.project.flags.has_insights_db
+
+        manager = EventManager(event_data)
+        manager.normalize()
+        manager.save(self.project.id)
+
+        self.project.refresh_from_db()
+        assert self.project.flags.has_insights_db
 
     def test_sdk(self) -> None:
         manager = EventManager(make_event(**{"sdk": {"name": "sentry-unity", "version": "1.0"}}))
@@ -2145,7 +2283,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert event.group is None
         assert (
-            tsdb.backend.get_sums(
+            tsdb.backend.get_timeseries_sums(
                 TSDBModel.project,
                 [self.project.id],
                 event.datetime,
@@ -2163,13 +2301,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """
         from sentry.grouping.enhancer import Enhancements
 
-        enhancements_str = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_rules_text(
             """
             function:foo category=bar
             function:foo2 category=bar
             category:bar -app
             """
-        ).dumps()
+        ).base64_string
 
         grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
@@ -2239,12 +2377,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """
         from sentry.grouping.enhancer import Enhancements
 
-        enhancements_str = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group
             """
-        ).dumps()
+        ).base64_string
 
         grouping_config: GroupingConfig = {
             "id": DEFAULT_GROUPING_CONFIG,
@@ -3203,7 +3341,9 @@ class DSLatestReleaseBoostTest(TestCase):
                 )
             ]
 
-    @mock.patch("sentry.event_manager.schedule_invalidate_project_config")
+    @mock.patch(
+        "sentry.dynamic_sampling.rules.helpers.latest_releases.schedule_invalidate_project_config"
+    )
     def test_project_config_invalidation_is_triggered_when_new_release_is_observed(
         self, mocked_invalidate: mock.MagicMock
     ) -> None:
@@ -3364,13 +3504,13 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
         event = _get_event_instance(perf_data, project_id=self.project.id)
         group_hash = "some_group"
-        group, created = save_grouphash_and_group(self.project, event, group_hash)
+        group, created, _ = save_grouphash_and_group(self.project, event, group_hash)
         assert created
-        group_2, created = save_grouphash_and_group(self.project, event, group_hash)
+        group_2, created, _ = save_grouphash_and_group(self.project, event, group_hash)
         assert group.id == group_2.id
         assert not created
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
-        group_3, created = save_grouphash_and_group(self.project, event, "new_hash")
+        group_3, created, _ = save_grouphash_and_group(self.project, event, "new_hash")
         assert created
         assert group_2.id != group_3.id
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
@@ -3458,21 +3598,21 @@ def test_cogs_event_manager(
     broker.create_topic(topic, 1)
     producer = broker.get_producer()
 
-    set("shared_resources_accounting_enabled", [settings.COGS_EVENT_STORE_LABEL])
+    with (
+        override_options(
+            {"shared_resources_accounting_enabled": [settings.COGS_EVENT_STORE_LABEL]}
+        ),
+        usage_accountant_backend(producer),
+    ):
+        raw_event_params = make_event(**event_data)
 
-    accountant.init_backend(producer)
+        manager = EventManager(raw_event_params)
+        manager.normalize()
+        normalized_data = dict(manager.get_data())
+        _ = manager.save(default_project)
 
-    raw_event_params = make_event(**event_data)
+        expected_len = len(json.dumps(normalized_data))
 
-    manager = EventManager(raw_event_params)
-    manager.normalize()
-    normalized_data = dict(manager.get_data())
-    _ = manager.save(default_project)
-
-    expected_len = len(json.dumps(normalized_data))
-
-    accountant._shutdown()
-    accountant.reset_backend()
     msg1 = broker.consume(Partition(topic, 0), 0)
     assert msg1 is not None
     payload = msg1.payload

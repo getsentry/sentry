@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 
 import ConfirmableAction from './confirmableAction';
 
@@ -30,7 +30,7 @@ type CommonProps = Omit<
   ConfirmableActionProps,
   'onConfirm' | 'confirmText' | 'children' | 'stopPropagation' | 'priority'
 > & {
-  children: React.ReactChild;
+  children: React.ReactNode;
   className?: string;
   confirmLabel?: string;
   confirmPriority?: ConfirmableActionProps['priority'];

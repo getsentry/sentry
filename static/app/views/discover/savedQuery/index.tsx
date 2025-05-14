@@ -11,13 +11,13 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Input} from 'sentry/components/core/input';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
-import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -37,12 +37,11 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 import {
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from 'sentry/views/discover/utils';
-
-import {DEFAULT_EVENT_VIEW} from '../data';
 
 import {
   getDatasetFromLocationOrSavedQueryDataset,
@@ -194,11 +193,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     // undefined saved yAxis defaults to count() and string values are converted to array
     const isEqualYAxis = isEqual(
       yAxis,
-      !savedQuery.yAxis
-        ? ['count()']
-        : typeof savedQuery.yAxis === 'string'
+      savedQuery.yAxis
+        ? typeof savedQuery.yAxis === 'string'
           ? [savedQuery.yAxis]
           : savedQuery.yAxis
+        : ['count()']
     );
     return {
       isNewQuery: false,
@@ -651,7 +650,7 @@ const SaveAsButton = styled(Button)`
   width: 100%;
 `;
 
-const SaveAsInput = styled(InputControl)`
+const SaveAsInput = styled(Input)`
   margin-bottom: ${space(1)};
 `;
 

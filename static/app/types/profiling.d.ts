@@ -141,6 +141,12 @@ declare namespace Profiling {
     profile: ContinuousProfile;
   }
 
+  interface SentryAndroidContinuousProfileChunk extends Omit<Schema, 'profiles'> {
+    profiles: ReadonlyArray<Readonly<Profiling.EventedProfile>>;
+    androidClock: string;
+    measurements?: ContinuousMeasurements;
+  }
+
   ////////////////
   interface RawProfileBase {
     endValue: number;
@@ -246,6 +252,8 @@ declare namespace Profiling {
 
   type BaseTransactionProfileReference = {
     profile_id: string;
+    end?: number;
+    start?: number;
   };
 
   type BaseContinuousProfileReference = {

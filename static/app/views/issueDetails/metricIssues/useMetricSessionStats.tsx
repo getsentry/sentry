@@ -37,7 +37,7 @@ export function useMetricSessionStats(
     `/organizations/${organization.slug}/sessions/`,
     {
       query: {
-        project,
+        project: project.id ? [Number(project.id)] : [],
         environment,
         field: SESSION_AGGREGATE_TO_FIELD[aggregate],
         query,

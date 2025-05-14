@@ -1,4 +1,7 @@
-from collections.abc import MutableMapping
+import os
+import signal
+import sys
+from collections.abc import Generator, MutableMapping
 
 import psutil
 import pytest
@@ -25,11 +28,32 @@ pytest_plugins = ["sentry.testutils.pytest"]
 # https://github.com/pytest-dev/pytest/blob/master/src/_pytest/terminal.py
 
 
+if sys.platform == "linux":
+
+    def _open_files() -> frozenset[str]:
+        ret = []
+        pid = os.getpid()
+        for fd in os.listdir(f"/proc/{pid}/fd"):
+            try:
+                path = os.readlink(f"/proc/{pid}/fd/{fd}")
+            except FileNotFoundError:
+                continue
+            else:
+                if os.path.exists(path):
+                    ret.append(path)
+        return frozenset(ret)
+
+else:
+
+    def _open_files() -> frozenset[str]:
+        return frozenset(f.path for f in psutil.Process().open_files())
+
+
 @pytest.fixture(autouse=True)
 def unclosed_files():
-    fds = frozenset(psutil.Process().open_files())
+    fds = _open_files()
     yield
-    assert frozenset(psutil.Process().open_files()) == fds
+    assert _open_files() == fds
 
 
 @pytest.fixture(autouse=True)
@@ -123,3 +147,29 @@ def check_leaked_responses_mocks():
             f"`responses` were leaked outside of the test context:\n{leaked_s}"
             f"(make sure to use `@responses.activate` or `with responses.mock:`)"
         )
+
+
+def _leaked_signals() -> list[str]:
+    leaked = []
+    for signum in signal.Signals:
+        got = signal.getsignal(signum)
+        if (
+            got is not None
+            and not isinstance(got, int)
+            and got is not signal.default_int_handler
+            # prevent the debugger from interrupting teardown
+            and "Pdb.sigint_handler" not in str(got)
+        ):
+            leaked.append(f"- {signum!r}: {got}")
+    return leaked
+
+
+@pytest.fixture(autouse=True)
+def check_leaked_signals() -> Generator[None]:
+    before = frozenset(_leaked_signals())
+    yield
+    after = _leaked_signals()
+
+    leaked = [msg for msg in after if msg not in before]
+    if leaked:
+        raise AssertionError(f"test leaked os signal handlers:\n{'\n'.join(leaked)}")

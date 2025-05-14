@@ -19,7 +19,7 @@ type PropType = {
   organization: Organization;
   traceInfo: TraceInfo;
   traceType: TraceShape;
-  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
+  traceViewHeaderRef: React.RefObject<HTMLDivElement | null>;
 };
 
 function ServiceBreakdown({
@@ -141,7 +141,7 @@ const OperationsBreakdown = styled('div')`
 `;
 
 const Dur = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-variant-numeric: tabular-nums;
 `;
 

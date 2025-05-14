@@ -1,10 +1,12 @@
 import {escapeDoubleQuotes} from 'sentry/utils';
 
-export const ALLOWED_WILDCARD_FIELDS = [
+const ALLOWED_WILDCARD_FIELDS = [
   'span.description',
   'span.domain',
   'span.status_code',
   'log.body',
+  'sentry.normalized_description',
+  'transaction',
 ];
 export const EMPTY_OPTION_VALUE = '(empty)';
 
@@ -14,7 +16,7 @@ export enum TokenType {
   FREE_TEXT = 2,
 }
 
-export type Token = {
+type Token = {
   type: TokenType;
   value: string;
   key?: string;
@@ -51,9 +53,9 @@ export class MutableSearch {
    * @param params
    * @returns {MutableSearch}
    */
-  static fromQueryObject(params: {
-    [key: string]: string[] | string | number | undefined;
-  }): MutableSearch {
+  static fromQueryObject(
+    params: Record<string, string[] | string | number | undefined>
+  ): MutableSearch {
     const query = new MutableSearch('');
 
     Object.entries(params).forEach(([key, value]) => {
@@ -156,7 +158,17 @@ export class MutableSearch {
         case TokenType.FILTER:
           if (token.value === '' || token.value === null) {
             formattedTokens.push(`${token.key}:""`);
-          } else if (/[\s\(\)\\"]/g.test(token.value)) {
+          } else if (
+            // Don't quote if it's already a properly formatted bracket expression
+            /^\[.*\]$/.test(token.value) ||
+            // Don't quote if it's already properly quoted
+            /^".*"$/.test(token.value)
+          ) {
+            formattedTokens.push(`${token.key}:${token.value}`);
+          } else if (
+            // Quote if contains spaces, parens, or quotes
+            /[\s\(\)\\"]/g.test(token.value)
+          ) {
             formattedTokens.push(`${token.key}:"${escapeDoubleQuotes(token.value)}"`);
           } else {
             formattedTokens.push(`${token.key}:${token.value}`);
@@ -257,6 +269,10 @@ export class MutableSearch {
 
   getFilterKeys() {
     return Object.keys(this.filters);
+  }
+
+  getTokenKeys() {
+    return this.tokens.map(t => t.key);
   }
 
   hasFilter(key: string): boolean {

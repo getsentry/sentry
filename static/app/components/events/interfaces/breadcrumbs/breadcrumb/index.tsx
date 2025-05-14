@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import type {CellMeasurerCache, List} from 'react-virtualized';
+import type {CellMeasurerCache, ListRowProps} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import Category from './category';
 import {Data} from './data';
-import Level from './level';
+import {Level} from './level';
 import Time from './time';
 import Type from './type';
 
@@ -23,7 +23,7 @@ export interface BreadcrumbProps {
   index: number;
   isLastItem: boolean;
   organization: Organization;
-  parent: List;
+  parent: ListRowProps['parent'];
   relativeTime: string;
   searchTerm: string;
   style: React.CSSProperties;
@@ -77,7 +77,7 @@ export function Breadcrumb({
         cache.set(index, 0, cache.getWidth(index, 0), height);
         // pass row and column index so that react virtualized can only update the
         // cells after the one that has changed and avoid recomputing the entire grid
-        parent.recomputeGridSize({rowIndex: index, columnIndex: 0});
+        parent.recomputeGridSize?.({rowIndex: index, columnIndex: 0});
       }
     };
 
@@ -106,7 +106,9 @@ export function Breadcrumb({
         meta={meta}
         transactionEvents={transactionEvents}
       />
-      <Level level={level} searchTerm={searchTerm} />
+      <LevelWrapper>
+        <Level level={level} searchTerm={searchTerm} />
+      </LevelWrapper>
       <Time
         timestamp={timestamp}
         relativeTime={relativeTime}
@@ -122,7 +124,7 @@ const Wrapper = styled('div')<{
   isLastItem: boolean;
 }>`
   display: grid;
-  grid-template-columns: 64px 140px 1fr 106px 100px;
+  grid-template-columns: 64px 140px 1fr min-content 100px;
 
   > * {
     padding: ${space(1)} ${space(2)};
@@ -152,14 +154,6 @@ const Wrapper = styled('div')<{
         padding-right: ${space(2)};
       }
 
-      /* Level */
-      :nth-child(5n-1) {
-        padding-right: 0;
-        display: flex;
-        justify-content: flex-end;
-        align-items: flex-start;
-      }
-
       /* Time */
       :nth-child(5n) {
         padding: ${space(1)} ${space(2)};
@@ -169,4 +163,13 @@ const Wrapper = styled('div')<{
 
   word-break: break-all;
   white-space: pre-wrap;
+`;
+
+// Required or else the layout definiton causes the tag to stretch
+// over the entire width of the column.
+const LevelWrapper = styled('div')`
+  padding-right: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
 `;

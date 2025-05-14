@@ -723,6 +723,85 @@ describe('useWidgetBuilderState', () => {
         {field: 'transaction', alias: undefined, kind: 'field'},
       ]);
     });
+
+    it('resets limit when the display type is switched to table', () => {
+      mockedUsedLocation.mockReturnValue(LocationFixture({query: {limit: '3'}}));
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.limit).toBe(3);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.limit).toBeUndefined();
+    });
+
+    it('resets the limit to a valid option when the display type is switched to a chart', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            field: [
+              'count()',
+              'count_unique(user)',
+              'count_web_vitals(measurements.lcp, good)',
+              'project',
+              'environment',
+            ],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.LINE,
+        });
+      });
+
+      expect(result.current.state.limit).toBe(3);
+    });
+
+    it('does not reset the limit when switching between timeseries charts', () => {
+      // One query and one y-axis is the most permissible setup
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            limit: '3',
+            field: ['project'],
+            yAxis: ['count()'],
+            query: [''],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.limit).toBe(3);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.AREA,
+        });
+      });
+
+      expect(result.current.state.limit).toBe(3);
+    });
   });
 
   describe('dataset', () => {
@@ -1450,6 +1529,53 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.sort).toEqual([
         {field: 'crash_free_rate(session)', kind: 'desc'},
       ]);
+    });
+
+    it('always assigns a limit when there is a y-axis', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            yAxis: ['count()', 'count_unique(user)'],
+            fields: ['event.type'],
+            displayType: DisplayType.LINE,
+            dataset: WidgetType.ERRORS,
+            limit: '5',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.limit).toBe(5);
+
+      // Changing the dataset will unset the limit
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.limit).toBeUndefined();
+
+      // Changing the dataset back and applying a grouping should set a limit
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.ERRORS,
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [{field: 'event.type', kind: FieldValueKind.FIELD}],
+        });
+      });
+
+      expect(result.current.state.limit).toBe(5);
     });
   });
 

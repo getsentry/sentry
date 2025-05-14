@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import ArchiveActions from 'sentry/components/actions/archive';
 import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
-import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
@@ -239,9 +239,6 @@ function ActionSet({
               confirmText: label('reprioritize'),
             });
           },
-          hasIssueStreamTableLayout: organization.features.includes(
-            'issue-stream-table-layout'
-          ),
         })}
       />
       {!nestReview && <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />}

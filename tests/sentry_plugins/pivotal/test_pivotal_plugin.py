@@ -4,19 +4,22 @@ import orjson
 from django.urls import reverse
 
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.pivotal.plugin import PivotalPlugin
+
+
+def test_conf_key() -> None:
+    assert PivotalPlugin().conf_key == "pivotal"
+
+
+def test_entry_point() -> None:
+    assert_plugin_installed("pivotal", PivotalPlugin())
 
 
 class PivotalPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return PivotalPlugin()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "pivotal"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("pivotal", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

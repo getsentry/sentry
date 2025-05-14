@@ -1,38 +1,35 @@
 import styled from '@emotion/styled';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-const DEFAULT_SIZE = '13px';
-
 type Props = {
   className?: string;
   level?: Level;
-  size?: string;
 };
 
-function ErrorLevel({className, level = 'unknown', size = '11px'}: Props) {
+function ErrorLevel({className, level = 'unknown'}: Props) {
   const levelLabel = t('Level: %s', capitalize(level));
   return (
     <Tooltip skipWrapper disabled={level === 'unknown'} title={levelLabel}>
-      <ColoredCircle className={className} level={level} size={size}>
-        {levelLabel}
-      </ColoredCircle>
+      <ColoredLine className={className} level={level}>
+        <VisuallyHidden>{levelLabel}</VisuallyHidden>
+      </ColoredLine>
     </Tooltip>
   );
 }
 
-const ColoredCircle = styled('span')<Props>`
+const ColoredLine = styled('span')<Props>`
   padding: 0;
   position: relative;
-  width: ${p => p.size || DEFAULT_SIZE};
-  height: ${p => p.size || DEFAULT_SIZE};
-  text-indent: -9999em;
+  width: 3px;
+  border-radius: 3px;
   display: inline-block;
-  border-radius: 50%;
   flex-shrink: 0;
+  height: 1em;
   background-color: ${p => (p.level ? p.theme.level[p.level] : p.theme.level.error)};
 `;
 

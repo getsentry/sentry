@@ -1,8 +1,13 @@
+from functools import reduce
+
 from django.http import StreamingHttpResponse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -41,6 +46,23 @@ def assert_status_code(response, minimum: int, maximum: int | None = None):
         response.status_code,
         response.getvalue() if isinstance(response, StreamingHttpResponse) else response.content,
     )
+
+
+def assert_existing_projects_status(
+    org: Organization, active_project_ids: list[int], deleted_project_ids: list[int]
+):
+    all_projects = Project.objects.filter(organization=org).values_list("id", "status")
+    active_ids = []
+    deleted_or_to_be_deleted_ids = []
+
+    for project_id, status in all_projects:
+        if status == ObjectStatus.ACTIVE:
+            active_ids.append(project_id)
+        else:
+            deleted_or_to_be_deleted_ids.append(project_id)
+
+    assert active_ids == active_project_ids
+    assert deleted_or_to_be_deleted_ids == deleted_project_ids
 
 
 @assume_test_silo_mode(SiloMode.CONTROL)
@@ -110,3 +132,36 @@ def assert_middleware_metrics(middleware_calls):
     assert end1.args[0] == EventLifecycleOutcome.SUCCESS
     assert start2.args[0] == EventLifecycleOutcome.STARTED
     assert end2.args[0] == EventLifecycleOutcome.SUCCESS
+
+
+def assert_count_of_metric(mock_record, outcome, outcome_count):
+    calls = reduce(
+        lambda acc, calls: (acc + 1 if calls.args[0] == outcome else acc),
+        mock_record.mock_calls,
+        0,
+    )
+    assert calls == outcome_count
+
+
+# Given messages_or_errors need to align 1:1 to the calls :bufo-big-eyes:
+def assert_many_halt_metrics(mock_record, messages_or_errors):
+    halts = (
+        call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.HALTED
+    )
+    for halt, error_msg in zip(halts, messages_or_errors):
+        if isinstance(error_msg, Exception):
+            assert isinstance(halt.args[1], type(error_msg))
+        else:
+            assert halt.args[1] == error_msg
+
+
+# Given messages_or_errors need to align 1:1 to the calls :bufo-big-eyes:
+def assert_many_failure_metrics(mock_record, messages_or_errors):
+    failures = (
+        call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
+    )
+    for failure, error_msg in zip(failures, messages_or_errors):
+        if isinstance(error_msg, Exception):
+            assert isinstance(failure.args[1], type(error_msg))
+        else:
+            assert failure.args[1] == error_msg

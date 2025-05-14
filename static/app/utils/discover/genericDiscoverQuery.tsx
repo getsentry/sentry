@@ -11,9 +11,8 @@ import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import type {UseQueryOptions} from 'sentry/utils/queryClient';
-
-import useApi from '../useApi';
-import useOrganization from '../useOrganization';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export interface DiscoverQueryExtras {
   useOnDemandMetrics?: boolean;
@@ -23,12 +22,10 @@ interface _DiscoverQueryExtras {
   queryExtras?: DiscoverQueryExtras;
 }
 export class QueryError extends Error {
-  message: string;
   private originalError: any; // For debugging in case parseError picks a value that doesn't make sense.
   constructor(errorMessage: string, originalError?: any) {
     super(errorMessage);
-
-    this.message = errorMessage;
+    this.name = 'QueryError';
     this.originalError = originalError;
   }
 
@@ -119,7 +116,7 @@ export type DiscoverQueryProps = BaseDiscoverQueryProps & {
 type InnerRequestProps<P> = DiscoverQueryProps & P;
 type OuterRequestProps<P> = DiscoverQueryPropsWithContext & P;
 
-export type ReactProps<T> = {
+type ReactProps<T> = {
   children?: (props: GenericChildrenProps<T>) => React.ReactNode;
 };
 
@@ -424,6 +421,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const apiPayload = getPayload<T, P>(props);
 
   const res = useQuery<ApiResult<T>, QueryError>({
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: [route, apiPayload],
     queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
@@ -459,5 +457,3 @@ export const parseError = (error: any): QueryError | null => {
 
   return new QueryError(t('An unknown error occurred.'), error);
 };
-
-export default GenericDiscoverQuery;

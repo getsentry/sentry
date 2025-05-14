@@ -3,6 +3,7 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -20,8 +21,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("uptime", "0010_remove_uptime_whois_columns_state"),
     ]
@@ -29,7 +28,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "uptime_uptimesubscription" DROP COLUMN "host_whois_orgname";
                     ALTER TABLE "uptime_uptimesubscription" DROP COLUMN "host_whois_orgid";

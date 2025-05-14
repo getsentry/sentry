@@ -1,5 +1,5 @@
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';

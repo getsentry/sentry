@@ -22,11 +22,9 @@ interface StacktraceBannersProps {
 export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
-  const expectedDefaultFrame: Frame | undefined = (stacktrace.frames ?? [])
-    .filter(
-      frame => frame?.inApp && hasFileExtension(frame.absPath || frame.filename || '')
-    )
-    .at(-1);
+  const expectedDefaultFrame: Frame | undefined = (stacktrace.frames ?? []).findLast(
+    frame => frame?.inApp && hasFileExtension(frame.absPath || frame.filename || '')
+  );
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
     [projects, event]

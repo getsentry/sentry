@@ -16,7 +16,7 @@ class VercelIdentityProvider(OAuth2Provider):
     def get_oauth_client_secret(self):
         return options.get("vercel.client-secret")
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
     def get_pipeline_views(self) -> list[PipelineView]:

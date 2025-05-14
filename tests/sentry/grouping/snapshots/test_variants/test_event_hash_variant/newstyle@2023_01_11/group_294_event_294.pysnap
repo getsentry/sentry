@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:13.776238+00:00'
+created: '2025-02-26T00:34:05.871975+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -151,16 +151,16 @@ system:
     system*
       exception*
         stacktrace*
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start_wqthread"
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_wqthread"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
           frame*
             function*
               "stripped_application_code"
@@ -204,7 +204,7 @@ system:
               "__tree"
             function*
               "std::__1::__tree<T>::~__tree"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (ignored due to recursion)
             filename*
               "__tree"
             function*
@@ -214,7 +214,7 @@ system:
               "__tree"
             function*
               "std::__1::__tree<T>::destroy"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             filename*
               "memory"
             function*
@@ -261,7 +261,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::__1::thread::~thread"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             function*
               "std::terminate"
           frame (ignored by stack trace rule (category:throw ^-group))
@@ -279,7 +279,7 @@ system:
           frame (ignored by stack trace rule (category:throw ^-group))
             function*
               "__abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)

@@ -184,6 +184,9 @@ def load_data(
         timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
     timestamp = timestamp.replace(tzinfo=timezone.utc)
     data.setdefault("timestamp", timestamp.timestamp())
+    if start_timestamp:
+        start_timestamp = start_timestamp.replace(tzinfo=timezone.utc)
+        data.setdefault("start_timestamp", start_timestamp.timestamp())
 
     if data.get("type") == "transaction":
         if start_timestamp is None:
@@ -206,7 +209,7 @@ def load_data(
         data["contexts"]["trace"]["span_id"] = span_id
         if trace_context is not None:
             data["contexts"]["trace"].update(trace_context)
-        if spans:
+        if spans is not None:
             data["spans"] = spans
 
         for span in data.get("spans", []):

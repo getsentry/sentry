@@ -13,7 +13,7 @@ from sentry.utils.warnings import DeprecatedSettingWarning, UnsupportedBackend, 
 
 @all_silo_endpoint
 class InternalWarningsEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

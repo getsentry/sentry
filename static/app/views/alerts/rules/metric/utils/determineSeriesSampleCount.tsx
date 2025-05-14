@@ -1,17 +1,17 @@
 import {defined} from 'sentry/utils';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
-export function determineSeriesSampleCount(
+export function determineSeriesSampleCountAndIsSampled(
   data: TimeSeries[],
   topNMode: boolean
-): number {
+): {isSampled: boolean | null; sampleCount: number; dataScanned?: 'full' | 'partial'} {
   if (data.length <= 0) {
-    return 0;
+    return {sampleCount: 0, isSampled: null};
   }
 
   if (topNMode) {
     // We dont want to count the other series in top N mode
-    data = data.filter(s => s.field !== 'Other');
+    data = data.filter(s => s.yAxis !== 'Other');
   }
 
   const merge: (a: number, b: number) => number = topNMode
@@ -25,15 +25,41 @@ export function determineSeriesSampleCount(
       // to justify the potential low accuracy warning.
       Math.max;
 
+  let hasSampledInterval = false;
+  let hasUnsampledInterval = false;
+  let dataScanned: 'full' | 'partial' | undefined;
+
   const series: number[] = data[0]?.sampleCount?.map(item => item.value) ?? [];
 
-  for (let i = 1; i < data.length; i++) {
+  for (let i = 0; i < data.length; i++) {
     if (defined(data[i]?.sampleCount)) {
       for (let j = 0; j < data[i]!.sampleCount!.length; j++) {
-        series[j] = merge(series[j]!, data[i]!.sampleCount![j]!.value);
+        if (i > 0) {
+          series[j] = merge(series[j] || 0, data[i]!.sampleCount![j]!.value);
+        }
+        const sampleRate = data[i]?.samplingRate?.[j]?.value;
+        if (sampleRate === 1) {
+          hasUnsampledInterval = true;
+        } else if (defined(sampleRate) && sampleRate < 1) {
+          hasSampledInterval = true;
+        }
+      }
+    }
+    if (!dataScanned) {
+      // Take one entry of dataScanned, they should all be the same
+      if (data[i]?.dataScanned === 'partial') {
+        dataScanned = 'partial';
+      } else if (data[i]?.dataScanned === 'full') {
+        dataScanned = 'full';
       }
     }
   }
 
-  return series.reduce((sum, count) => sum + count, 0);
+  const isSampled = hasSampledInterval ? true : hasUnsampledInterval ? false : null;
+
+  return {
+    sampleCount: series.reduce((sum, count) => sum + count, 0),
+    isSampled,
+    dataScanned,
+  };
 }

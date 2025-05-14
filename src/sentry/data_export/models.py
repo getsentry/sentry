@@ -71,16 +71,16 @@ class ExportedData(Model):
         # Example: 12:21 PM on July 21, 2020 (UTC)
         return None if date is None else date.strftime("%-I:%M %p on %B %d, %Y (%Z)")
 
-    def delete_file(self):
+    def delete_file(self) -> None:
         file = self._get_file()
         if file:
             file.delete()
 
     def delete(self, *args, **kwargs):
         self.delete_file()
-        super().delete(*args, **kwargs)
+        return super().delete(*args, **kwargs)
 
-    def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION):
+    def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION) -> None:
         self.delete_file()  # If a file is present, remove it
         current_time = timezone.now()
         expire_time = current_time + expiration

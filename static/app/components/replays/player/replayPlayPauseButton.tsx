@@ -1,5 +1,5 @@
-import type {BaseButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {BaseButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {

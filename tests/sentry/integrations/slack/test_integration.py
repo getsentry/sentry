@@ -344,7 +344,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         }
 
         with self.tasks():
-            SlackIntegrationProvider().post_install(self.integration, self.organization)
+            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
 
         user1_identity = Identity.objects.get(user=self.user)
         assert user1_identity
@@ -398,7 +398,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         )
 
         with self.tasks():
-            SlackIntegrationProvider().post_install(self.integration, self.organization)
+            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
 
         user5_identity = Identity.objects.get(user=user5)
         assert user5_identity
@@ -432,7 +432,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         )
 
         with self.tasks(), pytest.raises(SlackApiError):
-            SlackIntegrationProvider().post_install(self.integration, self.organization)
+            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
 
         user5_identity = Identity.objects.filter(user=user5).first()
         assert user5_identity is None
@@ -449,7 +449,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         }
 
         with self.tasks():
-            SlackIntegrationProvider().post_install(self.integration, self.organization)
+            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
 
         identities = Identity.objects.all()
         assert identities.count() == 3
@@ -467,7 +467,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         }
 
         with self.tasks():
-            SlackIntegrationProvider().post_install(self.integration, self.organization)
+            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
 
         user3_identity = Identity.objects.get(user=self.user4)
         assert user3_identity

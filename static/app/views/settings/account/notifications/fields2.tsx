@@ -6,9 +6,9 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
-export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
+export const NOTIFICATION_SETTING_FIELDS = {
   alerts: {
     name: 'alerts',
     type: 'select',
@@ -56,7 +56,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       // This is a little hack to prevent this field from being empty.
       // TODO(nisanthan): need to prevent showing the clearable on. the multi-select when its only 1 value.
       if (!val || val.length === 0) {
-        throw Error('Invalid selection. Field cannot be empty.');
+        throw new Error('Invalid selection. Field cannot be empty.');
       }
     },
   },
@@ -93,6 +93,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   email: {
     name: 'email routing',
     type: 'blank',
+    choices: undefined,
     label: t('Email Routing'),
     help: t('Change the email address that receives notifications.'),
   },
@@ -139,7 +140,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     ],
     help: t("When you resolve an unassigned issue, we'll auto-assign it to you."),
   },
-};
+} satisfies Record<string, Field>;
 
 const CATEGORY_QUOTA_FIELDS = Object.values(DATA_CATEGORY_INFO)
   .filter(categoryInfo => categoryInfo.isBilledCategory)
@@ -151,7 +152,9 @@ const CATEGORY_QUOTA_FIELDS = Object.values(DATA_CATEGORY_INFO)
         `Receive notifications about your [displayName] quotas. [learnMore:Learn more]`,
         {
           displayName: categoryInfo.displayName,
-          learnMore: <ExternalLink href={getDocsLinkForEventType(categoryInfo.name)} />,
+          learnMore: (
+            <ExternalLink href={getPricingDocsLinkForEventType(categoryInfo.name)} />
+          ),
         }
       ),
       choices: [

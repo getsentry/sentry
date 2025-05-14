@@ -18,6 +18,7 @@ from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
+from sentry.options.rollout import in_random_rollout
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
@@ -25,6 +26,8 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import ingest_errors_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
@@ -37,16 +40,16 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState
+    from sentry.issues.ownership.grammar import Rule
     from sentry.models.group import Group
     from sentry.models.groupinbox import InboxReasonDetails
     from sentry.models.project import Project
     from sentry.models.team import Team
-    from sentry.ownership.grammar import Rule
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
@@ -70,7 +73,7 @@ class PostProcessJob(TypedDict, total=False):
     has_escalated: bool
 
 
-def _get_service_hooks(project_id):
+def _get_service_hooks(project_id: int) -> list[tuple[int, list[str]]]:
     from sentry.sentry_apps.models.servicehook import ServiceHook
 
     cache_key = f"servicehooks:1:{project_id}"
@@ -483,6 +486,10 @@ def should_update_escalating_metrics(event: Event) -> bool:
     time_limit=120,
     soft_time_limit=110,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_errors_tasks,
+        processing_deadline_duration=120,
+    ),
 )
 def post_process_group(
     is_new,
@@ -657,6 +664,10 @@ def run_post_process_job(job: PostProcessJob) -> None:
     if group_event.group and not group_event.group.issue_type.allow_post_process_group(
         group_event.group.organization
     ):
+        metrics.incr(
+            "post_process.skipped_feature_disabled",
+            tags={"issue_type": group_event.group.issue_type.slug},
+        )
         return
 
     if issue_category in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
@@ -937,23 +948,62 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    # TODO - Add a rollout flag check here, if it's not enabled, call process_rules
-    # If the flag is enabled, use the code below
+    org = job["event"].project.organization
+    # TODO: only fire one system. to test, fire from both systems and observe metrics
+    if not features.has("organizations:workflow-engine-process-workflows", org):
+        return
+
     from sentry.workflow_engine.processors.workflow import process_workflows
 
-    # PostProcessJob event is optional, WorkflowJob event is required
+    # PostProcessJob event is optional, WorkflowEventData event is required
     if "event" not in job:
-        logger.error("Missing event to create WorkflowJob", extra={"job": job})
+        logger.error("Missing event to create WorkflowEventData", extra={"job": job})
         return
 
     try:
-        workflow_job = WorkflowJob({**job})  # type: ignore[typeddict-item]
+        workflow_event_data = WorkflowEventData(
+            event=job["event"],
+            group_state=job.get("group_state"),
+            has_reappeared=job.get("has_reappeared"),
+            has_escalated=job.get("has_escalated"),
+        )
     except Exception:
-        logger.exception("Could not create WorkflowJob", extra={"job": job})
+        logger.exception("Could not create WorkflowEventData", extra={"job": job})
         return
 
     with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
-        process_workflows(workflow_job)
+        process_workflows(workflow_event_data)
+
+
+def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    org = job["event"].project.organization
+    # TODO: only fire one system. to test, fire from both systems and observe metrics
+    if not features.has("organizations:workflow-engine-process-metric-issue-workflows", org):
+        return
+
+    from sentry.workflow_engine.processors.workflow import process_workflows
+
+    # PostProcessJob event is optional, WorkflowEventData event is required
+    if "event" not in job:
+        logger.error("Missing event to create WorkflowEventData", extra={"job": job})
+        return
+
+    try:
+        workflow_event_data = WorkflowEventData(
+            event=job["event"],
+            group_state=job.get("group_state"),
+            has_reappeared=job.get("has_reappeared"),
+            has_escalated=job.get("has_escalated"),
+        )
+    except Exception:
+        logger.exception("Could not create WorkflowEventData", extra={"job": job})
+        return
+
+    with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
+        process_workflows(workflow_event_data)
 
 
 def process_rules(job: PostProcessJob) -> None:
@@ -982,7 +1032,10 @@ def process_rules(job: PostProcessJob) -> None:
     with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
         # TODO(dcramer): ideally this would fanout, but serializing giant
         # objects back and forth isn't super efficient
-        for callback, futures in rp.apply():
+        callback_and_futures = rp.apply()
+
+        # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
+        for callback, futures in callback_and_futures:
             has_alert = True
             safe_execute(callback, group_event, futures)
 
@@ -995,7 +1048,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         return
 
     from sentry.issues.auto_source_code_config.stacktraces import get_frames_to_process
-    from sentry.issues.auto_source_code_config.utils import supported_platform
+    from sentry.issues.auto_source_code_config.utils.platform import supported_platform
     from sentry.tasks.auto_source_code_config import auto_source_code_config
 
     try:
@@ -1003,10 +1056,11 @@ def process_code_mappings(job: PostProcessJob) -> None:
         project = event.project
         group_id = event.group_id
 
-        if not supported_platform(event.data.get("platform")):
+        platform = event.data.get("platform", "not_available")
+        if not supported_platform(platform):
             return
 
-        frames_to_process = get_frames_to_process(event.data, event.platform)
+        frames_to_process = get_frames_to_process(event.data, platform)
         if not frames_to_process:
             return
 
@@ -1140,7 +1194,16 @@ def process_service_hooks(job: PostProcessJob) -> None:
         if has_alert:
             allowed_events.add("event.alert")
 
-        if allowed_events:
+        if in_random_rollout("process_service_hook.payload.rollout"):
+            for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
+                if any(e in allowed_events for e in events):
+                    process_service_hook.delay(
+                        servicehook_id=servicehook_id,
+                        project_id=event.project_id,
+                        group_id=event.group_id,
+                        event_id=event.event_id,
+                    )
+        else:
             for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
                 if any(e in allowed_events for e in events):
                     process_service_hook.delay(servicehook_id=servicehook_id, event=event)
@@ -1253,6 +1316,13 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         logger.info("post_process.process_error_ignored", extra={"exception": e})
     except Exception as e:
         logger.exception("post_process.process_error", extra={"exception": e})
+    logger.info(
+        "post_process.plugin_success",
+        extra={
+            "project_id": event.project_id,
+            "plugin_slug": plugin_slug,
+        },
+    )
 
 
 def feedback_filter_decorator(func):
@@ -1279,6 +1349,9 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
         return False
 
     feedback_source = event.occurrence.evidence_data.get("source")
+    if feedback_source is None:
+        logger.error("Feedback source is missing, skipped alert processing")
+        return False
 
     if feedback_source in FeedbackCreationSource.new_feedback_category_values():
         return True
@@ -1364,25 +1437,26 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
         event = job["event"]
         project = event.project
         user_reports_without_group = UserReport.objects.filter(
-            project_id=project.id,
-            event_id=event.event_id,
-            group_id__isnull=True,
-            environment_id__isnull=True,
+            project_id=project.id, event_id=event.event_id, group_id__isnull=True
         )
         for report in user_reports_without_group:
-            shim_to_feedback(
-                {
-                    "name": report.name,
-                    "email": report.email,
-                    "comments": report.comments,
-                    "event_id": report.event_id,
-                    "level": "error",
-                },
-                event,
-                project,
-                FeedbackCreationSource.USER_REPORT_ENVELOPE,
-            )
-            metrics.incr("event_manager.save._update_user_reports_with_event_link.shim_to_feedback")
+            if report.environment_id is None:
+                shim_to_feedback(
+                    {
+                        "name": report.name,
+                        "email": report.email,
+                        "comments": report.comments,
+                        "event_id": report.event_id,
+                        "level": "error",
+                    },
+                    event,
+                    project,
+                    FeedbackCreationSource.USER_REPORT_ENVELOPE,
+                )
+                metrics.incr(
+                    "event_manager.save._update_user_reports_with_event_link.shim_to_feedback"
+                )
+        # If environment is set, this report was already shimmed from new feedback.
 
         user_reports_updated = user_reports_without_group.update(
             group_id=group.id, environment_id=event.get_environment().id
@@ -1495,6 +1569,25 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
             first_flag_received.send_robust(project=project, sender=Project)
 
 
+def kick_off_seer_automation(job: PostProcessJob) -> None:
+    from sentry.seer.seer_setup import get_seer_org_acknowledgement
+    from sentry.tasks.autofix import start_seer_automation
+
+    event = job["event"]
+    group = event.group
+
+    if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
+        "projects:trigger-issue-summary-on-alerts", group.project
+    ):
+        return
+
+    seer_enabled = get_seer_org_acknowledgement(group.organization.id)
+    if not seer_enabled:
+        return
+
+    start_seer_automation.delay(group.id)
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
@@ -1505,7 +1598,9 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_commits,
         handle_owner_assignment,
         handle_auto_assignment,
+        kick_off_seer_automation,
         process_rules,
+        process_workflow_engine,
         process_service_hooks,
         process_resource_change_bounds,
         process_plugins,
@@ -1525,7 +1620,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         feedback_filter_decorator(process_rules),
     ],
     GroupCategory.METRIC_ALERT: [
-        process_workflow_engine,
+        process_workflow_engine_metric_issues,
     ],
 }
 

@@ -1,17 +1,16 @@
 import {t} from 'sentry/locale';
-
-import {TraceIcons} from '../traceIcons';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {
   makeTraceNodeBarColor,
   MissingInstrumentationTraceBar,
-} from '../traceRow/traceBar';
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TraceRowConnectors,
   type TraceRowProps,
-} from '../traceRow/traceRow';
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 export function TraceMissingInstrumentationRow(
   props: TraceRowProps<TraceTreeNode<TraceTree.MissingInstrumentationSpan>>
@@ -22,7 +21,7 @@ export function TraceMissingInstrumentationRow(
       ref={r =>
         props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
-          : null
+          : undefined
       }
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName}`}

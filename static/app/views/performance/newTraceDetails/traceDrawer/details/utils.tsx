@@ -5,7 +5,8 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export function getProfileMeta(event: EventTransaction | null) {
   const profileId = event?.contexts?.profile?.profile_id;
@@ -61,7 +62,10 @@ export function getSearchInExploreTarget(
   }
 
   return {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/traces/`),
+    pathname: makeTracesPathname({
+      organization,
+      path: '/',
+    }),
     query: {
       start,
       end,
@@ -70,4 +74,11 @@ export function getSearchInExploreTarget(
       project: projectIds ? projectIds : ALL_ACCESS_PROJECTS,
     },
   };
+}
+
+export function findSpanAttributeValue(
+  attributes: TraceItemResponseAttribute[],
+  attributeName: string
+) {
+  return attributes.find(attribute => attribute.name === attributeName)?.value.toString();
 }

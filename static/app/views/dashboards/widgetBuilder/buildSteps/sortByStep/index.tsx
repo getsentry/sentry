@@ -2,9 +2,9 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -12,13 +12,12 @@ import type {TagCollection} from 'sentry/types/group';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {BuildStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/buildStep';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {
   getResultsLimit,
   SortDirection,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-
-import {BuildStep} from '../buildStep';
 
 import {SortBySelectors} from './sortBySelectors';
 
@@ -99,7 +98,7 @@ export function SortByStep({
                 disabled={disableSortDirection && disableSort}
                 name="resultsLimit"
                 menuPlacement="auto"
-                options={[...Array(maxLimit).keys()].map(resultLimit => {
+                options={[...new Array(maxLimit).keys()].map(resultLimit => {
                   const value = resultLimit + 1;
                   return {
                     label: tn('Limit to %s result', 'Limit to %s results', value),
@@ -140,6 +139,6 @@ export function SortByStep({
   );
 }
 
-const ResultsLimitSelector = styled(SelectControl)`
+const ResultsLimitSelector = styled(Select)`
   margin-bottom: ${space(1)};
 `;

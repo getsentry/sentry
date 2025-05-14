@@ -26,14 +26,7 @@ default_manager.add(events.MemberRemoveAuditLogEvent())
 default_manager.add(events.MemberJoinTeamAuditLogEvent())
 default_manager.add(events.MemberLeaveTeamAuditLogEvent())
 default_manager.add(events.MemberPendingAuditLogEvent())
-default_manager.add(
-    AuditLogEvent(
-        event_id=10,
-        name="ORG_ADD",
-        api_name="org.create",
-        template="created the organization",
-    )
-)
+default_manager.add(events.OrgAddAuditLogEvent())
 default_manager.add(events.OrgEditAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
@@ -565,25 +558,65 @@ default_manager.add(
 default_manager.add(
     AuditLogEvent(
         event_id=210,
-        name="WORKFLOW_ENGINE_DETECTOR_ADD",
-        api_name="workflow_engine_detector.add",
-        template="added workflow engine detector {name}",
+        name="DETECTOR_ADD",
+        api_name="detector.add",
+        template="added detector {name}",
     )
 )
 default_manager.add(
     AuditLogEvent(
         event_id=211,
-        name="WORKFLOW_ENGINE_DETECTOR_EDIT",
-        api_name="workflow_engine_detector.edit",
-        template="edited workflow engine detector {name}",
+        name="DETECTOR_EDIT",
+        api_name="detector.edit",
+        template="edited detector {name}",
     )
 )
 default_manager.add(
     AuditLogEvent(
         event_id=212,
-        name="WORKFLOW_ENGINE_DETECTOR_REMOVE",
-        api_name="workflow_engine_detector.remove",
-        template="removed workflow engine detector {name}",
+        name="DETECTOR_REMOVE",
+        api_name="detector.remove",
+        template="removed detector {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=213,
+        name="WORKFLOW_ADD",
+        api_name="workflow.add",
+        template="added workflow {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=214,
+        name="WORKFLOW_EDIT",
+        api_name="workflow.edit",
+        template="edited workflow {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=215,
+        name="WORKFLOW_REMOVE",
+        api_name="workflow.remove",
+        template="removed workflow {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=216,
+        name="DETECTOR_WORKFLOW_ADD",
+        api_name="detector_workflow.add",
+        template="connected detector {detector_name} to workflow {workflow_name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=217,
+        name="DETECTOR_WORKFLOW_REMOVE",
+        api_name="detector_workflow.remove",
+        template="disconnected detector {detector_name} from workflow {workflow_name}",
     )
 )
 

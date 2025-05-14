@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
-import {LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -20,12 +20,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import Projects from 'sentry/utils/projects';
-
-import FilterBar from '../../filterBar';
-import type {Incident} from '../../types';
-import {getQueryStatus, getTeamParams} from '../../utils';
-import AlertHeader from '../header';
-import Onboarding from '../onboarding';
+import FilterBar from 'sentry/views/alerts/filterBar';
+import AlertHeader from 'sentry/views/alerts/list/header';
+import Onboarding from 'sentry/views/alerts/list/onboarding';
+import type {Incident} from 'sentry/views/alerts/types';
+import {getQueryStatus, getTeamParams} from 'sentry/views/alerts/utils';
 
 import AlertListRow from './row';
 
