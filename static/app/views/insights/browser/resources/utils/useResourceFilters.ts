@@ -25,7 +25,6 @@ export type ModuleFilters = {
   [BrowserStarfishFields.SPAN_DOMAIN]?: string;
   [BrowserStarfishFields.SPAN_OP]?: ResourceSpanOps;
   [BrowserStarfishFields.TRANSACTION]?: string;
-  [BrowserStarfishFields.SPAN_DOMAIN]?: string;
   [BrowserStarfishFields.USER_GEO_SUBREGION]?: SubregionCode[];
 };
 
