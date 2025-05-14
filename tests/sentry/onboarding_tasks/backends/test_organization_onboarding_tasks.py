@@ -11,7 +11,6 @@ from sentry.testutils.silo import no_silo_test
 
 backend = OrganizationOnboardingTaskBackend()
 
-
 @no_silo_test
 class OrganizationOnboardingTaskBackendTest(TestCase):
     def test_fetch_onboarding_tasks_empty_on_org(self):
