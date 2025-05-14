@@ -310,6 +310,16 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
+    def test_check_in_no_in_progress(self):
+        now = datetime.now()
+
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug, ts=now, status="ok", duration=10)
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.date_added == now.replace(tzinfo=UTC)
+
     def test_check_in_date_clock(self):
         monitor = self._create_monitor(slug="my-monitor")
         now = datetime.now()
