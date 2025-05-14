@@ -557,6 +557,7 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "browser": ["browser_name", "browser_version"],
     "device": ["device_name", "device_brand", "device_family", "device_model"],
     "sdk": ["sdk_name", "sdk_version"],
+    "ota_updates": ["ota_updates_channel", "ota_updates_runtime_version", "ota_updates_update_id"],
     "tags": ["tk", "tv"],
     # Nested fields.  Useful for selecting searchable fields.
     "user.id": ["user_id"],
@@ -573,6 +574,9 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "device.model": ["device_model"],
     "sdk.name": ["sdk_name"],
     "sdk.version": ["sdk_version"],
+    "ota_updates.channel": ["ota_updates_channel"],
+    "ota_updates.runtime_version": ["ota_updates_runtime_version"],
+    "ota_updates.update_id": ["ota_updates_update_id"],
     # Click actions
     "click.alt": ["click.alt"],
     "click.label": ["click.aria_label"],
@@ -725,6 +729,9 @@ QUERY_ALIAS_COLUMN_MAP = {
     "device_model": anyIf(column_name="device_model"),
     "sdk_name": anyIf(column_name="sdk_name"),
     "sdk_version": anyIf(column_name="sdk_version"),
+    "ota_updates_channel": anyIf(column_name="ota_updates_channel"),
+    "ota_updates_runtime_version": anyIf(column_name="ota_updates_runtime_version"),
+    "ota_updates_update_id": anyIf(column_name="ota_updates_update_id"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
     "click.alt": Function("groupArray", parameters=[Column("click_alt")], alias="click_alt"),
