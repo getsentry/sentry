@@ -87,7 +87,10 @@ type BaseDiscoverQueryProps = {
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
-  options?: Omit<UseQueryOptions<ApiResult<any>, QueryError>, 'queryKey' | 'queryFn'>;
+  options?: Omit<
+    UseQueryOptions<<ApiResult<any>, QueryError>,
+    'queryKey' | 'queryFn'
+  > & {additionalQueryKey?: UseQueryOptions['queryKey']};
   /**
    * A container for query batching data and functions.
    */
@@ -419,10 +422,11 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const {orgSlug, route, options} = props;
   const url = `/organizations/${orgSlug}/${route}/`;
   const apiPayload = getPayload<T, P>(props);
+  const additionalQueryKey = props.options?.additionalQueryKey ?? [];
 
   const res = useQuery<ApiResult<T>, QueryError>({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: [route, apiPayload],
+    queryKey: [...additionalQueryKey, route, apiPayload],
     queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
         queryBatching: props.queryBatching,

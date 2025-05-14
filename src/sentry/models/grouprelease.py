@@ -26,7 +26,7 @@ class GroupRelease(Model):
     release_id = BoundedPositiveIntegerField(db_index=True)
     environment = models.CharField(max_length=64, default="")
     first_seen = models.DateTimeField(default=timezone.now)
-    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    last_seen = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
