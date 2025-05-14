@@ -33,5 +33,5 @@ export const feedbackEventMap: Record<FeedbackEventKey, string | null> = {
     'The Only Same-trace Issue Matches Associated Event ID',
   'feedback.trace-section.error': 'Error Fetching Trace Data in Feedback Details',
   'feedback.trace-section.loaded': 'Fetched Same-trace Issue Data in Feedback Details',
-  'feedback.no_associated_event_found': 'No Associated Event Found in Feedback',
+  'feedback.no_associated_event_found': 'Associated Event Not Found in Feedback',
 };
