@@ -11,7 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
 
-function WidgetBuilderFilterBar() {
+function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   return (
@@ -38,7 +38,7 @@ function WidgetBuilderFilterBar() {
             <ReleasesSelectControl
               isDisabled
               handleChangeFilter={() => {}}
-              selectedReleases={[]}
+              selectedReleases={releases}
             />
           </ReleasesProvider>
         </PageFilterBar>
