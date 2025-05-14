@@ -125,7 +125,7 @@ describe('WidgetBuilderSortBySelector', function () {
         ...router.location,
         query: expect.objectContaining({sort: ['-count()']}),
       }),
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
 
     await userEvent.click(sortDirectionSelector);
@@ -135,7 +135,7 @@ describe('WidgetBuilderSortBySelector', function () {
         ...router.location,
         query: expect.objectContaining({sort: ['count()']}),
       }),
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
   });
 
@@ -209,7 +209,7 @@ describe('WidgetBuilderSortBySelector', function () {
       expect.objectContaining({
         query: expect.objectContaining({limit: 3}),
       }),
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
   });
 
@@ -271,7 +271,7 @@ describe('WidgetBuilderSortBySelector', function () {
       expect.objectContaining({
         query: expect.objectContaining({sort: ['-count_unique(span.op)']}),
       }),
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
   });
 });
