@@ -38,6 +38,8 @@ def errors_query(**kwargs):
         "name": ["Errors"],
         "field": ["title", "count(id)", "count_unique(user)", "project"],
         "query": ["event.type:error"],
+        "dataset": "errors",
+        "queryDataset": "error-events",
     }
     options.update(kwargs)
 
@@ -51,6 +53,8 @@ def transactions_query(**kwargs):
         "field": ["transaction", "project", "count()"],
         "statsPeriod": ["14d"],
         "query": ["event.type:transaction"],
+        "dataset": "transactions",
+        "queryDataset": "transaction-like",
     }
     options.update(kwargs)
 
@@ -65,6 +69,8 @@ def transactions_sorted_query(**kwargs):
         "field": ["transaction", "project", "count()"],
         "statsPeriod": ["14d"],
         "query": ["event.type:transaction"],
+        "dataset": "transactions",
+        "queryDataset": "transaction-like",
     }
     options.update(kwargs)
 

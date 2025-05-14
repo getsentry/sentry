@@ -19,9 +19,9 @@ nodestore: 0002_nodestore_no_dictfield
 
 remote_subscriptions: 0003_drop_remote_subscription
 
-replays: 0004_index_together
+replays: 0005_drop_replay_index
 
-sentry: 0890_split_discover_dataset_saved_queries
+sentry: 0894_split_discover_dataset_saved_queries
 
 social_auth: 0002_default_auto_field
 

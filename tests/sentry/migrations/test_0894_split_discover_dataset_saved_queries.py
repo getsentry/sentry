@@ -4,8 +4,8 @@ from sentry.utils.samples import load_data
 
 
 class SplitDiscoverDatasetSavedQueryTest(TestMigrations, SnubaTestCase):
-    migrate_from = "0889_remove_index_on_key_field"
-    migrate_to = "0890_split_discover_dataset_saved_queries"
+    migrate_from = "0893_rulesnooze_added_with_timezone"
+    migrate_to = "0894_split_discover_dataset_saved_queries"
 
     def setup_before_migration(self, apps):
         organization = self.create_organization(name="test", slug="test")

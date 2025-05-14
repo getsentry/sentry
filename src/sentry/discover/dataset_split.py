@@ -380,7 +380,7 @@ def _get_and_save_split_decision_for_query(
     saved_query: DiscoverSavedQuery, dry_run: bool
 ) -> tuple[int, bool]:
     """
-    This function is called by migration 0890_split_discover_dataset_saved_queries.
+    This function is called by migration 0894_split_discover_dataset_saved_queries.
     To delete this function, we need to introduce a
     [hard stop upgrade](https://develop.sentry.dev/self-hosted/releases/#hard-stops).
     """
