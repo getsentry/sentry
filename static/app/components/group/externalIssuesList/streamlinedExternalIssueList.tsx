@@ -16,6 +16,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getActionLabelAndTextValue({
@@ -144,7 +145,13 @@ export function StreamlinedExternalIssueList({
                       icon={integration.displayIcon}
                       disabled={integration.disabled}
                       title={integration.disabled ? integration.disabledText : undefined}
-                      onClick={action.onClick}
+                      onClick={() => {
+                        action.onClick();
+                        trackAnalytics('feedback.details-integration-issue-clicked', {
+                          organization,
+                          integration_key: integration.key,
+                        });
+                      }}
                       href={action.href}
                       external
                     >
@@ -155,7 +162,13 @@ export function StreamlinedExternalIssueList({
                       {...sharedButtonProps}
                       disabled={integration.disabled}
                       title={integration.disabled ? integration.disabledText : undefined}
-                      onClick={action.onClick}
+                      onClick={() => {
+                        action.onClick();
+                        trackAnalytics('feedback.details-integration-issue-clicked', {
+                          organization,
+                          integration_key: integration.key,
+                        });
+                      }}
                     />
                   )}
                 </ErrorBoundary>
