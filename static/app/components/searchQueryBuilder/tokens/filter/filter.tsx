@@ -42,7 +42,12 @@ interface SearchQueryTokenProps {
 
 interface FilterValueProps extends SearchQueryTokenProps {
   filterRef: React.RefObject<HTMLDivElement | null>;
+  gridWrapperRef: React.RefObject<HTMLDivElement | null>;
   onActiveChange: (active: boolean) => void;
+}
+
+interface SearchQueryBuilderFilterProps extends SearchQueryTokenProps {
+  gridWrapperRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
@@ -104,7 +109,14 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   }
 }
 
-function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValueProps) {
+function FilterValue({
+  token,
+  state,
+  item,
+  filterRef,
+  gridWrapperRef,
+  onActiveChange,
+}: FilterValueProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride, disabled} = useSearchQueryBuilder();
 
@@ -136,6 +148,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
         <SearchQueryBuilderValueCombobox
           token={token}
           wrapperRef={ref}
+          gridWrapperRef={gridWrapperRef}
           onDelete={() => {
             filterRef.current?.focus();
             state.selectionManager.setFocusedKey(item.key);
@@ -192,7 +205,12 @@ function FilterDelete({token, state, item}: SearchQueryTokenProps) {
   );
 }
 
-export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenProps) {
+export function SearchQueryBuilderFilter({
+  item,
+  state,
+  token,
+  gridWrapperRef,
+}: SearchQueryBuilderFilterProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
@@ -273,6 +291,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
             item={item}
             filterRef={ref}
             onActiveChange={setFilterMenuOpen}
+            gridWrapperRef={gridWrapperRef}
           />
         </FilterValueGridCell>
         <BaseGridCell {...gridCellProps}>
