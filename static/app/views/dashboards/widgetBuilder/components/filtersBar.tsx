@@ -30,6 +30,7 @@ function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
     >
       <Tooltip
         title={t('Changes to these filters can only be made at the dashboard level')}
+        skipWrapper
       >
         <PageFilterBar>
           <ProjectPageFilter disabled onChange={() => {}} />
