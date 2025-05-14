@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';

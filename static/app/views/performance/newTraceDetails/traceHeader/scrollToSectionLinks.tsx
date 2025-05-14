@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';

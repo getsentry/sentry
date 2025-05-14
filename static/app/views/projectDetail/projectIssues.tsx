@@ -5,8 +5,8 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';

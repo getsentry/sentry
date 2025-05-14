@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 
 import ConfirmableAction from './confirmableAction';
@@ -41,9 +42,7 @@ type CommonProps = Omit<
 };
 
 type Props = CommonProps &
-  ({type?: 'button'} & Partial<
-    Omit<React.ComponentProps<typeof StyledButton>, 'as' | 'children' | 'ref'>
-  >);
+  ({type?: 'button'} & Partial<Omit<ButtonProps, 'as' | 'children' | 'ref'>>);
 
 export default function ActionLink({
   message,
@@ -70,7 +69,9 @@ export default function ActionLink({
     type === 'button' ? (
       <StyledButton size="xs" {...actionCommonProps} />
     ) : (
-      <StyledAction {...actionCommonProps} />
+      <StyledAction
+        {...(actionCommonProps as React.ComponentProps<typeof StyledAction>)}
+      />
     );
 
   if (shouldConfirm && onAction) {

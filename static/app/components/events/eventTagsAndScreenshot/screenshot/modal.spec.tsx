@@ -49,7 +49,7 @@ describe('ScreenshotModal', function () {
         onDownload={jest.fn()}
         projectSlug={project.slug}
         eventAttachment={eventAttachment}
-        downloadUrl=""
+        downloadUrl="/testing/download-href"
         groupId="group-id"
         attachments={attachments}
       />,
@@ -80,7 +80,7 @@ describe('ScreenshotModal', function () {
         projectSlug={project.slug}
         eventAttachment={eventAttachment}
         attachments={attachments}
-        downloadUrl=""
+        downloadUrl="/testing/download-href"
         groupId="group-id"
       />,
       {
@@ -109,7 +109,7 @@ describe('ScreenshotModal', function () {
         onDownload={jest.fn()}
         projectSlug={project.slug}
         eventAttachment={eventAttachment}
-        downloadUrl=""
+        downloadUrl="/testing/download-href"
         groupId="group-id"
       />,
       {

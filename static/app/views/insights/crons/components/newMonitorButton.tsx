@@ -1,5 +1,5 @@
-import type {LinkButtonProps} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button';
+import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 

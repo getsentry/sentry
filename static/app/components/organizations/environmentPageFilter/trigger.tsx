@@ -13,7 +13,6 @@ interface EnvironmentPageFilterTriggerProps extends Omit<DropdownButtonProps, 'v
   environments: string[];
   ready: boolean;
   value: string[];
-  ref?: React.Ref<HTMLButtonElement>;
 }
 
 export function EnvironmentPageFilterTrigger({

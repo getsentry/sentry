@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import groupBy from 'lodash/groupBy';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';

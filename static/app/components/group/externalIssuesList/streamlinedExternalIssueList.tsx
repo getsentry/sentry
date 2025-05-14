@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {Button, type ButtonProps, LinkButton} from 'sentry/components/core/button';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';

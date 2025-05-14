@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Link from 'sentry/components/links/link';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 

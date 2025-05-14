@@ -10,7 +10,7 @@ import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Switch} from 'sentry/components/core/switch';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NotAvailable from 'sentry/components/notAvailable';

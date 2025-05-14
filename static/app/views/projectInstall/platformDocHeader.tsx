@@ -3,8 +3,9 @@ import {useBlocker} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import type {Platform} from 'sentry/data/platformPickerCategories';
 import {IconChevron} from 'sentry/icons/iconChevron';
