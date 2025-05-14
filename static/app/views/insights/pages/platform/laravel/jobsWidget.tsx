@@ -5,7 +5,6 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -25,10 +24,13 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {QueuesWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export function JobsWidget({query, releases}: {query?: string; releases?: Release[]}) {
+export function JobsWidget() {
   const organization = useOrganization();
+  const {query} = useTransactionNameQuery();
+  const releaseBubbleProps = useReleaseBubbleProps();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
   });
@@ -78,7 +80,7 @@ export function JobsWidget({query, releases}: {query?: string; releases?: Releas
       visualizationProps={{
         showLegend: 'never',
         plottables,
-        ...useReleaseBubbleProps(releases),
+        ...releaseBubbleProps,
       }}
     />
   );

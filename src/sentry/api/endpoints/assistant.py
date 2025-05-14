@@ -13,7 +13,6 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.assistant import manager
 from sentry.models.assistant import AssistantActivity
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 VALID_STATUSES = frozenset(("viewed", "dismissed", "restart"))
 
@@ -113,7 +112,6 @@ class AssistantEndpoint(Endpoint):
                     user_id=request.user.id, guide_id=guide_id, **fields
                 )
             except IntegrityError:
-                incr_rollback_metrics(AssistantActivity)
                 pass
 
         return HttpResponse(status=201)

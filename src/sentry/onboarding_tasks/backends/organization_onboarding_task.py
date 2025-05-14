@@ -6,6 +6,7 @@ from sentry import analytics
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
 )
@@ -13,14 +14,17 @@ from sentry.models.project import Project
 from sentry.onboarding_tasks.base import OnboardingTaskBackend
 from sentry.utils import json
 from sentry.utils.platform_categories import SOURCE_MAPS
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboardingTask]):
     Model = OrganizationOnboardingTask
 
     def fetch_onboarding_tasks(self, organization, user):
-        return self.Model.objects.filter(organization=organization)
+        return self.Model.objects.filter(
+            organization=organization,
+            task__in=OnboardingTask.values(),  # we exclude any tasks that might no longer be in the onboarding flow but still linger around in the database
+            status__in=OnboardingTaskStatus.values(),  # same here but for status
+        )
 
     def create_or_update_onboarding_task(self, organization, user, task, values):
         return self.Model.objects.create_or_update(
@@ -75,5 +79,4 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
                     referrer="onboarding_tasks",
                 )
             except IntegrityError:
-                incr_rollback_metrics(OrganizationOption)
                 pass

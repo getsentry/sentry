@@ -1,4 +1,5 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
@@ -309,20 +310,20 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
 
   ${p =>
     p.orientation === 'horizontal'
-      ? `
-        grid-auto-flow: column;
-        justify-content: start;
-        gap: ${p.variant === 'filled' || p.variant === 'floating' ? 0 : space(2)};
-        ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
-      `
-      : `
-        height: 100%;
-        grid-auto-flow: row;
-        align-content: start;
-        gap: 1px;
-        padding-right: ${space(2)};
-        ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
-      `};
+      ? css`
+          grid-auto-flow: column;
+          justify-content: start;
+          gap: ${p.variant === 'floating' ? 0 : space(2)};
+          ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
+        `
+      : css`
+          height: 100%;
+          grid-auto-flow: row;
+          align-content: start;
+          gap: 1px;
+          padding-right: ${space(2)};
+          ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
+        `};
 `;
 
 const TabListOverflowWrap = styled('div')`

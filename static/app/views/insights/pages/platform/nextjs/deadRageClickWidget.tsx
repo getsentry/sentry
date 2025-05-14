@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow} from 'sentry/icons';
@@ -12,11 +12,11 @@ import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelector
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {SlowSSRWidget} from 'sentry/views/insights/pages/platform/nextjs/slowSsrWidget';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {
   SelectorLink,
   transformSelectorQuery,
@@ -24,15 +24,10 @@ import {
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
-export function DeadRageClicksWidget({
-  query,
-  releases,
-}: {
-  query?: string;
-  releases?: Release[];
-}) {
-  const organization = useOrganization();
+export function DeadRageClicksWidget() {
   const location = useLocation();
+  const organization = useOrganization();
+  const {query} = useTransactionNameQuery();
   const fullQuery = `!count_dead_clicks:0 ${query}`.trim();
 
   const {isLoading, error, data} = useDeadRageSelectors({
@@ -46,7 +41,7 @@ export function DeadRageClicksWidget({
   const isEmpty = !isLoading && data.length === 0;
 
   if (isEmpty) {
-    return <SlowSSRWidget query={query} releases={releases} />;
+    return <SlowSSRWidget query={query} />;
   }
 
   const visualization = (
@@ -70,7 +65,6 @@ export function DeadRageClicksWidget({
     <Widget
       Title={<Widget.WidgetTitle title={t('Rage & Dead Clicks')} />}
       Visualization={visualization}
-      noVisualizationPadding
       Actions={
         <LinkButton
           size="xs"
@@ -84,9 +78,11 @@ export function DeadRageClicksWidget({
             },
           }}
         >
-          {t('View all')}
+          {t('View All')}
         </LinkButton>
       }
+      noVisualizationPadding
+      revealActions="always"
     />
   );
 }
@@ -127,7 +123,7 @@ function DeadRageClickWidgetVisualization({items}: {items: DeadRageSelectorItem[
 DeadRageClickWidgetVisualization.LoadingPlaceholder =
   TimeSeriesWidgetVisualization.LoadingPlaceholder;
 
-export function ProjectInfo({id}: {id: number}) {
+function ProjectInfo({id}: {id: number}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === id.toString());
   const platform = project?.platform;

@@ -6,7 +6,6 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -27,6 +26,7 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {ModuleName} from 'sentry/views/insights/types';
 import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
@@ -34,12 +34,12 @@ function getSeriesName(item: {'span.group': string; transaction: string}) {
   return `${item.transaction},${item['span.group']}`;
 }
 
-export function QueriesWidget({query, releases}: {query?: string; releases?: Release[]}) {
+export function QueriesWidget() {
   const theme = useTheme();
   const organization = useOrganization();
-  const pageFilterChartParams = usePageFilterChartParams({
-    granularity: 'spans',
-  });
+  const {query} = useTransactionNameQuery();
+  const releaseBubbleProps = useReleaseBubbleProps();
+  const pageFilterChartParams = usePageFilterChartParams();
 
   const fullQuery = `has:db.system ${query}`;
 
@@ -106,7 +106,7 @@ export function QueriesWidget({query, releases}: {query?: string; releases?: Rel
               alias: aliases[ts.seriesName],
             })
         ),
-        ...useReleaseBubbleProps(releases),
+        ...releaseBubbleProps,
       }}
     />
   );

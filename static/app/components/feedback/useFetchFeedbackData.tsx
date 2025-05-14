@@ -52,7 +52,7 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
     if (issueResult.isFetched && issueData && !issueData.hasSeen) {
       markAsRead(true);
     }
-  }, [issueResult.isFetched]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [issueData, issueResult.isFetched, markAsRead]);
 
   return {
     eventData,

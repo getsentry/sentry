@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -25,14 +24,17 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {HighestCacheMissRateTransactionsWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 function isColumnNotFoundError(error: QueryError | null) {
   return error?.message === 'Column cache.hit was not found in metrics indexer';
 }
-export function CachesWidget({query, releases}: {query?: string; releases?: Release[]}) {
+export function CachesWidget() {
   const theme = useTheme();
   const organization = useOrganization();
+  const {query} = useTransactionNameQuery();
+  const releaseBubbleProps = useReleaseBubbleProps();
   const pageFilterChartParams = usePageFilterChartParams();
 
   const cachesRequest = useEAPSpans(
@@ -92,7 +94,7 @@ export function CachesWidget({query, releases}: {query?: string; releases?: Rele
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {color: colorPalette[index]})
         ),
-        ...useReleaseBubbleProps(releases),
+        ...releaseBubbleProps,
       }}
     />
   );

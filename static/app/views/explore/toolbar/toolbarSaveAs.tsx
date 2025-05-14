@@ -9,8 +9,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -138,61 +139,29 @@ export function ToolbarSaveAs() {
     },
   });
 
-  if (organization.features.includes('alerts-eap')) {
-    items.push({
-      key: 'create-alert',
-      label: t('An Alert for'),
-      textValue: t('An Alert for'),
-      children: alertsUrls ?? [],
-      disabled: !alertsUrls || alertsUrls.length === 0,
-      isSubmenu: true,
+  items.push({
+    key: 'create-alert',
+    label: t('An Alert for'),
+    textValue: t('An Alert for'),
+    children: alertsUrls ?? [],
+    disabled: !alertsUrls || alertsUrls.length === 0,
+    isSubmenu: true,
+  });
+
+  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+
+  const chartOptions = visualizes.map((chart, index) => {
+    const dedupedYAxes = dedupeArray(chart.yAxes);
+    const formattedYAxes = dedupedYAxes.map(yaxis => {
+      const func = parseFunction(yaxis);
+      return func ? prettifyParsedFunction(func) : undefined;
     });
-  }
 
-  if (organization.features.includes('dashboards-eap')) {
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-
-    const chartOptions = visualizes.map((chart, index) => {
-      const dedupedYAxes = dedupeArray(chart.yAxes);
-      const formattedYAxes = dedupedYAxes.map(yaxis => {
-        const func = parseFunction(yaxis);
-        return func ? prettifyParsedFunction(func) : undefined;
-      });
-
-      return {
-        key: chart.label,
-        label: t('%s - %s', chart.label, formattedYAxes.filter(Boolean).join(', ')),
-        onAction: () => {
-          if (disableAddToDashboard) {
-            return undefined;
-          }
-
-          trackAnalytics('trace_explorer.save_as', {
-            save_type: 'dashboard',
-            ui_source: 'toolbar',
-            organization,
-          });
-          return addToDashboard(index);
-        },
-      };
-    });
-    items.push({
-      key: 'add-to-dashboard',
-      textValue: t('A Dashboard widget'),
-      isSubmenu: chartOptions.length > 1 ? true : false,
-      label: (
-        <Feature
-          hookName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
-        >
-          {t('A Dashboard widget')}
-        </Feature>
-      ),
-      disabled: disableAddToDashboard,
-      children: chartOptions.length > 1 ? chartOptions : undefined,
+    return {
+      key: chart.label,
+      label: t('%s - %s', chart.label, formattedYAxes.filter(Boolean).join(', ')),
       onAction: () => {
-        if (disableAddToDashboard || chartOptions.length > 1) {
+        if (disableAddToDashboard) {
           return undefined;
         }
 
@@ -201,10 +170,38 @@ export function ToolbarSaveAs() {
           ui_source: 'toolbar',
           organization,
         });
-        return addToDashboard(0);
+        return addToDashboard(index);
       },
-    });
-  }
+    };
+  });
+  items.push({
+    key: 'add-to-dashboard',
+    textValue: t('A Dashboard widget'),
+    isSubmenu: chartOptions.length > 1 ? true : false,
+    label: (
+      <Feature
+        hookName="feature-disabled:dashboards-edit"
+        features="organizations:dashboards-edit"
+        renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
+      >
+        {t('A Dashboard widget')}
+      </Feature>
+    ),
+    disabled: disableAddToDashboard,
+    children: chartOptions.length > 1 ? chartOptions : undefined,
+    onAction: () => {
+      if (disableAddToDashboard || chartOptions.length > 1) {
+        return undefined;
+      }
+
+      trackAnalytics('trace_explorer.save_as', {
+        save_type: 'dashboard',
+        ui_source: 'toolbar',
+        organization,
+      });
+      return addToDashboard(0);
+    },
+  });
 
   const shouldHighlightSaveButton = useMemo(() => {
     if (isLoadingSavedQuery || savedQuery === undefined || savedQuery?.isPrebuilt) {
@@ -281,27 +278,27 @@ export function ToolbarSaveAs() {
             </SaveAsButton>
           )}
         />
-        {organization.features.includes('explore-multi-query') && (
-          <LinkButton
-            aria-label={t('Compare')}
-            onClick={() =>
-              trackAnalytics('trace_explorer.compare', {
-                organization,
-              })
-            }
-            to={generateExploreCompareRoute({
+        <LinkButton
+          aria-label={t('Compare')}
+          onClick={() =>
+            trackAnalytics('trace_explorer.compare', {
               organization,
-              mode,
-              location,
-              query,
-              yAxes: [visualizeYAxes[0]!],
-              groupBys,
-              fields,
-              sortBys,
-              chartType: visualizes[0]!.chartType,
-            })}
-          >{`${t('Compare Queries')}`}</LinkButton>
-        )}
+            })
+          }
+          to={generateExploreCompareRoute({
+            organization,
+            mode,
+            location,
+            query,
+            yAxes: [visualizeYAxes[0]!],
+            groupBys,
+            fields,
+            sortBys,
+            chartType: visualizes[0]!.chartType,
+          })}
+        >
+          {`${t('Compare Queries')}`}
+        </LinkButton>
       </ButtonBar>
     </StyledToolbarSection>
   );

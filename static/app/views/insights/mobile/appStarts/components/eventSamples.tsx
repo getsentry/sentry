@@ -12,11 +12,11 @@ import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
+import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
-import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
@@ -65,7 +65,7 @@ export function EventSamples({
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    'transaction.id': t(
+    'transaction.span_id': t(
       'Event ID (%s)',
       release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
     ),
@@ -78,7 +78,7 @@ export function EventSamples({
     fields: [
       'trace',
       'timestamp',
-      'transaction.id',
+      'transaction.span_id',
       'project.name',
       'profile_id',
       'span.duration',
@@ -92,24 +92,34 @@ export function EventSamples({
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
   eventView.sorts = [sort];
 
-  const {data, isPending, pageLinks} = useTableQuery({
-    eventView,
-    enabled: defined(release),
-    limit: 4,
-    cursor,
-    referrer: 'api.starfish.mobile-startup-event-samples',
-    initialData: {data: []},
-  });
+  const {data, meta, isPending, pageLinks} = useSpansIndexed(
+    {
+      search: searchQuery.formatString(),
+      cursor,
+      limit: 4,
+      enabled: defined(release),
+      fields: [
+        SpanIndexedField.TRACE,
+        SpanIndexedField.TIMESTAMP,
+        SpanIndexedField.TRANSACTION,
+        SpanIndexedField.TRANSACTION_SPAN_ID,
+        SpanIndexedField.PROJECT,
+        SpanIndexedField.PROFILE_ID,
+        SpanIndexedField.SPAN_DURATION,
+      ],
+    },
+    'api.starfish.mobile-startup-event-samples'
+  );
 
   return (
     <EventSamplesTable
       cursorName={cursorName}
-      eventIdKey="transaction.id"
+      eventIdKey={SpanIndexedField.TRANSACTION_SPAN_ID}
       eventView={eventView}
       isLoading={defined(release) && isPending}
       profileIdKey="profile_id"
       sortKey={sortKey}
-      data={data}
+      data={{data, meta}}
       pageLinks={pageLinks}
       showDeviceClassSelector={showDeviceClassSelector}
       columnNameMap={columnNameMap}

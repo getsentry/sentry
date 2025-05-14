@@ -42,7 +42,7 @@ describe('Thresholds', () => {
           thresholds: undefined,
         }),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -66,7 +66,7 @@ describe('Thresholds', () => {
           thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
         }),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -97,7 +97,7 @@ describe('Thresholds', () => {
           thresholds: '{"max_values":{"max1":100,"max2":200},"unit":"second"}',
         }),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -149,7 +149,7 @@ describe('Thresholds', () => {
           thresholds: '{"max_values":{"max1":0.5,"max2":100.5456},"unit":null}',
         }),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 });

@@ -478,7 +478,7 @@ function TableView(props: TableViewProps) {
               onClick={() =>
                 trackAnalytics('profiling_views.go_to_flamegraph', {
                   organization,
-                  source: 'discover.table',
+                  source: 'discover.transactions_table',
                 })
               }
             >

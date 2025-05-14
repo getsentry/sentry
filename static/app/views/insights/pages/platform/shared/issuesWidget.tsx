@@ -7,7 +7,7 @@ import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import type {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
@@ -36,6 +36,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 const defaultProps = {
   canSelectGroups: true,
@@ -246,7 +247,7 @@ class IssuesGroupList extends Component<Props, State> {
             <SuperHeader disablePadding>
               <SuperHeaderLabel hideDivider>{t('Recommended Issues')}</SuperHeaderLabel>
               <LinkButton to={this.getIssuesUrl(queryParams)} size="xs">
-                All Issues
+                {t('View All')}
               </LinkButton>
             </SuperHeader>
             <GroupListHeader withChart={!!withChart} withColumns={columns} />
@@ -319,8 +320,9 @@ const HeaderContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.header};
 `;
 
-export function IssuesWidget({query = ''}: {query?: string}) {
+export function IssuesWidget() {
   const location = useLocation();
+  const {query} = useTransactionNameQuery();
   const queryWithDefault = new MutableSearch(['is:unresolved', 'event.type:error']);
   if (query) {
     queryWithDefault.setFilterValues('transaction', [query]);

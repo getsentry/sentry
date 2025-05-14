@@ -4,7 +4,6 @@ import {useTheme} from '@emotion/react';
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -19,22 +18,21 @@ import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/la
 import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 export function TrafficWidget({
   title,
   trafficSeriesName,
   baseQuery,
-  query,
-  releases,
 }: {
   title: string;
   trafficSeriesName: string;
   baseQuery?: string;
-  query?: string;
-  releases?: Release[];
 }) {
   const organization = useOrganization();
+  const releaseBubbleProps = useReleaseBubbleProps();
   const pageFilterChartParams = usePageFilterChartParams({granularity: 'spans-low'});
+  const {query} = useTransactionNameQuery();
   const theme = useTheme();
 
   const fullQuery = `${baseQuery} ${query}`.trim();
@@ -79,7 +77,7 @@ export function TrafficWidget({
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         plottables,
-        ...useReleaseBubbleProps(releases),
+        ...releaseBubbleProps,
       }}
     />
   );

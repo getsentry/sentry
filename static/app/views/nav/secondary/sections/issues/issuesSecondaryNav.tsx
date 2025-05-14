@@ -75,9 +75,7 @@ export function IssuesSecondaryNav() {
             </SecondaryNav.Item>
           </SecondaryNav.Section>
         )}
-        {organization.features.includes('issue-stream-custom-views') && (
-          <IssueViewNavItems sectionRef={sectionRef} />
-        )}
+        <IssueViewNavItems sectionRef={sectionRef} />
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNav.Body>
     </SecondaryNav>
@@ -87,7 +85,7 @@ export function IssuesSecondaryNav() {
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const hasWorkflowEngine = useWorkflowEngineFeatureGate();
   return (
-    <StickyBottomSection id="issues-configure" title={t('Configure')}>
+    <StickyBottomSection id="issues-configure" title={t('Configure')} collapsible={false}>
       {hasWorkflowEngine ? (
         <Fragment>
           <SecondaryNav.Item

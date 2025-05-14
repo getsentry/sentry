@@ -128,6 +128,8 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     platform: str | None
     priority: str | None
     priorityLockedAt: datetime | None
+    seerFixabilityScore: float | None
+    seerAutofixLastTriggered: datetime | None
     project: GroupProjectResponse
     type: str
     issueType: str
@@ -361,6 +363,8 @@ class GroupSerializerBase(Serializer, ABC):
             "issueCategory": issue_category,
             "priority": priority_label,
             "priorityLockedAt": obj.priority_locked_at,
+            "seerFixabilityScore": obj.seer_fixability_score,
+            "seerAutofixLastTriggered": obj.seer_autofix_last_triggered,
         }
 
         # This attribute is currently feature gated
@@ -922,6 +926,8 @@ SKIP_SNUBA_FIELDS = frozenset(
         "issue.category",
         "issue.priority",
         "issue.type",
+        "issue.seer_actionability",
+        "issue.seer_last_run",
     )
 )
 

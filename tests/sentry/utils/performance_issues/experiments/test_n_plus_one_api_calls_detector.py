@@ -281,6 +281,13 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
 
         assert problem1.fingerprint != problem2.fingerprint
 
+    def test_does_not_fingerprint_file_urls(self):
+        event = self.create_event(lambda i: f"GET /clients/info/{i}.json")
+        assert self.find_problems(event) == []
+
+        event = self.create_event(lambda i: f"GET /clients/{i}/info/file.json")
+        assert self.find_problems(event) == []
+
     def test_ignores_hostname_for_fingerprinting(self):
         event1 = self.create_event(lambda i: f"GET http://service.io/clients/{i}/info?id={i}")
         [problem1] = self.find_problems(event1)
@@ -324,6 +331,10 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         ),
         (
             "/clients/11/project/1343",
+            "/clients/*/project/*",
+        ),
+        (
+            "/clients/1.2/project/3.4.5",
             "/clients/*/project/*",
         ),
         (

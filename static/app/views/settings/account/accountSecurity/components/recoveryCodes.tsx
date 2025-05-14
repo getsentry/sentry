@@ -2,7 +2,9 @@ import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -41,13 +43,16 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
       <PanelHeader hasButtons>
         {t('Unused Codes')}
 
-        <Actions>
-          <CopyToClipboardButton text={formattedCodes} size="sm" />
-          <Button size="sm" onClick={printCodes} aria-label={t('print')}>
-            <IconPrint />
-          </Button>
+        <ButtonBar gap={1}>
+          <CopyToClipboardButton text={formattedCodes} size="xs" />
+          <Button
+            size="xs"
+            onClick={printCodes}
+            aria-label={t('print')}
+            icon={<IconPrint />}
+          />
           <LinkButton
-            size="sm"
+            size="xs"
             download="sentry-recovery-codes.txt"
             href={`data:text/plain;charset=utf-8,${formattedCodes}`}
             aria-label={t('download')}
@@ -59,11 +64,11 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
               'Are you sure you want to regenerate recovery codes? Your old codes will no longer work.'
             )}
           >
-            <Button priority="danger" size="sm">
+            <Button priority="danger" size="xs">
               {t('Regenerate Codes')}
             </Button>
           </Confirm>
-        </Actions>
+        </ButtonBar>
       </PanelHeader>
       <PanelBody>
         <PanelAlert type="warning">
@@ -85,12 +90,6 @@ export default RecoveryCodes;
 
 const CodeContainer = styled(Panel)`
   margin-top: ${space(4)};
-`;
-
-const Actions = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(1)};
 `;
 
 const Code = styled(PanelItem)`
