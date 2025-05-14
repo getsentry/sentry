@@ -74,13 +74,13 @@ describe('useWidgetBuilderState', () => {
       expect.objectContaining({
         query: expect.objectContaining({title: 'new title'}),
       }),
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({description: 'new description'}),
       }),
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
   });
 
@@ -131,7 +131,7 @@ describe('useWidgetBuilderState', () => {
         expect.objectContaining({
           query: expect.objectContaining({displayType: DisplayType.AREA}),
         }),
-        {replace: true}
+        {replace: true, preventScrollReset: true}
       );
     });
 
@@ -835,7 +835,7 @@ describe('useWidgetBuilderState', () => {
         expect.objectContaining({
           query: expect.objectContaining({dataset: WidgetType.METRICS}),
         }),
-        {replace: true}
+        {replace: true, preventScrollReset: true}
       );
     });
 
@@ -1788,7 +1788,7 @@ describe('useWidgetBuilderState', () => {
         expect.objectContaining({
           query: expect.objectContaining({selectedAggregate: undefined}),
         }),
-        {replace: true}
+        {replace: true, preventScrollReset: true}
       );
     });
   });

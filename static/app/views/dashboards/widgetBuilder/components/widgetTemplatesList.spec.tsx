@@ -125,7 +125,7 @@ describe('WidgetTemplatesList', () => {
           dataset: 'transactions-like',
         }),
       }),
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
   });
 

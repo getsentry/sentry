@@ -492,7 +492,7 @@ describe('Visualize', () => {
     );
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({query: expect.objectContaining({field: ['count()']})}),
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
   });
 
@@ -532,7 +532,7 @@ describe('Visualize', () => {
       expect.objectContaining({
         query: expect.objectContaining({field: ['count_miserable(user,300)']}),
       }),
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
   });
 
@@ -892,7 +892,7 @@ describe('Visualize', () => {
       expect.objectContaining({
         query: expect.objectContaining({selectedAggregate: undefined}),
       }),
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
   });
 
