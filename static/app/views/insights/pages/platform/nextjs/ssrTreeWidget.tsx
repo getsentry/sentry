@@ -211,7 +211,7 @@ export default function SSRTreeWidget() {
               )
             }
           >
-            {t('Show All')}
+            {t('View All')}
           </Button>
         )
       }
