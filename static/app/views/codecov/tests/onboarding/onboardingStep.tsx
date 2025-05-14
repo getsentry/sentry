@@ -11,9 +11,10 @@ const Container = styled('div')`
   padding: ${space(2)} ${space(3)};
 `;
 
-const Header = styled('h5')`
+const Header = styled('h3')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.gray300};
+  margin-bottom: 0;
 `;
 
 const Content = styled('div')`
