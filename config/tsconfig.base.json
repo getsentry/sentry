@@ -16,7 +16,7 @@
     // [1]: https://node.green
     "module": "commonjs",
     "target": "ES2022",
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
 
     // We add esnext to lib to pull in types for all newer ECMAScript features
     "lib": ["esnext", "dom", "dom.iterable"],
