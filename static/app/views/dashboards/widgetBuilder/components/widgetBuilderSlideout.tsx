@@ -232,7 +232,7 @@ function WidgetBuilderSlideout({
         ) : (
           <Fragment>
             <Section>
-              <WidgetBuilderFilterBar />
+              <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
             </Section>
             <Section>
               <WidgetBuilderDatasetSelector />
