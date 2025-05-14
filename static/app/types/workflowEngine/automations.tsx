@@ -1,6 +1,6 @@
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 
-export interface NewAutomation {
+interface NewAutomation {
   actionFilters: DataConditionGroup[];
   detectorIds: string[];
   name: string;

@@ -143,7 +143,9 @@ class InstalledPlugin extends Component<Props> {
               onConfirming={this.handleUninstallClick}
               disabled={!hasAccess}
               confirmText="Delete Installation"
-              onConfirm={() => this.handleReset()}
+              onConfirm={() => {
+                this.handleReset();
+              }}
               message={this.getConfirmMessage()}
             >
               <StyledButton

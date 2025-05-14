@@ -72,7 +72,8 @@ def process_detectors(
                 logger.info(
                     "detector_triggered",
                     extra={
-                        "detector": detector,
+                        "detector": detector.id,
+                        "detector_type": detector.type,
                         "evaluation_data": data_packet.packet,
                         "result": result,
                     },
@@ -80,9 +81,5 @@ def process_detectors(
 
         if detector_results:
             results.append((detector, detector_results))
-
-        # TODO - @saponifi3d - should we be committing the detector state here? :thinking:
-        # Now that we've processed all results for this detector, commit any state changes
-        handler.commit_state_updates()
 
     return results

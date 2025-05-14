@@ -28,7 +28,7 @@ export function ExploreSecondaryNav() {
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.EXPLORE].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
-        <SecondaryNav.Section>
+        <SecondaryNav.Section id="explore-main">
           <Feature features={['performance-trace-explorer', 'performance-view']}>
             <SecondaryNav.Item
               to={`${baseUrl}/traces/`}
@@ -75,17 +75,20 @@ export function ExploreSecondaryNav() {
             {t('Releases')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <Feature features={['performance-trace-explorer', 'performance-view']}>
-          <SecondaryNav.Section>
+        <Feature features={['visibility-explore-view', 'performance-view']}>
+          <SecondaryNav.Section id="explore-all-queries">
             <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
               {t('All Queries')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
-          <SecondaryNav.Section title={t('Starred Queries')}>
-            {starredQueries && starredQueries.length > 0 && (
+          {starredQueries && starredQueries.length > 0 && (
+            <SecondaryNav.Section
+              id="explore-starred-queries"
+              title={t('Starred Queries')}
+            >
               <ExploreSavedQueryNavItems queries={starredQueries} />
-            )}
-          </SecondaryNav.Section>
+            </SecondaryNav.Section>
+          )}
         </Feature>
       </SecondaryNav.Body>
     </SecondaryNav>

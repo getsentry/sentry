@@ -19,6 +19,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   defaultOptions: {
     queries: {
+      refetchOnReconnect: false,
       refetchOnWindowFocus: false,
     },
   },
@@ -95,7 +96,7 @@ export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError> & {
  * Query keys should be an array which include an endpoint URL and options such as query params.
  * This wrapper will execute the request using the query key URL.
  *
- * See https://tanstack.com/query/v4/docs/overview for docs on React Query.
+ * See https://tanstack.com/query/v5/docs/framework/react/overview for docs on React Query.
  *
  * Example usage:
  *

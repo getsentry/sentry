@@ -1,5 +1,5 @@
 import type {PropsWithChildren, ReactNode} from 'react';
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -480,23 +480,55 @@ export function SourceMapsDebuggerModal({
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
 
+  const hideDebugIdsTab = sourceResolutionResults.sdkDebugIdSupport === 'not-supported';
+  const hideReleasesTab = sourceResolutionResults.sdkDebugIdSupport === 'full';
+  const hideHostingPubliclyTab =
+    !sourceResolutionResults.hasScrapingData ||
+    isReactNativeSDK({sdkName: sourceResolutionResults.sdkName});
+
+  const tabOptions = useMemo(
+    () => [
+      {
+        key: 'debug-ids' as const,
+        hidden: hideDebugIdsTab,
+        progress: sourceResolutionResults.debugIdProgressPercent,
+      },
+      {
+        key: 'release' as const,
+        hidden: hideReleasesTab,
+        progress: sourceResolutionResults.releaseProgressPercent,
+      },
+      {
+        key: 'fetching' as const,
+        hidden: hideHostingPubliclyTab,
+        progress: sourceResolutionResults.scrapingProgressPercent,
+      },
+    ],
+    [
+      hideDebugIdsTab,
+      hideReleasesTab,
+      hideHostingPubliclyTab,
+      sourceResolutionResults.debugIdProgressPercent,
+      sourceResolutionResults.releaseProgressPercent,
+      sourceResolutionResults.scrapingProgressPercent,
+    ]
+  );
+
+  const visibleTabs = tabOptions.filter(tab => !tab.hidden);
+  const hideAllTabs = visibleTabs.length === 1;
+
   const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
-    // If the SDK supports Debug IDs, the Debug IDs tab should be shown by default
-    if (sourceResolutionResults.sdkDebugIdSupport === 'full') {
-      return 'debug-ids';
+    if (hideAllTabs) {
+      const onlyVisible = visibleTabs[0];
+      if (onlyVisible) {
+        return onlyVisible.key;
+      }
     }
 
-    const possibleTabs = [
-      {tab: 'debug-ids', progress: sourceResolutionResults.debugIdProgressPercent},
-      {tab: 'release', progress: sourceResolutionResults.releaseProgressPercent},
-      {tab: 'fetching', progress: sourceResolutionResults.scrapingProgressPercent},
-    ] as const;
-
     // Get the tab with the most progress
-    return possibleTabs.reduce(
-      (prev, curr) => (curr.progress > prev.progress ? curr : prev),
-      possibleTabs[sourceResolutionResults.sdkDebugIdSupport === 'not-supported' ? 1 : 0]
-    ).tab;
+    return visibleTabs.reduce((prev, curr) =>
+      curr.progress > prev.progress ? curr : prev
+    ).key;
   });
 
   return (
@@ -551,22 +583,24 @@ export function SourceMapsDebuggerModal({
               projectSlug={project?.slug}
             />
           )}
-          <p>
-            {t(
-              "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
-            )}
-          </p>
+          {!hideAllTabs && (
+            <p>
+              {t(
+                "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
+              )}
+            </p>
+          )}
           <Tabs<'debug-ids' | 'release' | 'fetching'>
             value={activeTab}
             onChange={setActiveTab}
           >
-            <TabList>
+            <TabList hideBorder={hideAllTabs}>
               <TabList.Item
                 key="debug-ids"
                 textValue={`${t('Debug IDs')} (${
                   sourceResolutionResults.debugIdProgress
                 }/4)`}
-                hidden={sourceResolutionResults.sdkDebugIdSupport === 'not-supported'}
+                hidden={hideDebugIdsTab || hideAllTabs}
               >
                 <StyledProgressRing
                   progressColor={
@@ -588,6 +622,7 @@ export function SourceMapsDebuggerModal({
                 textValue={`${t('Releases')} (${
                   sourceResolutionResults.releaseProgress
                 }/4)`}
+                hidden={hideReleasesTab || hideAllTabs}
               >
                 <StyledProgressRing
                   progressColor={
@@ -605,10 +640,7 @@ export function SourceMapsDebuggerModal({
                 textValue={`${t('Hosting Publicly')} (${
                   sourceResolutionResults.scrapingProgress
                 }/4)`}
-                hidden={
-                  !sourceResolutionResults.hasScrapingData ||
-                  isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
-                }
+                hidden={hideHostingPubliclyTab || hideAllTabs}
               >
                 <StyledProgressRing
                   progressColor={
@@ -622,20 +654,33 @@ export function SourceMapsDebuggerModal({
                 {t('Hosting Publicly')}
               </TabList.Item>
             </TabList>
-            <StyledTabPanels>
+            <StyledTabPanels hideAllTabs={hideAllTabs}>
               <TabPanels.Item key="debug-ids">
-                <p>
-                  {tct(
-                    '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
-                    {
-                      link: defined(sourceMapsDocLinks.debugIds) ? (
-                        <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
-                      ) : (
-                        <Fragment />
-                      ),
-                    }
-                  )}
-                </p>
+                {hideAllTabs ? (
+                  <p>
+                    {tct(
+                      "Secondly, let's go through a checklist to troubleshoot why your source maps aren't showing up. We rely on [link:Debug IDs] to link your source files to the maps, so let's make sure they're set up correctly:",
+                      {
+                        link: sourceMapsDocLinks.debugIds ? (
+                          <ExternalLink href={sourceMapsDocLinks.debugIds} />
+                        ) : undefined,
+                      }
+                    )}
+                  </p>
+                ) : (
+                  <p>
+                    {tct(
+                      '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
+                      {
+                        link: defined(sourceMapsDocLinks.debugIds) ? (
+                          <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
+                        ) : (
+                          <Fragment />
+                        ),
+                      }
+                    )}
+                  </p>
+                )}
                 <CheckList>
                   <InstalledSdkChecklistItem
                     setActiveTab={setActiveTab}
@@ -667,16 +712,29 @@ export function SourceMapsDebuggerModal({
                 )}
               </TabPanels.Item>
               <TabPanels.Item key="release">
-                <p>
-                  {tct(
-                    'You can match your stack trace to your source code based on [link:Releases] and artifact names. Follow all of the steps below to get a readable stack trace:',
-                    {
-                      link: (
-                        <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
-                      ),
-                    }
-                  )}
-                </p>
+                {hideAllTabs ? (
+                  <p>
+                    {tct(
+                      "Secondly, let's go through a checklist to troubleshoot why your source maps aren't showing up. Your stack trace is matched to your source code using [link:Releases] and artifact names, so let's ensure that's set up correctly:",
+                      {
+                        link: (
+                          <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                        ),
+                      }
+                    )}
+                  </p>
+                ) : (
+                  <p>
+                    {tct(
+                      'You can match your stack trace to your source code based on [link:Releases] and artifact names. Follow all of the steps below to get a readable stack trace:',
+                      {
+                        link: (
+                          <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                        ),
+                      }
+                    )}
+                  </p>
+                )}
                 <CheckList>
                   <EventHasReleaseNameChecklistItem
                     sourceResolutionResults={sourceResolutionResults}
@@ -1816,8 +1874,8 @@ function SourceMapStepNotRequiredNote() {
   );
 }
 
-const StyledTabPanels = styled(TabPanels)`
-  padding-top: ${space(2)};
+const StyledTabPanels = styled(TabPanels)<{hideAllTabs: boolean}>`
+  ${p => !p.hideAllTabs && `padding-top: ${space(2)};`}
 `;
 
 const CheckList = styled('ul')`

@@ -266,3 +266,5 @@ export interface SeerRepoDefinition {
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
 }
+
+export const AUTOFIX_TTL_IN_DAYS = 30;
