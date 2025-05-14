@@ -103,14 +103,17 @@ function SudoModal({
   const bootstrapIsPending =
     isOrganizationFetching || isTeamsFetching || isProjectsFetching;
 
-  const {data: authenticators = [], isLoading: isAuthenticatorsLoading} = useApiQuery<
-    Authenticator[]
-  >(['/authenticators/'], {
-    // Fetch authenticators after preload requests to avoid overwriting session cookie
-    enabled: !bootstrapIsPending,
-    staleTime: 0,
-    retry: false,
-  });
+  // XXX(epurkhiser): Using isFetchedAfterMount here since the WebAuthn
+  // authenticator will always produce a new challenge. We don't want to render
+  // the WebAuthnAssert and then re-render with a different challenge, causing
+  // the prompt to trigger twice.
+  const {data: authenticators = [], isFetchedAfterMount: authenticatorsLoaded} =
+    useApiQuery<Authenticator[]>(['/authenticators/'], {
+      // Fetch authenticators after preload requests to avoid overwriting session cookie
+      enabled: !bootstrapIsPending,
+      staleTime: 0,
+      retry: false,
+    });
 
   const handleSubmitCOPS = () => {
     setState(prevState => ({
@@ -254,7 +257,7 @@ function SudoModal({
       return null;
     }
 
-    if (isAuthenticatorsLoading || bootstrapIsPending) {
+    if (!authenticatorsLoaded || bootstrapIsPending) {
       return <LoadingIndicator />;
     }
 
