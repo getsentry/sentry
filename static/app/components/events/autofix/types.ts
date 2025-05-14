@@ -201,7 +201,6 @@ export type AutofixRootCauseData = {
   id: string;
   description?: string;
   reproduction_urls?: Array<string | null>;
-  // TODO: this is for backwards compatibility with old runs, we should remove it soon
   root_cause_reproduction?: AutofixTimelineEvent[];
 };
 
