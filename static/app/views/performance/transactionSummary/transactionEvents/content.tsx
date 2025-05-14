@@ -161,9 +161,9 @@ function EventsContent(props: Props) {
     webVital,
   ]);
 
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  const isOTelUI = organization.features.includes('performance-otel-friendly-ui');
 
-  const table = isEAP ? (
+  const table = isOTelUI ? (
     <OverviewSpansTable
       eventView={eventView}
       totalValues={null}
@@ -235,11 +235,11 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  const isOTelUI = organization.features.includes('performance-otel-friendly-ui');
 
   return (
     <FilterActions>
-      {isEAP ? (
+      {isOTelUI ? (
         <SpanCategoryFilter serviceEntrySpanName={transactionName} />
       ) : (
         <Filter
