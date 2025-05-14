@@ -13,6 +13,7 @@ import {Card} from 'sentry/components/workflowEngine/ui/card';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import {
   AutomationBuilderContext,
@@ -20,7 +21,10 @@ import {
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
-import {useConnectedMonitors} from 'sentry/views/automations/components/editConnectedMonitors';
+import {
+  NEW_AUTOMATION_CONNECTED_IDS_KEY,
+  useConnectedIds,
+} from 'sentry/views/automations/hooks/utils';
 
 const FREQUENCY_OPTIONS = [
   {value: '5', label: t('5 minutes')},
@@ -43,10 +47,11 @@ export default function AutomationForm() {
     model.setValue('name', title);
   }, [title, model]);
 
-  const {monitors, connectedMonitorIds, toggleConnected} = useConnectedMonitors();
-  const connectedMonitors = monitors.filter(monitor =>
-    connectedMonitorIds.has(monitor.id)
-  );
+  const monitors: Detector[] = []; // TODO: Fetch monitors from API
+  const {connectedIds, toggleConnected} = useConnectedIds({
+    storageKey: NEW_AUTOMATION_CONNECTED_IDS_KEY,
+  });
+  const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
 
   return (
     <Form
@@ -60,7 +65,7 @@ export default function AutomationForm() {
             <Heading>{t('Connect Monitors')}</Heading>
             <ConnectedMonitorsList
               monitors={connectedMonitors}
-              connectedMonitorIds={connectedMonitorIds}
+              connectedMonitorIds={connectedIds}
               toggleConnected={toggleConnected}
             />
             <ButtonWrapper justify="space-between">

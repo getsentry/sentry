@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import EditConnectedMonitors from 'sentry/views/automations/components/editConnectedMonitors';
+import {NEW_AUTOMATION_CONNECTED_IDS_KEY} from 'sentry/views/automations/hooks/utils';
 import NewAutomationLayout from 'sentry/views/automations/layouts/new';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 
@@ -26,7 +27,7 @@ export default function AutomationNew() {
       <ContentWrapper>
         <Flex column gap={space(1.5)} style={{padding: space(2)}}>
           <Card>
-            <EditConnectedMonitors />
+            <EditConnectedMonitors storageKey={NEW_AUTOMATION_CONNECTED_IDS_KEY} />
           </Card>
           <span>
             <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
