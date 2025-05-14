@@ -32,7 +32,10 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
             features = self.feature_flags
 
         with self.feature(features):
-            url = reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug})
+            url = reverse(
+                self.viewname,
+                kwargs={"organization_id_or_slug": self.organization.slug},
+            )
             return self.client.get(url, query, format="json", **kwargs)
 
 
