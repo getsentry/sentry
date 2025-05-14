@@ -77,8 +77,15 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         limit: 1,
         fields: [
           SpanIndexedField.PROJECT_ID,
-          SpanIndexedField.TRANSACTION_ID,
+          SpanIndexedField.TRANSACTION_ID, // TODO: remove this with `useInsightsEap`, it's only needed to get the full event when eap is off
           SpanIndexedField.SPAN_DESCRIPTION,
+          SpanIndexedField.DB_SYSTEM,
+          SpanIndexedField.CODE_FILEPATH,
+          SpanIndexedField.CODE_LINENO,
+          SpanIndexedField.CODE_FUNCTION,
+          SpanIndexedField.SDK_NAME,
+          SpanIndexedField.SDK_VERSION,
+          SpanIndexedField.RELEASE,
         ],
       },
       'api.starfish.span-description'
