@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 import TestPreOnboardingPage from 'sentry/views/codecov/tests/preOnboarding';
 
+// Phase out for directory version
 export default function TestsOnboardingPage() {
   return (
     <LayoutGap>
