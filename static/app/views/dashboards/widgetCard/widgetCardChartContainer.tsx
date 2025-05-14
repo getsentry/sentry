@@ -59,8 +59,8 @@ type Props = {
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
+  showLoadingText?: boolean;
   tableItemLimit?: number;
-  timeToLoad?: number | null;
   windowWidth?: number;
 };
 
@@ -86,7 +86,7 @@ export function WidgetCardChartContainer({
   showConfidenceWarning,
   minTableColumnWidth,
   onDataFetchStart,
-  timeToLoad,
+  showLoadingText,
 }: Props) {
   const location = useLocation();
 
@@ -125,7 +125,7 @@ export function WidgetCardChartContainer({
               {typeof renderErrorMessage === 'function'
                 ? renderErrorMessage(errorMessage)
                 : null}
-              <LoadingScreen loading={loading} timeToLoad={timeToLoad} />
+              <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
               <IssueWidgetCard
                 transformedResults={tableResults?.[0]!.data ?? []}
                 loading={loading}
@@ -178,7 +178,7 @@ export function WidgetCardChartContainer({
               sampleCount={sampleCount}
               minTableColumnWidth={minTableColumnWidth}
               isSampled={isSampled}
-              timeToLoad={timeToLoad}
+              showLoadingText={showLoadingText}
             />
           </Fragment>
         );
@@ -199,10 +199,10 @@ const StyledTransparentLoadingMask = styled((props: any) => (
 
 function LoadingScreen({
   loading,
-  timeToLoad,
+  showLoadingText,
 }: {
   loading: boolean;
-  timeToLoad?: number | null;
+  showLoadingText?: boolean;
 }) {
   if (!loading) {
     return null;
@@ -210,9 +210,7 @@ function LoadingScreen({
   return (
     <StyledTransparentLoadingMask visible={loading}>
       <LoadingIndicator mini />
-      {timeToLoad !== null && timeToLoad !== undefined && timeToLoad > 2000 && (
-        <p>{t('Turning data into pixels - almost ready')}</p>
-      )}
+      {showLoadingText && <p>{t('Turning data into pixels - almost ready')}</p>}
     </StyledTransparentLoadingMask>
   );
 }

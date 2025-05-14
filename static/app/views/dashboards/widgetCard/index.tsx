@@ -1,4 +1,4 @@
-import {useContext, useEffect, useState} from 'react';
+import {useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -91,6 +91,7 @@ type Props = WithRouterProps & {
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
+  showLoadingText?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
@@ -110,11 +111,7 @@ type Data = {
 
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
-  const [{timePassed, isLoading}, setLoadingTime] = useState<{
-    isLoading: boolean;
-    startTime: number | null;
-    timePassed: number | null;
-  }>({startTime: null, timePassed: null, isLoading: false});
+  const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
 
   const onDataFetched = (newData: Data) => {
@@ -128,11 +125,7 @@ function WidgetCard(props: Props) {
       setIsProgressivelyLoading(isProgressivelyLoading);
     }
 
-    setLoadingTime({
-      startTime: null,
-      timePassed: null,
-      isLoading: false,
-    });
+    setIsLoadingTextVisible(false);
   };
 
   const {
@@ -156,6 +149,7 @@ function WidgetCard(props: Props) {
     disableFullscreen,
     showConfidenceWarning,
     minTableColumnWidth,
+    showLoadingText,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -187,40 +181,12 @@ function WidgetCard(props: Props) {
     if (organization.features.includes('visibility-explore-progressive-loading')) {
       setIsProgressivelyLoading(true);
     }
-    setLoadingTime({
-      startTime: Date.now(),
-      timePassed: 0,
-      isLoading: true,
-    });
-  };
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (isLoading) {
-      const updateTime = () => {
-        setLoadingTime(prev => {
-          if (!prev.isLoading || !prev.startTime) {
-            return prev;
-          }
-          const newTimePassed = Date.now() - (prev.startTime ?? 0);
-          return {
-            ...prev,
-            timePassed: newTimePassed,
-          };
-        });
-      };
-
-      updateTime();
-
-      interval = setInterval(updateTime, 10);
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
+    setTimeout(() => {
+      if (!isLoadingTextVisible) {
+        setIsLoadingTextVisible(true);
       }
-    };
-  }, [isLoading]);
+    }, 3000);
+  };
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
@@ -338,7 +304,7 @@ function WidgetCard(props: Props) {
             showConfidenceWarning={showConfidenceWarning}
             minTableColumnWidth={minTableColumnWidth}
             onDataFetchStart={onDataFetchStart}
-            timeToLoad={timePassed}
+            showLoadingText={showLoadingText && isLoadingTextVisible}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>

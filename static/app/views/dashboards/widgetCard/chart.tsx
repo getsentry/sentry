@@ -99,7 +99,7 @@ type WidgetCardChartProps = Pick<
   sampleCount?: number;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
-  timeToLoad?: number | null;
+  showLoadingText?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
@@ -285,7 +285,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       showConfidenceWarning,
       sampleCount,
       isSampled,
-      timeToLoad,
+      showLoadingText,
     } = this.props;
 
     if (errorMessage) {
@@ -300,7 +300,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       return getDynamicText({
         value: (
           <TransitionChart loading={loading} reloading={loading}>
-            <LoadingScreen loading={loading} timeToLoad={timeToLoad} />
+            <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
             {this.tableResultComponent({tableResults, loading})}
           </TransitionChart>
         ),
@@ -311,7 +311,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     if (widget.displayType === 'big_number') {
       return (
         <TransitionChart loading={loading} reloading={loading}>
-          <LoadingScreen loading={loading} timeToLoad={timeToLoad} />
+          <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
           <BigNumberResizeWrapper noPadding={noPadding}>
             {this.bigNumberComponent({tableResults, loading})}
           </BigNumberResizeWrapper>
@@ -529,9 +529,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                     widget,
                     releaseSeries
                   );
+
                 return (
                   <TransitionChart loading={loading} reloading={loading}>
-                    <LoadingScreen loading={loading} timeToLoad={timeToLoad} />
+                    <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
                     <ChartWrapper
                       autoHeightResize={shouldResize ?? true}
                       noPadding={noPadding}
@@ -586,23 +587,32 @@ const StyledTransparentLoadingMask = styled((props: any) => (
 
 function LoadingScreen({
   loading,
-  timeToLoad,
+  showLoadingText,
 }: {
   loading: boolean;
-  timeToLoad?: number | null;
+  showLoadingText?: boolean;
 }) {
   if (!loading) {
     return null;
   }
+
   return (
     <StyledTransparentLoadingMask visible={loading}>
       <LoadingIndicator mini />
-      {timeToLoad !== null && timeToLoad !== undefined && timeToLoad > 2000 && (
-        <p>{t('Turning data into pixels - almost ready')}</p>
+      {showLoadingText && (
+        <LoadingText id="loading-text">
+          {t('Turning data into pixels - almost ready')}
+        </LoadingText>
       )}
     </StyledTransparentLoadingMask>
   );
 }
+
+const LoadingText = styled('p')`
+  text-align: center;
+  position: relative;
+  z-index: 500000;
+`;
 
 const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
   <Placeholder height="200px" className={className} />
