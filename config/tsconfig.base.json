@@ -14,9 +14,9 @@
     //
     // [0]: https://babeljs.io/docs/en/babel-preset-typescript
     // [1]: https://node.green
-    "module": "commonjs",
+    "module": "preserve",
     "target": "ES2022",
-    "moduleResolution": "nodenext",
+    "moduleResolution": "bundler",
 
     // We add esnext to lib to pull in types for all newer ECMAScript features
     "lib": ["esnext", "dom", "dom.iterable"],
