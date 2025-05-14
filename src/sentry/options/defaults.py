@@ -2364,7 +2364,7 @@ register(
 )
 # Gradually roll out Python SDK alpha version for dogfooding
 register(
-    "sentry-sdk.use-python-sdk-alpha", default=0.0, type=Float, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "sentry-sdk.use-python-sdk-alpha", default=1.0, type=Float, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 register(

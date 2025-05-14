@@ -311,6 +311,16 @@ def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
     """
+    if in_random_rollout("sentry-sdk.use-python-sdk-alpha"):
+        import sentry_sdk_alpha
+
+        global sentry_sdk
+        sentry_sdk = sentry_sdk_alpha
+
+    # trying to call non existing function in sentry_sdk_alpha
+    # never reached because sentry_sdk_alpha does not exist yet :)
+    sentry_sdk.start_transaction()
+
     sdk_options, dsns = _get_sdk_options()
     if settings.SPOTLIGHT:
         sdk_options["spotlight"] = (
