@@ -12,8 +12,10 @@ const AM1_CHECKOUT_CATEGORIES = [
   'uptime',
 ] as DataCategory[];
 
+const AM1_ONDEMAND_CATEGORIES = [...AM1_CHECKOUT_CATEGORIES] as DataCategory[];
+
 const AM1_CATEGORIES = [
-  ...AM1_CHECKOUT_CATEGORIES,
+  ...AM1_ONDEMAND_CATEGORIES,
   'seerAutoFix',
   'seerScanner',
 ] as DataCategory[];
@@ -113,7 +115,7 @@ const AM1_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
     checkoutCategories: AM1_CHECKOUT_CATEGORIES,
-    onDemandCategories: AM1_CATEGORIES,
+    onDemandCategories: AM1_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     trialPlan: 'am1_t',
     basePrice: 0,
@@ -185,7 +187,7 @@ const AM1_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
     checkoutCategories: AM1_CHECKOUT_CATEGORIES,
-    onDemandCategories: AM1_CATEGORIES,
+    onDemandCategories: AM1_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     trialPlan: null,
     basePrice: 0,
@@ -257,7 +259,7 @@ const AM1_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
     checkoutCategories: AM1_CHECKOUT_CATEGORIES,
-    onDemandCategories: AM1_CATEGORIES,
+    onDemandCategories: AM1_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     trialPlan: null,
     basePrice: 2900,
@@ -840,7 +842,7 @@ const AM1_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
     checkoutCategories: AM1_CHECKOUT_CATEGORIES,
-    onDemandCategories: AM1_CATEGORIES,
+    onDemandCategories: AM1_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     basePrice: 31200,
     price: 31200,
@@ -1422,7 +1424,7 @@ const AM1_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
     checkoutCategories: AM1_CHECKOUT_CATEGORIES,
-    onDemandCategories: AM1_CATEGORIES,
+    onDemandCategories: AM1_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     maxMembers: null,
     basePrice: 8900,
@@ -2005,7 +2007,7 @@ const AM1_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
     checkoutCategories: AM1_CHECKOUT_CATEGORIES,
-    onDemandCategories: AM1_CATEGORIES,
+    onDemandCategories: AM1_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     price: 96000,
     maxMembers: null,
@@ -2596,7 +2598,7 @@ const AM1_PLANS: Record<string, Plan> = {
     categories: AM1_CATEGORIES,
     checkoutCategories: AM1_CHECKOUT_CATEGORIES,
     availableCategories: AM1_CATEGORIES,
-    onDemandCategories: AM1_CATEGORIES,
+    onDemandCategories: AM1_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     planCategories: {
       errors: [

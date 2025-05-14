@@ -11,10 +11,15 @@ const AM3_CHECKOUT_CATEGORIES = [
   'spans',
   'uptime',
 ] as DataCategory[];
-const AM3_CATEGORIES = [
+
+const AM3_ONDEMAND_CATEGORIES = [
   ...AM3_CHECKOUT_CATEGORIES,
   'profileDuration',
   'profileDurationUI',
+] as DataCategory[];
+
+const AM3_CATEGORIES = [
+  ...AM3_ONDEMAND_CATEGORIES,
   'seerAutofix',
   'seerScanner',
 ] as DataCategory[];
@@ -173,7 +178,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -886,7 +891,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -1383,7 +1388,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -1478,7 +1483,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -1779,7 +1784,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -1874,7 +1879,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -2072,7 +2077,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -2569,7 +2574,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -3066,7 +3071,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {

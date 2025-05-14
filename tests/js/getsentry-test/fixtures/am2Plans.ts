@@ -13,10 +13,14 @@ const AM2_CHECKOUT_CATEGORIES = [
   'uptime',
 ] as DataCategory[];
 
-const AM2_CATEGORIES = [
+const AM2_ONDEMAND_CATEGORIES = [
   ...AM2_CHECKOUT_CATEGORIES,
   'profileDuration',
   'profileDurationUI',
+] as DataCategory[];
+
+const AM2_CATEGORIES = [
+  ...AM2_ONDEMAND_CATEGORIES,
   'seerAutoFix',
   'seerScanner',
 ] as DataCategory[];
@@ -135,7 +139,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -854,7 +858,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -941,7 +945,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -1660,7 +1664,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -1747,7 +1751,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -2429,7 +2433,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -3111,7 +3115,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [{events: 5000000, unitPrice: 0.015, price: 0}],
@@ -3150,7 +3154,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [{events: 50_000, unitPrice: 0.015, price: 0}],
@@ -3191,7 +3195,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -3682,7 +3686,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -4224,7 +4228,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -4781,7 +4785,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -4868,7 +4872,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
