@@ -9,10 +9,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import type {IssueViewParams} from 'sentry/views/issueList/issueViews/issueViews';
+import type {IssueViewParams} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchViewStarredOrder} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarredOrder';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import {IssueViewAddViewButton} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewAddViewButton';
 import {IssueViewNavItemContent} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItemContent';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 
@@ -45,9 +44,7 @@ export function IssueViewNavItems({sectionRef}: IssueViewNavItemsProps) {
       debounce((newViews: NavIssueView[]) => {
         updateStarredViewsOrder({
           orgSlug: organization.slug,
-          viewIds: newViews
-            .filter(view => view.id[0] !== '_' && !view.id.startsWith('default'))
-            .map(view => parseInt(view.id, 10)),
+          viewIds: newViews.map(view => parseInt(view.id, 10)),
         });
       }, 500),
     [organization.slug, updateStarredViewsOrder]
@@ -67,15 +64,7 @@ export function IssueViewNavItems({sectionRef}: IssueViewNavItemsProps) {
   }
 
   return (
-    <SecondaryNav.Section
-      id="issues-starred-views"
-      title={t('Starred Views')}
-      trailingItems={
-        organization.features.includes('enforce-stacked-navigation') ? null : (
-          <IssueViewAddViewButton />
-        )
-      }
-    >
+    <SecondaryNav.Section id="issues-starred-views" title={t('Starred Views')}>
       <Reorder.Group
         as="div"
         axis="y"

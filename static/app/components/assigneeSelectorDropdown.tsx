@@ -545,7 +545,7 @@ export default function AssigneeSelectorDropdown({
         size="xs"
         aria-label={t('Invite Member')}
         disabled={loading}
-        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
           event.preventDefault();
           openInviteMembersModal({source: 'assignee_selector'});
         }}

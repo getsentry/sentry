@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';

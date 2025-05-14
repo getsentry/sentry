@@ -7,7 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -109,8 +109,10 @@ function AccountClose() {
         data: {organizations: Array.from(orgsToRemove)},
       });
 
-      openModal(GoodbyeModalContent, {
-        onClose: leaveRedirect,
+      requestAnimationFrame(() => {
+        openModal(GoodbyeModalContent, {
+          onClose: leaveRedirect,
+        });
       });
 
       // Redirect after 10 seconds

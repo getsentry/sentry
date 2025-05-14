@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class OrganizationIssueMetricsTestCase(APITestCase):
@@ -14,6 +15,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
+    @freeze_time(datetime.now(tz=timezone.utc).replace(microsecond=100))
     def test_get_errors(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
@@ -21,7 +23,9 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         two = self.create_release(project2, version="1.2.0")
 
         curr = datetime.now(tz=timezone.utc)
-        prev = curr - timedelta(hours=1)
+        before_curr = curr - timedelta(microseconds=100)
+        prev = before_curr - timedelta(hours=1)
+        after_prev = prev + timedelta(microseconds=100)
 
         # Release issues.
         self.create_group(project=project1, status=0, first_seen=curr, first_release=one, type=1)
@@ -38,8 +42,12 @@ class OrganizationIssueMetricsTestCase(APITestCase):
 
         # Time based issues.
         self.create_group(project=project1, status=0, first_seen=curr, type=1)
-        self.create_group(project=project1, status=1, first_seen=curr, resolved_at=curr, type=2)
-        self.create_group(project=project2, status=1, first_seen=prev, resolved_at=prev, type=3)
+        self.create_group(
+            project=project1, status=1, first_seen=before_curr, resolved_at=curr, type=2
+        )
+        self.create_group(
+            project=project2, status=1, first_seen=prev, resolved_at=after_prev, type=3
+        )
         self.create_group(project=project2, status=2, first_seen=prev, type=4)
         self.create_group(project=project2, status=2, first_seen=prev, type=FeedbackGroup.type_id)
 
@@ -173,12 +181,15 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
         ]
 
+    @freeze_time(datetime.now(tz=timezone.utc).replace(microsecond=100))
     def test_get_feedback(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
 
         curr = datetime.now(tz=timezone.utc)
-        prev = curr - timedelta(hours=1)
+        before_curr = curr - timedelta(microseconds=100)
+        prev = before_curr - timedelta(hours=1)
+        after_prev = prev + timedelta(microseconds=100)
         # New cohort
         self.create_group(project=project1, status=0, first_seen=curr, type=1)
         self.create_group(project=project1, status=1, first_seen=curr, type=2)
@@ -186,11 +197,29 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         self.create_group(project=project2, status=2, first_seen=prev, type=FeedbackGroup.type_id)
         self.create_group(project=project2, status=2, first_seen=curr, type=FeedbackGroup.type_id)
         # Resolved cohort
-        self.create_group(project=project1, status=0, resolved_at=curr, type=2)
-        self.create_group(project=project1, status=1, resolved_at=curr, type=3)
-        self.create_group(project=project2, status=1, resolved_at=prev, type=FeedbackGroup.type_id)
-        self.create_group(project=project2, status=1, resolved_at=curr, type=FeedbackGroup.type_id)
-        self.create_group(project=project2, status=2, resolved_at=curr, type=5)
+        self.create_group(
+            project=project1, status=0, first_seen=before_curr, resolved_at=curr, type=2
+        )
+        self.create_group(
+            project=project1, status=1, first_seen=before_curr, resolved_at=curr, type=3
+        )
+        self.create_group(
+            project=project2,
+            status=1,
+            first_seen=prev,
+            resolved_at=after_prev,
+            type=FeedbackGroup.type_id,
+        )
+        self.create_group(
+            project=project2,
+            status=1,
+            first_seen=before_curr,
+            resolved_at=curr,
+            type=FeedbackGroup.type_id,
+        )
+        self.create_group(
+            project=project2, status=2, first_seen=before_curr, resolved_at=curr, type=5
+        )
 
         response = self.client.get(
             self.url
@@ -209,8 +238,8 @@ class OrganizationIssueMetricsTestCase(APITestCase):
                     "valueUnit": None,
                 },
                 "values": [
-                    {"timestamp": int(prev.timestamp()), "value": 1},
-                    {"timestamp": int(curr.timestamp()), "value": 1},
+                    {"timestamp": int(prev.timestamp()), "value": 2},
+                    {"timestamp": int(curr.timestamp()), "value": 2},
                 ],
             },
             {

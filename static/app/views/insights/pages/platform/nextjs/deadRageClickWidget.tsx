@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow} from 'sentry/icons';
@@ -65,7 +65,6 @@ export function DeadRageClicksWidget() {
     <Widget
       Title={<Widget.WidgetTitle title={t('Rage & Dead Clicks')} />}
       Visualization={visualization}
-      noVisualizationPadding
       Actions={
         <LinkButton
           size="xs"
@@ -79,9 +78,11 @@ export function DeadRageClicksWidget() {
             },
           }}
         >
-          {t('View all')}
+          {t('View All')}
         </LinkButton>
       }
+      noVisualizationPadding
+      revealActions="always"
     />
   );
 }
