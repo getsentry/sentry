@@ -90,6 +90,7 @@ def get_from_profiling_service(
     params: dict[Any, Any] | None = None,
     headers: dict[Any, Any] | None = None,
     json_data: Any = None,
+    metric: tuple[str, dict[str, str]] | None = None,
 ) -> VroomResponse:
     kwargs: dict[str, Any] = {"headers": {}}
     if params:
@@ -112,7 +113,12 @@ def get_from_profiling_service(
         )
         with sentry_sdk.start_span(op="json.dumps"):
             data = json.dumps(json_data).encode("utf-8")
+
         set_measurement("payload.size", len(data), unit="byte")
+        if metric:
+            metric_name, metric_tags = metric
+            metrics.distribution(metric_name, len(data), tags=metric_tags)
+
         kwargs["body"] = brotli.compress(data, quality=6, mode=brotli.MODE_TEXT)
     return _profiling_pool.urlopen(
         method,
