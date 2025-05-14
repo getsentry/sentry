@@ -1063,6 +1063,10 @@ class GSBanner extends Component<Props, State> {
         product: DataCategory.SPANS,
         categories: [DataCategory.SPANS],
       };
+      this.PATHS_FOR_PRODUCT_TRIALS['/profiling/'] = {
+        product: DataCategory.PROFILES,
+        categories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
+      };
     }
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const productPath = this.PATHS_FOR_PRODUCT_TRIALS[window.location.pathname] || null;
