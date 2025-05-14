@@ -10,6 +10,7 @@ import TestPreOnboardingPage from 'sentry/views/codecov/tests/preOnboarding';
 
 type SetupOption = 'githubAction' | 'cli';
 
+// Phase out for directory version
 export default function TestsOnboardingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const opt = searchParams.get('opt');

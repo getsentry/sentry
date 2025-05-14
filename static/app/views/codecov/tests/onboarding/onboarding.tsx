@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {OutputCoverageFile} from 'sentry/views/codecov/tests/onboarding/outputCoverageFile';
 
 type SetupOption = 'githubAction' | 'cli';
 
@@ -32,6 +33,9 @@ export default function TestsOnboardingPage() {
             ['cli', t("Use Sentry Prevent's CLI to upload testing reports")],
           ]}
         />
+        <StepsContainer>
+          <OutputCoverageFile stepString="1" />
+        </StepsContainer>
       </OnboardingContainer>
     </LayoutGap>
   );
@@ -50,7 +54,6 @@ const OnboardingContainer = styled('div')`
 
 const IntroContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${space(3)};
 `;
 
 const GetStartedHeader = styled('h2')`
@@ -68,4 +71,8 @@ const SelectOptionHeader = styled('h5')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.tokens.content.primary};
   margin-top: ${space(3)};
+`;
+
+const StepsContainer = styled('div')`
+  padding: ${space(3)} ${space(4)};
 `;
