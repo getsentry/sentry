@@ -99,6 +99,8 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Use Alpha version of Sentry Python SDK for dogfooding
+register("system.use-python-sdk-alpha", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Redis
 register(
     "redis.clusters",
