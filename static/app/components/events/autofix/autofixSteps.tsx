@@ -182,7 +182,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
       );
     } else if (errorMessage.toLowerCase().includes('timeout')) {
       customErrorMessage = t(
-        'Seer was taking way too long, so we pulled the plug to put it out of its misery. Please try again.'
+        'Seer was taking way too long, so we pulled the plug to turn it off and on again. Please try again.'
       );
     } else {
       customErrorMessage = t(
