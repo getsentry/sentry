@@ -45,7 +45,7 @@ interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
    * Determines if the link should replace the current history entry.
    */
   replace?: boolean;
-  to?: string | LocationDescriptor;
+  to?: LocationDescriptor;
 }
 
 export type LinkButtonProps = LinkButtonPropsWithHref | LinkButtonPropsWithTo;
