@@ -185,7 +185,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       </SeerDrawerHeader>
       <SeerDrawerNavigator>
         <Flex align="center" gap={space(1)}>
-          <Header>{t('Autofix')}</Header>
+          <Header>{t('Seer')}</Header>
           <FeatureBadge
             type="beta"
             tooltipProps={{
@@ -234,8 +234,8 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                 <LinkButton
                   to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                   size="xs"
-                  title={t('Project Settings for Autofix')}
-                  aria-label={t('Project Settings for Autofix')}
+                  title={t('Project Settings for Seer')}
+                  aria-label={t('Project Settings for Seer')}
                   icon={<IconSettings />}
                 />
               </Feature>
