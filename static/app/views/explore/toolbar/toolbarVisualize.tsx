@@ -351,6 +351,7 @@ const ChartLabel = styled('div')`
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};
   align-content: center;
+  align-self: stretch;
 `;
 
 const ColumnCompactSelect = styled(CompactSelect)`
