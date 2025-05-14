@@ -57,7 +57,7 @@ class AdminRelays extends Component<Props, State> {
             message={t('Are you sure you wish to delete this relay?')}
             onConfirm={() => this.onDelete(row.id)}
           >
-            <Anchor href="#" className="danger">
+            <Anchor href="#" className="danger" title={t('Remove')}>
               {t('Remove')}
             </Anchor>
           </Confirm>
