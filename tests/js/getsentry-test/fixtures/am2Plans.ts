@@ -51,6 +51,7 @@ const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {
     dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
     productName: 'seer',
     canProductTrial: true,
+    apiName: ReservedBudgetCategoryType.SEER,
   },
 };
 

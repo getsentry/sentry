@@ -81,6 +81,10 @@ export enum ReservedBudgetCategoryType {
 
 export type ReservedBudgetCategory = {
   /**
+   * The API name of the budget
+   */
+  apiName: ReservedBudgetCategoryType;
+  /**
    * Backend name of the category (all caps, snake case)
    */
   budgetCategoryType: string;
@@ -95,7 +99,7 @@ export type ReservedBudgetCategory = {
   /**
    * Default budget for the category, in cents
    */
-  defaultBudget: number;
+  defaultBudget: number | null;
   /**
    * Link to the quotas documentation for the budget
    */
@@ -935,10 +939,6 @@ export type ReservedBudget = {
    */
   id: string;
   /**
-   * Information about the budget type
-   */
-  info: ReservedBudgetCategory;
-  /**
    * The percentage of the budget used, including gifted budget
    */
   percentUsed: number;
@@ -950,7 +950,7 @@ export type ReservedBudget = {
    * The amount of budget used in the associated usage cycle
    */
   totalReservedSpend: number;
-};
+} & ReservedBudgetCategory;
 
 export type ReservedBudgetMetricHistory = {
   reservedCpe: number; // in cents

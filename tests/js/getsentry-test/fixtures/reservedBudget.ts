@@ -5,6 +5,7 @@ import type {
   ReservedBudgetCategory as TReservedBudgetCategory,
   ReservedBudgetMetricHistory as TReservedBudgetMetricHistory,
 } from 'getsentry/types';
+import {ReservedBudgetCategoryType} from 'getsentry/types';
 
 type ReservedBudgetCategoryProps = Partial<TReservedBudgetCategory>;
 type BudgetProps = Partial<TReservedBudget>;
@@ -25,7 +26,18 @@ export function ReservedBudgetCategoryFixture(props: ReservedBudgetCategoryProps
 }
 
 export function ReservedBudgetFixture(props: BudgetProps) {
-  const infoProps = props.info ?? {};
+  const defaultCategoryProps = {
+    apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
+    budgetCategoryType: '',
+    name: '',
+    docLink: '',
+    isFixed: false,
+    defaultBudget: null,
+    dataCategories: [],
+    productName: '',
+    canProductTrial: false,
+  };
+
   return {
     id: '',
     reservedBudget: 0,
@@ -33,7 +45,7 @@ export function ReservedBudgetFixture(props: BudgetProps) {
     freeBudget: 0,
     percentUsed: 0,
     categories: {},
-    info: ReservedBudgetCategoryFixture(infoProps),
+    ...defaultCategoryProps,
     ...props,
   };
 }
@@ -47,20 +59,9 @@ export function ReservedBudgetMetricHistoryFixture(props: MetricHistoryProps) {
 }
 
 export function SeerReservedBudgetFixture(props: BudgetProps) {
-  const infoProps = props.info ?? {
-    budgetCategoryType: 'SEER',
-    name: 'seer budget',
-    docLink: '',
-    isFixed: true,
-    defaultBudget: 20_00,
-    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
-    productName: 'seer',
-    canProductTrial: false,
-  };
   const defaultProps = {
     id: '',
     reservedBudget: 20_00,
-    info: infoProps,
     categories: {
       [DataCategory.SEER_AUTOFIX]: ReservedBudgetMetricHistoryFixture({
         reservedCpe: 1_00,
@@ -71,6 +72,14 @@ export function SeerReservedBudgetFixture(props: BudgetProps) {
         reservedSpend: 0,
       }),
     },
+    budgetCategoryType: 'SEER',
+    name: 'seer budget',
+    docLink: '',
+    isFixed: true,
+    defaultBudget: 20_00,
+    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
+    productName: 'seer',
+    canProductTrial: false,
     ...props,
   };
 

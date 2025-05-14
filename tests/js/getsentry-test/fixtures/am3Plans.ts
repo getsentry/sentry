@@ -46,6 +46,7 @@ const AM3_AVAILABLE_RESERVED_BUDGET_TYPES = {
     dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
     productName: 'seer',
     canProductTrial: true,
+    apiName: ReservedBudgetCategoryType.SEER,
   },
 };
 
@@ -60,6 +61,7 @@ const AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES = {
     dataCategories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
     productName: 'dynamic sampling',
     canProductTrial: false,
+    apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
   },
 };
 
