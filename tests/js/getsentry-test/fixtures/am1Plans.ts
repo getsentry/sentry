@@ -1,7 +1,7 @@
-import {type DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
-import type {Plan} from 'getsentry/types';
+import {type Plan, ReservedBudgetCategoryType} from 'getsentry/types';
 
 const AM1_CATEGORIES = [
   'errors',
@@ -19,6 +19,19 @@ const AM1_CATEGORY_DISPLAY_NAMES = {
   attachments: {singular: 'attachment', plural: 'attachments'},
   monitorSeats: {singular: 'cron monitor', plural: 'cron monitors'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+};
+
+const AM1_AVAILABLE_RESERVED_BUDGET_TYPES = {
+  [ReservedBudgetCategoryType.SEER]: {
+    budgetCategoryType: 'SEER',
+    name: 'seer budget',
+    docLink: '',
+    isFixed: true,
+    defaultBudget: 20_00,
+    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
+    productName: 'seer',
+    canProductTrial: true,
+  },
 };
 
 const AM1_FREE_FEATURES = [
@@ -150,6 +163,7 @@ const AM1_PLANS: Record<string, Plan> = {
     },
     features: AM1_FREE_FEATURES,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am1_t: {
     allowAdditionalReservedEvents: false,
@@ -221,6 +235,7 @@ const AM1_PLANS: Record<string, Plan> = {
     },
     features: AM1_TRIAL_FEATURES,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am1_team: {
     allowAdditionalReservedEvents: false,
@@ -802,6 +817,7 @@ const AM1_PLANS: Record<string, Plan> = {
     },
     features: AM1_TEAM_FEATURES,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am1_team_auf: {
     allowAdditionalReservedEvents: false,
@@ -1383,6 +1399,7 @@ const AM1_PLANS: Record<string, Plan> = {
     },
     features: AM1_TEAM_FEATURES,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am1_business: {
     allowAdditionalReservedEvents: false,
@@ -1964,6 +1981,7 @@ const AM1_PLANS: Record<string, Plan> = {
     },
     features: AM1_BUSINESS_FEATURES,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am1_business_auf: {
     allowAdditionalReservedEvents: false,
@@ -2545,6 +2563,7 @@ const AM1_PLANS: Record<string, Plan> = {
     },
     features: AM1_BUSINESS_FEATURES,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am1_business_ent: {
     id: 'am1_business_ent',
@@ -2623,6 +2642,7 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
 };
 

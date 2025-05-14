@@ -1,8 +1,8 @@
-import {type DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
-import {CheckoutType} from 'getsentry/types';
+import {CheckoutType, ReservedBudgetCategoryType} from 'getsentry/types';
 
 const AM2_CHECKOUT_CATEGORIES = [
   'errors',
@@ -31,6 +31,19 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+};
+
+const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {
+  [ReservedBudgetCategoryType.SEER]: {
+    budgetCategoryType: 'SEER',
+    name: 'seer budget',
+    docLink: '',
+    isFixed: true,
+    defaultBudget: 20_00,
+    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
+    productName: 'seer',
+    canProductTrial: true,
+  },
 };
 
 const AM2_FREE_FEATURES = [
@@ -811,6 +824,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
     },
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_f: {
     id: 'am2_f',
@@ -897,6 +911,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
     },
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_team: {
     id: 'am2_team',
@@ -1615,6 +1630,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
     },
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_t: {
     id: 'am2_t',
@@ -1701,6 +1717,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
     },
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_team_auf: {
     id: 'am2_team_auf',
@@ -1729,6 +1746,7 @@ const AM2_PLANS: Record<string, Plan> = {
     onDemandCategories: AM2_CATEGORIES,
     hasOnDemandModes: true,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
     planCategories: {
       errors: [
         {
@@ -3063,6 +3081,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_sponsored: {
     // NOTE: being deprecated
@@ -3102,6 +3121,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_sponsored_team_auf: {
     id: 'am2_sponsored_team_auf',
@@ -3140,6 +3160,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_business_bundle: {
     id: 'am2_business_bundle',
@@ -3631,6 +3652,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_business_249_bundle: {
     id: 'am2_business_249_bundle',
@@ -4172,6 +4194,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_team_bundle: {
     id: 'am2_team_bundle',
@@ -4728,6 +4751,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_business_ent_auf: {
     id: 'am2_business_ent_auf',
@@ -4814,6 +4838,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_business_ent: {
     id: 'am2_business_ent',
@@ -4900,6 +4925,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
 };
 
