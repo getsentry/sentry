@@ -58,7 +58,7 @@ describe('useQueryParamState', () => {
         ...LocationFixture(),
         query: {testField: 'initial state'},
       },
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
 
     // Run the timers to trigger queued updates
@@ -70,7 +70,7 @@ describe('useQueryParamState', () => {
         ...LocationFixture(),
         query: {testField: 'newValue'},
       },
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
 
     // The local state should be still reflect the new value
@@ -123,7 +123,7 @@ describe('useQueryParamState', () => {
         ...LocationFixture(),
         query: {testField: 'newValue - 2 - true'},
       },
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
   });
 
@@ -156,7 +156,7 @@ describe('useQueryParamState', () => {
         ...LocationFixture(),
         query: {sort: ['testField']},
       },
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
   });
 });

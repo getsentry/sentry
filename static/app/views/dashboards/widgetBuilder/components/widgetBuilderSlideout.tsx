@@ -149,12 +149,15 @@ function WidgetBuilderSlideout({
         setCustomizeFromLibrary(false);
         setOpenWidgetTemplates(true);
         // clears the widget to start fresh on the library page
-        navigate({
-          pathname: location.pathname,
-          query: {
-            ...pick(location.query, [...Object.values(URL_PARAM)]),
+        navigate(
+          {
+            pathname: location.pathname,
+            query: {
+              ...pick(location.query, [...Object.values(URL_PARAM)]),
+            },
           },
-        });
+          {preventScrollReset: true}
+        );
       }}
     >
       {t('Widget Library')}

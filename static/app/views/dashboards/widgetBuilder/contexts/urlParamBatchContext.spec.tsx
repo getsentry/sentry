@@ -44,7 +44,7 @@ describe('UrlParamBatchProvider', () => {
       expect.objectContaining({
         query: {foo: 'bar', potato: 'test'},
       }),
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
   });
 });
