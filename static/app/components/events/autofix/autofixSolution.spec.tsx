@@ -21,6 +21,7 @@ describe('AutofixSolution', () => {
       relevant_code_file: {
         file_path: 'src/file.js',
         repo_name: 'owner/repo',
+        url: 'https://github.com/owner/repo/blob/main/src/file.js',
       },
     },
   ];
