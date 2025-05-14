@@ -19,7 +19,7 @@ nodestore: 0002_nodestore_no_dictfield
 
 remote_subscriptions: 0003_drop_remote_subscription
 
-replays: 0004_index_together
+replays: 0005_drop_replay_index
 
 sentry: 0891_remove_project_integrations_table_physical
 
