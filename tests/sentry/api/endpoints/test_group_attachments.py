@@ -75,6 +75,7 @@ class GroupEventAttachmentsTest(APITestCase):
         )
         self.create_attachment(file_name="screenshot.png", event_id=group1_event.event_id)
         self.create_attachment(file_name="screenshot-1.png", event_id=group1_event.event_id)
+        # This will not be included as name doesn't contain 'screenshot'
         self.create_attachment(file_name="foo.png", event_id=group1_event.event_id)
         group2_event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
