@@ -380,9 +380,9 @@ def _get_and_save_split_decision_for_query(
     saved_query: DiscoverSavedQuery, dry_run: bool
 ) -> tuple[int, bool]:
     """
-    This function is called by the SplitDiscoverDataset job in getsentry. It contains logic specifically
-    to split a Discover Saved Query with "Discover" dataset type into
-    either Errors or Transactions.
+    This function is called by migration 0894_split_discover_dataset_saved_queries.
+    To delete this function, we need to introduce a
+    [hard stop upgrade](https://develop.sentry.dev/self-hosted/releases/#hard-stops).
     """
 
     # We use all projects for the clickhouse query but don't do anything
