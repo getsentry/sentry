@@ -28,7 +28,7 @@ interface BaseLinkButtonProps extends DO_NOT_USE_CommonButtonProps, LinkElementP
   disabled?: boolean;
 }
 
-interface LinkButtonPropsWithHref extends BaseLinkButtonProps {
+export interface LinkButtonPropsWithHref extends BaseLinkButtonProps {
   /**
    * Determines if the link is external and should open in a new tab.
    */
@@ -36,7 +36,8 @@ interface LinkButtonPropsWithHref extends BaseLinkButtonProps {
   href?: string;
 }
 
-interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
+export interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
+  to: string | LocationDescriptor;
   /**
    * If true, the link will not reset the scroll position of the page when clicked.
    */
@@ -45,7 +46,6 @@ interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
    * Determines if the link should replace the current history entry.
    */
   replace?: boolean;
-  to?: string | LocationDescriptor;
 }
 
 export type LinkButtonProps = LinkButtonPropsWithHref | LinkButtonPropsWithTo;

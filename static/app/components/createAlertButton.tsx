@@ -6,7 +6,7 @@ import {
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import type {LinkButtonPropsWithTo} from 'sentry/components/core/button/linkButton';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Link from 'sentry/components/links/link';
 import {IconSiren} from 'sentry/icons';
@@ -26,7 +26,7 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 
-type CreateAlertFromViewButtonProps = Omit<LinkButtonProps, 'aria-label'> & {
+type CreateAlertFromViewButtonProps = Omit<LinkButtonPropsWithTo, 'aria-label' | 'to'> & {
   /**
    * Discover query used to create the alert
    */
@@ -40,11 +40,11 @@ type CreateAlertFromViewButtonProps = Omit<LinkButtonProps, 'aria-label'> & {
    * We currently do a few checks on metrics data on performance pages and this passes the decision onward to alerts.
    */
   disableMetricDataset?: boolean;
+
   /**
    * Called when the user is redirected to the alert builder
    */
   onClick?: () => void;
-
   referrer?: string;
 };
 
@@ -52,7 +52,7 @@ type CreateAlertFromViewButtonProps = Omit<LinkButtonProps, 'aria-label'> & {
  * Provide a button that can create an alert from an event view.
  * Emits incompatible query issues on click
  */
-function CreateAlertFromViewButton({
+export function CreateAlertFromViewButton({
   projects,
   eventView,
   organization,
@@ -121,7 +121,8 @@ type CreateAlertButtonProps = {
   projectSlug?: string;
   referrer?: string;
   showPermissionGuide?: boolean;
-} & LinkButtonProps;
+  to?: LinkButtonPropsWithTo['to'];
+} & Omit<LinkButtonPropsWithTo, 'to'>;
 
 export default function CreateAlertButton({
   organization,
@@ -132,6 +133,7 @@ export default function CreateAlertButton({
   showPermissionGuide,
   alertOption,
   onEnter,
+  to,
   ...buttonProps
 }: CreateAlertButtonProps) {
   const router = useRouter();
@@ -189,7 +191,7 @@ export default function CreateAlertButton({
       disabled={!hasAccess}
       title={hasAccess ? undefined : permissionTooltipText}
       icon={!hideIcon && <IconSiren {...iconProps} />}
-      to={projectSlug ? createAlertUrl(projectSlug) : undefined}
+      to={to ?? (projectSlug ? createAlertUrl(projectSlug) : '')}
       tooltipProps={{
         isHoverable: true,
         position: 'top',
@@ -222,5 +224,3 @@ export default function CreateAlertButton({
     renderButton(canCreateAlert)
   );
 }
-
-export {CreateAlertFromViewButton};
