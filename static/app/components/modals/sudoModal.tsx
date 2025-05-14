@@ -347,8 +347,9 @@ function SudoModal({
           resetOnError
         >
           {user.hasPasswordAuth && (
-            <StyledSecretField
+            <SecretField
               inline={false}
+              stacked
               label={t('Password')}
               name="password"
               autoFocus
@@ -380,10 +381,6 @@ export default SudoModal;
 
 const StyledTextBlock = styled(TextBlock)`
   margin-bottom: ${space(1)};
-`;
-
-const StyledSecretField = styled(SecretField)`
-  padding-left: 0;
 `;
 
 const BackWrapper = styled('div')`
