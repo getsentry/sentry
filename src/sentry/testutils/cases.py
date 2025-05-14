@@ -1159,7 +1159,7 @@ class SnubaTestCase(BaseTestCase):
         )
 
     def store_ourlogs(self, ourlogs):
-        files = {f"message_{i}": log for i, log in enumerate(ourlogs)}
+        files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
             files=files,
@@ -3302,7 +3302,7 @@ class OurLogTestCase(BaseTestCase):
         project: Project | None = None,
         timestamp: datetime | None = None,
         attributes: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    ) -> TraceItem:
         if organization is None:
             organization = self.organization
         if project is None:
@@ -3336,7 +3336,14 @@ class OurLogTestCase(BaseTestCase):
 
         timestamp_proto.FromDatetime(timestamp)
 
-        trace_item = TraceItem(
+        attributes_proto["sentry.timestamp_nanos"] = AnyValue(
+            int_value=int(timestamp.timestamp() * 1e9)
+        )
+        attributes_proto["sentry.timestamp_precise"] = AnyValue(
+            int_value=int(timestamp.timestamp() * 1e9)
+        )
+
+        return TraceItem(
             organization_id=organization.id,
             project_id=project.id,
             item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
@@ -3347,8 +3354,6 @@ class OurLogTestCase(BaseTestCase):
             retention_days=90,
             attributes=attributes_proto,
         )
-
-        return trace_item.SerializeToString()
 
 
 class TraceTestCase(SpanTestCase):
