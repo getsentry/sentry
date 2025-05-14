@@ -3314,15 +3314,15 @@ class OurLogTestCase(BaseTestCase):
         if extra_data is None:
             extra_data = {}
 
+        trace_id = extra_data.get("trace_id", uuid4().hex)
+
         # Set defaults for required fields if not in extra_data
         if "body" not in extra_data:
             extra_data["body"] = "hello world!"
-        if "trace_id" not in extra_data:
-            extra_data["trace_id"] = uuid4().hex
         if "severity_text" not in extra_data:
-            extra_data["severity_text"] = "info"
-        if "severity_text" not in extra_data:
-            extra_data["severity_number"] = 10
+            extra_data["severity_text"] = "INFO"
+        if "severity_number" not in extra_data:
+            extra_data["severity_number"] = 0
 
         attributes_proto = {}
 
@@ -3348,7 +3348,7 @@ class OurLogTestCase(BaseTestCase):
             project_id=project.id,
             item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
             timestamp=timestamp_proto,
-            trace_id=extra_data["trace_id"],
+            trace_id=trace_id,
             item_id=uuid4().bytes,
             received=timestamp_proto,
             retention_days=90,
