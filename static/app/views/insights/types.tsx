@@ -494,6 +494,7 @@ export enum SpanFunction {
   CACHE_MISS_RATE = 'cache_miss_rate',
   COUNT_OP = 'count_op',
   TRACE_STATUS_RATE = 'trace_status_rate',
+  FAILURE_RATE_IF = 'failure_rate_if',
 }
 
 // TODO - add more functions and fields, combine shared ones, etc
