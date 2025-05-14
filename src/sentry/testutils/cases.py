@@ -1149,9 +1149,7 @@ class SnubaTestCase(BaseTestCase):
         self.store_spans([span], is_eap=is_eap)
 
     def store_spans(self, spans, is_eap=False):
-        entity = "spans"
-        if is_eap:
-            entity = "eap_items_span"
+        entity = "eap_items_span" if is_eap else "spans"
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert",
