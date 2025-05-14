@@ -651,10 +651,7 @@ export function SearchQueryBuilderValueCombobox({
         if (selectedValuesUnescaped.includes(value)) {
           const newValue = prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
-            selectedValuesUnescaped
-              .filter(v => v !== value)
-              .map(escapeTagValue)
-              .join(',')
+            selectedValuesUnescaped.map(escapeTagValue).join(',')
           );
 
           dispatch({
