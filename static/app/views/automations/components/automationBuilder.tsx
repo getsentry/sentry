@@ -161,6 +161,7 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
         <ActionNodeList
           // TODO: replace constant availableActions with API response
           availableActions={[
+            {type: ActionType.EMAIL},
             {
               type: ActionType.MSTEAMS,
               integrations: [
@@ -173,6 +174,41 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
               integrations: [
                 {id: 'serv3', name: 'server 1'},
                 {id: 'serv6', name: 'server 2'},
+              ],
+            },
+            {
+              type: ActionType.SLACK,
+              integrations: [
+                {id: 'serv3', name: 'workspace 1'},
+                {id: 'serv6', name: 'workspace 2'},
+              ],
+            },
+            {
+              type: ActionType.GITHUB_ENTERPRISE,
+              integrations: [
+                {id: 'serv3', name: 'github 1'},
+                {id: 'serv6', name: 'github 2'},
+              ],
+            },
+            {
+              type: ActionType.PAGERDUTY,
+              integrations: [
+                {
+                  id: 'acc1',
+                  name: 'account 1',
+                  services: [
+                    {id: 'serv1', name: 'service 1'},
+                    {id: 'serv2', name: 'service 2'},
+                  ],
+                },
+                {
+                  id: 'acc2',
+                  name: 'account 2',
+                  services: [
+                    {id: 'serv3', name: 'service 3'},
+                    {id: 'serv4', name: 'service 4'},
+                  ],
+                },
               ],
             },
           ]}

@@ -32,7 +32,7 @@ const RowContainer = styled('div')<{incompatible?: boolean}>`
   border: 1px ${p => p.theme.innerBorder} solid;
   border-color: ${p => (p.incompatible ? p.theme.red200 : 'none')};
   position: relative;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${space(0.75)} ${space(1.5)};
 `;
 
 const DeleteButton = styled(Button)`
