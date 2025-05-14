@@ -689,7 +689,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onEditWidget = (widget: Widget) => {
-    const {router, organization, params, location, dashboard} = this.props;
+    const {navigate, organization, params, location, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
     const currentDashboard = modifiedDashboard ?? dashboard;
     const {dashboardId} = params;
@@ -717,14 +717,15 @@ class DashboardDetail extends Component<Props, State> {
     const path = defined(dashboardId)
       ? `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`
       : `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`;
-    router.push(
+    navigate(
       normalizeUrl({
         pathname: path,
         query: {
           ...location.query,
           ...convertWidgetToBuilderStateParams(widget),
         },
-      })
+      }),
+      {preventScrollReset: true}
     );
   };
 
