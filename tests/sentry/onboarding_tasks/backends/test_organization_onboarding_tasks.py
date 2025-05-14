@@ -48,3 +48,29 @@ class OrganizationOnboardingTaskBackendTest(TestCase):
             status=OnboardingTaskStatus.SKIPPED,
         )
         assert len(backend.fetch_onboarding_tasks(self.organization, self.user)) == 1
+
+    def test_fetch_onboarding_tasks_multiple(self):
+        OrganizationOnboardingTask.objects.create(
+            organization=self.organization,
+            task=OnboardingTask.FIRST_PROJECT,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        OrganizationOnboardingTask.objects.create(
+            organization=self.organization,
+            task=OnboardingTask.INVITE_MEMBER,
+            status=OnboardingTaskStatus.SKIPPED,
+        )
+        assert len(backend.fetch_onboarding_tasks(self.organization, self.user)) == 2
+
+    def test_fetch_onboarding_tasks_multiple_filtered(self):
+        OrganizationOnboardingTask.objects.create(
+            organization=self.organization,
+            task=OnboardingTask.FIRST_PROJECT,
+            status=max(OnboardingTaskStatus.values()) + 1,
+        )
+        OrganizationOnboardingTask.objects.create(
+            organization=self.organization,
+            task=max(OnboardingTask.values()) + 1,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert len(backend.fetch_onboarding_tasks(self.organization, self.user)) == 0
