@@ -286,18 +286,19 @@ class ContinuingMNPlusOne(MNPlusOneState):
         of the every span in the list. Returns None if no common parent is found, or the common
         parent is not within the event.
         """
-
-        # Build a mapping of span_id to an ordered list of parent_span_ids.
-        # Ordered in proximity to the initial span, (e.g. [parent, grandparent, ...]) with
-        # a maximum length configured via the `max_allowable_depth` setting.
-        span_id_to_parent_list: dict[str, list[str]] = {}
+        # Use a set to track the common parent across all spans.
+        # It'll start empty, fill with the first span's parents, and then intersect every span's
+        # parent list after that.
+        common_parent_set: set[str] = set()
+        # We also store the latest parent list for ordering later on.
+        latest_parent_list: list[str] = []
         for span in spans:
             span_id = span.get("span_id")
             if not span_id:
-                continue
+                return None
 
+            current_parent_list = []
             current_span_id = span_id
-            parent_list: list[str] = []
 
             # This will run at most `max_allowable_depth` times for n spans.
             # For that reason, `max_allowable_depth` cannot be user-configurable -- to avoid
@@ -306,36 +307,32 @@ class ContinuingMNPlusOne(MNPlusOneState):
                 parent_span_id = self.parent_map.get(current_span_id)
                 if not parent_span_id:
                     break
-                parent_list.append(parent_span_id)
+                current_parent_list.append(parent_span_id)
+                # If this parent_span_id is already in the global intersection, stop early, we don't
+                # need to build the rest of the parent list.
+                if parent_span_id in common_parent_set:
+                    break
                 current_span_id = parent_span_id
 
-            # If, while building the span_id_to_parent_list dictionary, we ever see an entry that
-            # has no parents, we can immediately bail out and save some cycles.
-            if not parent_list:
+            # If common_parent_set is empty (first iteration), set it to the current parent list.
+            # Otherwise, intersect it with the current_parent_list.
+            common_parent_set = (
+                common_parent_set.intersection(set(current_parent_list))
+                if common_parent_set
+                else set(current_parent_list)
+            )
+
+            # At this point, if common_parent_set is empty, we can bail out early since that means
+            # at least two parent lists have no intersection, thus no common parent.
+            if not common_parent_set:
                 return None
 
-            span_id_to_parent_list[span_id] = parent_list
+            latest_parent_list = current_parent_list
 
-        first_span_id = spans[0].get("span_id")
-        if not first_span_id:
-            return None
-
-        first_parent_list = span_id_to_parent_list[first_span_id]
-        if not first_parent_list:
-            return None
-
-        # Ensure every parent set has a intersection result with first parent set
-        # Save the result of the full intersection
-        parent_intersection = set(first_parent_list)
-        for span_parent_list in span_id_to_parent_list.values():
-            parent_intersection = parent_intersection.intersection(set(span_parent_list))
-            if not parent_intersection:
-                return None
-
-        # The first parent list is ordered, so the first match is the earliest common parent,
+        # The parent list is ordered, so the first match is the earliest common parent,
         # which is the best match for useful fingerprinting.
         common_parent_span_id = next(
-            (span_id for span_id in first_parent_list if span_id in parent_intersection), None
+            (span_id for span_id in latest_parent_list if span_id in common_parent_set), None
         )
         if not common_parent_span_id:
             return None
