@@ -65,7 +65,6 @@ export function DeadRageClicksWidget() {
     <Widget
       Title={<Widget.WidgetTitle title={t('Rage & Dead Clicks')} />}
       Visualization={visualization}
-      noVisualizationPadding
       Actions={
         <LinkButton
           size="xs"
@@ -79,9 +78,11 @@ export function DeadRageClicksWidget() {
             },
           }}
         >
-          {t('View all')}
+          {t('View All')}
         </LinkButton>
       }
+      noVisualizationPadding
+      revealActions="always"
     />
   );
 }
