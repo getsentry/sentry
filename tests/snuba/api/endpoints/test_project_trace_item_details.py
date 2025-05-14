@@ -118,7 +118,6 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             {"name": "severity", "type": "str", "value": "INFO"},
             {"name": "str_attr", "type": "str", "value": "1"},
             {"name": "trace", "type": "str", "value": self.trace_uuid},
-            {"name": "trace", "type": "str", "value": self.trace_uuid},
         ]
         assert trace_details_response.data["itemId"] == item_id
         assert (
@@ -209,7 +208,6 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 {"name": "message", "type": "str", "value": "foo"},
                 {"name": "severity", "type": "str", "value": "INFO"},
                 {"name": "str_attr", "type": "str", "value": "1"},
-                {"name": "trace", "type": "str", "value": self.trace_uuid},
                 {"name": "trace", "type": "str", "value": self.trace_uuid},
             ],
             "itemId": item_id,

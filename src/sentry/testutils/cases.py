@@ -3314,7 +3314,7 @@ class OurLogTestCase(BaseTestCase):
         if extra_data is None:
             extra_data = {}
 
-        trace_id = extra_data.get("trace_id", uuid4().hex)
+        trace_id = extra_data.pop("trace_id", uuid4().hex)
 
         # Set defaults for required fields if not in extra_data
         if "body" not in extra_data:
