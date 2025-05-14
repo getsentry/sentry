@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sentry.issues.escalating_issues_alg import generate_issue_forecast
+from sentry.issues.escalating.escalating_issues_alg import generate_issue_forecast
 
 START_TIME = datetime.fromisoformat("2022-07-27T00:00:00+00:00")
 

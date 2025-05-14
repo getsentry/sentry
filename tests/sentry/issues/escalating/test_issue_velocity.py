@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
-from sentry.issues.issue_velocity import (
+from sentry.issues.escalating.issue_velocity import (
     DEFAULT_TTL,
     FALLBACK_TTL,
     STALE_DATE_KEY,

@@ -16,7 +16,7 @@ from sentry.issues.escalating import (
     is_escalating,
     query_groups_past_counts,
 )
-from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox

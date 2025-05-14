@@ -1,6 +1,9 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.issues.escalating_group_forecast import ONE_EVENT_FORECAST, EscalatingGroupForecast
+from sentry.issues.escalating.escalating_group_forecast import (
+    ONE_EVENT_FORECAST,
+    EscalatingGroupForecast,
+)
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
