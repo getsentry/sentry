@@ -18,6 +18,7 @@ type Props = {
   selectedReleases: string[];
   className?: string;
   handleChangeFilter?: (activeFilters: DashboardFilters) => void;
+  id?: string;
   isDisabled?: boolean;
 };
 
@@ -36,6 +37,7 @@ function ReleasesSelectControl({
   selectedReleases,
   className,
   isDisabled,
+  id,
 }: Props) {
   const {releases, loading, onSearch} = useReleases();
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
@@ -61,6 +63,7 @@ function ReleasesSelectControl({
       multiple
       clearable
       searchable
+      id={id}
       disabled={isDisabled}
       loading={loading}
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
