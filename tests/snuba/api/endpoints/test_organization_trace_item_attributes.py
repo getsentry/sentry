@@ -149,7 +149,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
 
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
-        assert keys == {"severity", "message", "project", "trace"}
+        assert keys == {"severity", "message", "project"}
 
     def test_disallowed_attributes(self):
         logs = [
@@ -169,7 +169,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
 
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
-        assert keys == {"severity", "message", "project", "sentry.item_type2", "trace"}
+        assert keys == {"severity", "message", "project", "sentry.item_type2"}
 
 
 class OrganizationTraceItemAttributesEndpointSpansTest(
