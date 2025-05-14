@@ -28,7 +28,6 @@ import {
 } from 'sentry/views/dashboards/types';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
-import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {
@@ -232,7 +231,7 @@ function WidgetBuilderSlideout({
         ) : (
           <Fragment>
             <Section>
-              <WidgetBuilderFilterBar />
+              <WidgetBuilderNameAndDescription error={error} setError={setError} />
             </Section>
             <Section>
               <WidgetBuilderDatasetSelector />
@@ -284,9 +283,6 @@ function WidgetBuilderSlideout({
                 <WidgetBuilderSortBySelector />
               </Section>
             )}
-            <Section>
-              <WidgetBuilderNameAndDescription error={error} setError={setError} />
-            </Section>
             <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
           </Fragment>
         )}

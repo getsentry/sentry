@@ -43,6 +43,7 @@ import {
   WIDGET_PREVIEW_DRAG_ID,
   type WidgetDragPositioning,
 } from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
+import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import WidgetPreview from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
 import {
@@ -384,6 +385,12 @@ export function WidgetPreviewContainer({
                     />
                   )}
                 </SampleWidgetCard>
+
+                {!isSmallScreen && (
+                  <FilterBarContainer>
+                    <WidgetBuilderFilterBar />
+                  </FilterBarContainer>
+                )}
               </DraggableWidgetContainer>
             </MEPSettingProvider>
           )}
@@ -541,4 +548,9 @@ const WidgetPreviewTitle = styled(motion.h5)`
   margin-left: ${space(1)};
   color: ${p => p.theme.white};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const FilterBarContainer = styled('div')`
+  width: 100%;
+  margin-top: ${space(1)};
 `;
