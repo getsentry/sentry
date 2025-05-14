@@ -1,4 +1,4 @@
-import {useContext, useState} from 'react';
+import {useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -113,6 +113,7 @@ function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onDataFetched = (newData: Data) => {
     const {isProgressivelyLoading, ...rest} = newData;
@@ -181,12 +182,24 @@ function WidgetCard(props: Props) {
     if (organization.features.includes('visibility-explore-progressive-loading')) {
       setIsProgressivelyLoading(true);
     }
-    setTimeout(() => {
+    timeoutRef.current = null;
+
+    setIsLoadingTextVisible(false);
+    timeoutRef.current = setTimeout(() => {
       if (!isLoadingTextVisible) {
         setIsLoadingTextVisible(true);
       }
     }, 3000);
   };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [timeoutRef]);
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
