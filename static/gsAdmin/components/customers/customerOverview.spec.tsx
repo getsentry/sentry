@@ -319,9 +319,7 @@ describe('CustomerOverview', function () {
       />
     );
 
-    expect(
-      screen.getByText('Accepted Spans and Stored Spans Reserved Budget')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Spans Budget')).toBeInTheDocument();
     expect(screen.getByText('Reserved Budget:')).toBeInTheDocument();
     expect(screen.getByText('$99,000.00')).toBeInTheDocument();
     expect(screen.getByText('Gifted Budget:')).toBeInTheDocument();
