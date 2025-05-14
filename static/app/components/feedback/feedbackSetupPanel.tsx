@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button} from 'sentry/components/core/button';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -35,15 +35,14 @@ export default function FeedbackSetupPanel() {
                 'Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, tags, and errors, making fixing the issue dead simple.'
               )}
             </p>
-            <LinkButton
-              external
+            <Button
               onClick={activateSidebar}
               priority="primary"
               analyticsEventName="Clicked Feedback Onboarding Setup - Feedback Index"
               analyticsEventKey="feedback.index-click-onboarding-setup"
             >
               {t('Set Up Now')}
-            </LinkButton>
+            </Button>
           </Fragment>
         </StyledBox>
       </Container>
