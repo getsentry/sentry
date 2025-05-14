@@ -1,12 +1,15 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ActionType} from 'sentry/types/workflowEngine/actions';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   FILTER_DATA_CONDITION_TYPES,
   FILTER_MATCH_OPTIONS,
@@ -21,6 +24,12 @@ import {
 
 export default function AutomationBuilder() {
   const {state, actions} = useAutomationBuilderContext();
+  const organization = useOrganization();
+  const api = useApi();
+
+  useEffect(() => {
+    fetchOrgMembers(api, organization.slug);
+  }, [api, organization]);
 
   return (
     <Flex column gap={space(1)}>
@@ -160,58 +169,7 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
         {/* TODO: add actions dropdown here */}
         <ActionNodeList
           // TODO: replace constant availableActions with API response
-          availableActions={[
-            {type: ActionType.EMAIL},
-            {
-              type: ActionType.MSTEAMS,
-              integrations: [
-                {id: '123', name: 'Test'},
-                {id: '456', name: 'Test2'},
-              ],
-            },
-            {
-              type: ActionType.DISCORD,
-              integrations: [
-                {id: 'serv3', name: 'server 1'},
-                {id: 'serv6', name: 'server 2'},
-              ],
-            },
-            {
-              type: ActionType.SLACK,
-              integrations: [
-                {id: 'serv3', name: 'workspace 1'},
-                {id: 'serv6', name: 'workspace 2'},
-              ],
-            },
-            {
-              type: ActionType.GITHUB_ENTERPRISE,
-              integrations: [
-                {id: 'serv3', name: 'github 1'},
-                {id: 'serv6', name: 'github 2'},
-              ],
-            },
-            {
-              type: ActionType.PAGERDUTY,
-              integrations: [
-                {
-                  id: 'acc1',
-                  name: 'account 1',
-                  services: [
-                    {id: 'serv1', name: 'service 1'},
-                    {id: 'serv2', name: 'service 2'},
-                  ],
-                },
-                {
-                  id: 'acc2',
-                  name: 'account 2',
-                  services: [
-                    {id: 'serv3', name: 'service 3'},
-                    {id: 'serv4', name: 'service 4'},
-                  ],
-                },
-              ],
-            },
-          ]}
+          availableActions={[]}
           placeholder={t('Select an action')}
           group={`actionFilters.${groupIndex}`}
           actions={actionFilterBlock?.actions || []}

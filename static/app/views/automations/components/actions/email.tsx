@@ -1,14 +1,11 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
 import AutomationBuilderSelectField, {
   selectControlStyles,
 } from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {tct} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
 import {
@@ -39,11 +36,6 @@ function TargetTypeField() {
 function IdentifierField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   const organization = useOrganization();
-  const api = useApi();
-
-  useEffect(() => {
-    fetchOrgMembers(api, organization.slug);
-  }, [api, organization]);
 
   if (action.data.targetType === TargetType.TEAM) {
     return (
