@@ -1,12 +1,13 @@
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Button} from 'sentry/cosmponents/core/button';
 import {IconMegaphone, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -90,6 +91,11 @@ export default function LogsPage() {
                   href={LOGS_INSTRUCTIONS_URL}
                   external
                   size="xs"
+                  onMouseDown={() => {
+                    trackAnalytics('logs.doc_link.clicked', {
+                      organization,
+                    });
+                  }}
                 >
                   {t('Set Up Logs')}
                 </LinkButton>
