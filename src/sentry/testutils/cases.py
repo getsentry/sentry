@@ -3319,6 +3319,10 @@ class OurLogTestCase(BaseTestCase):
             extra_data["body"] = "hello world!"
         if "trace_id" not in extra_data:
             extra_data["trace_id"] = uuid4().hex
+        if "severity_text" not in extra_data:
+            extra_data["severity_text"] = "info"
+        if "severity_text" not in extra_data:
+            extra_data["severity_number"] = 10
 
         attributes_proto = {}
 

@@ -70,8 +70,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "sentry.severity_text": "info",
-                    "sentry.severity_number": 10,
                     "test.attribute1": {"string_value": "value1"},
                     "test.attribute2": {"string_value": "value2"},
                     "another.attribute": {"string_value": "value3"},
@@ -119,8 +117,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "sentry.severity_text": "info",
-                    "sentry.severity_number": 10,
                     "test.attribute1": {"string_value": "value1"},
                     "test.attribute2": {"string_value": "value2"},
                 },
@@ -143,8 +139,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "sentry.severity_text": "info",
-                    "sentry.severity_number": 10,
                     "message": {"string_value": "value1"},
                 },
             ),
@@ -163,8 +157,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "sentry.severity_text": "info",
-                    "sentry.severity_number": 10,
                     "sentry.item_type": {"string_value": "value1"},  # Disallowed
                     "sentry.item_type2": {"string_value": "value2"},  # Allowed
                 },
