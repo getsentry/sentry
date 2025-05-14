@@ -10,7 +10,8 @@ import {
   getBootstrapProjectsQueryOptions,
 } from 'sentry/bootstrap/bootstrapRequests';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
@@ -116,6 +117,25 @@ function SudoModal({
       ...prevState,
       superuserAccessCategory: 'cops_csm',
       superuserReason: 'COPS and CSM use',
+    }));
+  };
+
+  const handleChangeReason = (e: React.MouseEvent) => {
+    // XXX(epurkhiser): We have to prevent default here to avoid react from
+    // propagating this event up to the form and causing the form to be
+    // submitted. This is happening because when the form is rendered the same
+    // button is replaced with a button that has type="submit", this happens
+    // before the event is propegated to the form, and by the time that handler
+    // is run react thinks the button is type submit and will submit the form.
+    //
+    // See https://github.com/facebook/react/issues/8554#issuecomment-278580583
+    e.preventDefault();
+
+    setState(prevState => ({
+      ...prevState,
+      showAccessForms: true,
+      superuserAccessCategory: '',
+      superuserReason: '',
     }));
   };
 
@@ -267,9 +287,15 @@ function SudoModal({
               initialData={{isSuperuserModal: isSuperuser}}
               extraButton={
                 <BackWrapper>
-                  <Button type="submit" onClick={handleSubmitCOPS}>
-                    {t('COPS/CSM')}
-                  </Button>
+                  {showAccessForms ? (
+                    <Button type="submit" onClick={handleSubmitCOPS}>
+                      {t('COPS/CSM')}
+                    </Button>
+                  ) : (
+                    <Button borderless size="sm" onClick={handleChangeReason}>
+                      {t('Change reason')}
+                    </Button>
+                  )}
                 </BackWrapper>
               }
               resetOnError

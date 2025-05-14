@@ -115,10 +115,11 @@ function QueryTokens({result}: QueryTokensProps) {
   return <React.Fragment>{tokens}</React.Fragment>;
 }
 
-export function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
+function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [response, setResponse] = useState<React.ReactNode>(null);
   const [rawResult, setRawResult] = useState<any>(null);
+  const [generatedQueryString, setGeneratedQueryString] = useState<string>('');
   const api = useApi();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -152,6 +153,7 @@ export function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
     onSuccess: result => {
       setResponse(<QueryTokens result={result} />);
       setRawResult(result);
+      setGeneratedQueryString(JSON.stringify(result));
     },
     onError: (error: Error) => {
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
@@ -277,11 +279,7 @@ export function AiQueryDrawer({initialQuery = ''}: {initialQuery?: string}) {
                           ['feedback.source']: 'trace_explorer_ai_query',
                           ['feedback.owner']: 'ml-ai',
                           ['feedback.natural_language_query']: searchQuery,
-                          ['feedback.generated_query']: JSON.stringify(
-                            rawResult,
-                            null,
-                            2
-                          ),
+                          ['feedback.generated_query']: generatedQueryString,
                         },
                       });
                     } else {

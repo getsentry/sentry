@@ -7,6 +7,7 @@ from typing import Any
 
 from django.urls import reverse
 
+from sentry import features
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -135,7 +136,11 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
-        labels = self.get_repo_labels(default_repo) if default_repo else []
+        labels: Sequence[tuple[str, str]] = []
+        if default_repo:
+            owner, repo = default_repo.split("/")
+            paginated = features.has("organizations:github-paginated-labels", org, actor=user)
+            labels = self.get_repo_labels(owner, repo, paginated)
 
         autocomplete_url = reverse(
             "sentry-integration-github-search", args=[org.slug, self.model.id]
@@ -292,10 +297,12 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         return (("", "Unassigned"),) + users
 
-    def get_repo_labels(self, repo: str) -> Sequence[tuple[str, str]]:
+    def get_repo_labels(
+        self, owner: str, repo: str, paginated: bool = False
+    ) -> Sequence[tuple[str, str]]:
         client = self.get_client()
         try:
-            response = client.get_labels(repo)
+            response = client.get_labels(owner, repo, paginated)
         except Exception as e:
             self.raise_error(e)
 

@@ -1,5 +1,4 @@
-import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion, Reorder, useDragControls} from 'framer-motion';
 
@@ -17,8 +16,6 @@ import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useI
 import {useNavContext} from 'sentry/views/nav/context';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import IssueViewNavEditableTitle from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavEditableTitle';
-import {IssueViewNavEllipsisMenu} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavEllipsisMenu';
 import {
   constructViewLink,
   type NavIssueView,
@@ -64,21 +61,15 @@ export function IssueViewNavItemContent({
   sectionRef,
   isActive,
   onReorderComplete,
-  isLastView,
   isDragging,
   setIsDragging,
 }: IssueViewNavItemContentProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  const hasIssueViewSharing = organization.features.includes(
-    'enforce-stacked-navigation'
-  );
-
   const controls = useDragControls();
 
   const baseUrl = `/organizations/${organization.slug}/issues`;
-  const [isEditing, setIsEditing] = useState(false);
   const {hasUnsavedChanges, changedParams} = useIssueViewUnsavedChanges();
 
   const projectPlatforms = projects
@@ -143,22 +134,8 @@ export function IssueViewNavItemContent({
           </LeadingItemsWrapper>
         }
         trailingItems={
-          <TrailingItemsWrapper
-            onClickCapture={e => {
-              if (!hasIssueViewSharing) {
-                e.preventDefault();
-              }
-            }}
-          >
+          <TrailingItemsWrapper>
             <IssueViewNavQueryCount view={view} isActive={isActive} />
-            {!hasIssueViewSharing && (
-              <IssueViewNavEllipsisMenu
-                isLastView={isLastView}
-                setIsEditing={setIsEditing}
-                view={view}
-                sectionRef={sectionRef}
-              />
-            )}
           </TrailingItemsWrapper>
         }
         onPointerDown={e => {
@@ -175,21 +152,10 @@ export function IssueViewNavItemContent({
           }
         }}
         analyticsItemName="issues_view_starred"
-        hasIssueViewSharing={hasIssueViewSharing}
       >
-        {hasIssueViewSharing ? (
-          <Tooltip title={view.label} position="top" showOnlyOnOverflow skipWrapper>
-            <TruncatedTitle>{view.label}</TruncatedTitle>
-          </Tooltip>
-        ) : (
-          <IssueViewNavEditableTitle
-            view={view}
-            isEditing={isEditing}
-            setIsEditing={setIsEditing}
-            isDragging={!!isDragging}
-            isActive={isActive}
-          />
-        )}
+        <Tooltip title={view.label} position="top" showOnlyOnOverflow skipWrapper>
+          <TruncatedTitle>{view.label}</TruncatedTitle>
+        </Tooltip>
         {isActive && hasUnsavedChanges && changedParams && (
           <Tooltip
             title={constructUnsavedTooltipTitle(changedParams)}
@@ -258,46 +224,22 @@ const TrailingItemsWrapper = styled('div')`
   margin-left: ${space(0.5)};
 `;
 
-const StyledSecondaryNavItem = styled(SecondaryNav.Item, {
-  shouldForwardProp: prop => prop !== 'hasIssueViewSharing',
-})<{hasIssueViewSharing: boolean}>`
+const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   position: relative;
   padding-right: ${space(0.5)};
   gap: 0;
 
-  /* Hide the ellipsis menu if the item is not hovered */
-  :not(:hover) {
-    ${p =>
-      !p.hasIssueViewSharing &&
-      css`
-        [data-ellipsis-menu-trigger]:not([aria-expanded='true']) {
-          ${p.theme.visuallyHidden}
-        }
-      `}
-
-    [data-drag-icon] {
-      ${p => p.theme.visuallyHidden}
-    }
-  }
-
-  /* Hide the query count if the ellipsis menu is not expanded */
+  /* Hide the project icon on hover in favor of the drag handle */
   :hover {
-    ${p =>
-      !p.hasIssueViewSharing &&
-      css`
-        [data-issue-view-query-count] {
-          ${p.theme.visuallyHidden}
-        }
-      `}
-
     [data-project-icon] {
       ${p => p.theme.visuallyHidden}
     }
   }
 
-  /* Hide the query count if the ellipsis menu is expanded */
-  :has([data-ellipsis-menu-trigger][aria-expanded='true']) [data-issue-view-query-count] {
-    ${p => p.theme.visuallyHidden}
+  :not(:hover) {
+    [data-drag-icon] {
+      ${p => p.theme.visuallyHidden}
+    }
   }
 `;
 

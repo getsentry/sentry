@@ -1,5 +1,4 @@
-import type {ButtonProps} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -11,10 +10,10 @@ import {
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type ExampleIntegrationButtonProps = {
+interface ExampleIntegrationButtonProps extends Omit<LinkButtonProps, 'to' | 'href'> {
   analyticsView: IntegrationView['view'];
   organization: Organization;
-} & ButtonProps;
+}
 
 /**
  * Button to direct users to the Example App repository

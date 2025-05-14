@@ -2,8 +2,9 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Tooltip} from 'sentry/components/core/tooltip';
