@@ -1,12 +1,12 @@
 import {createContext, useCallback} from 'react';
 
-import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 
 type GettingStartedWithProject = Pick<Project, 'name' | 'id'> & {
-  alertRules: IssueAlertRule[];
+  alertRule: Partial<RequestDataFragment> | undefined;
   platform: OnboardingSelectedSDK;
   teamSlug?: Project['team']['slug'];
 };

@@ -27,7 +27,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {IssueAlertFragment} from 'sentry/views/projectInstall/createProject';
+import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
 type Props = ModalRenderProps & {
@@ -41,7 +41,7 @@ export default function ProjectCreationModal({
 }: Props) {
   const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(undefined);
   const [step, setStep] = useState(0);
-  const [alertRuleConfig, setAlertRuleConfig] = useState<IssueAlertFragment | undefined>(
+  const [alertRuleConfig, setAlertRuleConfig] = useState<RequestDataFragment | undefined>(
     undefined
   );
   const [projectName, setProjectName] = useState('');

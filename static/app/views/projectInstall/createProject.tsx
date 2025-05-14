@@ -1,5 +1,4 @@
-import type {ComponentProps} from 'react';
-import {Fragment, useCallback, useContext, useMemo, useState} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
@@ -15,6 +14,7 @@ import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Form from 'sentry/components/forms/form';
+import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -24,14 +24,15 @@ import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggesti
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
+import categoryList from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -44,6 +45,7 @@ import {
   MultipleCheckboxOptions,
   useCreateNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions, {
   MetricValues,
   RuleAction,
@@ -52,41 +54,11 @@ import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingSta
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
-  alertRuleConfig: IssueAlertFragment | undefined;
+  alertRuleConfig: RequestDataFragment | undefined;
   platform: OnboardingSelectedSDK | undefined;
   projectName: string;
   team: string | undefined;
 };
-
-export type IssueAlertFragment = Parameters<
-  ComponentProps<typeof IssueAlertOptions>['onChange']
->[0];
-
-function getAlertFrequencyDefaultValues(alertRules?: IssueAlertRule[]) {
-  if (alertRules?.length === 0) {
-    return {
-      alertSetting: RuleAction.CREATE_ALERT_LATER,
-    };
-  }
-
-  if (
-    alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition') ||
-    alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventUniqueUserFrequencyCondition')
-  ) {
-    return {
-      alertSetting: RuleAction.CUSTOMIZED_ALERTS,
-      interval: String(alertRules?.[0]!.conditions?.[0]!.interval),
-      threshold: String(alertRules?.[0]!.conditions?.[0]!.value),
-      metric: alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition')
-        ? MetricValues.ERRORS
-        : MetricValues.USERS,
-    };
-  }
-
-  return {
-    alertSetting: RuleAction.DEFAULT_ALERT,
-  };
-}
 
 function getMissingValues({
   team,
@@ -105,7 +77,7 @@ function getMissingValues({
   projectName: string;
   team: string | undefined;
 } & Partial<
-  Pick<IssueAlertFragment, 'conditions' | 'shouldCreateCustomRule' | 'shouldCreateRule'>
+  Pick<RequestDataFragment, 'conditions' | 'shouldCreateCustomRule' | 'shouldCreateRule'>
 >) {
   return {
     isMissingTeam: !isOrgMemberWithNoAccess && !team,
@@ -161,6 +133,8 @@ export function CreateProject() {
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
+  const referrer = decodeScalar(location.query.referrer);
+  const projectId = decodeScalar(location.query.project);
 
   const createRules = useCallback(
     async ({
@@ -209,34 +183,45 @@ export function CreateProject() {
 
   const autoFill = useMemo(() => {
     return (
-      location.query.referrer === 'getting-started' &&
-      location.query.project === gettingStartedWithProjectContext.project?.id
+      referrer === 'getting-started' &&
+      projectId === gettingStartedWithProjectContext.project?.id
     );
-  }, [
-    location.query.referrer,
-    location.query.project,
-    gettingStartedWithProjectContext.project?.id,
-  ]);
+  }, [referrer, projectId, gettingStartedWithProjectContext.project?.id]);
 
   const defaultTeam = accessTeams?.[0]?.slug;
 
   const initialData = useMemo(() => {
-    return autoFill
-      ? {
-          projectName: gettingStartedWithProjectContext.project?.name ?? '',
-          platform: gettingStartedWithProjectContext.project?.platform,
-          team: gettingStartedWithProjectContext.project?.teamSlug ?? defaultTeam,
-          alertRuleConfig: getAlertFrequencyDefaultValues(
-            gettingStartedWithProjectContext.project?.alertRules
-          ),
-        }
-      : {
-          projectName: '',
-          platform: undefined,
-          team: defaultTeam,
-          alertRuleConfig: {},
-        };
+    if (autoFill) {
+      const platform = gettingStartedWithProjectContext.project?.platform;
+      const platformCategory =
+        (platform
+          ? categoryList.find(category => {
+              return category.platforms?.has(platform?.key);
+            })?.id
+          : undefined) ?? 'all';
+      return {
+        projectName: gettingStartedWithProjectContext.project?.name ?? '',
+        platform: {
+          ...platform,
+          category: platformCategory,
+        },
+        team: gettingStartedWithProjectContext.project?.teamSlug ?? defaultTeam,
+        alertRuleConfig: gettingStartedWithProjectContext.project?.alertRule ?? {},
+      };
+    }
+    return {
+      projectName: '',
+      platform: undefined,
+      team: defaultTeam,
+      alertRuleConfig: {},
+    };
   }, [autoFill, gettingStartedWithProjectContext.project, defaultTeam]);
+
+  useEffect(() => {
+    (Object.keys(initialData) as Array<keyof typeof initialData>).forEach(key => {
+      model.setValue(key, initialData[key] as FieldValue);
+    });
+  }, [initialData, model]);
 
   useRouteAnalyticsEventNames(
     'project_creation_page.viewed',
@@ -264,6 +249,18 @@ export function CreateProject() {
           platform: selectedPlatform,
           default_rules: alertRuleConfig?.defaultRules ?? true,
           firstTeamSlug: team,
+        });
+
+        gettingStartedWithProjectContext.setProject({
+          id: project.id,
+          name: project.name,
+          teamSlug: project.team?.slug,
+          alertRule: {
+            shouldCreateRule: alertRuleConfig?.shouldCreateRule ?? false,
+            shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule ?? false,
+            conditions: alertRuleConfig?.conditions,
+          },
+          platform: selectedPlatform,
         });
 
         const ruleIds = await createRules({project, alertRuleConfig});
@@ -313,7 +310,7 @@ export function CreateProject() {
         }
       }
     },
-    [createRules, organization, createProject]
+    [createRules, organization, createProject, gettingStartedWithProjectContext]
   );
 
   const handleProjectCreation = useCallback(
@@ -375,7 +372,7 @@ export function CreateProject() {
 
   return (
     <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
-      <div data-test-id="onboarding-info">
+      <div data-test-id="onboarding-info" key={projectId}>
         <List symbol="colored-numeric">
           <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
           <HelpText>
@@ -440,7 +437,7 @@ export function CreateProject() {
                   model.getValue('platform');
                 const projectName: string = model.getValue('projectName');
                 const team: string | undefined = model.getValue('team');
-                const alertRuleConfig: IssueAlertFragment | undefined =
+                const alertRuleConfig: RequestDataFragment | undefined =
                   model.getValue('alertRuleConfig');
 
                 const missingValues = getMissingValues({
@@ -474,8 +471,25 @@ export function CreateProject() {
                   <Fragment>
                     <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
                     <IssueAlertOptions
-                      {...alertRuleConfig}
-                      onChange={value => model.setValue('alertRuleConfig', value)}
+                      alertSetting={
+                        alertRuleConfig?.shouldCreateCustomRule
+                          ? RuleAction.CUSTOMIZED_ALERTS
+                          : alertRuleConfig?.shouldCreateRule
+                            ? RuleAction.DEFAULT_ALERT
+                            : RuleAction.CREATE_ALERT_LATER
+                      }
+                      interval={alertRuleConfig?.conditions?.[0]?.interval}
+                      threshold={alertRuleConfig?.conditions?.[0]?.value}
+                      metric={
+                        alertRuleConfig?.conditions?.[0]?.id.endsWith(
+                          'EventFrequencyCondition'
+                        )
+                          ? MetricValues.ERRORS
+                          : MetricValues.USERS
+                      }
+                      onChange={value => {
+                        model.setValue('alertRuleConfig', value);
+                      }}
                       notificationProps={notificationProps}
                     />
                     <StyledListItem>

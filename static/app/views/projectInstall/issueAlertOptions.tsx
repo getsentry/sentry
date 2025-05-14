@@ -61,7 +61,7 @@ const INTERVAL_CHOICES = [
   {value: '30d', label: t('30 days')},
 ];
 
-type RequestDataFragment = {
+export type RequestDataFragment = {
   actionMatch: string;
   actions: Array<Omit<IssueAlertRuleAction, 'label' | 'name' | 'prompt'>>;
   conditions: Array<{id: string; interval: string; value: string}> | undefined;
