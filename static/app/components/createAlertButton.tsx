@@ -1,3 +1,5 @@
+import type {LocationDescriptor} from 'history';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -6,7 +8,7 @@ import {
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import type {LinkButtonPropsWithTo} from 'sentry/components/core/button/linkButton';
+import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Link from 'sentry/components/links/link';
 import {IconSiren} from 'sentry/icons';
@@ -26,7 +28,7 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 
-type CreateAlertFromViewButtonProps = Omit<LinkButtonPropsWithTo, 'aria-label' | 'to'> & {
+type CreateAlertFromViewButtonProps = Omit<LinkButtonProps, 'aria-label' | 'to'> & {
   /**
    * Discover query used to create the alert
    */
@@ -121,8 +123,8 @@ type CreateAlertButtonProps = {
   projectSlug?: string;
   referrer?: string;
   showPermissionGuide?: boolean;
-  to?: LinkButtonPropsWithTo['to'];
-} & Omit<LinkButtonPropsWithTo, 'to'>;
+  to?: string | LocationDescriptor;
+} & Omit<LinkButtonProps, 'to'>;
 
 export default function CreateAlertButton({
   organization,

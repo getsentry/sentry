@@ -87,11 +87,11 @@ interface BaseButtonProps extends DO_NOT_USE_CommonButtonProps, ButtonElementPro
   to?: never;
 }
 
-export interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
+interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
   children: React.ReactNode;
 }
 
-export interface ButtonPropsWithAriaLabel extends BaseButtonProps {
+interface ButtonPropsWithAriaLabel extends BaseButtonProps {
   'aria-label': string;
   children?: never;
 }
