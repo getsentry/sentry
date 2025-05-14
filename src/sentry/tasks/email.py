@@ -58,6 +58,7 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=notifications_tasks,
+        processing_deadline_duration=30,
         retry=Retry(
             delay=60 * 5,
         ),
@@ -77,6 +78,7 @@ def send_email(message: EmailMultiAlternatives | dict[str, Any]) -> None:
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=notifications_control_tasks,
+        processing_deadline_duration=30,
         retry=Retry(
             delay=60 * 5,
         ),
