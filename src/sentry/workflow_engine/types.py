@@ -33,22 +33,16 @@ class DetectorPriorityLevel(IntEnum):
 # For DataPackets that don't contain multiple values the key is just None.
 # This is stored in 'DetectorState.detector_group_key'
 DetectorGroupKey = str | None
-
 DataConditionResult = DetectorPriorityLevel | int | float | bool | None
 
 
 @dataclass(frozen=True)
 class DetectorEvaluationResult:
-    # TODO - Should group key live at this level?
-    group_key: DetectorGroupKey
-    # TODO: Are these actually necessary? We're going to produce the occurrence in the detector, so we probably don't
-    # need to know the other results externally
-    is_triggered: bool
-    priority: DetectorPriorityLevel
-    # TODO: This is only temporarily optional. We should always have a value here if returning a result
+    is_triggered: bool  # Do the conditions evaluate to true on a detector
+    priority: DetectorPriorityLevel  # The priority level of the detector, maps to the IssuePriority
+    event_data: dict[str, Any] | None = None  # Additional data to be passed to the Issue Platform
     result: IssueOccurrence | StatusChangeMessage | None = None
-    # Event data to supplement the `IssueOccurrence`, if passed.
-    event_data: dict[str, Any] | None = None
+    group_key: DetectorGroupKey = None
 
 
 @dataclass(frozen=True)
@@ -81,7 +75,7 @@ class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
         """
-        Bulk fetch related data-source models reutrning a dict of the
+        Bulk fetch related data-source models returning a dict of the
         `DataSource.id -> T`.
         """
         raise NotImplementedError

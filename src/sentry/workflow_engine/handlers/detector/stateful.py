@@ -48,7 +48,7 @@ class DetectorStateData:
     # reprocessing
     dedupe_value: int
     # Stateful detectors can track thresholds for DetectorPriorityLevel
-    # transitions. This dictionary maps the count of consecutive evauations for
+    # transitions. This dictionary maps the count of consecutive evaluations for
     # each DetectorPriorityLevel.
     threshold_counts: dict[DetectorPriorityLevel, int | None]
 
@@ -56,7 +56,7 @@ class DetectorStateData:
 class DetectorStateManager:
     """
     :Thinking: should this class not have a DetectorGroupKey? It is only needed for the grouping detector
-    and would better encapsulate the responsibilities there... but isn't needed rn.
+    and would better encapsulate the responsibilities there, but isn't needed right now.
     """
 
     dedupe_updates: dict[DetectorGroupKey, int] = {}
@@ -139,7 +139,7 @@ class DetectorStateManager:
     def _bulk_commit_threshold_updates(self, pipeline):
         for group_key, threshold_updates in self.threshold_updates.items():
             for threshold_level, threshold_value in threshold_updates.items():
-                key_name = self._build_key(group_key, str(threshold_level))
+                key_name = self.build_key(group_key, str(threshold_level))
 
                 if threshold_value is None:
                     pipeline.delete(key_name)
@@ -216,7 +216,7 @@ class DetectorStateManager:
 
         if priority_thresholds:
             priority_threshold_keys = [
-                self._build_key(group_key, str(priority_level))
+                self.build_key(group_key, str(priority_level))
                 for group_key in group_keys
                 for priority_level in priority_thresholds
             ]
@@ -254,19 +254,23 @@ class StatefulDetectorHandler(
     @abc.abstractmethod
     def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
         """
-        Extracts the deduplication value from a passed data packet. This duplication
+        Extracts the de-duplication value from a passed data packet. This duplication
         value is used to determine if we've already processed data to this point or not.
 
         This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
         """
         pass
 
+    def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
+        """
+        Allows overriding the fingerprint on an issue occurrence.
+        This is used to group the issue occurrences in the Issue Platform.
+        """
+        return []
+
     def __init__(self, detector: Detector):
         super().__init__(detector)
         self.state_manager = DetectorStateManager(detector)
-
-    def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
-        return []
 
     def create_resolve_message(self) -> StatusChangeMessage:
         """
@@ -280,12 +284,14 @@ class StatefulDetectorHandler(
             new_substatus=None,
         )
 
-    def _evaluate_is_duplicate(self, data_packet: DataPacket[DataPacketType]) -> bool:
+    def _evaluate_is_duplicate(
+        self, data_packet: DataPacket[DataPacketType], group_key: DetectorGroupKey = None
+    ) -> bool:
         """
         Get the dedupe value from the state and compare it to the current data packet
         If the dedupe value is greater than the current data packet, return True
         """
-        state = self.state_manager.get_state_data([None])[None]
+        state = self.state_manager.get_state_data([group_key])[group_key]
         dedupe_value = self.extract_dedupe_value(data_packet)
         return state.dedupe_value >= dedupe_value
 
