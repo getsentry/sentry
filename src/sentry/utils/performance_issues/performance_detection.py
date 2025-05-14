@@ -301,7 +301,9 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
         DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: {
             "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "minimum_occurrences_of_pattern": 3,
-            "max_sequence_length": 5,
+            "max_sequence_length": 8,
+            "max_allowable_depth": 3,  # This should not be user-configurable, to avoid O(n^2) complexity and load issues.
+            "min_percentage_of_db_spans": 0.05,
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
