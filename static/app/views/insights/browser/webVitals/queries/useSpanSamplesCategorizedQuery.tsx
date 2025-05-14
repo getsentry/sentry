@@ -78,9 +78,9 @@ export function useSpanSamplesCategorizedQuery({
 
   const isLoading = isGoodDataLoading || isMehDataLoading || isBadDataLoading;
 
-  const spanSamplesTableData: SpanSampleRowWithScore[] = data.sort(
-    (a, b) => a.totalScore - b.totalScore
-  );
+  const spanSamplesTableData: SpanSampleRowWithScore[] = defined(webVital)
+    ? data.sort((a, b) => a[`${webVital}Score`] - b[`${webVital}Score`])
+    : data.sort((a, b) => a.totalScore - b.totalScore);
 
   return {
     data: spanSamplesTableData,

@@ -40,6 +40,7 @@ import type {
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -49,8 +50,8 @@ type Column = GridColumnHeader;
 
 const PAGELOADS_COLUMN_ORDER: GridColumnOrder[] = [
   {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Transaction')},
-  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
+  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
   {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: t('Web Vital')},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
@@ -86,6 +87,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const routes = useRoutes();
   const {replayExists} = useReplayExists();
   const domainViewFilters = useDomainViewFilters();
+  const useEap = useInsightsEap();
 
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
   const subregions = location.query[
@@ -128,7 +130,10 @@ export function PageOverviewWebVitalsDetailPanel({
     useTransactionSamplesCategorizedQuery({
       transaction: transaction ?? '',
       webVital,
-      enabled: Boolean(webVital) && (!isInp || (!isSpansWebVital && useSpansWebVitals)),
+      enabled:
+        Boolean(webVital) &&
+        !useEap &&
+        (!isInp || (!isSpansWebVital && useSpansWebVitals)),
       browserTypes,
       subregions,
     });
@@ -137,7 +142,8 @@ export function PageOverviewWebVitalsDetailPanel({
     useSpanSamplesCategorizedQuery({
       transaction: transaction ?? '',
       webVital,
-      enabled: Boolean(webVital) && (isInp || (isSpansWebVital && useSpansWebVitals)),
+      enabled:
+        Boolean(webVital) && (useEap || isInp || (isSpansWebVital && useSpansWebVitals)),
       browserTypes,
       subregions,
     });
@@ -331,7 +337,7 @@ export function PageOverviewWebVitalsDetailPanel({
           replayId: row.replayId,
           id: '', // id doesn't actually matter here. Just to satisfy type.
           'transaction.duration':
-            isInp || (isSpansWebVital && useSpansWebVitals)
+            useEap || isInp || (isSpansWebVital && useSpansWebVitals)
               ? row[SpanIndexedField.SPAN_SELF_TIME]
               : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 row['transaction.duration'],
@@ -415,7 +421,7 @@ export function PageOverviewWebVitalsDetailPanel({
       return (
         <NoOverflow>
           {eventTarget ? (
-            <Link to={eventTarget}>{getShortEventId(row.id)}</Link>
+            <Link to={eventTarget}>{getShortEventId(row.trace)}</Link>
           ) : (
             <span>{getShortEventId(row.id)}</span>
           )}
@@ -465,11 +471,15 @@ export function PageOverviewWebVitalsDetailPanel({
                 renderBodyCell: renderSpansBodyCell,
               }}
             />
-          ) : isSpansWebVital && useSpansWebVitals ? (
+          ) : useEap || (isSpansWebVital && useSpansWebVitals) ? (
             <GridEditable
               data={spansTableData}
               isLoading={isSpansLoading}
-              columnOrder={SPANS_SAMPLES_COLUMN_ORDER}
+              columnOrder={
+                isSpansWebVital && useSpansWebVitals
+                  ? SPANS_SAMPLES_COLUMN_ORDER
+                  : PAGELOADS_COLUMN_ORDER
+              }
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,
