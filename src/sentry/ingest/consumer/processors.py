@@ -202,7 +202,7 @@ def process_event(
         # Otherwise, we have to store the event in processing store here for the save_event task to
         # fetch later
         if no_celery_mode:
-            cache_key = None
+            cache_key: str | None = None
         else:
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
@@ -280,6 +280,7 @@ def process_event(
             # save_event. Pass data explicitly to avoid fetching it again from the
             # cache.
             with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
+                assert cache_key is not None
                 preprocess_event(
                     cache_key=cache_key,
                     data=data,
