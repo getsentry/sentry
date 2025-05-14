@@ -275,7 +275,10 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     environment: str
     status: str
     duration: int
+    # TODO(epurkhiser): Should be replaced with the actual date_created, right
+    # now this is the same as dateAdded
     dateCreated: datetime
+    dateAdded: datetime
     expectedTime: datetime
     monitorConfig: MonitorConfigSerializerResponse
 
@@ -342,6 +345,7 @@ class MonitorCheckInSerializer(Serializer):
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,
+            "dateAdded": obj.date_added,
             "expectedTime": obj.expected_time,
             "monitorConfig": cast(MonitorConfigSerializerResponse, config),
         }
