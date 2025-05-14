@@ -1,7 +1,6 @@
 from typing import Any
 
 from django.conf import settings
-from sentry.testutils.cases import TestMigrations
 
 from sentry.monitors.processing_errors.manager import (
     build_error_identifier,
@@ -10,6 +9,7 @@ from sentry.monitors.processing_errors.manager import (
     store_error,
 )
 from sentry.monitors.testutils import ProcessingErrorType, build_checkin_processing_error
+from sentry.testutils.cases import TestMigrations
 from sentry.utils import json, redis
 
 
