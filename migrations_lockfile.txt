@@ -9,11 +9,11 @@ explore: 0004_add_explore_last_visited_table
 
 feedback: 0004_index_together
 
-hybridcloud: 0020_fix_scope_list_type
+hybridcloud: 0021_django_arrayfield_scope_list
 
 insights: 0001_add_starred_transactions_model
 
-monitors: 0003_record_date_in_progress
+monitors: 0002_fix_drift_default_to_db_default
 
 nodestore: 0002_nodestore_no_dictfield
 
@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0886_split_discover_dataset_saved_queries
+sentry: 0890_split_discover_dataset_saved_queries
 
 social_auth: 0002_default_auto_field
 
@@ -29,4 +29,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0041_uptime_backfill_detector_grouphash
 
-workflow_engine: 0059_fix_high_priority_condition_triggers
+workflow_engine: 0060_rename_azure_devops_action_to_vsts

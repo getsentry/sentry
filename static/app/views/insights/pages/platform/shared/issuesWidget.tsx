@@ -247,7 +247,7 @@ class IssuesGroupList extends Component<Props, State> {
             <SuperHeader disablePadding>
               <SuperHeaderLabel hideDivider>{t('Recommended Issues')}</SuperHeaderLabel>
               <LinkButton to={this.getIssuesUrl(queryParams)} size="xs">
-                All Issues
+                {t('View All')}
               </LinkButton>
             </SuperHeader>
             <GroupListHeader withChart={!!withChart} withColumns={columns} />

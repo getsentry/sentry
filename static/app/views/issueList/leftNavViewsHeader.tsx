@@ -38,15 +38,8 @@ function PageTitle({title, description}: {title: ReactNode; description?: ReactN
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
-  const hasIssueViewSharing = organization.features.includes(
-    'enforce-stacked-navigation'
-  );
 
-  if (
-    hasIssueViewSharing &&
-    groupSearchView &&
-    canEditIssueView({groupSearchView, user, organization})
-  ) {
+  if (groupSearchView && canEditIssueView({groupSearchView, user, organization})) {
     return <EditableIssueViewHeader view={groupSearchView} />;
   }
 
