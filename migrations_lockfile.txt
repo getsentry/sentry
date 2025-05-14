@@ -13,7 +13,7 @@ hybridcloud: 0019_add_provider_webhook_payload
 
 insights: 0001_add_starred_transactions_model
 
-monitors: 0002_fix_drift_default_to_db_default
+monitors: 0003_fix_processing_error_keys
 
 nodestore: 0002_nodestore_no_dictfield
 
@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0885_fix_processing_error_keys
+sentry: 0884_delete_incident_snapshot_tables_pt2
 
 social_auth: 0002_default_auto_field
 
