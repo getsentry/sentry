@@ -17,6 +17,8 @@ const AM2_CATEGORIES = [
   ...AM2_CHECKOUT_CATEGORIES,
   'profileDuration',
   'profileDurationUI',
+  'seerAutoFix',
+  'seerScanner',
 ] as DataCategory[];
 
 const AM2_CATEGORY_DISPLAY_NAMES = {
@@ -31,6 +33,8 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+  seerAutoFix: {singular: 'issue fix', plural: 'issue fixes'},
+  seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
 
 const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {

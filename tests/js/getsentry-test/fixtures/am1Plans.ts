@@ -3,13 +3,19 @@ import {DataCategory} from 'sentry/types/core';
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import {type Plan, ReservedBudgetCategoryType} from 'getsentry/types';
 
-const AM1_CATEGORIES = [
+const AM1_CHECKOUT_CATEGORIES = [
   'errors',
   'transactions',
   'replays',
   'attachments',
   'monitorSeats',
   'uptime',
+] as DataCategory[];
+
+const AM1_CATEGORIES = [
+  ...AM1_CHECKOUT_CATEGORIES,
+  'seerAutoFix',
+  'seerScanner',
 ] as DataCategory[];
 
 const AM1_CATEGORY_DISPLAY_NAMES = {
@@ -19,6 +25,8 @@ const AM1_CATEGORY_DISPLAY_NAMES = {
   attachments: {singular: 'attachment', plural: 'attachments'},
   monitorSeats: {singular: 'cron monitor', plural: 'cron monitors'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+  seerAutoFix: {singular: 'issue fix', plural: 'issue fixes'},
+  seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
 
 const AM1_AVAILABLE_RESERVED_BUDGET_TYPES = {
@@ -104,7 +112,7 @@ const AM1_PLANS: Record<string, Plan> = {
     description: '',
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
-    checkoutCategories: AM1_CATEGORIES,
+    checkoutCategories: AM1_CHECKOUT_CATEGORIES,
     onDemandCategories: AM1_CATEGORIES,
     hasOnDemandModes: true,
     trialPlan: 'am1_t',
@@ -176,7 +184,7 @@ const AM1_PLANS: Record<string, Plan> = {
     description: '',
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
-    checkoutCategories: AM1_CATEGORIES,
+    checkoutCategories: AM1_CHECKOUT_CATEGORIES,
     onDemandCategories: AM1_CATEGORIES,
     hasOnDemandModes: true,
     trialPlan: null,
@@ -248,7 +256,7 @@ const AM1_PLANS: Record<string, Plan> = {
     description: '',
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
-    checkoutCategories: AM1_CATEGORIES,
+    checkoutCategories: AM1_CHECKOUT_CATEGORIES,
     onDemandCategories: AM1_CATEGORIES,
     hasOnDemandModes: true,
     trialPlan: null,
@@ -831,7 +839,7 @@ const AM1_PLANS: Record<string, Plan> = {
     trialPlan: null,
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
-    checkoutCategories: AM1_CATEGORIES,
+    checkoutCategories: AM1_CHECKOUT_CATEGORIES,
     onDemandCategories: AM1_CATEGORIES,
     hasOnDemandModes: true,
     basePrice: 31200,
@@ -1413,7 +1421,7 @@ const AM1_PLANS: Record<string, Plan> = {
     trialPlan: null,
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
-    checkoutCategories: AM1_CATEGORIES,
+    checkoutCategories: AM1_CHECKOUT_CATEGORIES,
     onDemandCategories: AM1_CATEGORIES,
     hasOnDemandModes: true,
     maxMembers: null,
@@ -1996,7 +2004,7 @@ const AM1_PLANS: Record<string, Plan> = {
     basePrice: 96000,
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
-    checkoutCategories: AM1_CATEGORIES,
+    checkoutCategories: AM1_CHECKOUT_CATEGORIES,
     onDemandCategories: AM1_CATEGORIES,
     hasOnDemandModes: true,
     price: 96000,
@@ -2586,7 +2594,7 @@ const AM1_PLANS: Record<string, Plan> = {
     allowAdditionalReservedEvents: true,
     categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
     categories: AM1_CATEGORIES,
-    checkoutCategories: AM1_CATEGORIES,
+    checkoutCategories: AM1_CHECKOUT_CATEGORIES,
     availableCategories: AM1_CATEGORIES,
     onDemandCategories: AM1_CATEGORIES,
     hasOnDemandModes: false,
