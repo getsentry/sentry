@@ -68,6 +68,7 @@ import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SearchQueryValueBuilderProps = {
+  gridWrapperRef: React.RefObject<HTMLDivElement | null>;
   onCommit: () => void;
   onDelete: () => void;
   token: TokenResult<Token.FILTER>;
@@ -526,6 +527,7 @@ export function SearchQueryBuilderValueCombobox({
   onDelete,
   onCommit,
   wrapperRef,
+  gridWrapperRef,
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -547,7 +549,7 @@ export function SearchQueryBuilderValueCombobox({
     filterKeys,
     fieldDefinition
   );
-  const canUseWildard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
+  const canUseWildcard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
@@ -830,10 +832,11 @@ export function SearchQueryBuilderValueCombobox({
           return (
             <ValueListBox
               {...props}
+              gridWrapperRef={gridWrapperRef}
               isMultiSelect={canSelectMultipleValues}
               items={items}
               isLoading={isFetching}
-              canUseWildcard={canUseWildard}
+              canUseWildcard={canUseWildcard}
             />
           );
         };
@@ -871,10 +874,11 @@ export function SearchQueryBuilderValueCombobox({
       };
     }, [
       showDatePicker,
+      gridWrapperRef,
       canSelectMultipleValues,
       items,
       isFetching,
-      canUseWildard,
+      canUseWildcard,
       inputValue,
       token,
       analyticsData,
