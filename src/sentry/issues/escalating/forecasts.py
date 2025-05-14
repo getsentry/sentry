@@ -7,7 +7,7 @@ from collections.abc import Iterable, Sequence
 from datetime import datetime
 
 from sentry import analytics
-from sentry.issues.escalating import (
+from sentry.issues.escalating.escalating import (
     ParsedGroupsCount,
     parse_groups_past_counts,
     query_groups_past_counts,

@@ -9,7 +9,7 @@ from uuid import uuid4
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.issues.escalating import (
+from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
     _start_and_end_dates,
     get_group_hourly_count,

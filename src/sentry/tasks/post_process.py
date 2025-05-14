@@ -803,7 +803,7 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    from sentry.issues.escalating import is_escalating, manage_issue_states
+    from sentry.issues.escalating.escalating import is_escalating, manage_issue_states
     from sentry.models.group import GroupStatus
     from sentry.models.groupinbox import GroupInboxReason
     from sentry.models.groupsnooze import GroupSnooze
