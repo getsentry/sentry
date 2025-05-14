@@ -54,6 +54,7 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanIndexedField.TRACE,
   SpanIndexedField.IS_TRANSACTION, // boolean field but we can expose it as a string
   SpanIndexedField.NORMALIZED_DESCRIPTION,
+  SpanIndexedField.RELEASE, // temporary as orgs with >1k keys still want releases
   SpanFields.PROJECT_ID,
 ];
 
