@@ -412,12 +412,12 @@ export function Trace({
         className="TraceScrollbarContainer"
         ref={manager.registerHorizontalScrollBarContainerRef}
       >
-        {hasTraceTabsUi ? (
+        {hasTraceTabsUi ? null : (
           <TraceLevelOpsBreakdown
             isTraceLoading={isLoading}
             metaQueryResults={metaQueryResults}
           />
-        ) : null}
+        )}
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
