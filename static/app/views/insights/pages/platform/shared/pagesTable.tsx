@@ -144,10 +144,13 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
   });
 
   const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
-    navigate({
-      pathname,
-      search: qs.stringify({...transactionQuery, [currentCursorParamName]: cursor}),
-    });
+    navigate(
+      {
+        pathname,
+        search: qs.stringify({...transactionQuery, [currentCursorParamName]: cursor}),
+      },
+      {replace: true, preventScrollReset: true}
+    );
   };
 
   const spansRequest = useEAPSpans(
@@ -176,6 +179,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
         typeof location.query[currentCursorParamName] === 'string'
           ? location.query[currentCursorParamName]
           : undefined,
+      keepPreviousData: true,
     },
     Referrer.PAGES_TABLE
   );
@@ -250,7 +254,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
     <Fragment>
       <GridEditableContainer>
         <GridEditable<TableData, SortableField>
-          isLoading={spansRequest.isLoading}
+          isLoading={spansRequest.isPending}
           error={spansRequest.error}
           data={tableData}
           columnOrder={columnOrder}
@@ -262,6 +266,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
             onResizeColumn: handleResizeColumn,
           }}
         />
+        {spansRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
       <Pagination pageLinks={pagesTablePageLinks} onCursor={handleCursor} />
     </Fragment>
@@ -290,6 +295,7 @@ const HeadCell = memo(function PagesTableHeadCell({
         }
         direction={sortField === column.key ? sortOrder : undefined}
         canSort
+        preventScrollReset
         generateSortLink={() => {
           const newQuery = {
             ...location.query,
@@ -368,7 +374,19 @@ const BodyCell = memo(function PagesBodyCell({
 });
 
 const GridEditableContainer = styled('div')`
+  position: relative;
   margin-bottom: ${space(1)};
+`;
+
+const LoadingOverlay = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: ${p => p.theme.background};
+  opacity: 0.5;
+  z-index: 1;
 `;
 
 const CellLink = styled(Link)`
