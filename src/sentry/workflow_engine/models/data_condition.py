@@ -125,6 +125,14 @@ class DataCondition(DefaultFieldsModel):
         on_delete=models.CASCADE,
     )
 
+    def get_snapshot(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "type": self.type,
+            "comparison": self.comparison,
+            "condition_result": self.condition_result,
+        }
+
     def get_condition_result(self) -> DataConditionResult:
         match self.condition_result:
             case float() | bool():
