@@ -48,9 +48,9 @@ export default function AutomationForm() {
   }, [title, model]);
 
   const monitors: Detector[] = []; // TODO: Fetch monitors from API
-  const {connectedIds, toggleConnected} = useConnectedIds(
-    NEW_AUTOMATION_CONNECTED_IDS_KEY
-  );
+  const {connectedIds, toggleConnected} = useConnectedIds({
+    storageKey: NEW_AUTOMATION_CONNECTED_IDS_KEY,
+  });
   const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
 
   return (

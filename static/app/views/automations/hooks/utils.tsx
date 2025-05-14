@@ -15,9 +15,14 @@ export function useAutomationActions(automation: Automation): ActionType[] {
   ] as ActionType[];
 }
 
-export function useConnectedIds(storageKey: string, initialIds?: string[]) {
+interface UseConnectedIdsProps {
+  storageKey: string;
+  initialIds?: string[];
+}
+
+export function useConnectedIds({storageKey, initialIds = []}: UseConnectedIdsProps) {
   const [connectedIds, setConnectedIds] = useState<Set<string>>(() => {
-    if (initialIds) {
+    if (initialIds.length > 0) {
       localStorage.setItem(storageKey, JSON.stringify(initialIds));
       return new Set(initialIds);
     }

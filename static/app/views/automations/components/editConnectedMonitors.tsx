@@ -14,7 +14,7 @@ interface Props {
 
 export default function EditConnectedMonitors({storageKey}: Props) {
   const monitors: Detector[] = []; // TODO: Fetch monitors from API
-  const {connectedIds, toggleConnected} = useConnectedIds(storageKey);
+  const {connectedIds, toggleConnected} = useConnectedIds({storageKey});
 
   const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
   const unconnectedMonitors = monitors.filter(monitor => !connectedIds.has(monitor.id));
