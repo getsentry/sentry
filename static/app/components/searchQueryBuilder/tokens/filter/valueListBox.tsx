@@ -80,6 +80,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     if (!setInitialWidthRef.current) {
       const {width} = gridWrapperRef.current.getBoundingClientRect();
       popoverRef.current.style.maxWidth = `${width}px`;
+      listBoxRef.current.style.maxWidth = `${width}px`;
       setInitialWidthRef.current = true;
     }
 
