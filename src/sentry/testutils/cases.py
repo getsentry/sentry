@@ -35,6 +35,7 @@ from django.test import override_settings
 from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
+from google.protobuf.timestamp_pb2 import Timestamp
 from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.request import Request
@@ -50,6 +51,8 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckStatus,
     CheckStatusReason,
 )
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from slack_sdk.web import SlackResponse
 from snuba_sdk import Granularity, Limit, Offset
@@ -1146,32 +1149,24 @@ class SnubaTestCase(BaseTestCase):
         self.store_spans([span], is_eap=is_eap)
 
     def store_spans(self, spans, is_eap=False):
-        for span in spans:
-            span["ingest_in_eap"] = is_eap
+        entity = "spans"
+        if is_eap:
+            entity = "eap_items_span"
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert",
                 data=json.dumps(spans),
             ).status_code
             == 200
         )
-        if is_eap:
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
-                    data=json.dumps(spans),
-                ).status_code
-                == 200
-            )
 
     def store_ourlogs(self, ourlogs):
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/eap_items_log/insert",
-                data=json.dumps(ourlogs),
-            ).status_code
-            == 200
+        files = {f"message_{i}": log for i, log in enumerate(ourlogs)}
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            files=files,
         )
+        assert response.status_code == 200
 
     def store_issues(self, issues):
         assert (
@@ -3287,12 +3282,21 @@ class _OptionalOurLogData(TypedDict, total=False):
     item_id: int
 
 
-class OurLogTestCase(BaseTestCase):
-    base_log: dict[str, Any] = {
-        "retention_days": 90,
-        "attributes": {},
-    }
+def scalar_to_any_value(value: Any) -> AnyValue:
+    if isinstance(value, str):
+        return AnyValue(string_value=value)
+    if isinstance(value, int):
+        return AnyValue(int_value=value)
+    if isinstance(value, float):
+        return AnyValue(double_value=value)
+    if isinstance(value, bool):
+        return AnyValue(bool_value=value)
+    if isinstance(value, dict):
+        return AnyValue(**value)
+    raise Exception(f"cannot convert {value} of type {type(value)} to AnyValue")
 
+
+class OurLogTestCase(BaseTestCase):
     def create_ourlog(
         self,
         extra_data: _OptionalOurLogData | None = None,
@@ -3318,23 +3322,31 @@ class OurLogTestCase(BaseTestCase):
         if "trace_id" not in extra_data:
             extra_data["trace_id"] = uuid4().hex
 
-        log = self.base_log.copy()
-        # Required fields
-        log.update(
-            {
-                "organization_id": organization.id,
-                "project_id": project.id,
-                "timestamp_nanos": int(timestamp.timestamp() * 1_000_000_000),
-                "observed_timestamp_nanos": int(timestamp.timestamp() * 1_000_000_000),
-                "received": int(timestamp.timestamp()),
-                "attributes": attributes,
-            }
+        attributes_proto = {}
+
+        for k, v in attributes.items():
+            attributes_proto[k] = scalar_to_any_value(v)
+
+        for k, v in extra_data.items():
+            attributes_proto[f"sentry.{k}"] = scalar_to_any_value(v)
+
+        timestamp_proto = Timestamp()
+
+        timestamp_proto.FromDatetime(timestamp)
+
+        trace_item = TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
+            timestamp=timestamp_proto,
+            trace_id=extra_data["trace_id"],
+            item_id=uuid4().bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
         )
 
-        # Add all extra data fields
-        log.update(extra_data)
-
-        return log
+        return trace_item.SerializeToString()
 
 
 class TraceTestCase(SpanTestCase):

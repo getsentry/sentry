@@ -32,7 +32,10 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
             features = self.feature_flags
 
         with self.feature(features):
-            url = reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug})
+            url = reverse(
+                self.viewname,
+                kwargs={"organization_id_or_slug": self.organization.slug},
+            )
             return self.client.get(url, query, format="json", **kwargs)
 
 
@@ -67,6 +70,8 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 organization=self.organization,
                 project=self.project,
                 attributes={
+                    "sentry.severity_text": "info",
+                    "sentry.severity_number": 10,
                     "test.attribute1": {"string_value": "value1"},
                     "test.attribute2": {"string_value": "value2"},
                     "another.attribute": {"string_value": "value3"},
@@ -114,6 +119,8 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 organization=self.organization,
                 project=self.project,
                 attributes={
+                    "sentry.severity_text": "info",
+                    "sentry.severity_number": 10,
                     "test.attribute1": {"string_value": "value1"},
                     "test.attribute2": {"string_value": "value2"},
                 },
@@ -136,6 +143,8 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 organization=self.organization,
                 project=self.project,
                 attributes={
+                    "sentry.severity_text": "info",
+                    "sentry.severity_number": 10,
                     "message": {"string_value": "value1"},
                 },
             ),
@@ -146,7 +155,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
 
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
-        assert keys == {"severity", "message", "project"}
+        assert keys == {"severity", "message", "project", "trace"}
 
     def test_disallowed_attributes(self):
         logs = [
@@ -154,6 +163,8 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 organization=self.organization,
                 project=self.project,
                 attributes={
+                    "sentry.severity_text": "info",
+                    "sentry.severity_number": 10,
                     "sentry.item_type": {"string_value": "value1"},  # Disallowed
                     "sentry.item_type2": {"string_value": "value2"},  # Allowed
                 },
@@ -166,7 +177,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
 
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
-        assert keys == {"severity", "message", "project", "sentry.item_type2"}
+        assert keys == {"severity", "message", "project", "sentry.item_type2", "trace"}
 
 
 class OrganizationTraceItemAttributesEndpointSpansTest(
