@@ -528,7 +528,7 @@ function WidgetViewerModal(props: Props) {
                     [WidgetViewerQueryField.CURSOR]: newCursor,
                   },
                 },
-                {replace: true}
+                {replace: true, preventScrollReset: true}
               );
 
               if (widget.displayType === DisplayType.TABLE) {
