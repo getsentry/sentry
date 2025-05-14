@@ -45,7 +45,7 @@ export default function CrashReportSection({
     return (
       <Alert type="warning" showIcon>
         {tct(
-          'Event [id] was linked but not found. The event might have been dropped or the ID may be incorrect.',
+          'Event [id] was linked but not found in this project. The event might have been dropped or the ID may be incorrect.',
           {id: crashReportId}
         )}
       </Alert>
