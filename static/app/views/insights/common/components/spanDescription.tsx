@@ -89,6 +89,7 @@ export function DatabaseSpanDescription({
     orgSlug: organization.slug,
     projectSlug: project?.slug ?? '',
     releaseVersion: indexedSpan?.release ?? '',
+    enabled: useEap,
   });
 
   const sdk =
