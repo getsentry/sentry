@@ -1,6 +1,5 @@
-import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useResizeObserver} from '@react-aria/utils';
 
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {space} from 'sentry/styles/space';
@@ -50,7 +49,23 @@ export function TraceTabsAndVitals({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerRef.current]);
 
-  useResizeObserver({ref: containerRef, onResize});
+  useEffect(() => {
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        if (entry.target === containerRef.current) {
+          onResize();
+        }
+      }
+    });
+
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [onResize]);
 
   // Set initial width
   useLayoutEffect(() => {
