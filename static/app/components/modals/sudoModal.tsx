@@ -387,6 +387,7 @@ const StyledTextBlock = styled(TextBlock)`
 `;
 
 const BackWrapper = styled('div')`
-  width: 100%;
-  margin-left: ${space(4)};
+  display: flex;
+  align-items: center;
+  margin: 0 ${space(4)};
 `;
