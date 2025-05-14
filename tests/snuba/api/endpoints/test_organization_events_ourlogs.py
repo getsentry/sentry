@@ -59,11 +59,11 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
             ),
             self.create_ourlog(
                 {"body": "bar"},
-                timestamp=self.ten_mins_ago + timedelta(seconds=1),
+                timestamp=self.ten_mins_ago + timedelta(microseconds=1),
             ),
             self.create_ourlog(
                 {"body": "baz"},
-                timestamp=self.ten_mins_ago + timedelta(seconds=2),
+                timestamp=self.ten_mins_ago + timedelta(microseconds=2),
             ),
         ]
         self.store_ourlogs(logs)
