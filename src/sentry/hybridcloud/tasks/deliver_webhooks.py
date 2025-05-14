@@ -213,7 +213,7 @@ def drain_mailbox(payload_id: int) -> None:
 
         # No more messages to deliver
         if batch_count < 1:
-            logger.info(
+            logger.debug(
                 "deliver_webhook.delivery_complete",
                 extra={
                     "mailbox_name": payload.mailbox_name,
@@ -429,7 +429,7 @@ def perform_request(payload: WebhookPayload) -> None:
                 data=payload.request_body.encode("utf-8"),
                 json=False,
             )
-        logger.info(
+        logger.debug(
             "deliver_webhooks.success",
             extra={
                 "status": getattr(

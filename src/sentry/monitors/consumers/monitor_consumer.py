@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from copy import deepcopy
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -811,12 +811,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
             # 03-B
             # Create a brand new check-in object
             except MonitorCheckIn.DoesNotExist:
-                # Infer the original start time of the check-in from the duration.
-                # Note that the clock of this worker may be off from what Relay is reporting.
-                date_added = start_time
-                if duration is not None:
-                    date_added -= timedelta(milliseconds=duration)
-
                 # When was this check-in expected to have happened?
                 expected_time = monitor_environment.next_checkin
 
@@ -824,7 +818,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                 # Useful to show details about the configuration of the
                 # monitor at the time of the check-in
                 monitor_config = monitor.get_validated_config()
-                timeout_at = get_timeout_at(monitor_config, status, date_added)
+                timeout_at = get_timeout_at(monitor_config, status, start_time)
 
                 # The "date_clock" is recorded as the "clock time" of when the
                 # check-in was processed. The clock time is derived from the
@@ -835,17 +829,13 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                 # to UTC
                 clock_time = item.ts.replace(tzinfo=UTC)
 
-                # Record the reported in_progress time when the check is in progress
-                date_in_progress = start_time if status == CheckInStatus.IN_PROGRESS else None
-
                 check_in, created = MonitorCheckIn.objects.get_or_create(
                     defaults={
                         "duration": duration,
                         "status": status,
-                        "date_added": date_added,
-                        "date_clock": clock_time,
+                        "date_added": start_time,
                         "date_updated": start_time,
-                        "date_in_progress": date_in_progress,
+                        "date_clock": clock_time,
                         "expected_time": expected_time,
                         "timeout_at": timeout_at,
                         "monitor_config": monitor_config,

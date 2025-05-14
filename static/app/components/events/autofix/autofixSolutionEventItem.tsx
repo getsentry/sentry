@@ -6,6 +6,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import AutofixInsightSources from 'sentry/components/events/autofix/autofixInsightSources';
 import {type AutofixSolutionTimelineEvent} from 'sentry/components/events/autofix/types';
 import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {
@@ -193,6 +194,11 @@ export function SolutionEventItem({
                 >
                   <StyledSpan text={event.code_snippet_and_analysis} inline />
                 </AutofixHighlightWrapper>
+                {event.relevant_code_file && event.relevant_code_file.url && (
+                  <SourcesWrapper>
+                    <AutofixInsightSources codeUrls={[event.relevant_code_file.url]} />
+                  </SourcesWrapper>
+                )}
               </Timeline.Text>
             </AnimatedContent>
           )}
@@ -201,6 +207,10 @@ export function SolutionEventItem({
     </Timeline.Item>
   );
 }
+
+const SourcesWrapper = styled('div')`
+  margin-top: ${space(2)};
+`;
 
 const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.subText};
