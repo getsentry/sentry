@@ -6,7 +6,6 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {DisplayType} from './types';
@@ -32,13 +31,7 @@ function AddWidget({onAddWidget}: Props) {
     transition: null,
   });
 
-  const organization = useOrganization();
-
-  const defaultDataset = organization.features.includes(
-    'performance-discover-dataset-selector'
-  )
-    ? DataSet.ERRORS
-    : DataSet.EVENTS;
+  const defaultDataset = DataSet.ERRORS;
 
   const addWidgetDropdownItems: MenuItemProps[] = [
     {

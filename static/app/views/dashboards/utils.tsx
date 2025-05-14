@@ -586,8 +586,8 @@ export function connectDashboardCharts(groupName: string) {
   connect?.(groupName);
 }
 
-export function hasDatasetSelector(organization: Organization): boolean {
-  return organization.features.includes('performance-discover-dataset-selector');
+export function hasDatasetSelector(_organization: Organization): boolean {
+  return true;
 }
 
 export function appendQueryDatasetParam(

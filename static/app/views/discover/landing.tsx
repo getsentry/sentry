@@ -81,11 +81,7 @@ const useDiscoverLandingQuery = (renderPrebuilt: boolean) => {
       const needleSearch = searchQuery.toLowerCase();
 
       const numOfPrebuiltQueries = views.reduce((sum, view) => {
-        const newQuery = organization.features.includes(
-          'performance-discover-dataset-selector'
-        )
-          ? (getSavedQueryWithDataset(view) as NewQuery)
-          : view;
+        const newQuery = getSavedQueryWithDataset(view) as NewQuery;
         const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
         // if a search is performed on the list of queries, we filter

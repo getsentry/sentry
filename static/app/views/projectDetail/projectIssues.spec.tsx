@@ -162,6 +162,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
         name: 'Frequent Unhandled Issues',
         query: 'event.type:error error.unhandled:true',
+        queryDataset: 'error-events',
         sort: '-count',
         statsPeriod: '14d',
       },

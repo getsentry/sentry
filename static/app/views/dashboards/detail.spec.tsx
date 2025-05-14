@@ -263,14 +263,14 @@ describe('Dashboards > Detail', function () {
                 {
                   aggregates: ['count()'],
                   columns: [],
-                  conditions: '!event.type:transaction',
+                  conditions: '',
                   fields: ['count()'],
                   name: 'Events',
                   orderby: 'count()',
                 },
               ],
               title: 'Events',
-              widgetType: types.WidgetType.DISCOVER,
+              widgetType: types.WidgetType.ERRORS,
             }),
             onClose: expect.anything(),
           })
@@ -2338,7 +2338,6 @@ describe('Dashboards > Detail', function () {
               'dashboards-basic',
               'dashboards-edit',
               'discover-query',
-              'performance-discover-dataset-selector',
             ],
           }),
         });

@@ -212,19 +212,19 @@ describe('Discover > EventDetails', function () {
     expect(await screen.findByText('Firefox')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Firefox'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the second link
     expect(screen.getByRole('link', {name: 'test-uuid'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the third link
     expect(screen.getByRole('link', {name: '82ebf297206a'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
   });
 
@@ -251,19 +251,19 @@ describe('Discover > EventDetails', function () {
     expect(await screen.findByText('Firefox')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Firefox'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/homepage/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/homepage/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the second link
     expect(screen.getByRole('link', {name: 'test-uuid'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/homepage/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/homepage/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the third link
     expect(screen.getByRole('link', {name: '82ebf297206a'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/homepage/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/homepage/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
   });
 
@@ -293,18 +293,18 @@ describe('Discover > EventDetails', function () {
     expect(await screen.findByText('Firefox')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Firefox'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the second link
     expect(screen.getByRole('link', {name: 'test-uuid'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
     // Get the third link
     expect(screen.getByRole('link', {name: '82ebf297206a'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
+      '/organizations/org-slug/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
   });
 

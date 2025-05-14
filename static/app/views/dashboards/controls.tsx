@@ -145,11 +145,7 @@ function Controls({
     );
   }
 
-  const defaultDataset = organization.features.includes(
-    'performance-discover-dataset-selector'
-  )
-    ? DataSet.ERRORS
-    : DataSet.EVENTS;
+  const defaultDataset = DataSet.ERRORS;
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,

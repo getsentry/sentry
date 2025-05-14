@@ -44,7 +44,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/savedQuery/utils';
+import {
+  getDatasetFromLocationOrSavedQueryDataset,
+  getSavedQueryDatasetFromLocationOrDataset,
+} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -481,7 +484,9 @@ class EventView {
       createdBy: saved.createdBy,
       expired: saved.expired,
       additionalConditions: new MutableSearch([]),
-      dataset: saved.dataset,
+      dataset:
+        saved.dataset ||
+        getDatasetFromLocationOrSavedQueryDataset(undefined, saved.queryDataset),
       multiSort: saved.multiSort,
     });
   }
