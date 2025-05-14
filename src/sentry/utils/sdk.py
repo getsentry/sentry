@@ -1,14 +1,25 @@
 from __future__ import annotations
 
 import copy
+import importlib.machinery
 import logging
 import sys
 from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
+# Reexport sentry_sdk just in case we ever have to write another shim like we
+# did for raven
+import sentry_sdk
 from django.conf import settings
 from rest_framework.request import Request
+from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope
+from sentry_sdk._types import AnnotatedValue
+from sentry_sdk.client import get_options
+from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
+from sentry_sdk.transport import make_transport
+from sentry_sdk.types import Event, Hint, Log
+from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
@@ -16,27 +27,6 @@ from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
-
-# Reexport sentry_sdk just in case we ever have to write another shim like we
-# did for raven
-if in_random_rollout("sentry-sdk.use-python-sdk-alpha"):
-    import sentry_sdk_alpha as sentry_sdk
-    from sentry_sdk_alpha import Scope, capture_exception, capture_message, isolation_scope
-    from sentry_sdk_alpha._types import AnnotatedValue
-    from sentry_sdk_alpha.client import get_options
-    from sentry_sdk_alpha.integrations.django.transactions import LEGACY_RESOLVER
-    from sentry_sdk_alpha.transport import make_transport
-    from sentry_sdk_alpha.types import Event, Hint, Log
-    from sentry_sdk_alpha.utils import logger as sdk_logger
-else:
-    import sentry_sdk
-    from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope
-    from sentry_sdk._types import AnnotatedValue
-    from sentry_sdk.client import get_options
-    from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
-    from sentry_sdk.transport import make_transport
-    from sentry_sdk.types import Event, Hint, Log
-    from sentry_sdk.utils import logger as sdk_logger
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
@@ -500,6 +490,40 @@ def configure_sdk():
         ],
         **sdk_options,
     )
+
+    # monkey patch sentry
+    class ImportRedirector(importlib.abc.MetaPathFinder, importlib.abc.Loader):
+        def __init__(self, original_module, target_module):
+            self.original_module = original_module
+            self.target_module = target_module
+
+        def find_spec(self, fullname, path, target=None):
+            if fullname == self.original_module:
+                # Create a spec for the target module
+                spec = importlib.machinery.ModuleSpec(
+                    fullname,
+                    self,
+                    origin=f"redirected from {self.original_module} to {self.target_module}",
+                )
+                return spec
+            return None
+
+        def create_module(self, spec):
+            return importlib.import_module(self.target_module)
+
+        def exec_module(self, module):
+            pass
+
+    def redirect_import(original_module, target_module):
+        redirector = ImportRedirector(original_module, target_module)
+        sys.meta_path.insert(0, redirector)
+        if original_module in sys.modules:
+            # cleaning up cache if the module is already imported
+            del sys.modules[original_module]
+
+    # monkey patch to anything but sentry_sdk
+    if in_random_rollout("sentry-sdk.use-python-sdk-alpha") or True:
+        redirect_import("sentry_sdk", "requests")
 
 
 def check_tag_for_scope_bleed(
