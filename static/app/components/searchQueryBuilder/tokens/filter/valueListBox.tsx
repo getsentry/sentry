@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 
 interface ValueListBoxProps<T> extends CustomComboboxMenuProps<T> {
   canUseWildcard: boolean;
+  gridWrapperRef: React.RefObject<HTMLDivElement | null>;
   isLoading: boolean;
   isMultiSelect: boolean;
   items: T[];
@@ -55,12 +56,48 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   items,
   canUseWildcard,
   portalTarget,
+  gridWrapperRef,
 }: ValueListBoxProps<T>) {
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
     0
   );
   const anyItemsShowing = totalOptions > hiddenOptions.size;
+
+  const setInitialWidthRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      !popoverRef.current ||
+      !gridWrapperRef.current ||
+      !listBoxRef.current ||
+      !isOpen ||
+      (!anyItemsShowing && !isLoading)
+    ) {
+      return undefined;
+    }
+
+    if (!setInitialWidthRef.current) {
+      const {width} = gridWrapperRef.current.getBoundingClientRect();
+      popoverRef.current.style.maxWidth = `${width}px`;
+      setInitialWidthRef.current = true;
+    }
+
+    const observer = new ResizeObserver(entries => {
+      const entry = entries?.[0];
+      if (entry && gridWrapperRef.current && popoverRef.current && listBoxRef.current) {
+        const {width} = gridWrapperRef.current.getBoundingClientRect();
+        popoverRef.current.style.maxWidth = `${width}px`;
+        listBoxRef.current.style.maxWidth = `${width}px`;
+      }
+    });
+
+    observer.observe(popoverRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [anyItemsShowing, gridWrapperRef, isLoading, isOpen, listBoxRef, popoverRef]);
 
   if (!isOpen || (!anyItemsShowing && !isLoading)) {
     return null;
