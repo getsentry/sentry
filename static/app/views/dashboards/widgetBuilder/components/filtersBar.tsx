@@ -17,6 +17,7 @@ function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
   return (
     <PageFiltersContainer
       skipLoadLastUsed
+      skipInitializeUrlParams
       disablePersistence
       defaultSelection={{
         datetime: {
