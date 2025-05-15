@@ -1,6 +1,6 @@
 // This is generated code.
 // To update it run `getsentry django generate_controlsilo_urls --format=js --output=/path/to/thisfile.ts`
-const patterns: RegExp[] = [
+export const patterns: readonly RegExp[] = [
   new RegExp('^remote/heroku/resources(?:/[^/]+)?$'),
   new RegExp('^remote/beacon/$'),
   new RegExp('^remote/newsletter/unsubscribe/$'),
@@ -196,5 +196,3 @@ const patterns: RegExp[] = [
   new RegExp('^extensions/discord/unlink-identity/[^/]+/$'),
   new RegExp('^share/(?:group|issue)/[^/]+/$'),
 ];
-
-export default patterns;

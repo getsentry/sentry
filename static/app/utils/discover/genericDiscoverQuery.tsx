@@ -3,8 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import type {ResponseMeta} from 'sentry/api';
-import {Client} from 'sentry/api';
+import {type ApiResult, Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -65,6 +64,11 @@ type BaseDiscoverQueryProps = {
    */
   location: Location;
   /**
+   * A flag to skip aborting the request when api.clear() is called, which happens
+   * frequently on component unmounts.
+   */
+  cancelable?: boolean;
+  /**
    * Explicit cursor value if you aren't using `location.query.cursor` because there are
    * multiple paginated results on the page.
    */
@@ -83,10 +87,9 @@ type BaseDiscoverQueryProps = {
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
-  options?: Omit<
-    UseQueryOptions<[any, string | undefined, ResponseMeta<any> | undefined], QueryError>,
-    'queryKey' | 'queryFn'
-  > & {additionalQueryKey?: UseQueryOptions['queryKey']};
+  options?: Omit<UseQueryOptions<ApiResult<any>, QueryError>, 'queryKey' | 'queryFn'> & {
+    additionalQueryKey?: UseQueryOptions['queryKey'];
+  };
   /**
    * A container for query batching data and functions.
    */
@@ -104,11 +107,6 @@ type BaseDiscoverQueryProps = {
    * A callback to set an error so that the error can be rendered in parent components
    */
   setError?: (errObject: QueryError | undefined) => void;
-  /**
-   * A flag to skip aborting the request when api.clear() is called, which happens
-   * frequently on component unmounts.
-   */
-  skipAbort?: boolean;
 };
 
 export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
@@ -341,12 +339,12 @@ export async function doDiscoverQuery<T>(
   url: string,
   params: DiscoverQueryRequestParams,
   options: {
+    cancelable?: boolean;
     queryBatching?: QueryBatching;
     retry?: RetryOptions;
-    skipAbort?: boolean;
   } = {}
-): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
-  const {queryBatching, retry, skipAbort} = options;
+): Promise<ApiResult<T>> {
+  const {queryBatching, retry, cancelable} = options;
   if (queryBatching?.batchRequest) {
     return queryBatching.batchRequest(api, url, {
       query: params,
@@ -375,7 +373,7 @@ export async function doDiscoverQuery<T>(
           // marking params as any so as to not cause typescript errors
           ...(params as any),
         },
-        skipAbort,
+        cancelable,
       });
     } catch (err) {
       error = err;
@@ -425,13 +423,13 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const apiPayload = getPayload<T, P>(props);
   const additionalQueryKey = props.options?.additionalQueryKey ?? [];
 
-  const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>({
+  const res = useQuery<ApiResult<T>, QueryError>({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: [...additionalQueryKey, route, apiPayload],
     queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
         queryBatching: props.queryBatching,
-        skipAbort: props.skipAbort,
+        cancelable: props.cancelable,
       }),
     ...options,
   });
