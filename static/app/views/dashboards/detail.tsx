@@ -137,6 +137,7 @@ type State = {
   modifiedDashboard: DashboardDetails | null;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
+  newlyAddedWidget?: Widget;
   openWidgetTemplates?: boolean;
 } & WidgetViewerContextProps;
 
@@ -259,6 +260,7 @@ class DashboardDetail extends Component<Props, State> {
     isSavingDashboardFilters: false,
     isWidgetBuilderOpen: this.isRedesignedWidgetBuilder,
     openWidgetTemplates: undefined,
+    newlyAddedWidget: undefined,
   };
 
   componentDidMount() {
@@ -645,6 +647,12 @@ class DashboardDetail extends Component<Props, State> {
     this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
+  handleScrollToNewWidgetComplete = () => {
+    this.setState({
+      newlyAddedWidget: undefined,
+    });
+  };
+
   onAddWidget = (dataset: DataSet, openWidgetTemplates?: boolean) => {
     const {
       organization,
@@ -753,6 +761,9 @@ class DashboardDetail extends Component<Props, State> {
         addLoadingMessage(t('Saving widget'));
         this.handleUpdateWidgetList(newWidgets);
       }
+      this.setState({
+        newlyAddedWidget: mergedWidget,
+      });
 
       this.handleCloseWidgetBuilder();
     } catch (error) {
@@ -1079,8 +1090,14 @@ class DashboardDetail extends Component<Props, State> {
       onDashboardUpdate,
       projects,
     } = this.props;
-    const {modifiedDashboard, dashboardState, widgetLimitReached, seriesData, setData} =
-      this.state;
+    const {
+      modifiedDashboard,
+      dashboardState,
+      widgetLimitReached,
+      seriesData,
+      setData,
+      newlyAddedWidget,
+    } = this.state;
     const {dashboardId} = params;
 
     const hasUnsavedFilters =
@@ -1280,6 +1297,10 @@ class DashboardDetail extends Component<Props, State> {
                                     isPreview={this.isPreview}
                                     widgetLegendState={this.state.widgetLegendState}
                                     onEditWidget={this.onEditWidget}
+                                    newlyAddedWidget={newlyAddedWidget}
+                                    onNewWidgetScrollComplete={
+                                      this.handleScrollToNewWidgetComplete
+                                    }
                                   />
 
                                   <WidgetBuilderV2
