@@ -3,6 +3,7 @@ from time import sleep
 
 import rapidjson
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.types import Message, Partition, Topic, Value
 
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
@@ -76,15 +77,15 @@ def test_basic(monkeypatch):
 
 
 def test_backpressure(monkeypatch):
-    # Flush very aggressively to make test pass instantly
+    # Flush very aggressively to make join() faster
     monkeypatch.setattr("time.sleep", lambda _: None)
 
     topic = Topic("test")
     messages: list[KafkaPayload] = []
 
     fac = ProcessSpansStrategyFactory(
-        max_batch_size=10,
-        max_batch_time=10,
+        max_batch_size=1,
+        max_batch_time=1,
         num_processes=1,
         max_flush_segments=10,
         input_block_size=None,
@@ -101,28 +102,31 @@ def test_backpressure(monkeypatch):
     step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
 
     for i in range(200):
-        step.poll()
-        step.submit(
-            Message(
-                Value(
-                    KafkaPayload(
-                        None,
-                        rapidjson.dumps(
-                            {
-                                "project_id": 12,
-                                # distinct segments
-                                "span_id": f"{i:0>16x}",
-                                "parent_span_id": None,
-                                "trace_id": "b" * 32,
-                            }
-                        ).encode("ascii"),
-                        [],
-                    ),
-                    {},
-                    datetime.now(),
+        try:
+            step.poll()
+            step.submit(
+                Message(
+                    Value(
+                        KafkaPayload(
+                            None,
+                            rapidjson.dumps(
+                                {
+                                    "project_id": 12,
+                                    # distinct segments
+                                    "span_id": f"{i:0>16x}",
+                                    "parent_span_id": None,
+                                    "trace_id": "b" * 32,
+                                }
+                            ).encode("ascii"),
+                            [],
+                        ),
+                        {},
+                        datetime.now(),
+                    )
                 )
             )
-        )
+        except MessageRejected:
+            break
 
     step.poll()
     fac._flusher.current_drift.value = 20000  # "advance" our "clock"
@@ -130,7 +134,9 @@ def test_backpressure(monkeypatch):
     sleep(0.1)
     step.join()
 
-    assert len(messages) == 99
+    assert len(messages) == 20
+
+    msg = messages[0]
 
     assert rapidjson.loads(msg.value) == {
         "spans": [
@@ -138,10 +144,11 @@ def test_backpressure(monkeypatch):
                 "data": {
                     "__sentry_internal_span_buffer_outcome": "different",
                 },
+                "parent_span_id": None,
                 "is_segment": True,
                 "project_id": 12,
-                "segment_id": "aaaaaaaaaaaaaaaa",
-                "span_id": "aaaaaaaaaaaaaaaa",
+                "segment_id": "0000000000000000",
+                "span_id": "0000000000000000",
                 "trace_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             },
         ],

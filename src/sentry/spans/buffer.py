@@ -65,7 +65,6 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import MutableMapping, Sequence
-from multiprocessing.context import assert_spawning
 from typing import Any, NamedTuple
 
 import rapidjson
@@ -314,7 +313,9 @@ class SpansBuffer:
                     key = self._get_queue_key(shard)
                     p.zcard(key)
 
-            result = p.execute()
+                result = p.execute()
+
+        assert len(result) == len(self.assigned_shards)
 
         for shard_i, queue_size in zip(self.assigned_shards, result):
             metrics.timing(
