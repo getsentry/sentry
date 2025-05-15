@@ -1,4 +1,3 @@
-import logging
 from time import time
 
 from sentry import nodestore
@@ -14,8 +13,6 @@ from sentry.taskworker.namespaces import sentryapp_tasks
 from sentry.taskworker.retry import Retry
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
-
-logger = logging.getLogger(__name__)
 
 
 def get_payload_v0(event):
@@ -83,4 +80,3 @@ def process_service_hook(
     }
 
     safe_urlopen(url=servicehook.url, data=payload, headers=headers, timeout=5, verify_ssl=False)
-    logger.info("service_hook.success", extra={"project_id": project_id})
