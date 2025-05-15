@@ -1,5 +1,6 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 import orjson
 from arroyo import Topic as ArroyoTopic
@@ -12,7 +13,7 @@ from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
@@ -120,12 +121,24 @@ def _process_message(message: Message[KafkaPayload]) -> list[KafkaPayload]:
 
 
 def _convert_to_trace_item(span: Span) -> KafkaPayload:
-    attributes = {}  # TODO
+    attributes: MutableMapping[str, AnyValue] = {}  # TODO
     for k, v in (span.get("data") or {}).items():
         attributes[k] = v
 
     client_sample_rate = 1.0
     server_sample_rate = 1.0
+
+    def infer_anyvalue(value: Any) -> AnyValue:
+        if isinstance(value, str):
+            return AnyValue(string_value=value)
+
+        if isinstance(value, int):
+            return AnyValue(int_value=value)
+
+        if isinstance(value, float):
+            return AnyValue(double_value=value)
+
+        raise ValueError(f"Unknown value type: {type(value)}")
 
     for k, v in (span.get("measurements") or {}).items():
         if k is None or v is None:
@@ -139,7 +152,7 @@ def _convert_to_trace_item(span: Span) -> KafkaPayload:
             server_sample_rate = v["value"]
             continue
 
-        attributes[k] = v
+        attributes[k] = infer_anyvalue(v)
 
     for k, v in (span.get("sentry_tags") or {}).items():
         if v is None:
@@ -150,50 +163,52 @@ def _convert_to_trace_item(span: Span) -> KafkaPayload:
         else:
             k = f"sentry.{k}"
 
-        attributes[k] = v
+        attributes[k] = infer_anyvalue(v)
 
     for k, v in (span.get("tags") or {}).items():
         if v is None:
             continue
 
-        attributes[k] = v
+        attributes[k] = infer_anyvalue(v)
 
     description = span.get("description")
     if description is not None:
-        attributes["sentry.raw_description"] = description
+        attributes["sentry.raw_description"] = infer_anyvalue(description)
 
-    attributes["sentry.duration_ms"] = span["duration_ms"]
+    attributes["sentry.duration_ms"] = infer_anyvalue(span["duration_ms"])
 
     event_id = span.get("event_id")
     if event_id is not None:
-        attributes["sentry.event_id"] = event_id
+        attributes["sentry.event_id"] = infer_anyvalue(event_id)
 
-    attributes["sentry.is_segment"] = span["is_segment"]
-    attributes["sentry.exclusive_time_ms"] = span["exclusive_time_ms"]
-    attributes["sentry.start_timestamp_precise"] = span["start_timestamp_precise"]
-    attributes["sentry.end_timestamp_precise"] = span["end_timestamp_precise"]
-    attributes["sentry.start_timestamp_ms"] = span["start_timestamp_ms"]
-    attributes["sentry.is_remote"] = span["is_remote"]
+    attributes["sentry.is_segment"] = infer_anyvalue(span["is_segment"])
+    exclusive_time_ms = span.get("exclusive_time_ms")
+    if exclusive_time_ms is not None:
+        attributes["sentry.exclusive_time_ms"] = infer_anyvalue(exclusive_time_ms)
+    attributes["sentry.start_timestamp_precise"] = infer_anyvalue(span["start_timestamp_precise"])
+    attributes["sentry.end_timestamp_precise"] = infer_anyvalue(span["end_timestamp_precise"])
+    attributes["sentry.start_timestamp_ms"] = infer_anyvalue(span["start_timestamp_ms"])
+    attributes["sentry.is_remote"] = infer_anyvalue(span["is_remote"])
 
     parent_span_id = span.get("parent_span_id")
     if parent_span_id is not None:
-        attributes["sentry.parent_span_id"] = parent_span_id
+        attributes["sentry.parent_span_id"] = infer_anyvalue(parent_span_id)
 
     profile_id = span.get("profile_id")
     if profile_id is not None:
-        attributes["sentry.profile_id"] = profile_id
+        attributes["sentry.profile_id"] = infer_anyvalue(profile_id)
 
     segment_id = span.get("segment_id")
     if segment_id is not None:
-        attributes["sentry.segment_id"] = segment_id
+        attributes["sentry.segment_id"] = infer_anyvalue(segment_id)
 
     origin = span.get("origin")
     if origin is not None:
-        attributes["sentry.origin"] = origin
+        attributes["sentry.origin"] = infer_anyvalue(origin)
 
     kind = span.get("kind")
     if kind is not None:
-        attributes["sentry.kind"] = kind
+        attributes["sentry.kind"] = infer_anyvalue(kind)
 
     trace_item = TraceItem(
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
