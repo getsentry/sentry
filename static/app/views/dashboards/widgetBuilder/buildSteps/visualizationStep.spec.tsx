@@ -112,7 +112,7 @@ describe('VisualizationStep', function () {
     location: LocationFixture(),
     dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
     organization,
-    router,
+    navigate: jest.fn(),
   });
 
   beforeEach(function () {
@@ -159,56 +159,6 @@ describe('VisualizationStep', function () {
     });
 
     await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
-  });
-
-  it('displays stored data alert', async function () {
-    mockRequests(organization.slug);
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      statusCode: 200,
-      body: {
-        meta: {isMetricsData: false},
-        data: [],
-      },
-    });
-
-    render(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={{
-          id: 'new',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [],
-          projects: [],
-          filters: {},
-        }}
-        onSave={jest.fn()}
-        params={{
-          orgId: organization.slug,
-          dashboardId: 'new',
-        }}
-        widgetLegendState={widgetLegendState}
-      />,
-      {
-        router,
-
-        organization: {
-          ...organization,
-          features: [...organization.features, 'dynamic-sampling', 'mep-rollout-flag'],
-        },
-
-        deprecatedRouterMocks: true,
-      }
-    );
-
-    await screen.findByText(/we've automatically adjusted your results/i);
   });
 
   it('uses release from URL params when querying', async function () {

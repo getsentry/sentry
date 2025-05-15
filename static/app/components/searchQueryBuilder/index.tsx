@@ -40,6 +40,7 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  autoFocus?: boolean;
   className?: string;
   disabled?: boolean;
   /**
@@ -151,8 +152,9 @@ function SearchIndicator({
 function ActionButtons({
   ref,
   trailingItems = null,
-}: {trailingItems?: React.ReactNode} & {
+}: {
   ref?: React.Ref<HTMLDivElement>;
+  trailingItems?: React.ReactNode;
 }) {
   const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
 
@@ -180,6 +182,7 @@ function ActionButtons({
 }
 
 function SearchQueryBuilderUI({
+  autoFocus,
   className,
   disabled = false,
   label,
@@ -219,7 +222,11 @@ function SearchQueryBuilderUI({
         {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
           <PlainTextQueryInput label={label} />
         ) : (
-          <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
+          <TokenizedQueryGrid
+            autoFocus={autoFocus || false}
+            label={label}
+            actionBarWidth={actionBarWidth}
+          />
         )}
         {size !== 'small' && (
           <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />

@@ -343,7 +343,7 @@ const ChonkNavLink = chonkStyled(Link, {
   gap: ${p => (p.isMobile ? space(1) : space(0.5))};
 
   /* Disable default link styles and only apply them to the icon container */
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.muted};
   outline: none;
   box-shadow: none;
   transition: none;
@@ -380,7 +380,7 @@ const ChonkNavLink = chonkStyled(Link, {
   }
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.muted};
     ${NavLinkIconContainer} {
       background-color: ${p => p.theme.colors.gray100};
     }
@@ -458,7 +458,7 @@ const ChonkNavButton = styled(Button, {
   justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
   height: ${p => (p.isMobile ? 'auto' : '44px')};
   width: ${p => (p.isMobile ? '100%' : '44px')};
-  padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : undefined)};
+  padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : space(0.5))};
 
   svg {
     margin-right: ${p => (p.isMobile ? space(1) : undefined)};

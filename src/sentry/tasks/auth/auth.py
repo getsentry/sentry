@@ -17,6 +17,7 @@ from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import auth_control_tasks, auth_tasks
+from sentry.taskworker.retry import Retry
 from sentry.types.region import RegionMappingNotFound
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -201,7 +202,12 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=auth_tasks),
+    taskworker_config=TaskworkerConfig(
+        namespace=auth_tasks,
+        retry=Retry(
+            delay=60 * 5,
+        ),
+    ),
 )
 @retry
 def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):

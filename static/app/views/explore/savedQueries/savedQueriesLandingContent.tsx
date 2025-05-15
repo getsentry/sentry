@@ -6,6 +6,9 @@ import SearchBar from 'sentry/components/searchBar';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {SortOption} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 import {SavedQueriesTable} from './savedQueriesTable';
@@ -13,7 +16,9 @@ import {SavedQueriesTable} from './savedQueriesTable';
 type Option = {label: string; value: SortOption};
 
 export function SavedQueriesLandingContent() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const searchQuery = decodeScalar(location.query.query);
   const [sort, setSort] = useState<SortOption>('mostStarred');
   const sortOptions: Option[] = [
     {value: 'mostStarred', label: t('Most Starred')},
@@ -28,8 +33,13 @@ export function SavedQueriesLandingContent() {
       <FilterContainer>
         <SearchBarContainer>
           <SearchBar
-            onChange={setSearchQuery}
-            value={searchQuery}
+            onSearch={newQuery => {
+              navigate({
+                pathname: location.pathname,
+                query: {...location.query, query: newQuery},
+              });
+            }}
+            defaultQuery={searchQuery}
             placeholder={t('Search for a query')}
           />
         </SearchBarContainer>

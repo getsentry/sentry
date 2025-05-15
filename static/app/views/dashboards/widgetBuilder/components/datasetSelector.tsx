@@ -25,7 +25,7 @@ function WidgetBuilderDatasetSelector() {
   datasetChoices.push([WidgetType.ERRORS, t('Errors')]);
   datasetChoices.push([WidgetType.TRANSACTIONS, t('Transactions')]);
 
-  if (organization.features.includes('dashboards-eap')) {
+  if (organization.features.includes('visibility-explore-view')) {
     datasetChoices.push([WidgetType.SPANS, t('Spans')]);
   }
   datasetChoices.push([WidgetType.ISSUE, t('Issues')]);

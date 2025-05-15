@@ -2,8 +2,9 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -15,6 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame as ProfilingFrame} from 'sentry/utils/profiling/frame';
@@ -257,6 +259,10 @@ export function SpanProfileDetails({
               disabled={!hasPrevious}
               onClick={() => {
                 setIndex(prevIndex => prevIndex - 1);
+                trackAnalytics('profiling_views.trace.profile_context.pagination', {
+                  organization,
+                  direction: 'Previous',
+                });
               }}
             />
             <Button
@@ -266,6 +272,10 @@ export function SpanProfileDetails({
               disabled={!hasNext}
               onClick={() => {
                 setIndex(prevIndex => prevIndex + 1);
+                trackAnalytics('profiling_views.trace.profile_context.pagination', {
+                  organization,
+                  direction: 'Next',
+                });
               }}
             />
           </ButtonBar>

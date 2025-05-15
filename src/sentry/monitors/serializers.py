@@ -276,6 +276,9 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     status: str
     duration: int
     dateCreated: datetime
+    dateAdded: datetime
+    dateUpdated: datetime
+    dateClock: datetime
     expectedTime: datetime
     monitorConfig: MonitorConfigSerializerResponse
 
@@ -341,7 +344,10 @@ class MonitorCheckInSerializer(Serializer):
             "environment": attrs["environment_name"],
             "status": obj.get_status_display(),
             "duration": obj.duration,
-            "dateCreated": obj.date_added,
+            "dateCreated": obj.date_created,
+            "dateAdded": obj.date_added,
+            "dateUpdated": obj.date_updated,
+            "dateClock": obj.date_clock,
             "expectedTime": obj.expected_time,
             "monitorConfig": cast(MonitorConfigSerializerResponse, config),
         }

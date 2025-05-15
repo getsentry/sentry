@@ -27,7 +27,7 @@ import {
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
@@ -290,15 +290,15 @@ export default function MetricChart({
           {!isSessionAggregate(rule.aggregate) &&
             (getAlertTypeFromAggregateDataset(rule) === 'eap_metrics' ? (
               <Feature features="visibility-explore-view">
-                <Button size="sm" {...props}>
+                <LinkButton size="sm" {...props}>
                   {buttonText}
-                </Button>
+                </LinkButton>
               </Feature>
             ) : (
               <Feature features="discover-basic">
-                <Button size="sm" {...props}>
+                <LinkButton size="sm" {...props}>
                   {buttonText}
-                </Button>
+                </LinkButton>
               </Feature>
             ))}
         </StyledChartControls>
@@ -453,13 +453,6 @@ export default function MetricChart({
     ]
   );
 
-  const isProgressiveLoadingEnabled = organization.features.includes(
-    'visibility-explore-progressive-loading'
-  );
-  const isUsingNormalSamplingMode = organization.features.includes(
-    'visibility-explore-progressive-loading-normal-sampling-mode'
-  );
-
   const {data: eventStats, isLoading: isLoadingEventStats} = useMetricEventStats(
     {
       project,
@@ -467,13 +460,9 @@ export default function MetricChart({
       timePeriod,
       referrer: 'api.alerts.alert-rule-chart',
       samplingMode:
-        isUsingNormalSamplingMode &&
-        !isProgressiveLoadingEnabled &&
         rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
           ? SAMPLING_MODE.NORMAL
-          : isProgressiveLoadingEnabled
-            ? SAMPLING_MODE.BEST_EFFORT
-            : undefined,
+          : undefined,
     },
     {enabled: !shouldUseSessionsStats}
   );

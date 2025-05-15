@@ -16,15 +16,15 @@ from sentry.integrations.slack.message_builder.issues import get_tags
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.ownership.grammar import Matcher, Owner
+from sentry.issues.ownership.grammar import Rule as GrammarRule
+from sentry.issues.ownership.grammar import dump_schema
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, FineTuningAPIKey
-from sentry.ownership.grammar import Matcher, Owner
-from sentry.ownership.grammar import Rule as GrammarRule
-from sentry.ownership.grammar import dump_schema
 from sentry.plugins.base import Notification
 from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest

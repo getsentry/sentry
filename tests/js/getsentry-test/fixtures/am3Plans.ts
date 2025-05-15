@@ -1,7 +1,7 @@
-import {CheckoutType, type Plan} from 'getsentry/types';
-import {type DataCategory} from 'sentry/types/core';
-import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {DataCategory} from 'sentry/types/core';
 
+import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {CheckoutType, type Plan, ReservedBudgetCategoryType} from 'getsentry/types';
 
 const AM3_CHECKOUT_CATEGORIES = [
   'errors',
@@ -11,13 +11,59 @@ const AM3_CHECKOUT_CATEGORIES = [
   'spans',
   'uptime',
 ] as DataCategory[];
-const AM3_CATEGORIES = [...AM3_CHECKOUT_CATEGORIES, 'profileDuration', 'profileDurationUI'] as DataCategory[];
+
+const AM3_ONDEMAND_CATEGORIES = [
+  ...AM3_CHECKOUT_CATEGORIES,
+  'profileDuration',
+  'profileDurationUI',
+] as DataCategory[];
+
+const AM3_CATEGORIES = [
+  ...AM3_ONDEMAND_CATEGORIES,
+  'seerAutofix',
+  'seerScanner',
+] as DataCategory[];
 
 const AM3_DS_CHECKOUT_CATEGORIES = [
   ...AM3_CHECKOUT_CATEGORIES,
-  'spansIndexed'
+  'spansIndexed',
 ] as DataCategory[];
-const AM3_DS_CATEGORIES = [...AM3_DS_CHECKOUT_CATEGORIES, 'profileDuration', 'profileDurationUI'] as DataCategory[];
+const AM3_DS_CATEGORIES = [
+  ...AM3_DS_CHECKOUT_CATEGORIES,
+  'profileDuration',
+  'profileDurationUI',
+  'seerAutofix',
+  'seerScanner',
+] as DataCategory[];
+
+const AM3_AVAILABLE_RESERVED_BUDGET_TYPES = {
+  [ReservedBudgetCategoryType.SEER]: {
+    budgetCategoryType: 'SEER',
+    name: 'seer budget',
+    docLink: '',
+    isFixed: true,
+    defaultBudget: 20_00,
+    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
+    productName: 'seer',
+    canProductTrial: true,
+    apiName: ReservedBudgetCategoryType.SEER,
+  },
+};
+
+const AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES = {
+  ...AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
+  [ReservedBudgetCategoryType.DYNAMIC_SAMPLING]: {
+    budgetCategoryType: 'DYNAMIC_SAMPLING',
+    name: 'spans budget',
+    docLink: '',
+    isFixed: true,
+    defaultBudget: 20_00,
+    dataCategories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
+    productName: 'dynamic sampling',
+    canProductTrial: false,
+    apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
+  },
+};
 
 const AM3_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
@@ -25,9 +71,14 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   attachments: {singular: 'attachment', plural: 'attachments'},
   monitorSeats: {singular: 'cron monitor', plural: 'cron monitors'},
   spans: {plural: 'spans', singular: 'span'},
-  profileDuration: {plural: 'continuous profile hours', singular: 'continuous profile hour'},
+  profileDuration: {
+    plural: 'continuous profile hours',
+    singular: 'continuous profile hour',
+  },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+  seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
+  seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
 
 const AM3_DS_CATEGORY_DISPLAY_NAMES = {
@@ -129,7 +180,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -817,6 +868,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
+    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_business_auf: {
     id: 'am3_business_auf',
@@ -841,7 +893,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -1313,6 +1365,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
+    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_business_ent: {
     id: 'am3_business_ent',
@@ -1337,7 +1390,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -1407,6 +1460,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
+    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_business_ent_auf: {
     id: 'am3_business_ent_auf',
@@ -1431,7 +1485,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -1501,6 +1555,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
+    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_business_ent_ds: {
     id: 'am3_business_ent_ds',
@@ -1603,6 +1658,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
+    availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_business_ent_ds_auf: {
     id: 'am3_business_ent_ds_auf',
@@ -1705,6 +1761,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
+    availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_f: {
     id: 'am3_f',
@@ -1729,7 +1786,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -1799,6 +1856,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
+    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_t_ent: {
     id: 'am3_t_ent',
@@ -1823,7 +1881,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -1893,6 +1951,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
+    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_t_ent_ds: {
     id: 'am3_t_ent_ds',
@@ -1995,6 +2054,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
     },
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
+    availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_team: {
     id: 'am3_team',
@@ -2019,7 +2079,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -2491,6 +2551,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
+    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_team_auf: {
     id: 'am3_team_auf',
@@ -2515,7 +2576,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -2987,6 +3048,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
+    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am3_t: {
     id: 'am3_t',
@@ -3011,7 +3073,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categories: AM3_CATEGORIES,
     checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
-    onDemandCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -3073,6 +3135,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
+    availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
 };
 

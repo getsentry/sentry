@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   useLogsFields,
-  useLogsIsTableEditingFrozen,
+  useLogsIsTableFrozen,
   useLogsSearch,
   useSetLogsFields,
   useSetLogsSearch,
@@ -17,7 +17,7 @@ export function useLogAttributesTreeActions() {
   const search = useLogsSearch();
   const fields = useLogsFields();
   const setLogFields = useSetLogsFields();
-  const isTableEditingFrozen = useLogsIsTableEditingFrozen();
+  const isTableEditingFrozen = useLogsIsTableFrozen();
 
   const addSearchFilter = useCallback(
     (content: AttributesTreeContent, negated?: boolean) => {

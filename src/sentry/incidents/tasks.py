@@ -5,11 +5,7 @@ from typing import Any
 
 from django.db import router, transaction
 
-from sentry.incidents.models.alert_rule import (
-    AlertRuleStatus,
-    AlertRuleTriggerAction,
-    AlertRuleTriggerActionMethod,
-)
+from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleTriggerAction
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
@@ -85,13 +81,20 @@ def handle_snuba_query_update(
     default_retry_delay=60,
     max_retries=5,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=5)),
+    taskworker_config=TaskworkerConfig(
+        namespace=alerts_tasks,
+        retry=Retry(
+            times=5,
+            delay=60,
+        ),
+        processing_deadline_duration=30,
+    ),
 )
 def handle_trigger_action(
     action_id: int,
     incident_id: int,
     project_id: int,
-    method: AlertRuleTriggerActionMethod,
+    method: str,
     new_status: int,
     metric_value: int | None = None,
     **kwargs: Any,
@@ -145,7 +148,13 @@ def handle_trigger_action(
     default_retry_delay=60,
     max_retries=2,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=2)),
+    taskworker_config=TaskworkerConfig(
+        namespace=alerts_tasks,
+        retry=Retry(
+            times=2,
+            delay=60,
+        ),
+    ),
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status

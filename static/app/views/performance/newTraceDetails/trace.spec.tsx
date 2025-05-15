@@ -21,7 +21,7 @@ import {
   makeTraceError,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import type {StoredTracePreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 // TODO Abdullah Khan: Remove this, it's a hack as mocking ProjectsStore is not working,
@@ -68,24 +68,14 @@ function mockQueryString(queryString: string) {
   });
 }
 
-function mockTracePreferences(preferences: Partial<TracePreferencesState>) {
-  const merged: TracePreferencesState = {
-    ...DEFAULT_TRACE_VIEW_PREFERENCES,
+function mockTracePreferences(preferences: Partial<StoredTracePreferences>) {
+  const storedPreferences: StoredTracePreferences = {
+    drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
+    missing_instrumentation: DEFAULT_TRACE_VIEW_PREFERENCES.missing_instrumentation,
+    autogroup: DEFAULT_TRACE_VIEW_PREFERENCES.autogroup,
     ...preferences,
-    autogroup: {
-      ...DEFAULT_TRACE_VIEW_PREFERENCES.autogroup,
-      ...preferences.autogroup,
-    },
-    drawer: {
-      ...DEFAULT_TRACE_VIEW_PREFERENCES.drawer,
-      ...preferences.drawer,
-    },
-    list: {
-      ...DEFAULT_TRACE_VIEW_PREFERENCES.list,
-      ...preferences.list,
-    },
   };
-  localStorage.setItem('trace-view-preferences', JSON.stringify(merged));
+  localStorage.setItem('trace-waterfall-preferences', JSON.stringify(storedPreferences));
 }
 
 function mockTraceResponse(resp?: Partial<ResponseType>) {
@@ -118,7 +108,7 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
         projects: 0,
         transactions: 0,
         transaction_child_count_map: [],
-        span_count: 0,
+        span_count: 200,
         span_count_map: {},
       },
     }),
@@ -281,7 +271,7 @@ async function keyboardNavigationTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
-      span_count: 0,
+      span_count: 200,
       span_count_map: {},
     },
   });
@@ -344,7 +334,7 @@ async function pageloadTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
-      span_count: 0,
+      span_count: 200,
       span_count_map: {},
     },
   });
@@ -467,7 +457,7 @@ async function searchTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
-      span_count: 0,
+      span_count: 200,
       span_count_map: {},
     },
   });
@@ -534,7 +524,7 @@ async function simpleTestSetup() {
         'transaction.id': t.event_id,
         count: 5,
       })),
-      span_count: 0,
+      span_count: 200,
       span_count_map: {},
     },
   });
@@ -643,7 +633,7 @@ async function completeTestSetup() {
           count: 2,
         },
       ],
-      span_count: 0,
+      span_count: 200,
       span_count_map: {},
     },
   });
@@ -1818,7 +1808,7 @@ describe('trace view', () => {
               count: 5,
             },
           ],
-          span_count: 0,
+          span_count: 200,
           span_count_map: {},
         },
       });

@@ -168,17 +168,19 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.SEER_AUTOFIX]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_AUTOFIX],
     canAllocate: false,
-    canProductTrial: true,
+    canProductTrial: false,
     maxAdminGift: 0,
     freeEventsMultiple: 0,
-    feature: 'track-seer-outcomes',
+    feature: 'seer-billing',
   },
   [DataCategoryExact.SEER_SCANNER]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_SCANNER],
     canAllocate: false,
-    canProductTrial: true,
+    canProductTrial: false,
     maxAdminGift: 0,
     freeEventsMultiple: 0,
-    feature: 'track-seer-outcomes',
+    feature: 'seer-billing',
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;
+
+export const SEER_MONTHLY_PRICE_CENTS = 2000;

@@ -12,11 +12,12 @@ import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {HealthStatsPeriodOption, type Release} from 'sentry/types/release';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 import ReleaseCard from 'sentry/views/releases/list/releaseCard';
 import ReleasesAdoptionChart from 'sentry/views/releases/list/releasesAdoptionChart';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
@@ -28,31 +29,30 @@ import {isMobileRelease} from 'sentry/views/releases/utils';
 interface Props {
   activeDisplay: ReleasesDisplayOption;
   loading: boolean;
-  location: Location;
   organization: Organization;
   releases: Release[];
   releasesPageLinks: any;
   reloading: boolean;
-  router: InjectedRouter;
   selectedProject: Project | undefined;
   selection: PageFilters;
-  shouldShowQuickstart: false | Project | undefined;
+  shouldShowQuickstart: boolean;
   showReleaseAdoptionStages: boolean;
 }
-export default function ReleaseListInner({
+
+function ReleaseListInner({
   activeDisplay,
   loading,
-  location,
   organization,
   releases,
   releasesPageLinks,
   reloading,
-  router,
   selectedProject,
   selection,
   shouldShowQuickstart,
   showReleaseAdoptionStages,
 }: Props) {
+  const router = useRouter();
+  const location = useLocation();
   const hasReleasesSetup = selectedProject?.features.includes('releases');
 
   const shouldShowLoadingIndicator =
@@ -129,6 +129,8 @@ export default function ReleaseListInner({
     </ReleasesRequest>
   );
 }
+
+export default ReleaseListInner;
 
 function getQuery(location: Location) {
   const {query} = location.query;

@@ -10,10 +10,12 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
-from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
+from tests.sentry.incidents.serializers.test_workflow_engine_base import (
+    TestWorkflowEngineSerializer,
+)
 
 
-class TestDataConditionSerializer(TestWorklowEngineSerializer):
+class TestDataConditionSerializer(TestWorkflowEngineSerializer):
     def setUp(self) -> None:
         super().setUp()
         self.add_warning_trigger()
