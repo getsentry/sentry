@@ -312,6 +312,14 @@ class SubscriptionProcessor:
 
         if not comparison_aggregate:
             metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
+            logger.info(
+                "No comparison aggregate",
+                extra={
+                    "alert_rule_id": self.alert_rule.id,
+                    "subscription_id": subscription_update.get("subscription_id"),
+                    "organization_id": self.alert_rule.organization_id,
+                },
+            )
             return None
 
         return (aggregation_value / comparison_aggregate) * 100
