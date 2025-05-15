@@ -785,6 +785,7 @@ class Enhancements:
         bases: list[str] | None = None,
         id: str | None = None,
         version: int | None = None,
+        referrer: str | None = None,
     ) -> Enhancements:
         """Create an `Enhancements` object from a text blob containing stacktrace rules"""
 
