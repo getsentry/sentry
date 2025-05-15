@@ -16,7 +16,7 @@ import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useI
 import {useNavContext} from 'sentry/views/nav/context';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavQueryCount';
+import {IssueViewQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewQueryCount';
 import {
   constructViewLink,
   type IssueView,
@@ -135,7 +135,7 @@ export function IssueViewNavItemContent({
         }
         trailingItems={
           <TrailingItemsWrapper>
-            <IssueViewNavQueryCount view={view} isActive={isActive} />
+            <IssueViewQueryCount view={view} isActive={isActive} />
           </TrailingItemsWrapper>
         }
         onPointerDown={e => {

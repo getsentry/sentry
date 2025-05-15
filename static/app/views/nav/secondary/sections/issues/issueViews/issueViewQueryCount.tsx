@@ -30,12 +30,12 @@ const constructCountTimeFrame = (
   };
 };
 
-interface IssueViewNavQueryCountProps {
+interface IssueViewQueryCountProps {
   isActive: boolean;
   view: IssueView;
 }
 
-export function IssueViewNavQueryCount({view, isActive}: IssueViewNavQueryCountProps) {
+export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) {
   const organization = useOrganization();
   const theme = useTheme();
   const location = useLocation();
