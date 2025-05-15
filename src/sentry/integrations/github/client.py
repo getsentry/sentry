@@ -498,15 +498,12 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get(f"/users/{gh_username}")
 
-    def get_labels(self, owner: str, repo: str, paginated: bool = False) -> list[Any]:
+    def get_labels(self, owner: str, repo: str) -> list[Any]:
         """
         Fetches all labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
-        if paginated:
-            return self.get_with_pagination(f"/repos/{owner}/{repo}/labels")
-        else:
-            return self.get(f"/repos/{owner}/{repo}/labels")
+        return self.get_with_pagination(f"/repos/{owner}/{repo}/labels")
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
