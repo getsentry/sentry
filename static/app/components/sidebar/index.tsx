@@ -227,6 +227,7 @@ function Sidebar() {
         to={`/organizations/${organization?.slug}/explore/logs/`}
         id="ourlogs"
         icon={<SubitemDot collapsed />}
+        isNew
       />
     </Feature>
   );
