@@ -305,6 +305,21 @@ class StatefulDetectorHandler(
 
         return list(DetectorPriorityLevel(level) for level in condition_result_levels)
 
+    def _create_resolve_message(self, group_key: DetectorGroupKey = None) -> StatusChangeMessage:
+        """
+        Create a resolve message for the detectors issue. This is overridable in the subclass, but
+        will work for the majority of cases.
+        """
+        return StatusChangeMessage(
+            fingerprint=[
+                *self.build_issue_fingerprint(group_key),
+                self.state_manager.build_key(group_key),
+            ],
+            project_id=self.detector.project_id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+        )
+
     def _create_decorated_issue_occurrence(
         self,
         detector_occurrence: DetectorOccurrence,
@@ -445,7 +460,7 @@ class StatefulDetectorHandler(
         new_priority = highest_breached_threshold
 
         if new_priority == DetectorPriorityLevel.OK:
-            detector_result = self.create_resolve_message()
+            detector_result = self._create_resolve_message()
             self.state_manager.enqueue_counter_reset()
         else:
             detector_occurrence, event_data = self.create_occurrence(
