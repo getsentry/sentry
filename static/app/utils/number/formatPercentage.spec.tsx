@@ -23,4 +23,11 @@ describe('formatPercentage()', function () {
     // @ts-expect-error we are testing invalid inputs
     expect(formatPercentage(undefined)).toBe('0%');
   });
+
+  it('handles null and undefined inputs with a custom null value', function () {
+    // @ts-expect-error we are testing invalid inputs
+    expect(formatPercentage(null, 0, {nullValue: 'N/A'})).toBe('N/A');
+    // @ts-expect-error we are testing invalid inputs
+    expect(formatPercentage(undefined, 0, {nullValue: '-'})).toBe('-');
+  });
 });

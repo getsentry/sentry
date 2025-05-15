@@ -9,10 +9,11 @@ export function formatPercentage(
   places = 2,
   options: {
     minimumValue?: number;
+    nullValue?: string;
   } = {}
 ) {
   if (value === 0 || value === undefined || value === null) {
-    return '0%';
+    return options.nullValue ?? '0%';
   }
 
   const minimumValue = options.minimumValue ?? 0;
