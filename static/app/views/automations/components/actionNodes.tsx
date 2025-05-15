@@ -3,17 +3,17 @@ import {createContext, useContext} from 'react';
 import {t} from 'sentry/locale';
 import type {Integration, NewAction} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
-import AzureDevOpsNode from 'sentry/views/automations/components/actions/azureDevOps';
-import DiscordNode from 'sentry/views/automations/components/actions/discord';
-import EmailNode from 'sentry/views/automations/components/actions/email';
-import GithubNode from 'sentry/views/automations/components/actions/github';
-import GithubEnterpriseNode from 'sentry/views/automations/components/actions/githubEnterprise';
-import JiraNode from 'sentry/views/automations/components/actions/jira';
-import JiraServerNode from 'sentry/views/automations/components/actions/jiraServer';
-import MSTeamsNode from 'sentry/views/automations/components/actions/msTeams';
-import OpsgenieNode from 'sentry/views/automations/components/actions/opsgenie';
-import PagerdutyNode from 'sentry/views/automations/components/actions/pagerduty';
-import SlackNode from 'sentry/views/automations/components/actions/slack';
+import {AzureDevOpsNode} from 'sentry/views/automations/components/actions/azureDevOps';
+import {DiscordNode} from 'sentry/views/automations/components/actions/discord';
+import {EmailNode} from 'sentry/views/automations/components/actions/email';
+import {GithubNode} from 'sentry/views/automations/components/actions/github';
+import {GithubEnterpriseNode} from 'sentry/views/automations/components/actions/githubEnterprise';
+import {JiraNode} from 'sentry/views/automations/components/actions/jira';
+import {JiraServerNode} from 'sentry/views/automations/components/actions/jiraServer';
+import {MSTeamsNode} from 'sentry/views/automations/components/actions/msTeams';
+import {OpsgenieNode} from 'sentry/views/automations/components/actions/opsgenie';
+import {PagerdutyNode} from 'sentry/views/automations/components/actions/pagerduty';
+import {SlackNode} from 'sentry/views/automations/components/actions/slack';
 
 interface ActionNodeProps {
   action: NewAction;

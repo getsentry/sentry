@@ -12,7 +12,7 @@ import {TagsField} from 'sentry/views/automations/components/actions/tagsField';
 import {TargetDisplayField} from 'sentry/views/automations/components/actions/targetDisplayField';
 import {OptionalRowLine} from 'sentry/views/automations/components/automationBuilderRow';
 
-export default function SlackNode() {
+export function SlackNode() {
   return (
     <Flex column gap={space(1)} flex="1">
       <RowLine>

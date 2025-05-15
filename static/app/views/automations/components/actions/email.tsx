@@ -8,13 +8,32 @@ import AutomationBuilderSelectField, {
 import {tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
-import {
-  FALLTHROUGH_CHOICES,
-  TARGET_TYPE_CHOICES,
-  TargetType,
-} from 'sentry/views/automations/components/actions/constants';
 
-export default function EmailNode() {
+enum TargetType {
+  USER = 'user',
+  TEAM = 'team',
+  ISSUE_OWNERS = 'issue_owners',
+}
+
+enum FallthroughChoiceType {
+  ALL_MEMBERS = 'AllMembers',
+  ACTIVE_MEMBERS = 'ActiveMembers',
+  NO_ONE = 'NoOne',
+}
+
+const TARGET_TYPE_CHOICES = [
+  {value: TargetType.ISSUE_OWNERS, label: 'Suggested assignees'},
+  {value: TargetType.TEAM, label: 'Team'},
+  {value: TargetType.USER, label: 'Member'},
+];
+
+const FALLTHROUGH_CHOICES = [
+  {value: FallthroughChoiceType.ACTIVE_MEMBERS, label: 'Recently Active Members'},
+  {value: FallthroughChoiceType.ALL_MEMBERS, label: 'All Project Members'},
+  {value: FallthroughChoiceType.NO_ONE, label: 'No One'},
+];
+
+export function EmailNode() {
   return tct('Notify [targetType] [identifier]', {
     targetType: <TargetTypeField />,
     identifier: <IdentifierField />,
