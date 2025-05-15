@@ -695,11 +695,11 @@ def bind_ambiguous_org_context(
     )
 
 
-def set_measurement(measurement_name, value, unit=None):
+def set_measurement(measurement_name, value):
     try:
         transaction = sentry_sdk.Scope.get_current_scope().transaction
         if transaction is not None:
-            transaction.set_measurement(measurement_name, value, unit)
+            transaction.set_data(measurement_name, value)
     except Exception:
         pass
 

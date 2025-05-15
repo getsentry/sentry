@@ -761,7 +761,7 @@ def build_span_query(trace_id: str, spans_params: SnubaParams, query_spans: list
     # Performance improvement, snuba's parser is extremely slow when we're sending thousands of
     # span_ids here, using a `splitByChar` means that snuba will not parse the giant list of spans
     span_minimum = options.get("performance.traces.span_query_minimum_spans")
-    sentry_sdk.set_measurement("trace_view.spans.span_minimum", span_minimum)
+    set_measurement("trace_view.spans.span_minimum", span_minimum)
     sentry_sdk.set_tag("trace_view.split_by_char.optimization", len(query_spans) > span_minimum)
     if len(query_spans) > span_minimum:
         # TODO: because we're not doing an IN on a list of literals, snuba will not optimize the query with the HexInt
@@ -813,14 +813,14 @@ def augment_transactions_with_spans(
             projects.add(error["project.id"])
         ts_params = find_timestamp_params(transactions)
         time_buffer = options.get("performance.traces.span_query_timebuffer_hours")
-        sentry_sdk.set_measurement("trace_view.spans.time_buffer", time_buffer)
+        set_measurement("trace_view.spans.time_buffer", time_buffer)
         if ts_params["min"]:
             params.start = ts_params["min"] - timedelta(hours=time_buffer)
         if ts_params["max"]:
             params.end = ts_params["max"] + timedelta(hours=time_buffer)
 
         if ts_params["max"] and ts_params["min"]:
-            sentry_sdk.set_measurement(
+            set_measurement(
                 "trace_view.trace_duration", (ts_params["max"] - ts_params["min"]).total_seconds()
             )
             sentry_sdk.set_tag("trace_view.missing_timestamp_constraints", False)
@@ -899,7 +899,7 @@ def augment_transactions_with_spans(
             total_chunks = 3
         else:
             total_chunks = 4
-        sentry_sdk.set_measurement("trace_view.span_query.total_chunks", total_chunks)
+        set_measurement("trace_view.span_query.total_chunks", total_chunks)
         chunks = chunked(list_spans, (len(list_spans) // total_chunks) + 1)
         queries = [build_span_query(trace_id, spans_params, chunk) for chunk in chunks]
         results = bulk_snuba_queries(
