@@ -95,7 +95,7 @@ class TestBatchPerformanceTracker(unittest.TestCase):
 
 
 def test_top_n_slowest():
-    durations = {"item1": 100, "item2": 50, "item3": 200, "item4": 150}
+    durations: dict[str, float] = {"item1": 100, "item2": 50, "item3": 200, "item4": 150}
     assert top_n_slowest(durations, 0) == {}
     assert top_n_slowest(durations, 1) == {"item3": 200}
     assert top_n_slowest(durations, 2) == {"item3": 200, "item4": 150}

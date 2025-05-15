@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from datetime import timedelta
+from typing import Any
 
 
 def top_n_slowest(durations: dict[str, float], n: int) -> dict[str, float]:
@@ -56,7 +57,7 @@ class BatchPerformanceTracker:
         # even if keys are duplicated, we want to track total duration accurately.
         self.iteration_durations: defaultdict[str, float] = defaultdict(float)
 
-    def _generate_extra(self) -> dict[str, object]:
+    def _generate_extra(self) -> dict[str, Any]:
         """
         Generate the extra data to log from iteration durations.
         """
