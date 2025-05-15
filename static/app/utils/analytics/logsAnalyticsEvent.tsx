@@ -7,6 +7,9 @@ export enum LogsAnalyticsPageSource {
 }
 
 export type LogsAnalyticsEventParameters = {
+  'logs.doc_link.clicked': {
+    organization: Organization;
+  };
   'logs.explorer.metadata': {
     columns: string[];
     columns_count: number;
@@ -34,4 +37,5 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
   'logs.table.row_expanded': 'Expanded Log Row Details',
   'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
+  'logs.doc_link.clicked': 'Logs documentation link clicked',
 };
