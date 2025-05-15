@@ -112,7 +112,7 @@ def get_from_profiling_service(
         )
         with sentry_sdk.start_span(op="json.dumps"):
             data = json.dumps(json_data).encode("utf-8")
-        set_measurement("payload.size", len(data), unit="byte")
+        set_measurement("payload.size", len(data))
         kwargs["body"] = brotli.compress(data, quality=6, mode=brotli.MODE_TEXT)
     return _profiling_pool.urlopen(
         method,
