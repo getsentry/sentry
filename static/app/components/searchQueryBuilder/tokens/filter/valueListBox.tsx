@@ -23,13 +23,7 @@ export function constrainAndAlignListBox({
   referenceRef,
   refsToSync,
 }: ConstrainAndAlignListBoxArgs) {
-  if (
-    !referenceRef.current ||
-    !popoverRef.current ||
-    !refsToSync.some(ref => ref.current)
-  ) {
-    return;
-  }
+  if (!referenceRef.current || !popoverRef.current) return;
 
   const referenceRect = referenceRef.current.getBoundingClientRect();
   const popoverRect = popoverRef.current.getBoundingClientRect();
