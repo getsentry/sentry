@@ -33,6 +33,7 @@ import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceTree} from './traceModels/traceTree';
@@ -145,6 +146,7 @@ export function Trace({
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const {theme: colorMode} = useLegacyStore(ConfigStore);
+  const hasTraceTabsUi = useHasTraceTabsUI();
 
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
@@ -410,10 +412,12 @@ export function Trace({
         className="TraceScrollbarContainer"
         ref={manager.registerHorizontalScrollBarContainerRef}
       >
-        <TraceLevelOpsBreakdown
-          isTraceLoading={isLoading}
-          metaQueryResults={metaQueryResults}
-        />
+        {hasTraceTabsUi ? null : (
+          <TraceLevelOpsBreakdown
+            isTraceLoading={isLoading}
+            metaQueryResults={metaQueryResults}
+          />
+        )}
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
