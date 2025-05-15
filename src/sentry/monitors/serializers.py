@@ -274,7 +274,7 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     id: str
     environment: str
     status: str
-    duration: int
+    duration: int | None
     dateCreated: datetime
     dateAdded: datetime
     dateUpdated: datetime
