@@ -114,7 +114,9 @@ def _delete_for_entity_by_type(entity_identifier: str, type: ProcessingErrorType
         # If the processing error has other errors, filter out the matching error and update the redis value
         else:
             filtered_errors = list(filter(lambda error: error["type"] != type, errors))
-            new_checkin_error = CheckinProcessingError(filtered_errors, checkin_error.checkin)
+            new_checkin_error = CheckinProcessingError(
+                filtered_errors, checkin_error.checkin, id=checkin_error.id
+            )
             new_serialized_checkin_error = json.dumps(new_checkin_error.to_dict())
             error_key = build_error_identifier(checkin_error.id)
             pipeline.set(error_key, new_serialized_checkin_error, ex=MONITOR_ERRORS_LIFETIME)

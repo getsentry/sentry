@@ -7,11 +7,11 @@ from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult, DetectorStateData
+from sentry.workflow_engine.handlers.detector import DetectorStateData
 from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.detector import process_detectors
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
 from tests.sentry.workflow_engine.handlers.detector.test_base import (
     BaseDetectorHandlerTest,
     MockDetectorStateHandler,
@@ -222,43 +222,43 @@ class TestKeyBuilders(unittest.TestCase):
 
     def test(self):
         assert (
-            self.build_handler().build_key_for_group("test", "dedupe_value")
+            self.build_handler().state_manager.build_key("test", "dedupe_value")
             == "123:test:dedupe_value"
         )
-        assert self.build_handler().build_key_for_group("test", "name_1") == "123:test:name_1"
+        assert self.build_handler().state_manager.build_key("test", "name_1") == "123:test:name_1"
 
     def test_different_dedupe_keys(self):
         handler = self.build_handler()
         handler_2 = self.build_handler(Detector(id=456))
-        assert handler.build_key_for_group("test", "dedupe_value") != handler_2.build_key_for_group(
+        assert handler.state_manager.build_key(
             "test", "dedupe_value"
-        )
-        assert handler.build_key_for_group("test", "dedupe_value") != handler_2.build_key_for_group(
-            "test2", "dedupe_value"
-        )
-        assert handler.build_key_for_group("test", "dedupe_value") == handler.build_key_for_group(
+        ) != handler_2.state_manager.build_key("test", "dedupe_value")
+        assert handler.state_manager.build_key(
             "test", "dedupe_value"
-        )
-        assert handler.build_key_for_group("test", "dedupe_value") != handler.build_key_for_group(
-            "test_2", "dedupe_value"
-        )
+        ) != handler_2.state_manager.build_key("test2", "dedupe_value")
+        assert handler.state_manager.build_key(
+            "test", "dedupe_value"
+        ) == handler.state_manager.build_key("test", "dedupe_value")
+        assert handler.state_manager.build_key(
+            "test", "dedupe_value"
+        ) != handler.state_manager.build_key("test_2", "dedupe_value")
 
     def test_different_counter_value_keys(self):
         handler = self.build_handler()
         handler_2 = self.build_handler(Detector(id=456))
-        assert handler.build_key_for_group("test", "name_1") != handler_2.build_key_for_group(
+        assert handler.state_manager.build_key(
+            "test", "name_1"
+        ) != handler_2.state_manager.build_key("test", "name_1")
+        assert handler.state_manager.build_key("test", "name_1") == handler.state_manager.build_key(
             "test", "name_1"
         )
-        assert handler.build_key_for_group("test", "name_1") == handler.build_key_for_group(
-            "test", "name_1"
-        )
-        assert handler.build_key_for_group("test", "name_1") != handler.build_key_for_group(
+        assert handler.state_manager.build_key("test", "name_1") != handler.state_manager.build_key(
             "test2", "name_1"
         )
-        assert handler.build_key_for_group("test", "name_1") != handler.build_key_for_group(
+        assert handler.state_manager.build_key("test", "name_1") != handler.state_manager.build_key(
             "test", "name_2"
         )
-        assert handler.build_key_for_group("test", "name_1") != handler.build_key_for_group(
+        assert handler.state_manager.build_key("test", "name_1") != handler.state_manager.build_key(
             "test2", "name_2"
         )
 
@@ -331,9 +331,9 @@ class TestCommitStateUpdateData(BaseDetectorHandlerTest):
         assert not DetectorState.objects.filter(
             detector=handler.detector, detector_group_key=group_key
         ).exists()
-        dedupe_key = handler.build_key_for_group(group_key, "dedupe_value")
-        counter_key_1 = handler.build_key_for_group(group_key, "some_counter")
-        counter_key_2 = handler.build_key_for_group(group_key, "another_counter")
+        dedupe_key = handler.state_manager.build_key(group_key, "dedupe_value")
+        counter_key_1 = handler.state_manager.build_key(group_key, "some_counter")
+        counter_key_2 = handler.state_manager.build_key(group_key, "another_counter")
 
         assert not redis.exists(dedupe_key)
         assert not redis.exists(counter_key_1)
@@ -598,7 +598,8 @@ class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
                         99,
                         {},
                     ),
-                    dedupe_value=100,
+                    100,
+                    DataPacket[dict](source_id="1234", packet={"id": "1234", "value": "1"}),
                 )
                 == expected_result
             )
@@ -614,7 +615,8 @@ class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
                         100,
                         {},
                     ),
-                    dedupe_value=100,
+                    100,
+                    DataPacket[dict](source_id="1234", packet={"id": "1234", "value": "1"}),
                 )
                 is None
             )
@@ -624,21 +626,21 @@ class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
 
     def test_status_change(self):
         handler = self.build_handler()
-        assert (
-            handler.evaluate_group_key_value(
+        result = handler.evaluate_group_key_value(
+            "group_key",
+            0,
+            DetectorStateData(
                 "group_key",
-                0,
-                DetectorStateData(
-                    "group_key",
-                    False,
-                    DetectorPriorityLevel.OK,
-                    1,
-                    {},
-                ),
-                dedupe_value=2,
-            )
-            is None
+                False,
+                DetectorPriorityLevel.OK,
+                1,
+                {},
+            ),
+            2,
+            DataPacket[dict](source_id="1234", packet={"id": "1234", "value": "1"}),
         )
+
+        assert result is None
         assert handler.evaluate_group_key_value(
             "group_key",
             0,
@@ -649,7 +651,8 @@ class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
                 1,
                 {},
             ),
-            dedupe_value=2,
+            2,
+            DataPacket[dict](source_id="1234", packet={"id": "1234", "value": "1"}),
         ) == DetectorEvaluationResult(
             "group_key",
             False,
