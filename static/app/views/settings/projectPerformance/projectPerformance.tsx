@@ -340,7 +340,7 @@ function ProjectPerformance() {
     [IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: {
       name: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
       type: 'boolean',
-      label: t('N+1 DB Queries Detection Enabled'),
+      label: t('N+1 DB Queries Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -356,7 +356,7 @@ function ProjectPerformance() {
     [IssueTitle.PERFORMANCE_SLOW_DB_QUERY]: {
       name: DetectorConfigAdmin.SLOW_DB_ENABLED,
       type: 'boolean',
-      label: t('Slow DB Queries Detection Enabled'),
+      label: t('Slow DB Queries Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -372,7 +372,7 @@ function ProjectPerformance() {
     [IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS]: {
       name: DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED,
       type: 'boolean',
-      label: t('N+1 API Calls Detection Enabled'),
+      label: t('N+1 API Calls Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -388,7 +388,7 @@ function ProjectPerformance() {
     [IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET]: {
       name: DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED,
       type: 'boolean',
-      label: t('Large Render Blocking Asset Detection Enabled'),
+      label: t('Large Render Blocking Asset Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -404,7 +404,7 @@ function ProjectPerformance() {
     [IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: {
       name: DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED,
       type: 'boolean',
-      label: t('Consecutive DB Queries Detection Enabled'),
+      label: t('Consecutive DB Queries Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -420,7 +420,7 @@ function ProjectPerformance() {
     [IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD]: {
       name: DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED,
       type: 'boolean',
-      label: t('Large HTTP Payload Detection Enabled'),
+      label: t('Large HTTP Payload Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -436,7 +436,7 @@ function ProjectPerformance() {
     [IssueTitle.PERFORMANCE_DB_MAIN_THREAD]: {
       name: DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED,
       type: 'boolean',
-      label: t('DB On Main Thread Detection Enabled'),
+      label: t('DB on Main Thread Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -452,7 +452,7 @@ function ProjectPerformance() {
     [IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD]: {
       name: DetectorConfigAdmin.FILE_IO_ENABLED,
       type: 'boolean',
-      label: t('File I/O on Main Thread Detection Enabled'),
+      label: t('File I/O on Main Thread Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -468,7 +468,7 @@ function ProjectPerformance() {
     [IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET]: {
       name: DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED,
       type: 'boolean',
-      label: t('Uncompressed Assets Detection Enabled'),
+      label: t('Uncompressed Assets Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -484,7 +484,7 @@ function ProjectPerformance() {
     [IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP]: {
       name: DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED,
       type: 'boolean',
-      label: t('Consecutive HTTP Detection Enabled'),
+      label: t('Consecutive HTTP Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -500,7 +500,7 @@ function ProjectPerformance() {
     [IssueTitle.PERFORMANCE_HTTP_OVERHEAD]: {
       name: DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED,
       type: 'boolean',
-      label: t('HTTP/1.1 Overhead Enabled'),
+      label: t('HTTP/1.1 Overhead Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -906,7 +906,6 @@ function ProjectPerformance() {
                 fields: [
                   {
                     ...manageField,
-                    label: t('Enable Issue Detection'),
                     help: t(
                       'Controls whether or not Sentry should detect this type of issue.'
                     ),
