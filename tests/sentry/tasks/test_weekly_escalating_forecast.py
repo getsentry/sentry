@@ -29,7 +29,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         return group_list
 
     @patch("sentry.issues.escalating.forecasts.generate_and_save_missing_forecasts.delay")
-    @patch("sentry.issues.escalating.query_groups_past_counts")
+    @patch("sentry.issues.escalating.escalating.query_groups_past_counts")
     def test_empty_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
@@ -51,7 +51,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         assert mock_generate_and_save_missing_forecasts.call_count == 1
 
     @patch("sentry.issues.escalating.forecasts.generate_and_save_missing_forecasts.delay")
-    @patch("sentry.issues.escalating.query_groups_past_counts")
+    @patch("sentry.issues.escalating.escalating.query_groups_past_counts")
     def test_empty_sd_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,

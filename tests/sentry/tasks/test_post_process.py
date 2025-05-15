@@ -1710,7 +1710,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.escalating.is_escalating", return_value=(True, 0))
+    @patch("sentry.issues.escalating.escalating.is_escalating", return_value=(True, 0))
     def test_forecast_in_activity(self, mock_is_escalating):
         """
         Test that the forecast is added to the activity for escalating issues that were
@@ -1737,7 +1737,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             data={"event_id": event.event_id, "forecast": 0},
         ).exists()
 
-    @patch("sentry.issues.escalating.is_escalating")
+    @patch("sentry.issues.escalating.escalating.is_escalating")
     def test_skip_escalation_logic_for_new_groups(self, mock_is_escalating):
         """
         Test that we skip checking escalation in the process_snoozes job if the group is less than
