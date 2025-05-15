@@ -38,6 +38,9 @@ def get_redis_client() -> RetryingRedisCluster:
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
+ThresholdCounts = dict[DetectorPriorityLevel, int]
+
+
 @dataclasses.dataclass(frozen=True)
 class DetectorStateData:
     group_key: DetectorGroupKey
@@ -50,7 +53,7 @@ class DetectorStateData:
     # Stateful detectors can track thresholds for DetectorPriorityLevel
     # transitions. This dictionary maps the count of consecutive evaluations for
     # each DetectorPriorityLevel.
-    threshold_counts: dict[DetectorPriorityLevel, int | None]
+    threshold_counts: ThresholdCounts
 
 
 class DetectorStateManager:
@@ -60,7 +63,7 @@ class DetectorStateManager:
     """
 
     dedupe_updates: dict[DetectorGroupKey, int] = {}
-    threshold_updates: dict[DetectorGroupKey, dict[DetectorPriorityLevel, int | None]] = {}
+    threshold_updates: dict[DetectorGroupKey, ThresholdCounts] = {}
     state_updates: dict[DetectorGroupKey, tuple[bool, DetectorPriorityLevel]] = {}
     detector: Detector
 
@@ -73,7 +76,7 @@ class DetectorStateManager:
     def enqueue_threshold_update(
         self,
         group_key: DetectorGroupKey,
-        threshold_updates: dict[DetectorPriorityLevel, int | None],
+        threshold_updates: ThresholdCounts,
     ):
         self.threshold_updates[group_key] = threshold_updates
 
@@ -140,18 +143,15 @@ class DetectorStateManager:
         for group_key, threshold_updates in self.threshold_updates.items():
             for threshold_level, threshold_value in threshold_updates.items():
                 key_name = self.build_key(group_key, str(threshold_level))
-
-                if threshold_value is None:
-                    pipeline.delete(key_name)
-                else:
-                    pipeline.set(key_name, threshold_value, ex=REDIS_TTL)
+                pipeline.set(key_name, threshold_value, ex=REDIS_TTL)
 
     def _bulk_commit_redis_state(self, key: DetectorGroupKey | None = None):
         pipeline = get_redis_client().pipeline()
         if self.dedupe_updates:
             self._bulk_commit_dedupe_values(pipeline)
 
-        if self.threshold_updates:
+        has_thresholds = self.detector.config.get("thresholds", False)
+        if self.threshold_updates and has_thresholds:
             self._bulk_commit_threshold_updates(pipeline)
 
         pipeline.execute()
@@ -209,7 +209,7 @@ class DetectorStateManager:
             for group_key, dedupe_value in zip(group_keys, dedupe_keys)
         }
 
-        threshold_updates = {}
+        threshold_updates: ThresholdCounts = {}
         priority_thresholds: list[DetectorPriorityLevel] = self.detector.config.get(
             "priority_thresholds", {}
         ).keys()
@@ -382,22 +382,25 @@ class StatefulDetectorHandler(
         if state.status == new_priority or not condition_evaluation:
             return None
 
-        # TODO - enqueue state update here?
         self.state_manager.enqueue_threshold_update(None, {new_priority: 1})
 
         if new_priority == DetectorPriorityLevel.OK:
             detector_result = self.create_resolve_message()
         else:
-            # TODO - think through this bit later
-            # thresholds = self.state_manager.get_thresholds(None)
-            # if thresholds[new_priority] > detector.config.get("thresholds", {}).get(new_priority):
-            # create the issue occurrence, otherwise we just needed the state update
-            detector_occurrence, event_data = self.create_occurrence(
-                condition_evaluation, data_packet, new_priority
+            priority_threshold_count = state.threshold_counts.get(new_priority, 0) + 1
+
+            detector_priority_threshold = self.detector.config.get("thresholds", {}).get(
+                new_priority, 0
             )
-            detector_result = self._create_decorated_issue_occurrence(
-                detector_occurrence, condition_evaluation, new_priority
-            )
+
+            # by default it should be 1 > 0
+            if priority_threshold_count > detector_priority_threshold:
+                detector_occurrence, event_data = self.create_occurrence(
+                    condition_evaluation, data_packet, new_priority
+                )
+                detector_result = self._create_decorated_issue_occurrence(
+                    detector_occurrence, condition_evaluation, new_priority
+                )
 
         return {
             None: DetectorEvaluationResult(
