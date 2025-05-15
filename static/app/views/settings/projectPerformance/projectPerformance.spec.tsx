@@ -170,7 +170,10 @@ describe('projectPerformance', function () {
       allowedValues: allowedDurationValues,
       defaultValue: 100,
       newValue: 500,
-      sliderIndex: 1,
+      sliderIdentifier: {
+        label: 'Minimum Total Duration',
+        index: 0,
+      },
     },
     {
       title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
@@ -178,7 +181,10 @@ describe('projectPerformance', function () {
       allowedValues: allowedCountValues,
       defaultValue: 5,
       newValue: 10,
-      sliderIndex: 2,
+      sliderIdentifier: {
+        label: 'Minimum Query Count',
+        index: 0,
+      },
     },
     {
       title: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
@@ -186,7 +192,10 @@ describe('projectPerformance', function () {
       allowedValues: allowedDurationValues.slice(5),
       defaultValue: 1000,
       newValue: 3000,
-      sliderIndex: 3,
+      sliderIdentifier: {
+        label: 'Minimum Duration',
+        index: 0,
+      },
     },
     {
       title: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
@@ -194,7 +203,10 @@ describe('projectPerformance', function () {
       allowedValues: allowedDurationValues.slice(5),
       defaultValue: 300,
       newValue: 500,
-      sliderIndex: 4,
+      sliderIdentifier: {
+        label: 'Minimum Total Duration',
+        index: 1,
+      },
     },
     {
       title: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
@@ -202,7 +214,10 @@ describe('projectPerformance', function () {
       allowedValues: allowedPercentageValues,
       defaultValue: 0.33,
       newValue: 0.5,
-      sliderIndex: 5,
+      sliderIdentifier: {
+        label: 'Minimum FCP Ratio',
+        index: 0,
+      },
     },
     {
       title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
@@ -210,7 +225,10 @@ describe('projectPerformance', function () {
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 1000000,
       newValue: 5000000,
-      sliderIndex: 6,
+      sliderIdentifier: {
+        label: 'Minimum Size',
+        index: 0,
+      },
     },
     {
       title: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
@@ -218,7 +236,10 @@ describe('projectPerformance', function () {
       allowedValues: [10, 16, 33, 50],
       defaultValue: 16,
       newValue: 33,
-      sliderIndex: 7,
+      sliderIdentifier: {
+        label: 'Frame Rate Drop',
+        index: 0,
+      },
     },
     {
       title: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
@@ -226,7 +247,10 @@ describe('projectPerformance', function () {
       allowedValues: [10, 16, 33, 50],
       defaultValue: 16,
       newValue: 50,
-      sliderIndex: 8,
+      sliderIdentifier: {
+        label: 'Frame Rate Drop',
+        index: 1,
+      },
     },
     {
       title: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
@@ -234,7 +258,10 @@ describe('projectPerformance', function () {
       allowedValues: allowedDurationValues.slice(0, 23),
       defaultValue: 100,
       newValue: 5000,
-      sliderIndex: 9,
+      sliderIdentifier: {
+        label: 'Minimum Time Saved',
+        index: 0,
+      },
     },
     {
       title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
@@ -242,7 +269,10 @@ describe('projectPerformance', function () {
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 512000,
       newValue: 700000,
-      sliderIndex: 10,
+      sliderIdentifier: {
+        label: 'Minimum Size',
+        index: 1,
+      },
     },
     {
       title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
@@ -250,7 +280,10 @@ describe('projectPerformance', function () {
       allowedValues: allowedDurationValues.slice(5),
       defaultValue: 500,
       newValue: 400,
-      sliderIndex: 11,
+      sliderIdentifier: {
+        label: 'Minimum Duration',
+        index: 1,
+      },
     },
     {
       title: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
@@ -258,11 +291,21 @@ describe('projectPerformance', function () {
       allowedValues: allowedDurationValues.slice(14),
       defaultValue: 2000,
       newValue: 4000,
-      sliderIndex: 12,
+      sliderIdentifier: {
+        label: 'Minimum Time Saved',
+        index: 1,
+      },
     },
   ])(
     'renders detector thresholds settings for $title issue',
-    async ({title, threshold, allowedValues, defaultValue, newValue, sliderIndex}) => {
+    async ({
+      title,
+      threshold,
+      allowedValues,
+      defaultValue,
+      newValue,
+      sliderIdentifier,
+    }) => {
       // Mock endpoints
       const mockGETBody = {
         [threshold]: defaultValue,
@@ -305,7 +348,10 @@ describe('projectPerformance', function () {
         await userEvent.click(chevron);
       }
 
-      const slider = screen.getAllByRole('slider')[sliderIndex]!;
+      // Some of the sliders have the same label, so use an index as well
+      const slider = screen.getAllByRole('slider', {name: sliderIdentifier.label})[
+        sliderIdentifier.index
+      ]!;
       const indexOfValue = allowedValues.indexOf(defaultValue);
       const newValueIndex = allowedValues.indexOf(newValue);
 
