@@ -75,7 +75,10 @@ export default function AutomationForm() {
             </DrawerBody>
           </div>
         ),
-        {ariaLabel: 'Details'}
+        {
+          ariaLabel: 'Edit Monitors Drawer',
+          drawerKey: 'edit-monitors-drawer',
+        }
       );
     }
   };
