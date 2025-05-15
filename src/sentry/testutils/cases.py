@@ -2221,41 +2221,17 @@ class ProfilesSnubaTestCase(
         return int(hasher.hexdigest()[:8], 16)
 
     def store_span(self, span, is_eap=False):
-        span["ingest_in_eap"] = is_eap
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
-                data=json.dumps([span]),
-            ).status_code
-            == 200
-        )
-        if is_eap:
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
-                    data=json.dumps([span]),
-                ).status_code
-                == 200
-            )
+        self.store_spans([span], is_eap=is_eap)
 
     def store_spans(self, spans, is_eap=False):
-        for span in spans:
-            span["ingest_in_eap"] = is_eap
+        entity = "eap_items_span" if is_eap else "spans"
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert",
                 data=json.dumps(spans),
             ).status_code
             == 200
         )
-        if is_eap:
-            assert (
-                requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
-                    data=json.dumps(spans),
-                ).status_code
-                == 200
-            )
 
 
 @pytest.mark.snuba
