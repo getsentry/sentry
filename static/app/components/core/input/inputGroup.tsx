@@ -80,14 +80,7 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
   );
 }
 
-function Input({
-  ref,
-  size,
-  disabled,
-  ...props
-}: InputProps & {
-  ref?: React.Ref<HTMLInputElement>;
-}) {
+function Input({ref, size, disabled, ...props}: InputProps) {
   const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
   useLayoutEffect(() => {
@@ -106,14 +99,7 @@ function Input({
   );
 }
 
-function TextArea({
-  ref,
-  size,
-  disabled,
-  ...props
-}: TextAreaProps & {
-  ref?: React.Ref<HTMLTextAreaElement>;
-}) {
+function TextArea({ref, size, disabled, ...props}: TextAreaProps) {
   const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
   useLayoutEffect(() => {

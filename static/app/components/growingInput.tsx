@@ -42,13 +42,7 @@ function resize(input: HTMLInputElement) {
   input.style.width = `${newTotalInputSize}px`;
 }
 
-export function GrowingInput({
-  ref,
-  onChange,
-  ...props
-}: InputProps & {
-  ref?: React.Ref<HTMLInputElement>;
-}) {
+export function GrowingInput({ref, onChange, ...props}: InputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const isControlled = props.value !== undefined;
 

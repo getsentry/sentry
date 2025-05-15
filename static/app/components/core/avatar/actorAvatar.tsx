@@ -12,6 +12,7 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 export interface ActorAvatarProps extends BaseAvatarProps {
   actor: Actor;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }
 
 export function ActorAvatar({
@@ -20,9 +21,7 @@ export function ActorAvatar({
   hasTooltip = true,
   actor,
   ...props
-}: ActorAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
-}) {
+}: ActorAvatarProps) {
   const otherProps = {
     size,
     hasTooltip,
@@ -51,15 +50,10 @@ export function ActorAvatar({
 
 interface AsyncTeamAvatarProps extends Omit<TeamAvatarProps, 'team'> {
   teamId: string;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }
 
-function AsyncTeamAvatar({
-  ref,
-  teamId,
-  ...props
-}: AsyncTeamAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
-}) {
+function AsyncTeamAvatar({ref, teamId, ...props}: AsyncTeamAvatarProps) {
   const {teams, isLoading} = useTeamsById({ids: [teamId]});
   const team = teams.find(t => t.id === teamId);
 
@@ -76,15 +70,10 @@ function AsyncTeamAvatar({
  */
 interface AsyncMemberAvatarProps extends Omit<UserAvatarProps, 'user'> {
   userActor: Actor;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }
 
-function AsyncMemberAvatar({
-  ref,
-  userActor,
-  ...props
-}: AsyncMemberAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
-}) {
+function AsyncMemberAvatar({ref, userActor, ...props}: AsyncMemberAvatarProps) {
   const ids = useMemo(() => [userActor.id], [userActor.id]);
   const {members, fetching} = useMembers({ids});
   const member = members.find(u => u.id === userActor.id);

@@ -12,6 +12,7 @@ import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 type SelectionKeyHandlerProps = {
   state: ListState<ParseResultToken>;
   undo: () => void;
+  ref?: React.Ref<HTMLInputElement>;
 };
 
 /**
@@ -22,13 +23,7 @@ type SelectionKeyHandlerProps = {
  * We use an invisible input element in order to handle paste events. Without
  * this, the browser will need to ask for clipboard permissions.
  */
-export function SelectionKeyHandler({
-  ref,
-  state,
-  undo,
-}: SelectionKeyHandlerProps & {
-  ref?: React.Ref<HTMLInputElement>;
-}) {
+export function SelectionKeyHandler({ref, state, undo}: SelectionKeyHandlerProps) {
   const {dispatch, disabled} = useSearchQueryBuilder();
   const {selectInDirection} = useKeyboardSelection();
 

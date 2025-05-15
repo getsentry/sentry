@@ -4,12 +4,7 @@ import styled from '@emotion/styled';
 import {InputGroup, type InputProps} from 'sentry/components/core/input/inputGroup';
 import {space} from 'sentry/styles/space';
 
-export function PercentInput({
-  ref,
-  ...props
-}: InputProps & {
-  ref?: React.Ref<HTMLInputElement>;
-}) {
+export function PercentInput({ref, ...props}: InputProps) {
   return (
     <InputGroup
       css={css`
