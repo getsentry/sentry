@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0005_drop_replay_index
 
-sentry: 0895_relocation_provenance_smallint
+sentry: 0896_org_level_access_not_null
 
 social_auth: 0002_default_auto_field
 
