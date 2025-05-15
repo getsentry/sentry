@@ -188,7 +188,11 @@ const VitalPillName = styled('div')<{status: PerformanceScore}>`
 
   height: 100%;
   padding: 0 ${space(1)};
-  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].border};
+  border: solid 1px
+    ${p =>
+      p.status === 'none'
+        ? p.theme.border
+        : makePerformanceScoreColors(p.theme)[p.status].border};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
