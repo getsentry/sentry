@@ -59,10 +59,10 @@ START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=tim
 
 def get_owner_id(project: Project, user: RpcUser | None = None) -> int | None:
     try:
-        user: RpcUser = (
-            user
-            or Organization.objects.get_from_cache(id=project.organization_id).get_default_owner()
-        )
+        if not user or not user.is_authenticated:
+            user = Organization.objects.get_from_cache(
+                id=project.organization_id
+            ).get_default_owner()
         return user.id
     except IndexError:
         pass
