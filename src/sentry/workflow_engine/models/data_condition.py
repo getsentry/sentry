@@ -163,6 +163,7 @@ class DataCondition(DefaultFieldsModel):
         if condition_type in CONDITION_OPS:
             # If the condition is a base type, handle it directly
             op = CONDITION_OPS[Condition(self.type)]
+            result = None
             try:
                 result = op(cast(Any, value), self.comparison)
             except TypeError:
