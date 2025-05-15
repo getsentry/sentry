@@ -7,13 +7,13 @@ from collections.abc import Iterable, Sequence
 from datetime import datetime
 
 from sentry import analytics
-from sentry.issues.escalating import (
+from sentry.issues.escalating.escalating import (
     ParsedGroupsCount,
     parse_groups_past_counts,
     query_groups_past_counts,
 )
-from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.escalating_issues_alg import generate_issue_forecast, standard_version
+from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.escalating.escalating_issues_alg import generate_issue_forecast, standard_version
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task

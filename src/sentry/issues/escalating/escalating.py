@@ -26,8 +26,8 @@ from snuba_sdk import (
 
 from sentry import options
 from sentry.eventstore.models import GroupEvent
-from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.escalating_issues_alg import GroupCount
+from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.escalating.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.priority import PriorityChangeReason, auto_update_priority
 from sentry.models.activity import Activity
