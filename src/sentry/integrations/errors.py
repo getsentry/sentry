@@ -4,3 +4,7 @@ class InvalidProviderException(Exception):
     """
 
     pass
+
+
+class OrganizationIntegrationNotFound(Exception):
+    pass

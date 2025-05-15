@@ -2,6 +2,7 @@ import pytest
 
 from sentry.identity.services.identity.serial import serialize_identity
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
@@ -43,6 +44,9 @@ class IntegrationTestCase(TestCase):
         assert integration.default_identity == serialize_identity(self.identity)
 
     def test_missing_org_integration(self):
+        with pytest.raises(OrganizationIntegrationNotFound):
+            ExampleIntegration(self.model, -1).org_integration
+
         with pytest.raises(Identity.DoesNotExist):
             ExampleIntegration(self.model, -1).default_identity
 
