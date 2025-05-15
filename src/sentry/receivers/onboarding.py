@@ -57,6 +57,14 @@ START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
 START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=timezone.utc)
 
 
+def get_owner_id(project: Project, user: RpcUser | None = None) -> int | None:
+    if user and user.is_authenticated:
+        return user.id
+
+    # this is either the organizations owners user id or None
+    return Organization.objects.get_from_cache(id=project.organization_id).default_owner_id
+
+
 @project_created.connect(weak=False, dispatch_uid="record_new_project")
 def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
@@ -69,11 +77,8 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
     elif user.is_authenticated:
         user_id = default_user_id = user.id
     else:
-        user_id = None
-        try:
-            default_user = Organization.objects.get(id=project.organization_id).get_default_owner()
-            default_user_id = default_user.id
-        except IndexError:
+        user_id = default_user_id = get_owner_id(project, user)
+        if user_id is None:
             logger.warning(
                 "Cannot initiate onboarding for organization (%s) due to missing owners",
                 project.organization_id,
@@ -125,11 +130,7 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
 @first_event_received.connect(weak=False, dispatch_uid="onboarding.record_first_event")
 def record_first_event(project, event, **kwargs):
-    try:
-        user: RpcUser = Organization.objects.get_from_cache(
-            id=project.organization_id
-        ).get_default_owner()
-    except IndexError:
+    if (owner_id := get_owner_id(project)) is None:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
             project.organization_id,
@@ -138,7 +139,7 @@ def record_first_event(project, event, **kwargs):
 
     analytics.record(
         "first_event_for_project.sent",
-        user_id=user.id if user else None,
+        user_id=owner_id,
         organization_id=project.organization_id,
         project_id=project.id,
         platform=event.platform,
@@ -170,7 +171,7 @@ def record_first_event(project, event, **kwargs):
     if created:
         analytics.record(
             "first_event.sent",
-            user_id=user.id if user else None,
+            user_id=owner_id,
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
@@ -196,14 +197,9 @@ def record_first_transaction(project, datetime, **kwargs):
         date_completed=datetime,
     )
 
-    try:
-        default_user_id = project.organization.get_default_owner().id
-    except IndexError:
-        default_user_id = None
-
     analytics.record(
         "first_transaction.sent",
-        default_user_id=default_user_id,
+        default_user_id=get_owner_id(project),
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
@@ -216,7 +212,7 @@ def record_first_profile(project, **kwargs):
 
     analytics.record(
         "first_profile.sent",
-        user_id=project.organization.default_owner_id,
+        user_id=get_owner_id(project),
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
@@ -240,7 +236,7 @@ def record_first_replay(project, **kwargs):
         logger.info("record_first_replay_analytics_start")
         analytics.record(
             "first_replay.sent",
-            user_id=project.organization.default_owner_id,
+            user_id=get_owner_id(project),
             organization_id=project.organization_id,
             project_id=project.id,
             platform=project.platform,
@@ -266,7 +262,7 @@ def record_first_feedback(project, **kwargs):
 
     analytics.record(
         "first_feedback.sent",
-        user_id=project.organization.default_owner_id,
+        user_id=get_owner_id(project),
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
@@ -281,7 +277,7 @@ def record_first_new_feedback(project, **kwargs):
 
     analytics.record(
         "first_new_feedback.sent",
-        user_id=project.organization.default_owner_id,
+        user_id=get_owner_id(project),
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
@@ -295,7 +291,7 @@ def record_first_cron_monitor(project, user, from_upsert, **kwargs):
     if updated:
         analytics.record(
             "first_cron_monitor.created",
-            user_id=user.id if user else project.organization.default_owner_id,
+            user_id=get_owner_id(project, user),
             organization_id=project.organization_id,
             project_id=project.id,
             from_upsert=from_upsert,
@@ -306,7 +302,7 @@ def record_first_cron_monitor(project, user, from_upsert, **kwargs):
 def record_cron_monitor_created(project, user, from_upsert, **kwargs):
     analytics.record(
         "cron_monitor.created",
-        user_id=user.id if user else project.organization.default_owner_id,
+        user_id=get_owner_id(project, user),
         organization_id=project.organization_id,
         project_id=project.id,
         from_upsert=from_upsert,
@@ -321,7 +317,7 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
 
     analytics.record(
         "first_cron_checkin.sent",
-        user_id=project.organization.default_owner_id,
+        user_id=get_owner_id(project),
         organization_id=project.organization_id,
         project_id=project.id,
         monitor_id=monitor_id,
@@ -354,7 +350,7 @@ def record_first_insight_span(project, module, **kwargs):
 
     analytics.record(
         "first_insight_span.sent",
-        user_id=project.organization.default_owner_id,
+        user_id=get_owner_id(project),
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
@@ -400,10 +396,7 @@ def record_release_received(project, release, **kwargs):
         project_id=project.id,
     )
     if success:
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-        try:
-            owner: RpcUser = organization.get_default_owner()
-        except IndexError:
+        if (owner_id := get_owner_id(project)) is None:
             logger.warning(
                 "Cannot record release received for organization (%s) due to missing owners",
                 project.organization_id,
@@ -412,7 +405,7 @@ def record_release_received(project, release, **kwargs):
 
         analytics.record(
             "first_release_tag.sent",
-            user_id=owner.id,
+            user_id=owner_id,
             project_id=project.id,
             organization_id=project.organization_id,
         )
@@ -426,9 +419,7 @@ transaction_processed.connect(_record_release_received, weak=False)
     weak=False, dispatch_uid="onboarding.record_event_with_first_minified_stack_trace_for_project"
 )
 def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-    owner_id = organization.default_owner_id
-    if not owner_id:
+    if (owner_id := get_owner_id(project)) is None:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
             project.organization_id,
@@ -471,10 +462,7 @@ def record_sourcemaps_received(project, event, **kwargs):
         project_id=project.id,
     )
     if success:
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-        try:
-            owner: RpcUser = organization.get_default_owner()
-        except IndexError:
+        if (owner_id := get_owner_id(project)) is None:
             logger.warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",
                 project.organization_id,
@@ -482,7 +470,7 @@ def record_sourcemaps_received(project, event, **kwargs):
             return
         analytics.record(
             "first_sourcemaps.sent",
-            user_id=owner.id,
+            user_id=owner_id,
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
@@ -498,9 +486,7 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
     if not has_sourcemap(event):
         return
 
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-    owner_id = organization.default_owner_id
-    if not owner_id:
+    if (owner_id := get_owner_id(project)) is None:
         logger.warning(
             "Cannot record sourcemaps received for organization (%s) due to missing owners",
             project.organization_id,
