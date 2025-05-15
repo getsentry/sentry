@@ -82,7 +82,7 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = default_user_id = get_owner_id(project, user)
-        if user_id is not None:
+        if user_id is None:
             logger.warning(
                 "Cannot initiate onboarding for organization (%s) due to missing owners",
                 project.organization_id,
