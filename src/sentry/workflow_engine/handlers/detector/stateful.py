@@ -319,13 +319,16 @@ class StatefulDetectorHandler(
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         return []
 
-    def create_resolve_message(self) -> StatusChangeMessage:
+    def _create_resolve_message(self, group_key: DetectorGroupKey = None) -> StatusChangeMessage:
         """
         Create a resolve message for the detectors issue. This is overridable in the subclass, but
         will work for the majority of cases.
         """
         return StatusChangeMessage(
-            fingerprint=[*self.build_issue_fingerprint(), self.state_manager.build_key()],
+            fingerprint=[
+                *self.build_issue_fingerprint(group_key),
+                self.state_manager.build_key(group_key),
+            ],
             project_id=self.detector.project_id,
             new_status=GroupStatus.RESOLVED,
             new_substatus=None,
@@ -415,7 +418,7 @@ class StatefulDetectorHandler(
             return None
 
         if new_priority == DetectorPriorityLevel.OK:
-            detector_result = self.create_resolve_message()
+            detector_result = self._create_resolve_message()
             self.state_manager.enqueue_counter_reset()
         else:
             detector_occurrence, event_data = self.create_occurrence(
