@@ -8,10 +8,52 @@ import type {SelectOptionOrSectionWithKey} from 'sentry/components/core/compactS
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {useConstrainListBoxWidth} from 'sentry/components/searchQueryBuilder/tokens/filter/useConstrainListBoxWidth';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+
+interface ConstrainAndAlignListBoxArgs {
+  popoverRef: React.RefObject<HTMLElement | null>;
+  referenceRef: React.RefObject<HTMLElement | null>;
+  refsToSync: Array<React.RefObject<HTMLElement | null>>;
+}
+
+export function constrainAndAlignListBox({
+  popoverRef,
+  referenceRef,
+  refsToSync,
+}: ConstrainAndAlignListBoxArgs) {
+  if (
+    !referenceRef.current ||
+    !popoverRef.current ||
+    !refsToSync.some(ref => ref.current)
+  ) {
+    return;
+  }
+
+  const referenceRect = referenceRef.current.getBoundingClientRect();
+  const popoverRect = popoverRef.current.getBoundingClientRect();
+
+  // Set popover position
+  if (popoverRect.width === referenceRect.width) {
+    const parentOfTarget = popoverRef.current.offsetParent || document.documentElement;
+    const parentRect = parentOfTarget.getBoundingClientRect();
+    const sourceCenterViewport = referenceRect.left + referenceRect.width / 2;
+    const desiredTargetLeftViewport = sourceCenterViewport - popoverRect.width / 2;
+    const newX = desiredTargetLeftViewport - parentRect.left;
+
+    popoverRef.current.style.left = `${newX}px`;
+  } else {
+    popoverRef.current.style.left = 'auto';
+  }
+
+  // Update all elements that need width syncing
+  refsToSync.forEach(ref => {
+    if (ref.current) {
+      ref.current.style.maxWidth = `${referenceRect.width}px`;
+    }
+  });
+}
 
 interface ValueListBoxProps<T> extends CustomComboboxMenuProps<T> {
   canUseWildcard: boolean;
@@ -65,22 +107,34 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   );
   const anyItemsShowing = totalOptions > hiddenOptions.size;
 
-  useConstrainListBoxWidth({
-    anyItemsShowing,
-    isLoading,
-    isOpen,
-    popoverRef,
-    referenceRef: wrapperRef,
-    refsToSync: [listBoxRef, popoverRef],
-  });
-
   if (!isOpen || (!anyItemsShowing && !isLoading)) {
     return null;
   }
 
   const valueListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <SectionedOverlay ref={popoverRef}>
+      <SectionedOverlay
+        ref={element => {
+          popoverRef.current = element;
+
+          if (!popoverRef.current || !wrapperRef.current || !listBoxRef.current) {
+            return undefined;
+          }
+
+          const refsToSync = [listBoxRef, popoverRef];
+          constrainAndAlignListBox({popoverRef, referenceRef: wrapperRef, refsToSync});
+
+          const observer = new ResizeObserver(() => {
+            constrainAndAlignListBox({popoverRef, referenceRef: wrapperRef, refsToSync});
+          });
+
+          observer.observe(wrapperRef.current);
+
+          return () => {
+            observer.disconnect();
+          };
+        }}
+      >
         {isLoading && hiddenOptions.size >= totalOptions ? (
           <LoadingWrapper>
             <LoadingIndicator size={24} />
