@@ -86,18 +86,26 @@ export function getVisualizesFromLocation(
 ): Visualize[] {
   const rawVisualizes = decodeList(location.query.visualize);
 
-  const result: Visualize[] = rawVisualizes
-    .map(raw => parseVisualizes(raw, organization))
-    .filter(defined)
-    .filter(parsed => parsed.yAxes.length > 0)
-    .map((parsed, i) => {
-      return new Visualize(parsed.yAxes, {
-        label: String.fromCharCode(65 + i), // starts from 'A'
-        chartType: parsed.chartType,
-      });
-    });
+  const visualizes: Visualize[] = [];
 
-  return result.length ? result : defaultVisualizes();
+  const baseVisualizes: BaseVisualize[] = rawVisualizes
+    .map(raw => parseVisualizes(raw, organization))
+    .filter(defined);
+
+  let i = 0;
+  for (const visualize of baseVisualizes) {
+    for (const yAxis of visualize.yAxes) {
+      visualizes.push(
+        new Visualize([yAxis], {
+          label: String.fromCharCode(65 + i), // starts from 'A',
+          chartType: visualize.chartType,
+        })
+      );
+      i++;
+    }
+  }
+
+  return visualizes.length ? visualizes : defaultVisualizes();
 }
 
 function parseVisualizes(raw: string, organization: Organization): BaseVisualize | null {
