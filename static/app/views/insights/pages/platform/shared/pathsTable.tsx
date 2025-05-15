@@ -109,12 +109,14 @@ function useTableSortParams() {
 
 interface PathsTableProps {
   showHttpMethodColumn?: boolean;
+  showRouteController?: boolean;
   showUsersColumn?: boolean;
 }
 
 export function PathsTable({
   showHttpMethodColumn = true,
   showUsersColumn = true,
+  showRouteController = true,
 }: PathsTableProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -150,6 +152,7 @@ export function PathsTable({
         ...(showUsersColumn ? ['count_unique(user)' as const] : []),
       ],
       limit: PER_PAGE,
+      keepPreviousData: true,
       cursor:
         typeof location.query.pathsCursor === 'string'
           ? location.query.pathsCursor
@@ -177,7 +180,8 @@ export function PathsTable({
         'count()',
       ],
       limit: PER_PAGE,
-      enabled: !!transactionsRequest.data && transactionPaths.length > 0,
+      enabled:
+        showRouteController && !!transactionsRequest.data && transactionPaths.length > 0,
     },
     Referrer.PATHS_TABLE
   );
@@ -247,26 +251,32 @@ export function PathsTable({
 
   return (
     <Fragment>
-      <GridEditable
-        isLoading={transactionsRequest.isLoading}
-        error={transactionsRequest.error}
-        data={tableData}
-        columnOrder={columnOrder}
-        columnSortBy={EMPTY_ARRAY}
-        stickyHeader
-        grid={{
-          renderBodyCell,
-          renderHeadCell,
-          onResizeColumn: handleResizeColumn,
-        }}
-      />
+      <GridEditableContainer>
+        <GridEditable
+          isLoading={transactionsRequest.isPending}
+          error={transactionsRequest.error}
+          data={tableData}
+          columnOrder={columnOrder}
+          columnSortBy={EMPTY_ARRAY}
+          stickyHeader
+          grid={{
+            renderBodyCell,
+            renderHeadCell,
+            onResizeColumn: handleResizeColumn,
+          }}
+        />
+        {transactionsRequest.isPlaceholderData && <LoadingOverlay />}
+      </GridEditableContainer>
       <Pagination
         pageLinks={transactionsRequest.pageLinks}
         onCursor={(cursor, path, currentQuery) => {
-          navigate({
-            pathname: path,
-            query: {...currentQuery, pathsCursor: cursor},
-          });
+          navigate(
+            {
+              pathname: path,
+              query: {...currentQuery, pathsCursor: cursor},
+            },
+            {replace: true, preventScrollReset: true}
+          );
         }}
       />
     </Fragment>
@@ -281,6 +291,7 @@ const HeadCell = memo(function HeadCell({column}: {column: GridColumnHeader<stri
       align={column.key === 'count_unique(user)' ? 'right' : 'left'}
       direction={sortField === column.key ? sortOrder : undefined}
       canSort
+      preventScrollReset
       generateSortLink={() => ({
         ...location,
         query: {
@@ -433,4 +444,20 @@ const ControllerText = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   min-width: 0px;
+`;
+
+const GridEditableContainer = styled('div')`
+  position: relative;
+  margin-bottom: ${space(1)};
+`;
+
+const LoadingOverlay = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: ${p => p.theme.background};
+  opacity: 0.5;
+  z-index: 1;
 `;
