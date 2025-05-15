@@ -11,6 +11,7 @@ type SetupOption = 'githubAction' | 'cli';
 export default function TestsOnboardingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const opt = searchParams.get('opt');
+
   const handleRadioChange = useCallback(
     (newOption: SetupOption) => {
       setSearchParams({opt: newOption});
@@ -30,7 +31,7 @@ export default function TestsOnboardingPage() {
             )}
           </TAValueText>
         </IntroContainer>
-        <SelectOptionHeader>Select a setup option</SelectOptionHeader>
+        <SelectOptionHeader>{t('Select a setup option')}</SelectOptionHeader>
         <RadioGroup
           label="Select a setup option"
           value={opt === 'cli' ? 'cli' : 'githubAction'}

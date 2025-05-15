@@ -3,7 +3,26 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import TestsOnboardingPage from 'sentry/views/codecov/tests/onboarding';
 
 describe('TestsOnboardingPage', () => {
-  it('renders with GitHub Actions selected by default', () => {
+  it('renders with GitHub Actions selected by default if no query param is provided', () => {
+    render(<TestsOnboardingPage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/codecov/tests/new',
+          query: {},
+        },
+      },
+    });
+
+    const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
+    expect(githubRadio).toBeChecked();
+
+    const cliRadio = screen.getByLabelText(
+      "Use Sentry Prevent's CLI to upload testing reports"
+    );
+    expect(cliRadio).not.toBeChecked();
+  });
+
+  it('renders with GitHub Actions selected by default if empty opt query param is provided', () => {
     render(<TestsOnboardingPage />, {
       initialRouterConfig: {
         location: {
