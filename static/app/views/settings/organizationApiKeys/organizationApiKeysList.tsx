@@ -109,7 +109,7 @@ function OrganizationApiKeysList({
                     href="#"
                     className="btn btn-default btn-sm"
                     title={t('Remove API Key?')}
-                    aria-label={t('Remove API Key')}
+                    aria-label={t('Remove API Key?')}
                   >
                     <IconDelete
                       size="xs"
