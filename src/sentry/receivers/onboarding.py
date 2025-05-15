@@ -58,15 +58,11 @@ START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=tim
 
 
 def get_owner_id(project: Project, user: RpcUser | None = None) -> int | None:
-    try:
-        if not user or not user.is_authenticated:
-            user = Organization.objects.get_from_cache(
-                id=project.organization_id
-            ).get_default_owner()
+    if user and user.is_authenticated:
         return user.id
-    except IndexError:
-        pass
-    return None
+
+    # this is either the organizations owners user id or None
+    return Organization.objects.get_from_cache(id=project.organization_id).default_owner_id
 
 
 @project_created.connect(weak=False, dispatch_uid="record_new_project")
