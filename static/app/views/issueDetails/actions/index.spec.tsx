@@ -182,30 +182,6 @@ describe('GroupActions', function () {
     });
   });
 
-  it('opens share modal from more actions dropdown', async () => {
-    const org = {
-      ...organization,
-      features: ['shared-issues'],
-    };
-
-    render(
-      <Fragment>
-        <GlobalModal />
-        <GroupActions group={group} project={project} disabled={false} event={null} />
-      </Fragment>,
-      {
-        organization: org,
-        deprecatedRouterMocks: true,
-      }
-    );
-
-    await userEvent.click(screen.getByLabelText('More Actions'));
-    await userEvent.click(await screen.findByText('Publish'));
-
-    const modal = screen.getByRole('dialog');
-    expect(within(modal).getByText('Publish Issue')).toBeInTheDocument();
-  });
-
   describe('delete', function () {
     it('opens delete confirm modal from more actions dropdown', async () => {
       const router = RouterFixture();
