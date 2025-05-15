@@ -36,4 +36,3 @@ function EmailVerificationModal({
 }
 
 export default EmailVerificationModal;
-export {EmailVerificationModal};

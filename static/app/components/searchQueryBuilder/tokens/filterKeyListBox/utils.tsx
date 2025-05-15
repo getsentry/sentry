@@ -40,7 +40,7 @@ export function createRecentFilterOptionKey(filter: string) {
   return getEscapedKey(`${RECENT_FILTER_KEY_PREFIX}${filter}`);
 }
 
-export function createRecentQueryOptionKey(filter: string) {
+function createRecentQueryOptionKey(filter: string) {
   return getEscapedKey(`${RECENT_QUERY_KEY_PREFIX}${filter}`);
 }
 

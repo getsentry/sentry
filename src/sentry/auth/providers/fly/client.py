@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import orjson
 from requests.exceptions import RequestException
 
@@ -7,23 +9,23 @@ from .constants import ACCESS_TOKEN_URL
 
 
 class FlyApiError(Exception):
-    def __init__(self, message="", status=0):
+    def __init__(self, message="", status=0) -> None:
         super().__init__(message)
         self.status = status
 
 
 class FlyClient:
-    def __init__(self, access_token):
+    def __init__(self, access_token: str) -> None:
         self.http = http.build_session()
         self.access_token = access_token
 
-    def __enter__(self):
+    def __enter__(self) -> FlyClient:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.http.close()
 
-    def _request(self, path):
+    def _request(self, path: str):
         headers = {"Authorization": f"Bearer {self.access_token}"}
         req_url = f"{ACCESS_TOKEN_URL}/{path.lstrip('/')}"
         try:

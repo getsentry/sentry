@@ -38,7 +38,9 @@ describe('Organization Developer Settings', function () {
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
       });
-      render(<OrganizationDeveloperSettings />);
+      render(<OrganizationDeveloperSettings />, {
+        deprecatedRouterMocks: true,
+      });
       await waitFor(() => {
         expect(
           screen.getByText('No internal integrations have been created yet.')
@@ -75,7 +77,9 @@ describe('Organization Developer Settings', function () {
     });
 
     it('internal integrations list is empty', async () => {
-      render(<OrganizationDeveloperSettings />);
+      render(<OrganizationDeveloperSettings />, {
+        deprecatedRouterMocks: true,
+      });
       expect(
         await screen.findByText('No internal integrations have been created yet.')
       ).toBeInTheDocument();
@@ -87,6 +91,7 @@ describe('Organization Developer Settings', function () {
       });
       render(<OrganizationDeveloperSettings />, {
         router,
+        deprecatedRouterMocks: true,
       });
       expect(await screen.findByText('Sample App')).toBeInTheDocument();
       expect(screen.getByText('unpublished')).toBeInTheDocument();
@@ -103,6 +108,7 @@ describe('Organization Developer Settings', function () {
       });
       render(<OrganizationDeveloperSettings />, {
         router,
+        deprecatedRouterMocks: true,
       });
 
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
@@ -133,6 +139,7 @@ describe('Organization Developer Settings', function () {
 
       render(<OrganizationDeveloperSettings />, {
         router,
+        deprecatedRouterMocks: true,
       });
 
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
@@ -240,6 +247,7 @@ describe('Organization Developer Settings', function () {
       });
       render(<OrganizationDeveloperSettings />, {
         router,
+        deprecatedRouterMocks: true,
       });
       expect(await screen.findByText('published')).toBeInTheDocument();
     });
@@ -250,6 +258,7 @@ describe('Organization Developer Settings', function () {
       });
       render(<OrganizationDeveloperSettings />, {
         router,
+        deprecatedRouterMocks: true,
       });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toBeDisabled();
@@ -261,6 +270,7 @@ describe('Organization Developer Settings', function () {
       });
       render(<OrganizationDeveloperSettings />, {
         router,
+        deprecatedRouterMocks: true,
       });
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
       expect(publishButton).toBeDisabled();
@@ -278,13 +288,17 @@ describe('Organization Developer Settings', function () {
     });
 
     it('allows deleting', async () => {
-      render(<OrganizationDeveloperSettings />);
+      render(<OrganizationDeveloperSettings />, {
+        deprecatedRouterMocks: true,
+      });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toBeEnabled();
     });
 
     it('publish button does not exist', () => {
-      render(<OrganizationDeveloperSettings />);
+      render(<OrganizationDeveloperSettings />, {
+        deprecatedRouterMocks: true,
+      });
       expect(screen.queryByText('Publish')).not.toBeInTheDocument();
     });
   });
@@ -304,6 +318,7 @@ describe('Organization Developer Settings', function () {
       render(<OrganizationDeveloperSettings />, {
         router,
         organization: newOrg,
+        deprecatedRouterMocks: true,
       });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toBeDisabled();
@@ -316,6 +331,7 @@ describe('Organization Developer Settings', function () {
       render(<OrganizationDeveloperSettings />, {
         organization: newOrg,
         router,
+        deprecatedRouterMocks: true,
       });
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
       expect(publishButton).toBeDisabled();

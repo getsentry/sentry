@@ -1,24 +1,20 @@
 import {getInterval} from 'sentry/components/charts/utils';
+import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {PageFilters} from 'sentry/types/core';
 import type {IssuesMetricsApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export default function useNewAndResolvedIssues({type}: {type: 'issue' | 'feedback'}) {
-  const location = useLocation();
+export default function useNewAndResolvedIssues({
+  type,
+  pageFilters,
+}: {
+  type: 'issue' | 'feedback';
+  pageFilters?: PageFilters;
+}) {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  const locationQuery = {
-    ...location,
-    query: {
-      ...location.query,
-      query: undefined,
-      width: undefined,
-      cursor: undefined,
-    },
-  };
+  const {selection: defaultPageFilters} = usePageFilters();
 
   const {
     data: issueData,
@@ -29,9 +25,12 @@ export default function useNewAndResolvedIssues({type}: {type: 'issue' | 'feedba
       `/organizations/${organization.slug}/issues-metrics/`,
       {
         query: {
-          ...locationQuery.query,
+          ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
           category: type,
-          interval: getInterval(selection.datetime, 'issues-metrics'),
+          interval: getInterval(
+            pageFilters ? pageFilters.datetime : defaultPageFilters.datetime,
+            'issues-metrics'
+          ),
         },
       },
     ],

@@ -10,13 +10,15 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
-import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
+import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewVariables = Pick<
   GroupSearchView,
   'id' | 'name' | 'query' | 'querySort' | 'projects' | 'environments' | 'timeFilters'
->;
+> & {
+  optimistic?: boolean;
+};
 
 export const useUpdateGroupSearchView = (
   options: Omit<
@@ -38,29 +40,60 @@ export const useUpdateGroupSearchView = (
           data: groupSearchView,
         }
       ),
-    onSuccess: (data, parameters, context) => {
-      // Update the specific view cache
-      setApiQueryData<GroupSearchView>(
-        queryClient,
-        makeFetchGroupSearchViewKey({orgSlug: organization.slug, id: parameters.id}),
-        data
-      );
 
-      // Update any matching starred views in cache
-      setApiQueryData<GroupSearchView[]>(
-        queryClient,
-        makeFetchGroupSearchViewsKey({orgSlug: organization.slug}),
-        oldGroupSearchViews => {
-          return (
-            oldGroupSearchViews?.map(view => {
-              if (view.id === parameters.id) {
-                return {...view, ...parameters};
-              }
-              return view;
-            }) ?? []
-          );
-        }
-      );
+    onMutate: variables => {
+      const {optimistic, ...viewParams} = variables;
+      if (optimistic) {
+        // Update the specific view cache
+        setApiQueryData<GroupSearchView>(
+          queryClient,
+          makeFetchGroupSearchViewKey({orgSlug: organization.slug, id: viewParams.id}),
+          oldView => (oldView ? {...oldView, ...viewParams} : oldView)
+        );
+
+        // Update any matching starred views in cache
+        setApiQueryData<StarredGroupSearchView[]>(
+          queryClient,
+          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
+          oldGroupSearchViews => {
+            return (
+              oldGroupSearchViews?.map(view => {
+                if (view.id === variables.id) {
+                  return {...view, ...variables};
+                }
+                return view;
+              }) ?? []
+            );
+          }
+        );
+      }
+      options.onMutate?.(variables);
+    },
+    onSuccess: (data, parameters, context) => {
+      if (!parameters.optimistic) {
+        // Update the specific view cache
+        setApiQueryData<GroupSearchView>(
+          queryClient,
+          makeFetchGroupSearchViewKey({orgSlug: organization.slug, id: parameters.id}),
+          data
+        );
+
+        // Update any matching starred views in cache
+        setApiQueryData<StarredGroupSearchView[]>(
+          queryClient,
+          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
+          oldGroupSearchViews => {
+            return (
+              oldGroupSearchViews?.map(view => {
+                if (view.id === parameters.id) {
+                  return {...view, ...parameters};
+                }
+                return view;
+              }) ?? []
+            );
+          }
+        );
+      }
       options.onSuccess?.(data, parameters, context);
     },
     onError: (error, variables, context) => {

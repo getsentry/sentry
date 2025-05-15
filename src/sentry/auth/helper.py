@@ -58,7 +58,6 @@ from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.session_store import redis_property
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm
@@ -475,7 +474,7 @@ class AuthIdentityHandler:
             initial={"username": self._app_user and self._app_user.username},
         )
 
-    def _build_confirmation_response(self, is_new_account):
+    def _build_confirmation_response(self, is_new_account: bool) -> HttpResponse:
         existing_user, template = self._dispatch_to_confirmation(is_new_account)
         context = {
             "identity": self.identity,
@@ -633,7 +632,6 @@ class AuthIdentityHandler:
                     data=self.identity.get("data", {}),
                 )
         except IntegrityError:
-            incr_rollback_metrics(AuthIdentity)
             auth_identity = self._get_auth_identity(ident=self.identity["id"])
             auth_identity.update(user=user, data=self.identity.get("data", {}))
 

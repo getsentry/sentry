@@ -75,6 +75,29 @@ def inline_css(value: str) -> str:
     return html
 
 
+def message_to_dict(message: EmailMultiAlternatives) -> dict[str, Any]:
+    return {
+        "subject": message.subject,
+        "body": message.body,
+        "from_email": message.from_email,
+        "to": message.to,
+        "cc": message.cc,
+        "bcc": message.bcc,
+        "attachments": message.attachments,
+        "headers": message.extra_headers,
+        "reply_to": message.reply_to,
+        "alternatives": [
+            # Django 5.2 uses a class for alternatives. Previously it was a tuple
+            [msg[0], msg[1]]
+            for msg in message.alternatives
+        ],
+    }
+
+
+def message_from_dict(raw: dict[str, Any]) -> EmailMultiAlternatives:
+    return EmailMultiAlternatives(**raw)
+
+
 class MessageBuilder:
     def __init__(
         self,
@@ -250,7 +273,7 @@ class MessageBuilder:
             send_email_task = send_email.delay
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 send_email_task = send_email_control.delay
-            safe_execute(send_email_task, message=message)
+            safe_execute(send_email_task, message=message_to_dict(message))
             extra["message_id"] = message.extra_headers["Message-Id"]
             metrics.incr("email.queued", instance=self.type, skip_internal=False)
             if fmt == LoggingFormat.HUMAN:

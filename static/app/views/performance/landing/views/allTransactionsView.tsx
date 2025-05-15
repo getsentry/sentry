@@ -4,11 +4,13 @@ import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhanc
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import Table from '../../table';
-import {ProjectPerformanceType} from '../../utils';
-import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
-import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
+import {
+  DoubleChartRow,
+  TripleChartRow,
+} from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import Table from 'sentry/views/performance/table';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import type {BasePerformanceViewProps} from './types';
 

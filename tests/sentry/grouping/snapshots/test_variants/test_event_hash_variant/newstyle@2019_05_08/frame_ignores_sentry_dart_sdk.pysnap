@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:50.056815+00:00'
+created: '2025-04-25T21:22:31.475969+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,7 +9,7 @@ app:
   component:
     app*
       stacktrace*
-        frame*
+        frame* (marked in-app by the client)
           filename*
             "sentry_exception_factory.dart"
           function*

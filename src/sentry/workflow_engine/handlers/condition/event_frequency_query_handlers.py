@@ -25,20 +25,21 @@ from sentry.rules.conditions.event_frequency import (
     STANDARD_INTERVALS,
 )
 from sentry.rules.match import MatchType
-from sentry.tsdb.base import SnubaCondition, TSDBModel
+from sentry.tsdb.base import SnubaCondition, TSDBKey, TSDBModel
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import Registry
 from sentry.utils.snuba import options_override
 from sentry.workflow_engine.models.data_condition import Condition
 
 QueryFilter = dict[str, Any]
+QueryResult = dict[int, int | float]
 
 
 class TSDBFunction(Protocol):
     def __call__(
         self,
         model: TSDBModel,
-        keys: list[int],
+        keys: list[TSDBKey],
         start: datetime,
         end: datetime,
         rollup: int | None = None,
@@ -48,7 +49,8 @@ class TSDBFunction(Protocol):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
-    ) -> dict[int, int]: ...
+        group_on_time: bool = False,
+    ) -> Mapping[TSDBKey, int]: ...
 
 
 class InvalidFilter(Exception):
@@ -100,6 +102,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         environment_id: int | None,
         referrer_suffix: str,
         conditions: list[SnubaCondition] | None = None,
+        group_on_time: bool = False,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
             model=model,
@@ -112,6 +115,7 @@ class BaseEventFrequencyQueryHandler(ABC):
             tenant_ids={"organization_id": organization_id},
             referrer_suffix=referrer_suffix,
             conditions=conditions,
+            group_on_time=group_on_time,
         )
         return result
 
@@ -126,6 +130,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         environment_id: int | None,
         referrer_suffix: str,
         filters: list[QueryFilter] | None = None,
+        group_on_time: bool = False,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -142,6 +147,7 @@ class BaseEventFrequencyQueryHandler(ABC):
                 environment_id=environment_id,
                 referrer_suffix=referrer_suffix,
                 conditions=conditions,
+                group_on_time=group_on_time,
             )
             batch_totals.update(result)
         return batch_totals
@@ -269,7 +275,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         end: datetime,
         environment_id: int | None,
         filters: list[QueryFilter] | None = None,
-    ) -> dict[int, int]:
+    ) -> QueryResult:
         """
         Abstract method that specifies how to query Snuba for multiple groups
         depending on the condition. Must be implemented by subclasses.
@@ -284,7 +290,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         current_time: datetime,
         comparison_interval: timedelta | None,
         filters: list[QueryFilter] | None,
-    ) -> dict[int, int]:
+    ) -> QueryResult:
         """
         Make a batch query for multiple groups. The return value is a dictionary
         of group_id to the result for that group.
@@ -324,8 +330,8 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
         end: datetime,
         environment_id: int | None,
         filters: list[QueryFilter] | None = None,
-    ) -> dict[int, int]:
-        batch_sums: dict[int, int] = defaultdict(int)
+    ) -> QueryResult:
+        batch_sums: QueryResult = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
@@ -348,6 +354,7 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                     environment_id=environment_id,
                     referrer_suffix="batch_alert_event_frequency",
                     filters=filters,
+                    group_on_time=False,
                 )
             except InvalidFilter:
                 # Filter is not supported for this issue type
@@ -369,8 +376,8 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
         end: datetime,
         environment_id: int | None,
         filters: list[QueryFilter] | None = None,
-    ) -> dict[int, int]:
-        batch_sums: dict[int, int] = defaultdict(int)
+    ) -> QueryResult:
+        batch_sums: QueryResult = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
@@ -393,6 +400,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                     environment_id=environment_id,
                     referrer_suffix="batch_alert_event_uniq_user_frequency",
                     filters=filters,
+                    group_on_time=False,
                 )
             except InvalidFilter:
                 # Filter is not supported for this issue type
@@ -439,8 +447,8 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
         end: datetime,
         environment_id: int | None,
         filters: list[QueryFilter] | None = None,
-    ) -> dict[int, int]:
-        batch_percents: dict[int, int] = defaultdict(int)
+    ) -> QueryResult:
+        batch_percents: QueryResult = {}
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
@@ -482,9 +490,10 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_frequency",
                 filters=filters,
+                group_on_time=False,
             )
             for group_id, count in results.items():
-                percent: int = int(100 * round(count / avg_sessions_in_interval, 4))
+                percent: float = 100 * round(count / avg_sessions_in_interval, 4)
                 batch_percents[group_id] = percent
 
         return batch_percents

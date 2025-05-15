@@ -1,3 +1,4 @@
+import time
 import uuid
 from typing import Literal
 
@@ -44,6 +45,8 @@ def convert_rpc_attribute_to_json(
                     column_type = "string"
                 elif val_type in ["int", "float", "double"]:
                     column_type = "number"
+                    if val_type == "double":
+                        val_type = "float"
                 else:
                     raise BadRequest(f"unknown column type in protobuf: {val_type}")
 
@@ -128,7 +131,9 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         start_timestamp_proto.FromSeconds(0)
 
         end_timestamp_proto = ProtoTimestamp()
-        end_timestamp_proto.GetCurrentTime()
+
+        # due to clock drift, the end time can be in the future - add a week to be safe
+        end_timestamp_proto.FromSeconds(int(time.time()) + 60 * 60 * 24 * 7)
 
         trace_id = request.GET.get("trace_id")
         if not trace_id:

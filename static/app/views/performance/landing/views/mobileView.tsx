@@ -3,13 +3,18 @@ import {useTheme} from '@emotion/react';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-
-import Table from '../../table';
-import {ProjectPerformanceType} from '../../utils';
-import {MOBILE_COLUMN_TITLES, REACT_NATIVE_COLUMN_TITLES} from '../data';
-import {checkIsReactNative} from '../utils';
-import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
-import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
+import {
+  MOBILE_COLUMN_TITLES,
+  REACT_NATIVE_COLUMN_TITLES,
+} from 'sentry/views/performance/landing/data';
+import {checkIsReactNative} from 'sentry/views/performance/landing/utils';
+import {
+  DoubleChartRow,
+  TripleChartRow,
+} from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import Table from 'sentry/views/performance/table';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import type {BasePerformanceViewProps} from './types';
 

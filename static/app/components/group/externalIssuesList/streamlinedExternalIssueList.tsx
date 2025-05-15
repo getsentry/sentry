@@ -2,19 +2,21 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {Button, type ButtonProps, LinkButton} from 'sentry/components/core/button';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
 import useGroupExternalIssues from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getActionLabelAndTextValue({
@@ -143,7 +145,13 @@ export function StreamlinedExternalIssueList({
                       icon={integration.displayIcon}
                       disabled={integration.disabled}
                       title={integration.disabled ? integration.disabledText : undefined}
-                      onClick={action.onClick}
+                      onClick={() => {
+                        action.onClick();
+                        trackAnalytics('feedback.details-integration-issue-clicked', {
+                          organization,
+                          integration_key: integration.key,
+                        });
+                      }}
                       href={action.href}
                       external
                     >
@@ -154,7 +162,13 @@ export function StreamlinedExternalIssueList({
                       {...sharedButtonProps}
                       disabled={integration.disabled}
                       title={integration.disabled ? integration.disabledText : undefined}
-                      onClick={action.onClick}
+                      onClick={() => {
+                        action.onClick();
+                        trackAnalytics('feedback.details-integration-issue-clicked', {
+                          organization,
+                          integration_key: integration.key,
+                        });
+                      }}
                     />
                   )}
                 </ErrorBoundary>

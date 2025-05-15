@@ -1,11 +1,12 @@
 import {escapeDoubleQuotes} from 'sentry/utils';
 
-export const ALLOWED_WILDCARD_FIELDS = [
+const ALLOWED_WILDCARD_FIELDS = [
   'span.description',
   'span.domain',
   'span.status_code',
   'log.body',
   'sentry.normalized_description',
+  'transaction',
 ];
 export const EMPTY_OPTION_VALUE = '(empty)';
 
@@ -15,7 +16,7 @@ export enum TokenType {
   FREE_TEXT = 2,
 }
 
-export type Token = {
+type Token = {
   type: TokenType;
   value: string;
   key?: string;
@@ -268,6 +269,10 @@ export class MutableSearch {
 
   getFilterKeys() {
     return Object.keys(this.filters);
+  }
+
+  getTokenKeys() {
+    return this.tokens.map(t => t.key);
   }
 
   hasFilter(key: string): boolean {

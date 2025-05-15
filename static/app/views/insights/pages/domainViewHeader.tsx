@@ -14,23 +14,27 @@ import {TabList} from 'sentry/components/tabs';
 import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness, IconLab} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/backend/laravel/features';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
+import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   isModuleConsideredNew,
   isModuleEnabled,
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
 import FeedbackButtonTour from 'sentry/views/insights/sessions/components/tour/feedbackButtonTour';
+import {EAP_LOCAL_STORAGE_KEY} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -61,21 +65,25 @@ export function DomainViewHeader({
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
-  const navigate = useNavigate();
   const moduleURLBuilder = useModuleURLBuilder();
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
+  const [isNextJsInsightsEnabled] = useIsNextJsInsightsEnabled();
   const useEap = useInsightsEap();
+  const {view} = useDomainViewFilters();
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
+  const [_, setIsEapEnabledLocalState] = useSyncedLocalStorageState(
+    EAP_LOCAL_STORAGE_KEY,
+    false
+  );
 
   const toggleUseEap = () => {
     const newState = !useEap;
-
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        useEap: newState ? '1' : '0',
-      },
+    setIsEapEnabledLocalState(newState);
+    trackAnalytics('insights.eap.toggle', {
+      organization,
+      isEapEnabled: newState,
+      page: selectedModule || 'overview',
+      view,
     });
   };
 
@@ -91,7 +99,10 @@ export function DomainViewHeader({
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
-  const globalQuery = extractSelectionParameters(location?.query);
+  const globalQuery = {
+    ...extractSelectionParameters(location?.query),
+    useEap: location.query?.useEap,
+  };
 
   const tabList: TabListItemProps[] = [
     ...(hasOverviewPage
@@ -136,10 +147,12 @@ export function DomainViewHeader({
             ) : (
               <FeedbackWidgetButton
                 optionOverrides={
-                  isLaravelInsightsAvailable
+                  isLaravelInsightsAvailable || isNextJsInsightsEnabled
                     ? {
                         tags: {
-                          ['feedback.source']: 'laravel-insights',
+                          ['feedback.source']: isLaravelInsightsAvailable
+                            ? 'laravel-insights'
+                            : 'nextjs-insights',
                           ['feedback.owner']: 'telemetry-experience',
                         },
                       }
@@ -180,7 +193,7 @@ export function DomainViewHeader({
               ))}
             </TabList>
           )}
-          {hideDefaultTabs && tabs && tabs.tabList}
+          {hideDefaultTabs && tabs?.tabList}
         </Layout.HeaderTabs>
       </Layout.Header>
     </Fragment>

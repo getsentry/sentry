@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +14,7 @@ jest.mock('sentry/utils/useLocation');
 
 describe('ScreenDetailsPage', function () {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules', 'insights-mobile-screens-module'],
+    features: ['insights-addon-modules'],
   });
   const project = ProjectFixture();
 
@@ -30,22 +31,20 @@ describe('ScreenDetailsPage', function () {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [parseInt(project.id, 10)],
       },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
-    },
-  });
+    })
+  );
 
   describe('Tabs', function () {
     beforeEach(() => {

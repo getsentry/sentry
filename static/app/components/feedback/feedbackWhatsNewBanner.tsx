@@ -4,7 +4,7 @@ import {useEffect} from 'react';
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
 import PageBanner from 'sentry/components/alerts/pageBanner';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -54,7 +54,7 @@ export default function FeedbackWhatsNewBanner({className, style}: Props) {
       description={t(
         'Users can submit feedback anytime they’re having a problem with your app via our feedback widget.'
       )}
-      heading={t('Introducing the New User Feedback')}
+      heading={t('Introducing User Feedback')}
       icon={<IconBroadcast size="sm" />}
       image={replaysDeadRageBackground}
       title={t('What’s new')}

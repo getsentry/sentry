@@ -27,12 +27,12 @@ import {
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -56,7 +56,14 @@ import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constan
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
+import {
+  alertDetailsLink,
+  alertTooltipValueFormatter,
+  isSessionAggregate,
+} from 'sentry/views/alerts/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
@@ -64,14 +71,6 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
 import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
-
-import type {Anomaly, Incident} from '../../../types';
-import {
-  alertDetailsLink,
-  alertTooltipValueFormatter,
-  isSessionAggregate,
-} from '../../../utils';
-import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 import type {TimePeriodType} from './constants';
 import {
@@ -291,15 +290,15 @@ export default function MetricChart({
           {!isSessionAggregate(rule.aggregate) &&
             (getAlertTypeFromAggregateDataset(rule) === 'eap_metrics' ? (
               <Feature features="visibility-explore-view">
-                <Button size="sm" {...props}>
+                <LinkButton size="sm" {...props}>
                   {buttonText}
-                </Button>
+                </LinkButton>
               </Feature>
             ) : (
               <Feature features="discover-basic">
-                <Button size="sm" {...props}>
+                <LinkButton size="sm" {...props}>
                   {buttonText}
-                </Button>
+                </LinkButton>
               </Feature>
             ))}
         </StyledChartControls>
@@ -461,9 +460,8 @@ export default function MetricChart({
       timePeriod,
       referrer: 'api.alerts.alert-rule-chart',
       samplingMode:
-        organization.features.includes('visibility-explore-progressive-loading') &&
         rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-          ? SAMPLING_MODE.BEST_EFFORT
+          ? SAMPLING_MODE.NORMAL
           : undefined,
     },
     {enabled: !shouldUseSessionsStats}

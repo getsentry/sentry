@@ -89,23 +89,33 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             {"name": "tags[bool_attr,number]", "type": "float", "value": 1.0},
             {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
             {"name": "tags[int_attr,number]", "type": "float", "value": 2.0},
+            {
+                "name": "tags[sentry.timestamp_nanos,number]",
+                "type": "float",
+                "value": float(timestamp_nanos),
+            },
             # this is stored as a float for searching, so it is not actually very precise
             {
                 "name": "tags[sentry.timestamp_precise,number]",
                 "type": "float",
-                "value": pytest.approx(float(timestamp_nanos), abs=1e12),
+                "value": float(timestamp_nanos),
             },
             {"name": "project_id", "type": "int", "value": str(self.project.id)},
             {"name": "severity_number", "type": "int", "value": "0"},
             {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
             # this is the precise one
             {
+                "name": "tags[sentry.timestamp_nanos,number]",
+                "type": "int",
+                "value": str(timestamp_nanos),
+            },
+            {
                 "name": "tags[sentry.timestamp_precise,number]",
                 "type": "int",
                 "value": str(timestamp_nanos),
             },
             {"name": "message", "type": "str", "value": "foo"},
-            {"name": "severity_text", "type": "str", "value": "INFO"},
+            {"name": "severity", "type": "str", "value": "INFO"},
             {"name": "str_attr", "type": "str", "value": "1"},
             {"name": "trace", "type": "str", "value": self.trace_uuid},
         ]
@@ -170,6 +180,11 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 {"name": "tags[bool_attr,number]", "type": "float", "value": 1.0},
                 {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
                 {"name": "tags[int_attr,number]", "type": "float", "value": 2.0},
+                {
+                    "name": "tags[sentry.timestamp_nanos,number]",
+                    "type": "float",
+                    "value": pytest.approx(float(timestamp_nanos), abs=1e12),
+                },
                 # this is stored as a float for searching, so it is not actually very precise
                 {
                     "name": "tags[sentry.timestamp_precise,number]",
@@ -179,6 +194,11 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 {"name": "project_id", "type": "int", "value": str(self.project.id)},
                 {"name": "severity_number", "type": "int", "value": "0"},
                 {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
+                {
+                    "name": "tags[sentry.timestamp_nanos,number]",
+                    "type": "int",
+                    "value": str(timestamp_nanos),
+                },
                 # this is the precise one
                 {
                     "name": "tags[sentry.timestamp_precise,number]",
@@ -186,17 +206,22 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                     "value": str(timestamp_nanos),
                 },
                 {"name": "message", "type": "str", "value": "foo"},
-                {"name": "severity_text", "type": "str", "value": "INFO"},
+                {"name": "severity", "type": "str", "value": "INFO"},
                 {"name": "str_attr", "type": "str", "value": "1"},
                 {"name": "trace", "type": "str", "value": self.trace_uuid},
             ],
             "itemId": item_id,
-            "timestamp": self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z",
+            "timestamp": self.one_min_ago.replace(
+                microsecond=0,
+                tzinfo=None,
+            ).isoformat()
+            + "Z",
         }
 
     def test_simple_using_spans_item_type(self):
         span_1 = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
+            measurements={"code.lineno": {"value": 420}},
             start_ts=self.one_min_ago,
         )
         span_1["trace_id"] = self.trace_uuid
@@ -208,6 +233,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
             {"name": "is_segment", "type": "bool", "value": False},
+            {"name": "code.lineno", "type": "float", "value": 420.0},
             {"name": "is_transaction", "type": "float", "value": 0.0},
             {
                 "name": "received",
@@ -228,7 +254,6 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             },
             {"name": "project_id", "type": "int", "value": str(self.project.id)},
             {"name": "span.duration", "type": "int", "value": "1000"},
-            {"name": "event_id", "type": "str", "value": span_1["event_id"]},
             {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
             {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
             {"name": "raw_description", "type": "str", "value": "foo"},
@@ -236,7 +261,16 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             {"name": "sdk.version", "type": "str", "value": "1.0"},
             {"name": "span.status", "type": "str", "value": "success"},
             {"name": "trace", "type": "str", "value": self.trace_uuid},
-            {"name": "transaction.span_id", "type": "str", "value": span_1["segment_id"]},
+            {
+                "name": "transaction.event_id",
+                "type": "str",
+                "value": span_1["event_id"],
+            },
+            {
+                "name": "transaction.span_id",
+                "type": "str",
+                "value": span_1["segment_id"],
+            },
         ]
         assert trace_details_response.data["itemId"] == item_id
         assert (

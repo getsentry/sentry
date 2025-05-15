@@ -13,10 +13,12 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Select} from 'sentry/components/core/select';
 import {SelectOption} from 'sentry/components/core/select/option';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -24,7 +26,6 @@ import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
@@ -527,7 +528,7 @@ function WidgetViewerModal(props: Props) {
                     [WidgetViewerQueryField.CURSOR]: newCursor,
                   },
                 },
-                {replace: true}
+                {replace: true, preventScrollReset: true}
               );
 
               if (widget.displayType === DisplayType.TABLE) {

@@ -55,7 +55,7 @@ export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
         stacktraceOrder: -1,
         timezone: 'America/Los_Angeles',
         prefersIssueDetailsStreamlinedUI: false,
-        prefersSpecializedProjectOverview: {},
+        prefersNextjsInsightsOverview: false,
         prefersStackedNavigation: false,
         prefersChonkUI: false,
         quickStartDisplay: {},
@@ -92,8 +92,8 @@ export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
       // there is a nasty type issue here where "reprocessing" cannot be assigned to
       // resolution status | "reprocessing" and "reprocessing" cannot be assigned to resolution
       // status (fails even if I as const it).
-      // @ts-expect-error
-      status: 'reprocessing',
+      // @ts-expect-error - cannot be assigned to resolution
+      status: 'reprocessing' as const,
       activity: [],
       logger: 'critical',
       type: EventOrGroupType.ERROR,

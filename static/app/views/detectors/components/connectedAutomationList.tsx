@@ -1,67 +1,96 @@
-import {useState} from 'react';
-import styled from '@emotion/styled';
-
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
-import {Grid} from 'sentry/components/gridEditable/styles';
+import {Button} from 'sentry/components/core/button';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
+import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
-import type {Automation} from 'sentry/views/automations/components/automationListRow';
+import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
+import {t} from 'sentry/locale';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 
-export function ConnectedAutomationsList() {
-  const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
+type Props = {
+  automations: Automation[];
+  connectedAutomationIds?: Set<string>;
+  toggleConnected?: (id: string) => void;
+};
 
-  const columnOrder: Array<GridColumnOrder<keyof Automation>> = [
-    {key: 'name', name: 'Name'},
-    {key: 'lastTriggered', name: 'Last Triggered'},
-    {key: 'actions', name: 'Action'},
-  ];
+export function ConnectedAutomationsList({
+  automations,
+  connectedAutomationIds,
+  toggleConnected,
+}: Props) {
+  const organization = useOrganization();
+  const canEdit = connectedAutomationIds && !!toggleConnected;
 
-  const renderHeadCell = (column: GridColumnOrder) => column.name;
+  const data = automations.map(automation => ({
+    ...automation,
+    link: makeAutomationDetailsPathname(organization.slug, automation.id),
+    connected: canEdit
+      ? {
+          isConnected: connectedAutomationIds?.has(automation.id),
+          toggleConnected: () => toggleConnected?.(automation.id),
+        }
+      : undefined,
+  }));
 
-  const renderBodyCell = (
-    column: GridColumnOrder<keyof Automation>,
-    dataRow: Automation
-  ) => {
-    switch (column.key) {
-      case 'name':
-        return (
-          <TitleCell name={dataRow.name} project={dataRow.project} link={dataRow.link} />
-        );
-      case 'lastTriggered':
-        return <TimeAgoCell date={dataRow.lastTriggered} />;
-      case 'actions':
-        return <ActionCell actions={dataRow.actions} />;
-      default:
-        return null;
-    }
-  };
+  if (canEdit) {
+    return <SimpleTable columns={connectedColumns} data={data} />;
+  }
 
   return (
-    <Wrapper>
-      <GridEditable
-        data={[]}
-        columnOrder={columnOrder}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-        onRowMouseOver={(_dataRow, key) => {
-          setActiveRowKey(key);
-        }}
-        onRowMouseOut={() => {
-          setActiveRowKey(undefined);
-        }}
-        highlightedRowKey={activeRowKey}
-      />
-    </Wrapper>
+    <SimpleTable
+      columns={baseColumns}
+      data={data}
+      fallback={t('No automations connected')}
+    />
   );
 }
 
-const Wrapper = styled('div')`
-  ${Grid} {
-    grid-template-columns: 3fr 1fr 1fr !important;
-  }
-`;
+interface BaseAutomationData extends Automation {
+  link: string;
+}
+
+const baseColumns = defineColumns<BaseAutomationData>({
+  name: {
+    Header: () => t('Name'),
+    Cell: ({value, row}) => <AutomationTitleCell name={value} href={row.link} />,
+    width: 'minmax(0, 3fr)',
+  },
+  lastTriggered: {
+    Header: () => t('Last Triggered'),
+    Cell: ({value}) => <TimeAgoCell date={value} />,
+  },
+  actionFilters: {
+    Header: () => t('Actions'),
+    Cell: ({row}) => {
+      const actions = useAutomationActions(row);
+      return <ActionCell actions={actions} />;
+    },
+  },
+});
+
+interface ConnectedAutomationsData extends BaseAutomationData {
+  connected?: {
+    isConnected: boolean;
+    toggleConnected: () => void;
+  };
+}
+
+const connectedColumns = defineColumns<ConnectedAutomationsData>({
+  ...baseColumns,
+  connected: {
+    Header: () => null,
+    Cell: ({value}) =>
+      value && (
+        <Button onClick={value.toggleConnected}>
+          {value.isConnected ? t('Disconnect') : t('Connect')}
+        </Button>
+      ),
+    width: '1fr',
+  },
+});
+
+export interface ConnectedAutomationsListProps {
+  automations: Automation[];
+}

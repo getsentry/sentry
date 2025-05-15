@@ -18,6 +18,7 @@ import prettier from 'eslint-config-prettier';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
+import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 // @ts-expect-error TS(7016): Could not find a declaration file
@@ -29,7 +30,6 @@ import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
 import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
 import invariant from 'invariant';
-// biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
 import {builtinModules} from 'node:module';
 import typescript from 'typescript-eslint';
 
@@ -43,7 +43,11 @@ export const typeAwareLintRules = {
   rules: {
     '@typescript-eslint/await-thenable': 'error',
     '@typescript-eslint/no-array-delete': 'error',
+    '@typescript-eslint/no-for-in-array': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+    '@typescript-eslint/prefer-optional-chain': 'error',
+    '@typescript-eslint/consistent-type-exports': 'error',
+    '@typescript-eslint/consistent-type-imports': 'error',
   },
 };
 
@@ -106,6 +110,21 @@ const restrictedImportPaths = [
     name: 'moment',
     message: 'Please import moment-timezone instead of moment',
   },
+  {
+    name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsLineChartWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsAreaChartWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -159,8 +178,8 @@ export default typescript.config([
     },
     settings: {
       react: {
-        version: '19.0.0',
-        defaultVersion: '19.0',
+        version: '19.1.0',
+        defaultVersion: '19.1',
       },
       'import/parsers': {'@typescript-eslint/parser': ['.ts', '.tsx']},
       'import/resolver': {typescript: {}},
@@ -184,7 +203,8 @@ export default typescript.config([
     '**/*.benchmark.ts',
     '**/*.d.ts',
     '**/dist/**/*',
-    '**/tests/**/fixtures/**/*',
+    'tests/**/fixtures/**/*',
+    '!tests/js/**/*',
     '**/vendor/**/*',
     'build-utils/**/*',
     'config/chartcuterie/config.js',
@@ -313,6 +333,13 @@ export default typescript.config([
           message:
             'Please do not mock useOrganization. Pass organization to the render options. `render(<Component />, {organization: OrganizationFixture({isSuperuser: true})})`',
         },
+        {
+          // Forces us to use type annotations for let variables that are initialized with a type,
+          // except for those declared in for...of or for...in loops.
+          selector:
+            'VariableDeclaration[kind = "let"]:not(ForOfStatement > VariableDeclaration, ForInStatement > VariableDeclaration) > VariableDeclarator[init = null]:not([id.typeAnnotation])',
+          message: 'Provide a type annotation',
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
@@ -363,6 +390,21 @@ export default typescript.config([
       'import/no-named-as-default-member': 'off', // Disabled in favor of typescript-eslint
       'import/no-named-as-default': 'off', // TODO(ryan953): Fix violations and enable this rule
       'import/no-unresolved': 'off', // Disabled in favor of typescript-eslint
+    },
+  },
+  {
+    name: 'plugin/no-relative-import-paths',
+    // https://github.com/MelvinVermeer/eslint-plugin-no-relative-import-paths?tab=readme-ov-file#rule-options
+    plugins: {'no-relative-import-paths': noRelativeImportPaths},
+    rules: {
+      'no-relative-import-paths/no-relative-import-paths': [
+        'error',
+        {
+          prefix: 'sentry',
+          rootDir: 'static/app',
+          allowSameFolder: true, // TODO(ryan953): followup and investigate `allowSameFolder`, maybe exceptions for *.spec.tsx files?
+        },
+      ],
     },
   },
   {
@@ -779,6 +821,26 @@ export default typescript.config([
     },
   },
   {
+    name: 'files/insights-chart-widgets',
+    files: ['static/app/views/insights/common/components/widgets/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          // Allow these imports only in the above widgets directory in `files`
+          paths: restrictedImportPaths.filter(
+            ({name}) =>
+              ![
+                'sentry/views/insights/common/components/insightsLineChartWidget',
+                'sentry/views/insights/common/components/insightsAreaChartWidget',
+                'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+              ].includes(name)
+          ),
+        },
+      ],
+    },
+  },
+  {
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
@@ -838,6 +900,14 @@ export default typescript.config([
     name: 'files/gsApp',
     files: ['static/gsApp/**/*.{js,mjs,ts,jsx,tsx}'],
     rules: {
+      'no-relative-import-paths/no-relative-import-paths': [
+        'error',
+        {
+          prefix: 'getsentry',
+          rootDir: 'static/gsApp',
+          allowSameFolder: true, // TODO(ryan953): followup and investigate `allowSameFolder`, maybe exceptions for *.spec.tsx files?
+        },
+      ],
       'no-restricted-imports': [
         'error',
         {
@@ -866,6 +936,14 @@ export default typescript.config([
     name: 'files/gsAdmin',
     files: ['static/gsAdmin/**/*.{js,mjs,ts,jsx,tsx}'],
     rules: {
+      'no-relative-import-paths/no-relative-import-paths': [
+        'error',
+        {
+          prefix: 'admin',
+          rootDir: 'static/gsAdmin',
+          allowSameFolder: true, // TODO(ryan953): followup and investigate `allowSameFolder`, maybe exceptions for *.spec.tsx files?
+        },
+      ],
       'no-restricted-imports': [
         'error',
         {
@@ -880,10 +958,22 @@ export default typescript.config([
               message:
                 "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
             },
+            {
+              group: ['sentry/locale'],
+              message: 'Do not import locale into gsAdmin. No translations required.',
+            },
           ],
           paths: restrictedImportPaths,
         },
       ],
+    },
+  },
+  {
+    name: 'files/getsentry-test',
+    files: ['tests/js/getsentry-test/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      // Allow imports from gsApp into getsentry-test fixtures
+      'no-restricted-imports': 'off',
     },
   },
 ]);

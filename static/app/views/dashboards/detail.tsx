@@ -50,6 +50,8 @@ import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -68,11 +70,10 @@ import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetB
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {generatePerformanceEventView} from 'sentry/views/performance/data';
+import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
-
-import {generatePerformanceEventView} from '../performance/data';
-import {MetricsDataSwitcher} from '../performance/landing/metricsDataSwitcher';
-import {DiscoverQueryPageSource} from '../performance/utils';
+import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
 import type {WidgetViewerContextProps} from './widgetViewer/widgetViewerContext';
 import {WidgetViewerContext} from './widgetViewer/widgetViewerContext';
@@ -94,13 +95,7 @@ import type {
   DashboardPermissions,
   Widget,
 } from './types';
-import {
-  DashboardFilterKeys,
-  DashboardState,
-  DashboardWidgetSource,
-  MAX_WIDGETS,
-  WidgetType,
-} from './types';
+import {DashboardFilterKeys, DashboardState, MAX_WIDGETS, WidgetType} from './types';
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
@@ -123,6 +118,7 @@ type Props = RouteComponentProps<RouteParams> & {
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   initialState: DashboardState;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   projects: Project[];
   route: PlainRoute;
@@ -197,7 +193,7 @@ export function checkUserHasEditAccess(
   dashboardCreator?: User
 ): boolean {
   if (
-    hasEveryAccess(['org:write'], {organization}) || // Managers and Owners
+    hasEveryAccess(['org:admin'], {organization}) || // Owners
     !dashboardPermissions ||
     dashboardPermissions.isEditableByEveryone ||
     dashboardCreator?.id === currentUser.id
@@ -258,7 +254,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboard: this.props.dashboard,
       organization: this.props.organization,
       location: this.props.location,
-      router: this.props.router,
+      navigate: this.props.navigate,
     }),
     isSavingDashboardFilters: false,
     isWidgetBuilderOpen: this.isRedesignedWidgetBuilder,
@@ -287,7 +283,7 @@ class DashboardDetail extends Component<Props, State> {
         widgetLegendState: new WidgetLegendSelectionState({
           organization: this.props.organization,
           location: this.props.location,
-          router: this.props.router,
+          navigate: this.props.navigate,
           dashboard: this.props.dashboard,
         }),
       });
@@ -296,11 +292,12 @@ class DashboardDetail extends Component<Props, State> {
 
   checkIfShouldMountWidgetViewerModal() {
     const {
-      params: {widgetId, dashboardId},
+      params: {widgetId},
       organization,
       dashboard,
       location,
       router,
+      navigate,
     } = this.props;
     const {
       seriesData,
@@ -341,10 +338,13 @@ class DashboardDetail extends Component<Props, State> {
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
-            router.push({
-              pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
-              query,
-            });
+            navigate(
+              {
+                pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
+                query,
+              },
+              {preventScrollReset: true}
+            );
           },
           onEdit: () => {
             const widgetIndex = dashboard.widgets.findIndex(
@@ -361,24 +361,8 @@ class DashboardDetail extends Component<Props, State> {
               return;
             }
 
-            if (organization.features.includes('dashboards-widget-builder-redesign')) {
-              this.onEditWidget(widget);
-              return;
-            }
-            if (dashboardId) {
-              const query = omit(location.query, Object.values(WidgetViewerQueryField));
-
-              router.push(
-                normalizeUrl({
-                  pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
-                  query: {
-                    ...query,
-                    source: DashboardWidgetSource.DASHBOARDS,
-                  },
-                })
-              );
-              return;
-            }
+            this.onEditWidget(widget);
+            return;
           },
           confidence,
           sampleCount,
@@ -457,10 +441,6 @@ class DashboardDetail extends Component<Props, State> {
   get isRedesignedWidgetBuilder() {
     const {organization, location, params} = this.props;
     const {dashboardId, widgetIndex} = params;
-
-    if (!organization.features.includes('dashboards-widget-builder-redesign')) {
-      return false;
-    }
 
     const widgetBuilderRoutes = [
       `/organizations/${organization.slug}/dashboard/new/widget-builder/widget/new/`,
@@ -648,20 +628,6 @@ class DashboardDetail extends Component<Props, State> {
               },
             })
           );
-        } else if (
-          !organization.features.includes('dashboards-widget-builder-redesign')
-        ) {
-          // If we're not using the new widget builder, we need to replace the URL to
-          // ensure we're navigating back to the dashboard
-          browserHistory.replace(
-            normalizeUrl({
-              pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
-              query: {
-                ...location.query,
-                unselectedSeries: legendQuery,
-              },
-            })
-          );
         }
         addSuccessMessage(t('Dashboard updated'));
 
@@ -679,90 +645,51 @@ class DashboardDetail extends Component<Props, State> {
     this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
-  onAddWidget = (dataset?: DataSet) => {
+  onAddWidget = (dataset: DataSet, openWidgetTemplates?: boolean) => {
     const {
       organization,
       dashboard,
-      router,
-      location,
-      params: {dashboardId},
-    } = this.props;
-
-    if (organization.features.includes('dashboards-widget-builder-redesign')) {
-      this.onAddWidgetFromNewWidgetBuilder(dataset ?? DataSet.ERRORS);
-
-      return;
-    }
-
-    this.setState(
-      {
-        modifiedDashboard: cloneDashboard(dashboard),
-      },
-      () => {
-        if (dashboardId) {
-          router.push(
-            normalizeUrl({
-              pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
-              query: {
-                ...location.query,
-                source: DashboardWidgetSource.DASHBOARDS,
-                dataset,
-              },
-            })
-          );
-        }
-      }
-    );
-  };
-
-  onAddWidgetFromNewWidgetBuilder = (dataset: DataSet, openWidgetTemplates?: boolean) => {
-    const {
-      organization,
-      dashboard,
-      router,
+      navigate,
       location,
       params: {dashboardId},
     } = this.props;
     const {modifiedDashboard} = this.state;
-    if (organization.features.includes('dashboards-widget-builder-redesign')) {
-      this.setState(
-        {
-          modifiedDashboard: cloneDashboard(modifiedDashboard ?? dashboard),
-        },
-        () => {
-          this.setState({
-            isWidgetBuilderOpen: true,
-            openWidgetTemplates: openWidgetTemplates ?? false,
-          });
-          let pathname = `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`;
-          if (!defined(dashboardId)) {
-            pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
-          }
-          router.push(
-            normalizeUrl({
-              // TODO: Replace with the old widget builder path when swapping over
-              pathname,
-              query: {
-                ...location.query,
-                ...(openWidgetTemplates
-                  ? {}
-                  : convertWidgetToBuilderStateParams(
-                      getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
-                    )),
-              },
-            })
-          );
+    this.setState(
+      {
+        modifiedDashboard: cloneDashboard(modifiedDashboard ?? dashboard),
+      },
+      () => {
+        this.setState({
+          isWidgetBuilderOpen: true,
+          openWidgetTemplates: openWidgetTemplates ?? false,
+        });
+        let pathname = `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`;
+        if (!defined(dashboardId)) {
+          pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
         }
-      );
-
-      return;
-    }
+        navigate(
+          normalizeUrl({
+            // TODO: Replace with the old widget builder path when swapping over
+            pathname,
+            query: {
+              ...location.query,
+              ...(openWidgetTemplates
+                ? {}
+                : convertWidgetToBuilderStateParams(
+                    getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
+                  )),
+            },
+          }),
+          {preventScrollReset: true}
+        );
+      }
+    );
 
     return;
   };
 
   onEditWidget = (widget: Widget) => {
-    const {router, organization, params, location, dashboard} = this.props;
+    const {navigate, organization, params, location, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
     const currentDashboard = modifiedDashboard ?? dashboard;
     const {dashboardId} = params;
@@ -790,24 +717,19 @@ class DashboardDetail extends Component<Props, State> {
     const path = defined(dashboardId)
       ? `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`
       : `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`;
-    router.push(
+    navigate(
       normalizeUrl({
         pathname: path,
         query: {
           ...location.query,
           ...convertWidgetToBuilderStateParams(widget),
         },
-      })
+      }),
+      {preventScrollReset: true}
     );
   };
 
   handleSaveWidget = ({index, widget}: {index: number | undefined; widget: Widget}) => {
-    if (
-      !this.props.organization.features.includes('dashboards-widget-builder-redesign')
-    ) {
-      return;
-    }
-
     const currentDashboard = this.state.modifiedDashboard ?? this.props.dashboard;
 
     // Get the "base" widget and merge the changes to persist information like tempIds and layout
@@ -858,18 +780,19 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleCloseWidgetBuilder = () => {
-    const {organization, router, location, params} = this.props;
+    const {organization, navigate, location, params} = this.props;
 
     this.setState({
       isWidgetBuilderOpen: false,
       openWidgetTemplates: undefined,
     });
-    router.push(
+    navigate(
       getDashboardLocation({
         organization,
         dashboardId: params.dashboardId,
         location,
-      })
+      }),
+      {preventScrollReset: true}
     );
   };
 
@@ -1072,7 +995,6 @@ class DashboardDetail extends Component<Props, State> {
                     onCancel={this.onCancel}
                     onCommit={this.onCommit}
                     onAddWidget={this.onAddWidget}
-                    onAddWidgetFromNewWidgetBuilder={this.onAddWidgetFromNewWidgetBuilder}
                     onChangeEditAccess={this.onChangeEditAccess}
                     onDelete={this.onDelete(dashboard)}
                     dashboardState={dashboardState}
@@ -1114,9 +1036,6 @@ class DashboardDetail extends Component<Props, State> {
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
-                          onAddWidgetFromNewWidgetBuilder={
-                            this.onAddWidgetFromNewWidgetBuilder
-                          }
                           isPreview={this.isPreview}
                           router={router}
                           location={location}
@@ -1224,9 +1143,6 @@ class DashboardDetail extends Component<Props, State> {
                         onCancel={this.onCancel}
                         onCommit={this.onCommit}
                         onAddWidget={this.onAddWidget}
-                        onAddWidgetFromNewWidgetBuilder={
-                          this.onAddWidgetFromNewWidgetBuilder
-                        }
                         onDelete={this.onDelete(dashboard)}
                         onChangeEditAccess={this.onChangeEditAccess}
                         dashboardState={dashboardState}
@@ -1356,16 +1272,13 @@ class DashboardDetail extends Component<Props, State> {
                                     onUpdate={this.onUpdateWidget}
                                     handleUpdateWidgetList={this.handleUpdateWidgetList}
                                     handleAddCustomWidget={this.handleAddCustomWidget}
-                                    onAddWidgetFromNewWidgetBuilder={
-                                      this.onAddWidgetFromNewWidgetBuilder
-                                    }
+                                    onAddWidget={this.onAddWidget}
                                     router={router}
                                     location={location}
                                     newWidget={newWidget}
                                     onSetNewWidget={onSetNewWidget}
                                     isPreview={this.isPreview}
                                     widgetLegendState={this.state.widgetLegendState}
-                                    onAddWidget={this.onAddWidget}
                                     onEditWidget={this.onEditWidget}
                                   />
 
@@ -1431,10 +1344,11 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-function DashboardDetailWithTheme(props: Props) {
+function DashboardDetailWithThemeAndNavigate(props: Omit<Props, 'theme' | 'navigate'>) {
   const theme = useTheme();
-  return <DashboardDetail {...props} theme={theme} />;
+  const navigate = useNavigate();
+  return <DashboardDetail {...props} theme={theme} navigate={navigate} />;
 }
 export default withPageFilters(
-  withProjects(withApi(withOrganization(DashboardDetailWithTheme)))
+  withProjects(withApi(withOrganization(DashboardDetailWithThemeAndNavigate)))
 );

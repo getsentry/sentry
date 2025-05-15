@@ -70,6 +70,9 @@ from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import telemetry_experience_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
 
@@ -93,6 +96,14 @@ OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, Dec
     soft_time_limit=10 * 60,  # 10 minutes
     time_limit=10 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=10 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects(context: TaskContext) -> None:
@@ -167,6 +178,14 @@ def partition_by_measure(
     soft_time_limit=3 * 60,
     time_limit=3 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=3 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects_of_org_with_query(
@@ -212,6 +231,14 @@ def boost_low_volume_projects_of_org_with_query(
     soft_time_limit=3 * 60,
     time_limit=3 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=3 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(

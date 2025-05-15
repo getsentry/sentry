@@ -7,10 +7,12 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-
-import type {SpanOperationBreakdownFilter} from '../filter';
-import {filterToField} from '../filter';
-import {getTransactionSummaryBaseUrl, TransactionFilterOptions} from '../utils';
+import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {filterToField} from 'sentry/views/performance/transactionSummary/filter';
+import {
+  getTransactionSummaryBaseUrl,
+  TransactionFilterOptions,
+} from 'sentry/views/performance/transactionSummary/utils';
 
 export enum EventsDisplayFilterName {
   P50 = 'p50',
@@ -20,18 +22,18 @@ export enum EventsDisplayFilterName {
   P100 = 'p100',
 }
 
-export type PercentileValues = Record<EventsDisplayFilterName, number>;
+type PercentileValues = Record<EventsDisplayFilterName, number>;
 
-export type EventsDisplayFilter = {
+type EventsDisplayFilter = {
   label: string;
   name: EventsDisplayFilterName;
   query?: string[][];
   sort?: {field: string; kind: 'desc' | 'asc'};
 };
 
-export type EventsFilterOptions = Record<EventsDisplayFilterName, EventsDisplayFilter>;
+type EventsFilterOptions = Record<EventsDisplayFilterName, EventsDisplayFilter>;
 
-export type EventsFilterPercentileValues = Record<
+type EventsFilterPercentileValues = Record<
   Exclude<EventsDisplayFilterName, EventsDisplayFilterName.P100>,
   number
 >;

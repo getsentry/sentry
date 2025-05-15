@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -51,7 +51,7 @@ function ProjectPageFilterMenuFooter({
       <LinkButton
         size="xs"
         aria-label={t('Add Project')}
-        to={makeProjectsPathname({path: '/new/', orgSlug: organization.slug})}
+        to={makeProjectsPathname({path: '/new/', organization})}
         icon={<IconAdd isCircled />}
       >
         {t('Project')}

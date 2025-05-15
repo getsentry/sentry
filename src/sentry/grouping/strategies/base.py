@@ -292,7 +292,6 @@ class Strategy(Generic[ConcreteInterface]):
 class StrategyConfiguration:
     id: str | None
     base: type[StrategyConfiguration] | None = None
-    config_class = None
     strategies: dict[str, Strategy[Any]] = {}
     delegates: dict[str, Strategy[Any]] = {}
     changelog: str | None = None
@@ -304,9 +303,9 @@ class StrategyConfiguration:
 
     def __init__(self, enhancements: str | None = None, **extra: Any):
         if enhancements is None:
-            enhancements_instance = Enhancements.from_config_string("")
+            enhancements_instance = Enhancements.from_rules_text("")
         else:
-            enhancements_instance = Enhancements.loads(enhancements)
+            enhancements_instance = Enhancements.from_base64_string(enhancements)
         self.enhancements = enhancements_instance
 
     def __repr__(self) -> str:

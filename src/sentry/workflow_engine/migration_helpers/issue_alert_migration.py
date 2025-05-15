@@ -1,6 +1,9 @@
 import logging
 from typing import Any
 
+from rest_framework import status
+
+from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
@@ -34,6 +37,12 @@ from sentry.workflow_engine.models.data_condition import (
 logger = logging.getLogger(__name__)
 
 SKIPPED_CONDITIONS = [Condition.EVERY_EVENT]
+
+
+class UnableToAcquireLockApiError(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "unable_to_acquire_lock"
+    message = "Unable to acquire lock for issue alert migration."
 
 
 class IssueAlertMigrator:
@@ -75,6 +84,7 @@ class IssueAlertMigrator:
         return workflow
 
     def _create_detector_lookup(self) -> Detector:
+
         if self.is_dry_run:
             created = True
             error_detector = Detector.objects.filter(
@@ -194,7 +204,10 @@ class IssueAlertMigrator:
         no_conditions = len(conditions) == 0
         no_data_conditions = len(data_conditions) == 0
         only_has_every_event_cond = (
-            len(conditions) == 1 and conditions[0]["id"] == EveryEventCondition.id
+            len(
+                [condition for condition in conditions if condition["id"] == EveryEventCondition.id]
+            )
+            > 0
         )
 
         if not self.is_dry_run:

@@ -1,6 +1,5 @@
 import type React from 'react';
 import {
-  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -10,7 +9,6 @@ import {
   useState,
 } from 'react';
 import {flushSync} from 'react-dom';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -19,11 +17,11 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {IconGrabbable} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
   cancelAnimationTimeout,
@@ -31,32 +29,27 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
+import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {
-  DEFAULT_TRACE_VIEW_PREFERENCES,
-  loadTraceViewPreferences,
-} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
-import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
+import type {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
+import type {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
-import {TraceScheduler} from './traceRenderers/traceScheduler';
-import {TraceView as TraceViewModel} from './traceRenderers/traceView';
-import {
-  type ViewManagerScrollAnchor,
-  VirtualizedViewManager,
-} from './traceRenderers/virtualizedViewManager';
 import {
   searchInTraceTreeText,
   searchInTraceTreeTokens,
@@ -81,7 +74,6 @@ import {
 } from './traceGuards';
 import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceResetZoomButton} from './traceResetZoomButton';
-import {TraceShortcuts} from './traceShortcutsModal';
 import type {TraceReducer, TraceReducerState} from './traceState';
 import {
   traceNodeAdjacentAnalyticsProperties,
@@ -95,7 +87,6 @@ import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
 const MIN_HEIGHT = 150;
-const DEFAULT_HEIGHT = 330;
 const MAX_HEIGHT = 1500;
 
 const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
@@ -103,20 +94,17 @@ const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
   label: t('Trace'),
 };
 
-const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
-  node: 'vitals',
-  label: t('Vitals'),
-};
-
 export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
   organization: Organization;
   replay: ReplayRecord | null;
-  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  rootEventResults: TraceRootEventQueryResults;
   source: string;
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
   traceSlug: string;
+  traceWaterfallModels: ReturnType<typeof useTraceWaterfallModels>;
+  traceWaterfallScrollHandlers: ReturnType<typeof useTraceWaterfallScroll>;
   tree: TraceTree;
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
@@ -128,21 +116,24 @@ function clampHeight(height: number) {
 }
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
-  const theme = useTheme();
   const api = useApi();
   const filters = usePageFilters();
   const {projects} = useProjects();
   const organization = useOrganization();
+  const hasTraceTabsUi = useHasTraceTabsUI();
 
-  const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
-  const hasTraceNewUi = useHasTraceNewUi();
+
+  const traceState = useTraceState();
+
+  const traceStateRef = useRef<TraceReducerState>(traceState);
+  traceStateRef.current = traceState;
+
+  const {viewManager, traceScheduler, traceView} = props.traceWaterfallModels;
+  const {onScrollToNode, scrollRowIntoView} = props.traceWaterfallScrollHandlers;
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
-
-  const traceView = useMemo(() => new TraceViewModel(), []);
-  const traceScheduler = useMemo(() => new TraceScheduler(), []);
 
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
@@ -151,6 +142,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
+
+  const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {
@@ -185,30 +178,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.tree, props.replayTraces]);
 
-  // Assign the trace state to a ref so we can access it without re-rendering
-  const traceStateRef = useRef<TraceReducerState>(traceState);
-  traceStateRef.current = traceState;
-
-  const traceStatePreferencesRef = useRef<
-    Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
-  >(traceState.preferences);
-  traceStatePreferencesRef.current = traceState.preferences;
-
-  // Initialize the view manager right after the state reducer
-  const viewManager = useMemo(() => {
-    return new VirtualizedViewManager(
-      {
-        list: {width: traceState.preferences.list.width},
-        span_list: {width: 1 - traceState.preferences.list.width},
-      },
-      traceScheduler,
-      traceView,
-      theme
-    );
-    // We only care about initial state when we initialize the view manager
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
     return traceDispatch({
@@ -223,31 +192,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       return;
     }
 
-    // New trace UI has the trace info and web vitalsin the bottom drawer
-    const newTabs = hasTraceNewUi ? [] : [TRACE_TAB];
-
-    if (props.tree.vitals.size > 0 && !hasTraceNewUi) {
-      const types = Array.from(props.tree.vital_types.values());
-      const label = types.length > 1 ? t('Vitals') : capitalize(types[0]!) + ' Vitals';
-
-      newTabs.push({
-        ...VITALS_TAB,
-        label,
-      });
-    }
-
-    if (props.tree.profiled_events.size > 0) {
-      newTabs.push({
-        node: 'profiles',
-        label: 'Profiles',
-      });
-    }
-
     traceDispatch({
       type: 'initialize tabs reducer',
       payload: {
         current_tab: traceStateRef?.current?.tabs?.tabs?.[0] ?? null,
-        tabs: newTabs,
+        tabs: [],
         last_clicked_tab: null,
       },
     });
@@ -341,9 +290,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     ) => {
       // sync query string with the clicked node
       if (node) {
-        // The new ui has the trace info and web vitals in the bottom drawer and
-        // we don't treat the trace node as a clickable node
-        if ((isTraceNode(node) || isEAPTraceNode(node)) && hasTraceNewUi) {
+        if (isTraceNode(node) || isEAPTraceNode(node)) {
           return;
         }
 
@@ -390,7 +337,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         });
       }
     },
-    [traceDispatch, hasTraceNewUi]
+    [traceDispatch]
   );
 
   const onRowClick = useCallback(
@@ -399,9 +346,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
-      // The new ui has the trace info and web vitals in the bottom drawer and
-      // we don't treat the trace node as a clickable node
-      if ((isTraceNode(node) || isEAPTraceNode(node)) && hasTraceNewUi) {
+      if (isTraceNode(node) || isEAPTraceNode(node)) {
         traceDispatch({
           type: 'set roving index',
           action_source: 'click',
@@ -443,74 +388,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         node,
       });
     },
-    [setRowAsFocused, traceDispatch, organization, projects, hasTraceNewUi]
-  );
-
-  const scrollRowIntoView = useCallback(
-    (
-      node: TraceTreeNode<TraceTree.NodeValue>,
-      index: number,
-      anchor?: ViewManagerScrollAnchor,
-      force?: boolean
-    ) => {
-      // Last node we scrolled to is the same as the node we want to scroll to
-      if (previouslyScrolledToNodeRef.current === node && !force) {
-        return;
-      }
-
-      // Always scroll to the row vertically
-      viewManager.scrollToRow(index, anchor);
-      if (viewManager.isOutsideOfView(node)) {
-        viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
-      }
-      previouslyScrolledToNodeRef.current = node;
-    },
-    [viewManager]
-  );
-
-  const onScrollToNode = useCallback(
-    (
-      node: TraceTreeNode<TraceTree.NodeValue>
-    ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
-      return TraceTree.ExpandToPath(props.tree, TraceTree.PathToNode(node), {
-        api,
-        organization: props.organization,
-        preferences: traceStatePreferencesRef.current,
-      }).then(() => {
-        const maybeNode = TraceTree.Find(props.tree.root, n => n === node);
-
-        if (!maybeNode) {
-          return null;
-        }
-
-        const index = TraceTree.EnforceVisibility(props.tree, maybeNode);
-        if (index === -1) {
-          return null;
-        }
-
-        scrollRowIntoView(maybeNode, index, 'center if outside', true);
-        traceDispatch({
-          type: 'set roving index',
-          node: maybeNode,
-          index,
-          action_source: 'click',
-        });
-
-        if (traceStateRef.current.search.resultsLookup.has(maybeNode)) {
-          traceDispatch({
-            type: 'set search iterator index',
-            resultIndex: index,
-            resultIteratorIndex:
-              traceStateRef.current.search.resultsLookup.get(maybeNode)!,
-          });
-        } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
-          traceDispatch({type: 'clear search iterator index'});
-        }
-
-        return maybeNode;
-      });
-    },
-    [api, props.organization, scrollRowIntoView, props.tree, traceDispatch]
+    [setRowAsFocused, traceDispatch, organization, projects]
   );
 
   const onTabScrollToNode = useCallback(
@@ -748,6 +626,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     onTraceLoad,
     pathToNodeOrEventId: scrollQueueRef.current,
     tree: props.tree,
+    meta: props.meta,
   });
 
   // Sync part of the state with the URL
@@ -835,24 +714,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
   ]);
 
-  const [height, setHeight] = useState(DEFAULT_HEIGHT);
-
-  const preferences = useMemo(
-    () =>
-      loadTraceViewPreferences('trace-view-preferences') ||
-      DEFAULT_TRACE_VIEW_PREFERENCES,
-    []
+  const [height, setHeight] = useState(
+    clampHeight(traceState.preferences.drawer.sizes['trace grid height'])
   );
 
-  useEffect(() => {
-    const loadedHeight = preferences.drawer.sizes['trace grid height'];
-
-    if (traceGridRef && typeof loadedHeight !== 'undefined') {
-      const newHeight = clampHeight(loadedHeight);
-      setHeight(newHeight);
-      traceGridRef.style.setProperty('--panel-height', `${loadedHeight}px`);
-    }
-  }, [preferences.drawer.sizes, traceGridRef]);
   const handleMouseDown = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
@@ -903,7 +768,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   }
 
   return (
-    <Fragment>
+    <FlexBox>
       <TraceTypeWarnings
         tree={props.tree}
         traceSlug={props.traceSlug}
@@ -911,17 +776,21 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       />
       <TraceToolbar>
         <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
+        <TraceOpenInExploreButton
+          trace_id={props.traceSlug}
+          traceEventView={props.traceEventView}
+        />
         <TraceResetZoomButton
           viewManager={viewManager}
           organization={props.organization}
         />
-        <TraceShortcuts />
         <TraceActionsMenu
           traceSlug={props.traceSlug}
-          rootEventResults={props.rootEvent}
+          rootEventResults={props.rootEventResults}
           traceEventView={props.traceEventView}
         />
         <TracePreferencesDropdown
+          rootEventResults={props.rootEventResults}
           autogroup={
             traceState.preferences.autogroup.parent &&
             traceState.preferences.autogroup.sibling
@@ -934,21 +803,32 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       <TraceGrid
         layout={traceState.preferences.layout}
         ref={setTraceGridRef}
-        hideBottomBorder={hasTraceNewUi}
+        minHeight={height}
+        hasTraceTabsUi={hasTraceTabsUi}
       >
-        <Trace
-          metaQueryResults={props.meta}
-          trace={props.tree}
-          rerender={rerender}
-          trace_id={props.traceSlug}
-          onRowClick={onRowClick}
-          onTraceSearch={onTraceSearch}
-          previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-          manager={viewManager}
-          scheduler={traceScheduler}
-          forceRerender={forceRender}
-          isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
-        />
+        <DemoTourElement
+          id={DemoTourStep.PERFORMANCE_SPAN_TREE}
+          title={t('Trace Waterfall')}
+          description={t(
+            `Trace Waterfall offers a detailed look at traces for debugging slow services and errors.
+            Each span represents a single operation or function call in the trace.
+            Expanding a span will display sub-spans, and clicking on a span will display more details about the span.`
+          )}
+        >
+          <Trace
+            metaQueryResults={props.meta}
+            trace={props.tree}
+            rerender={rerender}
+            trace_id={props.traceSlug}
+            onRowClick={onRowClick}
+            onTraceSearch={onTraceSearch}
+            previouslyFocusedNodeRef={previouslyFocusedNodeRef}
+            manager={viewManager}
+            scheduler={traceScheduler}
+            forceRerender={forceRender}
+            isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
+          />
+        </DemoTourElement>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
           <TraceWaterfallState.Loading />
@@ -969,14 +849,38 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           scheduler={traceScheduler}
           onTabScrollToNode={onTabScrollToNode}
           onScrollToNode={onScrollToNode}
-          rootEventResults={props.rootEvent}
           traceEventView={props.traceEventView}
         />
       </TraceGrid>
-      <GrabberContainer onMouseDown={handleMouseDown}>
-        <IconGrabbable color="gray500" />
-      </GrabberContainer>
-    </Fragment>
+      {!hasTraceTabsUi && (
+        <GrabberContainer onMouseDown={handleMouseDown}>
+          <IconGrabbable color="gray500" />
+        </GrabberContainer>
+      )}
+      {showLinkedTraces && !isTraceItemDetailsResponse(props.rootEventResults.data) && (
+        <TraceLinksNavigationContainer>
+          <TraceLinkNavigationButton
+            direction={'previous'}
+            isLoading={props.rootEventResults.isLoading}
+            traceContext={props.rootEventResults.data?.contexts.trace}
+            currentTraceTimestamps={{
+              start: props.rootEventResults.data?.startTimestamp,
+              end: props.rootEventResults.data?.endTimestamp,
+            }}
+          />
+          <TraceLinkNavigationButton
+            direction={'next'}
+            isLoading={props.rootEventResults.isLoading}
+            projectID={props.rootEventResults.data?.projectID ?? ''}
+            traceContext={props.rootEventResults.data?.contexts.trace}
+            currentTraceTimestamps={{
+              start: props.rootEventResults.data?.startTimestamp,
+              end: props.rootEventResults.data?.endTimestamp,
+            }}
+          />
+        </TraceLinksNavigationContainer>
+      )}
+    </FlexBox>
   );
 }
 
@@ -985,6 +889,7 @@ const GrabberContainer = styled('div')`
   justify-content: center;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
+  border-top: none;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   display: flex;
 
@@ -998,15 +903,24 @@ const GrabberContainer = styled('div')`
 `;
 
 const TraceToolbar = styled('div')`
-  flex-grow: 0;
-  display: grid;
-  grid-template-columns: 1fr min-content min-content min-content;
+  display: flex;
   gap: ${space(1)};
+`;
+
+const TraceLinksNavigationContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+
+  &:not(:empty) {
+    margin-top: ${space(1)};
+  }
 `;
 
 export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
-  hideBottomBorder?: boolean;
+  minHeight: number;
+  hasTraceTabsUi?: boolean;
 }>`
   --info: ${p => p.theme.purple400};
   --warning: ${p => p.theme.yellow300};
@@ -1018,7 +932,7 @@ export const TraceGrid = styled('div')<{
   --profile: ${p => p.theme.purple300};
   --autogrouped: ${p => p.theme.blue300};
   --occurence: ${p => p.theme.blue300};
-  --panel-height: ${DEFAULT_HEIGHT}px;
+  --panel-height: ${p => p.minHeight}px;
 
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
@@ -1048,8 +962,13 @@ export const TraceGrid = styled('div')<{
   grid-template-rows: 1fr auto;
 
   ${p =>
-    p.hideBottomBorder
-      ? `border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;`
-      : `border-radius: ${p.theme.borderRadius};`}
-  ${p => (p.hideBottomBorder ? 'border-bottom: none;' : '')}
+    p.hasTraceTabsUi
+      ? `border-radius: ${p.theme.borderRadius};`
+      : `border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;`}
+`;
+
+const FlexBox = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 `;

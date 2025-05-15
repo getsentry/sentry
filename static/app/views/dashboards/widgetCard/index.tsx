@@ -1,4 +1,4 @@
-import {useCallback, useContext, useState} from 'react';
+import {useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -14,7 +14,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -22,6 +21,7 @@ import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
@@ -31,13 +31,16 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  OnDemandExtractionState,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-
-import type {DashboardFilters, Widget} from '../types';
-import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
-import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
-import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
@@ -45,7 +48,7 @@ import {WidgetFrame} from './widgetFrame';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
-export const SESSION_DURATION_ALERT_TEXT = t(
+const SESSION_DURATION_ALERT_TEXT = t(
   'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
   getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
 );
@@ -66,6 +69,7 @@ type Props = WithRouterProps & {
   borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
+  disableZoom?: boolean;
   forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
   index?: string;
@@ -94,7 +98,6 @@ type Props = WithRouterProps & {
 
 type Data = {
   confidence?: Confidence;
-  isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -107,17 +110,15 @@ type Data = {
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
+  const navigate = useNavigate();
 
   const onDataFetched = (newData: Data) => {
-    const {isProgressivelyLoading, ...rest} = newData;
+    const {...rest} = newData;
     if (props.onDataFetched && rest.tableResults) {
       props.onDataFetched(rest.tableResults);
     }
 
     setData(prevData => ({...prevData, ...rest}));
-    if (defined(isProgressivelyLoading)) {
-      setIsProgressivelyLoading(isProgressivelyLoading);
-    }
   };
 
   const {
@@ -141,6 +142,7 @@ function WidgetCard(props: Props) {
     disableFullscreen,
     showConfidenceWarning,
     minTableColumnWidth,
+    disableZoom,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -166,13 +168,6 @@ function WidgetCard(props: Props) {
   const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
-  const [isProgressivelyLoading, setIsProgressivelyLoading] = useState(false);
-
-  const handleProgressiveLoadingStart = useCallback(() => {
-    if (organization.features.includes('visibility-explore-progressive-loading')) {
-      setIsProgressivelyLoading(true);
-    }
-  }, [organization.features]);
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
@@ -187,12 +182,15 @@ function WidgetCard(props: Props) {
         isSampled: data?.isSampled,
       });
 
-      props.router.push({
-        pathname: `${location.pathname}${
-          location.pathname.endsWith('/') ? '' : '/'
-        }widget/${props.index}/`,
-        query: location.query,
-      });
+      navigate(
+        {
+          pathname: `${location.pathname}${
+            location.pathname.endsWith('/') ? '' : '/'
+          }widget/${props.index}/`,
+          query: location.query,
+        },
+        {preventScrollReset: true}
+      );
     }
   };
 
@@ -263,10 +261,6 @@ function WidgetCard(props: Props) {
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding
-          isProgressivelyLoading={
-            organization.features.includes('visibility-explore-progressive-loading') &&
-            isProgressivelyLoading
-          }
         >
           <WidgetCardChartContainer
             location={location}
@@ -288,7 +282,7 @@ function WidgetCard(props: Props) {
             widgetLegendState={widgetLegendState}
             showConfidenceWarning={showConfidenceWarning}
             minTableColumnWidth={minTableColumnWidth}
-            onDataFetchStart={handleProgressiveLoadingStart}
+            disableZoom={disableZoom}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>
@@ -363,12 +357,6 @@ const ErrorCard = styled(Placeholder)`
   color: ${p => p.theme.alert.error.textLight};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(2)};
-`;
-
-export const WidgetTitleRow = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
 `;
 
 export const WidgetDescription = styled('small')`

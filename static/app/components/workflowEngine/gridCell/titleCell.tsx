@@ -5,25 +5,26 @@ import styled from '@emotion/styled';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject} from 'sentry/types/project';
+import useProjectFromId from 'sentry/utils/useProjectFromId';
 
 export type TitleCellProps = {
   link: string;
   name: string;
-  project: AvatarProject;
   className?: string;
   details?: string[];
   disabled?: boolean;
+  projectId?: string;
 };
 
 export function TitleCell({
   name,
-  project,
+  projectId: project_id,
   details,
   link,
   disabled = false,
   className,
 }: TitleCellProps) {
+  const project = useProjectFromId({project_id});
   return (
     <TitleWrapper to={link} disabled={disabled} className={className}>
       <Name disabled={disabled}>
@@ -31,16 +32,18 @@ export function TitleCell({
         {disabled && <span>&mdash; Disabled</span>}
       </Name>
       <DetailsWrapper>
-        <StyledProjectBadge
-          css={css`
-            && img {
-              box-shadow: none;
-            }
-          `}
-          project={project}
-          avatarSize={16}
-          disableLink
-        />
+        {project && (
+          <StyledProjectBadge
+            css={css`
+              && img {
+                box-shadow: none;
+              }
+            `}
+            project={project}
+            avatarSize={16}
+            disableLink
+          />
+        )}
         {details?.map((detail, index) => (
           <Fragment key={index}>
             <Separator />
@@ -60,9 +63,9 @@ const Name = styled('div')<{disabled: boolean}>`
 
   ${p =>
     p.disabled &&
-    `
-    color: ${p.theme.disabled};
-  `}
+    css`
+      color: ${p.theme.disabled};
+    `}
 `;
 
 const TitleWrapper = styled(Link)<{disabled: boolean}>`
@@ -73,12 +76,12 @@ const TitleWrapper = styled(Link)<{disabled: boolean}>`
 
   ${p =>
     !p.disabled &&
-    `
-    &:hover ${Name} {
-      color: ${p.theme.textColor};
-      text-decoration: underline;
-    }
-  `};
+    css`
+      &:hover ${Name} {
+        color: ${p.theme.textColor};
+        text-decoration: underline;
+      }
+    `};
 `;
 
 const DetailsWrapper = styled('div')`

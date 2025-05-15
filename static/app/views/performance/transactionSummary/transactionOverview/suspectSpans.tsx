@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
@@ -14,15 +14,17 @@ import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpan
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
-
-import SuspectSpansTable from '../transactionSpans/suspectSpansTable';
-import type {SpansTotalValues} from '../transactionSpans/types';
-import {SpanSortOthers, SpanSortPercentiles} from '../transactionSpans/types';
+import SuspectSpansTable from 'sentry/views/performance/transactionSummary/transactionSpans/suspectSpansTable';
+import type {SpansTotalValues} from 'sentry/views/performance/transactionSummary/transactionSpans/types';
+import {
+  SpanSortOthers,
+  SpanSortPercentiles,
+} from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 import {
   getSuspectSpanSortFromLocation,
   SPAN_SORT_TO_FIELDS,
   spansRouteWithQuery,
-} from '../transactionSpans/utils';
+} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
 
 const SPANS_CURSOR_NAME = 'spansCursor';
 

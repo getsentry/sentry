@@ -1,7 +1,8 @@
-import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import {space} from 'sentry/styles/space';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 const bulletStyle = (theme: Theme) => css`
   padding-left: ${space(3)};
@@ -40,8 +41,8 @@ const numericStyle = (
             height: 24px;
             font-weight: ${theme.fontWeightNormal};
             font-size: ${theme.fontSizeSmall};
-            background-color: ${theme.isChonk
-              ? (theme as DO_NOT_USE_ChonkTheme).colors.chonk.yellow400
+            background-color: ${isChonkTheme(theme)
+              ? theme.colors.chonk.yellow400
               : theme.yellow300};
             color: ${theme.black};
           `

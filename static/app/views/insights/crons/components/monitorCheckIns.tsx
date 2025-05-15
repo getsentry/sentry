@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -15,7 +16,6 @@ import {
   type StatusIndicatorProps,
 } from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -34,7 +34,7 @@ type Props = {
   monitorEnvs: MonitorEnvironment[];
 };
 
-export const checkStatusToIndicatorStatus: Record<
+const checkStatusToIndicatorStatus: Record<
   CheckInStatus,
   StatusIndicatorProps['status']
 > = {

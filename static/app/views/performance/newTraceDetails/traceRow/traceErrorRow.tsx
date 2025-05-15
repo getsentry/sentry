@@ -3,16 +3,15 @@ import {PlatformIcon} from 'platformicons';
 
 import {t} from 'sentry/locale';
 import {isEAPErrorNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-
-import {TraceIcons} from '../traceIcons';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import {InvisibleTraceBar} from '../traceRow/traceBar';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {InvisibleTraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TraceRowConnectors,
   type TraceRowProps,
-} from '../traceRow/traceRow';
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 const ERROR_LEVEL_LABELS: Record<keyof Theme['level'], string> = {
   sample: t('Sample'),

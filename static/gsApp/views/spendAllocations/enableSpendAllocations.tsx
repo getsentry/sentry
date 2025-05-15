@@ -24,7 +24,7 @@ function EnableSpendAllocations({
 }: Props) {
   const enableAction = async () => {
     try {
-      // Toggle feature flag
+      // Toggle option; TODO: make sure this is actually redundant before removing this
       await api.requestPromise(`/organizations/${orgSlug}/spend-allocations/toggle/`, {
         method: 'POST',
       });

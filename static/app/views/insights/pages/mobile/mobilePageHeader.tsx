@@ -7,10 +7,9 @@ import {
 import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_LANDING_TITLE,
+  MODULES,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
-import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
@@ -35,28 +34,12 @@ export function MobileHeader({
     `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}/`
   );
 
-  const hasMobileScreens = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
-  const hasMobileUi = isModuleEnabled(ModuleName.MOBILE_UI, organization);
-
-  const modules = hasMobileScreens
-    ? [ModuleName.MOBILE_VITALS, ModuleName.HTTP, ModuleName.SESSIONS]
-    : [
-        ModuleName.APP_START,
-        ModuleName.SCREEN_LOAD,
-        ModuleName.SCREEN_RENDERING,
-        ModuleName.HTTP,
-      ];
-
-  if (!hasMobileScreens && hasMobileUi) {
-    modules.push(ModuleName.MOBILE_UI);
-  }
-
   return (
     <DomainViewHeader
       domainBaseUrl={mobileBaseUrl}
       domainTitle={MOBILE_LANDING_TITLE}
       headerTitle={headerTitle}
-      modules={modules}
+      modules={MODULES}
       selectedModule={module}
       tabs={tabs}
       hideDefaultTabs={hideDefaultTabs}

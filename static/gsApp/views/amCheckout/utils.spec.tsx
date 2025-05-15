@@ -2,7 +2,7 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 
 import {DataCategory} from 'sentry/types/core';
 
-import {PlanTier} from 'getsentry/types';
+import {InvoiceItemType, PlanTier} from 'getsentry/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
@@ -72,6 +72,34 @@ describe('utils', function () {
       });
       expect(priceDollars).toBe('1,992');
     });
+
+    it('includes Seer budget in the total when enabled', function () {
+      const priceDollars = utils.getReservedTotal({
+        plan: teamPlan,
+        reserved: {
+          errors: 50_000,
+          transactions: 100_000,
+          attachments: 1,
+        },
+        seerEnabled: true,
+        seerBudget: 2000,
+      });
+      expect(priceDollars).toBe('49');
+    });
+
+    it('does not include Seer budget when not enabled', function () {
+      const priceDollars = utils.getReservedTotal({
+        plan: teamPlan,
+        reserved: {
+          errors: 50_000,
+          transactions: 100_000,
+          attachments: 1,
+        },
+        seerEnabled: false,
+        seerBudget: 2000,
+      });
+      expect(priceDollars).toBe('29');
+    });
   });
 
   describe('discountPrice', function () {
@@ -81,7 +109,7 @@ describe('utils', function () {
           basePrice: 1000,
           amount: 10 * 100,
           discountType: 'percentPoints',
-          creditCategory: 'subscription',
+          creditCategory: InvoiceItemType.SUBSCRIPTION,
         })
       ).toBe(900);
       expect(
@@ -89,7 +117,7 @@ describe('utils', function () {
           basePrice: 8900,
           amount: 40 * 100,
           discountType: 'percentPoints',
-          creditCategory: 'subscription',
+          creditCategory: InvoiceItemType.SUBSCRIPTION,
         })
       ).toBe(5340);
       expect(
@@ -97,7 +125,7 @@ describe('utils', function () {
           basePrice: 10000,
           amount: 1000,
           discountType: 'amountCents',
-          creditCategory: 'subscription',
+          creditCategory: InvoiceItemType.SUBSCRIPTION,
         })
       ).toBe(9000);
     });

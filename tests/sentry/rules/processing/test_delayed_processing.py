@@ -393,7 +393,7 @@ class GetRulesToFireTest(TestCase):
         self.group1: Group = self.create_group(self.project)
         self.group2: Group = self.create_group(self.project)
 
-        self.condition_group_results: dict[UniqueConditionQuery, dict[int, int]] = {
+        self.condition_group_results: dict[UniqueConditionQuery, dict[int, int | float]] = {
             UniqueConditionQuery(
                 cls_id=TEST_RULE_SLOW_CONDITION["id"],
                 interval=TEST_RULE_SLOW_CONDITION["interval"],
@@ -1146,6 +1146,37 @@ class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
         assert (percent_comparison_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
+    def test_apply_delayed_event_frequency_percent_condition_fires_on_small_value(self):
+        event_frequency_percent_condition_2 = self.create_event_frequency_condition(
+            interval="1h", id="EventFrequencyPercentCondition", value=0.1
+        )
+
+        self.project_three = self.create_project(organization=self.organization)
+        # 1 event / 600 sessions ~= 0.17%
+        self._make_sessions(600, project=self.project_three)
+
+        percent_comparison_rule = self.create_project_rule(
+            project=self.project_three,
+            condition_data=[event_frequency_percent_condition_2],
+        )
+
+        event5 = self.create_event(self.project_three.id, FROZEN_TIME, "group-6")
+        assert event5.group
+
+        buffer.backend.push_to_sorted_set(
+            key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_three.id
+        )
+        self.push_to_hash(
+            self.project_three.id, percent_comparison_rule.id, event5.group.id, event5.event_id
+        )
+        apply_delayed(self.project_three.id)
+
+        assert RuleFireHistory.objects.filter(
+            rule__in=[percent_comparison_rule],
+            project=self.project_three,
+        ).exists()
+        self.assert_buffer_cleared(project_id=self.project_three.id)
+
     def test_apply_delayed_event_frequency_percent_comparison_interval(self):
         """
         Test that the event frequency percent condition with a percent
@@ -1332,7 +1363,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rules_to_groups: defaultdict[int, set[int]] = defaultdict(set)
         rules_to_groups[self.rule.id].add(self.group.id)
 
-        cleanup_redis_buffer(self.project.id, rules_to_groups, None)
+        cleanup_redis_buffer(self.project, rules_to_groups, None)
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
         assert rule_group_data == {}
 
@@ -1359,7 +1390,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
         assert rule_group_data == {}
 
-        cleanup_redis_buffer(self.project.id, rules_to_groups, batch_one_key)
+        cleanup_redis_buffer(self.project, rules_to_groups, batch_one_key)
 
         # Verify the batch we "executed" is removed
         rule_group_data = buffer.backend.get_hash(

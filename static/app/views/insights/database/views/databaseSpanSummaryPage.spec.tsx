@@ -6,10 +6,14 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useParams} from 'sentry/utils/useParams';
 import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/databaseSpanSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
+jest.mock('sentry/utils/useParams');
 jest.mock('sentry/utils/usePageFilters');
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
 jest.mock('sentry/utils/useReleaseStats');
@@ -19,22 +23,25 @@ describe('DatabaseSpanSummaryPage', function () {
     features: ['insights-related-issues-table', 'insights-initial-modules'],
   });
   const group = GroupFixture();
+  const groupId = '1756baf8fd19c116';
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: null,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
+    })
+  );
+
+  jest.mocked(useParams).mockReturnValue({
+    groupId,
   });
 
   jest.mocked(useLocation).mockReturnValue({
@@ -64,11 +71,6 @@ describe('DatabaseSpanSummaryPage', function () {
   });
 
   it('renders', async function () {
-    // Ignore known issue with jsdom used by jest when parsing nested CSS syntax (@container). See:
-    // - https://github.com/jsdom/jsdom/issues/3236
-    // - https://github.com/jsdom/jsdom/issues/2005
-    jest.spyOn(console, 'error').mockImplementation();
-
     const eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -87,10 +89,24 @@ describe('DatabaseSpanSummaryPage', function () {
       method: 'GET',
       body: {
         'epm()': {
-          data: [],
+          data: [
+            [1672531200, [{count: 5}]],
+            [1672542000, [{count: 10}]],
+            [1672552800, [{count: 15}]],
+          ],
+          order: 0,
+          start: 1672531200,
+          end: 1672552800,
         },
         'avg(span.self_time)': {
-          data: [],
+          data: [
+            [1672531200, [{count: 100}]],
+            [1672542000, [{count: 150}]],
+            [1672552800, [{count: 200}]],
+          ],
+          order: 1,
+          start: 1672531200,
+          end: 1672552800,
         },
       },
     });
@@ -130,7 +146,6 @@ describe('DatabaseSpanSummaryPage', function () {
             'epm()': 17.88,
             'avg(span.self_time)': 204.5,
             'sum(span.self_time)': 177238,
-            'time_spent_percentage()': 0.00341,
           },
         ],
         meta: {
@@ -138,7 +153,6 @@ describe('DatabaseSpanSummaryPage', function () {
             'epm()': 'rate',
             'avg(span.self_time)': 'duration',
             'sum(span.self_time)': 'duration',
-            'time_spent_percentage()': 'percentage',
           },
         },
       },
@@ -158,13 +172,8 @@ describe('DatabaseSpanSummaryPage', function () {
     });
 
     render(
-      <DatabaseSpanSummaryPage
-        {...RouteComponentPropsFixture()}
-        params={{
-          groupId: '1756baf8fd19c116',
-        }}
-      />,
-      {organization}
+      <DatabaseSpanSummaryPage {...RouteComponentPropsFixture({params: {groupId}})} />,
+      {organization, deprecatedRouterMocks: true}
     );
 
     // Metrics ribbon
@@ -185,7 +194,6 @@ describe('DatabaseSpanSummaryPage', function () {
             'epm()',
             'sum(span.self_time)',
             'avg(span.self_time)',
-            'time_spent_percentage()',
             'http_response_count(5)',
           ],
           per_page: 50,
@@ -285,14 +293,13 @@ describe('DatabaseSpanSummaryPage', function () {
             'epm()',
             'sum(span.self_time)',
             'avg(span.self_time)',
-            'time_spent_percentage()',
             'http_response_count(5)',
           ],
           per_page: 25,
           cursor: '0:25:0',
           project: [],
           query: 'span.group:1756baf8fd19c116',
-          sort: '-time_spent_percentage()',
+          sort: '-sum(span.self_time)',
           referrer: 'api.starfish.span-transaction-metrics',
           statsPeriod: '10d',
         },
@@ -316,9 +323,7 @@ describe('DatabaseSpanSummaryPage', function () {
           query:
             'issue.type:[performance_slow_db_query,performance_n_plus_one_db_queries] message:"SELECT * FROM users"',
           environment: [],
-          expand: ['inbox', 'owners'],
           limit: 100,
-          shortIdLookup: 1,
           project: [],
           statsPeriod: '10d',
         },
@@ -354,21 +359,21 @@ describe('DatabaseSpanSummaryPage', function () {
     expect(screen.getByRole('columnheader', {name: 'Avg Duration'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Time Spent'})).toBeInTheDocument();
 
-    expect(screen.getByRole('cell', {name: 'GET /api/users'})).toBeInTheDocument();
+    expect(screen.getByText('GET /api/users')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'GET /api/users'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/insights/backend/database/spans/span/1756baf8fd19c116?statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A25%3A0'
     );
-    expect(screen.getByRole('cell', {name: '17.9/s'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '204.50ms'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '2.95min'})).toBeInTheDocument();
+    expect(screen.getByText('17.9/s')).toBeInTheDocument();
+    expect(screen.getByText('204.50ms')).toBeInTheDocument();
+    expect(screen.getByText('2.95min')).toBeInTheDocument();
 
     expect(await screen.findByText('1 Related Issue')).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Graph'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Events'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Users'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Assignee'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '327k'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '35k'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Graph'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Events'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Users'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Assignee'})).toBeInTheDocument();
+    expect(screen.getByText('327k')).toBeInTheDocument();
+    expect(screen.getByText('35k')).toBeInTheDocument();
   });
 });

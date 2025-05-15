@@ -16,8 +16,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import UnsupportedAlert from 'sentry/components/alerts/unsupportedAlert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
@@ -35,6 +36,7 @@ import {
   type DocsParams,
   ProductSolution,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import LegacyOnboardingPanel from 'sentry/components/onboardingPanel';
 import Panel from 'sentry/components/panels/panel';
@@ -494,6 +496,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
     productType: 'performance',
   });
 
+  const {isPending: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
+
   const doesNotSupportPerformance = project.platform
     ? withoutPerformanceSupport.has(project.platform)
     : false;
@@ -599,8 +604,8 @@ export function Onboarding({organization, project}: OnboardingProps) {
     isProfilingSelected: false,
     isReplaySelected: false,
     sourcePackageRegistries: {
-      isLoading: false,
-      data: undefined,
+      isLoading: isLoadingRegistry,
+      data: registryData,
     },
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
     newOrg: false,

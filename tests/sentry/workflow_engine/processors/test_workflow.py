@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -27,7 +26,6 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     WorkflowDataConditionGroupType,
-    create_workflow_fire_histories,
     delete_workflow,
     enqueue_workflow,
     evaluate_workflow_triggers,
@@ -100,13 +98,13 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert triggered_workflows == {self.error_workflow}
 
         mock_logger.info.assert_called_with(
-            "workflow_engine.process_workflows.fired_workflow",
+            "workflow_engine.process_workflows.triggered_actions (batch)",
             extra={
-                "workflow_id": self.error_workflow.id,
-                "rule_id": rule.id,
-                "payload": asdict(self.event_data),
                 "group_id": self.group.id,
                 "event_id": self.event.event_id,
+                "workflow_ids": [self.error_workflow.id],
+                "action_ids": [self.action.id],
+                "detector_type": self.error_detector.type,
             },
         )
 
@@ -241,7 +239,11 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
         mock_logger.exception.assert_called_once_with(
             "Detector not found for event",
-            extra={"event_id": self.event.event_id},
+            extra={
+                "event_id": self.event.event_id,
+                "group_id": self.group_event.group_id,
+                "detector_id": None,
+            },
         )
 
     @patch("sentry.workflow_engine.processors.workflow.metrics")
@@ -581,37 +583,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
         # TODO @saponifi3d - Add a check to ensure the second condition is enqueued for later evaluation
 
-
-class TestWorkflowFireHistory(BaseWorkflowTest):
-    def setUp(self):
-        (
-            self.workflow,
-            self.detector,
-            self.detector_workflow,
-            self.workflow_triggers,
-        ) = self.create_detector_and_workflow()
-
-        self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
-
-        self.group, self.event, self.group_event = self.create_group_event(
-            occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
-        )
-        self.event_data = WorkflowEventData(event=self.group_event)
-
-    def test_create_workflow_fire_histories(self):
-        create_workflow_fire_histories({self.workflow}, self.event_data)
-        assert (
-            WorkflowFireHistory.objects.filter(
-                workflow=self.workflow,
-                group=self.group,
-                event_id=self.group_event.event_id,
-                has_fired_actions=False,
-            ).count()
-            == 1
-        )
-
-    def test_evaluate_filters_updates_histories(self):
-        # only updates workflows that meet filters
+    def test_creates_histories(self):
         self.create_data_condition(
             condition_group=self.action_group,
             type=Condition.EVENT_SEEN_COUNT,
@@ -628,28 +600,18 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
             condition_result=True,
         )  # condition is not met
 
-        create_workflow_fire_histories({self.workflow, workflow}, self.event_data)
-
         triggered_actions = evaluate_workflows_action_filters(
             {self.workflow, workflow}, self.event_data
         )
         assert set(triggered_actions) == {self.action}
 
+        assert WorkflowFireHistory.objects.all().count() == 1
         assert (
             WorkflowFireHistory.objects.filter(
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
                 has_fired_actions=True,
-            ).count()
-            == 1
-        )
-        assert (
-            WorkflowFireHistory.objects.filter(
-                workflow=workflow,
-                group=self.group,
-                event_id=self.group_event.event_id,
-                has_fired_actions=False,
             ).count()
             == 1
         )

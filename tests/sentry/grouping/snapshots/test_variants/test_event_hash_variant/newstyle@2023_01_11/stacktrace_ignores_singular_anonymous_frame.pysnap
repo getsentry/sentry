@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:18.615361+00:00'
+created: '2025-04-25T21:22:14.552509+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,15 +9,15 @@ app:
   component:
     app (stacktrace of system takes precedence)
       stacktrace (ignored because it contains no in-app frames)
-        frame (non app frame)
+        frame (marked out of app by the client)
           filename (anonymous filename discarded)
             "<anonymous>"
-        frame (non app frame)
+        frame (marked out of app by the client)
           filename*
             "dojo.js"
           function*
             "c"
-        frame (non app frame)
+        frame (marked out of app by the client)
           filename*
             "dojo.js"
           function* (trimmed javascript function)

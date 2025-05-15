@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 import signal
 import time
 from multiprocessing import cpu_count
@@ -265,8 +266,8 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(taskregistry, run_storage)
-        for _, schedule_data in settings.TASKWORKER_SCHEDULES.items():
-            runner.add(schedule_data)
+        for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
+            runner.add(key, schedule_data)
 
         runner.log_startup()
         while True:
@@ -308,12 +309,18 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     help="The number of tasks to process before choosing a new broker instance. Requires num-brokers > 1",
     default=taskworker_constants.DEFAULT_REBALANCE_AFTER,
 )
+@click.option(
+    "--processing-pool-name",
+    help="The name of the processing pool being used",
+    default="unknown",
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
     """
     Run a taskworker worker
     """
+    os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
     if options["autoreload"]:
         autoreload.run_with_reloader(run_taskworker, **options)
     else:
@@ -329,6 +336,7 @@ def run_taskworker(
     child_tasks_queue_maxsize: int,
     result_queue_maxsize: int,
     rebalance_after: int,
+    processing_pool_name: str,
     **options: Any,
 ) -> None:
     """
@@ -346,6 +354,7 @@ def run_taskworker(
             child_tasks_queue_maxsize=child_tasks_queue_maxsize,
             result_queue_maxsize=result_queue_maxsize,
             rebalance_after=rebalance_after,
+            processing_pool_name=processing_pool_name,
             **options,
         )
         exitcode = worker.start()
@@ -396,6 +405,12 @@ def run_taskworker(
     help="The namespace that the task is registered in",
     default=None,
 )
+@click.option(
+    "--extra-arg-bytes",
+    type=int,
+    help="Generater random args of specified size in bytes",
+    default=None,
+)
 def taskbroker_send_tasks(
     task_function_path: str,
     args: str,
@@ -404,6 +419,7 @@ def taskbroker_send_tasks(
     bootstrap_servers: str,
     kafka_topic: str,
     namespace: str,
+    extra_arg_bytes: int | None,
 ) -> None:
     from sentry import options
     from sentry.conf.server import KAFKA_CLUSTERS
@@ -418,8 +434,15 @@ def taskbroker_send_tasks(
     except Exception as e:
         click.echo(f"Error: {e}")
         raise click.Abort()
+
     task_args = [] if not args else eval(args)
     task_kwargs = {} if not kwargs else eval(kwargs)
+
+    if extra_arg_bytes is not None:
+        extra_padding_arg = "".join(
+            [chr(ord("a") + random.randint(0, ord("z") - ord("a"))) for _ in range(extra_arg_bytes)]
+        )
+        task_args.append(extra_padding_arg)
 
     checkmarks = {int(repeat * (i / 10)) for i in range(1, 10)}
     for i in range(repeat):

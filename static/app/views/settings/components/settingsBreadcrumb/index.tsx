@@ -12,9 +12,9 @@ import Divider from './divider';
 import {OrganizationCrumb} from './organizationCrumb';
 import ProjectCrumb from './projectCrumb';
 import TeamCrumb from './teamCrumb';
-import type {RouteWithName} from './types';
+import type {RouteWithName, SettingsBreadcrumbProps} from './types';
 
-const MENUS = {
+const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
   Organization: OrganizationCrumb,
   Project: ProjectCrumb,
   Team: TeamCrumb,
@@ -40,9 +40,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
         }
         const pathTitle = pathMap[getRouteStringFromRoutes(routes.slice(0, i + 1))];
         const isLast = i === lastRouteIndex;
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        const createMenu = MENUS[route.name];
-        const Menu = typeof createMenu === 'function' && createMenu;
+        const Menu = MENUS[route.name];
         const hasMenu = !!Menu;
 
         if (hasMenu) {
@@ -50,7 +48,6 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
             <Menu
               key={`${route.name}:${route.path}`}
               routes={routes}
-              params={params}
               route={route}
               isLast={isLast}
             />

@@ -19,7 +19,6 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.issues import grouptype
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
-from sentry.workflow_engine.models import Detector
 
 
 def get_detector_validator(
@@ -29,10 +28,10 @@ def get_detector_validator(
     if detector_type is None:
         raise ValidationError({"detectorType": ["Unknown detector type"]})
 
-    if detector_type.detector_validator is None:
+    if detector_type.detector_settings is None or detector_type.detector_settings.validator is None:
         raise ValidationError({"detectorType": ["Detector type not compatible with detectors"]})
 
-    return detector_type.detector_validator(
+    return detector_type.detector_settings.validator(
         instance=instance,
         context={
             "project": project,
@@ -44,49 +43,27 @@ def get_detector_validator(
     )
 
 
+# Maps API field name to database field name, with synthetic aggregate fields keeping
+# to our field naming scheme for consistency.
+SORT_ATTRS = {
+    "name": "name",
+    "id": "id",
+    "type": "type",
+    "connectedWorkflows": "connected_workflows",
+}
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Workflows"])
 class ProjectDetectorIndexEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
-        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
 
     # TODO: We probably need a specific permission for detectors. Possibly specific detectors have different perms
     # too?
     permission_classes = (ProjectAlertRulePermission,)
-
-    @extend_schema(
-        operation_id="Fetch a Project's Detectors",
-        parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
-            GlobalParams.PROJECT_ID_OR_SLUG,
-        ],
-        responses={
-            201: DetectorSerializer,
-            400: RESPONSE_BAD_REQUEST,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-    )
-    def get(self, request, project):
-        """
-        List a Project's Detectors
-        `````````````````````````
-        Return a list of detectors for a given project.
-        """
-        queryset = Detector.objects.filter(
-            project_id=project.id,
-        ).order_by("id")
-
-        return self.paginate(
-            request=request,
-            queryset=queryset,
-            order_by="id",
-            on_results=lambda x: serialize(x, request.user),
-        )
 
     @extend_schema(
         operation_id="Create a Detector",
@@ -97,7 +74,9 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         request=PolymorphicProxySerializer(
             "GenericDetectorSerializer",
             serializers=[
-                gt.detector_validator for gt in grouptype.registry.all() if gt.detector_validator
+                gt.detector_settings.validator
+                for gt in grouptype.registry.all()
+                if gt.detector_settings and gt.detector_settings.validator
             ],
             resource_type_field_name=None,
         ),

@@ -38,6 +38,8 @@ def errors_query(**kwargs):
         "name": ["Errors"],
         "field": ["title", "count(id)", "count_unique(user)", "project"],
         "query": ["event.type:error"],
+        "dataset": "errors",
+        "queryDataset": "error-events",
     }
     options.update(kwargs)
 
@@ -51,6 +53,8 @@ def transactions_query(**kwargs):
         "field": ["transaction", "project", "count()"],
         "statsPeriod": ["14d"],
         "query": ["event.type:transaction"],
+        "dataset": "transactions",
+        "queryDataset": "transaction-like",
     }
     options.update(kwargs)
 
@@ -65,6 +69,8 @@ def transactions_sorted_query(**kwargs):
         "field": ["transaction", "project", "count()"],
         "statsPeriod": ["14d"],
         "query": ["event.type:transaction"],
+        "dataset": "transactions",
+        "queryDataset": "transaction-like",
     }
     options.update(kwargs)
 
@@ -534,7 +540,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             # Fill out name and submit form.
             self.browser.element('input[name="query_name"]').send_keys(query_name)
-            self.browser.element('[aria-label="Save for Org"]').click()
+            self.browser.element('[aria-label="Save for Organization"]').click()
 
             self.browser.wait_until(f'[data-test-id="discover2-query-name-{query_name}"]')
 

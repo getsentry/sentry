@@ -12,6 +12,12 @@ def before_now(**kwargs: float) -> datetime:
     return date - timedelta(microseconds=date.microsecond % 1000)
 
 
+def isoformat_z(dt: datetime) -> str:
+    """Generally prefer .isoformat()"""
+    assert dt.tzinfo == UTC
+    return f"{dt.isoformat().removesuffix('+00:00')}Z"
+
+
 class MockClock:
     """Returns a distinct, increasing timestamp each time it is called."""
 

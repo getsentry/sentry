@@ -169,13 +169,15 @@ describe('useReplayData', () => {
     await waitFor(() => expect(mockedSegmentsCall1).toHaveBeenCalledTimes(1));
     expect(mockedSegmentsCall2).toHaveBeenCalledTimes(1);
 
-    expect(result.current).toStrictEqual(
-      expect.objectContaining({
-        attachments: [...mockSegmentResponse1, ...mockSegmentResponse2],
-        errors: [],
-        replayRecord: expectedReplay,
-      })
-    );
+    await waitFor(() => {
+      expect(result.current).toStrictEqual(
+        expect.objectContaining({
+          attachments: [...mockSegmentResponse1, ...mockSegmentResponse2],
+          errors: [],
+          replayRecord: expectedReplay,
+        })
+      );
+    });
   });
 
   it('should always fetch DISCOVER & ISSUE_PLATFORM errors', async () => {
@@ -239,13 +241,15 @@ describe('useReplayData', () => {
     await waitFor(() => expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(1));
     expect(mockedIssuePlatformEventsMetaCall).toHaveBeenCalledTimes(1);
 
-    expect(result.current).toStrictEqual(
-      expect.objectContaining({
-        attachments: [],
-        errors: [],
-        replayRecord: expectedReplay,
-      })
-    );
+    await waitFor(() => {
+      expect(result.current).toStrictEqual(
+        expect.objectContaining({
+          attachments: [],
+          errors: [],
+          replayRecord: expectedReplay,
+        })
+      );
+    });
   });
 
   it('should concat N error responses and pass them through to Replay Reader', async () => {
@@ -373,18 +377,20 @@ describe('useReplayData', () => {
     expect(mockedIssuePlatformEventsMetaCall1).toHaveBeenCalledTimes(1);
     expect(mockedIssuePlatformEventsMetaCall2).toHaveBeenCalledTimes(1);
 
-    expect(result.current).toStrictEqual(
-      expect.objectContaining({
-        attachments: [],
-        errors: [
-          ...mockErrorResponse1,
-          ...mockErrorResponse2,
-          ...mockErrorResponse3,
-          ...mockErrorResponse4,
-        ],
-        replayRecord: expectedReplay,
-      })
-    );
+    await waitFor(() => {
+      expect(result.current).toStrictEqual(
+        expect.objectContaining({
+          attachments: [],
+          errors: [
+            ...mockErrorResponse1,
+            ...mockErrorResponse2,
+            ...mockErrorResponse3,
+            ...mockErrorResponse4,
+          ],
+          replayRecord: expectedReplay,
+        })
+      );
+    });
   });
 
   it('should incrementally load attachments and errors', async () => {
@@ -468,13 +474,15 @@ describe('useReplayData', () => {
       expect(mockedIssuePlatformEventsMetaCall).toHaveBeenCalledTimes(1)
     );
     expect(mockedSegmentsCall).toHaveBeenCalledTimes(1);
-    expect(result.current).toStrictEqual(
-      expect.objectContaining({
-        attachments: [],
-        errors: [],
-        projectSlug: project.slug,
-        replayRecord: expectedReplay,
-      })
+    await waitFor(() =>
+      expect(result.current).toStrictEqual(
+        expect.objectContaining({
+          attachments: [],
+          errors: [],
+          projectSlug: project.slug,
+          replayRecord: expectedReplay,
+        })
+      )
     );
 
     // Next we see that some rrweb data has arrived
@@ -543,8 +551,10 @@ describe('useReplayData', () => {
 
     result.current.onRetry();
 
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({
-      queryKey: [`/organizations/${organization.slug}/replays/${replayId}/`],
+    await waitFor(() => {
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({
+        queryKey: [`/organizations/${organization.slug}/replays/${replayId}/`],
+      });
     });
     expect(mockInvalidateQueries).toHaveBeenCalledWith({
       queryKey: [

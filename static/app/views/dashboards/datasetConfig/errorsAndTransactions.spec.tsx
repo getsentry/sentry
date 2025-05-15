@@ -84,7 +84,10 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
     await userEvent.click(await screen.findByText('abcd'));
     expect(router.push).toHaveBeenCalledWith({
@@ -114,7 +117,10 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('defg'));
@@ -157,7 +163,10 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('<< unparameterized >>'));

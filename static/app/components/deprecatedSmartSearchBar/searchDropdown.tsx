@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
@@ -484,7 +486,7 @@ function QueryItem({item, additionalSearchConfig}: QueryItemProps) {
   );
 }
 
-const SearchDropdownOverlay = styled(Overlay)<React.HTMLAttributes<HTMLDivElement>>`
+const SearchDropdownOverlay = styled(Overlay)`
   position: absolute;
   top: 100%;
   left: -1px;
@@ -535,13 +537,13 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
   margin-bottom: 0;
   ${p => {
     if (p.maxMenuHeight !== undefined) {
-      return `
+      return css`
         max-height: ${p.maxMenuHeight}px;
         overflow-y: scroll;
       `;
     }
 
-    return `
+    return css`
       height: auto;
     `;
   }}
@@ -557,7 +559,7 @@ const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
 
   ${p => {
     if (!p.isDisabled) {
-      return `
+      return css`
         cursor: pointer;
 
         &:hover,

@@ -3,7 +3,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -13,7 +12,10 @@ import {
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -136,8 +138,6 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 };
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
-
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 
@@ -198,27 +198,13 @@ sentry_sdk.profiler.stop_profiler()`
 }`;
 
 const onboarding: OnboardingConfig = {
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install our Python SDK using [code:pip]:', {
+      description: tct('Install our Python SDK:', {
         code: <code />,
       }),
-      configurations: [
-        {
-          description:
-            params.docsLocation === DocsPageLocation.PROFILING_PAGE
-              ? tct(
-                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-                  {
-                    code: <code />,
-                  }
-                )
-              : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      configurations: getPythonInstallConfig(),
     },
   ],
   configure: (params: Params) => [
@@ -288,17 +274,18 @@ export const performanceOnboarding: OnboardingConfig = {
       configurations: [
         {
           description: tct(
-            "Once this is done, Sentry's Python SDK captures all unhandled exceptions and transactions. Note that [code:enable_tracing] is available in Sentry Python SDK version [code:≥ 1.16.0]. To enable tracing in older SDK versions ([code:≥ 0.11.2]), use [code:traces_sample_rate=1.0].",
+            "Once this is done, Sentry's Python SDK captures all unhandled exceptions and transactions. To enable tracing, use [code:traces_sample_rate=1.0] in the sentry_sdk.init() call.",
             {code: <code />}
           ),
           language: 'python',
           code: `
 import sentry_sdk
 
-sentry_sdk.initimport { Context } from '@dnd-kit/sortable/dist/components';
-(
-  dsn="${params.dsn.public}",
-  traces_sample_rate=1.0,
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for tracing.
+    traces_sample_rate=1.0,
 )`,
           additionalInfo: tct(
             'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
@@ -372,19 +359,9 @@ export const featureFlagOnboarding: OnboardingConfig = {
           featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
             ? t('Install the Sentry SDK.')
             : t('Install the Sentry SDK with an extra.'),
-        configurations: [
-          {
-            language: 'bash',
-            code: [
-              {
-                label: 'pip',
-                value: 'pip',
-                language: 'bash',
-                code: `pip install --upgrade ${packageName}`,
-              },
-            ],
-          },
-        ],
+        configurations: getPythonInstallConfig({
+          packageName,
+        }),
       },
       {
         type: StepType.CONFIGURE,

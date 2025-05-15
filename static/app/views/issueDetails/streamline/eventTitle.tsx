@@ -3,7 +3,8 @@ import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
@@ -50,6 +51,7 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.REPLAY]: t('Replay'),
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
   [SectionKey.TRACE]: t('Trace'),
+  [SectionKey.LOGS]: t('Logs'),
   [SectionKey.TAGS]: t('Tags'),
   [SectionKey.CONTEXTS]: t('Context'),
   [SectionKey.USER_FEEDBACK]: t('User Feedback'),
@@ -67,10 +69,13 @@ export function EventTitle({
   const organization = useOrganization();
   const theme = useTheme();
   const showTraceLink = organization.features.includes('performance-view');
-
+  const showLogsLink = organization.features.includes('ourlogs-enabled');
   const excludedSectionKeys: SectionKey[] = [];
   if (!showTraceLink) {
     excludedSectionKeys.push(SectionKey.TRACE);
+  }
+  if (!showLogsLink) {
+    excludedSectionKeys.push(SectionKey.LOGS);
   }
 
   const {sectionData} = useIssueDetails();

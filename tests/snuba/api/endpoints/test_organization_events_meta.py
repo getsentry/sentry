@@ -578,12 +578,68 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         assert meta["fields"]["span.duration"] == "duration"
         assert meta["units"]["span.duration"] == "millisecond"
 
+    def test_order_by(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
+
+        spans = [
+            self.create_span(
+                {"description": "SELECT * FROM users"},
+                start_ts=self.ten_mins_ago,
+                duration=20,
+            ),
+            self.create_span(
+                {"description": "SELECT * FROM orders"},
+                start_ts=self.nine_mins_ago,
+                duration=200,
+            ),
+        ]
+
+        self.store_spans(spans)
+
+        response = self.client.get(
+            url,
+            {
+                "lowerBound": "0",
+                "firstBound": "100",
+                "secondBound": "250",
+                "upperBound": "500",
+                "project": self.project.id,
+                "additionalFields": "span.duration",
+                "sort": "-span.duration",
+            },
+            format="json",
+        )
+
+        data = response.data["data"]
+        assert data[0]["span.duration"] == 200
+        assert data[1]["span.duration"] == 20
+
+        response = self.client.get(
+            url,
+            {
+                "lowerBound": "0",
+                "firstBound": "100",
+                "secondBound": "250",
+                "upperBound": "500",
+                "project": self.project.id,
+                "additionalFields": "span.duration",
+                "sort": "span.duration",
+            },
+            format="json",
+        )
+
+        data = response.data["data"]
+        assert data[0]["span.duration"] == 20
+        assert data[1]["span.duration"] == 200
+
 
 class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-spans-samples"
 
     def do_request(self, query, features=None, **kwargs):
-        query["useRpc"] = "1"
+        query["dataset"] = "spans"
         return super().do_request(query, features, **kwargs)
 
     def test_simple(self):
@@ -650,3 +706,4 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
         meta = response.data["meta"]
         assert meta["fields"]["span.duration"] == "duration"
         assert meta["units"]["span.duration"] == "millisecond"
+        assert meta["dataset"] == "spans"

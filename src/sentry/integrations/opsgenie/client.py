@@ -7,11 +7,12 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
-from sentry.integrations.opsgenie.metrics import record_event
+from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_termination_level
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.group import Group
-from sentry.notifications.notifications.rules import get_key_from_rule_data
 from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.shared_integrations.exceptions import ApiError
 
 OPSGENIE_API_VERSION = "v2"
 # Defaults to P3 if null, but we can be explicit - https://docs.opsgenie.com/docs/alert-api
@@ -116,30 +117,36 @@ class OpsgenieClient(ApiClient):
 
     def send_notification(self, data):
         headers = self._get_auth_headers()
-        with record_event(OnCallInteractionType.CREATE).capture():
-            resp = self.post("/alerts", data=data, headers=headers)
-        return resp
+        with record_event(OnCallInteractionType.CREATE).capture() as lifecycle:
+            try:
+                return self.post("/alerts", data=data, headers=headers)
+            except ApiError as e:
+                record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
+                raise
 
     # TODO(iamrajjoshi): We need to delete this method during notification platform
-    def send_metric_alert_notification(
-        self,
-        data,
-    ):
+    def send_metric_alert_notification(self, data):
         headers = self._get_auth_headers()
-        interaction_type = OnCallInteractionType.CREATE
-        # if we're closing the alert—meaning that the Sentry alert was resolved
+
+        # If closing an alert (when Sentry alert was resolved)
         if data.get("identifier"):
-            interaction_type = OnCallInteractionType.RESOLVE
             alias = data["identifier"]
-            resp = self.post(
-                f"/alerts/{alias}/close",
-                data={},
-                params={"identifierType": "alias"},
-                headers=headers,
-            )
-            return resp
-        # this is a metric alert
-        payload = data
-        with record_event(interaction_type).capture():
-            resp = self.post("/alerts", data=payload, headers=headers)
-        return resp
+            with record_event(OnCallInteractionType.RESOLVE).capture() as lifecycle:
+                try:
+                    return self.post(
+                        f"/alerts/{alias}/close",
+                        data={},
+                        params={"identifierType": "alias"},
+                        headers=headers,
+                    )
+                except ApiError as e:
+                    record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
+                    raise
+
+        # Creating a metric alert
+        with record_event(OnCallInteractionType.CREATE).capture() as lifecycle:
+            try:
+                return self.post("/alerts", data=data, headers=headers)
+            except ApiError as e:
+                record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
+                raise

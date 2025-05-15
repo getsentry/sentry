@@ -11,6 +11,7 @@ type Props = {
     endTimestampMs: number;
     startTimestampMs: number;
   };
+  eventTimestampMs?: number;
   group?: Group;
 };
 
@@ -23,6 +24,7 @@ export default function useLoadReplayReader({
   orgSlug,
   replaySlug,
   clipWindow,
+  eventTimestampMs,
   group,
 }: Props): ReplayReaderResult {
   const replayId = parseReplayId(replaySlug);
@@ -61,8 +63,9 @@ export default function useLoadReplayReader({
         errors,
         fetching,
         replayRecord,
+        eventTimestampMs,
       }),
-    [attachments, memoizedClipWindow, errors, fetching, replayRecord]
+    [attachments, memoizedClipWindow, errors, fetching, replayRecord, eventTimestampMs]
   );
 
   return {

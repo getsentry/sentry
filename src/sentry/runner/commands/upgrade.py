@@ -8,6 +8,15 @@ from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
 
 
+def _check_big_ints() -> None:
+    if not getattr(settings, "SENTRY_USE_BIG_INTS", True):
+        raise click.ClickException(
+            "It looks like you have `SENTRY_USE_BIG_INTS = False` configured.  "
+            "sentry now only supports `bigint`.  "
+            "you will want to alter your integer types in your tables and then remove the setting from your configuration"
+        )
+
+
 def _check_history() -> None:
     connection = connections["default"]
     cursor = connection.cursor()
@@ -53,6 +62,7 @@ def _upgrade(
 ) -> None:
     from django.core.management import call_command as dj_call_command
 
+    _check_big_ints()
     _check_history()
 
     for db_conn in settings.DATABASES.keys():

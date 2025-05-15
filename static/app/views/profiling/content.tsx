@@ -37,12 +37,14 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {LandingAggregateFlamegraph} from 'sentry/views/profiling/landingAggregateFlamegraph';
 import {Onboarding} from 'sentry/views/profiling/onboarding';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
+import type {DataState} from './useLandingAnalytics';
+import {useLandingAnalytics} from './useLandingAnalytics';
 
 const LEFT_WIDGET_CURSOR = 'leftCursor';
 const RIGHT_WIDGET_CURSOR = 'rightCursor';
@@ -67,11 +69,39 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  useEffect(() => {
-    trackAnalytics('profiling_views.landing', {
-      organization,
-    });
-  }, [organization]);
+  const dispatchDataState = useLandingAnalytics();
+  const updateWidget1DataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'widget1Data',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+  const updateWidget2DataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'widget2Data',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+  const updateFlamegraphDataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'flamegraphData',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+  const updateTransactionsTableDataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'transactionsTableData',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
 
   const showOnboardingPanel = useMemo(() => {
     return shouldShowProfilingOnboardingPanel(selection, projects);
@@ -81,6 +111,20 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
 
   const onTabChange = useCallback(
     (newTab: 'flamegraph' | 'transactions') => {
+      // make sure to reset the state of the tabs
+      dispatchDataState({
+        dataKey: 'flamegraphData',
+        dataState: 'pending',
+      });
+      dispatchDataState({
+        dataKey: 'transactionsTableData',
+        dataState: 'pending',
+      });
+
+      trackAnalytics('profiling_views.landing.tab_change', {
+        organization,
+        tab: newTab,
+      });
       browserHistory.push({
         ...location,
         query: {
@@ -89,7 +133,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
         },
       });
     },
-    [location]
+    [dispatchDataState, location, organization]
   );
 
   return (
@@ -126,12 +170,14 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                         widgetHeight="410px"
                         defaultWidget="slowest functions"
                         storageKey="profiling-landing-widget-0"
+                        onDataState={updateWidget1DataState}
                       />
                       <LandingWidgetSelector
                         cursorName={RIGHT_WIDGET_CURSOR}
                         widgetHeight="410px"
                         defaultWidget="regressed functions"
                         storageKey="profiling-landing-widget-1"
+                        onDataState={updateWidget2DataState}
                       />
                     </WidgetsContainer>
                   )}
@@ -162,9 +208,13 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                     </Tabs>
                   </div>
                   {tab === 'flamegraph' ? (
-                    <FlamegraphTab />
+                    <FlamegraphTab onDataState={updateFlamegraphDataState} />
                   ) : (
-                    <TransactionsTab location={location} selection={selection} />
+                    <TransactionsTab
+                      location={location}
+                      selection={selection}
+                      onDataState={updateTransactionsTableDataState}
+                    />
                   )}
                 </Fragment>
               )}
@@ -176,12 +226,16 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
   );
 }
 
-interface TabbedContentProps {
+interface ProfilingTabProps {
+  onDataState?: (dataState: DataState) => void;
+}
+
+interface TabbedContentProps extends ProfilingTabProps {
   location: Location;
   selection: PageFilters;
 }
 
-function TransactionsTab({location, selection}: TabbedContentProps) {
+function TransactionsTab({onDataState, location, selection}: TabbedContentProps) {
   const query = decodeScalar(location.query.query, '');
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {
@@ -217,6 +271,24 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
 
   const transactionsError =
     transactions.status === 'error' ? formatError(transactions.error) : '';
+
+  const hasData = (transactions.data?.data?.length || 0) > 0;
+  const isLoading = transactions.isPending;
+  const isError = transactions.isError;
+
+  useEffect(() => {
+    if (onDataState) {
+      if (isLoading) {
+        onDataState('loading');
+      } else if (isError) {
+        onDataState('errored');
+      } else if (hasData) {
+        onDataState('populated');
+      } else {
+        onDataState('empty');
+      }
+    }
+  }, [onDataState, hasData, isLoading, isError]);
 
   return (
     <Fragment>
@@ -254,11 +326,11 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
   );
 }
 
-function FlamegraphTab() {
+function FlamegraphTab({onDataState}: ProfilingTabProps) {
   return (
     <LandingAggregateFlamegraphSizer>
       <LandingAggregateFlamegraphContainer>
-        <LandingAggregateFlamegraph />
+        <LandingAggregateFlamegraph onDataState={onDataState} />
       </LandingAggregateFlamegraphContainer>
     </LandingAggregateFlamegraphSizer>
   );

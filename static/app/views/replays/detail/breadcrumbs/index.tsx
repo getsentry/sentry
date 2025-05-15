@@ -1,12 +1,14 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
+import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
@@ -27,7 +29,7 @@ const cellMeasurer = {
   minHeight: 53,
 };
 
-function Breadcrumbs() {
+export default function Breadcrumbs() {
   const {currentTime, replay} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
 
@@ -110,7 +112,7 @@ function Breadcrumbs() {
   };
 
   return (
-    <FluidHeight>
+    <PaddedFluidHeight>
       <FilterLoadingIndicator isLoading={isFetchingExtractions}>
         <BreadcrumbFilters frames={frames} {...filterProps} />
       </FilterLoadingIndicator>
@@ -156,8 +158,10 @@ function Breadcrumbs() {
           />
         ) : null}
       </TabItemContainer>
-    </FluidHeight>
+    </PaddedFluidHeight>
   );
 }
 
-export default Breadcrumbs;
+const PaddedFluidHeight = styled(FluidHeight)`
+  padding-top: ${space(1)};
+`;

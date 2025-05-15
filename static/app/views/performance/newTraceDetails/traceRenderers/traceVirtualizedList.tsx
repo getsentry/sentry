@@ -1,14 +1,13 @@
 import {useLayoutEffect, useRef, useState} from 'react';
 
 import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import type {TraceScheduler} from '../traceRenderers/traceScheduler';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {
   VirtualizedList,
   type VirtualizedViewManager,
-} from '../traceRenderers/virtualizedViewManager';
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 export interface VirtualizedRow {
   index: number;
@@ -346,7 +345,7 @@ function findRenderedItems({
   return {rendered, virtualized};
 }
 
-export function findOptimisticStartIndex({
+function findOptimisticStartIndex({
   items,
   overscroll,
   rowHeight,

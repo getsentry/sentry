@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import Panel from 'sentry/components/panels/panel';
@@ -17,8 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-
-import {removeTracingKeysFromSearch} from '../../utils';
+import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 
 type Props = {
   location: Location;

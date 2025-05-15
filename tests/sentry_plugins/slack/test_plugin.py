@@ -10,19 +10,22 @@ from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.slack.plugin import SlackPlugin
+
+
+def test_conf_key() -> None:
+    assert SlackPlugin().conf_key == "slack"
+
+
+def test_entry_point() -> None:
+    assert_plugin_installed("slack", SlackPlugin())
 
 
 class SlackPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return SlackPlugin()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "slack"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("slack", self.plugin)
 
     @responses.activate
     def test_simple_notification(self):

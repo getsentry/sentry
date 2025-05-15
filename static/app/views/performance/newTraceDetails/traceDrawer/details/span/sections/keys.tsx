@@ -18,16 +18,15 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
 import {
   type SectionCardKeyValueList,
   TraceDrawerComponents,
-} from '../../../../traceDrawer/details/styles';
-import {isSpanNode} from '../../../../traceGuards';
-import {TraceTree} from '../../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
-import {TraceDrawerActionValueKind} from '../../utils';
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {isSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',

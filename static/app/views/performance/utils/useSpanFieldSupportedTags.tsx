@@ -39,7 +39,7 @@ interface SpanFieldEntry {
   key: string;
   name: string;
 }
-export type SpanFieldsResponse = SpanFieldEntry[];
+type SpanFieldsResponse = SpanFieldEntry[];
 
 const getDynamicSpanFieldsEndpoint = (
   orgSlug: string,
@@ -55,16 +55,6 @@ const getDynamicSpanFieldsEndpoint = (
     },
   },
 ];
-
-export function useSpanMetricsFieldSupportedTags(options?: {excludedTags?: string[]}) {
-  const {excludedTags = []} = options || {};
-
-  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP
-  return useSpanFieldBaseTags(
-    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP, ...excludedTags],
-    DiscoverDatasets.SPANS_METRICS
-  );
-}
 
 export function useSpanFieldCustomTags(options?: {
   enabled?: boolean;
@@ -99,7 +89,7 @@ export function useSpanFieldCustomTags(options?: {
   return {...rest, data: tags};
 }
 
-export function useSpanFieldStaticTags(options?: {
+function useSpanFieldStaticTags(options?: {
   dataset?: DiscoverDatasets.SPANS_INDEXED | DiscoverDatasets.SPANS_METRICS;
   excludedTags?: string[];
 }) {

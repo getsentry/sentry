@@ -1,7 +1,6 @@
 import {MembersFixture} from 'sentry-fixture/members';
 import {OrganizationsFixture} from 'sentry-fixture/organizations';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -14,9 +13,8 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import CommandPaletteModal from 'sentry/components/modals/commandPalette';
+import {setSearchMap} from 'sentry/components/search/sources/formSource';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-
-import {setSearchMap} from '../search/sources/formSource';
 
 jest.mock('sentry/actionCreators/navigation');
 
@@ -77,12 +75,7 @@ describe('Command Palette Modal', function () {
         CloseButton={makeCloseButton(jest.fn())}
         Header={makeClosableHeader(jest.fn())}
         Footer={ModalFooter}
-      />,
-      {
-        router: RouterFixture({
-          params: {orgId: 'org-slug'},
-        }),
-      }
+      />
     );
 
     await userEvent.type(screen.getByRole('textbox'), 'test');

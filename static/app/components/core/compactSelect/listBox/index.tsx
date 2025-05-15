@@ -5,11 +5,15 @@ import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {
+  ListLabel,
+  ListSeparator,
+  ListWrap,
+  SizeLimitMessage,
+} from 'sentry/components/core/compactSelect/styles';
+import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
-
-import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
-import type {SelectKey, SelectSection} from '../types';
 
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';

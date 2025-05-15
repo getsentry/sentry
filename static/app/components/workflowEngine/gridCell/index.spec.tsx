@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {TooltipContext} from 'sentry/components/tooltip';
+import {TooltipContext} from 'sentry/components/core/tooltip';
+import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 import {ActionCell} from './actionCell';
 import {ConnectionCell} from './connectionCell';
@@ -10,7 +11,9 @@ import {TypeCell} from './typeCell';
 
 describe('Action Cell Component', function () {
   it('renders', function () {
-    render(<ActionCell actions={['slack', 'discord', 'email']} />);
+    render(
+      <ActionCell actions={[ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL]} />
+    );
 
     const text = screen.getByText('Slack, Discord, Email');
     expect(text).toBeInTheDocument();
@@ -20,7 +23,7 @@ describe('Action Cell Component', function () {
     const container = document.createElement('div');
     render(
       <TooltipContext value={{container}}>
-        <ActionCell actions={['slack', 'discord', 'email']} />
+        <ActionCell actions={[ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL]} />
       </TooltipContext>
     );
 
@@ -40,45 +43,48 @@ describe('Time Ago Cell Component', function () {
   });
 });
 
-const renderConnectionCell = (renderText: (count: number) => string) => {
-  render(
-    <ConnectionCell
-      items={[
-        {
-          name: '/endpoint',
-          link: 'link/def456',
-          project: {slug: 'javascript', platform: 'javascript'},
-          description: 'transaction.duration',
-        },
-      ]}
-      renderText={renderText}
-    />
-  );
-};
-
 describe('Connection Cell Component', function () {
   it('renders monitors', function () {
-    renderConnectionCell(count => count + ' monitor');
+    render(<ConnectionCell ids={['12345']} type="detector" />);
 
     const text = screen.getByText('1 monitor');
     expect(text).toBeInTheDocument();
   });
 
   it('renders automations', function () {
-    renderConnectionCell(count => count + ' automation');
+    render(<ConnectionCell ids={['12345']} type="workflow" />);
     const text = screen.getByText('1 automation');
     expect(text).toBeInTheDocument();
   });
 
-  it('renders hovercard', async function () {
-    renderConnectionCell(count => count + ' monitor');
+  it('renders detector hovercard', async function () {
+    render(<ConnectionCell ids={['12345']} type="detector" />);
 
     const span = screen.getByText('1 monitor');
     expect(span).toBeInTheDocument();
     await userEvent.hover(span, {delay: 100});
-    expect(await screen.findByText('/endpoint')).toBeInTheDocument();
-    expect(await screen.findByText('javascript')).toBeInTheDocument();
-    expect(await screen.findByText('transaction.duration')).toBeInTheDocument();
+    const overlay = await screen.findByRole('link');
+    expect(overlay).toBeInTheDocument();
+    expect(overlay).toHaveAttribute('href');
+    expect(overlay).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/monitors/12345/'
+    );
+  });
+
+  it('renders workflow hovercard', async function () {
+    render(<ConnectionCell ids={['12345']} type="workflow" />);
+
+    const span = screen.getByText('1 automation');
+    expect(span).toBeInTheDocument();
+    await userEvent.hover(span, {delay: 100});
+    const overlay = await screen.findByRole('link');
+    expect(overlay).toBeInTheDocument();
+    expect(overlay).toHaveAttribute('href');
+    expect(overlay).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/automations/12345/'
+    );
   });
 });
 

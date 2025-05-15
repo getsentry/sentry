@@ -1,4 +1,6 @@
 import React, {useRef} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
@@ -10,6 +12,7 @@ interface AutofixHighlightWrapperProps {
   runId: string;
   stepIndex: number;
   className?: string;
+  displayName?: string;
   isAgentComment?: boolean;
   retainInsightCardIndex?: number | null;
 }
@@ -26,15 +29,16 @@ export function AutofixHighlightWrapper({
   retainInsightCardIndex = null,
   isAgentComment = false,
   className,
+  displayName,
 }: AutofixHighlightWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const selection = useTextSelection(containerRef);
 
   return (
     <React.Fragment>
-      <div ref={containerRef} className={className}>
+      <Wrapper ref={containerRef} className={className} isSelected={!!selection}>
         {children}
-      </div>
+      </Wrapper>
 
       <AnimatePresence>
         {selection && (
@@ -46,9 +50,24 @@ export function AutofixHighlightWrapper({
             stepIndex={stepIndex}
             retainInsightCardIndex={retainInsightCardIndex}
             isAgentComment={isAgentComment}
+            blockName={displayName}
           />
         )}
       </AnimatePresence>
     </React.Fragment>
   );
 }
+
+const Wrapper = styled('div')<{isSelected: boolean}>`
+  &:hover {
+    ${p =>
+      !p.isSelected &&
+      css`
+        cursor: pointer;
+
+        * {
+          ${p.theme.tooltipUnderline('gray200')};
+        }
+      `};
+  }
+`;

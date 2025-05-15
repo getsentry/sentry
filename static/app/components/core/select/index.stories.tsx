@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {Select} from 'sentry/components/core/select';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import {Grid} from 'sentry/components/stories/sideBySide';
+import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import storyBook from 'sentry/stories/storyBook';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -189,6 +190,61 @@ export default storyBook('Select', (story, APIReference) => {
           ]}
         />
       </Grid>
+    );
+  });
+
+  story('With leading items', () => {
+    return (
+      <Fragment>
+        <p>
+          The <JSXNode name="Select" /> component options can use the{' '}
+          <JSXNode name="leadingItems" /> prop to add an icon to the left of the option.
+        </p>
+        <Grid columns={3}>
+          <Select
+            isSearchable
+            size="md"
+            placeholder="medium"
+            defaultValue={{
+              value: 'item1',
+              label: 'Item 1',
+              leadingItems: <IconGraphBar />,
+            }}
+            options={[
+              {value: 'item1', label: 'Item 1', leadingItems: <IconGraphBar />},
+              {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
+            ]}
+          />
+          <Select
+            isSearchable
+            size="sm"
+            placeholder="small"
+            defaultValue={{
+              value: 'item1',
+              label: 'Item 1',
+              leadingItems: <IconGraphBar />,
+            }}
+            options={[
+              {value: 'item1', label: 'Item 1', leadingItems: <IconGraphBar />},
+              {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
+            ]}
+          />
+          <Select
+            isSearchable
+            size="xs"
+            placeholder="x-small"
+            defaultValue={{
+              value: 'item1',
+              label: 'Item 1',
+              leadingItems: <IconGraphBar />,
+            }}
+            options={[
+              {value: 'item1', label: 'Item 1', leadingItems: <IconGraphBar />},
+              {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
+            ]}
+          />
+        </Grid>
+      </Fragment>
     );
   });
 });

@@ -20,15 +20,18 @@ import {useLocation} from 'sentry/utils/useLocation';
 class StoryTreeNode {
   public name: string;
   public path: string;
+  public filesystemPath: string;
+
   public visible = true;
   public expanded = false;
   public children: Record<string, StoryTreeNode> = {};
 
   public result: ReturnType<typeof fzf> | null = null;
 
-  constructor(name: string, path: string) {
+  constructor(name: string, path: string, filesystemPath: string) {
     this.name = name;
     this.path = path;
+    this.filesystemPath = filesystemPath;
   }
 
   find(predicate: (node: StoryTreeNode) => boolean): StoryTreeNode | undefined {
@@ -65,6 +68,12 @@ class StoryTreeNode {
   }
 }
 
+function isFolderNode(
+  node: StoryTreeNode
+): node is StoryTreeNode & {children: Record<string, StoryTreeNode>} {
+  return Object.keys(node.children).length > 0;
+}
+
 function folderOrSearchScoreFirst(
   a: [string, StoryTreeNode],
   b: [string, StoryTreeNode]
@@ -84,8 +93,8 @@ function folderOrSearchScoreFirst(
     return b[1].result.score - a[1].result.score;
   }
 
-  const aIsFolder = Object.keys(a[1].children).length > 0;
-  const bIsFolder = Object.keys(b[1].children).length > 0;
+  const aIsFolder = isFolderNode(a[1]);
+  const bIsFolder = isFolderNode(b[1]);
 
   if (aIsFolder && !bIsFolder) {
     return -1;
@@ -103,7 +112,23 @@ function rootCategorySort(
   a: [FileCategory | string, StoryTreeNode],
   b: [FileCategory | string, StoryTreeNode]
 ) {
-  return order.indexOf(a[0] as FileCategory) - order.indexOf(b[0] as FileCategory);
+  if (isFolderNode(a[1]) && isFolderNode(b[1])) {
+    return a[0].localeCompare(b[0]);
+  }
+
+  if (isFolderNode(a[1]) && !isFolderNode(b[1])) {
+    return 1;
+  }
+
+  if (!isFolderNode(a[1]) && isFolderNode(b[1])) {
+    return -1;
+  }
+
+  if (order.includes(a[0] as FileCategory) && order.includes(b[0] as FileCategory)) {
+    return order.indexOf(a[0] as FileCategory) - order.indexOf(b[0] as FileCategory);
+  }
+
+  return a[0].localeCompare(b[0]);
 }
 
 function normalizeFilename(filename: string) {
@@ -151,6 +176,21 @@ function inferComponentName(path: string): string {
   return part ?? '';
 }
 
+function inferComponentPath(path: string): string {
+  const parts = path.split('/');
+  const last = parts.at(-1);
+
+  if (last?.startsWith('index.')) {
+    parts.pop();
+    parts.push(parts.pop()!);
+  }
+
+  return path
+    .replace('/components/core', '/components/')
+    .replace('/styles', '/')
+    .replace('/icons', '/');
+}
+
 export function useStoryTree(
   files: string[],
   options: {query: string; representation: 'filesystem' | 'category'}
@@ -159,7 +199,7 @@ export function useStoryTree(
   const initialName = useRef(location.query.name);
 
   const tree = useMemo(() => {
-    const root = new StoryTreeNode('root', '');
+    const root = new StoryTreeNode('root', '', '');
 
     if (options.representation === 'filesystem') {
       for (const file of files) {
@@ -174,7 +214,8 @@ export function useStoryTree(
           if (!(part in parent.children)) {
             parent.children[part] = new StoryTreeNode(
               part,
-              parts.slice(0, i + 1).join('/')
+              parts.slice(0, i + 1).join('/'),
+              file
             );
           }
 
@@ -187,18 +228,36 @@ export function useStoryTree(
     } else if (options.representation === 'category') {
       for (const file of files) {
         const type = inferFileCategory(file);
+        const path = inferComponentPath(file);
         const name = inferComponentName(file);
 
         if (!root.children[type]) {
-          root.children[type] = new StoryTreeNode(type, type);
+          root.children[type] = new StoryTreeNode(type, type, file);
         }
 
-        if (root.children[type].children[name]) {
-          throw new Error(
-            `Naming conflict found between ${file} and ${root.children[type].children[name].path}`
-          );
-        } else {
-          root.children[type].children[name] = new StoryTreeNode(name, file);
+        let parent = root;
+        const parts = path.split('/');
+
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          if (!part) {
+            continue;
+          }
+
+          if (i === parts.length - 1) {
+            parent.children[name] = new StoryTreeNode(name, type, file);
+            break;
+          }
+
+          if (!(part in parent.children)) {
+            parent.children[part] = new StoryTreeNode(
+              part,
+              parts.slice(0, i + 1).join('/'),
+              file
+            );
+          }
+
+          parent = parent.children[part]!;
         }
       }
 
@@ -215,7 +274,7 @@ export function useStoryTree(
     // If the user navigates to a story, expand to its location in the tree
     if (initialName.current) {
       for (const {node, path} of root) {
-        if (node.path === initialName.current) {
+        if (node.filesystemPath === initialName.current) {
           for (const p of path) {
             p.expanded = true;
           }
@@ -379,14 +438,14 @@ function Folder(props: {node: StoryTreeNode}) {
 
 function File(props: {node: StoryTreeNode}) {
   const location = useLocation();
-  const query = qs.stringify({...location.query, name: props.node.path});
+  const query = qs.stringify({...location.query, name: props.node.filesystemPath});
   const category = props.node.path.split('/').at(1) ?? 'default';
 
   return (
     <li>
       <FolderLink
         to={`/stories/?${query}`}
-        active={location.query.name === props.node.path}
+        active={location.query.name === props.node.filesystemPath}
       >
         <StoryIcon category={category} />
         {/* @TODO (JonasBadalic): Do we need to show the file extension? */}

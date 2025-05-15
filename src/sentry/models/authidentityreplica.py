@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.db import models
+from django.db.models.functions import Now
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -22,7 +23,7 @@ class AuthIdentityReplica(Model):
     auth_provider_id = HybridCloudForeignKey("sentry.AuthProvider", on_delete="CASCADE")
     ident = models.CharField(max_length=128)
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
-    last_verified = models.DateTimeField(default=timezone.now)
+    last_verified = models.DateTimeField(default=timezone.now, db_default=Now())
 
     # This represents the time at which this model was created, NOT the date_added of the original auth identity
     # we are replicating from.

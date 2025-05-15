@@ -2,23 +2,20 @@ import type React from 'react';
 import {createContext, useContext, useLayoutEffect, useMemo} from 'react';
 import * as qs from 'query-string';
 
-import {t} from 'sentry/locale';
 import {
   type DispatchingReducerEmitter,
   useDispatchingReducer,
 } from 'sentry/utils/useDispatchingReducer';
-
-import {useHasTraceNewUi} from '../useHasTraceNewUi';
 
 import {TraceReducer, type TraceReducerAction, type TraceReducerState} from './index';
 import {storeTraceViewPreferences, type TracePreferencesState} from './tracePreferences';
 
 interface TraceStateContext {}
 
-export const TraceStateContext = createContext<TraceReducerState | null>(null);
-export const TraceStateDispatchContext =
+const TraceStateContext = createContext<TraceReducerState | null>(null);
+const TraceStateDispatchContext =
   createContext<React.Dispatch<TraceReducerAction> | null>(null);
-export const TraceStateEmitterContext = createContext<DispatchingReducerEmitter<
+const TraceStateEmitterContext = createContext<DispatchingReducerEmitter<
   typeof TraceReducer
 > | null>(null);
 
@@ -52,12 +49,6 @@ export function useTraceStateEmitter(): DispatchingReducerEmitter<typeof TraceRe
   return context;
 }
 
-const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
-  node: 'trace',
-  label: t('Trace'),
-};
-
-const STATIC_DRAWER_TABS: TraceReducerState['tabs']['tabs'] = [TRACE_TAB];
 interface TraceStateProviderProps {
   children: React.ReactNode;
   initialPreferences: TracePreferencesState;
@@ -65,7 +56,6 @@ interface TraceStateProviderProps {
 }
 
 export function TraceStateProvider(props: TraceStateProviderProps): React.ReactNode {
-  const hasTraceNewUi = useHasTraceNewUi();
   const initialQuery = useMemo((): string | undefined => {
     const query = qs.parse(location.search);
 
@@ -95,8 +85,8 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
       },
       preferences: props.initialPreferences,
       tabs: {
-        tabs: hasTraceNewUi ? [] : STATIC_DRAWER_TABS,
-        current_tab: hasTraceNewUi ? null : (STATIC_DRAWER_TABS[0] ?? null),
+        tabs: [],
+        current_tab: null,
         last_clicked_tab: null,
       },
     }

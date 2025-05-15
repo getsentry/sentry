@@ -1,8 +1,10 @@
 import moment from 'moment-timezone';
 
+import type {
+  RollupConfig,
+  TimeWindowConfig,
+} from 'sentry/components/checkInTimeline/types';
 import {getFormat} from 'sentry/utils/dates';
-
-import type {RollupConfig, TimeWindowConfig} from '../types';
 
 /**
  * The minimum pixels to allocate to the reference start time label which

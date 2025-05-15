@@ -1,6 +1,6 @@
 import errno
 import os
-from unittest import mock
+from unittest import TestCase, mock
 
 import pytest
 import responses
@@ -18,7 +18,6 @@ from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
 )
 from sentry.shared_integrations.response.base import BaseApiResponse
-from sentry.testutils.cases import TestCase
 
 
 class ApiClientTest(TestCase):

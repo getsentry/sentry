@@ -23,7 +23,10 @@ describe('Doc Integrations', function () {
       body: [],
     });
 
-    render(<DocIntegrations {...routerProps} />, {router});
+    render(<DocIntegrations {...routerProps} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       screen.getByRole('heading', {name: 'Document Integrations'})
@@ -52,7 +55,10 @@ describe('Doc Integration Details', function () {
       body: mockDocIntegration,
     });
 
-    render(<DocIntegrationDetails />, {router});
+    render(<DocIntegrationDetails />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('heading', {name: 'Doc Integrations'})
@@ -86,20 +92,20 @@ describe('Doc Integration Details', function () {
       method: 'DELETE',
     });
 
-    render(<DocIntegrationDetails />, {router});
+    render(<DocIntegrationDetails />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('heading', {name: 'Doc Integrations'})
     ).toBeInTheDocument();
 
-    const button = screen.getByTestId('detail-actions');
-    expect(button).toHaveAttribute('aria-expanded', 'false');
-    await userEvent.click(button);
-    expect(button).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(await screen.findByText('Doc Integrations Actions'));
 
-    const deleteButton = screen.getByRole('option', {
-      name: 'Delete Doc Integration 🚨 Delete this Doc Integration FOREVER (irreversible) 🚨',
-    });
+    const deleteButton = await screen.findByText(
+      /Delete this Doc Integration FOREVER \(irreversible\)/
+    );
 
     expect(deleteButton).toBeEnabled();
     await userEvent.click(deleteButton);
@@ -145,21 +151,21 @@ describe('Doc Integration Details', function () {
       statusCode: 403,
     });
 
-    render(<DocIntegrationDetails />, {router});
+    render(<DocIntegrationDetails />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(
       await screen.findByRole('heading', {name: 'Doc Integrations'})
     ).toBeInTheDocument();
 
-    const button = screen.getByTestId('detail-actions');
-    expect(button).toHaveAttribute('aria-expanded', 'false');
+    const button = await screen.findByText('Doc Integrations Actions');
     await userEvent.click(button);
-    expect(button).toHaveAttribute('aria-expanded', 'true');
 
-    const deleteButton = screen.getByRole('option', {
-      name: 'Delete Doc Integration 🚨 Delete this Doc Integration FOREVER (irreversible) 🚨',
-    });
+    const deleteButton = await screen.findByText(
+      /Delete this Doc Integration FOREVER \(irreversible\)/
+    );
 
-    expect(deleteButton).toBeEnabled();
     await userEvent.click(deleteButton);
 
     renderGlobalModal();
@@ -202,22 +208,21 @@ describe('Doc Integration Details', function () {
       },
     });
 
-    render(<DocIntegrationDetails />, {router});
+    render(<DocIntegrationDetails />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('heading', {name: 'Doc Integrations'})
     ).toBeInTheDocument();
 
-    const button = screen.getByTestId('detail-actions');
-    expect(button).toHaveAttribute('aria-expanded', 'false');
-    await userEvent.click(button);
-    expect(button).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(await screen.findByText('Doc Integrations Actions'));
 
-    const unpublishButton = screen.getByRole('option', {
-      name: 'Unpublish App Revert This Doc Integration to Draft Mode',
-    });
+    const unpublishButton = await screen.findByText(
+      'Revert This Doc Integration to Draft Mode'
+    );
 
-    expect(unpublishButton).toBeEnabled();
     await userEvent.click(unpublishButton);
 
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(

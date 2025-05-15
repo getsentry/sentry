@@ -5,7 +5,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import Confirm from 'sentry/components/confirm';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -1036,55 +1037,55 @@ function ProjectPerformance() {
         </Form>
       </Feature>
       <Fragment>
-        <Feature features="organizations:performance-issues-dev">
-          <Form
-            saveOnBlur
-            allowUndo
-            initialData={{
-              performanceIssueCreationRate: project.performanceIssueCreationRate,
-              performanceIssueSendToPlatform: project.performanceIssueSendToPlatform,
-              performanceIssueCreationThroughPlatform:
-                project.performanceIssueCreationThroughPlatform,
-            }}
-            apiMethod="PUT"
-            apiEndpoint={projectEndpoint}
-          >
-            <Access access={requiredScopes} project={project}>
-              {({hasAccess}) => (
-                <JsonForm
-                  title={t('Performance Issues - All')}
-                  fields={performanceIssueFormFields}
-                  disabled={!hasAccess}
-                />
-              )}
-            </Access>
-          </Form>
-        </Feature>
         {isSuperUser && (
-          <Form
-            saveOnBlur
-            allowUndo
-            initialData={performanceIssueSettings}
-            apiMethod="PUT"
-            onSubmitError={error => {
-              if (error.status === 403) {
-                addErrorMessage(
-                  t(
-                    'This action requires active super user access. Please re-authenticate to make changes.'
-                  )
-                );
-              }
-            }}
-            apiEndpoint={performanceIssuesEndpoint}
-          >
-            <JsonForm
-              title={t(
-                '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
-              )}
-              fields={performanceIssueDetectorAdminFields}
-              disabled={!isSuperUser}
-            />
-          </Form>
+          <Fragment>
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={{
+                performanceIssueCreationRate: project.performanceIssueCreationRate,
+                performanceIssueSendToPlatform: project.performanceIssueSendToPlatform,
+                performanceIssueCreationThroughPlatform:
+                  project.performanceIssueCreationThroughPlatform,
+              }}
+              apiMethod="PUT"
+              apiEndpoint={projectEndpoint}
+            >
+              <Access access={requiredScopes} project={project}>
+                {({hasAccess}) => (
+                  <JsonForm
+                    title={t('Performance Issues - All')}
+                    fields={performanceIssueFormFields}
+                    disabled={!hasAccess}
+                  />
+                )}
+              </Access>
+            </Form>
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={performanceIssueSettings}
+              apiMethod="PUT"
+              onSubmitError={error => {
+                if (error.status === 403) {
+                  addErrorMessage(
+                    t(
+                      'This action requires active super user access. Please re-authenticate to make changes.'
+                    )
+                  );
+                }
+              }}
+              apiEndpoint={performanceIssuesEndpoint}
+            >
+              <JsonForm
+                title={t(
+                  '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
+                )}
+                fields={performanceIssueDetectorAdminFields}
+                disabled={!isSuperUser}
+              />
+            </Form>
+          </Fragment>
         )}
         <Form
           allowUndo

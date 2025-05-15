@@ -12,7 +12,7 @@ from rest_framework.serializers import ListField
 
 from sentry import analytics, release_health
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin, region_silo_endpoint
+from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
@@ -47,7 +47,6 @@ from sentry.signals import release_created
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.sdk import Scope, bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
@@ -228,9 +227,7 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
 
 
 @region_silo_endpoint
-class OrganizationReleasesEndpoint(
-    OrganizationReleasesBaseEndpoint, EnvironmentMixin, ReleaseAnalyticsMixin
-):
+class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
@@ -520,7 +517,6 @@ class OrganizationReleasesEndpoint(
                     },
                 )
             except IntegrityError:
-                incr_rollback_metrics(Release)
                 raise ConflictError(
                     "Could not create the release it conflicts with existing data",
                 )
@@ -632,7 +628,7 @@ class OrganizationReleasesEndpoint(
 
 
 @region_silo_endpoint
-class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
+class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

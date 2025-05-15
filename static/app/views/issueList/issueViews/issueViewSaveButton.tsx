@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -14,11 +15,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
+import {useUser} from 'sentry/utils/useUser';
 import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
+import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -39,9 +42,14 @@ function SegmentedIssueViewSaveButton({
   const buttonPriority = hasUnsavedChanges ? 'primary' : 'default';
   const {data: view} = useSelectedGroupSearchView();
   const {mutate: updateGroupSearchView, isPending: isSaving} = useUpdateGroupSearchView();
+  const user = useUser();
+  const canEdit = view
+    ? canEditIssueView({user, groupSearchView: view, organization})
+    : false;
 
   const discardUnsavedChanges = () => {
     if (view) {
+      trackAnalytics('issue_views.reset.clicked', {organization});
       navigate({
         pathname: location.pathname,
         query: getIssueViewQueryParams({view}),
@@ -51,11 +59,19 @@ function SegmentedIssueViewSaveButton({
 
   const saveView = () => {
     if (view) {
-      updateGroupSearchView({
-        id: view.id,
-        name: view.name,
-        ...createIssueViewFromUrl({query: location.query}),
-      });
+      trackAnalytics('issue_views.save.clicked', {organization});
+      updateGroupSearchView(
+        {
+          id: view.id,
+          name: view.name,
+          ...createIssueViewFromUrl({query: location.query}),
+        },
+        {
+          onSuccess: () => {
+            addSuccessMessage(t('Saved changes'));
+          },
+        }
+      );
     }
   };
 
@@ -63,20 +79,25 @@ function SegmentedIssueViewSaveButton({
     <ButtonBar merged>
       <PrimarySaveButton
         priority={buttonPriority}
-        analyticsEventName="issue_views.save.clicked"
         data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
-        onClick={saveView}
+        onClick={() => {
+          if (canEdit) {
+            saveView();
+          } else {
+            openCreateIssueViewModal();
+          }
+        }}
         disabled={isSaving}
       >
-        {t('Save')}
+        {canEdit ? t('Save') : t('Save As')}
       </PrimarySaveButton>
       <DropdownMenu
         items={[
           {
             key: 'reset',
-            label: t('Discard unsaved changes'),
+            label: t('Reset'),
+            disabled: !hasUnsavedChanges,
             onAction: () => {
-              trackAnalytics('issue_views.reset.clicked', {organization});
               discardUnsavedChanges();
             },
           },
@@ -84,9 +105,9 @@ function SegmentedIssueViewSaveButton({
             key: 'save-as',
             label: t('Save as new view'),
             onAction: () => {
-              trackAnalytics('issue_views.save_as.clicked', {organization});
               openCreateIssueViewModal();
             },
+            hidden: !canEdit,
           },
         ]}
         trigger={props => (
@@ -107,11 +128,16 @@ function SegmentedIssueViewSaveButton({
 export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   const {viewId} = useParams();
   const {selection} = usePageFilters();
+  const {data: view} = useSelectedGroupSearchView();
+  const organization = useOrganization();
 
   const openCreateIssueViewModal = () => {
+    trackAnalytics('issue_views.save_as.clicked', {organization});
     openModal(props => (
       <CreateIssueViewModal
         {...props}
+        analyticsSurface={viewId ? 'issue-view-details' : 'issues-feed'}
+        name={view ? `${view.name} (Copy)` : undefined}
         query={query}
         querySort={sort}
         projects={selection.projects}
@@ -123,11 +149,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
 
   if (!viewId) {
     return (
-      <Button
-        priority="primary"
-        onClick={openCreateIssueViewModal}
-        analyticsEventName="issue_views.save_as.clicked"
-      >
+      <Button priority="primary" onClick={openCreateIssueViewModal}>
         {t('Save As')}
       </Button>
     );

@@ -29,7 +29,7 @@ export enum TransactionThresholdMetric {
   LARGEST_CONTENTFUL_PAINT = 'lcp',
 }
 
-export const METRIC_CHOICES = [
+const METRIC_CHOICES = [
   {label: t('Transaction Duration'), value: 'duration'},
   {label: t('Largest Contentful Paint'), value: 'lcp'},
 ];

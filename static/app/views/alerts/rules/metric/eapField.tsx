@@ -7,16 +7,17 @@ import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {AggregationKey, ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
   DEFAULT_VISUALIZATION,
-  DEFAULT_VISUALIZATION_AGGREGATE,
   DEFAULT_VISUALIZATION_FIELD,
+  updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
-export const DEFAULT_EAP_FIELD = 'span.duration';
-export const DEFAULT_EAP_METRICS_ALERT_FIELD = `count(${DEFAULT_EAP_FIELD})`;
+const DEFAULT_EAP_AGGREGATION = 'count';
+const DEFAULT_EAP_FIELD = 'span.duration';
+const DEFAULT_EAP_METRICS_ALERT_FIELD = `${DEFAULT_EAP_AGGREGATION}(${DEFAULT_EAP_FIELD})`;
 
 interface Props {
   aggregate: string;
@@ -48,7 +49,10 @@ function EAPField({aggregate, onChange}: Props) {
   // compatibility, we don't want to lock down all `count` queries immediately.
   const lockOptions = aggregate === DEFAULT_VISUALIZATION;
 
-  const {tags: storedTags} = useSpanTags('number');
+  const {tags: storedStringTags} = useSpanTags('string');
+  const {tags: storedNumberTags} = useSpanTags('number');
+  const storedTags =
+    aggregation === AggregationKey.COUNT_UNIQUE ? storedStringTags : storedNumberTags;
   const numberTags: TagCollection = useMemo(() => {
     const availableTags: TagCollection = storedTags;
     if (field && !defined(storedTags[field])) {
@@ -84,13 +88,14 @@ function EAPField({aggregate, onChange}: Props) {
 
   const handleOperationChange = useCallback(
     (option: any) => {
-      const newAggregate =
-        option.value === DEFAULT_VISUALIZATION_AGGREGATE
-          ? DEFAULT_VISUALIZATION
-          : `${option.value}(${field || DEFAULT_EAP_FIELD})`;
+      const newAggregate = updateVisualizeAggregate({
+        newAggregate: option.value,
+        oldAggregate: aggregation || DEFAULT_EAP_AGGREGATION,
+        oldArgument: field || DEFAULT_EAP_FIELD,
+      });
       onChange(newAggregate, {});
     },
-    [field, onChange]
+    [aggregation, field, onChange]
   );
 
   // As SelectControl does not support an options size limit out of the box

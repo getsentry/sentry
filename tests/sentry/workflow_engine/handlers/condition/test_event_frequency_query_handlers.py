@@ -1,9 +1,11 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     EventFrequencyQueryHandler,
@@ -384,6 +386,23 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
             environment_id=self.environment2.id,
         )
         assert batch_query == {self.event3.group_id: percent_of_sessions}
+
+    def test_batch_query_percent_decimal(self):
+        self._make_sessions(600, self.environment.name)
+
+        assert self.event.group_id
+        group_ids = {self.event.group_id}
+
+        self.start = before_now(hours=1)
+        self.end = self.start + timedelta(hours=1)
+
+        batch_query = self.handler().batch_query(
+            group_ids=group_ids,
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+        )
+        assert round(batch_query[self.event.group_id], 4) == 0.17
 
     @patch(
         "sentry.workflow_engine.handlers.condition.event_frequency_query_handlers.MIN_SESSIONS_TO_FIRE",

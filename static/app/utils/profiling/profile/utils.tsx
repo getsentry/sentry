@@ -5,8 +5,6 @@ import {defined} from 'sentry/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
-import type {CallTreeNode} from '../callTreeNode';
-
 type FrameIndex = Record<string | number, Frame>;
 
 export function createContinuousProfileFrameIndex(
@@ -262,14 +260,6 @@ export function wrapWithSpan<T>(
     });
   });
 }
-
-export const isSystemCall = (node: CallTreeNode): boolean => {
-  return !node.frame.is_application;
-};
-
-export const isApplicationCall = (node: CallTreeNode): boolean => {
-  return !!node.frame.is_application;
-};
 
 function indexNodeToParents(
   roots: readonly FlamegraphFrame[],

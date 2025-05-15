@@ -232,6 +232,4 @@ const TabsContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export {PluginActions};
-
 export default withApi(withOrganization(PluginActions));

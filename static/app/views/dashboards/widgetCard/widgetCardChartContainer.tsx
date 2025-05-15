@@ -6,6 +6,7 @@ import type {Location} from 'history';
 import type {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -16,11 +17,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-
-import type {DashboardFilters, Widget} from '../types';
-import {WidgetType} from '../types';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
@@ -35,6 +35,7 @@ type Props = {
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   dashboardFilters?: DashboardFilters;
+  disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
@@ -84,6 +85,7 @@ export function WidgetCardChartContainer({
   showConfidenceWarning,
   minTableColumnWidth,
   onDataFetchStart,
+  disableZoom,
 }: Props) {
   const location = useLocation();
 
@@ -94,6 +96,25 @@ export function WidgetCardChartContainer({
     type: 'legendselectchanged';
   }) {
     widgetLegendState.setWidgetSelectionState(selected, widget);
+  }
+
+  function getErrorOrEmptyMessage(
+    errorMessage: string | undefined,
+    timeseriesResults: Series[] | undefined,
+    tableResults: TableDataWithTitle[] | undefined,
+    widgetType: DisplayType
+  ) {
+    // non-chart widgets need to look at tableResults
+    const results =
+      widgetType === DisplayType.BIG_NUMBER || widgetType === DisplayType.TABLE
+        ? tableResults
+        : timeseriesResults;
+
+    return errorMessage
+      ? errorMessage
+      : results === undefined || results?.length === 0
+        ? t('No data found')
+        : undefined;
   }
 
   return (
@@ -114,18 +135,32 @@ export function WidgetCardChartContainer({
         timeseriesResultsTypes,
         confidence,
         sampleCount,
+        isSampled,
       }) => {
+        // Bind timeseries to widget for ability to control each widget's legend individually
+        const modifiedTimeseriesResults =
+          WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
+
+        const errorOrEmptyMessage = loading
+          ? errorMessage
+          : getErrorOrEmptyMessage(
+              errorMessage,
+              modifiedTimeseriesResults,
+              tableResults,
+              widget.displayType
+            );
+
         if (widget.widgetType === WidgetType.ISSUE) {
           return (
             <Fragment>
               {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
+                ? renderErrorMessage(errorOrEmptyMessage)
                 : null}
               <LoadingScreen loading={loading} />
               <IssueWidgetCard
                 transformedResults={tableResults?.[0]!.data ?? []}
                 loading={loading}
-                errorMessage={errorMessage}
+                errorMessage={errorOrEmptyMessage}
                 widget={widget}
                 location={location}
                 selection={selection}
@@ -134,19 +169,16 @@ export function WidgetCardChartContainer({
           );
         }
 
-        // Bind timeseries to widget for ability to control each widget's legend individually
-        const modifiedTimeseriesResults =
-          WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
-
         return (
           <Fragment>
             {typeof renderErrorMessage === 'function'
-              ? renderErrorMessage(errorMessage)
+              ? renderErrorMessage(errorOrEmptyMessage)
               : null}
             <WidgetCardChart
+              disableZoom={disableZoom}
               timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
-              errorMessage={errorMessage}
+              errorMessage={errorOrEmptyMessage}
               loading={loading}
               location={location}
               widget={widget}
@@ -173,6 +205,7 @@ export function WidgetCardChartContainer({
               confidence={confidence}
               sampleCount={sampleCount}
               minTableColumnWidth={minTableColumnWidth}
+              isSampled={isSampled}
             />
           </Fragment>
         );
@@ -189,7 +222,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   align-items: center;
 `;
 
-export function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({loading}: {loading: boolean}) {
   if (!loading) {
     return null;
   }
