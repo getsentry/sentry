@@ -1810,32 +1810,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Parse error" in response.content
 
-    def test_add_discover_widget_invalid_issue_query(self):
-        data = {
-            "title": "First dashboard",
-            "widgets": [
-                {"id": str(self.widget_1.id)},
-                {
-                    "title": "Issues",
-                    "displayType": "table",
-                    "widgetType": "discover",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "",
-                            "fields": ["count()"],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "is:unresolved",
-                        }
-                    ],
-                },
-            ],
-        }
-        response = self.do_request("put", self.url(self.dashboard.id), data=data)
-        assert response.status_code == 400, response.data
-        assert b"Invalid conditions" in response.content
-
     def test_add_multiple_discover_and_issue_widget(self):
         data = {
             "title": "First dashboard",
@@ -1874,7 +1848,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Transactions",
                     "displayType": "table",
-                    "widgetType": "discover",
+                    "widgetType": "transaction-like",
                     "interval": "5m",
                     "queries": [
                         {
@@ -1889,7 +1863,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Errors",
                     "displayType": "table",
-                    "widgetType": "discover",
+                    "widgetType": "error-events",
                     "interval": "5m",
                     "queries": [
                         {
@@ -1914,7 +1888,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Issues",
                     "displayType": "table",
-                    "widgetType": "discover",
+                    "widgetType": "transaction-like",
                     "interval": "5m",
                     "queries": [
                         {
@@ -1953,8 +1927,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        with self.feature({"organizations:deprecate-discover-widget-type": True}):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
 
         assert response.status_code == 400, response.data
         assert (
@@ -2656,7 +2629,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
-    widget_type = DashboardWidgetTypes.DISCOVER
+    widget_type = DashboardWidgetTypes.TRANSACTION_LIKE
 
     def setUp(self):
         super().setUp()
