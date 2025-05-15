@@ -69,6 +69,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     anyItemsShowing,
     isLoading,
     isOpen,
+    popoverRef,
     referenceRef: wrapperRef,
     refsToSync: [listBoxRef, popoverRef],
   });
