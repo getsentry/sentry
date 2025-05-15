@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
@@ -8,16 +8,17 @@ import type {SelectOptionOrSectionWithKey} from 'sentry/components/core/compactS
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {useConstrainListBoxWidth} from 'sentry/components/searchQueryBuilder/tokens/filter/useConstrainListBoxWidth';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface ValueListBoxProps<T> extends CustomComboboxMenuProps<T> {
   canUseWildcard: boolean;
-  gridWrapperRef: React.RefObject<HTMLDivElement | null>;
   isLoading: boolean;
   isMultiSelect: boolean;
   items: T[];
+  wrapperRef: React.RefObject<HTMLDivElement | null>;
   portalTarget?: HTMLElement | null;
 }
 
@@ -56,7 +57,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   items,
   canUseWildcard,
   portalTarget,
-  gridWrapperRef,
+  wrapperRef,
 }: ValueListBoxProps<T>) {
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
@@ -64,41 +65,13 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   );
   const anyItemsShowing = totalOptions > hiddenOptions.size;
 
-  const setInitialWidthRef = useRef(false);
-
-  useEffect(() => {
-    if (
-      !popoverRef.current ||
-      !gridWrapperRef.current ||
-      !listBoxRef.current ||
-      !isOpen ||
-      (!anyItemsShowing && !isLoading)
-    ) {
-      return undefined;
-    }
-
-    if (!setInitialWidthRef.current) {
-      const {width} = gridWrapperRef.current.getBoundingClientRect();
-      popoverRef.current.style.maxWidth = `${width}px`;
-      listBoxRef.current.style.maxWidth = `${width}px`;
-      setInitialWidthRef.current = true;
-    }
-
-    const observer = new ResizeObserver(entries => {
-      const entry = entries?.[0];
-      if (entry && gridWrapperRef.current && popoverRef.current && listBoxRef.current) {
-        const {width} = gridWrapperRef.current.getBoundingClientRect();
-        popoverRef.current.style.maxWidth = `${width}px`;
-        listBoxRef.current.style.maxWidth = `${width}px`;
-      }
-    });
-
-    observer.observe(popoverRef.current);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [anyItemsShowing, gridWrapperRef, isLoading, isOpen, listBoxRef, popoverRef]);
+  useConstrainListBoxWidth({
+    anyItemsShowing,
+    isLoading,
+    isOpen,
+    referenceRef: wrapperRef,
+    refsToSync: [listBoxRef, popoverRef],
+  });
 
   if (!isOpen || (!anyItemsShowing && !isLoading)) {
     return null;
