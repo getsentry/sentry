@@ -746,7 +746,9 @@ class Enhancements:
         )
 
     @classmethod
-    def from_base64_string(cls, base64_string: str | bytes) -> Enhancements:
+    def from_base64_string(
+        cls, base64_string: str | bytes, referrer: str | None = None
+    ) -> Enhancements:
         """Convert a base64 string into an `Enhancements` object"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
