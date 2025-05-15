@@ -64,7 +64,7 @@ class EscalatingGroupForecast:
         If the forecast does not exist, it is because the TTL expired and the issue has not been seen in 7 days.
         In this case, generate the forecast in a task, and return the forecast for one event.
         """
-        from sentry.issues.forecasts import generate_and_save_missing_forecasts
+        from sentry.issues.escalating.forecasts import generate_and_save_missing_forecasts
 
         if not cls._should_fetch_escalating(group_id=group_id):
             return None

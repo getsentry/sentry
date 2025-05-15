@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
-from sentry.issues.issue_velocity import (
+from sentry.issues.escalating.issue_velocity import (
     DEFAULT_TTL,
     FALLBACK_TTL,
     STALE_DATE_KEY,
@@ -160,7 +160,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert threshold is not None
         assert math.isnan(threshold)
 
-    @patch("sentry.issues.issue_velocity.update_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.update_threshold")
     def test_get_latest_threshold_simple(self, mock_update: MagicMock) -> None:
         """
         Tests that we get the last threshold stored when the stale date has not passed yet.
@@ -172,7 +172,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         mock_update.assert_not_called()
         assert threshold == 0.1
 
-    @patch("sentry.issues.issue_velocity.update_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.update_threshold")
     def test_get_latest_threshold_outdated(self, mock_update: MagicMock) -> None:
         """
         Tests that we update the threshold when the stale date has passed.
@@ -186,7 +186,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         mock_update.return_value = 1.5
         assert get_latest_threshold(self.project) == 1.5
 
-    @patch("sentry.issues.issue_velocity.update_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.update_threshold")
     def test_get_latest_threshold_when_none_saved(self, mock_update: MagicMock) -> None:
         """
         Tests that we update the threshold when it is non-existent.
@@ -194,7 +194,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         mock_update.return_value = 10.7
         assert get_latest_threshold(self.project) == 10.7
 
-    @patch("sentry.issues.issue_velocity.update_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.update_threshold")
     def test_get_latest_threshold_locked(self, mock_update: MagicMock) -> None:
         """
         Tests that we return the stale threshold when another process has the lock.
@@ -216,7 +216,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             mock_update.assert_not_called()
             assert threshold == 0.7
 
-    @patch("sentry.issues.issue_velocity.update_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.update_threshold")
     def test_get_latest_threshold_locked_no_stale(self, mock_update: MagicMock) -> None:
         """
         Tests that we return 0 when another process has the lock and there is no stale value.
@@ -231,7 +231,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             mock_update.assert_not_called()
             assert threshold == 0
 
-    @patch("sentry.issues.issue_velocity.calculate_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.calculate_threshold")
     def test_update_threshold_simple(self, mock_calculation: MagicMock) -> None:
         """
         Tests that we save the newly calculated threshold at the default TTL and return it.
@@ -247,7 +247,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert redis_client.ttl("threshold-key") == DEFAULT_TTL
         assert redis_client.ttl("date-key") == DEFAULT_TTL
 
-    @patch("sentry.issues.issue_velocity.calculate_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.calculate_threshold")
     def test_update_threshold_with_stale(self, mock_calculation: MagicMock) -> None:
         """
         Tests that we return the stale threshold if the calculation method returns None.
@@ -258,7 +258,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
 
         assert update_threshold(self.project, "threshold-key", "date-key", 0.5) == 0.5
 
-    @patch("sentry.issues.issue_velocity.calculate_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.calculate_threshold")
     def test_update_threshold_none(self, mock_calculation: MagicMock) -> None:
         """
         Tests that we return 0 if the calculation method returns None and we don't have a stale
@@ -267,7 +267,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         mock_calculation.return_value = None
         assert update_threshold(self.project, "threshold-key", "date-key") == 0
 
-    @patch("sentry.issues.issue_velocity.calculate_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.calculate_threshold")
     def test_update_threshold_nan(self, mock_calculation: MagicMock) -> None:
         """
         Tests that we return 0 and save a threshold for the default TTL if the calculation returned NaN.
