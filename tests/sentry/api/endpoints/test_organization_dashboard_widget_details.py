@@ -875,7 +875,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "queries": [
                 {
                     "name": "",
-                    "conditions": "release.stage:adopted",
+                    "conditions": "release.stage: adopted",
                     "columns": ["sometag", "someothertag"],
                     "fields": [],
                     "aggregates": ["count()"],

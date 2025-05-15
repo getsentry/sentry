@@ -1810,6 +1810,32 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Parse error" in response.content
 
+    def test_add_discover_widget_invalid_issue_query(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Issues",
+                    "displayType": "table",
+                    "widgetType": "transaction-like",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:unresolved",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Invalid conditions" in response.content
+
     def test_add_multiple_discover_and_issue_widget(self):
         data = {
             "title": "First dashboard",
@@ -1927,7 +1953,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        with self.feature({"organizations:deprecate-discover-widget-type": True}):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
 
         assert response.status_code == 400, response.data
         assert (
