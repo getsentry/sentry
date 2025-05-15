@@ -1,3 +1,5 @@
+import logging
+
 import sentry_sdk
 from django.conf import settings
 from django.urls import reverse
@@ -11,11 +13,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.ratelimits.config import RateLimitConfig
 
-import logging
 logger = logging.getLogger(__name__)
 
 import sentry_sdk
 from sentry_sdk.consts import VERSION as SDK_VERSION
+
+
 @all_silo_endpoint
 class WarmupEndpoint(Endpoint):
     publish_status = {
