@@ -22,8 +22,7 @@ type ChildRenderProps = {
 
 type ChildRenderFunction = (options: ChildRenderProps) => React.ReactNode;
 
-interface Props
-  extends Omit<ButtonProps & LinkButtonProps, 'to' | 'onClick' | 'busy' | 'children'> {
+interface BaseButtonProps {
   api: Client;
   organization: Organization;
   source: string;
@@ -61,7 +60,8 @@ function UpgradeOrTrialButton({
   upgradePriority = 'primary',
   trialPriority = 'primary',
   ...props
-}: Props) {
+}: BaseButtonProps &
+  (Omit<LinkButtonProps, 'children'> | Omit<ButtonProps, 'children'>)) {
   const {slug} = organization;
   const hasAccess = organization.access.includes('org:billing');
 
@@ -131,7 +131,7 @@ function UpgradeOrTrialButton({
           onTrialStarted={handleSuccess}
           requestData={requestData}
           priority={buttonPriority}
-          {...props}
+          {...(props as LinkButtonProps)}
         >
           {childComponent || t('Start %s-Day Trial', getTrialLength(organization))}
         </StartTrialButton>
@@ -139,7 +139,12 @@ function UpgradeOrTrialButton({
     }
     // non-admin who wants to trial
     return (
-      <Button onClick={handleRequest} busy={busy} priority={buttonPriority} {...props}>
+      <Button
+        onClick={handleRequest}
+        busy={busy}
+        priority={buttonPriority}
+        {...(props as ButtonProps)}
+      >
         {childComponent || t('Request Trial')}
       </Button>
     );
@@ -156,14 +161,19 @@ function UpgradeOrTrialButton({
         onClick={handleSuccess}
         to={`${baseUrl}?referrer=upgrade-${source}`}
         priority={buttonPriority}
-        {...props}
+        {...(props as LinkButtonProps)}
       >
         {childComponent || t('Upgrade now')}
       </LinkButton>
     );
   }
   return (
-    <Button onClick={handleRequest} busy={busy} priority={buttonPriority} {...props}>
+    <Button
+      onClick={handleRequest}
+      busy={busy}
+      priority={buttonPriority}
+      {...(props as ButtonProps)}
+    >
       {childComponent || t('Request Upgrade')}
     </Button>
   );
