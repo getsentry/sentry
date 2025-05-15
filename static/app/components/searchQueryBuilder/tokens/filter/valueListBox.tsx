@@ -28,6 +28,13 @@ export function constrainAndAlignListBox({
   const referenceRect = referenceRef.current.getBoundingClientRect();
   const popoverRect = popoverRef.current.getBoundingClientRect();
 
+  // Update all elements that need width syncing
+  refsToSync.forEach(ref => {
+    if (ref.current) {
+      ref.current.style.maxWidth = `${referenceRect.width}px`;
+    }
+  });
+
   // Set popover position
   if (popoverRect.width === referenceRect.width) {
     const parentOfTarget = popoverRef.current.offsetParent || document.documentElement;
@@ -40,13 +47,6 @@ export function constrainAndAlignListBox({
   } else {
     popoverRef.current.style.left = 'auto';
   }
-
-  // Update all elements that need width syncing
-  refsToSync.forEach(ref => {
-    if (ref.current) {
-      ref.current.style.maxWidth = `${referenceRect.width}px`;
-    }
-  });
 }
 
 interface ValueListBoxProps<T> extends CustomComboboxMenuProps<T> {
@@ -107,28 +107,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
 
   const valueListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <SectionedOverlay
-        ref={element => {
-          popoverRef.current = element;
-
-          if (!popoverRef.current || !wrapperRef.current || !listBoxRef.current) {
-            return undefined;
-          }
-
-          const refsToSync = [listBoxRef, popoverRef];
-          constrainAndAlignListBox({popoverRef, referenceRef: wrapperRef, refsToSync});
-
-          const observer = new ResizeObserver(() => {
-            constrainAndAlignListBox({popoverRef, referenceRef: wrapperRef, refsToSync});
-          });
-
-          observer.observe(wrapperRef.current);
-
-          return () => {
-            observer.disconnect();
-          };
-        }}
-      >
+      <SectionedOverlay ref={popoverRef}>
         {isLoading && hiddenOptions.size >= totalOptions ? (
           <LoadingWrapper>
             <LoadingIndicator size={24} />
@@ -137,7 +116,37 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
           <Fragment>
             <StyledListBox
               {...listBoxProps}
-              ref={listBoxRef}
+              ref={element => {
+                listBoxRef.current = element;
+
+                if (!element) {
+                  return undefined;
+                }
+
+                const refsToSync = [listBoxRef, popoverRef];
+
+                constrainAndAlignListBox({
+                  popoverRef,
+                  referenceRef: wrapperRef,
+                  refsToSync,
+                });
+
+                const observer = new ResizeObserver(() => {
+                  constrainAndAlignListBox({
+                    popoverRef,
+                    referenceRef: wrapperRef,
+                    refsToSync,
+                  });
+
+                  return undefined;
+                });
+
+                observer.observe(element);
+
+                return () => {
+                  observer.disconnect();
+                };
+              }}
               listState={state}
               hasSearch={!!filterValue}
               hiddenOptions={hiddenOptions}
