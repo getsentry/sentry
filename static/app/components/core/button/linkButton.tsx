@@ -29,14 +29,15 @@ interface BaseLinkButtonProps extends DO_NOT_USE_CommonButtonProps, LinkElementP
 }
 
 interface LinkButtonPropsWithHref extends BaseLinkButtonProps {
+  href: string;
   /**
    * Determines if the link is external and should open in a new tab.
    */
   external?: boolean;
-  href?: string;
 }
 
 interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
+  to: string | LocationDescriptor;
   /**
    * If true, the link will not reset the scroll position of the page when clicked.
    */
@@ -45,7 +46,6 @@ interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
    * Determines if the link should replace the current history entry.
    */
   replace?: boolean;
-  to?: string | LocationDescriptor;
 }
 
 export type LinkButtonProps = LinkButtonPropsWithHref | LinkButtonPropsWithTo;
@@ -68,7 +68,9 @@ export function LinkButton({
         aria-disabled={disabled}
         size={size}
         {...props}
+        // @ts-expect-error set href as undefined to force "disabled" state.
         href={disabled ? undefined : 'href' in props ? props.href : undefined}
+        // @ts-expect-error set to as undefined to force "disabled" state
         to={disabled ? undefined : 'to' in props ? props.to : undefined}
         onClick={handleClick}
       >

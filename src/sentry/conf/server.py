@@ -735,7 +735,7 @@ CELERY_ALWAYS_EAGER = False
 # Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
 # this works.
 CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
-CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE = 0.01
+CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE = 0.02
 
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no

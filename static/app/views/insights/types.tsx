@@ -1,3 +1,6 @@
+import type {PlatformKey} from 'sentry/types/project';
+import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
+
 export enum ModuleName {
   HTTP = 'http',
   DB = 'db',
@@ -383,6 +386,11 @@ export enum SpanIndexedField {
   CLS_SOURCE = 'cls.source.1',
   NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
   MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
+  DB_SYSTEM = 'db.system',
+  CODE_FILEPATH = 'code.filepath',
+  CODE_LINENO = 'code.lineno',
+  CODE_FUNCTION = 'code.function',
+  PLATFORM = 'platform',
 }
 
 export type SpanIndexedResponse = {
@@ -431,6 +439,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
   [SpanIndexedField.PROJECT_ID]: number;
+
   [SpanIndexedField.PROFILE_ID]: string;
   [SpanIndexedField.PROFILEID]: string;
   [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
@@ -480,6 +489,11 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.PROJECT]: string;
   [SpanIndexedField.SPAN_GROUP]: string;
   'any(id)': string;
+  [SpanIndexedField.DB_SYSTEM]: SupportedDatabaseSystem;
+  [SpanIndexedField.CODE_FILEPATH]: string;
+  [SpanIndexedField.CODE_LINENO]: number;
+  [SpanIndexedField.CODE_FUNCTION]: string;
+  [SpanIndexedField.PLATFORM]: PlatformKey;
 };
 
 export type SpanIndexedProperty = keyof SpanIndexedResponse;

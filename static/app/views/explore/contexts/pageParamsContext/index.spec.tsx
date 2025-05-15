@@ -322,8 +322,12 @@ describe('PageParamsProvider', function () {
       query: '',
       sortBys: [{field: 'max(span.duration)', kind: 'desc'}],
       visualizes: [
-        new Visualize(['min(span.self_time)', 'max(span.duration)'], {
+        new Visualize(['min(span.self_time)'], {
           label: 'A',
+          chartType: ChartType.AREA,
+        }),
+        new Visualize(['max(span.duration)'], {
+          label: 'B',
           chartType: ChartType.AREA,
         }),
       ],
@@ -352,8 +356,12 @@ describe('PageParamsProvider', function () {
       query: '',
       sortBys: [{field: 'min(span.self_time)', kind: 'desc'}],
       visualizes: [
-        new Visualize(['min(span.self_time)', 'max(span.duration)'], {
+        new Visualize(['min(span.self_time)'], {
           label: 'A',
+          chartType: ChartType.AREA,
+        }),
+        new Visualize(['max(span.duration)'], {
+          label: 'B',
           chartType: ChartType.AREA,
         }),
       ],
@@ -421,8 +429,12 @@ describe('PageParamsProvider', function () {
       sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
       visualizes: [
         new Visualize(['count(span.self_time)'], {label: 'A', chartType: ChartType.AREA}),
-        new Visualize(['avg(span.duration)', 'avg(span.self_time)'], {
+        new Visualize(['avg(span.duration)'], {
           label: 'B',
+          chartType: ChartType.LINE,
+        }),
+        new Visualize(['avg(span.self_time)'], {
+          label: 'C',
           chartType: ChartType.LINE,
         }),
       ],
