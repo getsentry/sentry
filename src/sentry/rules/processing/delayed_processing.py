@@ -460,7 +460,10 @@ def fire_rules(
     now = datetime.now(tz=timezone.utc)
     project_id = project.id
     with track_batch_performance(
-        "delayed_processing.fire_rules.loop", logger, timedelta(seconds=40)
+        "delayed_processing.fire_rules.loop",
+        logger,
+        timedelta(seconds=40),
+        extra={"project_id": project_id},
     ) as tracker:
         for rule, group_ids in rules_to_fire.items():
             with tracker.track(f"rule_{rule.id}"):

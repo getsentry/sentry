@@ -1,7 +1,7 @@
 import logging
 import time
 from collections import defaultdict
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any
@@ -23,8 +23,6 @@ class BatchPerformanceTracker:
     """
     A utility class for monitoring and logging the performance of batch processing operations to better
     understand where time is spent among the iterations when a batch takes too long.
-    If an exception is raised, it will be logged if the total processing time exceeds the threshold
-    even if finalize is not called.
 
     Example:
         tracker = BatchPerformanceTracker("my_package.process_items", logger, threshold=timedelta(seconds=10))
@@ -39,65 +37,44 @@ class BatchPerformanceTracker:
         name: str,
         logger: logging.Logger,
         threshold: timedelta,
+        extra: Mapping[str, Any] | None = None,
         time_func: Callable[[], float] = time.time,
     ) -> None:
         """
         Initialize the tracker.
 
         Args:
-            name: A descriptive name for the batch operation being tracked
+            name: Event name to log.
             logger: The logger to use for performance reporting
-            total_threshold: The time threshold that triggers detailed logging
+            threshold: The time threshold that triggers detailed logging
+            extra: Extra values to include in the log message extras.
             time_func: The function to use for timing. Defaults to time.time.
         """
-        self.name = name
-        self.logger = logger
-        self.threshold = threshold
-        self.time_func = time_func
+        self._name = name
+        self._logger = logger
+        self._threshold = threshold
+        self._time_func = time_func
+        self._failure_key: str | None = None
+        self._extra: Mapping[str, Any] = extra or {}
         # even if keys are duplicated, we want to track total duration accurately.
-        self.iteration_durations: defaultdict[str, float] = defaultdict(float)
-
-    def _generate_extra(self) -> dict[str, Any]:
-        """
-        Generate the extra data to log from iteration durations.
-        """
-        extra = {
-            "name": self.name,
-            "total_duration": sum(self.iteration_durations.values()),
-            "durations": top_n_slowest(self.iteration_durations, _MAX_ITERATIONS_LOGGED),
-        }
-        if len(self.iteration_durations) > _MAX_ITERATIONS_LOGGED:
-            extra["durations_truncated"] = True
-        return extra
+        self._iteration_durations: defaultdict[str, float] = defaultdict(float)
 
     @contextmanager
     def track(self, key: str) -> Generator[None]:
         """
         Context manager to track the duration of a single iteration.
-        If an exception is raised, it will be logged if the total processing time exceeds the threshold
-        and the exception will be re-raised.
-
         Args:
             key: A unique identifier for this iteration (e.g., item ID or operation name)
         """
-        start_time = self.time_func()
-        stored = False
+        start_time = self._time_func()
         try:
             yield
-        except Exception as e:
-            duration = self.time_func() - start_time
-            self.iteration_durations[key] += duration
-            stored = True
-            if duration >= self.threshold.total_seconds():
-                self.logger.exception(
-                    e,
-                    extra=self._generate_extra(),
-                )
+        except Exception:
+            self._failure_key = key
             raise
         finally:
-            if not stored:
-                duration = self.time_func() - start_time
-                self.iteration_durations[key] += duration
+            duration = self._time_func() - start_time
+            self._iteration_durations[key] += duration
 
     def finalize(self) -> None:
         """
@@ -105,28 +82,45 @@ class BatchPerformanceTracker:
         This helps identify if performance issues are caused by a few slow items or
         consistent slowness across all items.
         """
-        if not self.iteration_durations:
+        if not self._iteration_durations:
             return
-        cumulative_duration = sum(self.iteration_durations.values())
-        if cumulative_duration >= self.threshold.total_seconds():
-            self.logger.info(
-                f"{self.name} took {cumulative_duration} seconds to complete",
-                extra=self._generate_extra(),
+        cumulative_duration = sum(self._iteration_durations.values())
+        if cumulative_duration >= self._threshold.total_seconds():
+            extra: dict[str, Any] = {
+                "total_duration": cumulative_duration,
+                "durations": top_n_slowest(self._iteration_durations, _MAX_ITERATIONS_LOGGED),
+                **self._extra,
+            }
+            if self._failure_key:
+                extra["failure_key"] = self._failure_key
+            if len(self._iteration_durations) > _MAX_ITERATIONS_LOGGED:
+                extra["durations_truncated"] = True
+            self._logger.info(
+                self._name,
+                extra=extra,
             )
 
 
 @contextmanager
 def track_batch_performance(
-    name: str, logger: logging.Logger, threshold: timedelta
+    name: str, logger: logging.Logger, threshold: timedelta, extra: Mapping[str, Any] | None = None
 ) -> Generator[BatchPerformanceTracker]:
-    """Context manager that yields a BatchPerformanceTracker for monitoring batch operation performance.
+    """Context manager that yields a BatchPerformanceTracker for monitoring batch operation performance
+    and ensures that it is reliably finalized.
 
     Args:
         name: Log event name, eg "my_package.my_function.process_batch_loop".
         logger: Logger for performance reporting
-        total_threshold: Time threshold where per iteration performance is logged.
+        threshold: Time threshold where per iteration performance is logged.
+        extra: Extra values to include in the log message extras.
+
+    Example:
+        with track_batch_performance("process_items.loop", logger, timedelta(seconds=10)) as tracker:
+            for item in items:
+                with tracker.track(f"item_{item.id}"):
+                    process_item(item)
     """
-    tracker = BatchPerformanceTracker(name, logger, threshold)
+    tracker = BatchPerformanceTracker(name, logger, threshold, extra)
     try:
         yield tracker
     finally:

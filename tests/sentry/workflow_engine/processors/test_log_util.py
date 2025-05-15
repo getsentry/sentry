@@ -1,7 +1,7 @@
 import logging
 import unittest
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from sentry.workflow_engine.processors.log_util import BatchPerformanceTracker, top_n_slowest
 
@@ -12,7 +12,11 @@ class TestBatchPerformanceTracker(unittest.TestCase):
         self.logger = Mock(spec=logging.Logger)
         self.time_func = Mock(return_value=0)
         self.tracker = BatchPerformanceTracker(
-            "test_operation", self.logger, timedelta(seconds=100), time_func=self.time_func
+            "test_operation",
+            self.logger,
+            timedelta(seconds=100),
+            time_func=self.time_func,
+            extra={"my_key": 4},
         )
 
     def test_basic_tracking(self):
@@ -31,9 +35,9 @@ class TestBatchPerformanceTracker(unittest.TestCase):
         self.tracker.finalize()
         self.logger.info.assert_called_once()
         call_args = self.logger.info.call_args[1]
-        assert call_args["extra"]["name"] == "test_operation"
         assert call_args["extra"]["total_duration"] == 200
         assert call_args["extra"]["durations"]["item1"] == 200
+        assert call_args["extra"]["my_key"] == 4
 
     def test_multiple_items(self):
         """Test tracking multiple items and their cumulative duration."""
@@ -47,10 +51,12 @@ class TestBatchPerformanceTracker(unittest.TestCase):
 
         self.tracker.finalize()
         self.logger.info.assert_called_once()
-        call_args = self.logger.info.call_args[1]
-        assert call_args["extra"]["durations"]["item1"] == 50
-        assert call_args["extra"]["durations"]["item2"] == 50
-        assert call_args["extra"]["total_duration"] == 100
+        call_args = self.logger.info.call_args
+        assert call_args[0] == ("test_operation",)
+        extra = call_args[1]["extra"]
+        assert extra["durations"]["item1"] == 50
+        assert extra["durations"]["item2"] == 50
+        assert extra["total_duration"] == 100
 
     def test_key_collisions(self):
         """Test that durations are summed when the same key is used multiple times."""
@@ -74,24 +80,24 @@ class TestBatchPerformanceTracker(unittest.TestCase):
 
     def test_exception_handling(self):
         """Test that exceptions are logged if duration exceeds threshold."""
-        with patch.object(self.logger, "exception") as mock_exception:
-            # First do a fast operation
-            with self.tracker.track("item1"):
-                self.time_func.return_value = 1  # Fast operation.
+        # First do a fast operation
+        with self.tracker.track("item1"):
+            self.time_func.return_value = 1  # Fast operation.
 
-            try:
-                with self.tracker.track("item2"):
-                    self.time_func.return_value = 200  # Slow enough to exceed threshold.
-                    raise ValueError("Test exception")
-            except ValueError:
-                pass
+        try:
+            with self.tracker.track("item2"):
+                self.time_func.return_value = 200  # Slow enough to exceed threshold.
+                raise ValueError("Test exception")
+        except ValueError:
+            pass
 
-            mock_exception.assert_called_once()
-            call_args = mock_exception.call_args[1]
-            assert call_args["extra"]["name"] == "test_operation"
-            assert call_args["extra"]["total_duration"] == 200
-            assert call_args["extra"]["durations"]["item1"] == 1
-            assert call_args["extra"]["durations"]["item2"] == 199
+        self.tracker.finalize()
+        self.logger.info.assert_called_once()
+        call_args = self.logger.info.call_args[1]
+        assert call_args["extra"]["failure_key"] == "item2"
+        assert call_args["extra"]["total_duration"] == 200
+        assert call_args["extra"]["durations"]["item1"] == 1
+        assert call_args["extra"]["durations"]["item2"] == 199
 
 
 def test_top_n_slowest():
