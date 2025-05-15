@@ -408,9 +408,12 @@ class SubscriptionProcessor:
                 },
             )
 
-        if features.has(
-            "organizations:workflow-engine-metric-alert-processing",
-            self.subscription.project.organization,
+        if (
+            features.has(
+                "organizations:workflow-engine-metric-alert-processing",
+                self.subscription.project.organization,
+            )
+            and aggregation_value is not None
         ):
             packet = MetricDetectorUpdate(
                 entity=subscription_update.get("entity", ""),
