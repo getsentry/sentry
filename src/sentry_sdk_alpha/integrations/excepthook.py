@@ -25,9 +25,7 @@ class ExcepthookIntegration(Integration):
         # type: (bool) -> None
 
         if not isinstance(always_run, bool):
-            raise ValueError(
-                "Invalid value for always_run: {} (must be type boolean)".format(always_run)
-            )
+            raise ValueError(f"Invalid value for always_run: {always_run} (must be type boolean)")
         self.always_run = always_run
 
     @staticmethod
