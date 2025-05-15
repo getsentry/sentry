@@ -1,22 +1,20 @@
 import sys
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.integrations import Integration
 from sentry_sdk_alpha.utils import (
     capture_internal_exceptions,
+    event_hint_with_exc_info,
     exc_info_from_error,
     single_exception_from_error_tuple,
     walk_exception_chain,
-    event_hint_with_exc_info,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Optional
+    from typing import Any, Optional
 
-    from sentry_sdk_alpha._types import ExcInfo, Event, Hint
+    from sentry_sdk_alpha._types import Event, ExcInfo, Hint
 
 
 class SparkWorkerIntegration(Integration):
@@ -70,17 +68,13 @@ def _tag_task_context():
     def process_event(event, hint):
         # type: (Event, Hint) -> Optional[Event]
         with capture_internal_exceptions():
-            integration = sentry_sdk_alpha.get_client().get_integration(
-                SparkWorkerIntegration
-            )
+            integration = sentry_sdk_alpha.get_client().get_integration(SparkWorkerIntegration)
             task_context = TaskContext.get()
 
             if integration is None or task_context is None:
                 return event
 
-            event.setdefault("tags", {}).setdefault(
-                "stageId", str(task_context.stageId())
-            )
+            event.setdefault("tags", {}).setdefault("stageId", str(task_context.stageId()))
             event["tags"].setdefault("partitionId", str(task_context.partitionId()))
             event["tags"].setdefault("attemptNumber", str(task_context.attemptNumber()))
             event["tags"].setdefault("taskAttemptId", str(task_context.taskAttemptId()))

@@ -1,15 +1,15 @@
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
 from sentry_sdk_alpha.integrations import Integration
 from sentry_sdk_alpha.utils import capture_internal_exceptions, ensure_integration_enabled
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Optional
+    from typing import Any, Optional
+
+    from pyspark import SparkContext
 
     from sentry_sdk_alpha._types import Event, Hint
-    from pyspark import SparkContext
 
 
 class SparkIntegration(Integration):
@@ -243,7 +243,7 @@ class SentryListener(SparkListener):
         # type: (Any) -> None
         sentry_sdk_alpha.get_isolation_scope().clear_breadcrumbs()
 
-        message = "Job {} Started".format(jobStart.jobId())
+        message = f"Job {jobStart.jobId()} Started"
         self._add_breadcrumb(level="info", message=message)
         _set_app_properties()
 
@@ -255,17 +255,17 @@ class SentryListener(SparkListener):
 
         if jobEnd.jobResult().toString() == "JobSucceeded":
             level = "info"
-            message = "Job {} Ended".format(jobEnd.jobId())
+            message = f"Job {jobEnd.jobId()} Ended"
         else:
             level = "warning"
-            message = "Job {} Failed".format(jobEnd.jobId())
+            message = f"Job {jobEnd.jobId()} Failed"
 
         self._add_breadcrumb(level=level, message=message, data=data)
 
     def onStageSubmitted(self, stageSubmitted):  # noqa: N802,N803
         # type: (Any) -> None
         stage_info = stageSubmitted.stageInfo()
-        message = "Stage {} Submitted".format(stage_info.stageId())
+        message = f"Stage {stage_info.stageId()} Submitted"
 
         data = {"name": stage_info.name()}
         attempt_id = _get_attempt_id(stage_info)
@@ -291,10 +291,10 @@ class SentryListener(SparkListener):
         # Have to Try Except because stageInfo.failureReason() is typed with Scala Option
         try:
             data["reason"] = stage_info.failureReason().get()
-            message = "Stage {} Failed".format(stage_info.stageId())
+            message = f"Stage {stage_info.stageId()} Failed"
             level = "warning"
         except Py4JJavaError:
-            message = "Stage {} Completed".format(stage_info.stageId())
+            message = f"Stage {stage_info.stageId()} Completed"
             level = "info"
 
         self._add_breadcrumb(level=level, message=message, data=data)

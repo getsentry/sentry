@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
 from sentry_sdk_alpha.integrations.redis.consts import SPAN_ORIGIN
@@ -13,8 +15,6 @@ from sentry_sdk_alpha.integrations.redis.utils import (
     _update_span,
 )
 from sentry_sdk_alpha.utils import capture_internal_exceptions
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -105,9 +105,7 @@ def patch_redis_client(cls, is_cluster, get_db_data_fn):
         db_span_data = get_db_data_fn(self)
         db_client_span_data = _get_client_data(is_cluster, name, *args)
         _update_span(db_span, db_span_data, db_client_span_data)
-        _create_breadcrumb(
-            db_properties["description"], db_span_data, db_client_span_data
-        )
+        _create_breadcrumb(db_properties["description"], db_span_data, db_client_span_data)
 
         value = old_execute_command(self, name, *args, **kwargs)
 

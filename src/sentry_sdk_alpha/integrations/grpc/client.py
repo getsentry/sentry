@@ -1,19 +1,20 @@
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
 from sentry_sdk_alpha.integrations import DidNotEnable
 from sentry_sdk_alpha.integrations.grpc.consts import SPAN_ORIGIN
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any, Callable, Iterator, Iterable, Union
+    from collections.abc import Callable, Iterable, Iterator
+    from typing import Any, Union
 
 try:
     import grpc
-    from grpc import ClientCallDetails, Call
+    from google.protobuf.message import Message
+    from grpc import Call, ClientCallDetails
     from grpc._interceptor import _UnaryOutcome
     from grpc.aio._interceptor import UnaryStreamCall
-    from google.protobuf.message import Message
 except ImportError:
     raise DidNotEnable("grpcio is not installed")
 
@@ -62,9 +63,7 @@ class ClientInterceptor(
                 client_call_details
             )
 
-            response = continuation(
-                client_call_details, request
-            )  # type: UnaryStreamCall
+            response = continuation(client_call_details, request)  # type: UnaryStreamCall
             # Setting code on unary-stream leads to execution getting stuck
             # span.set_attribute("code", response.code().name)
 
@@ -73,9 +72,7 @@ class ClientInterceptor(
     @staticmethod
     def _update_client_call_details_metadata_from_scope(client_call_details):
         # type: (ClientCallDetails) -> ClientCallDetails
-        metadata = (
-            list(client_call_details.metadata) if client_call_details.metadata else []
-        )
+        metadata = list(client_call_details.metadata) if client_call_details.metadata else []
         for (
             key,
             value,

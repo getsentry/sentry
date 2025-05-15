@@ -1,20 +1,21 @@
-from typing import cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-from opentelemetry.trace import set_span_in_context
 from opentelemetry.context import Context, get_value, set_value
 from opentelemetry.context.contextvars_context import ContextVarsRuntimeContext
+from opentelemetry.trace import set_span_in_context
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.opentelemetry.consts import (
-    SENTRY_SCOPES_KEY,
     SENTRY_FORK_ISOLATION_SCOPE_KEY,
+    SENTRY_SCOPES_KEY,
     SENTRY_USE_CURRENT_SCOPE_KEY,
     SENTRY_USE_ISOLATION_SCOPE_KEY,
 )
 
 if TYPE_CHECKING:
-    from typing import Optional
     from contextvars import Token
+    from typing import Optional
+
     import sentry_sdk_alpha.opentelemetry.scope as scope
 
 
@@ -23,20 +24,14 @@ class SentryContextVarsRuntimeContext(ContextVarsRuntimeContext):
         # type: (Context) -> Token[Context]
         scopes = get_value(SENTRY_SCOPES_KEY, context)
 
-        should_fork_isolation_scope = context.pop(
-            SENTRY_FORK_ISOLATION_SCOPE_KEY, False
-        )
+        should_fork_isolation_scope = context.pop(SENTRY_FORK_ISOLATION_SCOPE_KEY, False)
         should_fork_isolation_scope = cast("bool", should_fork_isolation_scope)
 
         should_use_isolation_scope = context.pop(SENTRY_USE_ISOLATION_SCOPE_KEY, None)
-        should_use_isolation_scope = cast(
-            "Optional[scope.PotelScope]", should_use_isolation_scope
-        )
+        should_use_isolation_scope = cast("Optional[scope.PotelScope]", should_use_isolation_scope)
 
         should_use_current_scope = context.pop(SENTRY_USE_CURRENT_SCOPE_KEY, None)
-        should_use_current_scope = cast(
-            "Optional[scope.PotelScope]", should_use_current_scope
-        )
+        should_use_current_scope = cast("Optional[scope.PotelScope]", should_use_current_scope)
 
         if scopes:
             scopes = cast("tuple[scope.PotelScope, scope.PotelScope]", scopes)

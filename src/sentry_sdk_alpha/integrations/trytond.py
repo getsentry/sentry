@@ -1,12 +1,11 @@
-import sentry_sdk_alpha
-from sentry_sdk_alpha.integrations import _check_minimum_version, Integration
-from sentry_sdk_alpha.integrations.wsgi import SentryWsgiMiddleware
-from sentry_sdk_alpha.utils import ensure_integration_enabled, event_from_exception
-
 from trytond import __version__ as trytond_version  # type: ignore
 from trytond.exceptions import TrytonException  # type: ignore
 from trytond.wsgi import app  # type: ignore
 
+import sentry_sdk_alpha
+from sentry_sdk_alpha.integrations import Integration, _check_minimum_version
+from sentry_sdk_alpha.integrations.wsgi import SentryWsgiMiddleware
+from sentry_sdk_alpha.utils import ensure_integration_enabled, event_from_exception
 
 # TODO: trytond-worker, trytond-cron and trytond-admin intergations
 

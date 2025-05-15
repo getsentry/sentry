@@ -35,13 +35,11 @@ import time
 import uuid
 from abc import ABC, abstractmethod
 from collections import deque
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha._lru_cache import LRUCache
-from sentry_sdk_alpha.profiler.utils import (
-    DEFAULT_SAMPLING_FREQUENCY,
-    extract_stack,
-)
+from sentry_sdk_alpha.profiler.utils import DEFAULT_SAMPLING_FREQUENCY, extract_stack
 from sentry_sdk_alpha.utils import (
     capture_internal_exception,
     get_current_thread_meta,
@@ -51,48 +49,31 @@ from sentry_sdk_alpha.utils import (
     set_in_app_in_frames,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Callable
-    from typing import Deque
-    from typing import Dict
-    from typing import List
-    from typing import Optional
-    from typing import Set
-    from typing import Type
-    from typing_extensions import TypedDict
+    from collections.abc import Callable
+    from typing import Any, Deque, Dict, List, Optional, Set, Type, TypedDict
 
+    from sentry_sdk_alpha._types import Event, ProfilerMode, SamplingContext
     from sentry_sdk_alpha.profiler.utils import (
-        ProcessedStack,
-        ProcessedFrame,
-        ProcessedThreadMetadata,
+        ExtractedSample,
         FrameId,
+        ProcessedFrame,
+        ProcessedStack,
+        ProcessedThreadMetadata,
         StackId,
         ThreadId,
-        ExtractedSample,
-    )
-    from sentry_sdk_alpha._types import Event, SamplingContext, ProfilerMode
-
-    ProcessedSample = TypedDict(
-        "ProcessedSample",
-        {
-            "elapsed_since_start_ns": str,
-            "thread_id": ThreadId,
-            "stack_id": int,
-        },
     )
 
-    ProcessedProfile = TypedDict(
-        "ProcessedProfile",
-        {
-            "frames": List[ProcessedFrame],
-            "stacks": List[ProcessedStack],
-            "samples": List[ProcessedSample],
-            "thread_metadata": Dict[ThreadId, ProcessedThreadMetadata],
-        },
-    )
+    class ProcessedSample(TypedDict):
+        elapsed_since_start_ns: str
+        thread_id: ThreadId
+        stack_id: int
+
+    class ProcessedProfile(TypedDict):
+        frames: List[ProcessedFrame]
+        stacks: List[ProcessedStack]
+        samples: List[ProcessedSample]
+        thread_metadata: Dict[ThreadId, ProcessedThreadMetadata]
 
 
 try:
@@ -160,11 +141,9 @@ def setup_profiler(options):
     elif profiler_mode == GeventScheduler.mode:
         _scheduler = GeventScheduler(frequency=frequency)
     else:
-        raise ValueError("Unknown profiler mode: {}".format(profiler_mode))
+        raise ValueError(f"Unknown profiler mode: {profiler_mode}")
 
-    logger.debug(
-        "[Profiling] Setting up profiler in {mode} mode".format(mode=_scheduler.mode)
-    )
+    logger.debug(f"[Profiling] Setting up profiler in {_scheduler.mode} mode")
     _scheduler.setup()
 
     atexit.register(teardown_profiler)
@@ -225,9 +204,7 @@ class Profile:
         # type: () -> None
         self.active_thread_id = get_current_thread_meta()[0]
         logger.debug(
-            "[Profiling] updating active thread id to {tid}".format(
-                tid=self.active_thread_id
-            )
+            "[Profiling] updating active thread id to {tid}".format(tid=self.active_thread_id)
         )
 
     def _set_initial_sampling_decision(self, sampling_context):
@@ -245,17 +222,13 @@ class Profile:
         # The corresponding transaction was not sampled,
         # so don't generate a profile for it.
         if not self.sampled:
-            logger.debug(
-                "[Profiling] Discarding profile because transaction is discarded."
-            )
+            logger.debug("[Profiling] Discarding profile because transaction is discarded.")
             self.sampled = False
             return
 
         # The profiler hasn't been properly initialized.
         if self.scheduler is None:
-            logger.debug(
-                "[Profiling] Discarding profile because profiler was not started."
-            )
+            logger.debug("[Profiling] Discarding profile because profiler was not started.")
             self.sampled = False
             return
 
@@ -275,16 +248,12 @@ class Profile:
         # The profiles_sample_rate option was not set, so profiling
         # was never enabled.
         if sample_rate is None:
-            logger.debug(
-                "[Profiling] Discarding profile because profiling was not enabled."
-            )
+            logger.debug("[Profiling] Discarding profile because profiling was not enabled.")
             self.sampled = False
             return
 
         if not is_valid_sample_rate(sample_rate, source="Profiling"):
-            logger.warning(
-                "[Profiling] Discarding profile because of invalid sample rate."
-            )
+            logger.warning("[Profiling] Discarding profile because of invalid sample rate.")
             self.sampled = False
             return
 
@@ -373,9 +342,7 @@ class Profile:
                             self.frames.append(frames[i])
 
                     self.indexed_stacks[stack_id] = len(self.indexed_stacks)
-                    self.stacks.append(
-                        [self.indexed_frames[frame_id] for frame_id in frame_ids]
-                    )
+                    self.stacks.append([self.indexed_frames[frame_id] for frame_id in frame_ids])
 
                 self.samples.append(
                     {
@@ -471,16 +438,12 @@ class Profile:
 
         if self.sampled is None or not self.sampled:
             if client.transport:
-                client.transport.record_lost_event(
-                    "sample_rate", data_category="profile"
-                )
+                client.transport.record_lost_event("sample_rate", data_category="profile")
             return False
 
         if self.unique_samples < PROFILE_MINIMUM_SAMPLES:
             if client.transport:
-                client.transport.record_lost_event(
-                    "insufficient_data", data_category="profile"
-                )
+                client.transport.record_lost_event("insufficient_data", data_category="profile")
             logger.debug("[Profiling] Discarding profile because insufficient samples.")
             return False
 
@@ -714,7 +677,7 @@ class GeventScheduler(Scheduler):
         # type: (int) -> None
 
         if ThreadPool is None:
-            raise ValueError("Profiler mode: {} is not available".format(self.mode))
+            raise ValueError(f"Profiler mode: {self.mode} is not available")
 
         super().__init__(frequency=frequency)
 

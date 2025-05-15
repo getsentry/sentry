@@ -3,6 +3,7 @@ Create spans from Django middleware invocations
 """
 
 from functools import wraps
+from typing import TYPE_CHECKING
 
 from django import VERSION as DJANGO_VERSION
 
@@ -10,25 +11,19 @@ import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
 from sentry_sdk_alpha.utils import (
     ContextVar,
-    transaction_from_function,
     capture_internal_exceptions,
+    transaction_from_function,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Callable
-    from typing import Optional
-    from typing import TypeVar
+    from collections.abc import Callable
+    from typing import Any, Optional, TypeVar
 
     from sentry_sdk_alpha.tracing import Span
 
     F = TypeVar("F", bound=Callable[..., Any])
 
-_import_string_should_wrap_middleware = ContextVar(
-    "import_string_should_wrap_middleware"
-)
+_import_string_should_wrap_middleware = ContextVar("import_string_should_wrap_middleware")
 
 DJANGO_SUPPORTS_ASYNC_MIDDLEWARE = DJANGO_VERSION >= (3, 1)
 
@@ -83,7 +78,7 @@ def _wrap_middleware(middleware, middleware_name):
         description = middleware_name
         function_basename = getattr(old_method, "__name__", None)
         if function_basename:
-            description = "{}.{}".format(description, function_basename)
+            description = f"{description}.{function_basename}"
 
         middleware_span = sentry_sdk_alpha.start_span(
             op=OP.MIDDLEWARE_DJANGO,

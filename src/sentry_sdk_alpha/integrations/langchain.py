@@ -1,29 +1,26 @@
 from collections import OrderedDict
 from functools import wraps
-
-import sentry_sdk_alpha
-from sentry_sdk_alpha.ai.monitoring import set_ai_pipeline_name, record_token_usage
-from sentry_sdk_alpha.consts import OP, SPANDATA, SPANSTATUS
-from sentry_sdk_alpha.ai.utils import set_data_normalized
-from sentry_sdk_alpha.scope import should_send_default_pii
-from sentry_sdk_alpha.tracing import Span
-from sentry_sdk_alpha.integrations import DidNotEnable, Integration
-from sentry_sdk_alpha.utils import logger, capture_internal_exceptions
-
 from typing import TYPE_CHECKING
 
+import sentry_sdk_alpha
+from sentry_sdk_alpha.ai.monitoring import record_token_usage, set_ai_pipeline_name
+from sentry_sdk_alpha.ai.utils import set_data_normalized
+from sentry_sdk_alpha.consts import OP, SPANDATA, SPANSTATUS
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration
+from sentry_sdk_alpha.scope import should_send_default_pii
+from sentry_sdk_alpha.tracing import Span
+from sentry_sdk_alpha.utils import capture_internal_exceptions, logger
+
 if TYPE_CHECKING:
-    from typing import Any, List, Callable, Dict, Union, Optional
+    from collections.abc import Callable
+    from typing import Any, Dict, List, Optional, Union
     from uuid import UUID
 
 try:
+    from langchain_core.agents import AgentAction, AgentFinish
+    from langchain_core.callbacks import BaseCallbackHandler, manager
     from langchain_core.messages import BaseMessage
     from langchain_core.outputs import LLMResult
-    from langchain_core.callbacks import (
-        manager,
-        BaseCallbackHandler,
-    )
-    from langchain_core.agents import AgentAction, AgentFinish
 except ImportError:
     raise DidNotEnable("langchain not installed")
 
@@ -57,9 +54,7 @@ class LangchainIntegration(Integration):
     # The most number of spans (e.g., LLM calls) that can be processed at the same time.
     max_spans = 1024
 
-    def __init__(
-        self, include_prompts=True, max_spans=1024, tiktoken_encoding_name=None
-    ):
+    def __init__(self, include_prompts=True, max_spans=1024, tiktoken_encoding_name=None):
         # type: (LangchainIntegration, bool, int, Optional[str]) -> None
         self.include_prompts = include_prompts
         self.max_spans = max_spans
@@ -234,10 +229,7 @@ class SentryLangchainCallback(BaseCallbackHandler):  # type: ignore[misc]
                 set_data_normalized(
                     span,
                     SPANDATA.AI_INPUT_MESSAGES,
-                    [
-                        [self._normalize_langchain_message(x) for x in list_]
-                        for list_ in messages
-                    ],
+                    [[self._normalize_langchain_message(x) for x in list_] for list_ in messages],
                 )
             for k, v in DATA_FIELDS.items():
                 if k in all_params:
@@ -267,9 +259,7 @@ class SentryLangchainCallback(BaseCallbackHandler):  # type: ignore[misc]
             if not run_id:
                 return
 
-            token_usage = (
-                response.llm_output.get("token_usage") if response.llm_output else None
-            )
+            token_usage = response.llm_output.get("token_usage") if response.llm_output else None
 
             span_data = self.span_map[run_id]
             if not span_data:

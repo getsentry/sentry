@@ -1,6 +1,7 @@
 from collections.abc import Set
+
 import sentry_sdk_alpha
-from sentry_sdk_alpha.consts import OP, TransactionSource, SOURCE_FOR_STYLE
+from sentry_sdk_alpha.consts import OP, SOURCE_FOR_STYLE, TransactionSource
 from sentry_sdk_alpha.integrations import (
     _DEFAULT_FAILED_REQUEST_STATUS_CODES,
     DidNotEnable,
@@ -16,12 +17,12 @@ from sentry_sdk_alpha.utils import (
 )
 
 try:
-    from litestar import Request, Litestar  # type: ignore
+    from litestar import Litestar, Request  # type: ignore
+    from litestar.data_extractors import ConnectionDataExtractor  # type: ignore
+    from litestar.exceptions import HTTPException  # type: ignore
     from litestar.handlers.base import BaseRouteHandler  # type: ignore
     from litestar.middleware import DefineMiddleware  # type: ignore
     from litestar.routes.http import HTTPRoute  # type: ignore
-    from litestar.data_extractors import ConnectionDataExtractor  # type: ignore
-    from litestar.exceptions import HTTPException  # type: ignore
 except ImportError:
     raise DidNotEnable("Litestar is not installed")
 
@@ -29,18 +30,13 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any, Optional, Union
-    from litestar.types.asgi_types import ASGIApp  # type: ignore
-    from litestar.types import (  # type: ignore
-        HTTPReceiveMessage,
-        HTTPScope,
-        Message,
-        Middleware,
-        Receive,
-        Scope as LitestarScope,
-        Send,
-        WebSocketReceiveMessage,
-    )
+
     from litestar.middleware import MiddlewareProtocol
+    from litestar.types import HTTPReceiveMessage, HTTPScope, Message, Middleware, Receive
+    from litestar.types import Scope as LitestarScope  # type: ignore
+    from litestar.types import Send, WebSocketReceiveMessage
+    from litestar.types.asgi_types import ASGIApp  # type: ignore
+
     from sentry_sdk_alpha._types import Event, Hint
 
 _DEFAULT_TRANSACTION_NAME = "generic Litestar request"
@@ -218,9 +214,7 @@ def patch_http_route_handle():
         request = scope["app"].request_class(
             scope=scope, receive=receive, send=send
         )  # type: Request[Any, Any]
-        extracted_request_data = ConnectionDataExtractor(
-            parse_body=True, parse_query=True
-        )(request)
+        extracted_request_data = ConnectionDataExtractor(parse_body=True, parse_query=True)(request)
         body = extracted_request_data.pop("body")
 
         request_data = await body

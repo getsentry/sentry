@@ -1,4 +1,6 @@
+from collections.abc import Sequence
 from functools import wraps
+from typing import TYPE_CHECKING, Any, Optional
 
 import grpc
 from grpc import Channel, Server, intercept_channel
@@ -7,23 +9,18 @@ from grpc.aio import Server as AsyncServer
 
 from sentry_sdk_alpha.integrations import Integration
 
+from .aio.client import SentryUnaryStreamClientInterceptor as AsyncUnaryStreamClientIntercetor
+from .aio.client import SentryUnaryUnaryClientInterceptor as AsyncUnaryUnaryClientInterceptor
+from .aio.server import ServerInterceptor as AsyncServerInterceptor
 from .client import ClientInterceptor
 from .server import ServerInterceptor
-from .aio.server import ServerInterceptor as AsyncServerInterceptor
-from .aio.client import (
-    SentryUnaryUnaryClientInterceptor as AsyncUnaryUnaryClientInterceptor,
-)
-from .aio.client import (
-    SentryUnaryStreamClientInterceptor as AsyncUnaryStreamClientIntercetor,
-)
-
-from typing import TYPE_CHECKING, Any, Optional, Sequence
 
 # Hack to get new Python features working in older versions
 # without introducing a hard dependency on `typing_extensions`
 # from: https://stackoverflow.com/a/71944042/300572
 if TYPE_CHECKING:
-    from typing import ParamSpec, Callable
+    from collections.abc import Callable
+    from typing import ParamSpec
 else:
     # Fake ParamSpec
     class ParamSpec:
@@ -83,7 +80,7 @@ def _wrap_channel_async(func: Callable[P, AsyncChannel]) -> Callable[P, AsyncCha
     @wraps(func)
     def patched_channel(  # type: ignore
         *args: P.args,
-        interceptors: Optional[Sequence[grpc.aio.ClientInterceptor]] = None,
+        interceptors: Sequence[grpc.aio.ClientInterceptor] | None = None,
         **kwargs: P.kwargs,
     ) -> Channel:
         sentry_interceptors = [
@@ -102,7 +99,7 @@ def _wrap_sync_server(func: Callable[P, Server]) -> Callable[P, Server]:
     @wraps(func)
     def patched_server(  # type: ignore
         *args: P.args,
-        interceptors: Optional[Sequence[grpc.ServerInterceptor]] = None,
+        interceptors: Sequence[grpc.ServerInterceptor] | None = None,
         **kwargs: P.kwargs,
     ) -> Server:
         interceptors = [
@@ -123,7 +120,7 @@ def _wrap_async_server(func: Callable[P, AsyncServer]) -> Callable[P, AsyncServe
     @wraps(func)
     def patched_aio_server(  # type: ignore
         *args: P.args,
-        interceptors: Optional[Sequence[grpc.ServerInterceptor]] = None,
+        interceptors: Sequence[grpc.ServerInterceptor] | None = None,
         **kwargs: P.kwargs,
     ) -> Server:
         server_interceptor = AsyncServerInterceptor()

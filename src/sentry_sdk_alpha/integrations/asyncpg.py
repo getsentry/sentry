@@ -1,17 +1,19 @@
 from __future__ import annotations
+
 import contextlib
-from typing import Any, TypeVar, Callable, Awaitable, Iterator, Optional
+from collections.abc import Awaitable, Callable, Iterator
+from typing import Any, Optional, TypeVar
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP, SPANDATA
-from sentry_sdk_alpha.integrations import _check_minimum_version, Integration, DidNotEnable
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.tracing import Span
 from sentry_sdk_alpha.tracing_utils import add_query_source, record_sql_queries
 from sentry_sdk_alpha.utils import (
     _serialize_span_attribute,
+    capture_internal_exceptions,
     ensure_integration_enabled,
     parse_version,
-    capture_internal_exceptions,
 )
 
 try:
@@ -39,9 +41,7 @@ class AsyncPGIntegration(Integration):
         asyncpg.Connection.execute = _wrap_execute(
             asyncpg.Connection.execute,
         )
-        asyncpg.Connection._execute = _wrap_connection_method(
-            asyncpg.Connection._execute
-        )
+        asyncpg.Connection._execute = _wrap_connection_method(asyncpg.Connection._execute)
         asyncpg.Connection._executemany = _wrap_connection_method(
             asyncpg.Connection._executemany, executemany=True
         )
@@ -176,9 +176,7 @@ def _wrap_connect_addr(f: Callable[..., Awaitable[T]]) -> Callable[..., Awaitabl
             _set_on_span(span, data)
 
             with capture_internal_exceptions():
-                sentry_sdk_alpha.add_breadcrumb(
-                    message="connect", category="query", data=data
-                )
+                sentry_sdk_alpha.add_breadcrumb(message="connect", category="query", data=data)
 
             res = await f(*args, **kwargs)
 
@@ -189,9 +187,9 @@ def _wrap_connect_addr(f: Callable[..., Awaitable[T]]) -> Callable[..., Awaitabl
 
 def _get_db_data(
     conn: Any = None,
-    addr: Optional[tuple[str, ...]] = None,
-    database: Optional[str] = None,
-    user: Optional[str] = None,
+    addr: tuple[str, ...] | None = None,
+    database: str | None = None,
+    user: str | None = None,
 ) -> dict[str, str]:
     if conn is not None:
         addr = conn._addr

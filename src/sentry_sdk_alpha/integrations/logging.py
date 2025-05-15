@@ -2,26 +2,23 @@ import logging
 import sys
 from datetime import datetime, timezone
 from fnmatch import fnmatch
+from typing import TYPE_CHECKING, Tuple
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.client import BaseClient
+from sentry_sdk_alpha.integrations import Integration
 from sentry_sdk_alpha.utils import (
+    capture_internal_exceptions,
+    current_stacktrace,
+    event_from_exception,
     safe_repr,
     to_string,
-    event_from_exception,
-    current_stacktrace,
-    capture_internal_exceptions,
 )
-from sentry_sdk_alpha.integrations import Integration
-
-from typing import TYPE_CHECKING, Tuple
 
 if TYPE_CHECKING:
     from collections.abc import MutableMapping
     from logging import LogRecord
-    from typing import Any
-    from typing import Dict
-    from typing import Optional
+    from typing import Any, Dict, Optional
 
 DEFAULT_LEVEL = logging.INFO
 DEFAULT_EVENT_LEVEL = None  # None means no events are captured
@@ -42,14 +39,12 @@ LOGGING_TO_EVENT_LEVEL = {
 #
 # Note: Ignoring by logger name here is better than mucking with thread-locals.
 # We do not necessarily know whether thread-locals work 100% correctly in the user's environment.
-_IGNORED_LOGGERS = set(
-    [
-        "sentry_sdk.errors",
-        "urllib3.connectionpool",
-        "urllib3.connection",
-        "opentelemetry.*",
-    ]
-)
+_IGNORED_LOGGERS = {
+    "sentry_sdk.errors",
+    "urllib3.connectionpool",
+    "urllib3.connection",
+    "opentelemetry.*",
+}
 
 
 def ignore_logger(
@@ -125,9 +120,7 @@ class LoggingIntegration(Integration):
                 # into a recursion error when the integration is resolved
                 # (this also is slower).
                 if ignored_loggers is not None and record.name not in ignored_loggers:
-                    integration = sentry_sdk_alpha.get_client().get_integration(
-                        LoggingIntegration
-                    )
+                    integration = sentry_sdk_alpha.get_client().get_integration(LoggingIntegration)
                     if integration is not None:
                         integration._handle_record(record)
 
@@ -233,9 +226,7 @@ class EventHandler(_BaseHandler):
                     "values": [
                         {
                             "stacktrace": current_stacktrace(
-                                include_local_variables=client_options[
-                                    "include_local_variables"
-                                ],
+                                include_local_variables=client_options["include_local_variables"],
                                 max_value_length=client_options["max_value_length"],
                             ),
                             "crashed": False,
@@ -254,11 +245,7 @@ class EventHandler(_BaseHandler):
             event["level"] = level  # type: ignore[typeddict-item]
         event["logger"] = record.name
 
-        if (
-            sys.version_info < (3, 11)
-            and record.name == "py.warnings"
-            and record.msg == "%s"
-        ):
+        if sys.version_info < (3, 11) and record.name == "py.warnings" and record.msg == "%s":
             # warnings module on Python 3.10 and below sets record.msg to "%s"
             # and record.args[0] to the actual warning message.
             # This was fixed in https://github.com/python/cpython/pull/30975.

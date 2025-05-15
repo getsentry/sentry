@@ -1,23 +1,13 @@
 import sentry_sdk_alpha
-from sentry_sdk_alpha.utils import (
-    event_from_exception,
-    ensure_integration_enabled,
-    parse_version,
-)
-
-from sentry_sdk_alpha.integrations import _check_minimum_version, DidNotEnable, Integration
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.scope import should_send_default_pii
+from sentry_sdk_alpha.utils import ensure_integration_enabled, event_from_exception, parse_version
 
 try:
     import gql  # type: ignore[import-not-found]
-    from graphql import (
-        print_ast,
-        get_operation_ast,
-        DocumentNode,
-        VariableDefinitionNode,
-    )
-    from gql.transport import Transport, AsyncTransport  # type: ignore[import-not-found]
+    from gql.transport import AsyncTransport, Transport  # type: ignore[import-not-found]
     from gql.transport.exceptions import TransportQueryError  # type: ignore[import-not-found]
+    from graphql import DocumentNode, VariableDefinitionNode, get_operation_ast, print_ast
 except ImportError:
     raise DidNotEnable("gql is not installed")
 
@@ -25,9 +15,10 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any, Dict, Tuple, Union
+
     from sentry_sdk_alpha._types import Event, EventProcessor
 
-    EventDataType = Dict[str, Union[str, Tuple[VariableDefinitionNode, ...]]]
+    EventDataType = dict[str, Union[str, tuple[VariableDefinitionNode, ...]]]
 
 
 class GQLIntegration(Integration):

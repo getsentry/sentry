@@ -1,11 +1,12 @@
 import os
 import random
 import threading
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Optional, List, Callable, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, List, Optional
 
-from sentry_sdk_alpha.utils import format_timestamp, safe_repr
 from sentry_sdk_alpha.envelope import Envelope, Item, PayloadRef
+from sentry_sdk_alpha.utils import format_timestamp, safe_repr
 
 if TYPE_CHECKING:
     from sentry_sdk_alpha._types import Log
@@ -121,9 +122,7 @@ class LogBatcher:
             "trace_id": log.get("trace_id", "00000000-0000-0000-0000-000000000000"),
             "level": str(log["severity_text"]),
             "body": str(log["body"]),
-            "attributes": {
-                k: format_attribute(v) for (k, v) in log["attributes"].items()
-            },
+            "attributes": {k: format_attribute(v) for (k, v) in log["attributes"].items()},
         }
 
         return res
@@ -131,9 +130,7 @@ class LogBatcher:
     def _flush(self):
         # type: (...) -> Optional[Envelope]
 
-        envelope = Envelope(
-            headers={"sent_at": format_timestamp(datetime.now(timezone.utc))}
-        )
+        envelope = Envelope(headers={"sent_at": format_timestamp(datetime.now(timezone.utc))})
         with self._lock:
             if len(self._log_buffer) == 0:
                 return None
@@ -148,8 +145,7 @@ class LogBatcher:
                     payload=PayloadRef(
                         json={
                             "items": [
-                                self._log_to_transport_format(log)
-                                for log in self._log_buffer
+                                self._log_to_transport_format(log) for log in self._log_buffer
                             ]
                         }
                     ),

@@ -1,4 +1,5 @@
 from functools import wraps
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha import consts
@@ -7,23 +8,20 @@ from sentry_sdk_alpha.ai.utils import set_data_normalized
 from sentry_sdk_alpha.consts import SPANDATA
 from sentry_sdk_alpha.integrations import DidNotEnable, Integration
 from sentry_sdk_alpha.scope import should_send_default_pii
-from sentry_sdk_alpha.utils import (
-    capture_internal_exceptions,
-    event_from_exception,
-)
-
-from typing import TYPE_CHECKING
+from sentry_sdk_alpha.utils import capture_internal_exceptions, event_from_exception
 
 if TYPE_CHECKING:
-    from typing import Any, Iterable, List, Optional, Callable, AsyncIterator, Iterator
+    from collections.abc import AsyncIterator, Callable, Iterable, Iterator
+    from typing import Any, List, Optional
+
     from sentry_sdk_alpha.tracing import Span
 
 try:
-    from openai.resources.chat.completions import Completions, AsyncCompletions
-    from openai.resources import Embeddings, AsyncEmbeddings
+    from openai.resources import AsyncEmbeddings, Embeddings
+    from openai.resources.chat.completions import AsyncCompletions, Completions
 
     if TYPE_CHECKING:
-        from openai.types.chat import ChatCompletionMessageParam, ChatCompletionChunk
+        from openai.types.chat import ChatCompletionChunk, ChatCompletionMessageParam
 except ImportError:
     raise DidNotEnable("OpenAI not installed")
 
@@ -48,9 +46,7 @@ class OpenAIIntegration(Integration):
         Completions.create = _wrap_chat_completion_create(Completions.create)
         Embeddings.create = _wrap_embeddings_create(Embeddings.create)
 
-        AsyncCompletions.create = _wrap_async_chat_completion_create(
-            AsyncCompletions.create
-        )
+        AsyncCompletions.create = _wrap_async_chat_completion_create(AsyncCompletions.create)
         AsyncEmbeddings.create = _wrap_async_embeddings_create(AsyncEmbeddings.create)
 
     def count_tokens(self, s):
@@ -86,9 +82,7 @@ def _calculate_chat_completion_usage(
             response.usage.prompt_tokens, int
         ):
             prompt_tokens = response.usage.prompt_tokens
-        if hasattr(response.usage, "total_tokens") and isinstance(
-            response.usage.total_tokens, int
-        ):
+        if hasattr(response.usage, "total_tokens") and isinstance(response.usage.total_tokens, int):
             total_tokens = response.usage.total_tokens
 
     if prompt_tokens == 0:
@@ -159,9 +153,7 @@ def _new_chat_completion_common(f, *args, **kwargs):
                     SPANDATA.AI_RESPONSES,
                     list(map(lambda x: x.message, res.choices)),
                 )
-            _calculate_chat_completion_usage(
-                messages, res, span, None, integration.count_tokens
-            )
+            _calculate_chat_completion_usage(messages, res, span, None, integration.count_tokens)
             span.__exit__(None, None, None)
         elif hasattr(res, "_iterator"):
             data_buf: list[list[str]] = []  # one for each choice
@@ -175,9 +167,7 @@ def _new_chat_completion_common(f, *args, **kwargs):
                         if hasattr(x, "choices"):
                             choice_index = 0
                             for choice in x.choices:
-                                if hasattr(choice, "delta") and hasattr(
-                                    choice.delta, "content"
-                                ):
+                                if hasattr(choice, "delta") and hasattr(choice.delta, "content"):
                                     content = choice.delta.content
                                     if len(data_buf) <= choice_index:
                                         data_buf.append([])
@@ -185,13 +175,9 @@ def _new_chat_completion_common(f, *args, **kwargs):
                                 choice_index += 1
                         yield x
                     if len(data_buf) > 0:
-                        all_responses = list(
-                            map(lambda chunk: "".join(chunk), data_buf)
-                        )
+                        all_responses = list(map(lambda chunk: "".join(chunk), data_buf))
                         if should_send_default_pii() and integration.include_prompts:
-                            set_data_normalized(
-                                span, SPANDATA.AI_RESPONSES, all_responses
-                            )
+                            set_data_normalized(span, SPANDATA.AI_RESPONSES, all_responses)
                         _calculate_chat_completion_usage(
                             messages,
                             res,
@@ -208,9 +194,7 @@ def _new_chat_completion_common(f, *args, **kwargs):
                         if hasattr(x, "choices"):
                             choice_index = 0
                             for choice in x.choices:
-                                if hasattr(choice, "delta") and hasattr(
-                                    choice.delta, "content"
-                                ):
+                                if hasattr(choice, "delta") and hasattr(choice.delta, "content"):
                                     content = choice.delta.content
                                     if len(data_buf) <= choice_index:
                                         data_buf.append([])
@@ -218,13 +202,9 @@ def _new_chat_completion_common(f, *args, **kwargs):
                                 choice_index += 1
                         yield x
                     if len(data_buf) > 0:
-                        all_responses = list(
-                            map(lambda chunk: "".join(chunk), data_buf)
-                        )
+                        all_responses = list(map(lambda chunk: "".join(chunk), data_buf))
                         if should_send_default_pii() and integration.include_prompts:
-                            set_data_normalized(
-                                span, SPANDATA.AI_RESPONSES, all_responses
-                            )
+                            set_data_normalized(span, SPANDATA.AI_RESPONSES, all_responses)
                         _calculate_chat_completion_usage(
                             messages,
                             res,
@@ -327,9 +307,7 @@ def _new_embeddings_create_common(f, *args, **kwargs):
         origin=OpenAIIntegration.origin,
         only_if_parent=True,
     ) as span:
-        if "input" in kwargs and (
-            should_send_default_pii() and integration.include_prompts
-        ):
+        if "input" in kwargs and (should_send_default_pii() and integration.include_prompts):
             if isinstance(kwargs["input"], str):
                 set_data_normalized(span, SPANDATA.AI_INPUT_MESSAGES, [kwargs["input"]])
             elif (

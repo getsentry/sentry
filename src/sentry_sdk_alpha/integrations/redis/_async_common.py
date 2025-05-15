@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
 from sentry_sdk_alpha.integrations.redis.consts import SPAN_ORIGIN
@@ -14,18 +16,15 @@ from sentry_sdk_alpha.integrations.redis.utils import (
 )
 from sentry_sdk_alpha.utils import capture_internal_exceptions
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any, Union
+
     from redis.asyncio.client import Pipeline, StrictRedis
     from redis.asyncio.cluster import ClusterPipeline, RedisCluster
 
 
-def patch_redis_async_pipeline(
-    pipeline_cls, is_cluster, get_command_args_fn, get_db_data_fn
-):
+def patch_redis_async_pipeline(pipeline_cls, is_cluster, get_command_args_fn, get_db_data_fn):
     # type: (Union[type[Pipeline[Any]], type[ClusterPipeline[Any]]], bool, Any, Callable[[Any], dict[str, Any]]) -> None
     old_execute = pipeline_cls.execute
 
@@ -48,9 +47,7 @@ def patch_redis_async_pipeline(
                     is_cluster=is_cluster,
                     get_command_args_fn=get_command_args_fn,
                     is_transaction=False if is_cluster else self.is_transaction,
-                    command_stack=(
-                        self._command_stack if is_cluster else self.command_stack
-                    ),
+                    command_stack=(self._command_stack if is_cluster else self.command_stack),
                 )
                 _update_span(span, span_data, pipeline_data)
                 _create_breadcrumb("redis.pipeline.execute", span_data, pipeline_data)
@@ -102,9 +99,7 @@ def patch_redis_async_client(cls, is_cluster, get_db_data_fn):
         db_span_data = get_db_data_fn(self)
         db_client_span_data = _get_client_data(is_cluster, name, *args)
         _update_span(db_span, db_span_data, db_client_span_data)
-        _create_breadcrumb(
-            db_properties["description"], db_span_data, db_client_span_data
-        )
+        _create_breadcrumb(db_properties["description"], db_span_data, db_client_span_data)
 
         value = await old_execute_command(self, name, *args, **kwargs)
 

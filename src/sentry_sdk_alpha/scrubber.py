@@ -1,14 +1,11 @@
-from sentry_sdk_alpha.utils import (
-    capture_internal_exceptions,
-    AnnotatedValue,
-    iter_event_frames,
-)
+from typing import TYPE_CHECKING, Dict, List, cast
 
-from typing import TYPE_CHECKING, cast, List, Dict
+from sentry_sdk_alpha.utils import AnnotatedValue, capture_internal_exceptions, iter_event_frames
 
 if TYPE_CHECKING:
-    from sentry_sdk_alpha._types import Event
     from typing import Optional
+
+    from sentry_sdk_alpha._types import Event
 
 
 DEFAULT_DENYLIST = [
@@ -59,9 +56,7 @@ DEFAULT_PII_DENYLIST = [
 
 
 class EventScrubber:
-    def __init__(
-        self, denylist=None, recursive=False, send_default_pii=False, pii_denylist=None
-    ):
+    def __init__(self, denylist=None, recursive=False, send_default_pii=False, pii_denylist=None):
         # type: (Optional[List[str]], bool, bool, Optional[List[str]]) -> None
         """
         A scrubber that goes through the event payload and removes sensitive data configured through denylists.
@@ -74,9 +69,7 @@ class EventScrubber:
         self.denylist = DEFAULT_DENYLIST.copy() if denylist is None else denylist
 
         if not send_default_pii:
-            pii_denylist = (
-                DEFAULT_PII_DENYLIST.copy() if pii_denylist is None else pii_denylist
-            )
+            pii_denylist = DEFAULT_PII_DENYLIST.copy() if pii_denylist is None else pii_denylist
             self.denylist += pii_denylist
 
         self.denylist = [x.lower() for x in self.denylist]
@@ -163,7 +156,7 @@ class EventScrubber:
         # type: (Event) -> None
         with capture_internal_exceptions():
             if "spans" in event:
-                for span in cast(List[Dict[str, object]], event["spans"]):
+                for span in cast(list[dict[str, object]], event["spans"]):
                     if "data" in span:
                         self.scrub_dict(span["data"])
 

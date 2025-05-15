@@ -1,8 +1,9 @@
 import os
+import platform
 import subprocess
 import sys
-import platform
 from http.client import HTTPConnection
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP, SPANDATA
@@ -17,19 +18,14 @@ from sentry_sdk_alpha.utils import (
     http_client_status_to_breadcrumb_level,
     is_sentry_url,
     logger,
-    safe_repr,
     parse_url,
+    safe_repr,
     set_thread_info_from_span,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Callable
-    from typing import Dict
-    from typing import Optional
-    from typing import List
+    from collections.abc import Callable
+    from typing import Any, Dict, List, Optional
 
     from sentry_sdk_alpha._types import Event, Hint
 
@@ -80,7 +76,7 @@ def _install_httplib():
 
         real_url = url
         if real_url is None or not real_url.startswith(("http://", "https://")):
-            real_url = "%s://%s%s%s" % (
+            real_url = "{}://{}{}{}".format(
                 default_port == 443 and "https" or "http",
                 host,
                 port != default_port and ":%s" % port or "",
@@ -93,8 +89,7 @@ def _install_httplib():
 
         span = sentry_sdk_alpha.start_span(
             op=OP.HTTP_CLIENT,
-            name="%s %s"
-            % (method, parsed_url.url if parsed_url else SENSITIVE_DATA_SUBSTITUTE),
+            name="%s %s" % (method, parsed_url.url if parsed_url else SENSITIVE_DATA_SUBSTITUTE),
             origin="auto.http.stdlib.httplib",
             only_if_parent=True,
         )
@@ -119,9 +114,7 @@ def _install_httplib():
             for (
                 key,
                 value,
-            ) in sentry_sdk_alpha.get_current_scope().iter_trace_propagation_headers(
-                span=span
-            ):
+            ) in sentry_sdk_alpha.get_current_scope().iter_trace_propagation_headers(span=span):
                 logger.debug(
                     "[Tracing] Adding `{key}` header {value} to outgoing request to {real_url}.".format(
                         key=key, value=value, real_url=real_url

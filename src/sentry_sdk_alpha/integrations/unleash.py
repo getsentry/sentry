@@ -2,7 +2,7 @@ from functools import wraps
 from typing import Any
 
 from sentry_sdk_alpha.feature_flags import add_feature_flag
-from sentry_sdk_alpha.integrations import Integration, DidNotEnable
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration
 
 try:
     from UnleashClient import UnleashClient

@@ -1,45 +1,39 @@
-from collections import deque, defaultdict
+from collections import defaultdict, deque
 from typing import cast
 
-from opentelemetry.trace import (
-    format_trace_id,
-    format_span_id,
-    get_current_span,
-    INVALID_SPAN,
-    Span as AbstractSpan,
-)
 from opentelemetry.context import Context
-from opentelemetry.sdk.trace import Span, ReadableSpan, SpanProcessor
+from opentelemetry.sdk.trace import ReadableSpan, Span, SpanProcessor
+from opentelemetry.trace import INVALID_SPAN
+from opentelemetry.trace import Span as AbstractSpan
+from opentelemetry.trace import format_span_id, format_trace_id, get_current_span
 
 import sentry_sdk_alpha
-from sentry_sdk_alpha.consts import SPANDATA, DEFAULT_SPAN_ORIGIN
-from sentry_sdk_alpha.utils import get_current_thread_meta
-from sentry_sdk_alpha.opentelemetry.consts import (
-    OTEL_SENTRY_CONTEXT,
-    SentrySpanAttribute,
-)
+from sentry_sdk_alpha._types import TYPE_CHECKING
+from sentry_sdk_alpha.consts import DEFAULT_SPAN_ORIGIN, SPANDATA
+from sentry_sdk_alpha.opentelemetry.consts import OTEL_SENTRY_CONTEXT, SentrySpanAttribute
 from sentry_sdk_alpha.opentelemetry.sampler import create_sampling_context
 from sentry_sdk_alpha.opentelemetry.utils import (
-    is_sentry_span,
     convert_from_otel_timestamp,
     extract_span_attributes,
     extract_span_data,
     extract_transaction_name_source,
-    get_trace_context,
     get_profile_context,
     get_sentry_meta,
+    get_trace_context,
+    is_sentry_span,
     set_sentry_meta,
 )
 from sentry_sdk_alpha.profiler.continuous_profiler import (
-    try_autostart_continuous_profiler,
     get_profiler_id,
+    try_autostart_continuous_profiler,
     try_profile_lifecycle_trace_start,
 )
 from sentry_sdk_alpha.profiler.transaction_profiler import Profile
-from sentry_sdk_alpha._types import TYPE_CHECKING
+from sentry_sdk_alpha.utils import get_current_thread_meta
 
 if TYPE_CHECKING:
-    from typing import Optional, List, Any, Deque, DefaultDict
+    from typing import Any, DefaultDict, Deque, List, Optional
+
     from sentry_sdk_alpha._types import Event
 
 
@@ -60,10 +54,8 @@ class SentrySpanProcessor(SpanProcessor):
 
     def __init__(self):
         # type: () -> None
-        self._children_spans = defaultdict(
-            list
-        )  # type: DefaultDict[int, List[ReadableSpan]]
-        self._dropped_spans = defaultdict(lambda: 0)  # type: DefaultDict[int, int]
+        self._children_spans = defaultdict(list)  # type: DefaultDict[int, List[ReadableSpan]]
+        self._dropped_spans = defaultdict(int)  # type: DefaultDict[int, int]
 
     def on_start(self, span, parent_context=None):
         # type: (Span, Optional[Context]) -> None
@@ -205,9 +197,7 @@ class SentrySpanProcessor(SpanProcessor):
             node_children = self._children_spans.pop(parent_span_id, [])
             dropped_spans += self._dropped_spans.pop(parent_span_id, 0)
             children.extend(node_children)
-            bfs_queue.extend(
-                [child.context.span_id for child in node_children if child.context]
-            )
+            bfs_queue.extend([child.context.span_id for child in node_children if child.context])
 
         return children, dropped_spans
 
@@ -263,9 +253,7 @@ class SentrySpanProcessor(SpanProcessor):
             return None
 
         # This is a safe cast because dict[str, Any] is a superset of Event
-        span_json = cast(
-            "dict[str, Any]", self._common_span_transaction_attributes_as_json(span)
-        )
+        span_json = cast("dict[str, Any]", self._common_span_transaction_attributes_as_json(span))
         if span_json is None:
             return None
 
@@ -321,8 +309,7 @@ class SentrySpanProcessor(SpanProcessor):
         pprint.pprint(
             {
                 format_span_id(span_id): [
-                    (format_span_id(child.context.span_id), child.name)
-                    for child in children
+                    (format_span_id(child.context.span_id), child.name) for child in children
                 ]
                 for span_id, children in self._children_spans.items()
             }

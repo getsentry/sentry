@@ -4,16 +4,17 @@ Instrumentation for Redis
 https://github.com/redis/redis-py
 """
 
+from typing import TYPE_CHECKING
+
 from sentry_sdk_alpha.integrations.redis._sync_common import (
     patch_redis_client,
     patch_redis_pipeline,
 )
 from sentry_sdk_alpha.integrations.redis.modules.queries import _get_db_data
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any, Sequence
+    from collections.abc import Sequence
+    from typing import Any
 
 
 def _get_redis_command_args(command):

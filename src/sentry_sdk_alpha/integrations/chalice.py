@@ -2,7 +2,7 @@ import sys
 from functools import wraps
 
 import sentry_sdk_alpha
-from sentry_sdk_alpha.integrations import Integration, DidNotEnable
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration
 from sentry_sdk_alpha.integrations.aws_lambda import _make_request_event_processor
 from sentry_sdk_alpha.tracing import TransactionSource
 from sentry_sdk_alpha.utils import (
@@ -14,8 +14,8 @@ from sentry_sdk_alpha.utils import (
 
 try:
     import chalice  # type: ignore
-    from chalice import __version__ as CHALICE_VERSION
     from chalice import Chalice, ChaliceViewError
+    from chalice import __version__ as CHALICE_VERSION
     from chalice.app import EventSourceHandler as ChaliceEventSourceHandler  # type: ignore
 except ImportError:
     raise DidNotEnable("Chalice is not installed")
@@ -23,10 +23,8 @@ except ImportError:
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Dict
-    from typing import TypeVar
-    from typing import Callable
+    from collections.abc import Callable
+    from typing import Any, Dict, TypeVar
 
     F = TypeVar("F", bound=Callable[..., Any])
 
@@ -105,26 +103,20 @@ class ChaliceIntegration(Integration):
         version = parse_version(CHALICE_VERSION)
 
         if version is None:
-            raise DidNotEnable("Unparsable Chalice version: {}".format(CHALICE_VERSION))
+            raise DidNotEnable(f"Unparsable Chalice version: {CHALICE_VERSION}")
 
         if version < (1, 20):
             old_get_view_function_response = Chalice._get_view_function_response
         else:
             from chalice.app import RestAPIEventHandler
 
-            old_get_view_function_response = (
-                RestAPIEventHandler._get_view_function_response
-            )
+            old_get_view_function_response = RestAPIEventHandler._get_view_function_response
 
         def sentry_event_response(app, view_function, function_args):
             # type: (Any, F, Dict[str, Any]) -> Any
-            wrapped_view_function = _get_view_function_response(
-                app, view_function, function_args
-            )
+            wrapped_view_function = _get_view_function_response(app, view_function, function_args)
 
-            return old_get_view_function_response(
-                app, wrapped_view_function, function_args
-            )
+            return old_get_view_function_response(app, wrapped_view_function, function_args)
 
         if version < (1, 20):
             Chalice._get_view_function_response = sentry_event_response

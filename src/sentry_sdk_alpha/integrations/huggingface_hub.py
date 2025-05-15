@@ -1,23 +1,18 @@
+from collections.abc import Callable, Iterable
 from functools import wraps
+from typing import Any
 
+import sentry_sdk_alpha
 from sentry_sdk_alpha import consts
 from sentry_sdk_alpha.ai.monitoring import record_token_usage
 from sentry_sdk_alpha.ai.utils import set_data_normalized
 from sentry_sdk_alpha.consts import SPANDATA
-
-from typing import Any, Iterable, Callable
-
-import sentry_sdk_alpha
-from sentry_sdk_alpha.scope import should_send_default_pii
 from sentry_sdk_alpha.integrations import DidNotEnable, Integration
-from sentry_sdk_alpha.utils import (
-    capture_internal_exceptions,
-    event_from_exception,
-)
+from sentry_sdk_alpha.scope import should_send_default_pii
+from sentry_sdk_alpha.utils import capture_internal_exceptions, event_from_exception
 
 try:
     import huggingface_hub.inference._client
-
     from huggingface_hub import ChatCompletionStreamOutput, TextGenerationOutput
 except ImportError:
     raise DidNotEnable("Huggingface not installed")
@@ -34,10 +29,8 @@ class HuggingfaceHubIntegration(Integration):
     @staticmethod
     def setup_once():
         # type: () -> None
-        huggingface_hub.inference._client.InferenceClient.text_generation = (
-            _wrap_text_generation(
-                huggingface_hub.inference._client.InferenceClient.text_generation
-            )
+        huggingface_hub.inference._client.InferenceClient.text_generation = _wrap_text_generation(
+            huggingface_hub.inference._client.InferenceClient.text_generation
         )
 
 
@@ -132,9 +125,7 @@ def _wrap_text_generation(f):
                         for x in res:
                             if hasattr(x, "token") and hasattr(x.token, "text"):
                                 data_buf.append(x.token.text)
-                            if hasattr(x, "details") and hasattr(
-                                x.details, "generated_tokens"
-                            ):
+                            if hasattr(x, "details") and hasattr(x.details, "generated_tokens"):
                                 tokens_used = x.details.generated_tokens
                             yield x
                         if (
@@ -142,9 +133,7 @@ def _wrap_text_generation(f):
                             and should_send_default_pii()
                             and integration.include_prompts
                         ):
-                            set_data_normalized(
-                                span, SPANDATA.AI_RESPONSES, "".join(data_buf)
-                            )
+                            set_data_normalized(span, SPANDATA.AI_RESPONSES, "".join(data_buf))
                         if tokens_used > 0:
                             record_token_usage(span, total_tokens=tokens_used)
                     span.__exit__(None, None, None)
@@ -166,9 +155,7 @@ def _wrap_text_generation(f):
                             and should_send_default_pii()
                             and integration.include_prompts
                         ):
-                            set_data_normalized(
-                                span, SPANDATA.AI_RESPONSES, "".join(data_buf)
-                            )
+                            set_data_normalized(span, SPANDATA.AI_RESPONSES, "".join(data_buf))
                         span.__exit__(None, None, None)
 
                 return new_iterator()

@@ -1,14 +1,16 @@
 import copy
+from threading import Lock
+from typing import TYPE_CHECKING, Any
+
 import sentry_sdk_alpha
 from sentry_sdk_alpha._lru_cache import LRUCache
-from threading import Lock
-
-from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from typing import TypedDict
 
-    FlagData = TypedDict("FlagData", {"flag": str, "result": bool})
+    class FlagData(TypedDict):
+        flag: str
+        result: bool
 
 
 DEFAULT_FLAG_CAPACITY = 100
@@ -39,9 +41,7 @@ class FlagBuffer:
     def get(self):
         # type: () -> list[FlagData]
         with self.lock:
-            return [
-                {"flag": key, "result": value} for key, value in self.__buffer.get_all()
-            ]
+            return [{"flag": key, "result": value} for key, value in self.__buffer.get_all()]
 
     def set(self, flag, result):
         # type: (str, bool) -> None
@@ -50,9 +50,7 @@ class FlagBuffer:
             # on the lock. This is of course a deadlock. However, this is far outside the expected
             # usage of this class. We guard against it here for completeness and to document this
             # expected failure mode.
-            raise ValueError(
-                "FlagBuffer instances can not be inserted into the dictionary."
-            )
+            raise ValueError("FlagBuffer instances can not be inserted into the dictionary.")
 
         with self.lock:
             self.__buffer.set(flag, result)

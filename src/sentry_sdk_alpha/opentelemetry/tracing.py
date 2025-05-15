@@ -1,12 +1,8 @@
 from opentelemetry import trace
 from opentelemetry.propagate import set_global_textmap
-from opentelemetry.sdk.trace import TracerProvider, Span, ReadableSpan
+from opentelemetry.sdk.trace import ReadableSpan, Span, TracerProvider
 
-from sentry_sdk_alpha.opentelemetry import (
-    SentryPropagator,
-    SentrySampler,
-    SentrySpanProcessor,
-)
+from sentry_sdk_alpha.opentelemetry import SentryPropagator, SentrySampler, SentrySpanProcessor
 
 
 def patch_readable_span():

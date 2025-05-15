@@ -1,38 +1,32 @@
 import os
 import sys
 import warnings
-from copy import copy, deepcopy
 from collections import deque
 from contextlib import contextmanager
-from enum import Enum
+from copy import copy, deepcopy
 from datetime import datetime, timezone
+from enum import Enum
 from functools import wraps
 from itertools import chain
+from typing import TYPE_CHECKING
 
 from sentry_sdk_alpha._types import AnnotatedValue
 from sentry_sdk_alpha.attachments import Attachment
 from sentry_sdk_alpha.consts import (
+    BAGGAGE_HEADER_NAME,
     DEFAULT_MAX_BREADCRUMBS,
     FALSE_VALUES,
-    BAGGAGE_HEADER_NAME,
     SENTRY_TRACE_HEADER_NAME,
 )
-from sentry_sdk_alpha.feature_flags import FlagBuffer, DEFAULT_FLAG_CAPACITY
+from sentry_sdk_alpha.feature_flags import DEFAULT_FLAG_CAPACITY, FlagBuffer
 from sentry_sdk_alpha.profiler.transaction_profiler import Profile
 from sentry_sdk_alpha.session import Session
-from sentry_sdk_alpha.tracing_utils import (
-    Baggage,
-    has_tracing_enabled,
-    PropagationContext,
-)
-from sentry_sdk_alpha.tracing import (
-    NoOpSpan,
-    Span,
-)
+from sentry_sdk_alpha.tracing import NoOpSpan, Span
+from sentry_sdk_alpha.tracing_utils import Baggage, PropagationContext, has_tracing_enabled
 from sentry_sdk_alpha.utils import (
+    ContextVar,
     capture_internal_exception,
     capture_internal_exceptions,
-    ContextVar,
     datetime_from_isoformat,
     disable_capture_event,
     event_from_exception,
@@ -40,25 +34,11 @@ from sentry_sdk_alpha.utils import (
     logger,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from collections.abc import Mapping, MutableMapping
+    from collections.abc import Callable, Generator, Iterator, Mapping, MutableMapping
+    from typing import Any, Deque, Dict, List, Optional, ParamSpec, Self, Tuple, TypeVar, Union
 
-    from typing import Any
-    from typing import Callable
-    from typing import Deque
-    from typing import Dict
-    from typing import Generator
-    from typing import Iterator
-    from typing import List
-    from typing import Optional
-    from typing import ParamSpec
-    from typing import Tuple
-    from typing import TypeVar
-    from typing import Union
-    from typing import Self
-
+    import sentry_sdk_alpha
     from sentry_sdk_alpha._types import (
         Breadcrumb,
         BreadcrumbHint,
@@ -70,8 +50,6 @@ if TYPE_CHECKING:
         LogLevelStr,
         Type,
     )
-
-    import sentry_sdk_alpha
 
     P = ParamSpec("P")
     R = TypeVar("R")
@@ -437,9 +415,7 @@ class Scope:
         """
         incoming_trace_information = None
 
-        sentry_use_environment = (
-            os.environ.get("SENTRY_USE_ENVIRONMENT") or ""
-        ).lower()
+        sentry_use_environment = (os.environ.get("SENTRY_USE_ENVIRONMENT") or "").lower()
         use_environment = sentry_use_environment not in FALSE_VALUES
         if use_environment:
             incoming_trace_information = {}
@@ -496,11 +472,7 @@ class Scope:
         client = self.get_client()
 
         # If we have an active span, return traceparent from there
-        if (
-            has_tracing_enabled(client.options)
-            and self.span is not None
-            and self.span.is_valid
-        ):
+        if has_tracing_enabled(client.options) and self.span is not None and self.span.is_valid:
             return self.span.to_traceparent()
 
         # If this scope has a propagation context, return traceparent from there
@@ -520,11 +492,7 @@ class Scope:
         client = self.get_client()
 
         # If we have an active span, return baggage from there
-        if (
-            has_tracing_enabled(client.options)
-            and self.span is not None
-            and self.span.is_valid
-        ):
+        if has_tracing_enabled(client.options) and self.span is not None and self.span.is_valid:
             return self.span.to_baggage()
 
         # If this scope has a propagation context, return baggage from there
@@ -564,14 +532,14 @@ class Scope:
 
         sentry_trace = self.get_traceparent()
         if sentry_trace is not None:
-            meta += '<meta name="%s" content="%s">' % (
+            meta += '<meta name="{}" content="{}">'.format(
                 SENTRY_TRACE_HEADER_NAME,
                 sentry_trace,
             )
 
         baggage = self.get_baggage()
         if baggage is not None:
-            meta += '<meta name="%s" content="%s">' % (
+            meta += '<meta name="{}" content="{}">'.format(
                 BAGGAGE_HEADER_NAME,
                 baggage.serialize(),
             )
@@ -606,26 +574,22 @@ class Scope:
         span = span or self.span
 
         if has_tracing_enabled(client.options) and span is not None and span.is_valid:
-            for header in span.iter_headers():
-                yield header
+            yield from span.iter_headers()
         else:
             # If this scope has a propagation context, return headers from there
             # (it could be that self is not the current scope nor the isolation scope)
             if self._propagation_context is not None:
-                for header in self.iter_headers():
-                    yield header
+                yield from self.iter_headers()
             else:
                 # otherwise try headers from current scope
                 current_scope = self.get_current_scope()
                 if current_scope._propagation_context is not None:
-                    for header in current_scope.iter_headers():
-                        yield header
+                    yield from current_scope.iter_headers()
                 else:
                     # otherwise fall back to headers from isolation scope
                     isolation_scope = self.get_isolation_scope()
                     if isolation_scope._propagation_context is not None:
-                        for header in isolation_scope.iter_headers():
-                            yield header
+                        yield from isolation_scope.iter_headers()
 
     def get_active_propagation_context(self):
         # type: () -> Optional[PropagationContext]
@@ -1018,9 +982,7 @@ class Scope:
         else:
             exc_info = sys.exc_info()
 
-        event, hint = event_from_exception(
-            exc_info, client_options=self.get_client().options
-        )
+        event, hint = event_from_exception(exc_info, client_options=self.get_client().options)
 
         try:
             return self.capture_event(event, hint=hint, scope=scope, **scope_kwargs)
@@ -1138,9 +1100,7 @@ class Scope:
                     if isinstance(crumb["timestamp"], str):
                         crumb["timestamp"] = datetime_from_isoformat(crumb["timestamp"])
 
-                event["breadcrumbs"]["values"].sort(
-                    key=lambda crumb: crumb["timestamp"]
-                )
+                event["breadcrumbs"]["values"].sort(key=lambda crumb: crumb["timestamp"])
         except Exception as err:
             logger.debug("Error when sorting breadcrumbs", exc_info=err)
             pass
@@ -1184,11 +1144,7 @@ class Scope:
 
         # Add "trace" context
         if contexts.get("trace") is None:
-            if (
-                has_tracing_enabled(options)
-                and self._span is not None
-                and self._span.is_valid
-            ):
+            if has_tracing_enabled(options) and self._span is not None and self._span.is_valid:
                 contexts["trace"] = self._span.get_trace_context()
             else:
                 contexts["trace"] = self.get_trace_context()
@@ -1197,9 +1153,7 @@ class Scope:
         # type: (Event, Hint, Optional[Dict[str, Any]]) -> None
         flags = self.flags.get()
         if len(flags) > 0:
-            event.setdefault("contexts", {}).setdefault("flags", {}).update(
-                {"values": flags}
-            )
+            event.setdefault("contexts", {}).setdefault("flags", {}).update({"values": flags})
 
     def _drop(self, cause, ty):
         # type: (Any, str) -> Optional[Any]
@@ -1284,9 +1238,7 @@ class Scope:
 
         if is_check_in:
             # Check-ins only support the trace context, strip all others
-            event["contexts"] = {
-                "trace": event.setdefault("contexts", {}).get("trace", {})
-            }
+            event["contexts"] = {"trace": event.setdefault("contexts", {}).get("trace", {})}
 
         if not is_check_in:
             self._apply_level_to_event(event, hint, options)
@@ -1379,7 +1331,7 @@ class Scope:
 
     def __repr__(self):
         # type: () -> str
-        return "<%s id=%s name=%s type=%s>" % (
+        return "<{} id={} name={} type={}>".format(
             self.__class__.__name__,
             hex(id(self)),
             self._name,
@@ -1391,8 +1343,7 @@ class Scope:
         # type: () -> FlagBuffer
         if self._flags is None:
             max_flags = (
-                self.get_client().options["_experiments"].get("max_flags")
-                or DEFAULT_FLAG_CAPACITY
+                self.get_client().options["_experiments"].get("max_flags") or DEFAULT_FLAG_CAPACITY
             )
             self._flags = FlagBuffer(capacity=max_flags)
         return self._flags

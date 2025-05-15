@@ -1,6 +1,8 @@
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
-from sentry_sdk_alpha.consts import OP, SPANDATA, BAGGAGE_HEADER_NAME
-from sentry_sdk_alpha.integrations import Integration, DidNotEnable
+from sentry_sdk_alpha.consts import BAGGAGE_HEADER_NAME, OP, SPANDATA
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration
 from sentry_sdk_alpha.tracing_utils import Baggage, should_propagate_trace
 from sentry_sdk_alpha.utils import (
     SENSITIVE_DATA_SUBSTITUTE,
@@ -11,8 +13,6 @@ from sentry_sdk_alpha.utils import (
     parse_url,
     set_thread_info_from_span,
 )
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import MutableMapping
@@ -156,9 +156,7 @@ def _install_httpx_async_client():
                             key=key, value=value, url=request.url
                         )
                     )
-                    if key == BAGGAGE_HEADER_NAME and request.headers.get(
-                        BAGGAGE_HEADER_NAME
-                    ):
+                    if key == BAGGAGE_HEADER_NAME and request.headers.get(BAGGAGE_HEADER_NAME):
                         # do not overwrite any existing baggage, just append to it
                         request.headers[key] += "," + value
                     else:
@@ -197,6 +195,4 @@ def _add_sentry_baggage_to_headers(headers, sentry_baggage):
 
     separator = "," if len(stripped_existing_baggage) > 0 else ""
 
-    headers[BAGGAGE_HEADER_NAME] = (
-        stripped_existing_baggage + separator + sentry_baggage
-    )
+    headers[BAGGAGE_HEADER_NAME] = stripped_existing_baggage + separator + sentry_baggage

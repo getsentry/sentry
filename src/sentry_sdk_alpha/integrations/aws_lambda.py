@@ -5,36 +5,33 @@ import sys
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from os import environ
+from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
-from sentry_sdk_alpha.scope import should_send_default_pii
-from sentry_sdk_alpha.tracing import TransactionSource
-from sentry_sdk_alpha.utils import (
-    AnnotatedValue,
-    capture_internal_exceptions,
-    ensure_integration_enabled,
-    event_from_exception,
-    logger,
-    TimeoutThread,
-    reraise,
-)
 from sentry_sdk_alpha.integrations import Integration
 from sentry_sdk_alpha.integrations._wsgi_common import (
     _filter_headers,
     _request_headers_to_span_attributes,
 )
-
-from typing import TYPE_CHECKING
+from sentry_sdk_alpha.scope import should_send_default_pii
+from sentry_sdk_alpha.tracing import TransactionSource
+from sentry_sdk_alpha.utils import (
+    AnnotatedValue,
+    TimeoutThread,
+    capture_internal_exceptions,
+    ensure_integration_enabled,
+    event_from_exception,
+    logger,
+    reraise,
+)
 
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import TypeVar
-    from typing import Callable
-    from typing import Optional
+    from collections.abc import Callable
+    from typing import Any, Optional, TypeVar
 
-    from sentry_sdk_alpha._types import EventProcessor, Event, Hint
+    from sentry_sdk_alpha._types import Event, EventProcessor, Hint
 
     F = TypeVar("F", bound=Callable[..., Any])
 
@@ -131,26 +128,17 @@ def _wrap_handler(handler):
             with capture_internal_exceptions():
                 scope.clear_breadcrumbs()
                 scope.add_event_processor(
-                    _make_request_event_processor(
-                        request_data, aws_context, configured_time
-                    )
+                    _make_request_event_processor(request_data, aws_context, configured_time)
                 )
-                scope.set_tag(
-                    "aws_region", aws_context.invoked_function_arn.split(":")[3]
-                )
+                scope.set_tag("aws_region", aws_context.invoked_function_arn.split(":")[3])
                 if batch_size > 1:
                     scope.set_tag("batch_request", True)
                     scope.set_tag("batch_size", batch_size)
 
                 # Starting the Timeout thread only if the configured time is greater than Timeout warning
                 # buffer and timeout_warning parameter is set True.
-                if (
-                    integration.timeout_warning
-                    and configured_time > TIMEOUT_WARNING_BUFFER
-                ):
-                    waiting_time = (
-                        configured_time - TIMEOUT_WARNING_BUFFER
-                    ) / MILLIS_TO_SECONDS
+                if integration.timeout_warning and configured_time > TIMEOUT_WARNING_BUFFER:
+                    waiting_time = (configured_time - TIMEOUT_WARNING_BUFFER) / MILLIS_TO_SECONDS
 
                     timeout_thread = TimeoutThread(
                         waiting_time,
@@ -240,9 +228,7 @@ class AwsLambdaIntegration(Integration):
             lambda_runtime_client, request_handler, *args, **kwargs
         ):
             request_handler = _wrap_handler(request_handler)
-            return old_handle_event_request(
-                lambda_runtime_client, request_handler, *args, **kwargs
-            )
+            return old_handle_event_request(lambda_runtime_client, request_handler, *args, **kwargs)
 
         lambda_bootstrap.handle_event_request = sentry_handle_event_request
 
@@ -258,15 +244,11 @@ class AwsLambdaIntegration(Integration):
 
             return inner  # type: ignore
 
-        lambda_bootstrap.LambdaRuntimeClient.post_invocation_result = (
-            _wrap_post_function(
-                lambda_bootstrap.LambdaRuntimeClient.post_invocation_result
-            )
+        lambda_bootstrap.LambdaRuntimeClient.post_invocation_result = _wrap_post_function(
+            lambda_bootstrap.LambdaRuntimeClient.post_invocation_result
         )
-        lambda_bootstrap.LambdaRuntimeClient.post_invocation_error = (
-            _wrap_post_function(
-                lambda_bootstrap.LambdaRuntimeClient.post_invocation_error
-            )
+        lambda_bootstrap.LambdaRuntimeClient.post_invocation_error = _wrap_post_function(
+            lambda_bootstrap.LambdaRuntimeClient.post_invocation_error
         )
 
 
@@ -293,9 +275,7 @@ def get_lambda_bootstrap():
     elif "__main__" in sys.modules:
         module = sys.modules["__main__"]
         # python3.9 runtime
-        if hasattr(module, "awslambdaricmain") and hasattr(
-            module.awslambdaricmain, "bootstrap"
-        ):
+        if hasattr(module, "awslambdaricmain") and hasattr(module.awslambdaricmain, "bootstrap"):
             return module.awslambdaricmain.bootstrap
         elif hasattr(module, "bootstrap"):
             # awslambdaric python module in container builds
@@ -388,8 +368,8 @@ def _get_url(aws_event, aws_context):
     host = headers.get("Host", None)
     proto = headers.get("X-Forwarded-Proto", None)
     if proto and host and path:
-        return "{}://{}{}".format(proto, host, path)
-    return "awslambda:///{}".format(aws_context.function_name)
+        return f"{proto}://{host}{path}"
+    return f"awslambda:///{aws_context.function_name}"
 
 
 def _get_cloudwatch_logs_url(aws_context, start_time):
@@ -416,9 +396,7 @@ def _get_cloudwatch_logs_url(aws_context, start_time):
         log_group=aws_context.log_group_name,
         log_stream=aws_context.log_stream_name,
         start_time=(start_time - timedelta(seconds=1)).strftime(formatstring),
-        end_time=(datetime.now(timezone.utc) + timedelta(seconds=2)).strftime(
-            formatstring
-        ),
+        end_time=(datetime.now(timezone.utc) + timedelta(seconds=2)).strftime(formatstring),
     )
 
     return url
@@ -463,9 +441,7 @@ def _event_from_error_json(error_json):
                     "type": error_json.get("errorType"),
                     "value": error_json.get("errorMessage"),
                     "stacktrace": {
-                        "frames": _parse_formatted_traceback(
-                            error_json.get("stackTrace", [])
-                        ),
+                        "frames": _parse_formatted_traceback(error_json.get("stackTrace", [])),
                     },
                     "mechanism": {
                         "type": "aws_lambda",

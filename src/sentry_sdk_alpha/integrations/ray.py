@@ -3,7 +3,7 @@ import sys
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP, SPANSTATUS
-from sentry_sdk_alpha.integrations import _check_minimum_version, DidNotEnable, Integration
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.tracing import TransactionSource
 from sentry_sdk_alpha.utils import (
     event_from_exception,
@@ -18,12 +18,12 @@ try:
 except ImportError:
     raise DidNotEnable("Ray not installed.")
 import functools
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any, Optional
+
     from sentry_sdk_alpha.utils import ExcInfo
 
 DEFAULT_TRANSACTION_NAME = "unknown Ray function"

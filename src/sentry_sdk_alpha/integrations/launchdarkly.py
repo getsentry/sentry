@@ -8,11 +8,11 @@ try:
     from ldclient.hook import Hook, Metadata
 
     if TYPE_CHECKING:
-        from ldclient import LDClient
-        from ldclient.hook import EvaluationSeriesContext
-        from ldclient.evaluation import EvaluationDetail
-
         from typing import Any
+
+        from ldclient import LDClient
+        from ldclient.evaluation import EvaluationDetail
+        from ldclient.hook import EvaluationSeriesContext
 except ImportError:
     raise DidNotEnable("LaunchDarkly is not installed")
 

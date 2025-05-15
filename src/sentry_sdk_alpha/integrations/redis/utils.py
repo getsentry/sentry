@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import SPANDATA
 from sentry_sdk_alpha.integrations.redis.consts import (
@@ -10,10 +12,10 @@ from sentry_sdk_alpha.integrations.redis.consts import (
 from sentry_sdk_alpha.scope import should_send_default_pii
 from sentry_sdk_alpha.utils import SENSITIVE_DATA_SUBSTITUTE
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any, Optional, Sequence
+    from collections.abc import Sequence
+    from typing import Any, Optional
+
     from sentry_sdk_alpha.tracing import Span
 
 

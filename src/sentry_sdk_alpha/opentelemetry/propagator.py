@@ -1,12 +1,7 @@
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from opentelemetry import trace
-from opentelemetry.context import (
-    Context,
-    get_current,
-    get_value,
-    set_value,
-)
+from opentelemetry.context import Context, get_current, get_value, set_value
 from opentelemetry.propagators.textmap import (
     CarrierT,
     Getter,
@@ -15,27 +10,19 @@ from opentelemetry.propagators.textmap import (
     default_getter,
     default_setter,
 )
-from opentelemetry.trace import (
-    NonRecordingSpan,
-    SpanContext,
-    TraceFlags,
-)
+from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags
 
-from sentry_sdk_alpha.consts import (
-    BAGGAGE_HEADER_NAME,
-    SENTRY_TRACE_HEADER_NAME,
-)
+from sentry_sdk_alpha.consts import BAGGAGE_HEADER_NAME, SENTRY_TRACE_HEADER_NAME
 from sentry_sdk_alpha.opentelemetry.consts import (
     SENTRY_BAGGAGE_KEY,
-    SENTRY_TRACE_KEY,
     SENTRY_SCOPES_KEY,
+    SENTRY_TRACE_KEY,
 )
 from sentry_sdk_alpha.tracing_utils import Baggage, extract_sentrytrace_data
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     from typing import Optional, Set
+
     import sentry_sdk.opentelemetry.scope as scope
 
 

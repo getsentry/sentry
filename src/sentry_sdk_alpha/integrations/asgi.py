@@ -8,10 +8,10 @@ import asyncio
 import inspect
 from copy import deepcopy
 from functools import partial
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP, SOURCE_FOR_STYLE, TransactionSource
-
 from sentry_sdk_alpha.integrations._asgi_common import (
     _get_headers,
     _get_query,
@@ -24,24 +24,19 @@ from sentry_sdk_alpha.integrations._wsgi_common import (
 )
 from sentry_sdk_alpha.sessions import track_session
 from sentry_sdk_alpha.utils import (
+    CONTEXTVARS_ERROR_MESSAGE,
+    HAS_REAL_CONTEXTVARS,
     ContextVar,
+    _get_installed_modules,
     capture_internal_exceptions,
     event_from_exception,
-    HAS_REAL_CONTEXTVARS,
-    CONTEXTVARS_ERROR_MESSAGE,
     logger,
     transaction_from_function,
-    _get_installed_modules,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Callable
-    from typing import Dict
-    from typing import Optional
-    from typing import Tuple
+    from collections.abc import Callable
+    from typing import Any, Dict, Optional, Tuple
 
     from sentry_sdk_alpha._types import Event, Hint
 
@@ -208,17 +203,11 @@ class SentryAsgiMiddleware:
                         ty == "http" and method in self.http_methods_to_capture
                     )
                     if not should_trace:
-                        return await self._run_original_app(
-                            scope, receive, send, asgi_version
-                        )
+                        return await self._run_original_app(scope, receive, send, asgi_version)
 
                     with sentry_sdk_alpha.continue_trace(_get_headers(scope)):
                         with sentry_sdk_alpha.start_span(
-                            op=(
-                                OP.WEBSOCKET_SERVER
-                                if ty == "websocket"
-                                else OP.HTTP_SERVER
-                            ),
+                            op=(OP.WEBSOCKET_SERVER if ty == "websocket" else OP.HTTP_SERVER),
                             name=transaction_name,
                             source=transaction_source,
                             origin=self.span_origin,
@@ -266,9 +255,7 @@ class SentryAsgiMiddleware:
             ]
         )
         if not already_set:
-            name, source = self._get_transaction_name_and_source(
-                self.transaction_style, asgi_scope
-            )
+            name, source = self._get_transaction_name_and_source(self.transaction_style, asgi_scope)
             event["transaction"] = name
             event["transaction_info"] = {"source": source}
 

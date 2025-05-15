@@ -1,11 +1,10 @@
 import os
 import time
-from threading import Thread, Lock
+from threading import Lock, Thread
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.utils import logger
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Optional
@@ -83,9 +82,7 @@ class Monitor:
         # type: () -> None
         if self._healthy:
             if self._downsample_factor > 0:
-                logger.debug(
-                    "[Monitor] health check positive, reverting to normal sampling"
-                )
+                logger.debug("[Monitor] health check positive, reverting to normal sampling")
             self._downsample_factor = 0
         else:
             if self.downsample_factor < MAX_DOWNSAMPLE_FACTOR:

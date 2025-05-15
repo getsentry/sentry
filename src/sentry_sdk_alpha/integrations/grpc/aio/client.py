@@ -1,14 +1,15 @@
-from typing import Callable, Union, AsyncIterable, Any
+from collections.abc import AsyncIterable, Callable
+from typing import Any, Union
 
-from grpc.aio import (
-    UnaryUnaryClientInterceptor,
-    UnaryStreamClientInterceptor,
-    ClientCallDetails,
-    UnaryUnaryCall,
-    UnaryStreamCall,
-    Metadata,
-)
 from google.protobuf.message import Message
+from grpc.aio import (
+    ClientCallDetails,
+    Metadata,
+    UnaryStreamCall,
+    UnaryStreamClientInterceptor,
+    UnaryUnaryCall,
+    UnaryUnaryClientInterceptor,
+)
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
@@ -42,7 +43,7 @@ class SentryUnaryUnaryClientInterceptor(ClientInterceptor, UnaryUnaryClientInter
         continuation: Callable[[ClientCallDetails, Message], UnaryUnaryCall],
         client_call_details: ClientCallDetails,
         request: Message,
-    ) -> Union[UnaryUnaryCall, Message]:
+    ) -> UnaryUnaryCall | Message:
         method = client_call_details.method
         if isinstance(method, bytes):
             method = method.decode()
@@ -75,7 +76,7 @@ class SentryUnaryStreamClientInterceptor(
         continuation: Callable[[ClientCallDetails, Message], UnaryStreamCall],
         client_call_details: ClientCallDetails,
         request: Message,
-    ) -> Union[AsyncIterable[Any], UnaryStreamCall]:
+    ) -> AsyncIterable[Any] | UnaryStreamCall:
         method = client_call_details.method
         if isinstance(method, bytes):
             method = method.decode()

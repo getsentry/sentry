@@ -10,39 +10,35 @@ from datetime import datetime, timedelta, timezone
 from decimal import ROUND_DOWN, Decimal, DefaultContext, localcontext
 from functools import wraps
 from random import Random
+from typing import TYPE_CHECKING
 from urllib.parse import quote, unquote
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import (
+    BAGGAGE_HEADER_NAME,
     OP,
+    SENTRY_TRACE_HEADER_NAME,
     SPANDATA,
     SPANSTATUS,
-    BAGGAGE_HEADER_NAME,
-    SENTRY_TRACE_HEADER_NAME,
 )
 from sentry_sdk_alpha.utils import (
+    Dsn,
+    _is_external_source,
+    _is_in_project_root,
+    _module_in_list,
     capture_internal_exceptions,
     filename_for_module,
-    Dsn,
+    is_sentry_url,
     logger,
     match_regex_list,
     qualname_from_function,
     to_string,
-    is_sentry_url,
-    _is_external_source,
-    _is_in_project_root,
-    _module_in_list,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Dict
-    from typing import Generator
-    from typing import Optional
-    from typing import Union
+    from collections.abc import Generator
     from types import FrameType
+    from typing import Any, Dict, Optional, Union
 
 
 SENTRY_TRACE_REGEX = re.compile(
@@ -107,8 +103,7 @@ def has_tracing_enabled(options):
         return False
 
     return bool(
-        options.get("traces_sample_rate") is not None
-        or options.get("traces_sampler") is not None
+        options.get("traces_sample_rate") is not None or options.get("traces_sampler") is not None
     )
 
 
@@ -180,9 +175,7 @@ def _should_be_included(
     # type: (...) -> bool
     # in_app_include takes precedence over in_app_exclude
     should_be_included = _module_in_list(namespace, in_app_include)
-    should_be_excluded = _is_external_source(abs_path) or _module_in_list(
-        namespace, in_app_exclude
-    )
+    should_be_excluded = _is_external_source(abs_path) or _module_in_list(namespace, in_app_exclude)
     return not is_sentry_sdk_frame and (
         should_be_included
         or (_is_in_project_root(abs_path, project_root) and not should_be_excluded)
@@ -229,9 +222,7 @@ def add_query_source(span):
         except Exception:
             namespace = None
 
-        is_sentry_sdk_frame = namespace is not None and namespace.startswith(
-            "sentry_sdk."
-        )
+        is_sentry_sdk_frame = namespace is not None and namespace.startswith("sentry_sdk.")
 
         should_be_included = _should_be_included(
             is_sentry_sdk_frame=is_sentry_sdk_frame,
@@ -302,9 +293,9 @@ def extract_sentrytrace_data(header):
     parent_sampled = None
 
     if trace_id:
-        trace_id = "{:032x}".format(int(trace_id, 16))
+        trace_id = f"{int(trace_id, 16):032x}"
     if parent_span_id:
-        parent_span_id = "{:016x}".format(int(parent_span_id, 16))
+        parent_span_id = f"{int(parent_span_id, 16):016x}"
     if sampled_str:
         parent_sampled = sampled_str != "0"
 
@@ -441,9 +432,9 @@ class PropagationContext:
         else:
             sampled = None
 
-        traceparent = "%s-%s" % (self.trace_id, self.span_id)
+        traceparent = "{}-{}".format(self.trace_id, self.span_id)
         if sampled is not None:
-            traceparent += "-%s" % (sampled,)
+            traceparent += "-{}".format(sampled)
 
         return traceparent
 
@@ -488,9 +479,7 @@ class PropagationContext:
             try:
                 sample_rand = Decimal(sentry_baggage["sample_rand"])
             except Exception:
-                logger.debug(
-                    f"Failed to convert incoming sample_rand to Decimal: {sample_rand}"
-                )
+                logger.debug(f"Failed to convert incoming sample_rand to Decimal: {sample_rand}")
 
         if sample_rand is not None and 0 <= sample_rand < 1:
             # sample_rand is present and valid, so don't overwrite it
@@ -501,9 +490,7 @@ class PropagationContext:
             try:
                 sample_rate = float(sentry_baggage["sample_rate"])
             except Exception:
-                logger.debug(
-                    f"Failed to convert incoming sample_rate to float: {sample_rate}"
-                )
+                logger.debug(f"Failed to convert incoming sample_rate to float: {sample_rate}")
 
         lower, upper = _sample_rand_range(self.parent_sampled, sample_rate)
 
@@ -664,11 +651,9 @@ class Baggage:
         Given a Baggage header, return a new Baggage header with all Sentry baggage items removed.
         """
         return ",".join(
-            (
-                item
-                for item in header.split(",")
-                if not Baggage.SENTRY_PREFIX_REGEX.match(item.strip())
-            )
+            item
+            for item in header.split(",")
+            if not Baggage.SENTRY_PREFIX_REGEX.match(item.strip())
         )
 
     def __repr__(self):

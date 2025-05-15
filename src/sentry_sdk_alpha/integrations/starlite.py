@@ -10,13 +10,13 @@ from sentry_sdk_alpha.utils import (
 )
 
 try:
+    from pydantic import BaseModel  # type: ignore
     from starlite import Request, Starlite, State  # type: ignore
     from starlite.handlers.base import BaseRouteHandler  # type: ignore
     from starlite.middleware import DefineMiddleware  # type: ignore
     from starlite.plugins.base import get_plugin_for_value  # type: ignore
     from starlite.routes.http import HTTPRoute  # type: ignore
-    from starlite.utils import ConnectionDataExtractor, is_async_callable, Ref  # type: ignore
-    from pydantic import BaseModel  # type: ignore
+    from starlite.utils import ConnectionDataExtractor, Ref, is_async_callable  # type: ignore
 except ImportError:
     raise DidNotEnable("Starlite is not installed")
 
@@ -24,7 +24,9 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any, Optional, Union
-    from starlite.types import (  # type: ignore
+
+    from starlite import MiddlewareProtocol
+    from starlite.types import (
         ASGIApp,
         Hint,
         HTTPReceiveMessage,
@@ -32,11 +34,10 @@ if TYPE_CHECKING:
         Message,
         Middleware,
         Receive,
-        Scope as StarliteScope,
-        Send,
-        WebSocketReceiveMessage,
     )
-    from starlite import MiddlewareProtocol
+    from starlite.types import Scope as StarliteScope  # type: ignore
+    from starlite.types import Send, WebSocketReceiveMessage
+
     from sentry_sdk_alpha._types import Event
 
 
@@ -85,11 +86,7 @@ def patch_app_init():
         kwargs.update(
             after_exception=[
                 exception_handler,
-                *(
-                    after_exception
-                    if isinstance(after_exception, list)
-                    else [after_exception]
-                ),
+                *(after_exception if isinstance(after_exception, list) else [after_exception]),
             ]
         )
 
@@ -205,9 +202,7 @@ def patch_http_route_handle():
         request = scope["app"].request_class(
             scope=scope, receive=receive, send=send
         )  # type: Request[Any, Any]
-        extracted_request_data = ConnectionDataExtractor(
-            parse_body=True, parse_query=True
-        )(request)
+        extracted_request_data = ConnectionDataExtractor(parse_body=True, parse_query=True)(request)
         body = extracted_request_data.pop("body")
 
         request_data = await body

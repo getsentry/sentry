@@ -1,11 +1,12 @@
 import sys
 from collections.abc import Mapping
 from functools import wraps
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha import isolation_scope
-from sentry_sdk_alpha.consts import OP, SPANSTATUS, SPANDATA, BAGGAGE_HEADER_NAME
-from sentry_sdk_alpha.integrations import _check_minimum_version, Integration, DidNotEnable
+from sentry_sdk_alpha.consts import BAGGAGE_HEADER_NAME, OP, SPANDATA, SPANSTATUS
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.integrations.celery.beat import (
     _patch_beat_apply_entry,
     _patch_redbeat_maybe_due,
@@ -22,17 +23,11 @@ from sentry_sdk_alpha.utils import (
     reraise,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Callable
-    from typing import List
-    from typing import Optional
-    from typing import TypeVar
-    from typing import Union
+    from collections.abc import Callable
+    from typing import Any, List, Optional, TypeVar, Union
 
-    from sentry_sdk_alpha._types import EventProcessor, Event, Hint, ExcInfo
+    from sentry_sdk_alpha._types import Event, EventProcessor, ExcInfo, Hint
     from sentry_sdk_alpha.tracing import Span
 
     F = TypeVar("F", bound=Callable[..., Any])
@@ -42,12 +37,7 @@ try:
     from celery import VERSION as CELERY_VERSION  # type: ignore
     from celery.app.task import Task  # type: ignore
     from celery.app.trace import task_has_custom
-    from celery.exceptions import (  # type: ignore
-        Ignore,
-        Reject,
-        Retry,
-        SoftTimeLimitExceeded,
-    )
+    from celery.exceptions import Ignore, Reject, Retry, SoftTimeLimitExceeded  # type: ignore
     from kombu import Producer  # type: ignore
 except ImportError:
     raise DidNotEnable("Celery not installed")
@@ -175,16 +165,13 @@ def _update_celery_task_headers(original_headers, span, monitor_beat_tasks):
         if monitor_beat_tasks:
             headers.update(
                 {
-                    "sentry-monitor-start-timestamp-s": "%.9f"
-                    % _now_seconds_since_epoch(),
+                    "sentry-monitor-start-timestamp-s": "%.9f" % _now_seconds_since_epoch(),
                 }
             )
 
         # Add the time the task was enqueued to the headers
         # This is used in the consumer to calculate the latency
-        updated_headers.update(
-            {"sentry-task-enqueued-time": _now_seconds_since_epoch()}
-        )
+        updated_headers.update({"sentry-task-enqueued-time": _now_seconds_since_epoch()})
 
         if headers:
             existing_baggage = updated_headers.get(BAGGAGE_HEADER_NAME)
@@ -380,17 +367,13 @@ def _wrap_task_call(task, f):
                         )
 
                 if latency is not None:
-                    span.set_attribute(
-                        SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency
-                    )
+                    span.set_attribute(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
 
                 with capture_internal_exceptions():
                     span.set_attribute(SPANDATA.MESSAGING_MESSAGE_ID, task.request.id)
 
                 with capture_internal_exceptions():
-                    span.set_attribute(
-                        SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, task.request.retries
-                    )
+                    span.set_attribute(SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, task.request.retries)
 
                 with capture_internal_exceptions():
                     span.set_attribute(
@@ -462,10 +445,7 @@ def _patch_worker_exit():
             return original_workloop(*args, **kwargs)
         finally:
             with capture_internal_exceptions():
-                if (
-                    sentry_sdk_alpha.get_client().get_integration(CeleryIntegration)
-                    is not None
-                ):
+                if sentry_sdk_alpha.get_client().get_integration(CeleryIntegration) is not None:
                     sentry_sdk_alpha.flush()
 
     Worker.workloop = sentry_workloop
@@ -512,9 +492,7 @@ def _patch_producer_publish():
                 span.set_attribute(SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, retries)
 
             with capture_internal_exceptions():
-                span.set_attribute(
-                    SPANDATA.MESSAGING_SYSTEM, self.connection.transport.driver_type
-                )
+                span.set_attribute(SPANDATA.MESSAGING_SYSTEM, self.connection.transport.driver_type)
 
             return original_publish(self, *args, **kwargs)
 

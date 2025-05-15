@@ -1,11 +1,11 @@
 import copy
 
 import sentry_sdk_alpha
-from sentry_sdk_alpha.consts import SPANSTATUS, SPANDATA, OP
+from sentry_sdk_alpha.consts import OP, SPANDATA, SPANSTATUS
 from sentry_sdk_alpha.integrations import DidNotEnable, Integration
 from sentry_sdk_alpha.scope import should_send_default_pii
 from sentry_sdk_alpha.tracing import Span
-from sentry_sdk_alpha.utils import capture_internal_exceptions, _serialize_span_attribute
+from sentry_sdk_alpha.utils import _serialize_span_attribute, capture_internal_exceptions
 
 try:
     from pymongo import monitoring
@@ -17,11 +17,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any, Dict, Union
 
-    from pymongo.monitoring import (
-        CommandFailedEvent,
-        CommandStartedEvent,
-        CommandSucceededEvent,
-    )
+    from pymongo.monitoring import CommandFailedEvent, CommandStartedEvent, CommandSucceededEvent
 
 
 SAFE_COMMAND_ATTRIBUTES = [

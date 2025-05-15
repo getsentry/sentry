@@ -1,23 +1,20 @@
 import json
+from typing import TYPE_CHECKING
+
+from dramatiq.broker import Broker  # type: ignore
+from dramatiq.errors import Retry  # type: ignore
+from dramatiq.message import Message  # type: ignore
+from dramatiq.middleware import Middleware, default_middleware  # type: ignore
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.integrations import Integration
 from sentry_sdk_alpha.integrations._wsgi_common import request_body_within_bounds
-from sentry_sdk_alpha.utils import (
-    AnnotatedValue,
-    capture_internal_exceptions,
-    event_from_exception,
-)
-
-from dramatiq.broker import Broker  # type: ignore
-from dramatiq.message import Message  # type: ignore
-from dramatiq.middleware import Middleware, default_middleware  # type: ignore
-from dramatiq.errors import Retry  # type: ignore
-
-from typing import TYPE_CHECKING
+from sentry_sdk_alpha.utils import AnnotatedValue, capture_internal_exceptions, event_from_exception
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Dict, Optional, Union
+    from collections.abc import Callable
+    from typing import Any, Dict, Optional, Union
+
     from sentry_sdk_alpha._types import Event, Hint
 
 

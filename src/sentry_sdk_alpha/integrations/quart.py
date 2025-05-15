@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 from functools import wraps
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import SOURCE_FOR_STYLE
@@ -13,11 +14,9 @@ from sentry_sdk_alpha.utils import (
     ensure_integration_enabled,
     event_from_exception,
 )
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Union
+    from typing import Any, Union
 
     from sentry_sdk_alpha._types import Event, EventProcessor
 
@@ -28,10 +27,10 @@ except ImportError:
 
 try:
     from quart import (  # type: ignore
+        Quart,
+        Request,
         has_request_context,
         has_websocket_context,
-        Request,
-        Quart,
         request,
         websocket,
     )
@@ -113,9 +112,7 @@ def patch_scaffold_route():
         def decorator(old_func):
             # type: (Any) -> Any
 
-            if inspect.isfunction(old_func) and not asyncio.iscoroutinefunction(
-                old_func
-            ):
+            if inspect.isfunction(old_func) and not asyncio.iscoroutinefunction(old_func):
 
                 @wraps(old_func)
                 @ensure_integration_enabled(QuartIntegration, old_func)

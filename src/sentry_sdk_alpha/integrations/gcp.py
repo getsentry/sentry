@@ -3,6 +3,7 @@ import sys
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from os import environ
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
@@ -15,26 +16,22 @@ from sentry_sdk_alpha.scope import should_send_default_pii
 from sentry_sdk_alpha.tracing import TransactionSource
 from sentry_sdk_alpha.utils import (
     AnnotatedValue,
+    TimeoutThread,
     capture_internal_exceptions,
     event_from_exception,
     logger,
-    TimeoutThread,
     reraise,
 )
-
-from typing import TYPE_CHECKING
 
 # Constants
 TIMEOUT_WARNING_BUFFER = 1.5  # Buffer time required to send timeout warning to Sentry
 MILLIS_TO_SECONDS = 1000.0
 
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import TypeVar
-    from typing import Callable
-    from typing import Optional
+    from collections.abc import Callable
+    from typing import Any, Optional, TypeVar
 
-    from sentry_sdk_alpha._types import EventProcessor, Event, Hint
+    from sentry_sdk_alpha._types import Event, EventProcessor, Hint
 
     F = TypeVar("F", bound=Callable[..., Any])
 
@@ -65,16 +62,11 @@ def _wrap_func(func):
             with capture_internal_exceptions():
                 scope.clear_breadcrumbs()
                 scope.add_event_processor(
-                    _make_request_event_processor(
-                        gcp_event, configured_time, initial_time
-                    )
+                    _make_request_event_processor(gcp_event, configured_time, initial_time)
                 )
                 scope.set_tag("gcp_region", environ.get("FUNCTION_REGION"))
                 timeout_thread = None
-                if (
-                    integration.timeout_warning
-                    and configured_time > TIMEOUT_WARNING_BUFFER
-                ):
+                if integration.timeout_warning and configured_time > TIMEOUT_WARNING_BUFFER:
                     waiting_time = configured_time - TIMEOUT_WARNING_BUFFER
 
                     timeout_thread = TimeoutThread(waiting_time, configured_time)
@@ -128,9 +120,7 @@ class GcpIntegration(Integration):
         import __main__ as gcp_functions
 
         if not hasattr(gcp_functions, "worker_v1"):
-            logger.warning(
-                "GcpIntegration currently supports only Python 3.7 runtime environment."
-            )
+            logger.warning("GcpIntegration currently supports only Python 3.7 runtime environment.")
             return
 
         worker1 = gcp_functions.worker_v1

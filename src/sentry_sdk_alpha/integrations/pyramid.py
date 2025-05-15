@@ -5,7 +5,7 @@ import weakref
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import SOURCE_FOR_STYLE
-from sentry_sdk_alpha.integrations import Integration, DidNotEnable
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration
 from sentry_sdk_alpha.integrations._wsgi_common import RequestExtractor
 from sentry_sdk_alpha.integrations.wsgi import SentryWsgiMiddleware
 from sentry_sdk_alpha.scope import should_send_default_pii
@@ -25,17 +25,16 @@ except ImportError:
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any, Dict, Optional
+
     from pyramid.response import Response
-    from typing import Any
-    from sentry_sdk_alpha.integrations.wsgi import _ScopedResponse
-    from typing import Callable
-    from typing import Dict
-    from typing import Optional
     from webob.cookies import RequestCookies
     from webob.request import _FieldStorageWithFile
 
-    from sentry_sdk_alpha.utils import ExcInfo
     from sentry_sdk_alpha._types import Event, EventProcessor
+    from sentry_sdk_alpha.integrations.wsgi import _ScopedResponse
+    from sentry_sdk_alpha.utils import ExcInfo
 
 
 if getattr(Request, "authenticated_userid", None):
@@ -85,9 +84,7 @@ class PyramidIntegration(Integration):
                 sentry_sdk_alpha.get_current_scope(), integration.transaction_style, request
             )
             scope = sentry_sdk_alpha.get_isolation_scope()
-            scope.add_event_processor(
-                _make_event_processor(weakref.ref(request), integration)
-            )
+            scope.add_event_processor(_make_event_processor(weakref.ref(request), integration))
 
             return old_call_view(registry, request, *args, **kwargs)
 

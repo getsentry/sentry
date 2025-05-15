@@ -1,5 +1,4 @@
 import itertools
-
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -27,20 +26,10 @@ class CompressionAlgo(Enum):
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+    from typing import Any, Dict, List, Literal, Optional, Tuple, Type, TypedDict, Union
+
     import sentry_sdk_alpha
-
-    from typing import Optional
-    from typing import Callable
-    from typing import Union
-    from typing import List
-    from typing import Type
-    from typing import Dict
-    from typing import Any
-    from typing import Sequence
-    from typing import Tuple
-    from typing_extensions import Literal
-    from typing_extensions import TypedDict
-
     from sentry_sdk_alpha._types import (
         BreadcrumbProcessor,
         ContinuousProfilerMode,
@@ -56,24 +45,20 @@ if TYPE_CHECKING:
     # functionality. Changing them from the defaults (`None`) in production
     # code is highly discouraged. They are not subject to any stability
     # guarantees such as the ones from semantic versioning.
-    Experiments = TypedDict(
-        "Experiments",
-        {
-            "max_spans": Optional[int],
-            "max_flags": Optional[int],
-            "record_sql_params": Optional[bool],
-            "continuous_profiling_auto_start": Optional[bool],
-            "continuous_profiling_mode": Optional[ContinuousProfilerMode],
-            "otel_powered_performance": Optional[bool],
-            "transport_zlib_compression_level": Optional[int],
-            "transport_compression_level": Optional[int],
-            "transport_compression_algo": Optional[CompressionAlgo],
-            "transport_num_pools": Optional[int],
-            "transport_http2": Optional[bool],
-            "enable_logs": Optional[bool],
-        },
-        total=False,
-    )
+    class Experiments(TypedDict, total=False):
+        max_spans: Optional[int]
+        max_flags: Optional[int]
+        record_sql_params: Optional[bool]
+        continuous_profiling_auto_start: Optional[bool]
+        continuous_profiling_mode: Optional[ContinuousProfilerMode]
+        otel_powered_performance: Optional[bool]
+        transport_zlib_compression_level: Optional[int]
+        transport_compression_level: Optional[int]
+        transport_compression_algo: Optional[CompressionAlgo]
+        transport_num_pools: Optional[int]
+        transport_http2: Optional[bool]
+        enable_logs: Optional[bool]
+
 
 DEFAULT_QUEUE_SIZE = 100
 DEFAULT_MAX_BREADCRUMBS = 100
@@ -525,9 +510,7 @@ class OP:
     MIDDLEWARE_STARLITE_SEND = "middleware.starlite.send"
     OPENAI_CHAT_COMPLETIONS_CREATE = "ai.chat_completions.create.openai"
     OPENAI_EMBEDDINGS_CREATE = "ai.embeddings.create.openai"
-    HUGGINGFACE_HUB_CHAT_COMPLETIONS_CREATE = (
-        "ai.chat_completions.create.huggingface_hub"
-    )
+    HUGGINGFACE_HUB_CHAT_COMPLETIONS_CREATE = "ai.chat_completions.create.huggingface_hub"
     LANGCHAIN_PIPELINE = "ai.pipeline.langchain"
     LANGCHAIN_RUN = "ai.run.langchain"
     LANGCHAIN_TOOL = "ai.tool.langchain"

@@ -1,30 +1,25 @@
 import io
 import logging
 import os
+import sys
+import urllib.error
 import urllib.parse
 import urllib.request
-import urllib.error
-import urllib3
-import sys
-
 from itertools import chain, product
-
 from typing import TYPE_CHECKING
+
+import urllib3
 
 if TYPE_CHECKING:
     from typing import Any
-    from typing import Callable
+    from collections.abc import Callable
     from typing import Dict
     from typing import Optional
     from typing import Self
 
-from sentry_sdk_alpha.utils import (
-    logger as sentry_logger,
-    env_to_bool,
-    capture_internal_exceptions,
-)
 from sentry_sdk_alpha.envelope import Envelope
-
+from sentry_sdk_alpha.utils import capture_internal_exceptions, env_to_bool
+from sentry_sdk_alpha.utils import logger as sentry_logger
 
 logger = logging.getLogger("spotlight")
 
@@ -69,9 +64,9 @@ class SpotlightClient:
 
 
 try:
-    from django.utils.deprecation import MiddlewareMixin
-    from django.http import HttpResponseServerError, HttpResponse, HttpRequest
     from django.conf import settings
+    from django.http import HttpRequest, HttpResponse, HttpResponseServerError
+    from django.utils.deprecation import MiddlewareMixin
 
     SPOTLIGHT_JS_ENTRY_PATH = "/assets/main.js"
     SPOTLIGHT_JS_SNIPPET_PATTERN = (
@@ -139,13 +134,10 @@ try:
         def process_response(self, _request, response):
             # type: (Self, HttpRequest, HttpResponse) -> Optional[HttpResponse]
             content_type_header = tuple(
-                p.strip()
-                for p in response.headers.get("Content-Type", "").lower().split(";")
+                p.strip() for p in response.headers.get("Content-Type", "").lower().split(";")
             )
             content_type = content_type_header[0]
-            if len(content_type_header) > 1 and content_type_header[1].startswith(
-                CHARSET_PREFIX
-            ):
+            if len(content_type_header) > 1 and content_type_header[1].startswith(CHARSET_PREFIX):
                 encoding = content_type_header[1][len(CHARSET_PREFIX) :]
             else:
                 encoding = "utf-8"
@@ -187,9 +179,7 @@ try:
                 return None
 
             try:
-                spotlight = (
-                    urllib.request.urlopen(self._spotlight_url).read().decode("utf-8")
-                )
+                spotlight = urllib.request.urlopen(self._spotlight_url).read().decode("utf-8")
             except urllib.error.URLError:
                 return None
             else:

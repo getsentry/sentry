@@ -1,41 +1,35 @@
-from datetime import datetime
 import json
 import warnings
+from datetime import datetime
+from typing import TYPE_CHECKING, cast
 
-from opentelemetry import trace as otel_trace, context
-from opentelemetry.trace import (
-    format_trace_id,
-    format_span_id,
-    Span as OtelSpan,
-    TraceState,
-    get_current_span,
-    INVALID_SPAN,
-)
-from opentelemetry.trace.status import Status, StatusCode
+from opentelemetry import context
+from opentelemetry import trace as otel_trace
 from opentelemetry.sdk.trace import ReadableSpan
+from opentelemetry.trace import INVALID_SPAN
+from opentelemetry.trace import Span as OtelSpan
+from opentelemetry.trace import TraceState, format_span_id, format_trace_id, get_current_span
+from opentelemetry.trace.status import Status, StatusCode
 from opentelemetry.version import __version__ as otel_version
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import (
+    BAGGAGE_HEADER_NAME,
     DEFAULT_SPAN_NAME,
     DEFAULT_SPAN_ORIGIN,
-    BAGGAGE_HEADER_NAME,
     SENTRY_TRACE_HEADER_NAME,
-    SPANSTATUS,
     SPANDATA,
+    SPANSTATUS,
     TransactionSource,
 )
-from sentry_sdk_alpha.opentelemetry.consts import (
-    TRACESTATE_SAMPLE_RATE_KEY,
-    SentrySpanAttribute,
-)
+from sentry_sdk_alpha.opentelemetry.consts import TRACESTATE_SAMPLE_RATE_KEY, SentrySpanAttribute
 from sentry_sdk_alpha.opentelemetry.utils import (
     baggage_from_trace_state,
     convert_from_otel_timestamp,
     convert_to_otel_timestamp,
+    get_sentry_meta,
     get_trace_context,
     get_trace_state,
-    get_sentry_meta,
     serialize_trace_state,
 )
 from sentry_sdk_alpha.tracing_utils import get_span_status_from_http_code
@@ -46,28 +40,14 @@ from sentry_sdk_alpha.utils import (
     should_be_treated_as_error,
 )
 
-from typing import TYPE_CHECKING, cast
-
-
 if TYPE_CHECKING:
-    from collections.abc import Callable
-    from typing import Any
-    from typing import Dict
-    from typing import Iterator
-    from typing import Optional
-    from typing import overload
-    from typing import ParamSpec
-    from typing import Tuple
-    from typing import Union
-    from typing import TypeVar
+    from collections.abc import Callable, Iterator
+    from typing import Any, Dict, Optional, ParamSpec, Tuple, TypeVar, Union, overload
 
     P = ParamSpec("P")
     R = TypeVar("R")
 
-    from sentry_sdk_alpha._types import (
-        SamplingContext,
-    )
-
+    from sentry_sdk_alpha._types import SamplingContext
     from sentry_sdk_alpha.tracing_utils import Baggage
 
 _FLAGS_CAPACITY = 10
@@ -202,9 +182,7 @@ class Span:
             skip_span = False
             if only_if_parent and parent_span is None:
                 parent_span_context = get_current_span().get_span_context()
-                skip_span = (
-                    not parent_span_context.is_valid or parent_span_context.is_remote
-                )
+                skip_span = not parent_span_context.is_valid or parent_span_context.is_remote
 
             if skip_span:
                 self._otel_span = INVALID_SPAN
@@ -229,9 +207,7 @@ class Span:
 
                 parent_context = None
                 if parent_span is not None:
-                    parent_context = otel_trace.set_span_in_context(
-                        parent_span._otel_span
-                    )
+                    parent_context = otel_trace.set_span_in_context(parent_span._otel_span)
 
                 self._otel_span = tracer.start_span(
                     span_name,
@@ -325,9 +301,7 @@ class Span:
     @property
     def root_span(self):
         # type: () -> Optional[Span]
-        root_otel_span = cast(
-            "Optional[OtelSpan]", get_sentry_meta(self._otel_span, "root_span")
-        )
+        root_otel_span = cast("Optional[OtelSpan]", get_sentry_meta(self._otel_span, "root_span"))
         return Span(otel_span=root_otel_span) if root_otel_span else None
 
     @property
@@ -338,10 +312,7 @@ class Span:
     @property
     def parent_span_id(self):
         # type: () -> Optional[str]
-        if (
-            not isinstance(self._otel_span, ReadableSpan)
-            or self._otel_span.parent is None
-        ):
+        if not isinstance(self._otel_span, ReadableSpan) or self._otel_span.parent is None:
             return None
         return format_span_id(self._otel_span.parent.span_id)
 
@@ -370,9 +341,7 @@ class Span:
     @property
     def sample_rate(self):
         # type: () -> Optional[float]
-        sample_rate = self._otel_span.get_span_context().trace_state.get(
-            TRACESTATE_SAMPLE_RATE_KEY
-        )
+        sample_rate = self._otel_span.get_span_context().trace_state.get(TRACESTATE_SAMPLE_RATE_KEY)
         return float(sample_rate) if sample_rate is not None else None
 
     @property
@@ -398,9 +367,7 @@ class Span:
     @property
     def source(self):
         # type: () -> str
-        return (
-            self.get_attribute(SentrySpanAttribute.SOURCE) or TransactionSource.CUSTOM
-        )
+        return self.get_attribute(SentrySpanAttribute.SOURCE) or TransactionSource.CUSTOM
 
     @source.setter
     def source(self, value):
@@ -449,9 +416,9 @@ class Span:
         else:
             sampled = None
 
-        traceparent = "%s-%s" % (self.trace_id, self.span_id)
+        traceparent = "{}-{}".format(self.trace_id, self.span_id)
         if sampled is not None:
-            traceparent += "-%s" % (sampled,)
+            traceparent += "-{}".format(sampled)
 
         return traceparent
 
@@ -485,10 +452,7 @@ class Span:
 
     def get_attribute(self, name):
         # type: (str) -> Optional[Any]
-        if (
-            not isinstance(self._otel_span, ReadableSpan)
-            or not self._otel_span.attributes
-        ):
+        if not isinstance(self._otel_span, ReadableSpan) or not self._otel_span.attributes:
             return None
         return self._otel_span.attributes.get(name)
 

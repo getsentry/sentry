@@ -3,13 +3,14 @@ import functools
 from collections.abc import Set
 from copy import deepcopy
 from json import JSONDecodeError
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP, SOURCE_FOR_STYLE, TransactionSource
 from sentry_sdk_alpha.integrations import (
+    _DEFAULT_FAILED_REQUEST_STATUS_CODES,
     DidNotEnable,
     Integration,
-    _DEFAULT_FAILED_REQUEST_STATUS_CODES,
 )
 from sentry_sdk_alpha.integrations._wsgi_common import (
     DEFAULT_HTTP_METHODS_TO_CAPTURE,
@@ -28,10 +29,9 @@ from sentry_sdk_alpha.utils import (
     transaction_from_function,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any, Awaitable, Callable, Dict, Optional, Tuple
+    from collections.abc import Awaitable, Callable
+    from typing import Any, Dict, Optional, Tuple
 
     from sentry_sdk_alpha._types import Event
 
@@ -41,12 +41,12 @@ try:
     from starlette.applications import Starlette  # type: ignore
     from starlette.datastructures import UploadFile  # type: ignore
     from starlette.middleware import Middleware  # type: ignore
-    from starlette.middleware.authentication import (  # type: ignore
-        AuthenticationMiddleware,
-    )
+    from starlette.middleware.authentication import AuthenticationMiddleware  # type: ignore
     from starlette.requests import Request  # type: ignore
     from starlette.routing import Match  # type: ignore
-    from starlette.types import ASGIApp, Receive, Scope as StarletteScope, Send  # type: ignore
+    from starlette.types import ASGIApp, Receive
+    from starlette.types import Scope as StarletteScope  # type: ignore
+    from starlette.types import Send
 except ImportError:
     raise DidNotEnable("Starlette is not installed")
 
@@ -105,9 +105,7 @@ class StarletteIntegration(Integration):
         version = parse_version(STARLETTE_VERSION)
 
         if version is None:
-            raise DidNotEnable(
-                "Unparsable Starlette version: {}".format(STARLETTE_VERSION)
-            )
+            raise DidNotEnable(f"Unparsable Starlette version: {STARLETTE_VERSION}")
 
         patch_middlewares()
         patch_asgi_app()
@@ -224,9 +222,7 @@ def patch_exception_middleware(middleware_class):
 
             async def _sentry_patched_exception_handler(self, *args, **kwargs):
                 # type: (Any, Any, Any) -> None
-                integration = sentry_sdk_alpha.get_client().get_integration(
-                    StarletteIntegration
-                )
+                integration = sentry_sdk_alpha.get_client().get_integration(StarletteIntegration)
 
                 exp = args[0]
 
@@ -416,9 +412,7 @@ def patch_request_response():
 
             async def _sentry_async_func(*args, **kwargs):
                 # type: (*Any, **Any) -> Any
-                integration = sentry_sdk_alpha.get_client().get_integration(
-                    StarletteIntegration
-                )
+                integration = sentry_sdk_alpha.get_client().get_integration(StarletteIntegration)
                 if integration is None:
                     return await old_func(*args, **kwargs)
 
@@ -466,9 +460,7 @@ def patch_request_response():
             @functools.wraps(old_func)
             def _sentry_sync_func(*args, **kwargs):
                 # type: (*Any, **Any) -> Any
-                integration = sentry_sdk_alpha.get_client().get_integration(
-                    StarletteIntegration
-                )
+                integration = sentry_sdk_alpha.get_client().get_integration(StarletteIntegration)
                 if integration is None:
                     return old_func(*args, **kwargs)
 
@@ -534,9 +526,7 @@ def patch_templates():
 
     old_jinja2templates_init = Jinja2Templates.__init__
 
-    not_yet_patched = "_sentry_jinja2templates_init" not in str(
-        old_jinja2templates_init
-    )
+    not_yet_patched = "_sentry_jinja2templates_init" not in str(old_jinja2templates_init)
 
     if not_yet_patched:
 
@@ -544,9 +534,7 @@ def patch_templates():
             # type: (Jinja2Templates, *Any, **Any) -> None
             def add_sentry_trace_meta(request):
                 # type: (Request) -> Dict[str, Any]
-                trace_meta = Markup(
-                    sentry_sdk_alpha.get_current_scope().trace_propagation_meta()
-                )
+                trace_meta = Markup(sentry_sdk_alpha.get_current_scope().trace_propagation_meta())
                 return {
                     "sentry_trace_meta": trace_meta,
                 }
@@ -598,9 +586,7 @@ class StarletteRequestExtractor:
                 return request_info
 
             # Add annotation if body is too big
-            if content_length and not request_body_within_bounds(
-                client, content_length
-            ):
+            if content_length and not request_body_within_bounds(client, content_length):
                 request_info["data"] = AnnotatedValue.removed_because_over_size_limit()
                 return request_info
 
@@ -617,9 +603,7 @@ class StarletteRequestExtractor:
                 for key, val in form.items():
                     is_file = isinstance(val, UploadFile)
                     form_data[key] = (
-                        val
-                        if not is_file
-                        else AnnotatedValue.removed_because_raw_data()
+                        val if not is_file else AnnotatedValue.removed_because_raw_data()
                     )
 
                 request_info["data"] = form_data
@@ -703,9 +687,7 @@ def _set_transaction_name_and_source(scope, transaction_style, request):
         source = TransactionSource.ROUTE
 
     scope.set_transaction_name(name, source=source)
-    logger.debug(
-        "[Starlette] Set transaction name and source on scope: %s / %s", name, source
-    )
+    logger.debug("[Starlette] Set transaction name and source on scope: %s / %s", name, source)
 
 
 def _get_transaction_from_middleware(app, asgi_scope, integration):

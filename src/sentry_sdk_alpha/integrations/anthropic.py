@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sentry_sdk_alpha
 from sentry_sdk_alpha.ai.monitoring import record_token_usage
 from sentry_sdk_alpha.consts import OP, SPANDATA
-from sentry_sdk_alpha.integrations import _check_minimum_version, DidNotEnable, Integration
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.scope import should_send_default_pii
 from sentry_sdk_alpha.utils import (
     capture_internal_exceptions,
@@ -21,7 +21,9 @@ except ImportError:
     raise DidNotEnable("Anthropic not installed")
 
 if TYPE_CHECKING:
-    from typing import Any, AsyncIterator, Iterator
+    from collections.abc import AsyncIterator, Iterator
+    from typing import Any
+
     from sentry_sdk_alpha.tracing import Span
 
 
@@ -111,9 +113,7 @@ def _collect_ai_data(event, input_tokens, output_tokens, content_blocks):
     return input_tokens, output_tokens, content_blocks
 
 
-def _add_ai_data_to_span(
-    span, integration, input_tokens, output_tokens, content_blocks
-):
+def _add_ai_data_to_span(span, integration, input_tokens, output_tokens, content_blocks):
     # type: (Span, AnthropicIntegration, int, int, list[str]) -> None
     """
     Add token usage and content blocks from the AI streaming response to the span.
@@ -167,9 +167,7 @@ def _sentry_patched_create_common(f, *args, **kwargs):
 
         if hasattr(result, "content"):
             if should_send_default_pii() and integration.include_prompts:
-                span.set_attribute(
-                    SPANDATA.AI_RESPONSES, _get_responses(result.content)
-                )
+                span.set_attribute(SPANDATA.AI_RESPONSES, _get_responses(result.content))
             _calculate_token_usage(result, span)
             span.__exit__(None, None, None)
 
@@ -189,9 +187,7 @@ def _sentry_patched_create_common(f, *args, **kwargs):
                     )
                     yield event
 
-                _add_ai_data_to_span(
-                    span, integration, input_tokens, output_tokens, content_blocks
-                )
+                _add_ai_data_to_span(span, integration, input_tokens, output_tokens, content_blocks)
                 span.__exit__(None, None, None)
 
             async def new_iterator_async():
@@ -206,9 +202,7 @@ def _sentry_patched_create_common(f, *args, **kwargs):
                     )
                     yield event
 
-                _add_ai_data_to_span(
-                    span, integration, input_tokens, output_tokens, content_blocks
-                )
+                _add_ai_data_to_span(span, integration, input_tokens, output_tokens, content_blocks)
                 span.__exit__(None, None, None)
 
             if str(type(result._iterator)) == "<class 'async_generator'>":

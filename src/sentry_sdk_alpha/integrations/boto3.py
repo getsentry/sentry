@@ -1,8 +1,9 @@
 from functools import partial
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP, SPANDATA
-from sentry_sdk_alpha.integrations import _check_minimum_version, Integration, DidNotEnable
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.utils import (
     capture_internal_exceptions,
     ensure_integration_enabled,
@@ -10,21 +11,16 @@ from sentry_sdk_alpha.utils import (
     parse_version,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Dict
-    from typing import Optional
-    from typing import Type
+    from typing import Any, Dict, Optional, Type
 
     from sentry_sdk_alpha.tracing import Span
 
 try:
     from botocore import __version__ as BOTOCORE_VERSION  # type: ignore
+    from botocore.awsrequest import AWSRequest  # type: ignore
     from botocore.client import BaseClient  # type: ignore
     from botocore.response import StreamingBody  # type: ignore
-    from botocore.awsrequest import AWSRequest  # type: ignore
 except ImportError:
     raise DidNotEnable("botocore is not installed")
 
@@ -59,7 +55,7 @@ class Boto3Integration(Integration):
 @ensure_integration_enabled(Boto3Integration)
 def _sentry_request_created(service_id, request, operation_name, **kwargs):
     # type: (str, AWSRequest, str, **Any) -> None
-    description = "aws.%s.%s" % (service_id, operation_name)
+    description = "aws.{}.{}".format(service_id, operation_name)
     span = sentry_sdk_alpha.start_span(
         op=OP.HTTP_CLIENT,
         name=description,

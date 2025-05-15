@@ -1,16 +1,16 @@
 import inspect
 from functools import wraps
+from typing import TYPE_CHECKING
 
-from sentry_sdk_alpha.consts import SPANDATA
 import sentry_sdk_alpha.utils
 from sentry_sdk_alpha import start_span
+from sentry_sdk_alpha.consts import SPANDATA
 from sentry_sdk_alpha.tracing import Span
 from sentry_sdk_alpha.utils import ContextVar
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Optional, Callable, Any
+    from collections.abc import Callable
+    from typing import Any, Optional
 
 _ai_pipeline_name = ContextVar("ai_pipeline_name", default=None)
 
@@ -34,9 +34,7 @@ def ai_track(description, **span_kwargs):
             curr_pipeline = _ai_pipeline_name.get()
             op = span_kwargs.get("op", "ai.run" if curr_pipeline else "ai.pipeline")
 
-            with start_span(
-                name=description, op=op, only_if_parent=True, **span_kwargs
-            ) as span:
+            with start_span(name=description, op=op, only_if_parent=True, **span_kwargs) as span:
                 for k, v in kwargs.pop("sentry_tags", {}).items():
                     span.set_tag(k, v)
                 for k, v in kwargs.pop("sentry_data", {}).items():
@@ -65,9 +63,7 @@ def ai_track(description, **span_kwargs):
             curr_pipeline = _ai_pipeline_name.get()
             op = span_kwargs.get("op", "ai.run" if curr_pipeline else "ai.pipeline")
 
-            with start_span(
-                name=description, op=op, only_if_parent=True, **span_kwargs
-            ) as span:
+            with start_span(name=description, op=op, only_if_parent=True, **span_kwargs) as span:
                 for k, v in kwargs.pop("sentry_tags", {}).items():
                     span.set_tag(k, v)
                 for k, v in kwargs.pop("sentry_data", {}).items():
@@ -99,9 +95,7 @@ def ai_track(description, **span_kwargs):
     return decorator
 
 
-def record_token_usage(
-    span, prompt_tokens=None, completion_tokens=None, total_tokens=None
-):
+def record_token_usage(span, prompt_tokens=None, completion_tokens=None, total_tokens=None):
     # type: (Span, Optional[int], Optional[int], Optional[int]) -> None
     ai_pipeline_name = get_ai_pipeline_name()
     if ai_pipeline_name:
@@ -110,11 +104,7 @@ def record_token_usage(
         span.set_attribute(SPANDATA.AI_PROMPT_TOKENS_USED, prompt_tokens)
     if completion_tokens is not None:
         span.set_attribute(SPANDATA.AI_COMPLETION_TOKENS_USED, completion_tokens)
-    if (
-        total_tokens is None
-        and prompt_tokens is not None
-        and completion_tokens is not None
-    ):
+    if total_tokens is None and prompt_tokens is not None and completion_tokens is not None:
         total_tokens = prompt_tokens + completion_tokens
     if total_tokens is not None:
         span.set_attribute(SPANDATA.AI_TOTAL_TOKENS_USED, total_tokens)

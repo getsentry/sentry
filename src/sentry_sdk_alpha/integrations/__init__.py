@@ -1,20 +1,12 @@
 from abc import ABC, abstractmethod
 from threading import Lock
+from typing import TYPE_CHECKING
 
 from sentry_sdk_alpha.utils import logger
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-    from typing import Callable
-    from typing import Dict
-    from typing import Iterator
-    from typing import List
-    from typing import Optional
-    from typing import Set
-    from typing import Type
-    from typing import Union
+    from collections.abc import Callable, Iterator, Sequence
+    from typing import Dict, List, Optional, Set, Type, Union
 
 
 _DEFAULT_FAILED_REQUEST_STATUS_CODES = frozenset(range(500, 600))
@@ -50,13 +42,11 @@ def _generate_default_integrations_iterator(
                 module, cls = import_string.rsplit(".", 1)
                 yield getattr(import_module(module), cls)
             except (DidNotEnable, SyntaxError) as e:
-                logger.debug(
-                    "Did not import default integration %s: %s", import_string, e
-                )
+                logger.debug("Did not import default integration %s: %s", import_string, e)
 
     if isinstance(iter_default_integrations.__doc__, str):
         for import_string in integrations:
-            iter_default_integrations.__doc__ += "\n- `{}`".format(import_string)
+            iter_default_integrations.__doc__ += f"\n- `{import_string}`"
 
     return iter_default_integrations
 
@@ -180,9 +170,7 @@ def setup_integrations(
     `disabled_integrations` takes precedence over `with_defaults` and
     `with_auto_enabling_integrations`.
     """
-    integrations = dict(
-        (integration.identifier, integration) for integration in integrations or ()
-    )
+    integrations = {integration.identifier: integration for integration in integrations or ()}
 
     logger.debug("Setting up integrations (with default = %s)", with_defaults)
 
@@ -196,9 +184,7 @@ def setup_integrations(
     used_as_default_integration = set()
 
     if with_defaults:
-        for integration_cls in iter_default_integrations(
-            with_auto_enabling_integrations
-        ):
+        for integration_cls in iter_default_integrations(with_auto_enabling_integrations):
             if integration_cls.identifier not in integrations:
                 instance = integration_cls()
                 integrations[instance.identifier] = instance
@@ -210,18 +196,14 @@ def setup_integrations(
                 if type(integration) in disabled_integrations:
                     logger.debug("Ignoring integration %s", identifier)
                 else:
-                    logger.debug(
-                        "Setting up previously not enabled integration %s", identifier
-                    )
+                    logger.debug("Setting up previously not enabled integration %s", identifier)
                     try:
                         type(integration).setup_once()
                     except DidNotEnable as e:
                         if identifier not in used_as_default_integration:
                             raise
 
-                        logger.debug(
-                            "Did not enable default integration %s: %s", identifier, e
-                        )
+                        logger.debug("Did not enable default integration %s: %s", identifier, e)
                     else:
                         _installed_integrations.add(identifier)
 

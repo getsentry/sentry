@@ -1,17 +1,12 @@
 import enum
-
-from sentry_sdk_alpha.integrations import Integration, DidNotEnable
-from sentry_sdk_alpha.integrations.logging import (
-    BreadcrumbHandler,
-    EventHandler,
-    _BaseHandler,
-)
-
 from typing import TYPE_CHECKING
+
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration
+from sentry_sdk_alpha.integrations.logging import BreadcrumbHandler, EventHandler, _BaseHandler
 
 if TYPE_CHECKING:
     from logging import LogRecord
-    from typing import Optional, Tuple, Any
+    from typing import Any, Optional, Tuple
 
 try:
     import loguru
@@ -97,9 +92,7 @@ class _LoguruBaseHandler(_BaseHandler):
     def _logging_to_event_level(self, record):
         # type: (LogRecord) -> str
         try:
-            return SENTRY_LEVEL_FROM_LOGURU_LEVEL[
-                LoggingLevels(record.levelno).name
-            ].lower()
+            return SENTRY_LEVEL_FROM_LOGURU_LEVEL[LoggingLevels(record.levelno).name].lower()
         except (ValueError, KeyError):
             return record.levelname.lower() if record.levelname else ""
 

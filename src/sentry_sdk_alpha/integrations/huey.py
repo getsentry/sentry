@@ -1,37 +1,37 @@
 import sys
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.api import get_baggage, get_traceparent
 from sentry_sdk_alpha.consts import (
-    OP,
-    SPANSTATUS,
     BAGGAGE_HEADER_NAME,
+    OP,
     SENTRY_TRACE_HEADER_NAME,
+    SPANSTATUS,
     TransactionSource,
 )
 from sentry_sdk_alpha.integrations import DidNotEnable, Integration
 from sentry_sdk_alpha.scope import should_send_default_pii
 from sentry_sdk_alpha.utils import (
+    SENSITIVE_DATA_SUBSTITUTE,
     capture_internal_exceptions,
     ensure_integration_enabled,
     event_from_exception,
-    SENSITIVE_DATA_SUBSTITUTE,
     reraise,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any, Callable, Optional, Union, TypeVar
+    from collections.abc import Callable
+    from typing import Any, Optional, TypeVar, Union
 
-    from sentry_sdk_alpha._types import EventProcessor, Event, Hint
+    from sentry_sdk_alpha._types import Event, EventProcessor, Hint
     from sentry_sdk_alpha.utils import ExcInfo
 
     F = TypeVar("F", bound=Callable[..., Any])
 
 try:
-    from huey.api import Huey, Result, ResultGroup, Task, PeriodicTask
+    from huey.api import Huey, PeriodicTask, Result, ResultGroup, Task
     from huey.exceptions import CancelExecution, RetryTask, TaskLockedException
 except ImportError:
     raise DidNotEnable("Huey is not installed")
@@ -89,16 +89,8 @@ def _make_event_processor(task):
             extra = event.setdefault("extra", {})
             extra["huey-job"] = {
                 "task": task.name,
-                "args": (
-                    task.args
-                    if should_send_default_pii()
-                    else SENSITIVE_DATA_SUBSTITUTE
-                ),
-                "kwargs": (
-                    task.kwargs
-                    if should_send_default_pii()
-                    else SENSITIVE_DATA_SUBSTITUTE
-                ),
+                "args": (task.args if should_send_default_pii() else SENSITIVE_DATA_SUBSTITUTE),
+                "kwargs": (task.kwargs if should_send_default_pii() else SENSITIVE_DATA_SUBSTITUTE),
                 "retry": (task.default_retries or 0) - task.retries,
             }
 

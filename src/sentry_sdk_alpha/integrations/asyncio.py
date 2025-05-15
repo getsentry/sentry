@@ -2,7 +2,7 @@ import sys
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
-from sentry_sdk_alpha.integrations import Integration, DidNotEnable
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration
 from sentry_sdk_alpha.utils import event_from_exception, logger, reraise
 
 try:
@@ -11,11 +11,11 @@ try:
 except ImportError:
     raise DidNotEnable("asyncio not available")
 
-from typing import cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from typing import Any
     from collections.abc import Coroutine
+    from typing import Any
 
     from sentry_sdk_alpha._types import ExcInfo
 
@@ -61,9 +61,7 @@ def patch_asyncio():
 
             # Trying to use user set task factory (if there is one)
             if orig_task_factory:
-                task = orig_task_factory(
-                    loop, _task_with_sentry_span_creation(), **kwargs
-                )
+                task = orig_task_factory(loop, _task_with_sentry_span_creation(), **kwargs)
 
             if task is None:
                 # The default task factory in `asyncio` does not have its own function
@@ -79,9 +77,7 @@ def patch_asyncio():
 
             # Set the task name to include the original coroutine's name
             try:
-                cast("asyncio.Task[Any]", task).set_name(
-                    f"{get_name(coro)} (Sentry-wrapped)"
-                )
+                cast("asyncio.Task[Any]", task).set_name(f"{get_name(coro)} (Sentry-wrapped)")
             except AttributeError:
                 # set_name might not be available in all Python versions
                 pass

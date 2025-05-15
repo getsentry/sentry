@@ -1,23 +1,18 @@
 import functools
 from typing import TYPE_CHECKING
-from sentry_sdk_alpha.integrations.redis.utils import _get_safe_key, _key_as_string
-from urllib3.util import parse_url as urlparse
 
 from django import VERSION as DJANGO_VERSION
 from django.core.cache import CacheHandler
+from urllib3.util import parse_url as urlparse
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP, SPANDATA
-from sentry_sdk_alpha.utils import (
-    capture_internal_exceptions,
-    ensure_integration_enabled,
-)
-
+from sentry_sdk_alpha.integrations.redis.utils import _get_safe_key, _key_as_string
+from sentry_sdk_alpha.utils import capture_internal_exceptions, ensure_integration_enabled
 
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Callable
-    from typing import Optional
+    from collections.abc import Callable
+    from typing import Any, Optional
 
 
 METHODS_TO_INSTRUMENT = [
@@ -40,9 +35,7 @@ def _patch_cache_method(cache, method_name, address, port):
     original_method = getattr(cache, method_name)
 
     @ensure_integration_enabled(DjangoIntegration, original_method)
-    def _instrument_call(
-        cache, method_name, original_method, args, kwargs, address, port
-    ):
+    def _instrument_call(cache, method_name, original_method, args, kwargs, address, port):
         # type: (CacheHandler, str, Callable[..., Any], tuple[Any, ...], dict[str, Any], Optional[str], Optional[int]) -> Any
         is_set_operation = method_name.startswith("set")
         is_get_operation = not is_set_operation
@@ -93,9 +86,7 @@ def _patch_cache_method(cache, method_name, address, port):
     @functools.wraps(original_method)
     def sentry_method(*args, **kwargs):
         # type: (*Any, **Any) -> Any
-        return _instrument_call(
-            cache, method_name, original_method, args, kwargs, address, port
-        )
+        return _instrument_call(cache, method_name, original_method, args, kwargs, address, port)
 
     setattr(cache, method_name, sentry_method)
 
@@ -151,9 +142,7 @@ def patch_caching():
                 if integration is not None and integration.cache_spans:
                     from django.conf import settings
 
-                    address, port = _get_address_port(
-                        settings.CACHES[alias or "default"]
-                    )
+                    address, port = _get_address_port(settings.CACHES[alias or "default"])
 
                     _patch_cache(cache, address, port)
 

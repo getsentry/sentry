@@ -7,14 +7,12 @@ import time
 import uuid
 from collections import deque
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
+from sentry_sdk_alpha._lru_cache import LRUCache
 from sentry_sdk_alpha.consts import VERSION
 from sentry_sdk_alpha.envelope import Envelope
-from sentry_sdk_alpha._lru_cache import LRUCache
-from sentry_sdk_alpha.profiler.utils import (
-    DEFAULT_SAMPLING_FREQUENCY,
-    extract_stack,
-)
+from sentry_sdk_alpha.profiler.utils import DEFAULT_SAMPLING_FREQUENCY, extract_stack
 from sentry_sdk_alpha.utils import (
     capture_internal_exception,
     is_gevent,
@@ -23,37 +21,24 @@ from sentry_sdk_alpha.utils import (
     set_in_app_in_frames,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Callable
-    from typing import Deque
-    from typing import Dict
-    from typing import List
-    from typing import Optional
-    from typing import Set
-    from typing import Type
-    from typing import Union
-    from typing_extensions import TypedDict
+    from collections.abc import Callable
+    from typing import Any, Deque, Dict, List, Optional, Set, Type, TypedDict, Union
+
     from sentry_sdk_alpha._types import ContinuousProfilerMode, SDKInfo
     from sentry_sdk_alpha.profiler.utils import (
         ExtractedSample,
         FrameId,
-        StackId,
-        ThreadId,
         ProcessedFrame,
         ProcessedStack,
+        StackId,
+        ThreadId,
     )
 
-    ProcessedSample = TypedDict(
-        "ProcessedSample",
-        {
-            "timestamp": float,
-            "thread_id": ThreadId,
-            "stack_id": int,
-        },
-    )
+    class ProcessedSample(TypedDict):
+        timestamp: float
+        thread_id: ThreadId
+        stack_id: int
 
 
 try:
@@ -94,20 +79,14 @@ def setup_continuous_profiler(options, sdk_info, capture_func):
     frequency = DEFAULT_SAMPLING_FREQUENCY
 
     if profiler_mode == ThreadContinuousScheduler.mode:
-        _scheduler = ThreadContinuousScheduler(
-            frequency, options, sdk_info, capture_func
-        )
+        _scheduler = ThreadContinuousScheduler(frequency, options, sdk_info, capture_func)
     elif profiler_mode == GeventContinuousScheduler.mode:
-        _scheduler = GeventContinuousScheduler(
-            frequency, options, sdk_info, capture_func
-        )
+        _scheduler = GeventContinuousScheduler(frequency, options, sdk_info, capture_func)
     else:
-        raise ValueError("Unknown continuous profiler mode: {}".format(profiler_mode))
+        raise ValueError(f"Unknown continuous profiler mode: {profiler_mode}")
 
     logger.debug(
-        "[Profiling] Setting up continuous profiler in {mode} mode".format(
-            mode=_scheduler.mode
-        )
+        "[Profiling] Setting up continuous profiler in {mode} mode".format(mode=_scheduler.mode)
     )
 
     atexit.register(teardown_continuous_profiler)
@@ -198,9 +177,7 @@ class ContinuousScheduler:
 
         self.lifecycle = self.options.get("profile_lifecycle")
         profile_session_sample_rate = self.options.get("profile_session_sample_rate")
-        self.sampled = determine_profile_session_sampling_decision(
-            profile_session_sample_rate
-        )
+        self.sampled = determine_profile_session_sampling_decision(profile_session_sample_rate)
 
         self.sampler = self.make_sampler()
         self.buffer = None  # type: Optional[ProfileBuffer]
@@ -494,7 +471,7 @@ class GeventContinuousScheduler(ContinuousScheduler):
         # type: (int, Dict[str, Any], SDKInfo, Callable[[Envelope], None]) -> None
 
         if ThreadPool is None:
-            raise ValueError("Profiler mode: {} is not available".format(self.mode))
+            raise ValueError(f"Profiler mode: {self.mode} is not available")
 
         super().__init__(frequency, options, sdk_info, capture_func)
 
@@ -567,9 +544,7 @@ class ProfileBuffer:
         #
         # Subtracting the start_monotonic_time here to find a fixed starting position
         # for relative monotonic timestamps for each sample.
-        self.start_timestamp = (
-            datetime.now(timezone.utc).timestamp() - self.start_monotonic_time
-        )
+        self.start_timestamp = datetime.now(timezone.utc).timestamp() - self.start_monotonic_time
 
     def write(self, monotonic_time, sample):
         # type: (float, ExtractedSample) -> None
@@ -619,9 +594,7 @@ class ProfileChunk:
                             self.frames.append(frames[i])
 
                     self.indexed_stacks[stack_id] = len(self.indexed_stacks)
-                    self.stacks.append(
-                        [self.indexed_frames[frame_id] for frame_id in frame_ids]
-                    )
+                    self.stacks.append([self.indexed_frames[frame_id] for frame_id in frame_ids])
 
                 self.samples.append(
                     {

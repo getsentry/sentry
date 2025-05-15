@@ -1,13 +1,36 @@
 import os
-import uuid
 import random
 import socket
+import uuid
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from importlib import import_module
-from typing import TYPE_CHECKING, List, Dict, cast, overload
+from typing import TYPE_CHECKING, Dict, List, cast, overload
 
 from sentry_sdk_alpha._compat import check_uwsgi_thread_support
+from sentry_sdk_alpha.consts import (
+    DEFAULT_MAX_VALUE_LENGTH,
+    DEFAULT_OPTIONS,
+    SPANDATA,
+    VERSION,
+    ClientConstructor,
+)
+from sentry_sdk_alpha.envelope import Envelope
+from sentry_sdk_alpha.integrations import setup_integrations
+from sentry_sdk_alpha.integrations.dedupe import DedupeIntegration
+from sentry_sdk_alpha.monitor import Monitor
+from sentry_sdk_alpha.profiler.continuous_profiler import setup_continuous_profiler
+from sentry_sdk_alpha.profiler.transaction_profiler import (
+    Profile,
+    has_profiling_enabled,
+    setup_profiler,
+)
+from sentry_sdk_alpha.scrubber import EventScrubber
+from sentry_sdk_alpha.serializer import serialize
+from sentry_sdk_alpha.sessions import SessionFlusher
+from sentry_sdk_alpha.spotlight import setup_spotlight
+from sentry_sdk_alpha.tracing import trace
+from sentry_sdk_alpha.transport import BaseHttpTransport, make_transport
 from sentry_sdk_alpha.utils import (
     AnnotatedValue,
     ContextVar,
@@ -15,53 +38,24 @@ from sentry_sdk_alpha.utils import (
     current_stacktrace,
     env_to_bool,
     format_timestamp,
+    get_default_release,
     get_sdk_name,
     get_type_name,
-    get_default_release,
     handle_in_app,
     logger,
 )
-from sentry_sdk_alpha.serializer import serialize
-from sentry_sdk_alpha.tracing import trace
-from sentry_sdk_alpha.transport import BaseHttpTransport, make_transport
-from sentry_sdk_alpha.consts import (
-    SPANDATA,
-    DEFAULT_MAX_VALUE_LENGTH,
-    DEFAULT_OPTIONS,
-    VERSION,
-    ClientConstructor,
-)
-from sentry_sdk_alpha.integrations import setup_integrations
-from sentry_sdk_alpha.integrations.dedupe import DedupeIntegration
-from sentry_sdk_alpha.sessions import SessionFlusher
-from sentry_sdk_alpha.envelope import Envelope
-
-from sentry_sdk_alpha.profiler.continuous_profiler import setup_continuous_profiler
-from sentry_sdk_alpha.profiler.transaction_profiler import (
-    has_profiling_enabled,
-    Profile,
-    setup_profiler,
-)
-from sentry_sdk_alpha.scrubber import EventScrubber
-from sentry_sdk_alpha.monitor import Monitor
-from sentry_sdk_alpha.spotlight import setup_spotlight
 
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Callable
-    from typing import Optional
-    from typing import Sequence
-    from typing import Type
-    from typing import Union
-    from typing import TypeVar
+    from collections.abc import Callable, Sequence
+    from typing import Any, Optional, Type, TypeVar, Union
 
-    from sentry_sdk_alpha._types import Event, Hint, SDKInfo, Log
+    from sentry_sdk_alpha._log_batcher import LogBatcher
+    from sentry_sdk_alpha._types import Event, Hint, Log, SDKInfo
     from sentry_sdk_alpha.integrations import Integration
     from sentry_sdk_alpha.scope import Scope
     from sentry_sdk_alpha.session import Session
     from sentry_sdk_alpha.spotlight import SpotlightClient
     from sentry_sdk_alpha.transport import Transport
-    from sentry_sdk_alpha._log_batcher import LogBatcher
 
     I = TypeVar("I", bound=Integration)  # noqa: E741
 
@@ -93,7 +87,7 @@ def _get_options(*args, **kwargs):
 
     for key, value in options.items():
         if key not in rv:
-            raise TypeError("Unknown option %r" % (key,))
+            raise TypeError("Unknown option {!r}".format(key))
 
         rv[key] = value
 
@@ -122,9 +116,7 @@ def _get_options(*args, **kwargs):
 
     if rv["event_scrubber"] is None:
         rv["event_scrubber"] = EventScrubber(
-            send_default_pii=(
-                False if rv["send_default_pii"] is None else rv["send_default_pii"]
-            )
+            send_default_pii=(False if rv["send_default_pii"] is None else rv["send_default_pii"])
         )
 
     if rv["socket_options"] and not isinstance(rv["socket_options"], list):
@@ -147,9 +139,7 @@ class BaseClient:
 
     def __init__(self, options=None):
         # type: (Optional[Dict[str, Any]]) -> None
-        self.options = (
-            options if options is not None else DEFAULT_OPTIONS
-        )  # type: Dict[str, Any]
+        self.options = options if options is not None else DEFAULT_OPTIONS  # type: Dict[str, Any]
 
         self.transport = None  # type: Optional[Transport]
         self.monitor = None  # type: Optional[Monitor]
@@ -248,7 +238,7 @@ class _Client(BaseClient):
 
     def __init__(self, *args, **kwargs):
         # type: (*Any, **Any) -> None
-        super(_Client, self).__init__(options=get_options(*args, **kwargs))
+        super().__init__(options=get_options(*args, **kwargs))
         self._init_impl()
 
     def __getstate__(self):
@@ -349,9 +339,7 @@ class _Client(BaseClient):
             self.integrations = setup_integrations(
                 self.options["integrations"],
                 with_defaults=self.options["default_integrations"],
-                with_auto_enabling_integrations=self.options[
-                    "auto_enabling_integrations"
-                ],
+                with_auto_enabling_integrations=self.options["auto_enabling_integrations"],
                 disabled_integrations=self.options["disabled_integrations"],
             )
 
@@ -360,9 +348,7 @@ class _Client(BaseClient):
                 spotlight_env_value = os.environ["SENTRY_SPOTLIGHT"]
                 spotlight_config = env_to_bool(spotlight_env_value, strict=True)
                 self.options["spotlight"] = (
-                    spotlight_config
-                    if spotlight_config is not None
-                    else spotlight_env_value
+                    spotlight_config if spotlight_config is not None else spotlight_env_value
                 )
 
             if self.options.get("spotlight"):
@@ -455,7 +441,7 @@ class _Client(BaseClient):
 
         if scope is not None:
             is_transaction = event.get("type") == "transaction"
-            spans_before = len(cast(List[Dict[str, object]], event.get("spans", [])))
+            spans_before = len(cast(list[dict[str, object]], event.get("spans", [])))
             event_ = scope.apply_to_event(event, hint, self.options)
 
             # one of the event/error processors returned None
@@ -474,9 +460,7 @@ class _Client(BaseClient):
                 return None
 
             event = event_  # type: Optional[Event]  # type: ignore[no-redef]
-            spans_delta = spans_before - len(
-                cast(List[Dict[str, object]], event.get("spans", []))
-            )
+            spans_delta = spans_before - len(cast(list[dict[str, object]], event.get("spans", [])))
             if is_transaction and spans_delta > 0 and self.transport is not None:
                 self.transport.record_lost_event(
                     "event_processor", data_category="span", quantity=spans_delta
@@ -492,9 +476,7 @@ class _Client(BaseClient):
                     if not isinstance(breadcrumbs, AnnotatedValue)
                     else []
                 )
-                previous_total_breadcrumbs = (
-                    len(values) + scope._n_breadcrumbs_truncated
-                )
+                previous_total_breadcrumbs = len(values) + scope._n_breadcrumbs_truncated
 
         if (
             self.options["attach_stacktrace"]
@@ -544,9 +526,7 @@ class _Client(BaseClient):
                 event_scrubber.scrub_event(event)
 
         if previous_total_spans is not None:
-            event["spans"] = AnnotatedValue(
-                event.get("spans", []), {"len": previous_total_spans}
-            )
+            event["spans"] = AnnotatedValue(event.get("spans", []), {"len": previous_total_spans})
         if previous_total_breadcrumbs is not None:
             event["breadcrumbs"] = AnnotatedValue(
                 event.get("breadcrumbs", []), {"len": previous_total_breadcrumbs}
@@ -565,20 +545,14 @@ class _Client(BaseClient):
             )
 
         before_send = self.options["before_send"]
-        if (
-            before_send is not None
-            and event is not None
-            and event.get("type") != "transaction"
-        ):
+        if before_send is not None and event is not None and event.get("type") != "transaction":
             new_event = None  # type: Optional[Event]
             with capture_internal_exceptions():
                 new_event = before_send(event, hint or {})
             if new_event is None:
                 logger.info("before send dropped event")
                 if self.transport:
-                    self.transport.record_lost_event(
-                        "before_send", data_category="error"
-                    )
+                    self.transport.record_lost_event("before_send", data_category="error")
 
                 # If this is an exception, reset the DedupeIntegration. It still
                 # remembers the dropped exception as the last exception, meaning
@@ -596,7 +570,7 @@ class _Client(BaseClient):
             and event.get("type") == "transaction"
         ):
             new_event = None
-            spans_before = len(cast(List[Dict[str, object]], event.get("spans", [])))
+            spans_before = len(cast(list[dict[str, object]], event.get("spans", [])))
             with capture_internal_exceptions():
                 new_event = before_send_transaction(event, hint or {})
             if new_event is None:
@@ -612,7 +586,7 @@ class _Client(BaseClient):
                     )
             else:
                 spans_delta = spans_before - len(
-                    cast(List[Dict[str, object]], new_event.get("spans", []))
+                    cast(list[dict[str, object]], new_event.get("spans", []))
                 )
                 if spans_delta > 0 and self.transport is not None:
                     self.transport.record_lost_event(
@@ -631,7 +605,7 @@ class _Client(BaseClient):
 
         error = exc_info[0]
         error_type_name = get_type_name(exc_info[0])
-        error_full_name = "%s.%s" % (exc_info[0].__module__, error_type_name)
+        error_full_name = "{}.{}".format(exc_info[0].__module__, error_type_name)
 
         for ignored_error in self.options["ignore_errors"]:
             # String types are matched against the type name in the
@@ -794,11 +768,7 @@ class _Client(BaseClient):
         is_transaction = event_opt.get("type") == "transaction"
         is_checkin = event_opt.get("type") == "check_in"
 
-        if (
-            not is_transaction
-            and not is_checkin
-            and not self._should_sample_error(event, hint)
-        ):
+        if not is_transaction and not is_checkin and not self._should_sample_error(event, hint):
             return None
 
         attachments = hint.get("attachments")
@@ -876,9 +846,7 @@ class _Client(BaseClient):
         # If debug is enabled, log the log to the console
         debug = self.options.get("debug", False)
         if debug:
-            logger.debug(
-                f'[Sentry Logs] [{log.get("severity_text")}] {log.get("body")}'
-            )
+            logger.debug(f'[Sentry Logs] [{log.get("severity_text")}] {log.get("body")}')
 
         before_send_log = self.options["_experiments"].get("before_send_log")
         if before_send_log is not None:
@@ -991,7 +959,7 @@ if TYPE_CHECKING:
     # Use `ClientConstructor` to define the argument types of `init` and
     # `Dict[str, Any]` to tell static analyzers about the return type.
 
-    class get_options(ClientConstructor, Dict[str, Any]):  # noqa: N801
+    class get_options(ClientConstructor, dict[str, Any]):  # noqa: N801
         pass
 
     class Client(ClientConstructor, _Client):

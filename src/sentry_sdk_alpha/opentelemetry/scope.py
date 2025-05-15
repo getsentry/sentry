@@ -1,39 +1,26 @@
-from typing import cast
-from contextlib import contextmanager
 import warnings
+from contextlib import contextmanager
+from typing import cast
 
-from opentelemetry.context import (
-    get_value,
-    set_value,
-    attach,
-    detach,
-    get_current,
-)
-from opentelemetry.trace import (
-    SpanContext,
-    NonRecordingSpan,
-    TraceFlags,
-    TraceState,
-    use_span,
-)
+from opentelemetry.context import attach, detach, get_current, get_value, set_value
+from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags, TraceState, use_span
 
+from sentry_sdk_alpha._types import TYPE_CHECKING
 from sentry_sdk_alpha.opentelemetry.consts import (
-    SENTRY_SCOPES_KEY,
     SENTRY_FORK_ISOLATION_SCOPE_KEY,
+    SENTRY_SCOPES_KEY,
     SENTRY_USE_CURRENT_SCOPE_KEY,
     SENTRY_USE_ISOLATION_SCOPE_KEY,
     TRACESTATE_SAMPLED_KEY,
 )
-from sentry_sdk_alpha.opentelemetry.contextvars_context import (
-    SentryContextVarsRuntimeContext,
-)
+from sentry_sdk_alpha.opentelemetry.contextvars_context import SentryContextVarsRuntimeContext
 from sentry_sdk_alpha.opentelemetry.utils import trace_state_from_baggage
 from sentry_sdk_alpha.scope import Scope, ScopeType
 from sentry_sdk_alpha.tracing import Span
-from sentry_sdk_alpha._types import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Tuple, Optional, Generator, Dict, Any
+    from collections.abc import Generator
+    from typing import Any, Dict, Optional, Tuple
 
 
 class PotelScope(Scope):
@@ -43,9 +30,7 @@ class PotelScope(Scope):
         """
         Returns the current scopes tuple on the otel context. Internal use only.
         """
-        return cast(
-            "Optional[Tuple[PotelScope, PotelScope]]", get_value(SENTRY_SCOPES_KEY)
-        )
+        return cast("Optional[Tuple[PotelScope, PotelScope]]", get_value(SENTRY_SCOPES_KEY))
 
     @classmethod
     def get_current_scope(cls):
@@ -107,9 +92,7 @@ class PotelScope(Scope):
             return None
 
         trace_flags = TraceFlags(
-            TraceFlags.SAMPLED
-            if self._propagation_context.parent_sampled
-            else TraceFlags.DEFAULT
+            TraceFlags.SAMPLED if self._propagation_context.parent_sampled else TraceFlags.DEFAULT
         )
 
         if self._propagation_context.baggage:

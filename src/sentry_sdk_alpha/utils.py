@@ -24,7 +24,10 @@ except ImportError:
     # Python 3.10 and below
     BaseExceptionGroup = None  # type: ignore
 
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
+from sentry_sdk_alpha._types import SENSITIVE_DATA_SUBSTITUTE, Annotated, AnnotatedValue
 from sentry_sdk_alpha.consts import (
     DEFAULT_ADD_FULL_STACK,
     DEFAULT_MAX_STACK_FRAMES,
@@ -32,29 +35,25 @@ from sentry_sdk_alpha.consts import (
     SPANDATA,
     EndpointType,
 )
-from sentry_sdk_alpha._types import Annotated, AnnotatedValue, SENSITIVE_DATA_SUBSTITUTE
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
     from types import FrameType, TracebackType
     from typing import (
         Any,
-        Callable,
-        cast,
         ContextManager,
         Dict,
-        Iterator,
         List,
         NoReturn,
         Optional,
-        overload,
         ParamSpec,
         Set,
         Tuple,
         Type,
         TypeVar,
         Union,
+        cast,
+        overload,
     )
 
     from gevent.hub import Hub as GeventHub
@@ -139,7 +138,7 @@ def get_git_revision():
                 .strip()
                 .decode("utf-8")
             )
-    except (OSError, IOError, FileNotFoundError):
+    except (OSError, FileNotFoundError):
         return None
 
     return revision
@@ -200,7 +199,7 @@ def get_sdk_name(installed_integrations):
 
     for integration in framework_integrations:
         if integration in installed_integrations:
-            return "sentry.python.{}".format(integration)
+            return f"sentry.python.{integration}"
 
     return "sentry.python"
 
@@ -319,7 +318,7 @@ class Dsn:
         """The netloc part of a DSN."""
         rv = self.host
         if (self.scheme, self.port) not in (("http", 80), ("https", 443)):
-            rv = "%s:%s" % (rv, self.port)
+            rv = "{}:{}".format(rv, self.port)
         return rv
 
     def to_auth(self, client=None):
@@ -337,7 +336,7 @@ class Dsn:
 
     def __str__(self):
         # type: () -> str
-        return "%s://%s%s@%s%s%s" % (
+        return "{}://{}{}@{}{}{}".format(
             self.scheme,
             self.public_key,
             self.secret_key and "@" + self.secret_key or "",
@@ -376,7 +375,7 @@ class Auth:
     ):
         # type: (...) -> str
         """Returns the API url for storing events."""
-        return "%s://%s%sapi/%s/%s/" % (
+        return "{}://{}{}api/{}/{}/".format(
             self.scheme,
             self.host,
             self.path,
@@ -392,7 +391,7 @@ class Auth:
             rv.append(("sentry_client", self.client))
         if self.secret_key is not None:
             rv.append(("sentry_secret", self.secret_key))
-        return "Sentry " + ", ".join("%s=%s" % (key, value) for key, value in rv)
+        return "Sentry " + ", ".join("{}={}".format(key, value) for key, value in rv)
 
 
 def get_type_name(cls):
@@ -449,7 +448,7 @@ def get_lines_from_file(
     if loader is not None and hasattr(loader, "get_source"):
         try:
             source_str = loader.get_source(module)  # type: Optional[str]
-        except (ImportError, IOError):
+        except (ImportError, OSError):
             source_str = None
         if source_str is not None:
             source = source_str.splitlines()
@@ -457,7 +456,7 @@ def get_lines_from_file(
     if source is None:
         try:
             source = linecache.getlines(filename)
-        except (OSError, IOError):
+        except OSError:
             return [], None, []
 
     if not source:
@@ -503,9 +502,7 @@ def get_source_context(
 
     if tb_lineno is not None and abs_path:
         lineno = tb_lineno - 1
-        return get_lines_from_file(
-            abs_path, lineno, max_value_length, loader=loader, module=module
-        )
+        return get_lines_from_file(abs_path, lineno, max_value_length, loader=loader, module=module)
 
     return [], None, []
 
@@ -543,9 +540,7 @@ def filename_for_module(module, abs_path):
         if not base_module_path:
             return abs_path
 
-        return abs_path.split(base_module_path.rsplit(os.sep, 2)[0], 1)[-1].lstrip(
-            os.sep
-        )
+        return abs_path.split(base_module_path.rsplit(os.sep, 2)[0], 1)[-1].lstrip(os.sep)
     except Exception:
         return abs_path
 
@@ -590,9 +585,7 @@ def serialize_frame(
     if include_local_variables:
         from sentry_sdk_alpha.serializer import serialize
 
-        rv["vars"] = serialize(
-            dict(frame.f_locals), is_vars=True, custom_repr=custom_repr
-        )
+        rv["vars"] = serialize(dict(frame.f_locals), is_vars=True, custom_repr=custom_repr)
 
     return rv
 
@@ -632,9 +625,7 @@ def get_errno(exc_value):
 def get_error_message(exc_value):
     # type: (Optional[BaseException]) -> str
     message = (
-        getattr(exc_value, "message", "")
-        or getattr(exc_value, "detail", "")
-        or safe_str(exc_value)
+        getattr(exc_value, "message", "") or getattr(exc_value, "detail", "") or safe_str(exc_value)
     )  # type: str
 
     # __notes__ should be a list of strings when notes are added
@@ -679,9 +670,9 @@ def single_exception_from_error_tuple(
         errno = None
 
     if errno is not None:
-        exception_value["mechanism"].setdefault("meta", {}).setdefault(
-            "errno", {}
-        ).setdefault("number", errno)
+        exception_value["mechanism"].setdefault("meta", {}).setdefault("errno", {}).setdefault(
+            "number", errno
+        )
 
     if source is not None:
         exception_value["mechanism"]["source"] = source
@@ -736,9 +727,7 @@ def single_exception_from_error_tuple(
         # intelligently trim by removing frames in the middle of the stacktrace, but
         # since we don't have the whole stacktrace, we can't do that. Instead, we
         # drop the entire stacktrace.
-        exception_value["stacktrace"] = AnnotatedValue.removed_because_over_size_limit(
-            value=None
-        )
+        exception_value["stacktrace"] = AnnotatedValue.removed_because_over_size_limit(value=None)
 
     elif frames:
         if not full_stack:
@@ -844,9 +833,7 @@ def exceptions_from_error(
         # Explicitly chained exceptions (Like: raise NewException() from OriginalException())
         # The field `__cause__` is set to OriginalException
         has_explicit_causing_exception = (
-            exc_value
-            and hasattr(exc_value, "__cause__")
-            and exc_value.__cause__ is not None
+            exc_value and hasattr(exc_value, "__cause__") and exc_value.__cause__ is not None
         )
         if has_explicit_causing_exception:
             exception_source = "__cause__"
@@ -856,9 +843,7 @@ def exceptions_from_error(
         # The field `__context__` is set in the exception that occurs while handling another exception,
         # to the other exception.
         has_implicit_causing_exception = (
-            exc_value
-            and hasattr(exc_value, "__context__")
-            and exc_value.__context__ is not None
+            exc_value and hasattr(exc_value, "__context__") and exc_value.__context__ is not None
         )
         if has_implicit_causing_exception:
             exception_source = "__context__"
@@ -974,8 +959,7 @@ def iter_event_frames(event):
         if isinstance(stacktrace, AnnotatedValue):
             stacktrace = stacktrace.value or {}
 
-        for frame in stacktrace.get("frames") or ():
-            yield frame
+        yield from stacktrace.get("frames") or ()
 
 
 def handle_in_app(event, in_app_exclude=None, in_app_include=None, project_root=None):
@@ -1092,9 +1076,7 @@ def merge_stack_frames(frames, full_stack, client_options):
 
     # Limit the number of frames
     max_stack_frames = (
-        client_options.get("max_stack_frames", DEFAULT_MAX_STACK_FRAMES)
-        if client_options
-        else None
+        client_options.get("max_stack_frames", DEFAULT_MAX_STACK_FRAMES) if client_options else None
     )
     if max_stack_frames is not None:
         new_frames = new_frames[len(new_frames) - max_stack_frames :]
@@ -1153,9 +1135,7 @@ def _is_external_source(abs_path):
     if abs_path is None:
         return False
 
-    external_source = (
-        re.search(r"[\\/](?:dist|site)-packages[\\/]", abs_path) is not None
-    )
+    external_source = re.search(r"[\\/](?:dist|site)-packages[\\/]", abs_path) is not None
     return external_source
 
 
@@ -1398,7 +1378,7 @@ def qualname_from_function(func):
 
     # Python 2
     try:
-        return "%s.%s.%s" % (
+        return "{}.{}.{}".format(
             func.im_class.__module__,  # type: ignore
             func.im_class.__name__,  # type: ignore
             func.__name__,
@@ -1499,7 +1479,7 @@ def to_base64(original):
         base64_bytes = base64.b64encode(utf8_bytes)
         base64_string = base64_bytes.decode("UTF-8")
     except Exception as err:
-        logger.warning("Unable to encode {orig} to base64:".format(orig=original), err)
+        logger.warning(f"Unable to encode {original} to base64:", err)
 
     return base64_string
 
@@ -1519,9 +1499,7 @@ def from_base64(base64_string):
         utf8_bytes = base64.b64decode(base64_bytes)
         utf8_string = utf8_bytes.decode("UTF-8")
     except Exception as err:
-        logger.warning(
-            "Unable to decode {b64} from base64:".format(b64=base64_string), err
-        )
+        logger.warning(f"Unable to decode {base64_string} from base64:", err)
 
     return utf8_string
 
@@ -1541,7 +1519,7 @@ def sanitize_url(url, remove_authority=True, remove_query_values=True, split=Fal
     if remove_authority:
         netloc_parts = parsed_url.netloc.split("@")
         if len(netloc_parts) > 1:
-            netloc = "%s:%s@%s" % (
+            netloc = "{}:{}@{}".format(
                 SENSITIVE_DATA_SUBSTITUTE,
                 SENSITIVE_DATA_SUBSTITUTE,
                 netloc_parts[-1],
@@ -1553,9 +1531,7 @@ def sanitize_url(url, remove_authority=True, remove_query_values=True, split=Fal
 
     # strip values from query string
     if remove_query_values:
-        query_string = unquote(
-            urlencode({key: SENSITIVE_DATA_SUBSTITUTE for key in query_params})
-        )
+        query_string = unquote(urlencode({key: SENSITIVE_DATA_SUBSTITUTE for key in query_params}))
     else:
         query_string = parsed_url.query
 
@@ -1583,9 +1559,7 @@ def parse_url(url, sanitize=True):
     parameters will be sanitized to remove sensitive data. The autority (username and password)
     in the URL will always be removed.
     """
-    parsed_url = sanitize_url(
-        url, remove_authority=True, remove_query_values=sanitize, split=True
-    )
+    parsed_url = sanitize_url(url, remove_authority=True, remove_query_values=sanitize, split=True)
 
     base_url = urlunsplit(
         Components(
@@ -1908,9 +1882,7 @@ def datetime_from_isoformat(value):
         result = datetime.fromisoformat(value)
     except (AttributeError, ValueError):
         # py 3.6
-        timestamp_format = (
-            "%Y-%m-%dT%H:%M:%S.%f" if "." in value else "%Y-%m-%dT%H:%M:%S"
-        )
+        timestamp_format = "%Y-%m-%dT%H:%M:%S.%f" if "." in value else "%Y-%m-%dT%H:%M:%S"
         if value.endswith("Z"):
             value = value[:-1] + "+0000"
 

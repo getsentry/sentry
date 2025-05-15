@@ -1,5 +1,5 @@
-from sentry_sdk_alpha.consts import SPANSTATUS, SPANDATA
-from sentry_sdk_alpha.integrations import _check_minimum_version, Integration, DidNotEnable
+from sentry_sdk_alpha.consts import SPANDATA, SPANSTATUS
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.tracing_utils import add_query_source, record_sql_queries
 from sentry_sdk_alpha.utils import (
     capture_internal_exceptions,
@@ -8,18 +8,16 @@ from sentry_sdk_alpha.utils import (
 )
 
 try:
+    from sqlalchemy import __version__ as SQLALCHEMY_VERSION  # type: ignore
     from sqlalchemy.engine import Engine  # type: ignore
     from sqlalchemy.event import listen  # type: ignore
-    from sqlalchemy import __version__ as SQLALCHEMY_VERSION  # type: ignore
 except ImportError:
     raise DidNotEnable("SQLAlchemy not installed.")
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import ContextManager
-    from typing import Optional
+    from typing import Any, ContextManager, Optional
 
     from sentry_sdk_alpha.tracing import Span
 
@@ -40,9 +38,7 @@ class SqlalchemyIntegration(Integration):
 
 
 @ensure_integration_enabled(SqlalchemyIntegration)
-def _before_cursor_execute(
-    conn, cursor, statement, parameters, context, executemany, *args
-):
+def _before_cursor_execute(conn, cursor, statement, parameters, context, executemany, *args):
     # type: (Any, Any, Any, Any, Any, bool, *Any) -> None
     ctx_mgr = record_sql_queries(
         cursor,

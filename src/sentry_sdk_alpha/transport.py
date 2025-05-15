@@ -1,12 +1,12 @@
-from abc import ABC, abstractmethod
+import gzip
 import io
 import os
-import gzip
 import socket
 import ssl
 import time
-from datetime import datetime, timedelta, timezone
+from abc import ABC, abstractmethod
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from urllib.request import getproxies
 
 try:
@@ -14,30 +14,21 @@ try:
 except ImportError:
     brotli = None
 
-import urllib3
+from typing import TYPE_CHECKING, Dict, List, cast
+
 import certifi
+import urllib3
 
 from sentry_sdk_alpha.consts import EndpointType
-from sentry_sdk_alpha.utils import Dsn, logger, capture_internal_exceptions
-from sentry_sdk_alpha.worker import BackgroundWorker
 from sentry_sdk_alpha.envelope import Envelope, Item, PayloadRef
-
-from typing import TYPE_CHECKING, cast, List, Dict
+from sentry_sdk_alpha.utils import Dsn, capture_internal_exceptions, logger
+from sentry_sdk_alpha.worker import BackgroundWorker
 
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Callable
-    from typing import DefaultDict
-    from typing import Iterable
-    from typing import Mapping
-    from typing import Optional
-    from typing import Self
-    from typing import Tuple
-    from typing import Type
-    from typing import Union
+    from collections.abc import Callable, Iterable, Mapping
+    from typing import Any, DefaultDict, Optional, Self, Tuple, Type, Union
 
-    from urllib3.poolmanager import PoolManager
-    from urllib3.poolmanager import ProxyManager
+    from urllib3.poolmanager import PoolManager, ProxyManager
 
     from sentry_sdk_alpha._types import EventDataCategory
 
@@ -211,9 +202,7 @@ class BaseHttpTransport(Transport):
             compression_level = None
 
         if compression_algo not in ("br", "gzip"):
-            logger.warning(
-                "Unknown compression algo %s, disabling compression", compression_algo
-            )
+            logger.warning("Unknown compression algo %s, disabling compression", compression_algo)
             self._compression_level = 0
             self._compression_algo = None
         else:
@@ -247,9 +236,7 @@ class BaseHttpTransport(Transport):
                 event = item.get_transaction_event() or {}
 
                 # +1 for the transaction itself
-                span_count = (
-                    len(cast(List[Dict[str, object]], event.get("spans") or [])) + 1
-                )
+                span_count = len(cast(list[dict[str, object]], event.get("spans") or [])) + 1
                 self.record_lost_event(reason, "span", quantity=span_count)
 
             elif data_category == "attachment":
@@ -287,9 +274,7 @@ class BaseHttpTransport(Transport):
                 if retry_after_value is not None
                 else None
             ) or 60
-            self._disabled_until[None] = datetime.now(timezone.utc) + timedelta(
-                seconds=retry_after
-            )
+            self._disabled_until[None] = datetime.now(timezone.utc) + timedelta(seconds=retry_after)
 
     def _send_request(
         self,
@@ -343,7 +328,7 @@ class BaseHttpTransport(Transport):
                     response.status,
                     getattr(response, "data", getattr(response, "content", None)),
                 )
-                self.on_dropped_event("status_{}".format(response.status))
+                self.on_dropped_event(f"status_{response.status}")
                 record_loss("network_error")
         finally:
             response.close()
@@ -400,9 +385,7 @@ class BaseHttpTransport(Transport):
 
     def _is_rate_limited(self):
         # type: (Self) -> bool
-        return any(
-            ts > datetime.now(timezone.utc) for ts in self._disabled_until.values()
-        )
+        return any(ts > datetime.now(timezone.utc) for ts in self._disabled_until.values())
 
     def _is_worker_full(self):
         # type: (Self) -> bool
@@ -474,11 +457,7 @@ class BaseHttpTransport(Transport):
         else:
             content_encoding = self._compression_algo
             if self._compression_algo == "br" and brotli is not None:
-                body.write(
-                    brotli.compress(
-                        envelope.serialize(), quality=self._compression_level
-                    )
-                )
+                body.write(brotli.compress(envelope.serialize(), quality=self._compression_level))
             else:  # assume gzip as we sanitize the algo value in init
                 with gzip.GzipFile(
                     fileobj=body, mode="w", compresslevel=self._compression_level
@@ -551,7 +530,7 @@ class BaseHttpTransport(Transport):
 
 class HttpTransport(BaseHttpTransport):
     if TYPE_CHECKING:
-        _pool: Union[PoolManager, ProxyManager]
+        _pool: PoolManager | ProxyManager
 
     def _get_pool_options(self):
         # type: (Self) -> Dict[str, Any]
@@ -587,12 +566,8 @@ class HttpTransport(BaseHttpTransport):
             or certifi.where()
         )
 
-        options["cert_file"] = self.options["cert_file"] or os.environ.get(
-            "CLIENT_CERT_FILE"
-        )
-        options["key_file"] = self.options["key_file"] or os.environ.get(
-            "CLIENT_KEY_FILE"
-        )
+        options["cert_file"] = self.options["cert_file"] or os.environ.get("CLIENT_CERT_FILE")
+        options["key_file"] = self.options["key_file"] or os.environ.get("CLIENT_KEY_FILE")
 
         return options
 
@@ -659,8 +634,8 @@ class HttpTransport(BaseHttpTransport):
 
 
 try:
-    import httpcore
     import h2  # noqa: F401
+    import httpcore
 except ImportError:
     # Sorry, no Http2Transport for you
     class Http2Transport(HttpTransport):
@@ -679,9 +654,7 @@ else:
         TIMEOUT = 15
 
         if TYPE_CHECKING:
-            _pool: Union[
-                httpcore.SOCKSProxy, httpcore.HTTPProxy, httpcore.ConnectionPool
-            ]
+            _pool: httpcore.SOCKSProxy | httpcore.HTTPProxy | httpcore.ConnectionPool
 
         def _get_header_value(self, response, header):
             # type: (Self, httpcore.Response, str) -> Optional[str]
@@ -721,15 +694,12 @@ else:
         def _get_pool_options(self):
             # type: (Self) -> Dict[str, Any]
             options = {
-                "http2": self.parsed_dsn is not None
-                and self.parsed_dsn.scheme == "https",
+                "http2": self.parsed_dsn is not None and self.parsed_dsn.scheme == "https",
                 "retries": 3,
             }  # type: Dict[str, Any]
 
             socket_options = (
-                self.options["socket_options"]
-                if self.options["socket_options"] is not None
-                else []
+                self.options["socket_options"] if self.options["socket_options"] is not None else []
             )
 
             used_options = {(o[0], o[1]) for o in socket_options}

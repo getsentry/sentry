@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING, TypeVar, Union
 
-
 # Re-exported for compat, since code out there in the wild might use this variable.
 MYPY = TYPE_CHECKING
 
@@ -98,18 +97,10 @@ Annotated = Union[AnnotatedValue, T]
 
 
 if TYPE_CHECKING:
-    from collections.abc import Container, MutableMapping, Sequence
-
+    from collections.abc import Callable, Container, Mapping, MutableMapping, Sequence
     from datetime import datetime
-
     from types import TracebackType
-    from typing import Any
-    from typing import Callable
-    from typing import Dict
-    from typing import Mapping
-    from typing import Optional
-    from typing import Type
-    from typing_extensions import Literal, TypedDict
+    from typing import Any, Dict, Literal, Optional, Type, TypedDict
 
     class SDKInfo(TypedDict):
         name: str
@@ -119,87 +110,73 @@ if TYPE_CHECKING:
     # "critical" is an alias of "fatal" recognized by Relay
     LogLevelStr = Literal["fatal", "critical", "error", "warning", "info", "debug"]
 
-    Event = TypedDict(
-        "Event",
-        {
-            "breadcrumbs": Annotated[
-                dict[Literal["values"], list[dict[str, Any]]]
-            ],  # TODO: We can expand on this type
-            "check_in_id": str,
-            "contexts": dict[str, dict[str, object]],
-            "dist": str,
-            "duration": Optional[float],
-            "environment": str,
-            "errors": list[dict[str, Any]],  # TODO: We can expand on this type
-            "event_id": str,
-            "exception": dict[
-                Literal["values"], list[dict[str, Any]]
-            ],  # TODO: We can expand on this type
-            "extra": MutableMapping[str, object],
-            "fingerprint": list[str],
-            "level": LogLevelStr,
-            "logentry": Mapping[str, object],
-            "logger": str,
-            "message": str,
-            "modules": dict[str, str],
-            "monitor_config": Mapping[str, object],
-            "monitor_slug": Optional[str],
-            "platform": Literal["python"],
-            "profile": object,  # Should be sentry_sdk.profiler.Profile, but we can't import that here due to circular imports
-            "release": str,
-            "request": dict[str, object],
-            "sdk": Mapping[str, object],
-            "server_name": str,
-            "spans": Annotated[list[dict[str, object]]],
-            "stacktrace": dict[
-                str, object
-            ],  # We access this key in the code, but I am unsure whether we ever set it
-            "start_timestamp": datetime,
-            "status": Optional[str],
-            "tags": MutableMapping[
-                str, str
-            ],  # Tags must be less than 200 characters each
-            "threads": dict[
-                Literal["values"], list[dict[str, Any]]
-            ],  # TODO: We can expand on this type
-            "timestamp": Optional[datetime],  # Must be set before sending the event
-            "transaction": str,
-            "transaction_info": Mapping[str, Any],  # TODO: We can expand on this type
-            "type": Literal["check_in", "transaction"],
-            "user": dict[str, object],
-            "_dropped_spans": int,
-        },
-        total=False,
-    )
+    class Event(TypedDict, total=False):
+        breadcrumbs: Annotated[dict[Literal["values"], list[dict[str, Any]]]]
+        # TODO: We can expand on this type
+        check_in_id: str
+        contexts: dict[str, dict[str, object]]
+        dist: str
+        duration: Optional[float]
+        environment: str
+        errors: list[dict[str, Any]]  # TODO: We can expand on this type
+        event_id: str
+        exception: dict[Literal["values"], list[dict[str, Any]]]
+        # TODO: We can expand on this type
+        extra: MutableMapping[str, object]
+        fingerprint: list[str]
+        level: LogLevelStr
+        logentry: Mapping[str, object]
+        logger: str
+        message: str
+        modules: dict[str, str]
+        monitor_config: Mapping[str, object]
+        monitor_slug: Optional[str]
+        platform: Literal["python"]
+        profile: object  # Should be sentry_sdk.profiler.Profile, but we can't import that here due to circular imports
+        release: str
+        request: dict[str, object]
+        sdk: Mapping[str, object]
+        server_name: str
+        spans: Annotated[list[dict[str, object]]]
+        stacktrace: dict[str, object]
+        # We access this key in the code, but I am unsure whether we ever set it
+        start_timestamp: datetime
+        status: Optional[str]
+        tags: MutableMapping[str, str]
+        # Tags must be less than 200 characters each
+        threads: dict[Literal["values"], list[dict[str, Any]]]
+        # TODO: We can expand on this type
+        timestamp: Optional[datetime]  # Must be set before sending the event
+        transaction: str
+        transaction_info: Mapping[str, Any]  # TODO: We can expand on this type
+        type: Literal["check_in", "transaction"]
+        user: dict[str, object]
+        _dropped_spans: int
 
     ExcInfo = Union[
-        tuple[Type[BaseException], BaseException, Optional[TracebackType]],
+        tuple[type[BaseException], BaseException, Optional[TracebackType]],
         tuple[None, None, None],
     ]
 
     # TODO: Make a proper type definition for this (PRs welcome!)
-    Hint = Dict[str, Any]
+    Hint = dict[str, Any]
 
-    Log = TypedDict(
-        "Log",
-        {
-            "severity_text": str,
-            "severity_number": int,
-            "body": str,
-            "attributes": dict[str, str | bool | float | int],
-            "time_unix_nano": int,
-            "trace_id": Optional[str],
-        },
-    )
+    class Log(TypedDict):
+        severity_text: str
+        severity_number: int
+        body: str
+        attributes: dict[str, str | bool | float | int]
+        time_unix_nano: int
+        trace_id: Optional[str]
 
     # TODO: Make a proper type definition for this (PRs welcome!)
-    Breadcrumb = Dict[str, Any]
+    Breadcrumb = dict[str, Any]
 
     # TODO: Make a proper type definition for this (PRs welcome!)
-    BreadcrumbHint = Dict[str, Any]
+    BreadcrumbHint = dict[str, Any]
 
     # TODO: Make a proper type definition for this (PRs welcome!)
-    SamplingContext = Dict[str, Any]
+    SamplingContext = dict[str, Any]
 
     EventProcessor = Callable[[Event, Hint], Optional[Event]]
     ErrorProcessor = Callable[[Event, ExcInfo], Optional[Event]]
@@ -243,28 +220,18 @@ if TYPE_CHECKING:
         "second",  # not supported in Sentry and will result in a warning
     ]
 
-    MonitorConfigSchedule = TypedDict(
-        "MonitorConfigSchedule",
-        {
-            "type": MonitorConfigScheduleType,
-            "value": Union[int, str],
-            "unit": MonitorConfigScheduleUnit,
-        },
-        total=False,
-    )
+    class MonitorConfigSchedule(TypedDict, total=False):
+        type: MonitorConfigScheduleType
+        value: Union[int, str]
+        unit: MonitorConfigScheduleUnit
 
-    MonitorConfig = TypedDict(
-        "MonitorConfig",
-        {
-            "schedule": MonitorConfigSchedule,
-            "timezone": str,
-            "checkin_margin": int,
-            "max_runtime": int,
-            "failure_issue_threshold": int,
-            "recovery_threshold": int,
-        },
-        total=False,
-    )
+    class MonitorConfig(TypedDict, total=False):
+        schedule: MonitorConfigSchedule
+        timezone: str
+        checkin_margin: int
+        max_runtime: int
+        failure_issue_threshold: int
+        recovery_threshold: int
 
     HttpStatusCodeRange = Union[int, Container[int]]
 

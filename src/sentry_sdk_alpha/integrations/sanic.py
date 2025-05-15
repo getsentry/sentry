@@ -1,45 +1,41 @@
 import sys
 import weakref
 from inspect import isawaitable
+from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
-from sentry_sdk_alpha.integrations import _check_minimum_version, Integration, DidNotEnable
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.integrations._wsgi_common import RequestExtractor, _filter_headers
 from sentry_sdk_alpha.integrations.logging import ignore_logger
 from sentry_sdk_alpha.tracing import TransactionSource
 from sentry_sdk_alpha.utils import (
+    CONTEXTVARS_ERROR_MESSAGE,
+    HAS_REAL_CONTEXTVARS,
     capture_internal_exceptions,
     ensure_integration_enabled,
     event_from_exception,
-    HAS_REAL_CONTEXTVARS,
-    CONTEXTVARS_ERROR_MESSAGE,
     parse_version,
     reraise,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from collections.abc import Container
-    from typing import Any
-    from typing import Callable
-    from typing import Optional
-    from typing import Union
-    from typing import Dict
+    from collections.abc import Callable, Container
+    from typing import Any, Dict, Optional, Union
 
     from sanic.request import Request, RequestParameters
     from sanic.response import BaseHTTPResponse
-
-    from sentry_sdk_alpha._types import Event, EventProcessor, ExcInfo, Hint
     from sanic.router import Route
 
+    from sentry_sdk_alpha._types import Event, EventProcessor, ExcInfo, Hint
+
 try:
-    from sanic import Sanic, __version__ as SANIC_VERSION
+    from sanic import Sanic
+    from sanic import __version__ as SANIC_VERSION
     from sanic.exceptions import SanicException
-    from sanic.router import Router
     from sanic.handlers import ErrorHandler
+    from sanic.router import Router
 except ImportError:
     raise DidNotEnable("Sanic not installed")
 
@@ -190,9 +186,7 @@ async def _context_enter(request):
     scope.add_event_processor(_make_request_processor(weak_request))
 
     # TODO-neel-potel test if this works
-    request.ctx._sentry_continue_trace = sentry_sdk_alpha.continue_trace(
-        dict(request.headers)
-    )
+    request.ctx._sentry_continue_trace = sentry_sdk_alpha.continue_trace(dict(request.headers))
     request.ctx._sentry_continue_trace.__enter__()
     request.ctx._sentry_transaction = sentry_sdk_alpha.start_span(
         op=OP.HTTP_SERVER,
@@ -223,9 +217,7 @@ async def _context_exit(request, response=None):
                 and response_status in integration._unsampled_statuses
             ):
                 # drop the event in an event processor
-                request.ctx._sentry_scope.add_event_processor(
-                    lambda _event, _hint: None
-                )
+                request.ctx._sentry_scope.add_event_processor(lambda _event, _hint: None)
 
             request.ctx._sentry_transaction.__exit__(None, None, None)
             request.ctx._sentry_continue_trace.__exit__(None, None, None)
@@ -313,13 +305,9 @@ def _legacy_router_get(self, *args):
                     # Format: app_name.route_name
                     sanic_route = sanic_route[len(sanic_app_name) + 1 :]
 
-                scope.set_transaction_name(
-                    sanic_route, source=TransactionSource.COMPONENT
-                )
+                scope.set_transaction_name(sanic_route, source=TransactionSource.COMPONENT)
             else:
-                scope.set_transaction_name(
-                    rv[0].__name__, source=TransactionSource.COMPONENT
-                )
+                scope.set_transaction_name(rv[0].__name__, source=TransactionSource.COMPONENT)
 
     return rv
 
@@ -362,7 +350,7 @@ def _make_request_processor(weak_request):
             request_info = event["request"]
             urlparts = urlsplit(request.url)
 
-            request_info["url"] = "%s://%s%s" % (
+            request_info["url"] = "{}://{}{}".format(
                 urlparts.scheme,
                 urlparts.netloc,
                 urlparts.path,

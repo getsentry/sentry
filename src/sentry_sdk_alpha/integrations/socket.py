@@ -7,7 +7,7 @@ from sentry_sdk_alpha.integrations import Integration
 
 if MYPY:
     from socket import AddressFamily, SocketKind
-    from typing import Tuple, Optional, Union, List
+    from typing import List, Optional, Tuple, Union
 
 __all__ = ["SocketIntegration"]
 
@@ -39,7 +39,7 @@ def _get_span_description(host, port):
     except (UnicodeDecodeError, AttributeError):
         pass
 
-    description = "%s:%s" % (host, port)  # type: ignore
+    description = "{}:{}".format(host, port)  # type: ignore
     return description
 
 

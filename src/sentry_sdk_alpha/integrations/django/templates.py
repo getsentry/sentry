@@ -1,4 +1,5 @@
 import functools
+from typing import TYPE_CHECKING
 
 from django.template import TemplateSyntaxError
 from django.template.base import Origin
@@ -8,14 +9,9 @@ import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
 from sentry_sdk_alpha.utils import ensure_integration_enabled
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Dict
-    from typing import Optional
-    from typing import Iterator
-    from typing import Tuple
+    from collections.abc import Iterator
+    from typing import Any, Dict, Optional, Tuple
 
 
 def get_template_frame_from_exception(exc_value):
@@ -29,9 +25,7 @@ def get_template_frame_from_exception(exc_value):
     # ``django_template_source`` attribute (rather than the legacy
     # ``TemplateSyntaxError.source`` check)
     if hasattr(exc_value, "django_template_source"):
-        return _get_template_frame_from_source(
-            exc_value.django_template_source  # type: ignore
-        )
+        return _get_template_frame_from_source(exc_value.django_template_source)  # type: ignore
 
     if isinstance(exc_value, TemplateSyntaxError) and hasattr(exc_value, "source"):
         source = exc_value.source
@@ -45,7 +39,7 @@ def _get_template_name_description(template_name):
     # type: (str) -> str
     if isinstance(template_name, (list, tuple)):
         if template_name:
-            return "[{}, ...]".format(template_name[0])
+            return f"[{template_name[0]}, ...]"
     else:
         return template_name
 
@@ -53,6 +47,7 @@ def _get_template_name_description(template_name):
 def patch_templates():
     # type: () -> None
     from django.template.response import SimpleTemplateResponse
+
     from sentry_sdk_alpha.integrations.django import DjangoIntegration
 
     real_rendered_content = SimpleTemplateResponse.rendered_content

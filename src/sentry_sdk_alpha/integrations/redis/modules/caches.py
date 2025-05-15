@@ -12,8 +12,9 @@ SET_COMMANDS = ("set", "setex")
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from sentry_sdk_alpha.integrations.redis import RedisIntegration
     from typing import Any, Optional
+
+    from sentry_sdk_alpha.integrations.redis import RedisIntegration
 
 
 def _get_op(name):
@@ -48,9 +49,7 @@ def _compile_cache_span_properties(redis_command, args, kwargs, integration):
 
     properties = {
         "op": _get_op(redis_command),
-        "description": _get_cache_span_description(
-            redis_command, args, kwargs, integration
-        ),
+        "description": _get_cache_span_description(redis_command, args, kwargs, integration),
         "key": key,
         "key_as_string": key_as_string,
         "redis_command": redis_command.lower(),

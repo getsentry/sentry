@@ -1,16 +1,15 @@
 import ast
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha import serializer
-from sentry_sdk_alpha.integrations import Integration, DidNotEnable
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration
 from sentry_sdk_alpha.scope import add_global_event_processor
-from sentry_sdk_alpha.utils import walk_exception_chain, iter_stacks
-
-from typing import TYPE_CHECKING
+from sentry_sdk_alpha.utils import iter_stacks, walk_exception_chain
 
 if TYPE_CHECKING:
-    from typing import Optional, Dict, Any, Tuple, List
     from types import FrameType
+    from typing import Any, Dict, List, Optional, Tuple
 
     from sentry_sdk_alpha._types import Event, Hint
 
@@ -75,9 +74,7 @@ class PureEvalIntegration(Integration):
                     continue
 
                 for sentry_frame, tb in zip(sentry_frames, tbs):
-                    sentry_frame["vars"] = (
-                        pure_eval_frame(tb.tb_frame) or sentry_frame["vars"]
-                    )
+                    sentry_frame["vars"] = pure_eval_frame(tb.tb_frame) or sentry_frame["vars"]
             return event
 
 

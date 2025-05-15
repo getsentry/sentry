@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.scope import should_send_default_pii
-from sentry_sdk_alpha.utils import AnnotatedValue, SENSITIVE_DATA_SUBSTITUTE
+from sentry_sdk_alpha.utils import SENSITIVE_DATA_SUBSTITUTE, AnnotatedValue
 
 try:
     from django.http.request import RawPostDataException
@@ -13,12 +13,9 @@ except ImportError:
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Dict
-    from typing import Mapping
-    from typing import MutableMapping
-    from typing import Optional
-    from typing import Union
+    from collections.abc import Mapping, MutableMapping
+    from typing import Any, Dict, Optional, Union
+
     from sentry_sdk_alpha._types import Event
 
 
@@ -33,9 +30,7 @@ SENSITIVE_ENV_KEYS = (
     "HTTP_X_REAL_IP",
 )
 
-SENSITIVE_HEADERS = tuple(
-    x[len("HTTP_") :] for x in SENSITIVE_ENV_KEYS if x.startswith("HTTP_")
-)
+SENSITIVE_HEADERS = tuple(x[len("HTTP_") :] for x in SENSITIVE_ENV_KEYS if x.startswith("HTTP_"))
 
 DEFAULT_HTTP_METHODS_TO_CAPTURE = (
     "CONNECT",
@@ -206,11 +201,7 @@ class RequestExtractor:
 def _is_json_content_type(ct):
     # type: (Optional[str]) -> bool
     mt = (ct or "").split(";", 1)[0]
-    return (
-        mt == "application/json"
-        or (mt.startswith("application/"))
-        and mt.endswith("+json")
-    )
+    return mt == "application/json" or (mt.startswith("application/")) and mt.endswith("+json")
 
 
 def _filter_headers(headers):

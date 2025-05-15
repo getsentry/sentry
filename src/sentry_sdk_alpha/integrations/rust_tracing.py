@@ -31,8 +31,9 @@ Each native extension requires its own integration.
 """
 
 import json
+from collections.abc import Callable
 from enum import Enum, auto
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.integrations import Integration
@@ -72,7 +73,7 @@ def tracing_level_to_sentry_level(level):
         return "info"
 
 
-def extract_contexts(event: Dict[str, Any]) -> Dict[str, Any]:
+def extract_contexts(event: dict[str, Any]) -> dict[str, Any]:
     metadata = event.get("metadata", {})
     contexts = {}
 
@@ -92,7 +93,7 @@ def extract_contexts(event: Dict[str, Any]) -> Dict[str, Any]:
     return contexts
 
 
-def process_event(event: Dict[str, Any]) -> None:
+def process_event(event: dict[str, Any]) -> None:
     metadata = event.get("metadata", {})
 
     logger = metadata.get("target")
@@ -110,18 +111,18 @@ def process_event(event: Dict[str, Any]) -> None:
     sentry_sdk_alpha.capture_event(sentry_event)
 
 
-def process_exception(event: Dict[str, Any]) -> None:
+def process_exception(event: dict[str, Any]) -> None:
     process_event(event)
 
 
-def process_breadcrumb(event: Dict[str, Any]) -> None:
+def process_breadcrumb(event: dict[str, Any]) -> None:
     level = tracing_level_to_sentry_level(event.get("metadata", {}).get("level"))
     message = event.get("message")
 
     sentry_sdk_alpha.add_breadcrumb(level=level, message=message)
 
 
-def default_span_filter(metadata: Dict[str, Any]) -> bool:
+def default_span_filter(metadata: dict[str, Any]) -> bool:
     return RustTracingLevel(metadata.get("level")) in (
         RustTracingLevel.Error,
         RustTracingLevel.Warn,
@@ -129,7 +130,7 @@ def default_span_filter(metadata: Dict[str, Any]) -> bool:
     )
 
 
-def default_event_type_mapping(metadata: Dict[str, Any]) -> EventTypeMapping:
+def default_event_type_mapping(metadata: dict[str, Any]) -> EventTypeMapping:
     level = RustTracingLevel(metadata.get("level"))
     if level == RustTracingLevel.Error:
         return EventTypeMapping.Exc
@@ -146,10 +147,10 @@ class RustTracingLayer:
         self,
         origin: str,
         event_type_mapping: Callable[
-            [Dict[str, Any]], EventTypeMapping
+            [dict[str, Any]], EventTypeMapping
         ] = default_event_type_mapping,
-        span_filter: Callable[[Dict[str, Any]], bool] = default_span_filter,
-        include_tracing_fields: Optional[bool] = None,
+        span_filter: Callable[[dict[str, Any]], bool] = default_span_filter,
+        include_tracing_fields: bool | None = None,
     ):
         self.origin = origin
         self.event_type_mapping = event_type_mapping
@@ -169,7 +170,7 @@ class RustTracingLayer:
             else self.include_tracing_fields
         )
 
-    def on_event(self, event: str, _span_state: Optional[Span]) -> None:
+    def on_event(self, event: str, _span_state: Span | None) -> None:
         deserialized_event = json.loads(event)
         metadata = deserialized_event.get("metadata", {})
 
@@ -183,7 +184,7 @@ class RustTracingLayer:
         elif event_type == EventTypeMapping.Event:
             process_event(deserialized_event)
 
-    def on_new_span(self, attrs: str, span_id: str) -> Optional[Span]:
+    def on_new_span(self, attrs: str, span_id: str) -> Span | None:
         attrs = json.loads(attrs)
         metadata = attrs.get("metadata", {})
 
@@ -220,11 +221,11 @@ class RustTracingLayer:
 
         return span
 
-    def on_close(self, span_id: str, span: Optional[Span]) -> None:
+    def on_close(self, span_id: str, span: Span | None) -> None:
         if span is not None:
             span.__exit__(None, None, None)
 
-    def on_record(self, span_id: str, values: str, span: Optional[Span]) -> None:
+    def on_record(self, span_id: str, values: str, span: Span | None) -> None:
         if span is not None:
             deserialized_values = json.loads(values)
             for key, value in deserialized_values.items():
@@ -251,10 +252,10 @@ class RustTracingIntegration(Integration):
         identifier: str,
         initializer: Callable[[RustTracingLayer], None],
         event_type_mapping: Callable[
-            [Dict[str, Any]], EventTypeMapping
+            [dict[str, Any]], EventTypeMapping
         ] = default_event_type_mapping,
-        span_filter: Callable[[Dict[str, Any]], bool] = default_span_filter,
-        include_tracing_fields: Optional[bool] = None,
+        span_filter: Callable[[dict[str, Any]], bool] = default_span_filter,
+        include_tracing_fields: bool | None = None,
     ):
         self.identifier = identifier
         origin = f"auto.function.rust_tracing.{identifier}"

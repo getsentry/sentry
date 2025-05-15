@@ -1,19 +1,14 @@
 import io
 import json
 import mimetypes
-
-from sentry_sdk_alpha.session import Session
-from sentry_sdk_alpha.utils import json_dumps, capture_internal_exceptions
-
 from typing import TYPE_CHECKING
 
+from sentry_sdk_alpha.session import Session
+from sentry_sdk_alpha.utils import capture_internal_exceptions, json_dumps
+
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Optional
-    from typing import Union
-    from typing import Dict
-    from typing import List
-    from typing import Iterator
+    from collections.abc import Iterator
+    from typing import Any, Dict, List, Optional, Union
 
     from sentry_sdk_alpha._types import Event, EventDataCategory
 
@@ -51,7 +46,7 @@ class Envelope:
     @property
     def description(self):
         # type: (...) -> str
-        return "envelope with %s items (%s)" % (
+        return "envelope with {} items ({})".format(
             len(self.items),
             ", ".join(x.data_category for x in self.items),
         )
@@ -170,7 +165,7 @@ class Envelope:
 
     def __repr__(self):
         # type: (...) -> str
-        return "<Envelope headers=%r items=%r>" % (self.headers, self.items)
+        return "<Envelope headers={!r} items={!r}>".format(self.headers, self.items)
 
 
 class PayloadRef:
@@ -212,7 +207,7 @@ class PayloadRef:
 
     def __repr__(self):
         # type: (...) -> str
-        return "<Payload %r>" % (self.inferred_content_type,)
+        return "<Payload {!r}>".format(self.inferred_content_type)
 
 
 class Item:
@@ -249,7 +244,7 @@ class Item:
 
     def __repr__(self):
         # type: (...) -> str
-        return "<Item headers=%r payload=%r data_category=%r>" % (
+        return "<Item headers={!r} payload={!r} data_category={!r}>".format(
             self.headers,
             self.payload,
             self.data_category,

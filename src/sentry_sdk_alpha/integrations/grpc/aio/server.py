@@ -1,11 +1,11 @@
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
 from sentry_sdk_alpha.integrations import DidNotEnable
 from sentry_sdk_alpha.integrations.grpc.consts import SPAN_ORIGIN
 from sentry_sdk_alpha.tracing import TransactionSource
 from sentry_sdk_alpha.utils import event_from_exception
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable

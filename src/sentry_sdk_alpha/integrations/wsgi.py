@@ -1,15 +1,16 @@
 import sys
 from functools import partial
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
-from sentry_sdk_alpha._werkzeug import get_host, _get_headers
+from sentry_sdk_alpha._werkzeug import _get_headers, get_host
 from sentry_sdk_alpha.consts import OP
-from sentry_sdk_alpha.scope import should_send_default_pii
 from sentry_sdk_alpha.integrations._wsgi_common import (
     DEFAULT_HTTP_METHODS_TO_CAPTURE,
     _filter_headers,
     _request_headers_to_span_attributes,
 )
+from sentry_sdk_alpha.scope import should_send_default_pii
 from sentry_sdk_alpha.sessions import track_session
 from sentry_sdk_alpha.tracing import Span, TransactionSource
 from sentry_sdk_alpha.utils import (
@@ -19,20 +20,12 @@ from sentry_sdk_alpha.utils import (
     reraise,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Callable
-    from typing import Dict
-    from typing import Iterator
-    from typing import Any
-    from typing import Tuple
-    from typing import Optional
-    from typing import TypeVar
-    from typing import Protocol
+    from collections.abc import Callable, Iterator
+    from typing import Any, Dict, Optional, Protocol, Tuple, TypeVar
 
-    from sentry_sdk_alpha.utils import ExcInfo
     from sentry_sdk_alpha._types import Event, EventProcessor
+    from sentry_sdk_alpha.utils import ExcInfo
 
     WsgiResponseIter = TypeVar("WsgiResponseIter")
     WsgiResponseHeaders = TypeVar("WsgiResponseHeaders")
@@ -71,7 +64,7 @@ def get_request_url(environ, use_x_forwarded_for=False):
     path_info = environ.get("PATH_INFO", "").lstrip("/")
     path = f"{script_name}/{path_info}"
 
-    return "%s://%s/%s" % (
+    return "{}://{}/{}".format(
         environ.get("wsgi.url_scheme"),
         get_host(environ, use_x_forwarded_for),
         wsgi_decoding_dance(path).lstrip("/"),
@@ -107,18 +100,14 @@ class SentryWsgiMiddleware:
         _wsgi_middleware_applied.set(True)
         try:
             with sentry_sdk_alpha.isolation_scope() as scope:
-                scope.set_transaction_name(
-                    DEFAULT_TRANSACTION_NAME, source=TransactionSource.ROUTE
-                )
+                scope.set_transaction_name(DEFAULT_TRANSACTION_NAME, source=TransactionSource.ROUTE)
 
                 with track_session(scope, session_mode="request"):
                     with capture_internal_exceptions():
                         scope.clear_breadcrumbs()
                         scope._name = "wsgi"
                         scope.add_event_processor(
-                            _make_wsgi_event_processor(
-                                environ, self.use_x_forwarded_for
-                            )
+                            _make_wsgi_event_processor(environ, self.use_x_forwarded_for)
                         )
                     method = environ.get("REQUEST_METHOD", "").upper()
                     should_trace = method in self.http_methods_to_capture
@@ -133,9 +122,7 @@ class SentryWsgiMiddleware:
                                     environ, self.use_x_forwarded_for
                                 ),
                             ) as span:
-                                response = self._run_original_app(
-                                    environ, start_response, span
-                                )
+                                response = self._run_original_app(environ, start_response, span)
                     else:
                         response = self._run_original_app(environ, start_response, None)
 
@@ -349,8 +336,6 @@ def _prepopulate_attributes(wsgi_environ, use_x_forwarded_for=False):
         query = wsgi_environ.get("QUERY_STRING")
         attributes["url.full"] = f"{url}?{query}"
 
-    attributes.update(
-        _request_headers_to_span_attributes(dict(_get_headers(wsgi_environ)))
-    )
+    attributes.update(_request_headers_to_span_attributes(dict(_get_headers(wsgi_environ))))
 
     return attributes

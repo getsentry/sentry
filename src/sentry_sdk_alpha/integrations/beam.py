@@ -1,6 +1,7 @@
 import sys
 import types
 from functools import wraps
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.integrations import Integration
@@ -12,13 +13,9 @@ from sentry_sdk_alpha.utils import (
     reraise,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Iterator
-    from typing import TypeVar
-    from typing import Callable
+    from collections.abc import Callable, Iterator
+    from typing import Any, TypeVar
 
     from sentry_sdk_alpha._types import ExcInfo
 

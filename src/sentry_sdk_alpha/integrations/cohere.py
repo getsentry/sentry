@@ -1,28 +1,25 @@
 from functools import wraps
+from typing import TYPE_CHECKING
 
 from sentry_sdk_alpha import consts
 from sentry_sdk_alpha.ai.monitoring import record_token_usage
-from sentry_sdk_alpha.consts import SPANDATA
 from sentry_sdk_alpha.ai.utils import set_data_normalized
-
-from typing import TYPE_CHECKING
+from sentry_sdk_alpha.consts import SPANDATA
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Iterator
+    from typing import Any
+    from collections.abc import Callable, Iterator
     from sentry_sdk_alpha.tracing import Span
 
 import sentry_sdk_alpha
-from sentry_sdk_alpha.scope import should_send_default_pii
 from sentry_sdk_alpha.integrations import DidNotEnable, Integration
+from sentry_sdk_alpha.scope import should_send_default_pii
 from sentry_sdk_alpha.utils import capture_internal_exceptions, event_from_exception
 
 try:
-    from cohere.client import Client
+    from cohere import ChatStreamEndEvent, NonStreamedChatResponse
     from cohere.base_client import BaseCohere
-    from cohere import (
-        ChatStreamEndEvent,
-        NonStreamedChatResponse,
-    )
+    from cohere.client import Client
 
     if TYPE_CHECKING:
         from cohere import StreamedChatResponse
@@ -208,8 +205,7 @@ def _wrap_chat(f, streaming):
                 collect_chat_response_fields(
                     span,
                     res,
-                    include_pii=should_send_default_pii()
-                    and integration.include_prompts,
+                    include_pii=should_send_default_pii() and integration.include_prompts,
                 )
                 span.__exit__(None, None, None)
             else:
@@ -236,9 +232,7 @@ def _wrap_embed(f):
             origin=CohereIntegration.origin,
             only_if_parent=True,
         ) as span:
-            if "texts" in kwargs and (
-                should_send_default_pii() and integration.include_prompts
-            ):
+            if "texts" in kwargs and (should_send_default_pii() and integration.include_prompts):
                 if isinstance(kwargs["texts"], str):
                     set_data_normalized(span, SPANDATA.AI_TEXTS, [kwargs["texts"]])
                 elif (
@@ -246,9 +240,7 @@ def _wrap_embed(f):
                     and len(kwargs["texts"]) > 0
                     and isinstance(kwargs["texts"][0], str)
                 ):
-                    set_data_normalized(
-                        span, SPANDATA.AI_INPUT_MESSAGES, kwargs["texts"]
-                    )
+                    set_data_normalized(span, SPANDATA.AI_INPUT_MESSAGES, kwargs["texts"])
 
             if "model" in kwargs:
                 set_data_normalized(span, SPANDATA.AI_MODEL_ID, kwargs["model"])

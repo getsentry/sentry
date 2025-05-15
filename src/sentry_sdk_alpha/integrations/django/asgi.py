@@ -9,23 +9,19 @@ Since this file contains `async def` it is conditionally imported in
 import asyncio
 import functools
 import inspect
+from typing import TYPE_CHECKING
 
 from django.core.handlers.wsgi import WSGIRequest
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
-
 from sentry_sdk_alpha.integrations.asgi import SentryAsgiMiddleware
 from sentry_sdk_alpha.scope import should_send_default_pii
-from sentry_sdk_alpha.utils import (
-    capture_internal_exceptions,
-    ensure_integration_enabled,
-)
-
-from typing import TYPE_CHECKING
+from sentry_sdk_alpha.utils import capture_internal_exceptions, ensure_integration_enabled
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Union, TypeVar
+    from collections.abc import Callable
+    from typing import Any, TypeVar, Union
 
     from django.core.handlers.asgi import ASGIRequest
     from django.http.response import HttpResponse
@@ -58,10 +54,7 @@ def _make_asgi_request_event_processor(request):
         # if the request is gone we are fine not logging the data from
         # it.  This might happen if the processor is pushed away to
         # another thread.
-        from sentry_sdk_alpha.integrations.django import (
-            DjangoRequestExtractor,
-            _set_user_info,
-        )
+        from sentry_sdk_alpha.integrations.django import DjangoRequestExtractor, _set_user_info
 
         if request is None:
             return event

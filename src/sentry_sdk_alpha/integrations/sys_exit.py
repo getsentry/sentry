@@ -2,9 +2,9 @@ import functools
 import sys
 
 import sentry_sdk_alpha
-from sentry_sdk_alpha.utils import capture_internal_exceptions, event_from_exception
-from sentry_sdk_alpha.integrations import Integration
 from sentry_sdk_alpha._types import TYPE_CHECKING
+from sentry_sdk_alpha.integrations import Integration
+from sentry_sdk_alpha.utils import capture_internal_exceptions, event_from_exception
 
 if TYPE_CHECKING:
     from collections.abc import Callable

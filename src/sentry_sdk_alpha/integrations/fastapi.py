@@ -1,20 +1,18 @@
 import asyncio
 from copy import deepcopy
 from functools import wraps
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import SOURCE_FOR_STYLE, TransactionSource
 from sentry_sdk_alpha.integrations import DidNotEnable
 from sentry_sdk_alpha.scope import should_send_default_pii
-from sentry_sdk_alpha.utils import (
-    transaction_from_function,
-    logger,
-)
-
-from typing import TYPE_CHECKING
+from sentry_sdk_alpha.utils import logger, transaction_from_function
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Dict
+    from collections.abc import Callable
+    from typing import Any, Dict
+
     from sentry_sdk_alpha._types import Event
 
 try:
@@ -66,9 +64,7 @@ def _set_transaction_name_and_source(scope, transaction_style, request):
         source = SOURCE_FOR_STYLE[transaction_style]
 
     scope.set_transaction_name(name, source=source)
-    logger.debug(
-        "[FastAPI] Set transaction name and source on scope: %s / %s", name, source
-    )
+    logger.debug("[FastAPI] Set transaction name and source on scope: %s / %s", name, source)
 
 
 def patch_get_request_handler():
@@ -136,9 +132,7 @@ def patch_get_request_handler():
                 return event_processor
 
             sentry_scope._name = FastApiIntegration.identifier
-            sentry_scope.add_event_processor(
-                _make_request_event_processor(request, integration)
-            )
+            sentry_scope.add_event_processor(_make_request_event_processor(request, integration))
 
             return await old_app(*args, **kwargs)
 

@@ -1,56 +1,46 @@
 import os
 from collections import deque
+from typing import TYPE_CHECKING
 
 from sentry_sdk_alpha._compat import PY311
 from sentry_sdk_alpha.utils import filename_for_module
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from sentry_sdk_alpha._lru_cache import LRUCache
+    from collections.abc import Sequence
     from types import FrameType
-    from typing import Deque
-    from typing import List
-    from typing import Optional
-    from typing import Sequence
-    from typing import Tuple
-    from typing_extensions import TypedDict
+    from typing import Deque, List, Optional, Tuple, TypedDict
+
+    from sentry_sdk_alpha._lru_cache import LRUCache
 
     ThreadId = str
 
-    ProcessedStack = List[int]
+    ProcessedStack = list[int]
 
-    ProcessedFrame = TypedDict(
-        "ProcessedFrame",
-        {
-            "abs_path": str,
-            "filename": Optional[str],
-            "function": str,
-            "lineno": int,
-            "module": Optional[str],
-        },
-    )
+    class ProcessedFrame(TypedDict):
+        abs_path: str
+        filename: Optional[str]
+        function: str
+        lineno: int
+        module: Optional[str]
 
-    ProcessedThreadMetadata = TypedDict(
-        "ProcessedThreadMetadata",
-        {"name": str},
-    )
+    class ProcessedThreadMetadata(TypedDict):
+        name: str
 
-    FrameId = Tuple[
+    FrameId = tuple[
         str,  # abs_path
         int,  # lineno
         str,  # function
     ]
-    FrameIds = Tuple[FrameId, ...]
+    FrameIds = tuple[FrameId, ...]
 
     # The exact value of this id is not very meaningful. The purpose
     # of this id is to give us a compact and unique identifier for a
     # raw stack that can be used as a key to a dictionary so that it
     # can be used during the sampled format generation.
-    StackId = Tuple[int, int]
+    StackId = tuple[int, int]
 
-    ExtractedStack = Tuple[StackId, FrameIds, List[ProcessedFrame]]
-    ExtractedSample = Sequence[Tuple[ThreadId, ExtractedStack]]
+    ExtractedStack = tuple[StackId, FrameIds, list[ProcessedFrame]]
+    ExtractedSample = Sequence[tuple[ThreadId, ExtractedStack]]
 
 # The default sampling frequency to use. This is set at 101 in order to
 # mitigate the effects of lockstep sampling.
@@ -91,7 +81,7 @@ else:
             ):
                 for cls in type(frame.f_locals["self"]).__mro__:
                     if name in cls.__dict__:
-                        return "{}.{}".format(cls.__name__, name)
+                        return f"{cls.__name__}.{name}"
         except (AttributeError, ValueError):
             pass
 
@@ -107,7 +97,7 @@ else:
             ):
                 for cls in frame.f_locals["cls"].__mro__:
                     if name in cls.__dict__:
-                        return "{}.{}".format(cls.__name__, name)
+                        return f"{cls.__name__}.{name}"
         except (AttributeError, ValueError):
             pass
 

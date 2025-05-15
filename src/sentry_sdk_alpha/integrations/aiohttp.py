@@ -4,28 +4,32 @@ from functools import wraps
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import (
-    OP,
-    SPANSTATUS,
-    SPANDATA,
     BAGGAGE_HEADER_NAME,
+    OP,
     SOURCE_FOR_STYLE,
+    SPANDATA,
+    SPANSTATUS,
     TransactionSource,
 )
 from sentry_sdk_alpha.integrations import (
     _DEFAULT_FAILED_REQUEST_STATUS_CODES,
-    _check_minimum_version,
-    Integration,
     DidNotEnable,
+    Integration,
+    _check_minimum_version,
 )
-from sentry_sdk_alpha.integrations.logging import ignore_logger
-from sentry_sdk_alpha.sessions import track_session
 from sentry_sdk_alpha.integrations._wsgi_common import (
     _filter_headers,
     _request_headers_to_span_attributes,
     request_body_within_bounds,
 )
+from sentry_sdk_alpha.integrations.logging import ignore_logger
+from sentry_sdk_alpha.sessions import track_session
 from sentry_sdk_alpha.tracing_utils import should_propagate_trace
 from sentry_sdk_alpha.utils import (
+    CONTEXTVARS_ERROR_MESSAGE,
+    HAS_REAL_CONTEXTVARS,
+    SENSITIVE_DATA_SUBSTITUTE,
+    AnnotatedValue,
     capture_internal_exceptions,
     ensure_integration_enabled,
     event_from_exception,
@@ -36,17 +40,13 @@ from sentry_sdk_alpha.utils import (
     reraise,
     set_thread_info_from_span,
     transaction_from_function,
-    HAS_REAL_CONTEXTVARS,
-    CONTEXTVARS_ERROR_MESSAGE,
-    SENSITIVE_DATA_SUBSTITUTE,
-    AnnotatedValue,
 )
 
 try:
     import asyncio
 
-    from aiohttp import __version__ as AIOHTTP_VERSION
     from aiohttp import ClientSession, TraceConfig
+    from aiohttp import __version__ as AIOHTTP_VERSION
     from aiohttp.web import Application, HTTPException, UrlDispatcher
 except ImportError:
     raise DidNotEnable("AIOHTTP not installed")
@@ -54,19 +54,16 @@ except ImportError:
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from aiohttp.web_request import Request
-    from aiohttp.web_urldispatcher import UrlMappingMatchInfo
-    from aiohttp import TraceRequestStartParams, TraceRequestEndParams
-
     from collections.abc import Set
     from types import SimpleNamespace
-    from typing import Any
-    from typing import Optional
-    from typing import Tuple
-    from typing import Union
+    from typing import Any, Optional, Tuple, Union
 
-    from sentry_sdk_alpha.utils import ExcInfo
+    from aiohttp import TraceRequestEndParams, TraceRequestStartParams
+    from aiohttp.web_request import Request
+    from aiohttp.web_urldispatcher import UrlMappingMatchInfo
+
     from sentry_sdk_alpha._types import Event, EventProcessor
+    from sentry_sdk_alpha.utils import ExcInfo
 
 
 TRANSACTION_STYLE_VALUES = ("handler_name", "method_and_path_pattern")
@@ -149,10 +146,7 @@ class AioHttpIntegration(Integration):
                             except HTTPException as e:
                                 span.set_http_status(e.status_code)
 
-                                if (
-                                    e.status_code
-                                    in integration._failed_request_status_codes
-                                ):
+                                if e.status_code in integration._failed_request_status_codes:
                                     _capture_exception()
 
                                 raise
@@ -188,7 +182,7 @@ class AioHttpIntegration(Integration):
                 elif integration.transaction_style == "method_and_path_pattern":
                     route_info = rv.get_info()
                     pattern = route_info.get("path") or route_info.get("formatter")
-                    name = "{} {}".format(request.method, pattern)
+                    name = f"{request.method} {pattern}"
             except Exception:
                 pass
 
@@ -233,8 +227,7 @@ def create_trace_config():
 
         span = sentry_sdk_alpha.start_span(
             op=OP.HTTP_CLIENT,
-            name="%s %s"
-            % (method, parsed_url.url if parsed_url else SENSITIVE_DATA_SUBSTITUTE),
+            name="%s %s" % (method, parsed_url.url if parsed_url else SENSITIVE_DATA_SUBSTITUTE),
             origin=AioHttpIntegration.origin,
             only_if_parent=True,
         )
@@ -258,17 +251,13 @@ def create_trace_config():
             for (
                 key,
                 value,
-            ) in sentry_sdk_alpha.get_current_scope().iter_trace_propagation_headers(
-                span=span
-            ):
+            ) in sentry_sdk_alpha.get_current_scope().iter_trace_propagation_headers(span=span):
                 logger.debug(
                     "[Tracing] Adding `{key}` header {value} to outgoing request to {url}.".format(
                         key=key, value=value, url=params.url
                     )
                 )
-                if key == BAGGAGE_HEADER_NAME and params.headers.get(
-                    BAGGAGE_HEADER_NAME
-                ):
+                if key == BAGGAGE_HEADER_NAME and params.headers.get(BAGGAGE_HEADER_NAME):
                     # do not overwrite any existing baggage, just append to it
                     params.headers[key] += "," + value
                 else:
@@ -321,7 +310,7 @@ def _make_request_processor(weak_request):
         with capture_internal_exceptions():
             request_info = event.setdefault("request", {})
 
-            request_info["url"] = "%s://%s%s" % (
+            request_info["url"] = "{}://{}{}".format(
                 request.scheme,
                 request.host,
                 request.path,

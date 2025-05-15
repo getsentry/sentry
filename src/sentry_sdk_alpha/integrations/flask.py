@@ -1,6 +1,8 @@
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import SOURCE_FOR_STYLE
-from sentry_sdk_alpha.integrations import _check_minimum_version, DidNotEnable, Integration
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.integrations._wsgi_common import (
     DEFAULT_HTTP_METHODS_TO_CAPTURE,
     RequestExtractor,
@@ -14,14 +16,14 @@ from sentry_sdk_alpha.utils import (
     package_version,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any, Callable, Dict, Union
+    from collections.abc import Callable
+    from typing import Any, Dict, Union
+
+    from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
     from sentry_sdk_alpha._types import Event, EventProcessor
     from sentry_sdk_alpha.integrations.wsgi import _ScopedResponse
-    from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
 
 try:
@@ -32,11 +34,7 @@ except ImportError:
 try:
     from flask import Flask, Request  # type: ignore
     from flask import request as flask_request
-    from flask.signals import (
-        before_render_template,
-        got_request_exception,
-        request_started,
-    )
+    from flask.signals import before_render_template, got_request_exception, request_started
     from markupsafe import Markup
 except ImportError:
     raise DidNotEnable("Flask is not installed")

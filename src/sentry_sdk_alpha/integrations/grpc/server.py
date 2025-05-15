@@ -1,18 +1,20 @@
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
 from sentry_sdk_alpha.integrations import DidNotEnable
 from sentry_sdk_alpha.integrations.grpc.consts import SPAN_ORIGIN
 from sentry_sdk_alpha.tracing import TransactionSource
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Callable, Optional
+    from collections.abc import Callable
+    from typing import Optional
+
     from google.protobuf.message import Message
 
 try:
     import grpc
-    from grpc import ServicerContext, HandlerCallDetails, RpcMethodHandler
+    from grpc import HandlerCallDetails, RpcMethodHandler, ServicerContext
 except ImportError:
     raise DidNotEnable("grpcio is not installed")
 

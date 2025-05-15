@@ -1,21 +1,22 @@
+from typing import TYPE_CHECKING, Any, Dict, TypeVar, cast
+
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP, SPANDATA
-from sentry_sdk_alpha.integrations import _check_minimum_version, Integration, DidNotEnable
-from sentry_sdk_alpha.tracing import Span
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.scope import should_send_default_pii
+from sentry_sdk_alpha.tracing import Span
 from sentry_sdk_alpha.utils import (
     _serialize_span_attribute,
     capture_internal_exceptions,
     ensure_integration_enabled,
 )
 
-from typing import TYPE_CHECKING, cast, Any, Dict, TypeVar
-
 # Hack to get new Python features working in older versions
 # without introducing a hard dependency on `typing_extensions`
 # from: https://stackoverflow.com/a/71944042/300572
 if TYPE_CHECKING:
-    from typing import ParamSpec, Callable
+    from collections.abc import Callable
+    from typing import ParamSpec
 else:
     # Fake ParamSpec
     class ParamSpec:
@@ -131,9 +132,7 @@ def _wrap_end(f: Callable[P, T]) -> Callable[P, T]:
             with capture_internal_exceptions():
                 query = data.pop("db.query.text", None)
                 if query:
-                    sentry_sdk_alpha.add_breadcrumb(
-                        message=query, category="query", data=data
-                    )
+                    sentry_sdk_alpha.add_breadcrumb(message=query, category="query", data=data)
 
             span.finish()
 
@@ -160,9 +159,7 @@ def _wrap_send_data(f: Callable[P, T]) -> Callable[P, T]:
             _set_on_span(span, data)
 
             if should_send_default_pii():
-                saved_db_data = getattr(
-                    connection, "_sentry_db_data", {}
-                )  # type: dict[str, Any]
+                saved_db_data = getattr(connection, "_sentry_db_data", {})  # type: dict[str, Any]
                 db_params = saved_db_data.get("db.params") or []  # type: list[Any]
                 db_params.extend(db_params_data)
                 saved_db_data["db.params"] = db_params
@@ -173,7 +170,7 @@ def _wrap_send_data(f: Callable[P, T]) -> Callable[P, T]:
     return _inner_send_data
 
 
-def _get_db_data(connection: clickhouse_driver.connection.Connection) -> Dict[str, str]:
+def _get_db_data(connection: clickhouse_driver.connection.Connection) -> dict[str, str]:
     return {
         SPANDATA.DB_SYSTEM: "clickhouse",
         SPANDATA.SERVER_ADDRESS: connection.host,
@@ -183,6 +180,6 @@ def _get_db_data(connection: clickhouse_driver.connection.Connection) -> Dict[st
     }
 
 
-def _set_on_span(span: Span, data: Dict[str, Any]) -> None:
+def _set_on_span(span: Span, data: dict[str, Any]) -> None:
     for key, value in data.items():
         span.set_attribute(key, _serialize_span_attribute(value))

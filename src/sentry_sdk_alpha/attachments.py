@@ -1,12 +1,12 @@
-import os
 import mimetypes
+import os
+from typing import TYPE_CHECKING
 
 from sentry_sdk_alpha.envelope import Item, PayloadRef
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Optional, Union, Callable
+    from collections.abc import Callable
+    from typing import Optional, Union
 
 
 class Attachment:
@@ -72,4 +72,4 @@ class Attachment:
 
     def __repr__(self):
         # type: () -> str
-        return "<Attachment %r>" % (self.filename,)
+        return "<Attachment {!r}>".format(self.filename)

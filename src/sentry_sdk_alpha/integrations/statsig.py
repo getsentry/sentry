@@ -1,8 +1,8 @@
 from functools import wraps
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sentry_sdk_alpha.feature_flags import add_feature_flag
-from sentry_sdk_alpha.integrations import Integration, DidNotEnable, _check_minimum_version
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.utils import parse_version
 
 try:

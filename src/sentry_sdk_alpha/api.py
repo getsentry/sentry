@@ -1,34 +1,25 @@
 import inspect
 from contextlib import contextmanager
+from typing import TYPE_CHECKING
 
-from sentry_sdk_alpha import tracing_utils, Client
+from sentry_sdk_alpha import Client, tracing_utils
 from sentry_sdk_alpha._init_implementation import init
-from sentry_sdk_alpha.tracing import trace
 from sentry_sdk_alpha.crons import monitor
+from sentry_sdk_alpha.opentelemetry.scope import PotelScope as Scope
+from sentry_sdk_alpha.opentelemetry.scope import (
+    isolation_scope,
+    new_scope,
+    use_isolation_scope,
+    use_scope,
+)
 
 # TODO-neel-potel make 2 scope strategies/impls and switch
 from sentry_sdk_alpha.scope import Scope as BaseScope
-from sentry_sdk_alpha.opentelemetry.scope import (
-    PotelScope as Scope,
-    new_scope,
-    isolation_scope,
-    use_scope,
-    use_isolation_scope,
-)
-
-
-from typing import TYPE_CHECKING
+from sentry_sdk_alpha.tracing import trace
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from typing import Any
-    from typing import Dict
-    from typing import Optional
-    from typing import Callable
-    from typing import TypeVar
-    from typing import Union
-    from typing import Generator
+    from collections.abc import Callable, Generator, Mapping
+    from typing import Any, Dict, Optional, TypeVar, Union
 
     import sentry_sdk_alpha
 
@@ -74,7 +65,7 @@ __all__ = [
 
 def scopemethod(f):
     # type: (F) -> F
-    f.__doc__ = "%s\n\n%s" % (
+    f.__doc__ = "{}\n\n{}".format(
         "Alias for :py:meth:`sentry_sdk.Scope.%s`" % f.__name__,
         inspect.getdoc(getattr(Scope, f.__name__)),
     )
@@ -83,7 +74,7 @@ def scopemethod(f):
 
 def clientmethod(f):
     # type: (F) -> F
-    f.__doc__ = "%s\n\n%s" % (
+    f.__doc__ = "{}\n\n{}".format(
         "Alias for :py:meth:`sentry_sdk.Client.%s`" % f.__name__,
         inspect.getdoc(getattr(Client, f.__name__)),
     )
@@ -157,9 +148,7 @@ def capture_message(
     **scope_kwargs,  # type: Any
 ):
     # type: (...) -> Optional[str]
-    return get_current_scope().capture_message(
-        message, level, scope=scope, **scope_kwargs
-    )
+    return get_current_scope().capture_message(message, level, scope=scope, **scope_kwargs)
 
 
 @scopemethod

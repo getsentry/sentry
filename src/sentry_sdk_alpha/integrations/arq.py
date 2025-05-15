@@ -2,23 +2,23 @@ import sys
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP, SPANSTATUS
-from sentry_sdk_alpha.integrations import _check_minimum_version, DidNotEnable, Integration
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.integrations.logging import ignore_logger
 from sentry_sdk_alpha.scope import should_send_default_pii
 from sentry_sdk_alpha.tracing import TransactionSource
 from sentry_sdk_alpha.utils import (
+    SENSITIVE_DATA_SUBSTITUTE,
     capture_internal_exceptions,
     ensure_integration_enabled,
     event_from_exception,
-    SENSITIVE_DATA_SUBSTITUTE,
     parse_version,
     reraise,
 )
 
 try:
     import arq.worker
-    from arq.version import VERSION as ARQ_VERSION
     from arq.connections import ArqRedis
+    from arq.version import VERSION as ARQ_VERSION
     from arq.worker import JobExecutionFailed, Retry, RetryJob, Worker
 except ImportError:
     raise DidNotEnable("Arq is not installed")
@@ -28,12 +28,12 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any, Dict, Optional, Union
 
-    from sentry_sdk_alpha._types import EventProcessor, Event, ExcInfo, Hint
-
     from arq.cron import CronJob
     from arq.jobs import Job
     from arq.typing import WorkerCoroutine
     from arq.worker import Function
+
+    from sentry_sdk_alpha._types import Event, EventProcessor, ExcInfo, Hint
 
 ARQ_CONTROL_FLOW_EXCEPTIONS = (JobExecutionFailed, Retry, RetryJob)
 
@@ -159,12 +159,8 @@ def _make_event_processor(ctx, *args, **kwargs):
             extra = event.setdefault("extra", {})
             extra["arq-job"] = {
                 "task": ctx["job_name"],
-                "args": (
-                    args if should_send_default_pii() else SENSITIVE_DATA_SUBSTITUTE
-                ),
-                "kwargs": (
-                    kwargs if should_send_default_pii() else SENSITIVE_DATA_SUBSTITUTE
-                ),
+                "args": (args if should_send_default_pii() else SENSITIVE_DATA_SUBSTITUTE),
+                "kwargs": (kwargs if should_send_default_pii() else SENSITIVE_DATA_SUBSTITUTE),
                 "retry": ctx["job_try"],
             }
 
@@ -210,28 +206,22 @@ def patch_create_worker():
         if isinstance(settings_cls, dict):
             if "functions" in settings_cls:
                 settings_cls["functions"] = [
-                    _get_arq_function(func)
-                    for func in settings_cls.get("functions", [])
+                    _get_arq_function(func) for func in settings_cls.get("functions", [])
                 ]
             if "cron_jobs" in settings_cls:
                 settings_cls["cron_jobs"] = [
-                    _get_arq_cron_job(cron_job)
-                    for cron_job in settings_cls.get("cron_jobs", [])
+                    _get_arq_cron_job(cron_job) for cron_job in settings_cls.get("cron_jobs", [])
                 ]
 
         if hasattr(settings_cls, "functions"):
-            settings_cls.functions = [
-                _get_arq_function(func) for func in settings_cls.functions
-            ]
+            settings_cls.functions = [_get_arq_function(func) for func in settings_cls.functions]
         if hasattr(settings_cls, "cron_jobs"):
             settings_cls.cron_jobs = [
                 _get_arq_cron_job(cron_job) for cron_job in settings_cls.cron_jobs
             ]
 
         if "functions" in kwargs:
-            kwargs["functions"] = [
-                _get_arq_function(func) for func in kwargs.get("functions", [])
-            ]
+            kwargs["functions"] = [_get_arq_function(func) for func in kwargs.get("functions", [])]
         if "cron_jobs" in kwargs:
             kwargs["cron_jobs"] = [
                 _get_arq_cron_job(cron_job) for cron_job in kwargs.get("cron_jobs", [])

@@ -1,6 +1,8 @@
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import SOURCE_FOR_STYLE
-from sentry_sdk_alpha.integrations import _check_minimum_version, Integration, DidNotEnable
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.integrations._wsgi_common import RequestExtractor
 from sentry_sdk_alpha.integrations.wsgi import SentryWsgiMiddleware
 from sentry_sdk_alpha.utils import (
@@ -10,19 +12,14 @@ from sentry_sdk_alpha.utils import (
     parse_version,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Dict
-    from typing import Optional
+    from typing import Any, Dict, Optional
 
     from sentry_sdk_alpha._types import Event, EventProcessor
 
 
 try:
     import falcon  # type: ignore
-
     from falcon import __version__ as FALCON_VERSION
 except ImportError:
     raise DidNotEnable("Falcon not installed")
@@ -164,9 +161,7 @@ def _patch_handle_exception():
         ex = response = None
         with capture_internal_exceptions():
             ex = next(argument for argument in args if isinstance(argument, Exception))
-            response = next(
-                argument for argument in args if isinstance(argument, falcon.Response)
-            )
+            response = next(argument for argument in args if isinstance(argument, falcon.Response))
 
         was_handled = original_handle_exception(self, *args)
 
@@ -214,12 +209,8 @@ def _patch_prepare_middleware():
 
 def _exception_leads_to_http_5xx(ex, response):
     # type: (Exception, falcon.Response) -> bool
-    is_server_error = isinstance(ex, falcon.HTTPError) and (ex.status or "").startswith(
-        "5"
-    )
-    is_unhandled_error = not isinstance(
-        ex, (falcon.HTTPError, falcon.http_status.HTTPStatus)
-    )
+    is_server_error = isinstance(ex, falcon.HTTPError) and (ex.status or "").startswith("5")
+    is_unhandled_error = not isinstance(ex, (falcon.HTTPError, falcon.http_status.HTTPStatus))
 
     return (is_server_error or is_unhandled_error) and _has_http_5xx_status(response)
 

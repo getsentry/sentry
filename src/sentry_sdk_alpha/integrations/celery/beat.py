@@ -1,20 +1,18 @@
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
-from sentry_sdk_alpha.crons import capture_checkin, MonitorStatus
+from sentry_sdk_alpha.crons import MonitorStatus, capture_checkin
 from sentry_sdk_alpha.integrations import DidNotEnable
 from sentry_sdk_alpha.integrations.celery.utils import (
     _get_humanized_interval,
     _now_seconds_since_epoch,
 )
-from sentry_sdk_alpha.utils import (
-    logger,
-    match_regex_list,
-)
-
-from typing import TYPE_CHECKING
+from sentry_sdk_alpha.utils import logger, match_regex_list
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any, Optional, TypeVar, Union
+
     from sentry_sdk_alpha._types import (
         MonitorConfig,
         MonitorConfigScheduleType,
@@ -25,14 +23,10 @@ if TYPE_CHECKING:
 
 
 try:
-    from celery import Task, Celery  # type: ignore
+    from celery import Celery, Task  # type: ignore
     from celery.beat import Scheduler  # type: ignore
     from celery.schedules import crontab, schedule  # type: ignore
-    from celery.signals import (  # type: ignore
-        task_failure,
-        task_success,
-        task_retry,
-    )
+    from celery.signals import task_failure, task_retry, task_success  # type: ignore
 except ImportError:
     raise DidNotEnable("Celery not installed")
 
@@ -74,9 +68,7 @@ def _get_monitor_config(celery_schedule, app, monitor_name):
         )
     elif isinstance(celery_schedule, schedule):
         schedule_type = "interval"
-        (schedule_value, schedule_unit) = _get_humanized_interval(
-            celery_schedule.seconds
-        )
+        (schedule_value, schedule_unit) = _get_humanized_interval(celery_schedule.seconds)
 
         if schedule_unit == "second":
             logger.warning(
@@ -123,9 +115,7 @@ def _apply_crons_data_to_schedule_entry(scheduler, schedule_entry, integration):
 
     monitor_name = schedule_entry.name
 
-    task_should_be_excluded = match_regex_list(
-        monitor_name, integration.exclude_beat_tasks
-    )
+    task_should_be_excluded = match_regex_list(monitor_name, integration.exclude_beat_tasks)
     if task_should_be_excluded:
         return
 
@@ -235,9 +225,7 @@ def crons_task_success(sender, **kwargs):
         monitor_config=monitor_config,
         check_in_id=headers["sentry-monitor-check-in-id"],
         duration=(
-            _now_seconds_since_epoch() - float(start_timestamp_s)
-            if start_timestamp_s
-            else None
+            _now_seconds_since_epoch() - float(start_timestamp_s) if start_timestamp_s else None
         ),
         status=MonitorStatus.OK,
     )
@@ -260,9 +248,7 @@ def crons_task_failure(sender, **kwargs):
         monitor_config=monitor_config,
         check_in_id=headers["sentry-monitor-check-in-id"],
         duration=(
-            _now_seconds_since_epoch() - float(start_timestamp_s)
-            if start_timestamp_s
-            else None
+            _now_seconds_since_epoch() - float(start_timestamp_s) if start_timestamp_s else None
         ),
         status=MonitorStatus.ERROR,
     )
@@ -285,9 +271,7 @@ def crons_task_retry(sender, **kwargs):
         monitor_config=monitor_config,
         check_in_id=headers["sentry-monitor-check-in-id"],
         duration=(
-            _now_seconds_since_epoch() - float(start_timestamp_s)
-            if start_timestamp_s
-            else None
+            _now_seconds_since_epoch() - float(start_timestamp_s) if start_timestamp_s else None
         ),
         status=MonitorStatus.ERROR,
     )

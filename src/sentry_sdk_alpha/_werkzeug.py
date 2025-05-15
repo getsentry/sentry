@@ -35,9 +35,8 @@ SUCH DAMAGE.
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Dict
-    from typing import Iterator
-    from typing import Tuple
+    from collections.abc import Iterator
+    from typing import Dict, Tuple
 
 
 #

@@ -1,16 +1,11 @@
 import urllib
-
-from sentry_sdk_alpha.scope import should_send_default_pii
-from sentry_sdk_alpha.integrations._wsgi_common import _filter_headers
-
 from typing import TYPE_CHECKING
 
+from sentry_sdk_alpha.integrations._wsgi_common import _filter_headers
+from sentry_sdk_alpha.scope import should_send_default_pii
+
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Dict
-    from typing import Optional
-    from typing import Union
-    from typing_extensions import Literal
+    from typing import Any, Dict, Literal, Optional, Union
 
     from sentry_sdk_alpha.utils import AnnotatedValue
 
@@ -43,14 +38,14 @@ def _get_url(asgi_scope, default_scheme=None, host=None):
     path = asgi_scope.get("root_path", "") + asgi_scope.get("path", "")
 
     if host:
-        return "%s://%s%s" % (scheme, host, path)
+        return "{}://{}{}".format(scheme, host, path)
 
     if server is not None:
         host, port = server
         default_port = {"http": 80, "https": 443, "ws": 80, "wss": 443}.get(scheme)
         if port != default_port:
-            return "%s://%s:%s%s" % (scheme, host, port, path)
-        return "%s://%s%s" % (scheme, host, path)
+            return "{}://{}:{}{}".format(scheme, host, port, path)
+        return "{}://{}{}".format(scheme, host, path)
     return path
 
 

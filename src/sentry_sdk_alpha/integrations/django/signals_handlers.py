@@ -1,12 +1,11 @@
 from functools import wraps
+from typing import TYPE_CHECKING
 
 from django.dispatch import Signal
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
 from sentry_sdk_alpha.integrations.django import DJANGO_VERSION
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -21,9 +20,7 @@ def _get_receiver_name(receiver):
         name = receiver.__qualname__
     elif hasattr(receiver, "__name__"):  # Python 2.7 has no __qualname__
         name = receiver.__name__
-    elif hasattr(
-        receiver, "func"
-    ):  # certain functions (like partials) dont have a name
+    elif hasattr(receiver, "func"):  # certain functions (like partials) dont have a name
         if hasattr(receiver, "func") and hasattr(receiver.func, "__name__"):
             name = "partial(<function " + receiver.func.__name__ + ">)"
 
@@ -77,11 +74,7 @@ def patch_signals():
             return wrapper
 
         integration = sentry_sdk_alpha.get_client().get_integration(DjangoIntegration)
-        if (
-            integration
-            and integration.signals_spans
-            and self not in integration.signals_denylist
-        ):
+        if integration and integration.signals_spans and self not in integration.signals_denylist:
             for idx, receiver in enumerate(sync_receivers):
                 sync_receivers[idx] = sentry_sync_receiver_wrapper(receiver)
 

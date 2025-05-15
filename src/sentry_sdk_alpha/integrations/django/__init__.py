@@ -6,35 +6,35 @@ import weakref
 from importlib import import_module
 
 import sentry_sdk_alpha
-from sentry_sdk_alpha.consts import OP, SPANDATA, SOURCE_FOR_STYLE, TransactionSource
-from sentry_sdk_alpha.scope import add_global_event_processor, should_send_default_pii
-from sentry_sdk_alpha.serializer import add_global_repr_processor
-from sentry_sdk_alpha.tracing_utils import add_query_source, record_sql_queries
-from sentry_sdk_alpha.utils import (
-    AnnotatedValue,
-    HAS_REAL_CONTEXTVARS,
-    CONTEXTVARS_ERROR_MESSAGE,
-    SENSITIVE_DATA_SUBSTITUTE,
-    logger,
-    capture_internal_exceptions,
-    ensure_integration_enabled,
-    event_from_exception,
-    transaction_from_function,
-    walk_exception_chain,
-)
-from sentry_sdk_alpha.integrations import _check_minimum_version, Integration, DidNotEnable
-from sentry_sdk_alpha.integrations.logging import ignore_logger
-from sentry_sdk_alpha.integrations.wsgi import SentryWsgiMiddleware
+from sentry_sdk_alpha.consts import OP, SOURCE_FOR_STYLE, SPANDATA, TransactionSource
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.integrations._wsgi_common import (
     DEFAULT_HTTP_METHODS_TO_CAPTURE,
     RequestExtractor,
 )
+from sentry_sdk_alpha.integrations.logging import ignore_logger
+from sentry_sdk_alpha.integrations.wsgi import SentryWsgiMiddleware
+from sentry_sdk_alpha.scope import add_global_event_processor, should_send_default_pii
+from sentry_sdk_alpha.serializer import add_global_repr_processor
+from sentry_sdk_alpha.tracing_utils import add_query_source, record_sql_queries
+from sentry_sdk_alpha.utils import (
+    CONTEXTVARS_ERROR_MESSAGE,
+    HAS_REAL_CONTEXTVARS,
+    SENSITIVE_DATA_SUBSTITUTE,
+    AnnotatedValue,
+    capture_internal_exceptions,
+    ensure_integration_enabled,
+    event_from_exception,
+    logger,
+    transaction_from_function,
+    walk_exception_chain,
+)
 
 try:
     from django import VERSION as DJANGO_VERSION
+    from django.conf import settings
     from django.conf import settings as django_settings
     from django.core import signals
-    from django.conf import settings
 
     try:
         from django.urls import resolve
@@ -55,34 +55,30 @@ try:
 except ImportError:
     raise DidNotEnable("Django not installed")
 
+from typing import TYPE_CHECKING
+
 from sentry_sdk_alpha.integrations.django.caching import patch_caching
-from sentry_sdk_alpha.integrations.django.transactions import LEGACY_RESOLVER
+from sentry_sdk_alpha.integrations.django.middleware import patch_django_middlewares
+from sentry_sdk_alpha.integrations.django.signals_handlers import patch_signals
 from sentry_sdk_alpha.integrations.django.templates import (
     get_template_frame_from_exception,
     patch_templates,
 )
-from sentry_sdk_alpha.integrations.django.middleware import patch_django_middlewares
-from sentry_sdk_alpha.integrations.django.signals_handlers import patch_signals
+from sentry_sdk_alpha.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk_alpha.integrations.django.views import patch_views
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Callable
-    from typing import Dict
-    from typing import Optional
-    from typing import Union
-    from typing import List
+    from collections.abc import Callable
+    from typing import Any, Dict, List, Optional, Union
 
     from django.core.handlers.wsgi import WSGIRequest
-    from django.http.response import HttpResponse
     from django.http.request import QueryDict
+    from django.http.response import HttpResponse
     from django.utils.datastructures import MultiValueDict
 
-    from sentry_sdk_alpha.tracing import Span
+    from sentry_sdk_alpha._types import Event, EventProcessor, Hint, NotImplementedType
     from sentry_sdk_alpha.integrations.wsgi import _ScopedResponse
-    from sentry_sdk_alpha._types import Event, Hint, EventProcessor, NotImplementedType
+    from sentry_sdk_alpha.tracing import Span
 
 
 TRANSACTION_STYLE_VALUES = ("function_name", "url")
@@ -241,7 +237,7 @@ class DjangoIntegration(Integration):
             if not isinstance(value, QuerySet) or value._result_cache:
                 return NotImplemented
 
-            return "<%s from %s at 0x%x>" % (
+            return "<{} from {} at 0x{:x}>".format(
                 value.__class__.__name__,
                 value.__module__,
                 id(value),
@@ -308,9 +304,7 @@ def _patch_drf():
                 def sentry_patched_drf_initial(self, request, *args, **kwargs):
                     # type: (APIView, Any, *Any, **Any) -> Any
                     with capture_internal_exceptions():
-                        request._request._sentry_drf_request_backref = weakref.ref(
-                            request
-                        )
+                        request._request._sentry_drf_request_backref = weakref.ref(request)
                         pass
                     return old_drf_initial(self, request, *args, **kwargs)
 
@@ -333,8 +327,7 @@ def _patch_channels():
         # workers in gunicorn+gevent and the websocket stuff in a separate
         # process.
         logger.warning(
-            "We detected that you are using Django channels 2.0."
-            + CONTEXTVARS_ERROR_MESSAGE
+            "We detected that you are using Django channels 2.0." + CONTEXTVARS_ERROR_MESSAGE
         )
 
     from sentry_sdk_alpha.integrations.django.asgi import patch_channels_asgi_handler_impl
@@ -355,9 +348,7 @@ def _patch_django_asgi_handler():
         #
         # We cannot hard-raise here because Django's ASGI stuff may not be used
         # at all.
-        logger.warning(
-            "We detected that you are using Django 3." + CONTEXTVARS_ERROR_MESSAGE
-        )
+        logger.warning("We detected that you are using Django 3." + CONTEXTVARS_ERROR_MESSAGE)
 
     from sentry_sdk_alpha.integrations.django.asgi import patch_django_asgi_handler_impl
 
@@ -399,9 +390,7 @@ def _set_transaction_name_and_source(scope, transaction_style, request):
             if isinstance(handler, str):
                 scope.set_transaction_name(handler)
             else:
-                name = transaction_from_function(
-                    getattr(handler, "view_class", handler)
-                )
+                name = transaction_from_function(getattr(handler, "view_class", handler))
                 if isinstance(name, str):
                     scope.set_transaction_name(name)
     except Exception:
@@ -420,9 +409,7 @@ def _before_get_response(request):
     # Rely on WSGI middleware to start a trace
     _set_transaction_name_and_source(scope, integration.transaction_style, request)
 
-    scope.add_event_processor(
-        _make_wsgi_request_event_processor(weakref.ref(request), integration)
-    )
+    scope.add_event_processor(_make_wsgi_request_event_processor(weakref.ref(request), integration))
 
 
 def _attempt_resolve_again(request, scope, transaction_style):

@@ -1,7 +1,8 @@
-import sys
 import math
+import sys
 from collections.abc import Mapping, Sequence, Set
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sentry_sdk_alpha.utils import (
     AnnotatedValue,
@@ -12,25 +13,16 @@ from sentry_sdk_alpha.utils import (
     strip_string,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from types import TracebackType
-
-    from typing import Any
-    from typing import Callable
-    from typing import ContextManager
-    from typing import Dict
-    from typing import List
-    from typing import Optional
-    from typing import Type
-    from typing import Union
+    from typing import Any, ContextManager, Dict, List, Optional, Type, Union
 
     from sentry_sdk_alpha._types import NotImplementedType
 
-    Span = Dict[str, Any]
+    Span = dict[str, Any]
 
-    ReprProcessor = Callable[[Any, Dict[str, Any]], Union[NotImplementedType, str]]
+    ReprProcessor = Callable[[Any, dict[str, Any]], Union[NotImplementedType, str]]
     Segment = Union[str, int]
 
 
@@ -120,9 +112,7 @@ def serialize(event, **kwargs):
     path = []  # type: List[Segment]
     meta_stack = []  # type: List[Dict[str, Any]]
 
-    keep_request_bodies = (
-        kwargs.pop("max_request_body_size", None) == "always"
-    )  # type: bool
+    keep_request_bodies = kwargs.pop("max_request_body_size", None) == "always"  # type: bool
     max_value_length = kwargs.pop("max_value_length", None)  # type: Optional[int]
     is_vars = kwargs.pop("is_vars", False)
     custom_repr = kwargs.pop("custom_repr", None)  # type: Callable[..., Optional[str]]
@@ -296,9 +286,7 @@ def serialize(event, **kwargs):
 
         elif isinstance(obj, datetime):
             return (
-                str(format_timestamp(obj))
-                if not should_repr_strings
-                else _safe_repr_wrapper(obj)
+                str(format_timestamp(obj)) if not should_repr_strings else _safe_repr_wrapper(obj)
             )
 
         elif isinstance(obj, Mapping):
@@ -321,9 +309,7 @@ def serialize(event, **kwargs):
                     should_repr_strings=should_repr_strings,
                     is_databag=is_databag,
                     is_request_body=is_request_body,
-                    remaining_depth=(
-                        remaining_depth - 1 if remaining_depth is not None else None
-                    ),
+                    remaining_depth=(remaining_depth - 1 if remaining_depth is not None else None),
                     remaining_breadth=remaining_breadth,
                 )
                 rv_dict[str_k] = v
@@ -331,9 +317,7 @@ def serialize(event, **kwargs):
 
             return rv_dict
 
-        elif not isinstance(obj, serializable_str_types) and isinstance(
-            obj, (Set, Sequence)
-        ):
+        elif not isinstance(obj, serializable_str_types) and isinstance(obj, (Set, Sequence)):
             rv_list = []
 
             for i, v in enumerate(obj):
@@ -366,9 +350,7 @@ def serialize(event, **kwargs):
             if not isinstance(obj, str):
                 obj = _safe_repr_wrapper(obj)
 
-        is_span_description = (
-            len(path) == 3 and path[0] == "spans" and path[-1] == "description"
-        )
+        is_span_description = len(path) == 3 and path[0] == "spans" and path[-1] == "description"
         if is_span_description:
             return obj
 

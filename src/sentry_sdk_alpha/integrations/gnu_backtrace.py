@@ -1,14 +1,14 @@
 import re
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.integrations import Integration
 from sentry_sdk_alpha.scope import add_global_event_processor
 from sentry_sdk_alpha.utils import capture_internal_exceptions
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     from typing import Any
+
     from sentry_sdk_alpha._types import Event
 
 

@@ -2,23 +2,17 @@ import sys
 import warnings
 from functools import wraps
 from threading import Thread, current_thread
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha import Scope
-from sentry_sdk_alpha.scope import ScopeType
 from sentry_sdk_alpha.integrations import Integration
-from sentry_sdk_alpha.utils import (
-    event_from_exception,
-    capture_internal_exceptions,
-    reraise,
-)
-
-from typing import TYPE_CHECKING
+from sentry_sdk_alpha.scope import ScopeType
+from sentry_sdk_alpha.utils import capture_internal_exceptions, event_from_exception, reraise
 
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import TypeVar
-    from typing import Callable
+    from collections.abc import Callable
+    from typing import Any, TypeVar
 
     from sentry_sdk_alpha._types import ExcInfo
 
@@ -38,8 +32,8 @@ class ThreadingIntegration(Integration):
         old_start = Thread.start
 
         try:
-            from django import VERSION as django_version  # noqa: N811
             import channels  # type: ignore[import-not-found]
+            from django import VERSION as django_version  # noqa: N811
 
             channels_version = channels.__version__
         except ImportError:

@@ -1,22 +1,17 @@
 import os
 import time
-from threading import Thread, Lock
 from contextlib import contextmanager
+from threading import Lock, Thread
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.envelope import Envelope
 from sentry_sdk_alpha.session import Session
 from sentry_sdk_alpha.utils import format_timestamp
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import Callable
-    from typing import Dict
-    from typing import Generator
-    from typing import List
-    from typing import Optional
+    from collections.abc import Callable, Generator
+    from typing import Any, Dict, List, Optional
 
 
 def _is_auto_session_tracking_enabled(scope):

@@ -1,10 +1,8 @@
 import sys
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any
-    from typing import TypeVar
+    from typing import Any, TypeVar
 
     T = TypeVar("T")
 

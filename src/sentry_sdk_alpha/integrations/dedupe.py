@@ -1,9 +1,9 @@
+from typing import TYPE_CHECKING
+
 import sentry_sdk_alpha
-from sentry_sdk_alpha.utils import ContextVar
 from sentry_sdk_alpha.integrations import Integration
 from sentry_sdk_alpha.scope import add_global_event_processor
-
-from typing import TYPE_CHECKING
+from sentry_sdk_alpha.utils import ContextVar
 
 if TYPE_CHECKING:
     from typing import Optional

@@ -2,7 +2,7 @@ import weakref
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import OP
-from sentry_sdk_alpha.integrations import _check_minimum_version, DidNotEnable, Integration
+from sentry_sdk_alpha.integrations import DidNotEnable, Integration, _check_minimum_version
 from sentry_sdk_alpha.integrations.logging import ignore_logger
 from sentry_sdk_alpha.tracing import TransactionSource
 from sentry_sdk_alpha.utils import (
@@ -14,23 +14,24 @@ from sentry_sdk_alpha.utils import (
 )
 
 try:
+    from rq.job import JobStatus
     from rq.queue import Queue
     from rq.timeouts import JobTimeoutException
     from rq.version import VERSION as RQ_VERSION
     from rq.worker import Worker
-    from rq.job import JobStatus
 except ImportError:
     raise DidNotEnable("RQ not installed")
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any, Callable
+    from collections.abc import Callable
+    from typing import Any
+
+    from rq.job import Job
 
     from sentry_sdk_alpha._types import Event, EventProcessor
     from sentry_sdk_alpha.utils import ExcInfo
-
-    from rq.job import Job
 
 DEFAULT_TRANSACTION_NAME = "unknown RQ task"
 
@@ -65,15 +66,11 @@ class RqIntegration(Integration):
                 except AttributeError:
                     transaction_name = DEFAULT_TRANSACTION_NAME
 
-                scope.set_transaction_name(
-                    transaction_name, source=TransactionSource.TASK
-                )
+                scope.set_transaction_name(transaction_name, source=TransactionSource.TASK)
                 scope.clear_breadcrumbs()
                 scope.add_event_processor(_make_event_processor(weakref.ref(job)))
 
-                with sentry_sdk_alpha.continue_trace(
-                    job.meta.get("_sentry_trace_headers") or {}
-                ):
+                with sentry_sdk_alpha.continue_trace(job.meta.get("_sentry_trace_headers") or {}):
                     with sentry_sdk_alpha.start_span(
                         op=OP.QUEUE_TASK_RQ,
                         name=transaction_name,
@@ -97,11 +94,7 @@ class RqIntegration(Integration):
 
         def sentry_patched_handle_exception(self, job, *exc_info, **kwargs):
             # type: (Worker, Any, *Any, **Any) -> Any
-            retry = (
-                hasattr(job, "retries_left")
-                and job.retries_left
-                and job.retries_left > 0
-            )
+            retry = hasattr(job, "retries_left") and job.retries_left and job.retries_left > 0
             failed = job._status == JobStatus.FAILED or job.is_failed
             if failed and not retry:
                 _capture_exception(exc_info)

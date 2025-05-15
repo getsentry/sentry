@@ -1,6 +1,6 @@
 from opentelemetry.context import create_key
-from sentry_sdk_alpha.tracing_utils import Baggage
 
+from sentry_sdk_alpha.tracing_utils import Baggage
 
 # propagation keys
 SENTRY_TRACE_KEY = create_key("sentry-trace")

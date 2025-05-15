@@ -72,10 +72,8 @@ Agreement.
 """
 
 import threading
-
 from collections import deque
 from time import time
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

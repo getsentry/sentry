@@ -1,7 +1,16 @@
 import functools
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.consts import SOURCE_FOR_STYLE
+from sentry_sdk_alpha.integrations import (
+    _DEFAULT_FAILED_REQUEST_STATUS_CODES,
+    DidNotEnable,
+    Integration,
+    _check_minimum_version,
+)
+from sentry_sdk_alpha.integrations._wsgi_common import RequestExtractor
+from sentry_sdk_alpha.integrations.wsgi import SentryWsgiMiddleware
 from sentry_sdk_alpha.utils import (
     capture_internal_exceptions,
     ensure_integration_enabled,
@@ -9,37 +18,20 @@ from sentry_sdk_alpha.utils import (
     parse_version,
     transaction_from_function,
 )
-from sentry_sdk_alpha.integrations import (
-    Integration,
-    DidNotEnable,
-    _DEFAULT_FAILED_REQUEST_STATUS_CODES,
-    _check_minimum_version,
-)
-from sentry_sdk_alpha.integrations.wsgi import SentryWsgiMiddleware
-from sentry_sdk_alpha.integrations._wsgi_common import RequestExtractor
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Set
+    from collections.abc import Callable, Set
+    from typing import Any, Dict, Optional
 
-    from sentry_sdk_alpha.integrations.wsgi import _ScopedResponse
-    from typing import Any
-    from typing import Dict
-    from typing import Callable
-    from typing import Optional
     from bottle import FileUpload, FormsDict, LocalRequest  # type: ignore
 
-    from sentry_sdk_alpha._types import EventProcessor, Event
+    from sentry_sdk_alpha._types import Event, EventProcessor
+    from sentry_sdk_alpha.integrations.wsgi import _ScopedResponse
 
 try:
-    from bottle import (
-        Bottle,
-        HTTPResponse,
-        Route,
-        request as bottle_request,
-        __version__ as BOTTLE_VERSION,
-    )
+    from bottle import Bottle, HTTPResponse, Route
+    from bottle import __version__ as BOTTLE_VERSION
+    from bottle import request as bottle_request
 except ImportError:
     raise DidNotEnable("Bottle not installed")
 
@@ -184,11 +176,7 @@ def _set_transaction_name_and_source(event, transaction_style, request):
 
     elif transaction_style == "endpoint":
         try:
-            name = (
-                request.route.name
-                or transaction_from_function(request.route.callback)
-                or ""
-            )
+            name = request.route.name or transaction_from_function(request.route.callback) or ""
         except RuntimeError:
             pass
 

@@ -5,24 +5,22 @@ This is part of the main redis-py client.
 https://github.com/redis/redis-py/blob/master/redis/cluster.py
 """
 
+from typing import TYPE_CHECKING
+
 from sentry_sdk_alpha.integrations.redis._sync_common import (
     patch_redis_client,
     patch_redis_pipeline,
 )
 from sentry_sdk_alpha.integrations.redis.modules.queries import _get_connection_data
 from sentry_sdk_alpha.integrations.redis.utils import _parse_rediscluster_command
-
 from sentry_sdk_alpha.utils import capture_internal_exceptions
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
+
     from redis import RedisCluster
-    from redis.asyncio.cluster import (
-        RedisCluster as AsyncRedisCluster,
-        ClusterPipeline as AsyncClusterPipeline,
-    )
+    from redis.asyncio.cluster import ClusterPipeline as AsyncClusterPipeline
+    from redis.asyncio.cluster import RedisCluster as AsyncRedisCluster
 
 
 def _get_async_cluster_db_data(async_redis_cluster_instance):

@@ -1,10 +1,10 @@
-import sys
 import logging
+import sys
+from logging import LogRecord
 
 from sentry_sdk_alpha import get_client
 from sentry_sdk_alpha.client import _client_init_debug
 from sentry_sdk_alpha.utils import logger
-from logging import LogRecord
 
 
 class _DebugFilter(logging.Filter):

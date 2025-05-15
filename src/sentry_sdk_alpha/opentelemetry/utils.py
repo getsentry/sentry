@@ -1,36 +1,31 @@
 import re
-from typing import cast
 from datetime import datetime, timezone
-
-from urllib3.util import parse_url as urlparse
+from typing import cast
 from urllib.parse import quote, unquote
-from opentelemetry.trace import (
-    Span as AbstractSpan,
-    SpanKind,
-    StatusCode,
-    format_trace_id,
-    format_span_id,
-    TraceState,
-)
-from opentelemetry.semconv.trace import SpanAttributes
+
 from opentelemetry.sdk.trace import ReadableSpan
+from opentelemetry.semconv.trace import SpanAttributes
+from opentelemetry.trace import Span as AbstractSpan
+from opentelemetry.trace import SpanKind, StatusCode, TraceState, format_span_id, format_trace_id
+from urllib3.util import parse_url as urlparse
 
 import sentry_sdk_alpha
-from sentry_sdk_alpha.utils import Dsn
+from sentry_sdk_alpha._types import TYPE_CHECKING
 from sentry_sdk_alpha.consts import (
-    SPANSTATUS,
-    OP,
-    SPANDATA,
     DEFAULT_SPAN_ORIGIN,
     LOW_QUALITY_TRANSACTION_SOURCES,
+    OP,
+    SPANDATA,
+    SPANSTATUS,
 )
 from sentry_sdk_alpha.opentelemetry.consts import SentrySpanAttribute
 from sentry_sdk_alpha.tracing_utils import Baggage, get_span_status_from_http_code
-
-from sentry_sdk_alpha._types import TYPE_CHECKING
+from sentry_sdk_alpha.utils import Dsn
 
 if TYPE_CHECKING:
-    from typing import Any, Optional, Mapping, Sequence, Union
+    from collections.abc import Mapping, Sequence
+    from typing import Any, Optional, Union
+
     from sentry_sdk_alpha._types import OtelExtractedSpanData
 
 
@@ -124,9 +119,7 @@ def extract_span_data(span):
 
     attribute_op = cast("Optional[str]", span.attributes.get(SentrySpanAttribute.OP))
     op = attribute_op or op
-    description = cast(
-        "str", span.attributes.get(SentrySpanAttribute.DESCRIPTION) or description
-    )
+    description = cast("str", span.attributes.get(SentrySpanAttribute.DESCRIPTION) or description)
     origin = cast("Optional[str]", span.attributes.get(SentrySpanAttribute.ORIGIN))
 
     http_method = span.attributes.get(SpanAttributes.HTTP_METHOD)
@@ -184,9 +177,9 @@ def span_data_for_http_method(span):
     peer_name = span_attributes.get(SpanAttributes.NET_PEER_NAME)
 
     # TODO-neel-potel remove description completely
-    description = span_attributes.get(
-        SentrySpanAttribute.DESCRIPTION
-    ) or span_attributes.get(SentrySpanAttribute.NAME)
+    description = span_attributes.get(SentrySpanAttribute.DESCRIPTION) or span_attributes.get(
+        SentrySpanAttribute.NAME
+    )
     description = cast("Optional[str]", description)
     if description is None:
         description = f"{http_method}"
@@ -203,9 +196,7 @@ def span_data_for_http_method(span):
 
             if url:
                 parsed_url = urlparse(url)
-                url = "{}://{}{}".format(
-                    parsed_url.scheme, parsed_url.netloc, parsed_url.path
-                )
+                url = "{}://{}{}".format(parsed_url.scheme, parsed_url.netloc, parsed_url.path)
                 description = f"{http_method} {url}"
 
     status, http_status = extract_span_status(span)
@@ -248,10 +239,7 @@ def extract_span_status(span):
             if http_status is not None:
                 return (inferred_status, http_status)
 
-            if (
-                status.description is not None
-                and status.description in GRPC_ERROR_MAP.values()
-            ):
+            if status.description is not None and status.description in GRPC_ERROR_MAP.values():
                 return (status.description, None)
             else:
                 return (SPANSTATUS.UNKNOWN_ERROR, None)
@@ -436,14 +424,9 @@ def get_trace_state(span):
 
         root_span = get_sentry_meta(span, "root_span")
         if root_span and isinstance(root_span, ReadableSpan):
-            transaction_name, transaction_source = extract_transaction_name_source(
-                root_span
-            )
+            transaction_name, transaction_source = extract_transaction_name_source(root_span)
 
-            if (
-                transaction_name
-                and transaction_source not in LOW_QUALITY_TRANSACTION_SOURCES
-            ):
+            if transaction_name and transaction_source not in LOW_QUALITY_TRANSACTION_SOURCES:
                 trace_state = trace_state.update(
                     Baggage.SENTRY_PREFIX + "transaction", quote(transaction_name)
                 )

@@ -1,27 +1,24 @@
 from decimal import Decimal
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from opentelemetry import trace
-from opentelemetry.sdk.trace.sampling import Sampler, SamplingResult, Decision
+from opentelemetry.sdk.trace.sampling import Decision, Sampler, SamplingResult
 from opentelemetry.trace.span import TraceState
 
 import sentry_sdk_alpha
 from sentry_sdk_alpha.opentelemetry.consts import (
-    TRACESTATE_SAMPLED_KEY,
     TRACESTATE_SAMPLE_RAND_KEY,
     TRACESTATE_SAMPLE_RATE_KEY,
+    TRACESTATE_SAMPLED_KEY,
     SentrySpanAttribute,
 )
-from sentry_sdk_alpha.tracing_utils import (
-    _generate_sample_rand,
-    has_tracing_enabled,
-)
+from sentry_sdk_alpha.tracing_utils import _generate_sample_rand, has_tracing_enabled
 from sentry_sdk_alpha.utils import is_valid_sample_rate, logger
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from typing import Any, Optional, Sequence, Union
+    from collections.abc import Sequence
+    from typing import Any, Optional, Union
+
     from opentelemetry.context import Context
     from opentelemetry.trace import Link, SpanKind
     from opentelemetry.trace.span import SpanContext
@@ -212,9 +209,7 @@ class SentrySampler(Sampler):
             sample_rand = cast(Decimal, _generate_sample_rand(str(trace_id), (0, 1)))
 
         # Explicit sampled value provided at start_span
-        custom_sampled = cast(
-            "Optional[bool]", attributes.get(SentrySpanAttribute.CUSTOM_SAMPLED)
-        )
+        custom_sampled = cast("Optional[bool]", attributes.get(SentrySpanAttribute.CUSTOM_SAMPLED))
         if custom_sampled is not None:
             if is_root_span:
                 sample_rate = float(custom_sampled)
@@ -233,9 +228,7 @@ class SentrySampler(Sampler):
                         sample_rand=sample_rand,
                     )
             else:
-                logger.debug(
-                    f"[Tracing.Sampler] Ignoring sampled param for non-root span {name}"
-                )
+                logger.debug(f"[Tracing.Sampler] Ignoring sampled param for non-root span {name}")
 
         # Check if there is a traces_sampler
         # Traces_sampler is responsible to check parent sampled to have full transactions.
@@ -253,9 +246,7 @@ class SentrySampler(Sampler):
             # Check if there is a parent with a sampling decision
             if parent_sampled is not None:
                 sample_rate = bool(parent_sampled)
-                sample_rate_to_propagate = (
-                    parent_sample_rate if parent_sample_rate else sample_rate
-                )
+                sample_rate_to_propagate = parent_sample_rate if parent_sample_rate else sample_rate
             else:
                 # Check if there is a traces_sample_rate
                 sample_rate = client.options.get("traces_sample_rate")
@@ -263,9 +254,7 @@ class SentrySampler(Sampler):
 
         # If the sample rate is invalid, drop the span
         if not is_valid_sample_rate(sample_rate, source=self.__class__.__name__):
-            logger.warning(
-                f"[Tracing.Sampler] Discarding {name} because of invalid sample rate."
-            )
+            logger.warning(f"[Tracing.Sampler] Discarding {name} because of invalid sample rate.")
             return dropped_result(parent_span_context, attributes)
 
         # Down-sample in case of back pressure monitor says so
@@ -313,9 +302,7 @@ def create_sampling_context(name, attributes, parent_span_context, trace_id):
         "transaction_context": {
             "name": name,
             "op": attributes.get(SentrySpanAttribute.OP) if attributes else None,
-            "source": (
-                attributes.get(SentrySpanAttribute.SOURCE) if attributes else None
-            ),
+            "source": (attributes.get(SentrySpanAttribute.SOURCE) if attributes else None),
         },
         "parent_sampled": get_parent_sampled(parent_span_context, trace_id),
     }  # type: dict[str, Any]

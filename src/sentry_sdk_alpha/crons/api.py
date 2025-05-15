@@ -1,11 +1,11 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import sentry_sdk_alpha
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     from typing import Optional
+
     from sentry_sdk_alpha._types import Event, MonitorConfig
 
 

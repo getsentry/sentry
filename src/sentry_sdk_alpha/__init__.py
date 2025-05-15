@@ -1,12 +1,10 @@
 # TODO-neel scope switch
 # TODO-neel avoid duplication between api and __init__
-from sentry_sdk_alpha.opentelemetry.scope import PotelScope as Scope
-from sentry_sdk_alpha.transport import Transport, HttpTransport
-from sentry_sdk_alpha.client import Client
-
 from sentry_sdk_alpha.api import *  # noqa
-
+from sentry_sdk_alpha.client import Client
 from sentry_sdk_alpha.consts import VERSION  # noqa
+from sentry_sdk_alpha.opentelemetry.scope import PotelScope as Scope
+from sentry_sdk_alpha.transport import HttpTransport, Transport
 
 __all__ = [  # noqa
     "Scope",
