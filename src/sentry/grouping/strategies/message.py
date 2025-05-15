@@ -15,6 +15,7 @@ from sentry.grouping.strategies.base import (
 from sentry.interfaces.message import Message
 from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
+from sentry.utils.settings import is_self_hosted
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -57,7 +58,8 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
 
     def _shoudl_run_experiment(experiment_name: str) -> bool:
         return bool(
-            event.project_id
+            not is_self_hosted()
+            and event.project_id
             and (
                 in_rollout_group(
                     f"grouping.experiments.parameterization.{experiment_name}", event.project_id

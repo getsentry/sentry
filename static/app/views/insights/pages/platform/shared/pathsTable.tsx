@@ -25,6 +25,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 interface TableData {
@@ -70,7 +71,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
   {key: 'avg(span.duration)', name: t('AVG'), width: 90},
   {key: 'p95(span.duration)', name: t('P95'), width: 90},
-  {key: 'sum(span.duration)', name: t('Total'), width: 90},
+  {key: 'sum(span.duration)', name: t('Time Spent'), width: 120},
   {key: 'count_unique(user)', name: t('Users'), width: 90},
 ];
 
@@ -107,20 +108,19 @@ function useTableSortParams() {
 }
 
 interface PathsTableProps {
-  handleAddTransactionFilter: (value: string) => void;
-  query?: string;
   showHttpMethodColumn?: boolean;
+  showRouteController?: boolean;
   showUsersColumn?: boolean;
 }
 
 export function PathsTable({
-  query,
-  handleAddTransactionFilter,
   showHttpMethodColumn = true,
   showUsersColumn = true,
+  showRouteController = true,
 }: PathsTableProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const {query, setTransactionFilter} = useTransactionNameQuery();
   const [columnOrder, setColumnOrder] = useState(() => {
     let columns = [...defaultColumnOrder];
 
@@ -152,6 +152,7 @@ export function PathsTable({
         ...(showUsersColumn ? ['count_unique(user)' as const] : []),
       ],
       limit: PER_PAGE,
+      keepPreviousData: true,
       cursor:
         typeof location.query.pathsCursor === 'string'
           ? location.query.pathsCursor
@@ -179,7 +180,8 @@ export function PathsTable({
         'count()',
       ],
       limit: PER_PAGE,
-      enabled: !!transactionsRequest.data && transactionPaths.length > 0,
+      enabled:
+        showRouteController && !!transactionsRequest.data && transactionPaths.length > 0,
     },
     Referrer.PATHS_TABLE
   );
@@ -240,35 +242,41 @@ export function PathsTable({
         <BodyCell
           column={column}
           dataRow={dataRow}
-          handleAddTransactionFilter={handleAddTransactionFilter}
+          handleAddTransactionFilter={setTransactionFilter}
         />
       );
     },
-    [handleAddTransactionFilter]
+    [setTransactionFilter]
   );
 
   return (
     <Fragment>
-      <GridEditable
-        isLoading={transactionsRequest.isLoading}
-        error={transactionsRequest.error}
-        data={tableData}
-        columnOrder={columnOrder}
-        columnSortBy={EMPTY_ARRAY}
-        stickyHeader
-        grid={{
-          renderBodyCell,
-          renderHeadCell,
-          onResizeColumn: handleResizeColumn,
-        }}
-      />
+      <GridEditableContainer>
+        <GridEditable
+          isLoading={transactionsRequest.isPending}
+          error={transactionsRequest.error}
+          data={tableData}
+          columnOrder={columnOrder}
+          columnSortBy={EMPTY_ARRAY}
+          stickyHeader
+          grid={{
+            renderBodyCell,
+            renderHeadCell,
+            onResizeColumn: handleResizeColumn,
+          }}
+        />
+        {transactionsRequest.isPlaceholderData && <LoadingOverlay />}
+      </GridEditableContainer>
       <Pagination
         pageLinks={transactionsRequest.pageLinks}
         onCursor={(cursor, path, currentQuery) => {
-          navigate({
-            pathname: path,
-            query: {...currentQuery, pathsCursor: cursor},
-          });
+          navigate(
+            {
+              pathname: path,
+              query: {...currentQuery, pathsCursor: cursor},
+            },
+            {replace: true, preventScrollReset: true}
+          );
         }}
       />
     </Fragment>
@@ -283,6 +291,7 @@ const HeadCell = memo(function HeadCell({column}: {column: GridColumnHeader<stri
       align={column.key === 'count_unique(user)' ? 'right' : 'left'}
       direction={sortField === column.key ? sortOrder : undefined}
       canSort
+      preventScrollReset
       generateSortLink={() => ({
         ...location,
         query: {
@@ -435,4 +444,20 @@ const ControllerText = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   min-width: 0px;
+`;
+
+const GridEditableContainer = styled('div')`
+  position: relative;
+  margin-bottom: ${space(1)};
+`;
+
+const LoadingOverlay = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: ${p => p.theme.background};
+  opacity: 0.5;
+  z-index: 1;
 `;

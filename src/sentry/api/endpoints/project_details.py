@@ -58,7 +58,6 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
 from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -230,7 +229,7 @@ E.g. `['release', 'environment']`""",
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
     autofixAutomationTuning = serializers.ChoiceField(
-        choices=["off", "low", "medium", "high"], required=False
+        choices=["off", "low", "medium", "high", "always"], required=False
     )
 
     # DO NOT ADD MORE TO OPTIONS
@@ -635,7 +634,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 with transaction.atomic(router.db_for_write(ProjectBookmark)):
                     ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
             except IntegrityError:
-                incr_rollback_metrics(ProjectBookmark)
                 pass
         elif result.get("isBookmarked") is False:
             ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()

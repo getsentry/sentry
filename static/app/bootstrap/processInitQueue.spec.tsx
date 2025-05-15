@@ -1,8 +1,13 @@
+// We don't want to render with any of our existing providers since this will
+// mirror what is actually happening when the initQueue is processed.
+//
+// eslint-disable-next-line no-restricted-imports
+import {render} from '@testing-library/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {processInitQueue} from 'sentry/bootstrap/processInitQueue';
 import AlertStore from 'sentry/stores/alertStore';
@@ -142,24 +147,25 @@ describe('processInitQueue', function () {
         {timeout: 5000}
       );
     });
-    it('renders u2f sign', async () => {
+
+    it('renders WebAuthn Assert', async () => {
       window.__onSentryInit = [
         {
-          component: SentryInitRenderReactComponent.U2F_SIGN,
-          container: '#u2f-sign-container',
+          component: SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT,
+          container: '#webauthn-container',
           name: 'renderReact',
           props: {
-            displayMode: 'signin',
+            mode: 'signin',
           },
         },
       ];
 
-      render(<div id="u2f-sign-container" />);
+      render(<div id="webauthn-container" />);
       processInitQueue();
 
-      // U2F is not supported in the test environment
+      // WebAuthn is not supported in the test environment
       expect(
-        await screen.findByText(/Unfortunately your browser does not support U2F/)
+        await screen.findByText(/Your browser does not support WebAuthn/)
       ).toBeInTheDocument();
     });
 

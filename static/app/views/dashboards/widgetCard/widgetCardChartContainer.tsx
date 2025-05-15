@@ -19,7 +19,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
@@ -36,6 +36,7 @@ type Props = {
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   dashboardFilters?: DashboardFilters;
+  disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
@@ -86,6 +87,7 @@ export function WidgetCardChartContainer({
   showConfidenceWarning,
   minTableColumnWidth,
   onDataFetchStart,
+  disableZoom,
   showLoadingText,
 }: Props) {
   const location = useLocation();
@@ -97,6 +99,25 @@ export function WidgetCardChartContainer({
     type: 'legendselectchanged';
   }) {
     widgetLegendState.setWidgetSelectionState(selected, widget);
+  }
+
+  function getErrorOrEmptyMessage(
+    errorMessage: string | undefined,
+    timeseriesResults: Series[] | undefined,
+    tableResults: TableDataWithTitle[] | undefined,
+    widgetType: DisplayType
+  ) {
+    // non-chart widgets need to look at tableResults
+    const results =
+      widgetType === DisplayType.BIG_NUMBER || widgetType === DisplayType.TABLE
+        ? tableResults
+        : timeseriesResults;
+
+    return errorMessage
+      ? errorMessage
+      : results === undefined || results?.length === 0
+        ? t('No data found')
+        : undefined;
   }
 
   return (
@@ -119,17 +140,30 @@ export function WidgetCardChartContainer({
         sampleCount,
         isSampled,
       }) => {
+        // Bind timeseries to widget for ability to control each widget's legend individually
+        const modifiedTimeseriesResults =
+          WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
+
+        const errorOrEmptyMessage = loading
+          ? errorMessage
+          : getErrorOrEmptyMessage(
+              errorMessage,
+              modifiedTimeseriesResults,
+              tableResults,
+              widget.displayType
+            );
+
         if (widget.widgetType === WidgetType.ISSUE) {
           return (
             <Fragment>
               {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
+                ? renderErrorMessage(errorOrEmptyMessage)
                 : null}
               <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
               <IssueWidgetCard
                 transformedResults={tableResults?.[0]!.data ?? []}
                 loading={loading}
-                errorMessage={errorMessage}
+                errorMessage={errorOrEmptyMessage}
                 widget={widget}
                 location={location}
                 selection={selection}
@@ -138,19 +172,16 @@ export function WidgetCardChartContainer({
           );
         }
 
-        // Bind timeseries to widget for ability to control each widget's legend individually
-        const modifiedTimeseriesResults =
-          WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
-
         return (
           <Fragment>
             {typeof renderErrorMessage === 'function'
-              ? renderErrorMessage(errorMessage)
+              ? renderErrorMessage(errorOrEmptyMessage)
               : null}
             <WidgetCardChart
+              disableZoom={disableZoom}
               timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
-              errorMessage={errorMessage}
+              errorMessage={errorOrEmptyMessage}
               loading={loading}
               location={location}
               widget={widget}

@@ -113,7 +113,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False, db_default=False)
-    # Tracks the curernt status of this subscrioption. This is possibly going
+    # Tracks the current status of this subscription. This is possibly going
     # to be replaced in the future with open-periods as we replace
     # ProjectUptimeSubscription with Detectors.
     uptime_status = models.PositiveSmallIntegerField(db_default=UptimeStatus.OK.value)
@@ -371,9 +371,6 @@ def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscrip
     condition_group = DataConditionGroup.objects.create(
         organization=project_sub.project.organization,
     )
-    # TODO(epurkhiser): Should we be creating a new data condition + group for
-    # every uptime detector, or is there an intention to be able to re-use the
-    # groups for multiple detectors?
     DataCondition.objects.create(
         comparison=CHECKSTATUS_FAILURE,
         type=Condition.EQUAL,

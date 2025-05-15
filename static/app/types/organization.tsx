@@ -24,6 +24,7 @@ export interface OrganizationSummary {
   githubNudgeInvite: boolean;
   githubOpenPRBot: boolean;
   githubPRBot: boolean;
+  gitlabPRBot: boolean;
   hideAiFeatures: boolean;
   id: string;
   isEarlyAdopter: boolean;
@@ -91,6 +92,7 @@ export interface Organization extends OrganizationSummary {
   targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
+  defaultAutofixAutomationTuning?: 'off' | 'low' | 'medium' | 'high' | 'always' | null;
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
   extraOptions?: {

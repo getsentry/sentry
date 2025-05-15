@@ -72,6 +72,34 @@ describe('utils', function () {
       });
       expect(priceDollars).toBe('1,992');
     });
+
+    it('includes Seer budget in the total when enabled', function () {
+      const priceDollars = utils.getReservedTotal({
+        plan: teamPlan,
+        reserved: {
+          errors: 50_000,
+          transactions: 100_000,
+          attachments: 1,
+        },
+        seerEnabled: true,
+        seerBudget: 2000,
+      });
+      expect(priceDollars).toBe('49');
+    });
+
+    it('does not include Seer budget when not enabled', function () {
+      const priceDollars = utils.getReservedTotal({
+        plan: teamPlan,
+        reserved: {
+          errors: 50_000,
+          transactions: 100_000,
+          attachments: 1,
+        },
+        seerEnabled: false,
+        seerBudget: 2000,
+      });
+      expect(priceDollars).toBe('29');
+    });
   });
 
   describe('discountPrice', function () {

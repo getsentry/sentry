@@ -382,3 +382,14 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         detector = ConsecutiveHTTPSpanDetector(settings, event)
 
         assert not detector.is_creation_allowed_for_project(project)
+
+    def test_ignores_non_http_operations(self):
+        span_duration = 2000
+        spans = [
+            create_span("db", span_duration, "DELETE /api/endpoint2", "hash2"),
+            create_span("db", span_duration, "DELETE /api/endpoint1", "hash1"),
+            create_span("db", span_duration, "DELETE /api/endpoint3", "hash3"),
+        ]
+        spans = [modify_span_start(span, span_duration * spans.index(span)) for span in spans]
+        problems = self.find_problems(create_event(spans))
+        assert len(problems) == 0

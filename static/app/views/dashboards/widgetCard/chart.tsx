@@ -84,6 +84,7 @@ type WidgetCardChartProps = Pick<
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   confidence?: Confidence;
+  disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
   isSampled?: boolean | null;
@@ -285,6 +286,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       showConfidenceWarning,
       sampleCount,
       isSampled,
+      disableZoom,
       showLoadingText,
     } = this.props;
 
@@ -508,7 +510,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             : 0)
         : undefined;
     return (
-      <ChartZoom period={period} start={start} end={end} utc={utc}>
+      <ChartZoom period={period} start={start} end={end} utc={utc} disabled={disableZoom}>
         {zoomRenderProps => {
           return (
             <ReleaseSeries
@@ -545,7 +547,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                             // Override default datazoom behaviour for updating Global Selection Header
                             ...(onZoom ? {onDataZoom: onZoom} : {}),
                             legend,
-                            series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
+                            series: [
+                              ...series,
+                              // only add release series if there is series data
+                              ...(series?.length > 0
+                                ? (modifiedReleaseSeriesResults ?? [])
+                                : []),
+                            ],
                             onLegendSelectChanged,
                             ref,
                           }),
