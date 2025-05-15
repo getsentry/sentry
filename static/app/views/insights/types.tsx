@@ -1,3 +1,4 @@
+import type {PlatformKey} from 'sentry/types/project';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -387,6 +388,7 @@ export enum SpanIndexedField {
   CODE_FILEPATH = 'code.filepath',
   CODE_LINENO = 'code.lineno',
   CODE_FUNCTION = 'code.function',
+  PLATFORM = 'platform',
 }
 
 export type SpanIndexedResponse = {
@@ -487,6 +489,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.CODE_FILEPATH]: string;
   [SpanIndexedField.CODE_LINENO]: number;
   [SpanIndexedField.CODE_FUNCTION]: string;
+  [SpanIndexedField.PLATFORM]: PlatformKey;
 };
 
 export type SpanIndexedProperty = keyof SpanIndexedResponse;

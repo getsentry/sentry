@@ -71,6 +71,7 @@ export function DatabaseSpanDescription({
         SpanIndexedField.SDK_NAME,
         SpanIndexedField.SDK_VERSION,
         SpanIndexedField.RELEASE,
+        SpanIndexedField.PLATFORM,
       ],
       sorts: [{field: SpanIndexedField.CODE_FILEPATH, kind: 'desc'}],
     },
@@ -102,6 +103,7 @@ export function DatabaseSpanDescription({
 
   const event = useEap
     ? {
+        platform: indexedSpan?.platform,
         release,
         sdk,
       }
