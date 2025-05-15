@@ -15,15 +15,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
-// import { ActionType } from 'sentry/types/workflowEngine/actions';
-// import { DataConditionGroupLogicType } from 'sentry/types/workflowEngine/dataConditions';
-// import type { Detector } from 'sentry/types/workflowEngine/detectors';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
-  const {data: detectors} = useDetectorsQuery('11276');
+  const {data: detectors} = useDetectorsQuery();
 
   return (
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
