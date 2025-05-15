@@ -1,5 +1,7 @@
 import logging
+import math
 from dataclasses import dataclass, field
+from datetime import datetime
 
 import sentry_sdk
 from google.protobuf.json_format import MessageToJson
@@ -101,6 +103,36 @@ def categorize_aggregate(
         )
 
 
+def update_timestamps(params: SnubaParams, query: str):
+    """We need to update snuba params to query a wider period than requested so that we get aligned granularities while
+    still querying the requested period
+
+    This is because quote:
+    "the platform will not be changing its behavior to accommodate this request. The endpoint's capabilities are
+    currently flexible enough to allow the client to build either thing. Whether it's rounding time buckets or not, that
+    behavior is up to you. Creating two separate almost identical endpoints to allow for both behaviors is also not
+    going to happen."
+    """
+    if params.start is not None and params.end is not None and params.granularity_secs is not None:
+        ts_query = (
+            f"timestamp:>={params.start.isoformat()} AND timestamp:<={params.end.isoformat()}"
+        )
+        if query:
+            query = f"timestamp:>={params.start.isoformat()} AND timestamp:<={params.end.isoformat()} AND ({query})"
+        else:
+            query = ts_query
+
+        params.start = datetime.fromtimestamp(
+            math.floor(params.start.timestamp() / params.granularity_secs) * params.granularity_secs
+        )
+        params.end = datetime.fromtimestamp(
+            math.ceil(params.end.timestamp() / params.granularity_secs) * params.granularity_secs
+        )
+        return query, params
+    else:
+        raise InvalidSearchQuery("start, end and interval are required")
+
+
 def get_timeseries_query(
     search_resolver: SearchResolver,
     params: SnubaParams,
@@ -115,6 +147,7 @@ def get_timeseries_query(
     list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate],
     list[ResolvedAttribute],
 ]:
+    query_string, params = update_timestamps(params, query_string)
     meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
     query, _, query_contexts = search_resolver.resolve_query(query_string)
     (functions, _) = search_resolver.resolve_functions(y_axes)
