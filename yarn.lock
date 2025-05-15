@@ -3357,7 +3357,7 @@
     webpack-dev-server "5.2.0"
     ws "^8.18.0"
 
-"@rspack/lite-tapable@1.0.1":
+"@rspack/lite-tapable@1.0.1", "@rspack/lite-tapable@^1.0.0":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@rspack/lite-tapable/-/lite-tapable-1.0.1.tgz#d4540a5d28bd6177164bc0ba0bee4bdec0458591"
   integrity sha512-VynGOEsVw2s8TAlLf/uESfrgfrq2+rcXB1muPJYBWbsm1Oa6r5qVQhjA5ggM6z/coYPrsVMgovl3Ff7Q7OCp1w==
@@ -9398,6 +9398,16 @@ memfs@^3.4.1:
   dependencies:
     fs-monkey "^1.0.3"
 
+memfs@^4.14.0:
+  version "4.17.1"
+  resolved "https://registry.yarnpkg.com/memfs/-/memfs-4.17.1.tgz#3112332cbc2b055da3f1c0ba1fd29fdcb863621a"
+  integrity sha512-thuTRd7F4m4dReCIy7vv4eNYnU6XI/tHMLSMMHLiortw/Y0QxqKtinG523U2aerzwYWGi606oBP4oMPy4+edag==
+  dependencies:
+    "@jsonjoy.com/json-pack" "^1.0.3"
+    "@jsonjoy.com/util" "^1.3.0"
+    tree-dump "^1.0.1"
+    tslib "^2.0.0"
+
 memfs@^4.6.0:
   version "4.17.0"
   resolved "https://registry.yarnpkg.com/memfs/-/memfs-4.17.0.tgz#a3c4b5490b9b1e7df5d433adc163e08208ce7ca2"
@@ -9512,7 +9522,7 @@ minimatch@^8.0.2:
   dependencies:
     brace-expansion "^2.0.1"
 
-minimatch@^9.0.1, minimatch@^9.0.4:
+minimatch@^9.0.1, minimatch@^9.0.4, minimatch@^9.0.5:
   version "9.0.5"
   resolved "https://registry.yarnpkg.com/minimatch/-/minimatch-9.0.5.tgz#d74f9dd6b57d83d8e98cfb82133b03978bc929e5"
   integrity sha512-G6T0ZX48xgozx7587koeX9Ys2NYy6Gmv//P89sEte9V9whIapMNF4idKxnW2QtCcLiTWlb/wfCabAtAFWhhBow==
@@ -12038,6 +12048,19 @@ ts-api-utils@^2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/ts-api-utils/-/ts-api-utils-2.0.1.tgz#660729385b625b939aaa58054f45c058f33f10cd"
   integrity sha512-dnlgjFSVetynI8nzgJ+qF62efpglpWRk8isUEWZGWlJYySCTD6aKvbUDu+zbPeDakk3bg5H4XpitHukgfL1m9w==
+
+ts-checker-rspack-plugin@1.1.3:
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/ts-checker-rspack-plugin/-/ts-checker-rspack-plugin-1.1.3.tgz#a38b54f7ae1a4a91c4f4588c32f56a101a4ce615"
+  integrity sha512-VpB+L+F330T484qGp5KqyoU00PRlUlz4kO1ifBpQ5CkKXEFXye8nmeXlZ5rvZAXjFAMRFiG+sI9OewO6Bd9UvA==
+  dependencies:
+    "@babel/code-frame" "^7.16.7"
+    "@rspack/lite-tapable" "^1.0.0"
+    chokidar "^3.5.3"
+    is-glob "^4.0.3"
+    memfs "^4.14.0"
+    minimatch "^9.0.5"
+    picocolors "^1.1.1"
 
 ts-node@^10.9.2:
   version "10.9.2"

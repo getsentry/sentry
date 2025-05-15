@@ -12,10 +12,10 @@ import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
 import CompressionPlugin from 'compression-webpack-plugin';
-import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
 import path from 'node:path';
+import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 
@@ -306,13 +306,9 @@ const appConfig: Configuration = {
 
     ...(SHOULD_FORK_TS
       ? [
-          new ForkTsCheckerWebpackPlugin({
+          new TsCheckerRspackPlugin({
             typescript: {
               configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
-              configOverwrite: {
-                compilerOptions: {incremental: true},
-              },
-              memoryLimit: 4096,
             },
             devServer: false,
           }),
