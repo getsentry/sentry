@@ -4,6 +4,7 @@ from uuid import uuid4
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
@@ -31,8 +32,14 @@ class FindReferencedGroupsTest(TestCase):
             group=group,
             status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
         ).exists()
-        # XXX: At what point does the issue get marked as resolved?
-        assert group.status == GroupStatus.UNRESOLVED
+        # This gets created in resolved_in_commit
+        assert GroupLink.objects.filter(
+            group=group,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+        ).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
 
         pr = PullRequest.objects.create(
             key="1",
@@ -50,5 +57,10 @@ class FindReferencedGroupsTest(TestCase):
             group=group2,
             status=GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
         ).exists()
-        # XXX: At what point does the issue get marked as resolved?
-        assert group.status == GroupStatus.UNRESOLVED
+        assert GroupLink.objects.filter(
+            group=group2,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=pr.id,
+        ).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
