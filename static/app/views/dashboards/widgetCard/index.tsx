@@ -176,13 +176,14 @@ function WidgetCard(props: Props) {
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
 
   const onDataFetchStart = () => {
-    timeoutRef.current = null;
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
 
     setIsLoadingTextVisible(false);
     timeoutRef.current = setTimeout(() => {
-      if (!isLoadingTextVisible) {
-        setIsLoadingTextVisible(true);
-      }
+      setIsLoadingTextVisible(true);
     }, 3000);
   };
 
