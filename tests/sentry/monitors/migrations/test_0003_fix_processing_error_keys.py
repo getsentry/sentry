@@ -72,10 +72,10 @@ class FixProcessingErrorKeysTest(TestMigrations):
         assert project_errors[0].id != self.project_error_id
         assert monitor_errors[0].id != self.monitor_error_id
 
-    def test_monitor(self):
+    def test(self):
         monitor_errors = get_errors_for_monitor(self.monitor)
         assert monitor_errors[0].id == self.monitor_error_id
 
-    # def test_project(self):
-    #     project_errors = get_errors_for_projects([self.project])
-    #     assert project_errors[0].id == self.project_error_id
+    def test_project(self):
+        project_errors = get_errors_for_projects([self.project])
+        assert project_errors[0].id == self.project_error_id

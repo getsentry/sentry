@@ -113,6 +113,11 @@ def build_project_identifier(project_id: int) -> str:
     return f"project:{project_id}"
 
 
+def get_uuid_from_error_identifier(error_identifier: str) -> uuid.UUID:
+    uuid_hex = error_identifier.split(".")[2]
+    return uuid.UUID(hex=uuid_hex)
+
+
 def build_set_identifier(entity_identifier: str) -> str:
     return f"monitors.processing_errors_set.{entity_identifier}"
 
@@ -120,17 +125,17 @@ def build_set_identifier(entity_identifier: str) -> str:
 def fetch_processing_errors(entity_identifier: str) -> dict[uuid.UUID, Any]:
     redis = _get_cluster()
     pipeline = redis.pipeline()
-    pipeline.zrange(build_set_identifier(entity_identifier, 0, MAX_ERRORS_PER_SET, desc=True))
+    pipeline.zrange(build_set_identifier(entity_identifier), 0, MAX_ERRORS_PER_SET, desc=True)
     processing_errors = {}
     error_identifiers = [
         build_error_identifier(uuid.UUID(error_identifier))
         for error_identifier in chain(*pipeline.execute())
     ]
     for error_identifier in error_identifiers:
-        raw_error = redis.mget(error_identifier)
+        raw_error = redis.mget(error_identifier)[0]
         if raw_error is not None:
-            processing_errors[error_identifier] = CheckinProcessingError.from_dict(
-                json.loads(raw_error)
+            processing_errors[get_uuid_from_error_identifier(error_identifier)] = (
+                CheckinProcessingError.from_dict(json.loads(raw_error))
             )
     return processing_errors
 
@@ -143,12 +148,12 @@ def fix_processing_error_keys(apps: StateApps, schema_editor: BaseDatabaseSchema
     pipeline = redis.pipeline()
 
     # step 1: fix all monitors
-    breakpoint()
-    print("got here")
     for monitor in RangeQuerySetWrapper(Monitor.objects.all()):
         monitor_identifier = build_monitor_identifier(monitor)
         processing_errors = fetch_processing_errors(monitor_identifier)
-        for processing_error, error_id in zip(processing_errors):
+        for error_identifier in processing_errors:
+            error_id = get_uuid_from_error_identifier(error_identifier)
+            processing_error = processing_errors[error_id]
             if processing_error.id != error_id:
                 processing_error.id = error_id
                 error_key = build_error_identifier(error_id)
@@ -159,9 +164,11 @@ def fix_processing_error_keys(apps: StateApps, schema_editor: BaseDatabaseSchema
 
     # step 2: fix all projects
     for project in RangeQuerySetWrapper(Project.objects.all()):
-        project_identifier = build_project_identifier(project.id)
+        project_identifier = build_project_identifier(str(project.id))
         processing_errors = fetch_processing_errors(project_identifier)
-        for processing_error, error_id in zip(processing_errors):
+        for error_identifier in processing_errors:
+            error_id = get_uuid_from_error_identifier(error_identifier)
+            processing_error = processing_errors[error_id]
             if processing_error.id != error_id:
                 processing_error.id = error_id
                 error_key = build_error_identifier(error_id)
@@ -172,6 +179,7 @@ def fix_processing_error_keys(apps: StateApps, schema_editor: BaseDatabaseSchema
 
 
 class Migration(CheckedMigration):
+
     # This flag is used to mark that a migration shouldn't be automatically run in production.
     # This should only be used for operations where it's safe to run the migration after your
     # code has deployed. So this should not be used for most operations that alter the schema
