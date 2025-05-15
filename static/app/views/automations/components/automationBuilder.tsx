@@ -27,6 +27,7 @@ export default function AutomationBuilder() {
   const organization = useOrganization();
   const api = useApi();
 
+  // fetch org members for SelectMembers dropdowns
   useEffect(() => {
     fetchOrgMembers(api, organization.slug);
   }, [api, organization]);
