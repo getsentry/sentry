@@ -10,10 +10,14 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.process_segments.message import process_segment
+from sentry.spans.consumers.process_segments.types import Span
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -47,7 +51,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.num_processes = num_processes
         self.pool = MultiprocessingPool(num_processes)
 
-        topic_definition = get_topic_definition(Topic.SNUBA_SPANS)
+        topic_definition = get_topic_definition(Topic.SNUBA_ITEMS)
         producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
 
         # Due to the unfold step that precedes the producer, this pipeline
@@ -98,7 +102,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.pool.close()
 
 
-def _process_message(message: Message[KafkaPayload]) -> list[bytes]:
+def _process_message(message: Message[KafkaPayload]) -> list[KafkaPayload]:
     if not options.get("standalone-spans.process-segments-consumer.enable"):
         return []
 
@@ -106,7 +110,7 @@ def _process_message(message: Message[KafkaPayload]) -> list[bytes]:
         value = message.payload.value
         segment = orjson.loads(value)
         processed = process_segment(segment["spans"])
-        return [orjson.dumps(span) for span in processed]
+        return [_convert_to_trace_item(span) for span in processed]
     except Exception:  # NOQA
         raise
         # TODO: Implement error handling
@@ -115,9 +119,106 @@ def _process_message(message: Message[KafkaPayload]) -> list[bytes]:
         # raise InvalidMessage(message.value.partition, message.value.offset)
 
 
-def _unfold_segment(spans: list[bytes]):
-    return [
-        Value(KafkaPayload(key=None, value=span, headers=[]), {})
-        for span in spans
-        if span is not None
-    ]
+def _convert_to_trace_item(span: Span) -> KafkaPayload:
+    attributes = {}  # TODO
+    for k, v in (span.get("data") or {}).items():
+        attributes[k] = v
+
+    client_sample_rate = 1.0
+    server_sample_rate = 1.0
+
+    for k, v in (span.get("measurements") or {}).items():
+        if k is None or v is None:
+            continue
+
+        if k == "client_sample_rate":
+            client_sample_rate = v["value"]
+            continue
+
+        if k == "server_sample_rate":
+            server_sample_rate = v["value"]
+            continue
+
+        attributes[k] = v
+
+    for k, v in (span.get("sentry_tags") or {}).items():
+        if v is None:
+            continue
+
+        if k == "description":
+            k = "sentry.normalized_description"
+        else:
+            k = f"sentry.{k}"
+
+        attributes[k] = v
+
+    for k, v in (span.get("tags") or {}).items():
+        if v is None:
+            continue
+
+        attributes[k] = v
+
+    description = span.get("description")
+    if description is not None:
+        attributes["sentry.raw_description"] = description
+
+    attributes["sentry.duration_ms"] = span["duration_ms"]
+
+    event_id = span.get("event_id")
+    if event_id is not None:
+        attributes["sentry.event_id"] = event_id
+
+    attributes["sentry.is_segment"] = span["is_segment"]
+    attributes["sentry.exclusive_time_ms"] = span["exclusive_time_ms"]
+    attributes["sentry.start_timestamp_precise"] = span["start_timestamp_precise"]
+    attributes["sentry.end_timestamp_precise"] = span["end_timestamp_precise"]
+    attributes["sentry.start_timestamp_ms"] = span["start_timestamp_ms"]
+    attributes["sentry.is_remote"] = span["is_remote"]
+
+    parent_span_id = span.get("parent_span_id")
+    if parent_span_id is not None:
+        attributes["sentry.parent_span_id"] = parent_span_id
+
+    profile_id = span.get("profile_id")
+    if profile_id is not None:
+        attributes["sentry.profile_id"] = profile_id
+
+    segment_id = span.get("segment_id")
+    if segment_id is not None:
+        attributes["sentry.segment_id"] = segment_id
+
+    origin = span.get("origin")
+    if origin is not None:
+        attributes["sentry.origin"] = origin
+
+    kind = span.get("kind")
+    if kind is not None:
+        attributes["sentry.kind"] = kind
+
+    trace_item = TraceItem(
+        item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+        organization_id=span["organization_id"],
+        project_id=span["project_id"],
+        received=Timestamp(seconds=int(span["received"])),  # TODO: more precision?
+        retention_days=span["retention_days"],
+        timestamp=Timestamp(seconds=int(span["start_timestamp_precise"])),
+        trace_id=span["trace_id"],
+        item_id=int(span["span_id"], 16).to_bytes(16, "little"),
+        attributes=attributes,
+        client_sample_rate=client_sample_rate,
+        server_sample_rate=server_sample_rate,
+    )
+
+    trace_item_bytes = trace_item.SerializeToString()
+    return KafkaPayload(
+        key=None,
+        value=trace_item_bytes,
+        headers=[
+            ("item_type", b"span"),
+            ("project_id", str(span["project_id"]).encode("ascii")),
+        ],
+    )
+
+
+def _unfold_segment(spans: list[KafkaPayload]):
+    return [Value(span, {}) for span in spans if span is not None]
