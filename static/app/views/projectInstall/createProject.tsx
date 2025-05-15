@@ -381,6 +381,8 @@ export function CreateProject() {
 
   return (
     <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
+      {/* Using key to force re-render when projectId changes,
+      ensuring components like IssueAlertOptions reflect updated localStorage context */}
       <div data-test-id="onboarding-info" key={projectId}>
         <List symbol="colored-numeric">
           <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
