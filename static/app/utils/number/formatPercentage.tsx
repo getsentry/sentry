@@ -11,7 +11,7 @@ export function formatPercentage(
     minimumValue?: number;
   } = {}
 ) {
-  if (value === 0) {
+  if (value === 0 || value === undefined || value === null) {
     return '0%';
   }
 
