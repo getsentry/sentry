@@ -69,6 +69,7 @@ import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
+import {isJavascriptPlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -441,16 +442,17 @@ export function EventDetailsContent({
       {hasStreamlinedUI && (
         <EventProcessingErrors event={event} project={project} isShare={false} />
       )}
-      {defined(eventEntries[EntryType.DEBUGMETA]) && (
-        <EntryErrorBoundary type={EntryType.DEBUGMETA}>
-          <DebugMeta
-            event={event}
-            projectSlug={projectSlug}
-            groupId={group?.id}
-            data={eventEntries[EntryType.DEBUGMETA].data}
-          />
-        </EntryErrorBoundary>
-      )}
+      {defined(eventEntries[EntryType.DEBUGMETA]) &&
+        !isJavascriptPlatform(event.platform) && (
+          <EntryErrorBoundary type={EntryType.DEBUGMETA}>
+            <DebugMeta
+              event={event}
+              projectSlug={projectSlug}
+              groupId={group?.id}
+              data={eventEntries[EntryType.DEBUGMETA].data}
+            />
+          </EntryErrorBoundary>
+        )}
       {event.groupID && (
         <EventGroupingInfoSection
           projectSlug={project.slug}
