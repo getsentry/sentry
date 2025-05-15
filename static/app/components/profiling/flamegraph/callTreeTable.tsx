@@ -384,13 +384,9 @@ interface CallTreeTableRowProps {
   onMouseEnter: () => void;
   tabIndex: number;
   top: string;
-}
-export function CallTreeTableRow({
-  ref,
-  ...props
-}: CallTreeTableRowProps & {
   ref?: React.Ref<HTMLDivElement>;
-}) {
+}
+export function CallTreeTableRow({ref, ...props}: CallTreeTableRowProps) {
   return (
     <div
       ref={ref}

@@ -13,15 +13,15 @@ hybridcloud: 0021_django_arrayfield_scope_list
 
 insights: 0001_add_starred_transactions_model
 
-monitors: 0002_fix_drift_default_to_db_default
+monitors: 0004_record_date_in_progress_sql_only
 
 nodestore: 0002_nodestore_no_dictfield
 
 remote_subscriptions: 0003_drop_remote_subscription
 
-replays: 0004_index_together
+replays: 0005_drop_replay_index
 
-sentry: 0890_remove_index_on_group_release_last_seen
+sentry: 0896_org_level_access_not_null
 
 social_auth: 0002_default_auto_field
 

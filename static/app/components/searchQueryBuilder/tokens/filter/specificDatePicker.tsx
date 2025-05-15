@@ -31,6 +31,7 @@ type TimeInputProps = {
   disabled: boolean;
   setTime: (newTime: string) => void;
   time: string;
+  ref?: React.Ref<HTMLInputElement>;
 };
 
 const ISO_DATE_FORMAT = 'YYYY-MM-DD';
@@ -209,14 +210,7 @@ function SpecificDatePicker({
  * back to the search bar. We make sure to keep focus within the input
  * until the user is done making changes.
  */
-function TimeInput({
-  ref,
-  disabled,
-  time,
-  setTime,
-}: TimeInputProps & {
-  ref?: React.Ref<HTMLInputElement>;
-}) {
+function TimeInput({ref, disabled, time, setTime}: TimeInputProps) {
   const [localTime, setLocalTime] = useState(time);
   const [isFocused, setIsFocused] = useState(false);
   const timeInputRef = useRef<HTMLInputElement | null>(null);

@@ -83,12 +83,14 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == len(logs)
 
         for log, source in zip(data, logs):
-            assert log["log.body"] == source["body"]
+            assert log["log.body"] == source.attributes["sentry.body"].string_value
             assert "tags[sentry.timestamp_precise,number]" in log
             assert "timestamp" in log
             ts = datetime.fromisoformat(log["timestamp"])
             assert ts.tzinfo == timezone.utc
-            timestamp_from_nanos = source["timestamp_nanos"] / 1_000_000_000
+            timestamp_from_nanos = (
+                source.attributes["sentry.timestamp_nanos"].int_value / 1_000_000_000
+            )
             assert ts.timestamp() == pytest.approx(timestamp_from_nanos, abs=5), "timestamp"
 
         assert meta["dataset"] == self.dataset

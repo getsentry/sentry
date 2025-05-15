@@ -383,7 +383,13 @@ def _check_split_enhancements_stacktrace_contributes_and_hint(
         )
 
 
-def get_enhancements_version(project: Project, grouping_config_id: str) -> int:
+# This makes it so that for any given deployment, an eligible project either will or won't be opted
+# into the split enhancements (which we'll be able to determine from anywhere we have access to the
+# project), but from deployment to deployment it won't always be the same projects opted in
+SPLIT_ENHANCEMENTS_SAMPLING_SEED = int(1000 * random())
+
+
+def get_enhancements_version(project: Project, grouping_config_id: str = "") -> int:
     """
     Decide whether the Enhancements should be version 2 (status quo) or version 3 (split enhancements).
     """
@@ -393,7 +399,15 @@ def get_enhancements_version(project: Project, grouping_config_id: str) -> int:
     if not features.has("organizations:run-split-enhancements", project.organization):
         return 2
 
-    if random() < options.get("grouping.split_enhancements.sample_rate"):
+    sample_rate = options.get("grouping.split_enhancements.sample_rate")
+
+    if sample_rate == 0:
+        return 2
+
+    # Turn 5% into 20 (for ex), so below we can take roughly 1 in every 20 projects and opt it in
+    sample_rate_denominator = round(1 / sample_rate)
+
+    if hash(project.id + SPLIT_ENHANCEMENTS_SAMPLING_SEED) % sample_rate_denominator == 0:
         return 3
 
     return 2
@@ -732,7 +746,9 @@ class Enhancements:
         )
 
     @classmethod
-    def from_base64_string(cls, base64_string: str | bytes) -> Enhancements:
+    def from_base64_string(
+        cls, base64_string: str | bytes, referrer: str | None = None
+    ) -> Enhancements:
         """Convert a base64 string into an `Enhancements` object"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
@@ -755,7 +771,11 @@ class Enhancements:
 
                 metrics_timer_tags.update(
                     # The first entry in the config structure is the enhancements version
-                    {"split": config_structure[0] == 3, "source": "base64_string"}
+                    {
+                        "split": config_structure[0] == 3,
+                        "source": "base64_string",
+                        "referrer": referrer,
+                    }
                 )
 
                 return cls._from_config_structure(config_structure, rust_enhancements)
@@ -771,11 +791,14 @@ class Enhancements:
         bases: list[str] | None = None,
         id: str | None = None,
         version: int | None = None,
+        referrer: str | None = None,
     ) -> Enhancements:
         """Create an `Enhancements` object from a text blob containing stacktrace rules"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
-            metrics_timer_tags.update({"split": version == 3, "source": "rules_text"})
+            metrics_timer_tags.update(
+                {"split": version == 3, "source": "rules_text", "referrer": referrer}
+            )
 
             rust_enhancements = get_rust_enhancements("config_string", rules_text)
             rules = parse_enhancements(rules_text)
@@ -799,7 +822,9 @@ def _load_configs() -> dict[str, Enhancements]:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 filename = filename.replace("@", ":")
-                enhancements = Enhancements.from_rules_text(f.read(), id=filename, version=3)
+                enhancements = Enhancements.from_rules_text(
+                    f.read(), id=filename, version=3, referrer="default_rules"
+                )
                 enhancement_bases[filename] = enhancements
     return enhancement_bases
 
