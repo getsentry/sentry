@@ -349,6 +349,7 @@ export function TraceEventDataSection({
       type={type}
       showPermalink={!hasStreamlinedUI}
       title={title}
+      disableCollapsePersistence
       actions={
         !stackTraceNotFound && (
           <ButtonBar gap={1}>
