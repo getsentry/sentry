@@ -465,7 +465,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             return
 
         subscription_interval_ms = 1000 * subscription.interval_seconds
-        # If the scheduled check is over two intervals since the last seen check, we can declare the
+        # If the scheduled check is two or more intervals since the last seen check, we can declare the
         # intervening checks missed.
         if last_update_raw is not None:
             if (2 * subscription_interval_ms) <= result["scheduled_check_time_ms"] - last_update_ms:
