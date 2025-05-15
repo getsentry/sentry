@@ -7,7 +7,7 @@ export function TargetDisplayField({placeholder}: {placeholder?: string}) {
   return (
     <AutomationBuilderInputField
       name={`${actionId}.data.targetDisplay`}
-      placeholder={placeholder ? placeholder : t('channel, name, or ID')}
+      placeholder={placeholder ? placeholder : t('channel name or ID')}
       value={action.data.targetDisplay}
       onChange={(value: string) => {
         onUpdate({

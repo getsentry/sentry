@@ -12,7 +12,7 @@ import {
   OptionalRowLine,
 } from 'sentry/views/automations/components/automationBuilderRow';
 
-export default function DiscordNode() {
+export function DiscordNode() {
   return (
     <Flex column gap={space(1)} flex="1">
       <RowLine>
