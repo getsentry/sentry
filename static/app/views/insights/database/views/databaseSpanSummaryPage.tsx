@@ -87,6 +87,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
           SpanIndexedField.SDK_NAME,
           SpanIndexedField.SDK_VERSION,
           SpanIndexedField.RELEASE,
+          SpanIndexedField.PLATFORM,
         ],
       },
       'api.starfish.span-description'
