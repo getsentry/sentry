@@ -2,7 +2,6 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
-import pytest
 from django.http import HttpResponse
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
@@ -181,7 +180,8 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
         ]:
             with (
                 patch(
-                    "sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query
+                    "sentry.search.events.builder.base.raw_snql_query",
+                    wraps=raw_snql_query,
                 ) as mock_raw_snql_query,
                 patch(
                     "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service"
@@ -224,7 +224,8 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
         ]:
             with (
                 patch(
-                    "sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query
+                    "sentry.search.events.builder.base.raw_snql_query",
+                    wraps=raw_snql_query,
                 ) as mock_raw_snql_query,
                 patch(
                     "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service"
@@ -251,7 +252,8 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
                                     Condition(Column("profiler_id"), Op.IS_NOT_NULL),
                                     Condition(
                                         Function(
-                                            "has", [Column("contexts.key"), "trace.thread_id"]
+                                            "has",
+                                            [Column("contexts.key"), "trace.thread_id"],
                                         ),
                                         Op.EQ,
                                         1,
@@ -267,7 +269,8 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
     def test_queries_profile_candidates_from_profiles(self):
         with (
             patch(
-                "sentry.profiles.flamegraph.bulk_snuba_queries", wraps=bulk_snuba_queries
+                "sentry.profiles.flamegraph.bulk_snuba_queries",
+                wraps=bulk_snuba_queries,
             ) as mock_bulk_snuba_queries,
             patch(
                 "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service"
@@ -298,7 +301,10 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
                             conditions=[
                                 Condition(Column("profiler_id"), Op.IS_NOT_NULL),
                                 Condition(
-                                    Function("has", [Column("contexts.key"), "trace.thread_id"]),
+                                    Function(
+                                        "has",
+                                        [Column("contexts.key"), "trace.thread_id"],
+                                    ),
                                     Op.EQ,
                                     1,
                                 ),
@@ -583,7 +589,8 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
 
         with (
             patch(
-                "sentry.profiles.flamegraph.bulk_snuba_queries", wraps=bulk_snuba_queries
+                "sentry.profiles.flamegraph.bulk_snuba_queries",
+                wraps=bulk_snuba_queries,
             ) as mock_bulk_snuba_queries,
             patch(
                 "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service"
@@ -618,7 +625,10 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
                             conditions=[
                                 Condition(Column("profiler_id"), Op.IS_NOT_NULL),
                                 Condition(
-                                    Function("has", [Column("contexts.key"), "trace.thread_id"]),
+                                    Function(
+                                        "has",
+                                        [Column("contexts.key"), "trace.thread_id"],
+                                    ),
                                     Op.EQ,
                                     1,
                                 ),
@@ -768,7 +778,10 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
                             conditions=[
                                 Condition(Column("profiler_id"), Op.IS_NOT_NULL),
                                 Condition(
-                                    Function("has", [Column("contexts.key"), "trace.thread_id"]),
+                                    Function(
+                                        "has",
+                                        [Column("contexts.key"), "trace.thread_id"],
+                                    ),
                                     Op.EQ,
                                     1,
                                 ),
@@ -809,7 +822,6 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
                 },
             )
 
-    @pytest.mark.skip(reason="See https://github.com/getsentry/sentry/issues/91731")
     @patch("sentry.profiles.flamegraph.bulk_snuba_queries")
     @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
     def test_queries_profile_candidates_from_spans(
@@ -909,7 +921,10 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
 
 class OrganizationProfilingChunksTest(APITestCase):
     endpoint = "sentry-api-0-organization-profiling-chunks"
-    features = {"organizations:continuous-profiling": True, "organizations:global-views": True}
+    features = {
+        "organizations:continuous-profiling": True,
+        "organizations:global-views": True,
+    }
 
     def setUp(self):
         self.login_as(user=self.user)
