@@ -33,12 +33,13 @@ def holds_bad_pickle_object(value, memo=None):
             bad_object = holds_bad_pickle_object(item, memo)
             if bad_object is not None:
                 return bad_object
+        return
     elif isinstance(value, dict):
         for item in value.values():
             bad_object = holds_bad_pickle_object(item, memo)
             if bad_object is not None:
                 return bad_object
-
+        return
     if isinstance(value, models.Model):
         return (
             value,
