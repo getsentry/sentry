@@ -26,6 +26,10 @@ class SQLInjectionDetectorTest(TestCase):
         return list(detector.stored_problems.values())
 
     def test_sql_injection_detection(self):
-        injection_event = get_event("sql-injection-event")
+        injection_event = get_event("sql-injection/sql-injection-event")
 
         assert len(self.find_problems(injection_event)) == 1
+
+    def test_sql_injection_on_non_vulnerable_query(self):
+        injection_event = get_event("sql-injection/sql-injection-event-non-vulnerable")
+        assert len(self.find_problems(injection_event)) == 0

@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from sentry import features
 from sentry.issues.grouptype import SQLInjectionGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -19,6 +18,34 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 from sentry.utils.performance_issues.types import Span
 
 MAX_EVIDENCE_VALUE_LENGTH = 10_000
+
+SQL_KEYWORDS = [
+    "SELECT",
+    "WHERE",
+    "AND",
+    "OR",
+    "NOT",
+    "IN",
+    "LIKE",
+    "LIMIT",
+    "ORDER BY",
+    "GROUP BY",
+    "HAVING",
+    "DISTINCT",
+    "JOIN",
+    "ON",
+    "AS",
+    "CASE",
+    "WHEN",
+    "THEN",
+    "ELSE",
+    "END",
+    "UNION",
+    "ALL",
+    "ANY",
+    "SOME",
+    "EXISTS",
+]
 
 
 class SQLInjectionDetector(PerformanceDetector):
@@ -36,7 +63,9 @@ class SQLInjectionDetector(PerformanceDetector):
         if not query_string:
             return
 
-        self.user_inputs = [query_value[1] for query_value in query_string]
+        self.user_inputs = [
+            query_value[1] for query_value in query_string if self.keep_query_value(query_value)
+        ]
 
     def visit_span(self, span: Span) -> None:
         if not SQLInjectionDetector.is_span_eligible(span):
@@ -49,7 +78,7 @@ class SQLInjectionDetector(PerformanceDetector):
         spans_involved = [span["span_id"]]
 
         for user_input in self.user_inputs:
-            if user_input in description and self.is_sql_injection(user_input):
+            if user_input in description:
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     type=SQLInjectionGroupType,
                     fingerprint=self._fingerprint(hash),
@@ -86,26 +115,20 @@ class SQLInjectionDetector(PerformanceDetector):
                 )
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has("organizations:sql-injection-detector", organization, actor=None)
+        return True
 
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]
 
-    def is_sql_injection(self, user_input: str) -> bool:
-        if (
-            "DROP" in user_input
-            or "DELETE" in user_input
-            or "UPDATE" in user_input
-            or "INSERT" in user_input
-        ):
-            return True
-        if ";" in user_input:
-            return True
-        if "--" in user_input:
-            return True
-        if "1=1" in user_input:
-            return True
-        return False
+    def keep_query_value(self, query: tuple[str, str]) -> bool:
+        query_value = query[1].upper()
+        query_key = query[0].upper()
+
+        if query_key == query_value:
+            return False
+        if query_value in SQL_KEYWORDS:
+            return False
+        return True
 
     @classmethod
     def is_span_eligible(cls, span: Span) -> bool:
