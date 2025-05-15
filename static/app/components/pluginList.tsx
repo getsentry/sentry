@@ -1,6 +1,4 @@
-import {disablePlugin, enablePlugin} from 'sentry/actionCreators/plugins';
-import {hasEveryAccess} from 'sentry/components/acl/access';
-import InactivePlugins from 'sentry/components/inactivePlugins';
+import {disablePlugin} from 'sentry/actionCreators/plugins';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PluginConfig from 'sentry/components/pluginConfig';
@@ -22,20 +20,7 @@ function PluginList({
   project,
   pluginList,
   onDisablePlugin = () => {},
-  onEnablePlugin = () => {},
 }: Props) {
-  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
-
-  const handleEnablePlugin = (plugin: Plugin) => {
-    enablePlugin({
-      projectId: project.slug,
-      orgId: organization.slug,
-      pluginId: plugin.slug,
-    });
-
-    onEnablePlugin(plugin);
-  };
-
   const handleDisablePlugin = (plugin: Plugin) => {
     disablePlugin({
       projectId: project.slug,
@@ -68,12 +53,6 @@ function PluginList({
             onDisablePlugin={handleDisablePlugin}
           />
         ))}
-
-      <InactivePlugins
-        disabled={!hasWriteAccess}
-        plugins={pluginList.filter(p => !p.enabled && !p.isHidden)}
-        onEnablePlugin={handleEnablePlugin}
-      />
     </div>
   );
 }

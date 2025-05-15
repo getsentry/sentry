@@ -28,17 +28,6 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_opsgenie_add_to_project(self):
-        self.load_page("opsgenie")
-
-        detail_view_page = OrganizationAbstractDetailViewPage(browser=self.browser)
-        detail_view_page.click_install_button()
-
-        self.browser.click('[role="dialog"] [id$="option-0-0"]')
-        # check if we got to the configuration page with the form
-        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.wait_until_test_id("plugin-config")
-
     def test_uninstallation(self):
         self.plugin.set_option("api_key", "7c8951d1", self.project)
         self.plugin.set_option("alert_url", "https://api.opsgenie.com/v2/alerts", self.project)
