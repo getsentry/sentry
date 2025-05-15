@@ -174,6 +174,9 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
    * written to when replay is being played.
    */
   function cloneCanvas(id: number, node: HTMLCanvasElement) {
+    if (!(node instanceof HTMLCanvasElement)) {
+      return null;
+    }
     const cloneNode = node.cloneNode() as HTMLCanvasElement;
     canvases.set(id, cloneNode);
     document.adoptNode(cloneNode);
@@ -286,7 +289,9 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
 
     const img = containers.get(e.data.id);
     if (img) {
-      img.src = target.toDataURL();
+      if (target instanceof HTMLCanvasElement) {
+          img.src = target.toDataURL();
+      }
       img.style.maxWidth = '100%';
       img.style.maxHeight = '100%';
     }
