@@ -909,8 +909,8 @@ function ProjectPerformance() {
                     help: t(
                       'Controls whether or not Sentry should detect this type of issue.'
                     ),
-                    disabled: !project.access.includes('project:admin'),
-                    disabledReason: t('This action requires project admin access.'),
+                    disabled: !hasAccess,
+                    disabledReason: t('You do not have permission to manage detectors.'),
                   },
                   ...fieldGroup.fields,
                 ],
