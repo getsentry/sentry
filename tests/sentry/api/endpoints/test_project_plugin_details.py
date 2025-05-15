@@ -34,7 +34,7 @@ class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
                 "defaultValue": None,
                 "help": "Enter callback URLs to POST new events to (one per line).",
                 "isDeprecated": False,
-                "isHidden": False,
+                "isHidden": True,
                 "label": "Callback URLs",
                 "name": "urls",
                 "placeholder": "https://sentry.io/callback/url",

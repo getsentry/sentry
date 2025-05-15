@@ -125,6 +125,7 @@ class GroupingConfigLoader:
                 enhancements_string,
                 bases=[enhancements_base] if enhancements_base else [],
                 version=get_enhancements_version(project, config_id),
+                referrer="project_rules",
             ).base64_string
         except InvalidEnhancerConfig:
             enhancements = get_default_enhancements()

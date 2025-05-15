@@ -18,6 +18,7 @@ export interface InputFieldProps
       | 'children'
       | 'name'
       | 'defaultValue'
+      | 'ref'
     > {
   // TODO(ts) Add base types for this. Each input field
   // has different props, but we could use have a base type that contains

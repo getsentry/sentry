@@ -559,9 +559,6 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-left: ${space(0.5)};
-  padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
   flex-wrap: wrap;
   gap: ${space(1)};
 `;
@@ -576,7 +573,7 @@ const HeaderText = styled('div')`
 
 const SolutionDescriptionWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-top: ${space(1)};
+  margin-top: ${space(0.5)};
 `;
 
 const AnimationWrapper = styled(motion.div)`

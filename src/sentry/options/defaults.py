@@ -586,18 +586,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Disable semantic partitioning of spans by trace ID. Use this in case there is
-# partition imbalance on the spans topic produced to by Relay (either
-# snuba-spans or ingest-spans). This will break the span buffer, and anything
-# that depends on segments being assembled by it (performance issue, etc). As
-# of 2025-05-06, the span buffer is not yet rolled out to most regions though.
-register(
-    "relay.spans-ignore-trace-id-partitioning",
-    type=Bool,
-    default=False,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -1681,6 +1669,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.http_overhead.problem-creation",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1697,7 +1690,7 @@ register(
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=500.0,  # ms
+    default=1000.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3030,6 +3023,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "demo-mode.disable-sandbox-redirect",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",
@@ -3108,6 +3107,12 @@ register(
 )
 
 # Taskbroker flags
+register(
+    "taskworker.try_compress.profile_metrics",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "taskworker.route.overrides",

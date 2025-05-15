@@ -217,20 +217,11 @@ class SubscriptionProcessor:
         return threshold
 
     def get_comparison_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate, rule: AlertRule | None = None
+        self, subscription_update: QuerySubscriptionUpdate
     ) -> float | None:
         # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
         aggregation_value = get_aggregation_value_helper(subscription_update)
         if self.alert_rule.comparison_delta is None:
-            if rule:
-                logger.info(
-                    "Returning aggregation value",
-                    extra={
-                        "result": subscription_update,
-                        "aggregation_value": aggregation_value,
-                        "rule_id": rule.id,
-                    },
-                )
             return aggregation_value
 
         # For comparison alerts run a query over the comparison period and use it to calculate the
@@ -321,6 +312,14 @@ class SubscriptionProcessor:
 
         if not comparison_aggregate:
             metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
+            logger.info(
+                "No comparison aggregate",
+                extra={
+                    "alert_rule_id": self.alert_rule.id,
+                    "subscription_id": subscription_update.get("subscription_id"),
+                    "organization_id": self.alert_rule.organization_id,
+                },
+            )
             return None
 
         return (aggregation_value / comparison_aggregate) * 100
@@ -351,15 +350,13 @@ class SubscriptionProcessor:
             self.reset_trigger_counts()
         return aggregation_value
 
-    def get_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate, rule: AlertRule | None = None
-    ) -> float | None:
+    def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
         if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
             aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
                 subscription_update
             )
         else:
-            aggregation_value = self.get_comparison_aggregation_value(subscription_update, rule)
+            aggregation_value = self.get_comparison_aggregation_value(subscription_update)
 
         return aggregation_value
 
@@ -401,7 +398,7 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
 
-        aggregation_value = self.get_aggregation_value(subscription_update, self.alert_rule)
+        aggregation_value = self.get_aggregation_value(subscription_update)
 
         self.last_update = subscription_update["timestamp"]
 
@@ -419,33 +416,34 @@ class SubscriptionProcessor:
                 },
             )
 
-        if features.has(
-            "organizations:workflow-engine-metric-alert-processing",
-            self.subscription.project.organization,
-        ):
-            packet = MetricDetectorUpdate(
-                entity=subscription_update.get("entity", ""),
-                subscription_id=subscription_update["subscription_id"],
-                values={"value": aggregation_value},
-                timestamp=self.last_update,
-            )
-            data_packet = DataPacket[MetricDetectorUpdate](
-                source_id=str(self.subscription.id), packet=packet
-            )
-            results = process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+        if aggregation_value is not None:
             if features.has(
-                "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                self.alert_rule.organization,
+                "organizations:workflow-engine-metric-alert-processing",
+                self.subscription.project.organization,
             ):
-                logger.info(
-                    "dual processing results for alert rule %s",
-                    self.alert_rule.id,
-                    extra={
-                        "results": results,
-                        "num_results": len(results),
-                        "value": aggregation_value,
-                    },
+                packet = MetricDetectorUpdate(
+                    entity=subscription_update.get("entity", ""),
+                    subscription_id=subscription_update["subscription_id"],
+                    values={"value": aggregation_value},
+                    timestamp=self.last_update,
                 )
+                data_packet = DataPacket[MetricDetectorUpdate](
+                    source_id=str(self.subscription.id), packet=packet
+                )
+                results = process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+                if features.has(
+                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                    self.alert_rule.organization,
+                ):
+                    logger.info(
+                        "dual processing results for alert rule",
+                        extra={
+                            "results": results,
+                            "num_results": len(results),
+                            "value": aggregation_value,
+                            "rule_id": self.alert_rule.id,
+                        },
+                    )
 
         has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization

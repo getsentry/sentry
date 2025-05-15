@@ -82,19 +82,26 @@ class EventAttachmentsTest(APITestCase):
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-        attachment1 = EventAttachment.objects.create(
-            event_id=event1.event_id,
-            project_id=event1.project_id,
-            file_id=File.objects.create(name="screenshot.png", type="image/png").id,
-            name="screenshot.png",
-        )
-        file = File.objects.create(name="screenshot-not.png", type="image/png")
+        file = File.objects.create(name="screenshot.png", type="image/png")
         EventAttachment.objects.create(
             event_id=event1.event_id,
             project_id=event1.project_id,
             file_id=file.id,
-            type=file.type,
-            name="screenshot-not.png",
+            name=file.name,
+        )
+        file = File.objects.create(name="crash_screenshot.png")
+        EventAttachment.objects.create(
+            event_id=event1.event_id,
+            project_id=event1.project_id,
+            file_id=file.id,
+            name=file.name,
+        )
+        file = File.objects.create(name="foo.png")
+        EventAttachment.objects.create(
+            event_id=event1.event_id,
+            project_id=event1.project_id,
+            file_id=file.id,
+            name=file.name,
         )
 
         path = f"/api/0/projects/{event1.project.organization.slug}/{event1.project.slug}/events/{event1.event_id}/attachments/"
@@ -103,7 +110,8 @@ class EventAttachmentsTest(APITestCase):
             response = self.client.get(f"{path}?query=is:screenshot")
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(attachment1.id)
-        assert response.data[0]["mimetype"] == "image/png"
-        assert response.data[0]["event_id"] == attachment1.event_id
+        assert len(response.data) == 2
+        for attachment in response.data:
+            assert attachment["event_id"] == event1.event_id
+            # foo.png will not be included
+            assert attachment["name"] in ["screenshot.png", "crash_screenshot.png"]
