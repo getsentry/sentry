@@ -518,9 +518,11 @@ def configure_sdk():
         redirector = ImportRedirector(original_module, target_module)
         sys.meta_path.insert(0, redirector)
         # TODO: Not sure the original module should be deleted....
-        if original_module in sys.modules:
-            # cleaning up cache if the module is already imported
-            del sys.modules[original_module]
+        # iterating over a copy to be able to delete from the original
+        for cached_module in sys.modules.copy():
+            if cached_module.startswith(original_module):
+                # cleaning up cache if the module is already imported
+                del sys.modules[cached_module]
 
     # monkey patch to anything but sentry_sdk
     if in_random_rollout("sentry-sdk.use-python-sdk-alpha") or True:
