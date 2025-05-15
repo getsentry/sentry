@@ -13,6 +13,7 @@ export const Container = styled('div')`
   padding: ${space(1.5)};
 
   @media (max-width: ${p => p.theme.breakpoints.large}) {
-    width: fit-content;
+    min-width: fit-content;
+    flex: 1;
   }
 `;
