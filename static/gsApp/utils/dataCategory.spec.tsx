@@ -246,7 +246,7 @@ describe('getReservedBudgetDisplayName', function () {
         hadCustomDynamicSampling: false,
       })
     ).toBe(
-      'attachments, cron monitors, errors, replays, transactions, and uptime monitors'
+      'attachments, cron monitors, errors, issue fixes, issue scans, replays, transactions, and uptime monitors'
     );
   });
 
@@ -258,7 +258,7 @@ describe('getReservedBudgetDisplayName', function () {
         hadCustomDynamicSampling: false,
       })
     ).toBe(
-      'attachments, continuous profile hours, cron monitors, errors, performance units, replays, UI profile hours, and uptime monitors'
+      'attachments, continuous profile hours, cron monitors, errors, issue fixes, issue scans, performance units, replays, UI profile hours, and uptime monitors'
     );
   });
 
@@ -270,7 +270,7 @@ describe('getReservedBudgetDisplayName', function () {
         hadCustomDynamicSampling: false,
       })
     ).toBe(
-      'attachments, continuous profile hours, cron monitors, errors, replays, spans, UI profile hours, and uptime monitors'
+      'attachments, continuous profile hours, cron monitors, errors, issue fixes, issue scans, replays, spans, UI profile hours, and uptime monitors'
     );
   });
 
@@ -300,7 +300,7 @@ describe('getReservedBudgetDisplayName', function () {
         shouldTitleCase: true,
       })
     ).toBe(
-      'Attachments, Continuous Profile Hours, Cron Monitors, Errors, Replays, Spans, UI Profile Hours, and Uptime Monitors'
+      'Attachments, Continuous Profile Hours, Cron Monitors, Errors, Issue Fixes, Issue Scans, Replays, Spans, UI Profile Hours, and Uptime Monitors'
     );
   });
 });

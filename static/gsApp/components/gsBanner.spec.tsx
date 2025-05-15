@@ -2144,82 +2144,13 @@ describe('GSBanner Overage Alerts', function () {
       'profile_duration',
       'profile_duration_ui',
       'uptime',
-    ]) {
-      overagePrompts.push(`${category}_overage_alert`);
-      warningPrompts.push(`${category}_warning_alert`);
-      if (
-        ['profile_duration', 'replays', 'spans', 'profile_duration_ui'].includes(category)
-      ) {
-        productTrialPrompts.push(`${category}_product_trial_alert`);
-      }
-    }
-
-    expect(promptsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/prompts-activity/`,
-      expect.objectContaining({
-        query: {
-          feature: [
-            'deactivated_member_alert',
-            ...overagePrompts,
-            ...warningPrompts,
-            ...productTrialPrompts,
-          ],
-          organization_id: organization.id,
-        },
-      })
-    );
-  });
-
-  // TODO(Seer): remove this test after seer has been added to the fixtures
-  it('checks prompts for all billed categories on plan with seer', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-    });
-    subscription.planDetails.categories = [
-      ...subscription.planDetails.categories,
-      DataCategory.SEER_AUTOFIX,
-      DataCategory.SEER_SCANNER,
-    ];
-    const promptsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/prompts-activity/`,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-      deprecatedRouterMocks: true,
-    });
-    await act(tick);
-
-    const overagePrompts = [];
-    const warningPrompts = [];
-    const productTrialPrompts = [];
-    for (const category of [
-      'errors',
-      'attachments',
-      'replays',
-      'spans',
-      'monitor_seats',
-      'profile_duration',
-      'profile_duration_ui',
-      'uptime',
       'seer_autofix',
       'seer_scanner',
     ]) {
       overagePrompts.push(`${category}_overage_alert`);
       warningPrompts.push(`${category}_warning_alert`);
       if (
-        [
-          'profile_duration',
-          'replays',
-          'spans',
-          'profile_duration_ui',
-          'seer_autofix',
-          'seer_scanner',
-        ].includes(category)
+        ['profile_duration', 'replays', 'spans', 'profile_duration_ui'].includes(category)
       ) {
         productTrialPrompts.push(`${category}_product_trial_alert`);
       }
