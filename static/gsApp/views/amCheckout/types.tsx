@@ -16,6 +16,7 @@ type BaseCheckoutData = {
   applyNow?: boolean;
   onDemandBudget?: OnDemandBudgets;
   onDemandMaxSpend?: number;
+  seerEnabled?: boolean;
 };
 
 export type CheckoutFormData = BaseCheckoutData & {
@@ -35,6 +36,7 @@ export type CheckoutAPIData = BaseCheckoutData & {
   reservedSpans?: number;
   reservedTransactions?: number;
   reservedUptime?: number;
+  seer?: boolean;
 };
 
 export type StepProps = {
