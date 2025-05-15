@@ -790,7 +790,9 @@ class Enhancements:
         """Create an `Enhancements` object from a text blob containing stacktrace rules"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
-            metrics_timer_tags.update({"split": version == 3, "source": "rules_text"})
+            metrics_timer_tags.update(
+                {"split": version == 3, "source": "rules_text", "referrer": referrer}
+            )
 
             rust_enhancements = get_rust_enhancements("config_string", rules_text)
             rules = parse_enhancements(rules_text)
