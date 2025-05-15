@@ -69,51 +69,50 @@ def test_synthetic_baseline_kl():
     The distributions of error_code and device are kept the same.
     """
 
+    baseline = [
+        ("country", "fr", 249871.0),
+        ("country", "us", 249662.0),
+        ("country", "uk", 249366.0),
+        ("country", "de", 249166.0),
+        ("device", "tablet", 333215.0),
+        ("device", "mobile", 332586.0),
+        ("device", "desktop", 332264.0),
+        ("error_code", "404", 333386.0),
+        ("error_code", "400", 332364.0),
+        ("error_code", "504", 332315.0),
+        ("browser", "edge", 249804.0),
+        ("browser", "firefox", 249578.0),
+        ("browser", "chrome", 249489.0),
+        ("browser", "safari", 249194.0),
+    ]
+    outliers = [
+        ("country", "fr", 987.0),
+        ("country", "uk", 381.0),
+        ("country", "us", 367.0),
+        ("country", "de", 200.0),
+        ("device", "desktop", 695.0),
+        ("device", "mobile", 638.0),
+        ("device", "tablet", 602.0),
+        ("error_code", "404", 691.0),
+        ("error_code", "504", 632.0),
+        ("error_code", "400", 612.0),
+        ("browser", "unknown", 1351.0),
+        ("browser", "safari", 197.0),
+        ("browser", "edge", 195.0),
+        ("browser", "firefox", 192.0),
+    ]
 
-baseline = [
-    ("country", "fr", 249871.0),
-    ("country", "us", 249662.0),
-    ("country", "uk", 249366.0),
-    ("country", "de", 249166.0),
-    ("device", "tablet", 333215.0),
-    ("device", "mobile", 332586.0),
-    ("device", "desktop", 332264.0),
-    ("error_code", "404", 333386.0),
-    ("error_code", "400", 332364.0),
-    ("error_code", "504", 332315.0),
-    ("browser", "edge", 249804.0),
-    ("browser", "firefox", 249578.0),
-    ("browser", "chrome", 249489.0),
-    ("browser", "safari", 249194.0),
-]
-outliers = [
-    ("country", "fr", 987.0),
-    ("country", "uk", 381.0),
-    ("country", "us", 367.0),
-    ("country", "de", 200.0),
-    ("device", "desktop", 695.0),
-    ("device", "mobile", 638.0),
-    ("device", "tablet", 602.0),
-    ("error_code", "404", 691.0),
-    ("error_code", "504", 632.0),
-    ("error_code", "400", 612.0),
-    ("browser", "unknown", 1351.0),
-    ("browser", "safari", 197.0),
-    ("browser", "edge", 195.0),
-    ("browser", "firefox", 192.0),
-]
-
-scores = keyed_kl_score(
-    baseline,
-    outliers,
-    total_baseline=998065,  # hardcoded
-    total_outliers=1935,  # hardcoded
-)
-atributes = [s[0] for s in scores]
-assert atributes == ["browser", "country", "device", "error_code"]
-kl_scores = [s[1] for s in scores]
-assert math.isclose(kl_scores[0], 3.9547, rel_tol=1e-3)
-assert math.isclose(kl_scores[1], 0.17, abs_tol=1e-3)
+    scores = keyed_kl_score(
+        baseline,
+        outliers,
+        total_baseline=998065,  # hardcoded
+        total_outliers=1935,  # hardcoded
+    )
+    attributes = [s[0] for s in scores]
+    assert attributes == ["browser", "country", "device", "error_code"]
+    kl_scores = [s[1] for s in scores]
+    assert math.isclose(kl_scores[0], 3.9547, rel_tol=1e-3)
+    assert math.isclose(kl_scores[1], 0.17, abs_tol=1e-3)
 
 
 def test_zero_kl():
