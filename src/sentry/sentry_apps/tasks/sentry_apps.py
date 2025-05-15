@@ -556,7 +556,12 @@ def workflow_notification(
 )
 @retry_decorator
 def build_comment_webhook(
-    installation_id: int, issue_id: int, type: str, user_id: int, *args: Any, **kwargs: Any
+    installation_id: int,
+    issue_id: int,
+    type: str,
+    user_id: int,
+    data: dict[str, Any],
+    **kwargs: Any,
 ) -> None:
     event = SentryAppEventType(type)
     with SentryAppInteractionEvent(
@@ -565,7 +570,7 @@ def build_comment_webhook(
     ).capture():
         webhook_data = get_webhook_data(installation_id, issue_id, user_id)
         install, _, user = webhook_data
-        data = kwargs.get("data", {})
+
         project_slug = data.get("project_slug")
         comment_id = data.get("comment_id")
         payload = {

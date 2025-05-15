@@ -60,7 +60,7 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
     name: 'LogsPageParamsContext',
   });
 
-export interface LogsPageParamsProviderProps {
+interface LogsPageParamsProviderProps {
   analyticsPageSource: LogsAnalyticsPageSource;
   children: React.ReactNode;
   blockRowExpanding?: boolean;

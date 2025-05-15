@@ -31,6 +31,7 @@ class DetectorType(Enum):
     HTTP_OVERHEAD = "http_overhead"
     EXPERIMENTAL_N_PLUS_ONE_API_CALLS = "experimental_n_plus_one_api_calls"
     EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES = "experimental_n_plus_one_db_queries"
+    EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES = "experimental_m_n_plus_one_db_queries"
 
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -45,6 +46,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
     DetectorType.M_N_PLUS_ONE_DB: "performance.issues.m_n_plus_one_db.problem-creation",
+    DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
     DetectorType.DB_MAIN_THREAD: "performance.issues.db_main_thread.problem-creation",
     DetectorType.HTTP_OVERHEAD: "performance.issues.http_overhead.problem-creation",
 }

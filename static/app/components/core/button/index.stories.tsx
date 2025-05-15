@@ -18,16 +18,12 @@ export default storyBook('Button', (story, APIReference) => {
       : ['default', 'primary', 'link', 'danger'];
 
     const propMatrix: PropMatrix<ButtonProps> = {
-      borderless: [false, true],
-      busy: [false, true],
       children: ['Delete', undefined],
       icon: [undefined, <IconDelete key="delete" />],
       priority: variants as Array<ButtonProps['priority']>,
       size: ['md', 'sm', 'xs', 'zero'],
       disabled: [false, true],
-      external: [false, true],
       title: [undefined, 'Delete this'],
-      translucentBorder: [false, true],
     };
 
     return (
