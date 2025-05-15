@@ -809,7 +809,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             description=widget_data.get("description", None),
             thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
-            widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
+            widget_type=widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS),
             discover_widget_split=widget_data.get("discover_widget_split", None),
             order=order,
             limit=widget_data.get("limit", None),
