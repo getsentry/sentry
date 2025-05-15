@@ -6,7 +6,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Select} from 'sentry/components/core/select';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OnboardingStep} from 'sentry/views/codecov/tests/onboarding/onboardingStep';
+import {OnboardingStep} from 'sentry/views/codecov/tests/onboardingSteps/onboardingStep';
 
 interface OutputCoverageFileProps {
   stepString: string;
