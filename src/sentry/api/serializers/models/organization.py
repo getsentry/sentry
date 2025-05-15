@@ -174,6 +174,10 @@ class BaseOrganizationSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 f'This slug "{value}" is too short. Minimum of 3 characters.'
             )
+        if value.lower() != value:
+            raise serializers.ValidationError(
+                f'This slug "{value}" should not contain uppercase symbols.'
+            )
         if value in RESERVED_ORGANIZATION_SLUGS:
             raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
         qs = Organization.objects.filter(slug=value)

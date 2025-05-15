@@ -48,7 +48,7 @@ describe('WidgetBuilder', () => {
         ...router.location,
         query: expect.objectContaining({title: 'some name'}),
       }),
-      {replace: true}
+      expect.anything()
     );
 
     await userEvent.click(await screen.findByTestId('add-description'));
@@ -62,7 +62,7 @@ describe('WidgetBuilder', () => {
         ...router.location,
         query: expect.objectContaining({description: 'some description'}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 

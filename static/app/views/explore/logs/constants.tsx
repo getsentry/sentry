@@ -42,6 +42,7 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
 
   // deprecated/otel fields that clutter the UI
   'sentry.timestamp_nanos',
+  'sentry.observed_timestamp_nanos',
   'tags[sentry.timestamp_precise,number]',
   'tags[sentry.trace_flags,number]',
   'span_id',

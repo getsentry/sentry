@@ -419,6 +419,17 @@ class PerformanceMNPlusOneDBQueriesGroupType(PerformanceGroupTypeDefaults, Group
 
 
 @dataclass(frozen=True)
+class PerformanceMNPlusOneDBQueriesExperimentalGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1911
+    slug = "performance_m_n_plus_one_db_queries_experimental"
+    description = "MN+1 Query (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
 class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1012
     slug = "performance_uncompressed_assets"

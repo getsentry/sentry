@@ -149,12 +149,15 @@ function WidgetBuilderSlideout({
         setCustomizeFromLibrary(false);
         setOpenWidgetTemplates(true);
         // clears the widget to start fresh on the library page
-        navigate({
-          pathname: location.pathname,
-          query: {
-            ...pick(location.query, [...Object.values(URL_PARAM)]),
+        navigate(
+          {
+            pathname: location.pathname,
+            query: {
+              ...pick(location.query, [...Object.values(URL_PARAM)]),
+            },
           },
-        });
+          {preventScrollReset: true}
+        );
       }}
     >
       {t('Widget Library')}
@@ -222,6 +225,9 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
             </div>
+            <Section>
+              <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+            </Section>
             <WidgetTemplatesList
               onSave={onSave}
               setOpenWidgetTemplates={setOpenWidgetTemplates}
@@ -232,7 +238,7 @@ function WidgetBuilderSlideout({
         ) : (
           <Fragment>
             <Section>
-              <WidgetBuilderFilterBar />
+              <WidgetBuilderNameAndDescription error={error} setError={setError} />
             </Section>
             <Section>
               <WidgetBuilderDatasetSelector />
@@ -253,6 +259,11 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
             </div>
+            {isSmallScreen && (
+              <Section>
+                <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+              </Section>
+            )}
             <Section>
               <Visualize error={error} setError={setError} />
             </Section>
@@ -284,9 +295,6 @@ function WidgetBuilderSlideout({
                 <WidgetBuilderSortBySelector />
               </Section>
             )}
-            <Section>
-              <WidgetBuilderNameAndDescription error={error} setError={setError} />
-            </Section>
             <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
           </Fragment>
         )}
