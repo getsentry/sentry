@@ -280,9 +280,8 @@ def process_event(
             # save_event. Pass data explicitly to avoid fetching it again from the
             # cache.
             with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
-                assert cache_key is not None
                 preprocess_event(
-                    cache_key=cache_key,
+                    cache_key=cache_key or "",
                     data=data,
                     start_time=start_time,
                     event_id=event_id,
