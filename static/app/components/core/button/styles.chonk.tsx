@@ -33,7 +33,7 @@ function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType
   }
 }
 
-export function getChonkButtonStyles(
+export function DO_NOT_USE_getChonkButtonStyles(
   p: Pick<ButtonProps, 'size' | 'priority' | 'busy' | 'disabled' | 'borderless'> & {
     theme: DO_NOT_USE_ChonkTheme;
   }
