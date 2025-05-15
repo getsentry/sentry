@@ -462,3 +462,11 @@ def update_snuba_params_with_timestamp(
 
         params.start = max(params.start_date, example_start)
         params.end = min(params.end_date, example_end)
+
+
+def reformat_timestamp_ms_to_isoformat(timestamp_ms: str) -> Any:
+    """
+    `timestamp_ms` arrives from Snuba in a slightly different format (no `T` and no timezone), so we convert to datetime and
+    back to isoformat to keep it standardized with other timestamp fields
+    """
+    return datetime.datetime.fromisoformat(timestamp_ms).astimezone().isoformat()
