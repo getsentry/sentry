@@ -290,7 +290,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     const img = containers.get(e.data.id);
     if (img) {
       if (target instanceof HTMLCanvasElement) {
-          img.src = target.toDataURL();
+        img.src = target.toDataURL();
       }
       img.style.maxWidth = '100%';
       img.style.maxHeight = '100%';
