@@ -32,6 +32,8 @@ type Props = {
   dashboardPermissions?: DashboardPermissions;
   isMobile?: boolean;
   isPreview?: boolean;
+  newlyAddedWidget?: Widget;
+  onNewWidgetScrollComplete?: () => void;
   windowWidth?: number;
 };
 
@@ -53,6 +55,8 @@ function SortableWidget(props: Props) {
     widgetLegendState,
     dashboardPermissions,
     dashboardCreator,
+    newlyAddedWidget,
+    onNewWidgetScrollComplete,
   } = props;
 
   const organization = useOrganization();
@@ -67,10 +71,14 @@ function SortableWidget(props: Props) {
   );
 
   useEffect(() => {
-    if (widgetRef.current) {
+    const isMatchingWidget = isEditingDashboard
+      ? widget.tempId === newlyAddedWidget?.tempId
+      : widget.id === newlyAddedWidget?.id;
+    if (widgetRef.current && newlyAddedWidget && isMatchingWidget) {
       widgetRef.current.scrollIntoView({behavior: 'smooth', block: 'center'});
+      onNewWidgetScrollComplete?.();
     }
-  }, [widget.id, widget.tempId]);
+  }, [newlyAddedWidget, widget, isEditingDashboard, onNewWidgetScrollComplete]);
 
   const widgetProps: ComponentProps<typeof WidgetCard> = {
     widget,
