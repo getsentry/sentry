@@ -18,7 +18,7 @@ import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/s
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
-export function DurationWidget() {
+export function DurationWidget({title}: {title: string}) {
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams();
@@ -79,7 +79,7 @@ export function DurationWidget() {
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Duration'),
+                title,
                 children: <ModalChartContainer>{visualization}</ModalChartContainer>,
               });
             }}
@@ -88,4 +88,12 @@ export function DurationWidget() {
       }
     />
   );
+}
+
+export function DurationWidgetLaravel() {
+  return <DurationWidget title={t('Duration')} />;
+}
+
+export function DurationWidgetNextJS() {
+  return <DurationWidget title={t('API Latency')} />;
 }
