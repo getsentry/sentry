@@ -3,7 +3,8 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import GridEditable from 'sentry/components/gridEditable';

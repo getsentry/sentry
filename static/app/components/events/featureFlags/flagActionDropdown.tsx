@@ -83,8 +83,10 @@ const StyledDropdownMenu = styled(DropdownMenu)`
   }
 
   .flag-button {
-    height: 20px;
-    min-height: 20px;
+    height: 15px;
+    min-height: 15px;
+    width: 25px;
+    margin-top: ${space(0.5)};
     padding: 0 ${space(0.75)};
     border-radius: ${space(0.5)};
     z-index: 0;

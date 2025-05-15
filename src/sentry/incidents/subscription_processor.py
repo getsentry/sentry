@@ -427,12 +427,12 @@ class SubscriptionProcessor:
                 self.alert_rule.organization,
             ):
                 logger.info(
-                    "dual processing results for alert rule %s",
-                    self.alert_rule.id,
+                    "dual processing results for alert rule",
                     extra={
                         "results": results,
                         "num_results": len(results),
                         "value": aggregation_value,
+                        "rule_id": self.alert_rule.id,
                     },
                 )
 

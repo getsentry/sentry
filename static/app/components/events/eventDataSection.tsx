@@ -30,6 +30,7 @@ export interface EventDataSectionProps {
    * you want the overlay to be interactive)
    */
   isHelpHoverable?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * Should the permalink be enabled for this section?
    *
