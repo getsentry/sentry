@@ -117,7 +117,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             order=0,
             title="Existing Widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
             interval="1d",
         )
         DashboardWidgetQuery.objects.create(
@@ -310,7 +310,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             order=0,
             title="Big Number Widget",
             display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
-            widget_type=DashboardWidgetTypes.DISCOVER,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
             interval="1d",
         )
         DashboardWidgetQuery.objects.create(
@@ -475,7 +475,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
                     order=i,
                     title=f"Existing Widget {i}",
                     display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-                    widget_type=DashboardWidgetTypes.DISCOVER,
+                    widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
                     interval="1d",
                     detail={"layout": layout},
                 )

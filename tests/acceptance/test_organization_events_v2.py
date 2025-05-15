@@ -7,7 +7,7 @@ import pytest
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
@@ -557,7 +557,11 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             name="Custom query",
             organization=self.org,
             version=2,
-            query={"fields": ["title", "project.id", "count()"], "query": "event.type:error"},
+            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            query={
+                "fields": ["title", "project.id", "count()"],
+                "query": "event.type:error",
+            },
         )
         with self.feature(FEATURE_NAMES):
             # View the query list
@@ -621,6 +625,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             name="Custom query",
             organization=self.org,
             version=2,
+            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
             query={"fields": ["title", "project.id", "count()"], "query": "event.type:error"},
         )
         with self.feature(FEATURE_NAMES):
