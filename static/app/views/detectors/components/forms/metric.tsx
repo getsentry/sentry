@@ -25,6 +25,10 @@ import {
   MobileVital,
   WebVital,
 } from 'sentry/utils/fields';
+import {
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+} from 'sentry/views/alerts/rules/metric/types';
 
 type MetricDetectorKind = 'threshold' | 'change' | 'dynamic';
 
@@ -179,64 +183,94 @@ function DetectSection() {
             ],
           ]}
         />
-        {kind !== 'dynamic' && (
-          <Flex column>
-            {(!kind || kind === 'threshold') && (
-              <Flex column>
-                <MutedText>An issue will be created when query value exceeds:</MutedText>
-                <ThresholdField
-                  flexibleControlStateSize
-                  inline={false}
-                  hideLabel
+        <Flex column>
+          {(!kind || kind === 'threshold') && (
+            <Flex column>
+              <MutedText>An issue will be created when query value exceeds:</MutedText>
+              <ThresholdField
+                flexibleControlStateSize
+                inline={false}
+                hideLabel
+                placeholder="0"
+                name="config.low_threshold"
+                suffix="s"
+              />
+            </Flex>
+          )}
+          {kind === 'change' && (
+            <Flex column>
+              <MutedText>An issue will be created when query value is:</MutedText>
+              <Flex align="center" gap={space(1)}>
+                <ChangePercentField
+                  name="config.low_threshold.change"
                   placeholder="0"
-                  name="config.low_threshold"
-                  suffix="s"
+                  hideLabel
+                  inline
+                />
+                <span>percent</span>
+                <DirectionField
+                  name="config.low_threshold.direction"
+                  hideLabel
+                  inline
+                  defaultValue="higher"
+                  flexibleControlStateSize
+                  choices={[
+                    ['higher', t('higher')],
+                    ['lower', t('lower')],
+                  ]}
+                />
+                <span>than the previous</span>
+                <StyledSelectField
+                  name="config.low_threshold.unit"
+                  hideLabel
+                  inline
+                  defaultValue="1 hour"
+                  flexibleControlStateSize
+                  choices={[
+                    ['5 minutes', '5 minutes'],
+                    ['15 minutes', '15 minutes'],
+                    ['1 hour', '1 hour'],
+                    ['1 day', '1 day'],
+                    ['1 week', '1 week'],
+                    ['1 month', '1 month'],
+                  ]}
                 />
               </Flex>
-            )}
-            {kind === 'change' && (
-              <Flex column>
-                <MutedText>An issue will be created when query value is:</MutedText>
-                <Flex align="center" gap={space(1)}>
-                  <ChangePercentField
-                    name="config.low_threshold.change"
-                    placeholder="0"
-                    hideLabel
-                    inline
-                  />
-                  <span>percent</span>
-                  <DirectionField
-                    name="config.low_threshold.direction"
-                    hideLabel
-                    inline
-                    defaultValue="higher"
-                    flexibleControlStateSize
-                    choices={[
-                      ['higher', t('higher')],
-                      ['lower', t('lower')],
-                    ]}
-                  />
-                  <span>than the previous</span>
-                  <StyledSelectField
-                    name="config.low_threshold.unit"
-                    hideLabel
-                    inline
-                    defaultValue="1 hour"
-                    flexibleControlStateSize
-                    choices={[
-                      ['5 minutes', '5 minutes'],
-                      ['15 minutes', '15 minutes'],
-                      ['1 hour', '1 hour'],
-                      ['1 day', '1 day'],
-                      ['1 week', '1 week'],
-                      ['1 month', '1 month'],
-                    ]}
-                  />
-                </Flex>
-              </Flex>
-            )}
-          </Flex>
-        )}
+            </Flex>
+          )}
+          {kind === 'dynamic' && (
+            <Flex column>
+              <SelectField
+                required
+                name="config.sensitivity"
+                label={t('Level of responsiveness')}
+                help={t(
+                  'Choose your level of anomaly responsiveness. Higher thresholds means alerts for most anomalies. Lower thresholds means alerts only for larger ones.'
+                )}
+                defaultValue={AlertRuleSensitivity.MEDIUM}
+                choices={[
+                  [AlertRuleSensitivity.HIGH, t('High')],
+                  [AlertRuleSensitivity.MEDIUM, t('Medium')],
+                  [AlertRuleSensitivity.LOW, t('Low')],
+                ]}
+              />
+              <SelectField
+                required
+                name="config.thresholdType"
+                label={t('Direction of anomaly movement')}
+                help={t(
+                  'Decide if you want to be alerted to anomalies that are moving above, below, or in both directions in relation to your threshold.'
+                )}
+                defaultValue={AlertRuleThresholdType.ABOVE_AND_BELOW}
+                choices={[
+                  [AlertRuleThresholdType.ABOVE, t('Above')],
+                  [AlertRuleThresholdType.ABOVE_AND_BELOW, t('Above and Below')],
+                  [AlertRuleThresholdType.BELOW, t('Below')],
+                ]}
+              />
+            </Flex>
+          )}
+        </Flex>
       </Section>
     </Container>
   );
