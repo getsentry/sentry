@@ -120,7 +120,6 @@ function Grid(props: GridProps) {
                 token={token}
                 item={item}
                 state={state}
-                gridWrapperRef={ref}
               />
             );
           case Token.FREE_TEXT:
