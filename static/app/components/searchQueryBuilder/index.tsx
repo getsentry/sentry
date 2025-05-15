@@ -152,8 +152,9 @@ function SearchIndicator({
 function ActionButtons({
   ref,
   trailingItems = null,
-}: {trailingItems?: React.ReactNode} & {
+}: {
   ref?: React.Ref<HTMLDivElement>;
+  trailingItems?: React.ReactNode;
 }) {
   const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
 
