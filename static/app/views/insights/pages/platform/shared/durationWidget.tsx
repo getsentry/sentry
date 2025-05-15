@@ -60,7 +60,7 @@ export function DurationWidget({title}: {title: string}) {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Duration')} />}
+      Title={<Widget.WidgetTitle title={title} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
@@ -90,7 +90,7 @@ export function DurationWidget({title}: {title: string}) {
   );
 }
 
-export function DurationWidgetLaravel() {
+export function DurationWidgetBackend() {
   return <DurationWidget title={t('Duration')} />;
 }
 

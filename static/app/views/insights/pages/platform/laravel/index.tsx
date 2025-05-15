@@ -6,7 +6,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
 import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
 import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
-import {DurationWidgetLaravel} from 'sentry/views/insights/pages/platform/shared/durationWidget';
+import {DurationWidgetBackend} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
 import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
@@ -34,7 +34,7 @@ export function LaravelOverviewPage() {
           />
         </WidgetGrid.Position1>
         <WidgetGrid.Position2>
-          <DurationWidgetLaravel />
+          <DurationWidgetBackend />
         </WidgetGrid.Position2>
         <WidgetGrid.Position3>
           <IssuesWidget />

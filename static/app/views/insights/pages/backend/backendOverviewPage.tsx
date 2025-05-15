@@ -52,7 +52,7 @@ import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/querie
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
-import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
+import {DurationWidgetBackend} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
@@ -232,7 +232,7 @@ function EAPBackendOverviewPage() {
                       trafficSeriesName={t('Requests')}
                       baseQuery={'span.op:http.server'}
                     />
-                    <DurationWidget />
+                    <DurationWidgetBackend />
                   </StackedWidgetWrapper>
                 </ModuleLayout.Third>
                 <ModuleLayout.TwoThirds>
