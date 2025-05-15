@@ -381,6 +381,7 @@ def update_existing_check_in(
     updated_checkin: _CheckinUpdateKwargs = {
         "status": updated_status,
         "duration": updated_duration,
+        "date_updated": start_time,
     }
 
     # XXX(epurkhiser): We currently allow a existing timed-out check-in to
@@ -394,7 +395,7 @@ def update_existing_check_in(
     if updated_duration_only:
         del updated_checkin["status"]
 
-    # IN_PROGRESS heartbeats bump the timeout
+    # IN_PROGRESS heartbeats bump the timeout, terminal staus's set None
     updated_checkin["timeout_at"] = get_new_timeout_at(
         existing_check_in,
         updated_status,
@@ -405,12 +406,10 @@ def update_existing_check_in(
         tags={**metric_kwargs, "status": "updated_existing_checkin"},
     )
 
-    # IN_PROGRESS heartbeats bump the date_updated
+    # XXX(epurkhiser): Tracking metrics on updating the date_updated since
+    # we may want to remove this 'heart-beat' feature at some point.
     if updated_status == CheckInStatus.IN_PROGRESS:
-        # XXX(epurkhiser): Tracking metrics on updating the date_updated since
-        # we may weant to remove this 'heart-beat' feature.
         metrics.incr("monitors.in_progress_heart_beat", tags=metric_kwargs)
-        updated_checkin["date_updated"] = start_time
 
     existing_check_in.update(**updated_checkin)
 
