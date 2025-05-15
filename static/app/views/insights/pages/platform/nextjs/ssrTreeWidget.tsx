@@ -207,7 +207,9 @@ export default function SSRTreeWidget() {
   return (
     <Widget
       Title={<Widget.WidgetTitle title={WIDGET_TITLE} />}
-      Visualization={<VisualizationWrapper>{visualization}</VisualizationWrapper>}
+      Visualization={
+        <VisualizationWrapper hide={!hasData}>{visualization}</VisualizationWrapper>
+      }
       noVisualizationPadding
       revealActions="always"
       Actions={
@@ -438,10 +440,17 @@ function TreeNodeRenderer({
 TreeWidgetVisualization.LoadingPlaceholder =
   TimeSeriesWidgetVisualization.LoadingPlaceholder;
 
-const VisualizationWrapper = styled('div')`
+const VisualizationWrapper = styled('div')<{hide: boolean}>`
   margin-top: ${space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
   overflow-y: auto;
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  ${p =>
+    p.hide &&
+    css`
+      display: contents;
+    `}
 `;
 
 const HeaderCell = styled('div')`
