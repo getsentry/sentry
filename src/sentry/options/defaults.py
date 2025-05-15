@@ -3107,6 +3107,12 @@ register(
 )
 
 # Taskbroker flags
+register(
+    "taskworker.try_compress.profile_metrics",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "taskworker.route.overrides",
