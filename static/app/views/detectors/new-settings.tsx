@@ -1,5 +1,9 @@
+import {useCallback, useMemo} from 'react';
+
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import FormModel from 'sentry/components/forms/model';
 import {
   StickyFooter,
   StickyFooterLabel,
@@ -7,18 +11,31 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
+import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import NewDetectorLayout from 'sentry/views/detectors/layouts/new';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 export default function DetectorNewSettings() {
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
+  const navigate = useNavigate();
+  const model = useMemo(() => new FormModel(), []);
+
+  const {mutateAsync: createDetector} = useCreateDetector();
+
+  const handleSubmit = useCallback(async () => {
+    const data = model.getData() as unknown as Detector;
+    const result = await createDetector(data);
+    navigate(`${makeMonitorBasePathname(organization.slug)}${result.id}`);
+  }, [createDetector, model, navigate, organization]);
 
   return (
     <NewDetectorLayout>
-      <MetricDetectorForm />
+      <MetricDetectorForm model={model} />
       <StickyFooter>
         <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
@@ -28,9 +45,9 @@ export default function DetectorNewSettings() {
           >
             {t('Back')}
           </LinkButton>
-          <LinkButton priority="primary" to="/issues/monitors/1">
+          <Button priority="primary" onClick={handleSubmit}>
             {t('Create Monitor')}
-          </LinkButton>
+          </Button>
         </Flex>
       </StickyFooter>
     </NewDetectorLayout>

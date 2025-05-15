@@ -1,5 +1,13 @@
+import {t} from 'sentry/locale';
+import AlertStore from 'sentry/stores/alertStore';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
+import {
+  useApiQueries,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export interface UseDetectorsQueryOptions {
@@ -17,6 +25,27 @@ export function useDetectorsQuery(_options: UseDetectorsQueryOptions = {}) {
 export const makeDetectorQueryKey = (orgSlug: string, detectorId = ''): [url: string] => [
   `/organizations/${orgSlug}/detectors/${detectorId ? `${detectorId}/` : ''}`,
 ];
+
+export function useCreateDetector() {
+  const org = useOrganization();
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+  const queryKey = makeDetectorQueryKey(org.slug);
+
+  return useMutation<Detector, void, Detector>({
+    mutationFn: data =>
+      api.requestPromise(queryKey[0], {
+        method: 'POST',
+        data,
+      }),
+    onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey});
+    },
+    onError: _ => {
+      AlertStore.addAlert({type: 'error', message: t('Unable to create monitor')});
+    },
+  });
+}
 
 export function useDetectorQuery(detectorId: string) {
   const org = useOrganization();

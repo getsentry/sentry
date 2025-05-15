@@ -8,6 +8,7 @@ import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioFi
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import Form from 'sentry/components/forms/form';
+import type FormModel from 'sentry/components/forms/model';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
@@ -32,9 +33,9 @@ import {
 
 type MetricDetectorKind = 'threshold' | 'change' | 'dynamic';
 
-export function MetricDetectorForm() {
+export function MetricDetectorForm({model}: {model: FormModel}) {
   return (
-    <Form hideFooter>
+    <Form hideFooter model={model}>
       <ChartContainer>
         <MockChart />
       </ChartContainer>
