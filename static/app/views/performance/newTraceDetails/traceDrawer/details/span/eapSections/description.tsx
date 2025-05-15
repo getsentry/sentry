@@ -22,6 +22,7 @@ import {
   LOCAL_STORAGE_SHOW_LINKS,
   MissingImage,
 } from 'sentry/views/insights/browser/resources/components/sampleImages';
+import {useEventDetails} from 'sentry/views/insights/common/queries/useEventDetails';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {
   MissingFrame,
@@ -63,6 +64,10 @@ export function SpanDescription({
   organization: Organization;
   project: Project | undefined;
 }) {
+  const {data: event} = useEventDetails({
+    eventId: node.event?.eventID,
+    projectSlug: project?.slug,
+  });
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
 
@@ -160,7 +165,7 @@ export function SpanDescription({
         {codeFilepath ? (
           <StackTraceMiniFrame
             projectId={node.event?.projectID}
-            eventId={node.event?.eventID}
+            event={event}
             frame={{
               filename: codeFilepath,
               lineNo: codeLineNumber ? Number(codeLineNumber) : null,

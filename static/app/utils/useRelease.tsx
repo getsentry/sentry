@@ -19,14 +19,17 @@ export function useRelease({
   orgSlug,
   projectSlug,
   releaseVersion,
+  enabled,
 }: {
   orgSlug: string;
   projectSlug: string;
   releaseVersion: string;
+  enabled?: boolean;
 }) {
   return useApiQuery<Release>(
     getReleaseQueryKey({orgSlug, projectSlug, releaseVersion}),
     {
+      enabled,
       staleTime: Infinity,
     }
   );
