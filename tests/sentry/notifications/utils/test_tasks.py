@@ -2,11 +2,13 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
+from django.utils.functional import SimpleLazyObject
 
 from sentry.notifications.class_manager import NotificationClassNotSetException, manager, register
 from sentry.notifications.utils.tasks import _send_notification, async_send_notification
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import AnotherDummyNotification, DummyNotification
+from sentry.users.services.user.serial import serialize_generic_user
 
 
 class NotificationTaskTests(TestCase):
@@ -80,6 +82,32 @@ class NotificationTaskTests(TestCase):
                     "key": "user",
                 },
                 {"type": "other", "value": "value", "key": "key"},
+            ],
+        )
+
+    @patch("sentry.notifications.utils.tasks._send_notification.delay")
+    def test_call_task_with_lazy_object_user(self, mock_delay):
+        register()(AnotherDummyNotification)
+
+        lazyuser = SimpleLazyObject(lambda: serialize_generic_user(self.user))
+        async_send_notification(AnotherDummyNotification, user=lazyuser)
+        rpc_user = serialize_generic_user(self.user)
+        assert rpc_user
+        expected_data = rpc_user.dict()
+        expected_data["emails"] = list(expected_data["emails"])
+        expected_data["useremails"] = list(expected_data["useremails"])
+        expected_data["roles"] = list(expected_data["roles"])
+        expected_data["permissions"] = list(expected_data["permissions"])
+        expected_data["last_active"] = expected_data["last_active"].isoformat()
+
+        mock_delay.assert_called_with(
+            "AnotherDummyNotification",
+            [
+                {
+                    "type": "lazyobjectrpcuser",
+                    "data": expected_data,
+                    "key": "user",
+                },
             ],
         )
 
