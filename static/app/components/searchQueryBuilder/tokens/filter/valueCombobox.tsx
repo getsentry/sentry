@@ -68,7 +68,6 @@ import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SearchQueryValueBuilderProps = {
-  gridWrapperRef: React.RefObject<HTMLDivElement | null>;
   onCommit: () => void;
   onDelete: () => void;
   token: TokenResult<Token.FILTER>;
@@ -527,7 +526,6 @@ export function SearchQueryBuilderValueCombobox({
   onDelete,
   onCommit,
   wrapperRef,
-  gridWrapperRef,
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -832,7 +830,7 @@ export function SearchQueryBuilderValueCombobox({
           return (
             <ValueListBox
               {...props}
-              gridWrapperRef={gridWrapperRef}
+              wrapperRef={topLevelWrapperRef}
               isMultiSelect={canSelectMultipleValues}
               items={items}
               isLoading={isFetching}
@@ -874,7 +872,7 @@ export function SearchQueryBuilderValueCombobox({
       };
     }, [
       showDatePicker,
-      gridWrapperRef,
+      topLevelWrapperRef,
       canSelectMultipleValues,
       items,
       isFetching,
