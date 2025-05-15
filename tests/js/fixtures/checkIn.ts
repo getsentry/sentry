@@ -6,7 +6,7 @@ export function CheckInFixture(params: Partial<CheckIn> = {}): CheckIn {
     status: CheckInStatus.ERROR,
     duration: 767,
     environment: 'production',
-    dateCreated: '2025-01-01T00:00:00Z',
+    dateAdded: '2025-01-01T00:00:00Z',
     expectedTime: '2025-01-01T00:00:00Z',
     id: '97f0e440-317c-5bb5-b5e0-024ca202a61d',
     monitorConfig: {
