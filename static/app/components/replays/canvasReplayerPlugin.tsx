@@ -288,12 +288,17 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     });
 
     const img = containers.get(e.data.id);
-    if (img) {
-      if (target instanceof HTMLCanvasElement) {
+    if (img && target instanceof HTMLCanvasElement) {
+      try {
         img.src = target.toDataURL();
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '100%';
+      } catch (err) {
+        Sentry.logger.warn('Replay: Failed to copy canvas to image', {
+          error: err,
+          element: target.tagName,
+        });
       }
-      img.style.maxWidth = '100%';
-      img.style.maxHeight = '100%';
     }
 
     prune(e);
