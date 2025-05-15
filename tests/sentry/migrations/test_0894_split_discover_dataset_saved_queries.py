@@ -1,4 +1,5 @@
 import pytest
+
 from sentry.testutils.cases import SnubaTestCase, TestMigrations
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
