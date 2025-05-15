@@ -6,11 +6,13 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 export function TraceResetZoomButton(props: {
   organization: Organization;
   viewManager: VirtualizedViewManager;
 }) {
+  const hasTraceTabsUi = useHasTraceTabsUI();
   const onResetZoom = useCallback(() => {
     traceAnalytics.trackResetZoom(props.organization);
     props.viewManager.resetZoom();
@@ -18,6 +20,7 @@ export function TraceResetZoomButton(props: {
 
   return (
     <ResetZoomButton
+      hide={hasTraceTabsUi && props.viewManager.reset_zoom_button?.disabled !== false}
       size="xs"
       onClick={onResetZoom}
       ref={props.viewManager.registerResetZoomRef}
@@ -27,8 +30,10 @@ export function TraceResetZoomButton(props: {
   );
 }
 
-const ResetZoomButton = styled(Button)`
-  transition: opacity 0.2s 0.5s ease-in-out;
+const ResetZoomButton = styled(Button)<{
+  hide: boolean;
+}>`
+  display: ${props => (props.hide ? 'none' : 'block')};
 
   &[disabled] {
     cursor: not-allowed;

@@ -80,7 +80,10 @@ describe('NoProjectMessage', function () {
 
     render(<NoProjectMessage organization={noAccessOrg} />, {organization: noAccessOrg});
 
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('shows "Create Project" button when user has team-level access', function () {
@@ -125,7 +128,10 @@ describe('NoProjectMessage', function () {
 
     render(<NoProjectMessage organization={{...org, access: []}} />);
 
-    expect(screen.getByRole('button', {name: 'Join a Team'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Join a Team'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('shows empty message to superusers that are not members', function () {

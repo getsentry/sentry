@@ -222,7 +222,15 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
             )
 
         body_has_admin_options = any([option in request.data for option in internal_only_settings])
-        if body_has_admin_options and not superuser_has_permission(request):
+        if (
+            body_has_admin_options
+            and not superuser_has_permission(request)
+            and not features.has(
+                "organizations:performance-manage-detectors",
+                project.organization,
+                actor=request.user,
+            )
+        ):
             return Response(
                 {
                     "detail": {

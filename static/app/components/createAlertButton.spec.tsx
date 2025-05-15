@@ -78,7 +78,10 @@ describe('CreateAlertFromViewButton', () => {
       }
     );
 
-    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Create Alert'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('enables the button for org-owner/manager', () => {

@@ -45,7 +45,13 @@ export default function ConnectedMonitorsList({
     return <SimpleTable columns={connectedColumns} data={data} />;
   }
 
-  return <SimpleTable columns={baseColumns} data={data} />;
+  return (
+    <SimpleTable
+      columns={baseColumns}
+      data={data}
+      fallback={t('No monitors connected')}
+    />
+  );
 }
 
 interface BaseMonitorsData {
