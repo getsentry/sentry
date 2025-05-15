@@ -19,11 +19,11 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import withOrganizations from 'sentry/utils/withOrganizations';
+import type {NotificationSettingsType} from 'sentry/views/settings/account/notifications/constants';
 import {
   NOTIFICATION_FEATURE_MAP,
   NOTIFICATION_SETTINGS_PATHNAMES,
   NOTIFICATION_SETTINGS_TYPES,
-  type NotificationSettingsType,
   SELF_NOTIFICATION_SETTINGS_TYPES,
 } from 'sentry/views/settings/account/notifications/constants';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';

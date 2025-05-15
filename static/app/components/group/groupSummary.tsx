@@ -239,6 +239,8 @@ export function GroupSummary({
           {
             id: 'resources',
             title: t('Resources'),
+
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
             insight: `${isValidElement(config.resources?.description) ? '' : (config.resources?.description ?? '')}\n\n${config.resources?.links?.map(link => `[${link.text}](${link.link})`).join(' • ') ?? ''}`,
             insightElement: isValidElement(config.resources?.description)
               ? config.resources?.description

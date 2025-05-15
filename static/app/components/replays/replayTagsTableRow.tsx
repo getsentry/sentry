@@ -17,8 +17,8 @@ import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
 interface Props {
   name: string;
-  values: ReactNode[];
-  generateUrl?: (name: string, value: ReactNode) => LocationDescriptor;
+  values: string[];
+  generateUrl?: (name: string, value: string) => LocationDescriptor;
 }
 
 const expandedViewKeys = [

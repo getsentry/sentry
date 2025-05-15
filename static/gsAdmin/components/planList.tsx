@@ -148,6 +148,7 @@ function PlanList({
                     value={fieldValue}
                     options={(activePlan.planCategories[category] || []).map(
                       (level: {events: {toLocaleString: () => any}}) => ({
+                        // eslint-disable-next-line @typescript-eslint/no-base-to-string
                         label: level.events.toLocaleString(),
                         value: level.events,
                       })

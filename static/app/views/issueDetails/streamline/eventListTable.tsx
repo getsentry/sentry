@@ -51,9 +51,9 @@ interface EventListTableProps {
     tableUnits?: string;
     /**
      * The total number of results for this table across all pages
-     * Needs to be a ReactNode for <EventsTable /> to work.
+     * Needs to be a string | number for <EventsTable /> to work.
      */
-    totalCount?: React.ReactNode;
+    totalCount?: string | number;
   };
   /**
    * The title of the table

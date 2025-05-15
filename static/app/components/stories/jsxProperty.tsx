@@ -39,7 +39,12 @@ export default function JSXProperty({name, value}: Props) {
     if (value.type === JSXNode) {
       return <code data-property="element">{[`${name}={`, value, '}']}</code>;
     }
-    return <code data-property="element">{`${name}=${value}`}</code>;
+    return (
+      <code data-property="element">
+        {`${name}=`}
+        {value}
+      </code>
+    );
   }
   return <code data-property="object">{`${name}={${JSON.stringify(value)}}`}</code>;
 }
