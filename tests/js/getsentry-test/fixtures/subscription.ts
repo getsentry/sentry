@@ -10,7 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription as TSubscription} from 'getsentry/types';
-import {BillingType} from 'getsentry/types';
+import {BillingType, ReservedBudgetCategoryType} from 'getsentry/types';
 
 type Props = Partial<TSubscription> & {organization: Organization};
 
@@ -406,6 +406,15 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
   subscription.reservedBudgets = [
     ReservedBudgetFixture({
       id: '11',
+      apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
+      budgetCategoryType: 'DYNAMIC_SAMPLING',
+      canProductTrial: false,
+      dataCategories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
+      defaultBudget: null,
+      docLink: '',
+      isFixed: false,
+      name: 'spans budget',
+      productName: 'dynamic sampling',
       reservedBudget: 100_000_00,
       totalReservedSpend: 60_000_00,
       freeBudget: 0,

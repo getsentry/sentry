@@ -2,13 +2,14 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 export const enum TraceContextSectionKeys {
@@ -63,7 +64,7 @@ function ScrollToSectionLinks({
   tree,
   logs,
 }: {
-  logs: OurLogsResponseItem[];
+  logs: OurLogsResponseItem[] | undefined;
   rootEventResults: TraceRootEventQueryResults;
   tree: TraceTree;
 }) {
@@ -73,6 +74,11 @@ function ScrollToSectionLinks({
     rootEventResults,
     logs,
   });
+  const hasTraceTabsUi = useHasTraceTabsUI();
+
+  if (hasTraceTabsUi) {
+    return null;
+  }
 
   return hasVitals || hasTags || hasProfiles || hasLogs ? (
     <StyledScrollCarousel gap={1} aria-label={t('Jump to:')}>

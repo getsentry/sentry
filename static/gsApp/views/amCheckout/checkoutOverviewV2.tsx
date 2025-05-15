@@ -11,7 +11,11 @@ import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
-import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
+import {
+  PAYG_BUSINESS_DEFAULT,
+  PAYG_TEAM_DEFAULT,
+  SEER_MONTHLY_PRICE_CENTS,
+} from 'getsentry/constants';
 import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
 import {formatReservedWithUnits, isBizPlanFamily} from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
@@ -28,7 +32,12 @@ type Props = {
   discountInfo?: Promotion['discountInfo'];
 };
 
-function CheckoutOverviewV2({activePlan, formData}: Props) {
+function CheckoutOverviewV2({
+  activePlan,
+  formData,
+  onUpdate: _onUpdate,
+  organization,
+}: Props) {
   const shortInterval = useMemo(() => {
     return utils.getShortInterval(activePlan.billingInterval);
   }, [activePlan.billingInterval]);
@@ -44,6 +53,9 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
     () => (formData.onDemandMaxSpend ?? 0) > 0,
     [formData.onDemandMaxSpend]
   );
+
+  const hasSeerEnabled = !!formData.seerEnabled;
+  const hasSeerFeature = organization.features.includes('seer-billing');
 
   const renderPlanDetails = () => {
     return (
@@ -66,6 +78,56 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
         </SpaceBetweenRow>
       </PanelChild>
     );
+  };
+
+  const renderAdditionalFeatureSummary = ({
+    featureKey,
+    featureEnabled,
+    featureAvailable,
+    title,
+    tooltipTitle,
+    priceCents,
+  }: {
+    featureAvailable: boolean;
+    featureEnabled: boolean;
+    featureKey: string;
+    priceCents: number;
+    title: string;
+    tooltipTitle: string;
+  }) => {
+    return (
+      featureAvailable &&
+      featureEnabled && (
+        <PanelChild data-test-id={`${featureKey}-summary`}>
+          <SpaceBetweenRow style={{alignItems: 'start'}}>
+            <Column>
+              <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
+                <Title>
+                  {title}
+                  &nbsp;&nbsp;
+                  <QuestionTooltip size="xs" title={tooltipTitle} />
+                </Title>
+              </div>
+            </Column>
+            <Column minWidth="150px" alignItems="end">
+              <Title>{`+${utils.displayPrice({cents: priceCents})}/mo`}</Title>
+              <Description>Additional usage billed separately</Description>
+            </Column>
+          </SpaceBetweenRow>
+        </PanelChild>
+      )
+    );
+  };
+
+  const renderSeerSummary = () => {
+    return renderAdditionalFeatureSummary({
+      featureKey: 'seer',
+      featureEnabled: hasSeerEnabled,
+      featureAvailable: hasSeerFeature,
+      title: t('Sentry AI Agent'),
+      tooltipTitle: t('Additional Seer information.'),
+      priceCents: SEER_MONTHLY_PRICE_CENTS,
+    });
   };
 
   const renderPayAsYouGoBudget = (paygBudgetTotal: number) => {
@@ -120,89 +182,88 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
       <Section>
         <Subtitle>{t('All Sentry Products')}</Subtitle>
         <ReservedVolumes>
-          {activePlan.categories.map(category => {
-            const eventBucket =
-              activePlan.planCategories[category] &&
-              activePlan.planCategories[category].length <= 1
-                ? null
-                : utils.getBucket({
-                    events: formData.reserved[category],
-                    buckets: activePlan.planCategories[category],
-                  });
-            const price = utils.displayPrice({
-              cents: eventBucket ? eventBucket.price : 0,
-            });
-            const isMoreThanIncluded =
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              formData.reserved[category] > activePlan.planCategories[category][0].events;
-            return (
-              <SpaceBetweenRow
-                key={category}
-                data-test-id={`${category}-reserved`}
-                style={{alignItems: 'center'}}
-              >
-                <ReservedItem>
-                  {
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    formData.reserved[category] > 0 && (
+          {activePlan.categories
+            .filter(category => activePlan.planCategories[category])
+            .map(category => {
+              const eventBucket =
+                activePlan.planCategories[category] &&
+                activePlan.planCategories[category].length <= 1
+                  ? null
+                  : utils.getBucket({
+                      events: formData.reserved[category],
+                      buckets: activePlan.planCategories[category],
+                    });
+              const price = utils.displayPrice({
+                cents: eventBucket ? eventBucket.price : 0,
+              });
+              const isMoreThanIncluded =
+                (formData.reserved[category] ?? 0) >
+                (activePlan.planCategories[category]?.[0]?.events ?? 0);
+              return (
+                <SpaceBetweenRow
+                  key={category}
+                  data-test-id={`${category}-reserved`}
+                  style={{alignItems: 'center'}}
+                >
+                  <ReservedItem>
+                    {(formData.reserved[category] ?? 0) > 0 && (
                       <Fragment>
                         <EmphasisText>
-                          {
-                            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                            formatReservedWithUnits(formData.reserved[category], category)
-                          }
+                          {formatReservedWithUnits(
+                            formData.reserved[category] ?? 0,
+                            category
+                          )}
                         </EmphasisText>{' '}
                       </Fragment>
-                    )
-                  }
-                  {formData.reserved[category] === 1 &&
-                  category !== DataCategory.ATTACHMENTS
-                    ? getSingularCategoryName({
-                        plan: activePlan,
-                        category,
-                        title: true,
-                      })
-                    : getPlanCategoryName({
-                        plan: activePlan,
-                        category,
-                        title: true,
-                      })}
-                  {paygCategories.includes(category) ? (
-                    <QuestionTooltip
-                      size="xs"
-                      title={t(
-                        "%s use your pay-as-you-go budget. You'll only be charged for actual usage.",
-                        getPlanCategoryName({
+                    )}
+                    {formData.reserved[category] === 1 &&
+                    category !== DataCategory.ATTACHMENTS
+                      ? getSingularCategoryName({
                           plan: activePlan,
                           category,
+                          title: true,
                         })
-                      )}
-                    />
-                  ) : null}
-                </ReservedItem>
-                <Price>
-                  {isMoreThanIncluded ? (
-                    `+ ${price}/${shortInterval}`
-                  ) : (
-                    <Tag
-                      icon={
-                        hasPaygProducts ||
-                        activePlan.checkoutCategories.includes(category) ? undefined : (
-                          <IconLock locked size="xs" />
-                        )
-                      }
-                    >
-                      {activePlan.checkoutCategories.includes(category)
-                        ? t('Included')
-                        : hasPaygProducts
-                          ? t('Available')
-                          : t('Product not available')}
-                    </Tag>
-                  )}
-                </Price>
-              </SpaceBetweenRow>
-            );
-          })}
+                      : getPlanCategoryName({
+                          plan: activePlan,
+                          category,
+                          title: true,
+                        })}
+                    {paygCategories.includes(category) ? (
+                      <QuestionTooltip
+                        size="xs"
+                        title={t(
+                          "%s use your pay-as-you-go budget. You'll only be charged for actual usage.",
+                          getPlanCategoryName({
+                            plan: activePlan,
+                            category,
+                          })
+                        )}
+                      />
+                    ) : null}
+                  </ReservedItem>
+                  <Price>
+                    {isMoreThanIncluded ? (
+                      `+ ${price}/${shortInterval}`
+                    ) : (
+                      <Tag
+                        icon={
+                          hasPaygProducts ||
+                          activePlan.checkoutCategories.includes(category) ? undefined : (
+                            <IconLock locked size="xs" />
+                          )
+                        }
+                      >
+                        {activePlan.checkoutCategories.includes(category)
+                          ? t('Included')
+                          : hasPaygProducts
+                            ? t('Available')
+                            : t('Product not available')}
+                      </Tag>
+                    )}
+                  </Price>
+                </SpaceBetweenRow>
+              );
+            })}
         </ReservedVolumes>
       </Section>
     );
@@ -245,7 +306,7 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
                     <QuestionTooltip
                       size="xs"
                       title={t(
-                        "This is your pay-as-you-go budget, which ensures continued monitoring after you've used up your reserved event volume. We’ll only charge you for actual usage, so this is your maximum charge for overage."
+                        "This is your pay-as-you-go budget, which ensures continued monitoring after you've used up your reserved event volume. We'll only charge you for actual usage, so this is your maximum charge for overage."
                       )}
                     />
                   </AdditionalMonthlyCharge>
@@ -265,11 +326,17 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
     <StyledPanel data-test-id="checkout-overview-v2">
       {renderPlanDetails()}
       <Separator />
+      {hasSeerEnabled && renderSeerSummary()}
+      <Separator />
       {renderPayAsYouGoBudget(paygMonthlyBudget)}
       <Separator />
       {renderProductBreakdown()}
       <TotalSeparator />
-      {renderTotals(committedTotal, paygMonthlyBudget)}
+      {renderTotals(
+        committedTotal +
+          (hasSeerFeature && formData.seerEnabled ? SEER_MONTHLY_PRICE_CENTS : 0),
+        paygMonthlyBudget
+      )}
     </StyledPanel>
   );
 }

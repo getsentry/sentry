@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
+import sentry_sdk
 from celery import Task
 from django.db.models import OuterRef, Subquery
 
@@ -240,7 +241,9 @@ def build_group_to_groupevent(
             logger.info(
                 "delayed_processing.build_group_to_groupevent_input",
                 extra={
-                    "parsed_rulegroup_to_event_data": parsed_rulegroup_to_event_data,
+                    "parsed_rulegroup_to_event_data": {
+                        f"{k[0]}:{k[1]}": v for k, v in parsed_rulegroup_to_event_data.items()
+                    },
                     "bulk_event_id_to_events": bulk_event_id_to_events,
                     "bulk_occurrence_id_to_occurrence": bulk_occurrence_id_to_occurrence,
                     "group_id_to_group": group_id_to_group,
@@ -271,6 +274,8 @@ def build_group_to_groupevent(
                         "rule": rule_group[0],
                         "project_id": project_id,
                         "event_id": event_id,
+                        "event_missing": event is None,
+                        "group_missing": group is None,
                         "group_id": group.id if group else None,
                     },
                 )
@@ -542,16 +547,21 @@ def fire_rules(
 
 
 def cleanup_redis_buffer(
-    project_id: int, rules_to_groups: DefaultDict[int, set[int]], batch_key: str | None
+    project: Project, rules_to_groups: DefaultDict[int, set[int]], batch_key: str | None
 ) -> None:
     hashes_to_delete = [
         f"{rule}:{group}" for rule, groups in rules_to_groups.items() for group in groups
     ]
-    filters: dict[str, BufferField] = {"project_id": project_id}
+    filters: dict[str, BufferField] = {"project_id": project.id}
     if batch_key:
         filters["batch_key"] = batch_key
 
     buffer.backend.delete_hash(model=Project, filters=filters, fields=hashes_to_delete)
+    if features.has("projects:num-events-issue-debugging", project):
+        logger.info(
+            "delayed_processing.cleanup_redis_buffer",
+            extra={"hashes_to_delete": hashes_to_delete, "project_id": project.id},
+        )
 
 
 @instrumented_task(
@@ -567,6 +577,7 @@ def cleanup_redis_buffer(
         processing_deadline_duration=60,
         retry=Retry(
             times=5,
+            delay=5,
         ),
     ),
 )
@@ -574,24 +585,33 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
-    project = fetch_project(project_id)
-    if not project:
-        return
+    with sentry_sdk.start_span(
+        op="delayed_processing.prepare_data", name="Fetch data from buffers in delayed processing"
+    ):
+        project = fetch_project(project_id)
+        if not project:
+            return
 
-    rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id, batch_key)
-    rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
-    alert_rules = fetch_alert_rules(list(rules_to_groups.keys()))
-    condition_groups = get_condition_query_groups(alert_rules, rules_to_groups)
-    logger.info(
-        "delayed_processing.condition_groups",
-        extra={
-            "condition_groups": len(condition_groups),
-            "project_id": project_id,
-            "rules_to_groups": rules_to_groups,
-        },
-    )
+        rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id, batch_key)
+        rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
+        alert_rules = fetch_alert_rules(list(rules_to_groups.keys()))
+        condition_groups = get_condition_query_groups(alert_rules, rules_to_groups)
+        logger.info(
+            "delayed_processing.condition_groups",
+            extra={
+                "condition_groups": len(condition_groups),
+                "project_id": project_id,
+                "rules_to_groups": rules_to_groups,
+            },
+        )
 
-    with metrics.timer("delayed_processing.get_condition_group_results.duration"):
+    with (
+        metrics.timer("delayed_processing.get_condition_group_results.duration"),
+        sentry_sdk.start_span(
+            op="delayed_processing.get_condition_group_results",
+            name="Fetch condition group results in delayed processing",
+        ),
+    ):
         condition_group_results = get_condition_group_results(condition_groups, project)
 
     has_workflow_engine = features.has(
@@ -615,34 +635,48 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     for rule in alert_rules:
         rules_to_slow_conditions[rule].extend(get_slow_conditions(rule))
 
-    rules_to_fire = defaultdict(set)
-    if condition_group_results:
-        rules_to_fire = get_rules_to_fire(
-            condition_group_results, rules_to_slow_conditions, rules_to_groups, project.id
-        )
-        if has_workflow_engine or features.has("projects:num-events-issue-debugging", project):
-            logger.info(
-                "delayed_processing.rules_to_fire",
-                extra={
-                    "rules_to_fire": {rule.id: groups for rule, groups in rules_to_fire.items()},
-                    "project_id": project_id,
-                    "rules_to_slow_conditions": {
-                        rule.id: conditions for rule, conditions in rules_to_slow_conditions.items()
+    with sentry_sdk.start_span(
+        op="delayed_processing.get_rules_to_fire",
+        name="Process rule conditions in delayed processing",
+    ):
+        rules_to_fire = defaultdict(set)
+        if condition_group_results:
+            rules_to_fire = get_rules_to_fire(
+                condition_group_results, rules_to_slow_conditions, rules_to_groups, project.id
+            )
+            if has_workflow_engine or features.has("projects:num-events-issue-debugging", project):
+                logger.info(
+                    "delayed_processing.rules_to_fire",
+                    extra={
+                        "rules_to_fire": {
+                            rule.id: groups for rule, groups in rules_to_fire.items()
+                        },
+                        "project_id": project_id,
+                        "rules_to_slow_conditions": {
+                            rule.id: conditions
+                            for rule, conditions in rules_to_slow_conditions.items()
+                        },
+                        "rules_to_groups": rules_to_groups,
                     },
-                    "rules_to_groups": rules_to_groups,
-                },
-            )
-        if random.random() < 0.01:
-            logger.info(
-                "delayed_processing.rule_to_fire",
-                extra={"rules_to_fire": list(rules_to_fire.keys()), "project_id": project_id},
-            )
+                )
+            if random.random() < 0.01:
+                logger.info(
+                    "delayed_processing.rule_to_fire",
+                    extra={"rules_to_fire": list(rules_to_fire.keys()), "project_id": project_id},
+                )
 
-    parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
-    with metrics.timer("delayed_processing.fire_rules.duration"):
-        fire_rules(rules_to_fire, parsed_rulegroup_to_event_data, alert_rules, project)
+    with sentry_sdk.start_span(
+        op="delayed_processing.fire_rules", name="Fire rules in delayed processing"
+    ):
+        parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
+        with metrics.timer("delayed_processing.fire_rules.duration"):
+            fire_rules(rules_to_fire, parsed_rulegroup_to_event_data, alert_rules, project)
 
-    cleanup_redis_buffer(project_id, rules_to_groups, batch_key)
+    with sentry_sdk.start_span(
+        op="delayed_processing.cleanup_redis_buffer",
+        name="Clean up redis buffer in delayed processing",
+    ):
+        cleanup_redis_buffer(project, rules_to_groups, batch_key)
 
 
 @delayed_processing_registry.register("delayed_processing")  # default delayed processing

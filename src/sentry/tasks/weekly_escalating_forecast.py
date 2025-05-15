@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TypedDict
 
 from sentry.constants import ObjectStatus
-from sentry.issues.forecasts import generate_and_save_forecasts
+from sentry.issues.escalating.forecasts import generate_and_save_forecasts
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -64,6 +64,7 @@ def run_escalating_forecast() -> None:
         namespace=issues_tasks,
         retry=Retry(
             times=3,
+            delay=60,
         ),
     ),
 )

@@ -839,6 +839,12 @@ export const enum PriorityLevel {
   LOW = 'low',
 }
 
+export const enum FixabilityScoreThresholds {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -882,6 +888,8 @@ export interface BaseGroup {
   latestEventHasAttachments?: boolean;
   openPeriods?: GroupOpenPeriod[] | null;
   owners?: SuggestedOwner[] | null;
+  seerAutofixLastTriggered?: string | null;
+  seerFixabilityScore?: number | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
 }

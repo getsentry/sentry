@@ -1,14 +1,13 @@
 import logging
 from typing import Any
 
-from django.core.mail import EmailMultiAlternatives
-
 from sentry.auth import access
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import notifications_control_tasks, notifications_tasks
+from sentry.taskworker.retry import Retry
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import send_messages
@@ -57,12 +56,15 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=notifications_tasks,
+        processing_deadline_duration=30,
+        retry=Retry(
+            delay=60 * 5,
+        ),
     ),
 )
-def send_email(message: EmailMultiAlternatives | dict[str, Any]) -> None:
-    if not isinstance(message, EmailMultiAlternatives):
-        message = message_from_dict(message)
-    send_messages([message])
+def send_email(message: dict[str, Any]) -> None:
+    django_message = message_from_dict(message)
+    send_messages([django_message])
 
 
 @instrumented_task(
@@ -73,9 +75,12 @@ def send_email(message: EmailMultiAlternatives | dict[str, Any]) -> None:
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=notifications_control_tasks,
+        processing_deadline_duration=30,
+        retry=Retry(
+            delay=60 * 5,
+        ),
     ),
 )
-def send_email_control(message: EmailMultiAlternatives | dict[str, Any]) -> None:
-    if not isinstance(message, EmailMultiAlternatives):
-        message = message_from_dict(message)
-    send_messages([message])
+def send_email_control(message: dict[str, Any]) -> None:
+    django_message = message_from_dict(message)
+    send_messages([django_message])

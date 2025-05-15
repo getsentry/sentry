@@ -101,12 +101,14 @@ describe('Data Scrubbing', function () {
 
       expect(screen.getByRole('button', {name: 'Add Rule'})).toBeDisabled();
 
-      for (const index in JSON.parse(relayPiiConfig).rules as number[]) {
-        expect(screen.getAllByRole('button', {name: 'Edit Rule'})[index]).toBeDisabled();
+      Object.keys(DataScrubbingRelayPiiConfigFixture).forEach(index => {
         expect(
-          screen.getAllByRole('button', {name: 'Delete Rule'})[index]
+          screen.getAllByRole('button', {name: 'Edit Rule'})[Number(index)]
         ).toBeDisabled();
-      }
+        expect(
+          screen.getAllByRole('button', {name: 'Delete Rule'})[Number(index)]
+        ).toBeDisabled();
+      });
     });
   });
 

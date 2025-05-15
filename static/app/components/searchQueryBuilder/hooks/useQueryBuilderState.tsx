@@ -70,6 +70,7 @@ type DeleteTokensAction = {
 };
 
 type UpdateFreeTextAction = {
+  shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
   type: 'UPDATE_FREE_TEXT';
@@ -336,8 +337,7 @@ function updateFreeText(
   }
 
   // Only update the committed query if we aren't in the middle of creating a filter
-  const committedQuery =
-    action.focusOverride?.part === 'value' ? state.committedQuery : newQuery;
+  const committedQuery = action.shouldCommitQuery ? newQuery : state.committedQuery;
 
   return {
     ...state,
@@ -533,7 +533,6 @@ export function useQueryBuilderState({
     committedQuery: initialQuery,
     focusOverride: null,
   };
-
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
       if (disabled) {

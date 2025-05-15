@@ -6,16 +6,11 @@ import * as ChonkSwitch from './index.chonk';
 
 export interface SwitchProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type' | 'onClick'> {
+  ref?: React.Ref<HTMLInputElement>;
   size?: 'sm' | 'lg';
 }
 
-export function Switch({
-  ref,
-  size = 'sm',
-  ...props
-}: SwitchProps & {
-  ref?: React.Ref<HTMLInputElement>;
-}) {
+export function Switch({ref, size = 'sm', ...props}: SwitchProps) {
   return (
     <SwitchWrapper>
       {/* @TODO(jonasbadalic): if we name the prop size, it conflicts with the native input size prop,

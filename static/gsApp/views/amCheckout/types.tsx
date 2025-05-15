@@ -16,6 +16,7 @@ type BaseCheckoutData = {
   applyNow?: boolean;
   onDemandBudget?: OnDemandBudgets;
   onDemandMaxSpend?: number;
+  seerBudget?: number;
   seerEnabled?: boolean;
 };
 

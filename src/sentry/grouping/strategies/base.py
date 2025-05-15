@@ -303,9 +303,11 @@ class StrategyConfiguration:
 
     def __init__(self, enhancements: str | None = None, **extra: Any):
         if enhancements is None:
-            enhancements_instance = Enhancements.from_rules_text("")
+            enhancements_instance = Enhancements.from_rules_text("", referrer="strategy_config")
         else:
-            enhancements_instance = Enhancements.from_base64_string(enhancements)
+            enhancements_instance = Enhancements.from_base64_string(
+                enhancements, referrer="strategy_config"
+            )
         self.enhancements = enhancements_instance
 
     def __repr__(self) -> str:
