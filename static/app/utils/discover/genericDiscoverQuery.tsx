@@ -87,10 +87,9 @@ type BaseDiscoverQueryProps = {
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
-  options?: Omit<
-    UseQueryOptions<<ApiResult<any>, QueryError>,
-    'queryKey' | 'queryFn'
-  > & {additionalQueryKey?: UseQueryOptions['queryKey']};
+  options?: Omit<UseQueryOptions<ApiResult<any>, QueryError>, 'queryKey' | 'queryFn'> & {
+    additionalQueryKey?: UseQueryOptions['queryKey'];
+  };
   /**
    * A container for query batching data and functions.
    */
