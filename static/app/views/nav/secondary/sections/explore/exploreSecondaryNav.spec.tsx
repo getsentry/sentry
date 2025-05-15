@@ -10,7 +10,7 @@ describe('ExploreSecondaryNav', () => {
       features: [
         'performance-trace-explorer',
         'performance-view',
-        'performance-default-explore-queries',
+        'visibility-explore-view',
       ],
     },
   });

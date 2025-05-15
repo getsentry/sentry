@@ -34,6 +34,7 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
+    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
@@ -172,6 +173,10 @@ class BaseOrganizationSerializer(serializers.Serializer):
         if len(value) < 3:
             raise serializers.ValidationError(
                 f'This slug "{value}" is too short. Minimum of 3 characters.'
+            )
+        if value.lower() != value:
+            raise serializers.ValidationError(
+                f'This slug "{value}" should not contain uppercase symbols.'
             )
         if value in RESERVED_ORGANIZATION_SLUGS:
             raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
@@ -551,6 +556,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     requiresSso: bool
     rollbackEnabled: bool
     streamlineOnly: bool
+    defaultAutofixAutomationTuning: str
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -696,6 +702,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ),
             "rollbackEnabled": bool(
                 obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
+            ),
+            "defaultAutofixAutomationTuning": obj.get_option(
+                "sentry:default_autofix_automation_tuning",
+                DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
             ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [

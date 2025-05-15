@@ -101,6 +101,7 @@ export function useSearchQueryBuilderProps({
  * once spans support has been added to the trace-items attribute endpoints.
  */
 export function TraceItemSearchQueryBuilder({
+  autoFocus,
   initialQuery,
   numberAttributes,
   searchSource,
@@ -130,7 +131,7 @@ export function TraceItemSearchQueryBuilder({
     supportedAggregates,
   });
 
-  return <SearchQueryBuilder {...searchQueryBuilderProps} />;
+  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
 }
 
 function useFunctionTags(

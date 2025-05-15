@@ -6,7 +6,6 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
-import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -264,14 +263,14 @@ describe('Dashboards > Detail', function () {
                 {
                   aggregates: ['count()'],
                   columns: [],
-                  conditions: '!event.type:transaction',
+                  conditions: '',
                   fields: ['count()'],
                   name: 'Events',
                   orderby: 'count()',
                 },
               ],
               title: 'Events',
-              widgetType: types.WidgetType.DISCOVER,
+              widgetType: types.WidgetType.ERRORS,
             }),
             onClose: expect.anything(),
           })
@@ -285,6 +284,7 @@ describe('Dashboards > Detail', function () {
     let widgets!: Array<ReturnType<typeof WidgetFixture>>;
     let mockVisit!: jest.Mock;
     let mockPut!: jest.Mock;
+    let mockScrollIntoView!: jest.Mock;
 
     beforeEach(function () {
       window.confirm = jest.fn();
@@ -448,6 +448,9 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/measurements-meta/',
         body: [],
       });
+
+      mockScrollIntoView = jest.fn();
+      window.HTMLElement.prototype.scrollIntoView = mockScrollIntoView;
     });
 
     afterEach(function () {
@@ -623,10 +626,11 @@ describe('Dashboards > Detail', function () {
         {
           router,
           deprecatedRouterMocks: true,
+          organization: initialData.organization,
         }
       );
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
-      expect(mockReleases).toHaveBeenCalledTimes(2); // Called once when PageFiltersStore is initialized
+      expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
     it('hides add widget option', async function () {
@@ -2338,7 +2342,6 @@ describe('Dashboards > Detail', function () {
               'dashboards-basic',
               'dashboards-edit',
               'discover-query',
-              'performance-discover-dataset-selector',
             ],
           }),
         });
@@ -2364,7 +2367,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
             dashboards={[]}
@@ -2388,7 +2390,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
             dashboards={[]}
@@ -2412,7 +2413,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
             dashboards={[]}
@@ -2436,7 +2436,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
             dashboards={[]}
@@ -2471,7 +2470,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
             dashboards={[]}
@@ -2519,7 +2517,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
             dashboards={[]}
@@ -2549,6 +2546,7 @@ describe('Dashboards > Detail', function () {
 
         // The widget is added in the dashboard
         expect(await screen.findByText('Totally new widget')).toBeInTheDocument();
+        expect(mockScrollIntoView).toHaveBeenCalled();
       });
 
       it('allows for editing a widget in view mode', async function () {
@@ -2566,7 +2564,6 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
-            theme={ThemeFixture()}
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
             dashboards={[]}
@@ -2607,6 +2604,7 @@ describe('Dashboards > Detail', function () {
             widgets: [expect.objectContaining({title: 'Updated Widget Title'})],
           })
         );
+        expect(mockScrollIntoView).toHaveBeenCalled();
       });
 
       it('allows for creating a widget in view mode', async function () {
@@ -2622,7 +2620,6 @@ describe('Dashboards > Detail', function () {
         });
         render(
           <DashboardDetail
-            theme={ThemeFixture()}
             {...RouteComponentPropsFixture()}
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}

@@ -321,7 +321,11 @@ function useFilterSuggestions({
       }),
     [key, filterValue, token, fieldDefinition]
   );
-  const shouldFetchValues = key && !key.predefined && predefinedValues === null;
+  // Only keys that explicitly have predefined values should skip the fetch.
+  // This is because the way keys are fetched doesn't guarantee that we have
+  // every key loaded. So we should try to fetch values for it even if it
+  // doesn't exist in the list of available keys.
+  const shouldFetchValues = key ? !key.predefined && predefinedValues === null : true;
   const canSelectMultipleValues = tokenSupportsMultipleValues(
     token,
     filterKeys,
@@ -411,7 +415,17 @@ function useFilterSuggestions({
       {
         sectionText: '',
         items: getItemsWithKeys([
-          ...selectedValues.map(value => createItem({value}, true)),
+          ...selectedValues.map(value => {
+            const matchingSuggestion = suggestionGroups
+              .flatMap(group => group.suggestions)
+              .find(suggestion => suggestion.value === value);
+
+            if (matchingSuggestion) {
+              return createItem(matchingSuggestion, true);
+            }
+
+            return createItem({value}, true);
+          }),
           ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
         ]),
       },

@@ -29,7 +29,10 @@ import {
 import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
-import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
+import {
+  confirmDeleteSavedQuery,
+  getExploreUrlFromSavedQueryUrl,
+} from 'sentry/views/explore/utils';
 
 type Props = {
   title: string;
@@ -148,33 +151,33 @@ export function SavedQueriesTable({
   }
 
   return (
-    <span>
+    <Container>
       <TableHeading>{title}</TableHeading>
       <SavedEntityTableWithColumns
         pageSize={perPage}
         isLoading={isLoading}
         header={
           <SavedEntityTable.Header>
-            <SavedEntityTable.HeaderCell key="star" />
-            <SavedEntityTable.HeaderCell key="name">
+            <SavedEntityTable.HeaderCell data-column="star" />
+            <SavedEntityTable.HeaderCell data-column="name">
               {t('Name')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell key="project">
+            <SavedEntityTable.HeaderCell data-column="project">
               {t('Project')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell key="envs">
+            <SavedEntityTable.HeaderCell data-column="envs">
               {t('Envs')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell key="query">
+            <SavedEntityTable.HeaderCell data-column="query">
               {t('Query')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell key="created-by">
+            <SavedEntityTable.HeaderCell data-column="created-by">
               {t('Creator')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell key="last-visited" noBorder>
+            <SavedEntityTable.HeaderCell data-column="last-visited" noBorder>
               {t('Last Viewed')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell key="actions" />
+            <SavedEntityTable.HeaderCell data-column="actions" />
           </SavedEntityTable.Header>
         }
         isEmpty={filteredData.length === 0}
@@ -187,33 +190,33 @@ export function SavedQueriesTable({
             isFirst={index === 0}
             data-test-id={`table-row-${index}`}
           >
-            <SavedEntityTable.Cell hasButton>
+            <SavedEntityTable.Cell hasButton data-column="star">
               <SavedEntityTable.CellStar
                 isStarred={starredIds.includes(query.id)}
                 onClick={() => debouncedOnClick(query.id, query.starred)}
               />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell>
+            <SavedEntityTable.Cell data-column="name">
               <SavedEntityTable.CellName
                 to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
               >
                 {query.name}
               </SavedEntityTable.CellName>
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell>
+            <SavedEntityTable.Cell data-column="project">
               <SavedEntityTable.CellProjects projects={query.projects} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell>
+            <SavedEntityTable.Cell data-column="envs">
               <SavedEntityTable.CellEnvironments environments={query.environment ?? []} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell>
+            <SavedEntityTable.Cell data-column="query">
               <StyledExploreParams
                 query={query.query[0].query}
                 visualizes={query.query[0].visualize}
                 groupBys={query.query[0].groupby}
               />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell>
+            <SavedEntityTable.Cell data-column="created-by">
               {query.isPrebuilt ? (
                 <Tooltip title={'Sentry'}>
                   <ActivityAvatar type="system" size={20} />
@@ -226,10 +229,10 @@ export function SavedQueriesTable({
                 />
               )}
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell>
+            <SavedEntityTable.Cell data-column="last-visited">
               <SavedEntityTable.CellTimeSince date={query.lastVisited} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell hasButton>
+            <SavedEntityTable.Cell data-column="actions" hasButton>
               <SavedEntityTable.CellActions
                 items={[
                   ...(query.isPrebuilt
@@ -273,16 +276,21 @@ export function SavedQueriesTable({
                         {
                           key: 'delete',
                           label: t('Delete'),
-                          onAction: async () => {
-                            addLoadingMessage(t('Deleting query...'));
-                            try {
-                              await deleteQuery(query.id);
-                              addSuccessMessage(t('Query deleted'));
-                            } catch (error) {
-                              addErrorMessage(t('Unable to delete query'));
-                            }
-                          },
                           priority: 'danger' as const,
+                          onAction: () => {
+                            confirmDeleteSavedQuery({
+                              handleDelete: async () => {
+                                addLoadingMessage(t('Deleting query...'));
+                                try {
+                                  await deleteQuery(query.id);
+                                  addSuccessMessage(t('Query deleted'));
+                                } catch (error) {
+                                  addErrorMessage(t('Unable to delete query'));
+                                }
+                              },
+                              savedQuery: query,
+                            });
+                          },
                         },
                       ]),
                 ]}
@@ -292,15 +300,45 @@ export function SavedQueriesTable({
         ))}
       </SavedEntityTableWithColumns>
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
-    </span>
+    </Container>
   );
 }
 
+const Container = styled('div')`
+  container-type: inline-size;
+`;
+
 const SavedEntityTableWithColumns = styled(SavedEntityTable)`
+  grid-template-areas: 'star name project envs query created-by last-visited actions';
   grid-template-columns:
     40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
-    minmax(auto, 120px)
-    auto 48px;
+    auto auto 48px;
+
+  @container (max-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-areas: 'star name project query created-by actions';
+    grid-template-columns: 40px 20% minmax(auto, 120px) minmax(0, 1fr) auto 48px;
+
+    div[data-column='envs'],
+    div[data-column='last-visited'],
+    div[data-column='created'],
+    div[data-column='stars'] {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-areas: 'star name query actions';
+    grid-template-columns: 40px 30% minmax(0, 1fr) 48px;
+
+    div[data-column='envs'],
+    div[data-column='last-visited'],
+    div[data-column='created'],
+    div[data-column='stars'],
+    div[data-column='created-by'],
+    div[data-column='project'] {
+      display: none;
+    }
+  }
 `;
 
 const StyledExploreParams = styled(ExploreParams)`
