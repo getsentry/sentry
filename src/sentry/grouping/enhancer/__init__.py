@@ -771,7 +771,11 @@ class Enhancements:
 
                 metrics_timer_tags.update(
                     # The first entry in the config structure is the enhancements version
-                    {"split": config_structure[0] == 3, "source": "base64_string"}
+                    {
+                        "split": config_structure[0] == 3,
+                        "source": "base64_string",
+                        "referrer": referrer,
+                    }
                 )
 
                 return cls._from_config_structure(config_structure, rust_enhancements)
