@@ -3040,6 +3040,23 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             == response.data["detail"].title()
         )
 
+    def test_count_if_invalid_param(self):
+        response = self.do_request(
+            {
+                "field": [
+                    "count_if(span.description, equals, queue.process)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert (
+            "Span.Description Is Invalid For Parameter 1 In Count_If."
+            == response.data["detail"].title()
+        )
+
     def test_ttif_ttfd_contribution_rate(self):
         spans = []
         for _ in range(8):
