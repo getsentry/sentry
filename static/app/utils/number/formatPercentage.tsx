@@ -12,7 +12,11 @@ export function formatPercentage(
     nullValue?: string;
   } = {}
 ) {
-  if (value === 0 || value === undefined || value === null) {
+  if (value === 0) {
+    return '0%';
+  }
+
+  if (value === undefined || value === null) {
     return options.nullValue ?? '0%';
   }
 
