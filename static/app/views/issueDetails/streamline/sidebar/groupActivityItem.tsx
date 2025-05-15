@@ -591,7 +591,7 @@ export default function getGroupActivityItem(
         const {oldGroupId, eventCount} = data;
 
         return {
-          title: t('Resprocessed Events'),
+          title: t('Reprocessed Events'),
           message: tct('by [author]. [new-events]', {
             author,
             ['new-events']: (
