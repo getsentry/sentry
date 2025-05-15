@@ -809,9 +809,9 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
                 },
             )
 
+    @pytest.mark.skip(reason="See https://github.com/getsentry/sentry/issues/91731")
     @patch("sentry.profiles.flamegraph.bulk_snuba_queries")
     @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
-    @pytest.mark.skip(reason="Intermittent failure")
     def test_queries_profile_candidates_from_spans(
         self,
         mock_proxy_profiling_service,
