@@ -70,10 +70,10 @@ if TYPE_CHECKING:
         stack_id: int
 
     class ProcessedProfile(TypedDict):
-        frames: List[ProcessedFrame]
-        stacks: List[ProcessedStack]
-        samples: List[ProcessedSample]
-        thread_metadata: Dict[ThreadId, ProcessedThreadMetadata]
+        frames: list[ProcessedFrame]
+        stacks: list[ProcessedStack]
+        samples: list[ProcessedSample]
+        thread_metadata: dict[ThreadId, ProcessedThreadMetadata]
 
 
 try:
@@ -203,9 +203,7 @@ class Profile:
     def update_active_thread_id(self):
         # type: () -> None
         self.active_thread_id = get_current_thread_meta()[0]
-        logger.debug(
-            "[Profiling] updating active thread id to {tid}".format(tid=self.active_thread_id)
-        )
+        logger.debug(f"[Profiling] updating active thread id to {self.active_thread_id}")
 
     def _set_initial_sampling_decision(self, sampling_context):
         # type: (SamplingContext) -> None

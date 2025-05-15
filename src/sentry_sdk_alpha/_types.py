@@ -116,7 +116,7 @@ if TYPE_CHECKING:
         check_in_id: str
         contexts: dict[str, dict[str, object]]
         dist: str
-        duration: Optional[float]
+        duration: float | None
         environment: str
         errors: list[dict[str, Any]]  # TODO: We can expand on this type
         event_id: str
@@ -130,7 +130,7 @@ if TYPE_CHECKING:
         message: str
         modules: dict[str, str]
         monitor_config: Mapping[str, object]
-        monitor_slug: Optional[str]
+        monitor_slug: str | None
         platform: Literal["python"]
         profile: object  # Should be sentry_sdk.profiler.Profile, but we can't import that here due to circular imports
         release: str
@@ -141,12 +141,12 @@ if TYPE_CHECKING:
         stacktrace: dict[str, object]
         # We access this key in the code, but I am unsure whether we ever set it
         start_timestamp: datetime
-        status: Optional[str]
+        status: str | None
         tags: MutableMapping[str, str]
         # Tags must be less than 200 characters each
         threads: dict[Literal["values"], list[dict[str, Any]]]
         # TODO: We can expand on this type
-        timestamp: Optional[datetime]  # Must be set before sending the event
+        timestamp: datetime | None  # Must be set before sending the event
         transaction: str
         transaction_info: Mapping[str, Any]  # TODO: We can expand on this type
         type: Literal["check_in", "transaction"]
@@ -167,7 +167,7 @@ if TYPE_CHECKING:
         body: str
         attributes: dict[str, str | bool | float | int]
         time_unix_nano: int
-        trace_id: Optional[str]
+        trace_id: str | None
 
     # TODO: Make a proper type definition for this (PRs welcome!)
     Breadcrumb = dict[str, Any]
@@ -222,7 +222,7 @@ if TYPE_CHECKING:
 
     class MonitorConfigSchedule(TypedDict, total=False):
         type: MonitorConfigScheduleType
-        value: Union[int, str]
+        value: int | str
         unit: MonitorConfigScheduleUnit
 
     class MonitorConfig(TypedDict, total=False):

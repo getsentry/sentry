@@ -39,7 +39,7 @@ def _get_span_description(host, port):
     except (UnicodeDecodeError, AttributeError):
         pass
 
-    description = "{}:{}".format(host, port)  # type: ignore
+    description = f"{host}:{port}"  # type: ignore
     return description
 
 

@@ -72,4 +72,4 @@ class Attachment:
 
     def __repr__(self):
         # type: () -> str
-        return "<Attachment {!r}>".format(self.filename)
+        return f"<Attachment {self.filename!r}>"

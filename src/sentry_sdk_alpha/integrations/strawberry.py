@@ -71,7 +71,7 @@ class StrawberryIntegration(Integration):
         # type: (Optional[bool]) -> None
         if async_execution not in (None, False, True):
             raise ValueError(
-                'Invalid value for async_execution: "{}" (must be bool)'.format(async_execution)
+                f'Invalid value for async_execution: "{async_execution}" (must be bool)'
             )
         self.async_execution = async_execution
 

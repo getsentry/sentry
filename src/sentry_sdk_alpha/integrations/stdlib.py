@@ -89,7 +89,9 @@ def _install_httplib():
 
         span = sentry_sdk_alpha.start_span(
             op=OP.HTTP_CLIENT,
-            name="%s %s" % (method, parsed_url.url if parsed_url else SENSITIVE_DATA_SUBSTITUTE),
+            name="{} {}".format(
+                method, parsed_url.url if parsed_url else SENSITIVE_DATA_SUBSTITUTE
+            ),
             origin="auto.http.stdlib.httplib",
             only_if_parent=True,
         )

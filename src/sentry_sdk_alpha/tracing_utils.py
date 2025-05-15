@@ -432,9 +432,9 @@ class PropagationContext:
         else:
             sampled = None
 
-        traceparent = "{}-{}".format(self.trace_id, self.span_id)
+        traceparent = f"{self.trace_id}-{self.span_id}"
         if sampled is not None:
-            traceparent += "-{}".format(sampled)
+            traceparent += f"-{sampled}"
 
         return traceparent
 

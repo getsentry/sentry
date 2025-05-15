@@ -55,7 +55,7 @@ class Boto3Integration(Integration):
 @ensure_integration_enabled(Boto3Integration)
 def _sentry_request_created(service_id, request, operation_name, **kwargs):
     # type: (str, AWSRequest, str, **Any) -> None
-    description = "aws.{}.{}".format(service_id, operation_name)
+    description = f"aws.{service_id}.{operation_name}"
     span = sentry_sdk_alpha.start_span(
         op=OP.HTTP_CLIENT,
         name=description,

@@ -165,7 +165,7 @@ class Envelope:
 
     def __repr__(self):
         # type: (...) -> str
-        return "<Envelope headers={!r} items={!r}>".format(self.headers, self.items)
+        return f"<Envelope headers={self.headers!r} items={self.items!r}>"
 
 
 class PayloadRef:
@@ -207,7 +207,7 @@ class PayloadRef:
 
     def __repr__(self):
         # type: (...) -> str
-        return "<Payload {!r}>".format(self.inferred_content_type)
+        return f"<Payload {self.inferred_content_type!r}>"
 
 
 class Item:

@@ -318,7 +318,7 @@ class Dsn:
         """The netloc part of a DSN."""
         rv = self.host
         if (self.scheme, self.port) not in (("http", 80), ("https", 443)):
-            rv = "{}:{}".format(rv, self.port)
+            rv = f"{rv}:{self.port}"
         return rv
 
     def to_auth(self, client=None):
@@ -391,7 +391,7 @@ class Auth:
             rv.append(("sentry_client", self.client))
         if self.secret_key is not None:
             rv.append(("sentry_secret", self.secret_key))
-        return "Sentry " + ", ".join("{}={}".format(key, value) for key, value in rv)
+        return "Sentry " + ", ".join(f"{key}={value}" for key, value in rv)
 
 
 def get_type_name(cls):

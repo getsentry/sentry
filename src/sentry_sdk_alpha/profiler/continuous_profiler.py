@@ -85,9 +85,7 @@ def setup_continuous_profiler(options, sdk_info, capture_func):
     else:
         raise ValueError(f"Unknown continuous profiler mode: {profiler_mode}")
 
-    logger.debug(
-        "[Profiling] Setting up continuous profiler in {mode} mode".format(mode=_scheduler.mode)
-    )
+    logger.debug(f"[Profiling] Setting up continuous profiler in {_scheduler.mode} mode")
 
     atexit.register(teardown_continuous_profiler)
 

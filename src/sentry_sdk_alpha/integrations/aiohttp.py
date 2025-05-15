@@ -227,7 +227,9 @@ def create_trace_config():
 
         span = sentry_sdk_alpha.start_span(
             op=OP.HTTP_CLIENT,
-            name="%s %s" % (method, parsed_url.url if parsed_url else SENSITIVE_DATA_SUBSTITUTE),
+            name="{} {}".format(
+                method, parsed_url.url if parsed_url else SENSITIVE_DATA_SUBSTITUTE
+            ),
             origin=AioHttpIntegration.origin,
             only_if_parent=True,
         )

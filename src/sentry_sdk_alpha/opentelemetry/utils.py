@@ -196,7 +196,7 @@ def span_data_for_http_method(span):
 
             if url:
                 parsed_url = urlparse(url)
-                url = "{}://{}{}".format(parsed_url.scheme, parsed_url.netloc, parsed_url.path)
+                url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
                 description = f"{http_method} {url}"
 
     status, http_status = extract_span_status(span)

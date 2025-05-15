@@ -18,10 +18,10 @@ if TYPE_CHECKING:
 
     class ProcessedFrame(TypedDict):
         abs_path: str
-        filename: Optional[str]
+        filename: str | None
         function: str
         lineno: int
-        module: Optional[str]
+        module: str | None
 
     class ProcessedThreadMetadata(TypedDict):
         name: str

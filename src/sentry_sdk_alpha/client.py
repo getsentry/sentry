@@ -87,7 +87,7 @@ def _get_options(*args, **kwargs):
 
     for key, value in options.items():
         if key not in rv:
-            raise TypeError("Unknown option {!r}".format(key))
+            raise TypeError(f"Unknown option {key!r}")
 
         rv[key] = value
 
@@ -605,7 +605,7 @@ class _Client(BaseClient):
 
         error = exc_info[0]
         error_type_name = get_type_name(exc_info[0])
-        error_full_name = "{}.{}".format(exc_info[0].__module__, error_type_name)
+        error_full_name = f"{exc_info[0].__module__}.{error_type_name}"
 
         for ignored_error in self.options["ignore_errors"]:
             # String types are matched against the type name in the

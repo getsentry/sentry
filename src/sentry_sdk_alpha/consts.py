@@ -46,18 +46,18 @@ if TYPE_CHECKING:
     # code is highly discouraged. They are not subject to any stability
     # guarantees such as the ones from semantic versioning.
     class Experiments(TypedDict, total=False):
-        max_spans: Optional[int]
-        max_flags: Optional[int]
-        record_sql_params: Optional[bool]
-        continuous_profiling_auto_start: Optional[bool]
-        continuous_profiling_mode: Optional[ContinuousProfilerMode]
-        otel_powered_performance: Optional[bool]
-        transport_zlib_compression_level: Optional[int]
-        transport_compression_level: Optional[int]
-        transport_compression_algo: Optional[CompressionAlgo]
-        transport_num_pools: Optional[int]
-        transport_http2: Optional[bool]
-        enable_logs: Optional[bool]
+        max_spans: int | None
+        max_flags: int | None
+        record_sql_params: bool | None
+        continuous_profiling_auto_start: bool | None
+        continuous_profiling_mode: ContinuousProfilerMode | None
+        otel_powered_performance: bool | None
+        transport_zlib_compression_level: int | None
+        transport_compression_level: int | None
+        transport_compression_algo: CompressionAlgo | None
+        transport_num_pools: int | None
+        transport_http2: bool | None
+        enable_logs: bool | None
 
 
 DEFAULT_QUEUE_SIZE = 100
