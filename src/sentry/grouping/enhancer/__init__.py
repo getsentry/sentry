@@ -383,7 +383,13 @@ def _check_split_enhancements_stacktrace_contributes_and_hint(
         )
 
 
-def get_enhancements_version(project: Project, grouping_config_id: str) -> int:
+# This makes it so that for any given deployment, an eligible project either will or won't be opted
+# into the split enhancements (which we'll be able to determine from anywhere we have access to the
+# project), but from deployment to deployment it won't always be the same projects opted in
+SPLIT_ENHANCEMENTS_SAMPLING_SEED = int(1000 * random())
+
+
+def get_enhancements_version(project: Project, grouping_config_id: str = "") -> int:
     """
     Decide whether the Enhancements should be version 2 (status quo) or version 3 (split enhancements).
     """
@@ -393,7 +399,15 @@ def get_enhancements_version(project: Project, grouping_config_id: str) -> int:
     if not features.has("organizations:run-split-enhancements", project.organization):
         return 2
 
-    if random() < options.get("grouping.split_enhancements.sample_rate"):
+    sample_rate = options.get("grouping.split_enhancements.sample_rate")
+
+    if sample_rate == 0:
+        return 2
+
+    # Turn 5% into 20 (for ex), so below we can take roughly 1 in every 20 projects and opt it in
+    sample_rate_denominator = round(1 / sample_rate)
+
+    if hash(project.id + SPLIT_ENHANCEMENTS_SAMPLING_SEED) % sample_rate_denominator == 0:
         return 3
 
     return 2
