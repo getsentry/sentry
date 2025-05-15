@@ -1,6 +1,7 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectAlertSettings from 'sentry/views/settings/projectAlerts/settings';
 
