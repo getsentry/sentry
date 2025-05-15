@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
@@ -24,7 +24,6 @@ import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggesti
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
-import categoryList from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -50,7 +49,6 @@ import IssueAlertOptions, {
   MetricValues,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
-import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
@@ -59,6 +57,22 @@ type FormData = {
   projectName: string;
   team: string | undefined;
 };
+
+type CreatedProjectContext = Pick<Project, 'name' | 'id'> & {
+  alertRule: Partial<RequestDataFragment> | undefined;
+  platform: OnboardingSelectedSDK;
+  teamSlug?: Project['team']['slug'];
+};
+
+const CREATED_PROJECT_CONTEXT_KEY = 'created-project-context';
+
+function getCreatedProjectContext(): CreatedProjectContext | null {
+  return JSON.parse(localStorage.getItem(CREATED_PROJECT_CONTEXT_KEY) ?? 'null');
+}
+
+function saveCreatedProjectContext(project: CreatedProjectContext) {
+  localStorage.setItem(CREATED_PROJECT_CONTEXT_KEY, JSON.stringify(project));
+}
 
 function getMissingValues({
   team,
@@ -129,12 +143,12 @@ export function CreateProject() {
   const [errors, setErrors] = useState(false);
   const organization = useOrganization();
   const location = useLocation();
-  const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const referrer = decodeScalar(location.query.referrer);
   const projectId = decodeScalar(location.query.project);
+  const createdProjectContext = getCreatedProjectContext();
 
   const createRules = useCallback(
     async ({
@@ -182,40 +196,32 @@ export function CreateProject() {
   const createProject = useCreateProject();
 
   const autoFill = useMemo(() => {
-    return (
-      referrer === 'getting-started' &&
-      projectId === gettingStartedWithProjectContext.project?.id
-    );
-  }, [referrer, projectId, gettingStartedWithProjectContext.project?.id]);
+    return referrer === 'getting-started' && projectId === createdProjectContext?.id;
+  }, [referrer, projectId, createdProjectContext?.id]);
 
   const defaultTeam = accessTeams?.[0]?.slug;
 
+  const initialCreatedContextRef = useRef(createdProjectContext);
+
   const initialData = useMemo(() => {
-    if (autoFill) {
-      const platform = gettingStartedWithProjectContext.project?.platform;
-      const platformCategory =
-        (platform
-          ? categoryList.find(category => {
-              return category.platforms?.has(platform?.key);
-            })?.id
-          : undefined) ?? 'all';
+    const context = autoFill ? initialCreatedContextRef.current : null;
+
+    if (context) {
       return {
-        projectName: gettingStartedWithProjectContext.project?.name ?? '',
-        platform: {
-          ...platform,
-          category: platformCategory,
-        },
-        team: gettingStartedWithProjectContext.project?.teamSlug ?? defaultTeam,
-        alertRuleConfig: gettingStartedWithProjectContext.project?.alertRule ?? {},
+        projectName: context.name ?? '',
+        platform: context.platform,
+        team: context.teamSlug ?? defaultTeam,
+        alertRuleConfig: context.alertRule ?? {},
       };
     }
+
     return {
       projectName: '',
       platform: undefined,
       team: defaultTeam,
       alertRuleConfig: {},
     };
-  }, [autoFill, gettingStartedWithProjectContext.project, defaultTeam]);
+  }, [autoFill, defaultTeam]);
 
   useEffect(() => {
     (Object.keys(initialData) as Array<keyof typeof initialData>).forEach(key => {
@@ -251,7 +257,7 @@ export function CreateProject() {
           firstTeamSlug: team,
         });
 
-        gettingStartedWithProjectContext.setProject({
+        saveCreatedProjectContext({
           id: project.id,
           name: project.name,
           teamSlug: project.team?.slug,
@@ -259,6 +265,9 @@ export function CreateProject() {
             shouldCreateRule: alertRuleConfig?.shouldCreateRule ?? false,
             shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule ?? false,
             conditions: alertRuleConfig?.conditions,
+            actions: alertRuleConfig?.actions,
+            actionMatch: alertRuleConfig?.actionMatch,
+            frequency: alertRuleConfig?.frequency,
           },
           platform: selectedPlatform,
         });
@@ -310,14 +319,14 @@ export function CreateProject() {
         }
       }
     },
-    [createRules, organization, createProject, gettingStartedWithProjectContext]
+    [createRules, organization, createProject]
   );
 
   const handleProjectCreation = useCallback(
     async (data: FormData) => {
       const selectedPlatform = data.platform;
 
-      if (!selectedPlatform) {
+      if (!selectedPlatform?.key) {
         addErrorMessage(t('Please select a platform in Step 1'));
         return;
       }
@@ -399,18 +408,19 @@ export function CreateProject() {
                     defaultCategory={platform?.category}
                     setPlatform={value => {
                       if (!value) {
-                        model.setValue('platform', undefined);
+                        model.setValue('platform', {category: platform?.category});
                         return;
                       }
-                      const userModifiedName =
-                        !!projectName && projectName !== platform?.key;
-
-                      const newName = userModifiedName ? projectName : value.id;
 
                       model.setValue('platform', {
                         ...omit(value, 'id'),
                         key: value.id,
                       });
+
+                      const userModifiedName =
+                        !!projectName && projectName !== platform?.key;
+                      const newName = userModifiedName ? projectName : value.id;
+
                       model.setValue('projectName', newName);
                     }}
                     organization={organization}
