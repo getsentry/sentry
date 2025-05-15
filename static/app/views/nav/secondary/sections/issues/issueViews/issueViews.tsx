@@ -12,14 +12,14 @@ import {useParams} from 'sentry/utils/useParams';
 import type {IssueViewParams} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchViewStarredOrder} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarredOrder';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import {IssueViewNavItemContent} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItemContent';
+import {IssueViewItem} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewItem';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 
-interface IssueViewNavItemsProps {
+interface IssueViewsProps {
   sectionRef: React.RefObject<HTMLDivElement | null>;
 }
 
-export interface NavIssueView extends IssueViewParams {
+export interface IssueView extends IssueViewParams {
   createdBy: AvatarUser;
   dateCreated: string;
   dateUpdated: string;
@@ -29,7 +29,7 @@ export interface NavIssueView extends IssueViewParams {
   stars: number;
 }
 
-export function IssueViewNavItems({sectionRef}: IssueViewNavItemsProps) {
+export function IssueViews({sectionRef}: IssueViewsProps) {
   const organization = useOrganization();
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
 
@@ -41,7 +41,7 @@ export function IssueViewNavItems({sectionRef}: IssueViewNavItemsProps) {
 
   const debounceUpdateStarredViewsOrder = useMemo(
     () =>
-      debounce((newViews: NavIssueView[]) => {
+      debounce((newViews: IssueView[]) => {
         updateStarredViewsOrder({
           orgSlug: organization.slug,
           viewIds: newViews.map(view => parseInt(view.id, 10)),
@@ -74,7 +74,7 @@ export function IssueViewNavItems({sectionRef}: IssueViewNavItemsProps) {
         ref={sectionRef}
       >
         {views.map(view => (
-          <IssueViewNavItemContent
+          <IssueViewItem
             key={view.id}
             view={view}
             sectionRef={sectionRef}
@@ -90,7 +90,7 @@ export function IssueViewNavItems({sectionRef}: IssueViewNavItemsProps) {
   );
 }
 
-export const constructViewLink = (baseUrl: string, view: NavIssueView) => {
+export const constructViewLink = (baseUrl: string, view: IssueView) => {
   return normalizeUrl({
     pathname: `${baseUrl}/views/${view.id}/`,
     query: {

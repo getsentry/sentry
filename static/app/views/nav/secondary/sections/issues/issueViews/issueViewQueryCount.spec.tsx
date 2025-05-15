@@ -3,9 +3,9 @@ import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavQueryCount';
+import {IssueViewQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewQueryCount';
 
-describe('IssueViewNavQueryCount', () => {
+describe('IssueViewQueryCount', () => {
   const mockView = {
     ...GroupSearchViewFixture({
       id: '1',
@@ -38,7 +38,7 @@ describe('IssueViewNavQueryCount', () => {
       },
     });
 
-    render(<IssueViewNavQueryCount view={mockView} isActive />);
+    render(<IssueViewQueryCount view={mockView} isActive />);
 
     expect(await screen.findByText('71')).toBeInTheDocument();
   });
@@ -52,7 +52,7 @@ describe('IssueViewNavQueryCount', () => {
       },
     });
 
-    render(<IssueViewNavQueryCount view={mockView} isActive />);
+    render(<IssueViewQueryCount view={mockView} isActive />);
 
     expect(await screen.findByText('99+')).toBeInTheDocument();
   });

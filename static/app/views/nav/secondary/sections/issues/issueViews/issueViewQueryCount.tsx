@@ -9,7 +9,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
 import {useFetchIssueCounts} from 'sentry/views/issueList/queries/useFetchIssueCounts';
-import type {NavIssueView} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
+import type {IssueView} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViews';
 
 const TAB_MAX_COUNT = 99;
 
@@ -30,12 +30,12 @@ const constructCountTimeFrame = (
   };
 };
 
-interface IssueViewNavQueryCountProps {
+interface IssueViewQueryCountProps {
   isActive: boolean;
-  view: NavIssueView;
+  view: IssueView;
 }
 
-export function IssueViewNavQueryCount({view, isActive}: IssueViewNavQueryCountProps) {
+export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) {
   const organization = useOrganization();
   const theme = useTheme();
   const location = useLocation();
