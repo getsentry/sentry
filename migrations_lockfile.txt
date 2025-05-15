@@ -5,28 +5,28 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-explore: 0003_add_prebuilt_column_to_explore_saved_queries
+explore: 0004_add_explore_last_visited_table
 
 feedback: 0004_index_together
 
-hybridcloud: 0019_add_provider_webhook_payload
+hybridcloud: 0021_django_arrayfield_scope_list
 
 insights: 0001_add_starred_transactions_model
 
-monitors: 0002_fix_drift_default_to_db_default
+monitors: 0004_record_date_in_progress_sql_only
 
 nodestore: 0002_nodestore_no_dictfield
 
 remote_subscriptions: 0003_drop_remote_subscription
 
-replays: 0004_index_together
+replays: 0005_drop_replay_index
 
-sentry: 0882_projectoptions_idx_on_key
+sentry: 0896_org_level_access_not_null
 
 social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0039_uptime_drop_project_subscription_uptime_status_db
+uptime: 0041_uptime_backfill_detector_grouphash
 
-workflow_engine: 0057_workflowengine_rename_column
+workflow_engine: 0060_rename_azure_devops_action_to_vsts

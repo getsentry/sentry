@@ -1,16 +1,18 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
+import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
-import {AUTOMATIONS_BASE_URL} from 'sentry/views/automations/routes';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 
 type AutomationListRowProps = {
   automation: Automation;
@@ -23,6 +25,7 @@ export function AutomationListRow({
   handleSelect,
   selected,
 }: AutomationListRowProps) {
+  const organization = useOrganization();
   const actions = useAutomationActions(automation);
   const {id, name, disabled, lastTriggered, detectorIds = []} = automation;
   return (
@@ -36,7 +39,10 @@ export function AutomationListRow({
           }}
         />
         <CellWrapper>
-          <TitleCell to={`${AUTOMATIONS_BASE_URL}/${id}/`}>{name}</TitleCell>
+          <AutomationTitleCell
+            name={name}
+            href={makeAutomationDetailsPathname(organization.slug, id)}
+          />
         </CellWrapper>
       </Flex>
       <CellWrapper className="last-triggered">
@@ -68,18 +74,6 @@ const CellWrapper = styled('div')`
   min-width: 0;
 `;
 
-const TitleCell = styled(Link)`
-  padding: ${space(2)};
-  margin: -${space(2)};
-  color: ${p => p.theme.textColor};
-
-  &:hover,
-  &:active {
-    text-decoration: underline;
-    color: ${p => p.theme.textColor};
-  }
-`;
-
 const RowWrapper = styled('div')<{disabled?: boolean}>`
   display: grid;
   position: relative;
@@ -88,7 +82,7 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
 
   ${p =>
     p.disabled &&
-    `
+    css`
       ${CellWrapper} {
         opacity: 0.6;
       }

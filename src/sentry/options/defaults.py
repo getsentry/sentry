@@ -1669,6 +1669,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.http_overhead.problem-creation",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1685,7 +1690,7 @@ register(
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=500.0,  # ms
+    default=1000.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3015,6 +3020,12 @@ register(
 register(
     "demo-mode.users",
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-mode.disable-sandbox-redirect",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -160,6 +160,14 @@ class TaskNamespace:
                 KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
             )
 
+        metrics.incr(
+            "taskworker.registry.send_task.scheduled",
+            tags={
+                "namespace": activation.namespace,
+                "taskname": activation.taskname,
+                "topic": topic.value,
+            },
+        )
         # We know this type is futures.Future, but cannot assert so,
         # because it is also mock.Mock in tests.
         produce_future.add_done_callback(  # type:ignore[union-attr]

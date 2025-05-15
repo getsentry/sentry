@@ -61,7 +61,7 @@ function WidgetBuilderNameAndDescription({
         inline={false}
       />
       {!isDescSelected && (
-        <AddDescriptionButton
+        <Button
           priority="link"
           aria-label={t('Add Widget Description')}
           onClick={() => {
@@ -70,7 +70,7 @@ function WidgetBuilderNameAndDescription({
           data-test-id={'add-description'}
         >
           {t('+ Add Widget Description')}
-        </AddDescriptionButton>
+        </Button>
       )}
       {isDescSelected && (
         <DescriptionTextArea
@@ -105,10 +105,6 @@ const StyledTextField = styled(TextField)`
   margin-bottom: ${space(1)};
   padding: 0;
   border: none;
-`;
-
-const AddDescriptionButton = styled(Button)`
-  margin-bottom: ${space(1)};
 `;
 
 const DescriptionTextArea = styled(TextArea)`

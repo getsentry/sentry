@@ -12,9 +12,16 @@ from sentry.issues.grouptype import (
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult, DetectorHandler
+from sentry.workflow_engine.handlers.detector import DetectorHandler, DetectorOccurrence
+from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorSettings
+from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.types import (
+    DetectorEvaluationResult,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+    DetectorSettings,
+)
 
 
 @region_silo_test
@@ -31,11 +38,39 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         )
         self.registry_patcher.start()
 
-        class MockDetectorHandler(DetectorHandler[dict]):
+        class MockDetectorHandler(DetectorHandler[dict, bool]):
             def evaluate(
                 self, data_packet: DataPacket[dict]
             ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
                 return {None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)}
+
+            def extract_value(self, data_packet: DataPacket[dict]) -> bool:
+                return True
+
+            def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
+                return 1
+
+            def create_occurrence(
+                self,
+                evaluation_result: ProcessedDataConditionGroup,
+                data_packet: DataPacket[dict],
+                priority: DetectorPriorityLevel,
+            ) -> tuple[DetectorOccurrence, EventData]:
+                return (
+                    DetectorOccurrence(
+                        issue_title="Test",
+                        subtitle="Test",
+                        resource_id=None,
+                        evidence_data={},
+                        evidence_display=[],
+                        type=TestMetricGroupType,
+                        level="",
+                        culprit="",
+                        priority=priority,
+                        assignee=None,
+                    ),
+                    {},
+                )
 
         @dataclass(frozen=True)
         class TestMetricGroupType(GroupType):

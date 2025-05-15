@@ -714,10 +714,6 @@ class TriggersChart extends PureComponent<Props, State> {
       partial: false,
     };
 
-    const isUsingNormalSamplingMode = organization.features.includes(
-      'visibility-explore-progressive-loading-normal-sampling-mode'
-    );
-
     return (
       <Fragment>
         {this.props.includeHistorical ? (
@@ -751,7 +747,7 @@ class TriggersChart extends PureComponent<Props, State> {
           period={period}
           dataLoadedCallback={onDataLoaded}
           sampling={
-            isUsingNormalSamplingMode && dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
               ? SAMPLING_MODE.NORMAL
               : undefined
           }

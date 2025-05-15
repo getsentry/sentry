@@ -10,7 +10,7 @@ export function DashboardsSecondaryNav() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/dashboards`;
 
-  const starredDashboards = useApiQuery<DashboardListItem[]>(
+  const {data: starredDashboards = []} = useApiQuery<DashboardListItem[]>(
     [
       `/organizations/${organization.slug}/dashboards/`,
       {
@@ -35,17 +35,19 @@ export function DashboardsSecondaryNav() {
             {t('All Dashboards')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <SecondaryNav.Section id="dashboards-starred" title={t('Starred Dashboards')}>
-          {starredDashboards.data?.map(dashboard => (
-            <SecondaryNav.Item
-              key={dashboard.id}
-              to={`/organizations/${organization.slug}/dashboard/${dashboard.id}/`}
-              analyticsItemName="dashboard_starred_item"
-            >
-              {dashboard.title}
-            </SecondaryNav.Item>
-          )) ?? null}
-        </SecondaryNav.Section>
+        {starredDashboards.length > 0 ? (
+          <SecondaryNav.Section id="dashboards-starred" title={t('Starred Dashboards')}>
+            {starredDashboards.map(dashboard => (
+              <SecondaryNav.Item
+                key={dashboard.id}
+                to={`/organizations/${organization.slug}/dashboard/${dashboard.id}/`}
+                analyticsItemName="dashboard_starred_item"
+              >
+                {dashboard.title}
+              </SecondaryNav.Item>
+            ))}
+          </SecondaryNav.Section>
+        ) : null}
       </SecondaryNav.Body>
     </SecondaryNav>
   );

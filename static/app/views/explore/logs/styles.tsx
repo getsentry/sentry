@@ -19,9 +19,13 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
-export const LogTableRow = styled(TableRow)`
+interface LogTableRowProps {
+  isClickable?: boolean;
+}
+
+export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   &:not(thead > &) {
-    cursor: pointer;
+    cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
     &:hover {
       background-color: ${p => p.theme.backgroundSecondary};
@@ -103,13 +107,13 @@ export const LogFirstCellContent = styled('div')`
 export const DetailsBody = styled('div')`
   display: flex;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+  padding: ${space(1)} 0;
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
 
   &:last-child {
     border-bottom: 0;
   }
-
-  padding: ${space(1)} 0;
-  font-family: ${p => p.theme.text.familyMono};
 `;
 
 export const StyledChevronButton = styled(Button)`
@@ -169,6 +173,7 @@ export const AlignedCellContent = styled('div')<{
   flex-direction: row;
   justify-content: ${p => p.align || 'left'};
   font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
 `;
 
 export const FirstTableHeadCell = styled(TableHeadCell)`
