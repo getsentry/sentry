@@ -311,16 +311,6 @@ def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
     """
-    if in_random_rollout("sentry-sdk.use-python-sdk-alpha"):
-        import sentry_sdk_alpha
-
-        global sentry_sdk
-        sentry_sdk = sentry_sdk_alpha
-
-    # trying to call non existing function in sentry_sdk_alpha
-    # never reached because sentry_sdk_alpha does not exist yet :)
-    sentry_sdk.start_transaction()
-
     sdk_options, dsns = _get_sdk_options()
     if settings.SPOTLIGHT:
         sdk_options["spotlight"] = (
@@ -527,13 +517,14 @@ def configure_sdk():
     def redirect_import(original_module, target_module):
         redirector = ImportRedirector(original_module, target_module)
         sys.meta_path.insert(0, redirector)
+        # TODO: Not sure the original module should be deleted....
         if original_module in sys.modules:
             # cleaning up cache if the module is already imported
             del sys.modules[original_module]
 
     # monkey patch to anything but sentry_sdk
     if in_random_rollout("sentry-sdk.use-python-sdk-alpha") or True:
-        redirect_import("sentry_sdk", "requests")
+        redirect_import("sentry_sdk", "sentry_sdk_alpha")
 
 
 def check_tag_for_scope_bleed(
