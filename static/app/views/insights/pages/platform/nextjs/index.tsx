@@ -43,7 +43,7 @@ export function NextJsOverviewPage({
 
   const activeTable: TableType = isTableType(location.query.view)
     ? location.query.view
-    : TableType.API;
+    : TableType.PAGELOAD;
 
   const updateQuery = useCallback(
     (newParams: Record<string, string | string[] | null | undefined>) => {
