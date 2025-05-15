@@ -662,21 +662,12 @@ class Enhancements:
             in_app_rust_frames,
             contributes_rust_frames,
         ):
-            frame_type = "in-app" if frame_component.in_app else "system"
-            rust_contributes = bool(rust_frame.contributes)  # bool-ing this for mypy's sake
-            rust_hint = rust_frame.hint
-            rust_hint_type = (
-                None
-                if rust_hint is None
-                else "in-app" if rust_hint.startswith("marked") else "contributes"
-            )
-
             # System frames should never contribute in the app variant, so if that's what we have,
             # force `contribtues=False`, regardless of the rust results
-            if variant_name == "app" and frame_type == "system":
+            if variant_name == "app" and not frame_component.in_app:
                 contributes = False
             else:
-                contributes = rust_contributes
+                contributes = rust_frame.contributes
 
             hint = get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
             if self.run_split_enhancements:
@@ -690,15 +681,6 @@ class Enhancements:
                 split_contributes_hint = get_hint_for_frame(
                     variant_name, frame, frame_component, contributes_rust_frame, "contributes"
                 )
-
-            # TODO: Remove this workaround once we remove the legacy config. It's done this way (as
-            # a second pass at setting the values that undoes what the first pass did, rather than
-            # being incorporated into the first pass) so that we won't have to change any of the
-            # main logic when we remove it.
-            if self.bases and self.bases[0].startswith("legacy"):
-                contributes = rust_contributes
-                if not (variant_name == "system" and rust_hint_type == "in-app"):
-                    hint = rust_hint
 
             frame_component.update(contributes=contributes, hint=hint)
 
@@ -741,13 +723,7 @@ class Enhancements:
         # stacktrace to be wrong, too (if in the process of ignoring rust we turn a stacktrace with
         # at least one contributing frame into one without any). So we need to special-case here as
         # well.
-        #
-        # TODO: Remove the first condition once we get rid of the legacy config
-        if (
-            not (self.bases and self.bases[0].startswith("legacy"))
-            and variant_name == "app"
-            and frame_counts["in_app_contributing_frames"] == 0
-        ):
+        if variant_name == "app" and frame_counts["in_app_contributing_frames"] == 0:
             stacktrace_contributes = False
             stacktrace_hint = None
         else:
