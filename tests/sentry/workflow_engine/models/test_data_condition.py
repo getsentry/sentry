@@ -58,8 +58,9 @@ class EvaluateValueTest(TestCase):
         )
 
         # Raises a TypeError because str vs int comparison
-        with pytest.raises(TypeError):
+        with mock.patch("sentry.workflow_engine.models.data_condition.logger") as mock_logger:
             dc.evaluate_value(2)
+            assert mock_logger.exception.call_args[0][0] == "Invalid comparison for data condition"
 
     def test_condition_result_comparison_fails(self):
         dc = self.create_data_condition(
