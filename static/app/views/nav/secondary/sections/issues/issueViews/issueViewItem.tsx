@@ -22,7 +22,7 @@ import {
   type IssueView,
 } from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViews';
 
-interface IssueViewNavItemContentProps {
+interface IssueViewItemProps {
   /**
    * Whether the item is active.
    */
@@ -56,14 +56,14 @@ interface IssueViewNavItemContentProps {
   sectionRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export function IssueViewNavItemContent({
+export function IssueViewItem({
   view,
   sectionRef,
   isActive,
   onReorderComplete,
   isDragging,
   setIsDragging,
-}: IssueViewNavItemContentProps) {
+}: IssueViewItemProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
 

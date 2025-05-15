@@ -12,7 +12,7 @@ import {useParams} from 'sentry/utils/useParams';
 import type {IssueViewParams} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchViewStarredOrder} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarredOrder';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import {IssueViewNavItemContent} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItemContent';
+import {IssueViewItem} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewItem';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 
 interface IssueViewsProps {
@@ -74,7 +74,7 @@ export function IssueViews({sectionRef}: IssueViewsProps) {
         ref={sectionRef}
       >
         {views.map(view => (
-          <IssueViewNavItemContent
+          <IssueViewItem
             key={view.id}
             view={view}
             sectionRef={sectionRef}
