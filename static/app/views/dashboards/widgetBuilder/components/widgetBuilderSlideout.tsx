@@ -225,9 +225,11 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
             </div>
-            <Section>
-              <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
-            </Section>
+            {isSmallScreen && (
+              <Section>
+                <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+              </Section>
+            )}
             <WidgetTemplatesList
               onSave={onSave}
               setOpenWidgetTemplates={setOpenWidgetTemplates}
