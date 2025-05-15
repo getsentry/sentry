@@ -363,7 +363,9 @@ const BodyCell = memo(function PagesBodyCell({
       const thresholds = errorRateColorThreshold;
       const color = getCellColor(dataRow.errorRate, thresholds);
       return (
-        <ColoredValue color={color}>{formatPercentage(dataRow.errorRate)}</ColoredValue>
+        <ColoredValue color={color}>
+          {formatPercentage(dataRow.errorRate ?? 0)}
+        </ColoredValue>
       );
     }
     case 'sum(span.duration)':
