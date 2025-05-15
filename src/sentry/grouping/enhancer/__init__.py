@@ -822,7 +822,9 @@ def _load_configs() -> dict[str, Enhancements]:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 filename = filename.replace("@", ":")
-                enhancements = Enhancements.from_rules_text(f.read(), id=filename, version=3)
+                enhancements = Enhancements.from_rules_text(
+                    f.read(), id=filename, version=3, referrer="default_rules"
+                )
                 enhancement_bases[filename] = enhancements
     return enhancement_bases
 
