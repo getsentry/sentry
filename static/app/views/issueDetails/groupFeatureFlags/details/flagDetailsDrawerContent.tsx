@@ -2,7 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';

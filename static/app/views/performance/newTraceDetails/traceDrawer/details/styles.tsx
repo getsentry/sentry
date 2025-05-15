@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   DropdownMenu,
