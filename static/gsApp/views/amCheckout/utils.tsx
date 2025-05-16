@@ -249,8 +249,6 @@ export function getReservedPriceCents({
 
   Object.entries(selectedProducts ?? {}).forEach(([apiName, selectedProductData]) => {
     if (selectedProductData.enabled) {
-      // TODO: replace this to use the pricing schedule once that's serialized on availableReservedBudgetTypes
-      // This way, we can handle both annual and monthly prices
       const budgetTypeInfo =
         plan.availableReservedBudgetTypes[apiName as ReservedBudgetCategoryType];
       if (budgetTypeInfo) {

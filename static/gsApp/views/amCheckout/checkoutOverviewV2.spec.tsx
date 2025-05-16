@@ -100,7 +100,7 @@ describe('CheckoutOverviewV2', function () {
     );
 
     expect(screen.getByText('All Sentry Products')).toBeInTheDocument();
-    expect(screen.getByTestId('seer-reserved')).toBeInTheDocument(); // .toHaveTextContent('Seer $216/yr'); TODO(seer): uncomment this once fixtures are updated with pricing schedule
+    expect(screen.getByTestId('seer-reserved')).toHaveTextContent('Seer$216/yr');
     expect(screen.getByText('Total Annual Charges')).toBeInTheDocument();
     expect(screen.getByText('$312/yr')).toBeInTheDocument();
     expect(screen.getByTestId('additional-monthly-charge')).toHaveTextContent(
@@ -186,6 +186,36 @@ describe('CheckoutOverviewV2', function () {
           enabled: false,
         },
       },
+    };
+
+    render(
+      <CheckoutOverviewV2
+        activePlan={teamPlanAnnual}
+        billingConfig={billingConfig}
+        formData={formData}
+        onUpdate={jest.fn()}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    expect(screen.queryByTestId('seer-reserved')).not.toBeInTheDocument();
+  });
+
+  it('does not show seer when not included in formData', function () {
+    const formData: CheckoutFormData = {
+      plan: 'am3_team_auf',
+      reserved: {
+        errors: 100000,
+        attachments: 25,
+        replays: 50,
+        spans: 10_000_000,
+        monitorSeats: 1,
+        profileDuration: 0,
+        profileDurationUI: 0,
+        uptime: 1,
+      },
+      onDemandMaxSpend: 5000,
     };
 
     render(

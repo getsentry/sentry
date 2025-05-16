@@ -46,9 +46,6 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
     [formData.onDemandMaxSpend]
   );
 
-  // const hasSeerEnabled = !!formData.seerEnabled;
-  // const hasSeerFeature = organization.features.includes('seer-billing');
-
   const renderPlanDetails = () => {
     return (
       <PanelChild>
@@ -71,56 +68,6 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
       </PanelChild>
     );
   };
-
-  // const renderAdditionalFeatureSummary = ({
-  //   featureKey,
-  //   featureEnabled,
-  //   featureAvailable,
-  //   title,
-  //   tooltipTitle,
-  //   priceCents,
-  // }: {
-  //   featureAvailable: boolean;
-  //   featureEnabled: boolean;
-  //   featureKey: string;
-  //   priceCents: number;
-  //   title: string;
-  //   tooltipTitle: string;
-  // }) => {
-  //   return (
-  //     featureAvailable &&
-  //     featureEnabled && (
-  //       <PanelChild data-test-id={`${featureKey}-summary`}>
-  //         <SpaceBetweenRow style={{alignItems: 'start'}}>
-  //           <Column>
-  //             <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
-  //               <Title>
-  //                 {title}
-  //                 &nbsp;&nbsp;
-  //                 <QuestionTooltip size="xs" title={tooltipTitle} />
-  //               </Title>
-  //             </div>
-  //           </Column>
-  //           <Column minWidth="150px" alignItems="end">
-  //             <Title>{`+${utils.displayPrice({cents: priceCents})}/mo`}</Title>
-  //             <Description>Additional usage billed separately</Description>
-  //           </Column>
-  //         </SpaceBetweenRow>
-  //       </PanelChild>
-  //     )
-  //   );
-  // };
-
-  // const renderSeerSummary = () => {
-  //   return renderAdditionalFeatureSummary({
-  //     featureKey: 'seer',
-  //     featureEnabled: hasSeerEnabled,
-  //     featureAvailable: hasSeerFeature,
-  //     title: t('Sentry AI Agent'),
-  //     tooltipTitle: t('Additional Seer information.'),
-  //     priceCents: SEER_MONTHLY_PRICE_CENTS,
-  //   });
-  // };
 
   const renderPayAsYouGoBudget = (paygBudgetTotal: number) => {
     return (
