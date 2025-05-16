@@ -372,7 +372,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for stored spans — $0.02000000 → $0.87654321'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — $100,000.00 for accepted spans and stored spans → $50,000.00 for accepted spans and stored spans'
+      'Reserved budgets — $100,000.00 for spans budget → $50,000.00 for spans budget'
     );
   });
 
@@ -420,7 +420,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for stored spans — None → $0.87654321'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — None → $50,000.00 for accepted spans and stored spans'
+      'Reserved budgets — None → $50,000.00 for spans budget'
     );
   });
 
@@ -457,7 +457,7 @@ describe('PendingChanges', function () {
       'Reserved cost-per-event for spansIndexed — $0.02000000 → None'
     );
     expect(container).toHaveTextContent(
-      'Reserved budgets — $100,000.00 for accepted spans and stored spans → None'
+      'Reserved budgets — $100,000.00 for spans budget → None'
     );
   });
 
