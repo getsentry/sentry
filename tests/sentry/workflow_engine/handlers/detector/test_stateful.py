@@ -1,3 +1,4 @@
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -77,7 +78,16 @@ class TestStatefulDetectorHandler(TestCase):
             },
         )
         result = handler.evaluate(data_packet_two)
-        import pdb
 
-        pdb.set_trace()
-        assert result == {}  # TODO this should be a detector result
+        evaluation_result = result[None]
+        assert evaluation_result
+        assert evaluation_result.priority == DetectorPriorityLevel.HIGH
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+
+        evidence_data = evaluation_result.result.evidence_data
+        assert evidence_data["detector_id"] == self.detector.id
+
+        state_data = handler.state_manager.get_state_data([None])[None]
+        assert state_data.is_triggered is True
+        assert state_data.status == DetectorPriorityLevel.HIGH
+        assert state_data.counter_updates[DetectorPriorityLevel.HIGH] == 2
