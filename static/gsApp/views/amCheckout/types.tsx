@@ -11,20 +11,28 @@ import type {
   Subscription,
 } from 'getsentry/types';
 
+export enum SelectableProduct {
+  SEER = 'seer', // should match ReservedBudgetCategoryType.SEER
+}
+
 type BaseCheckoutData = {
   plan: string;
+  selectedProducts: Record<SelectableProduct, SelectedProductData>;
   applyNow?: boolean;
   onDemandBudget?: OnDemandBudgets;
   onDemandMaxSpend?: number;
-  seerBudget?: number;
-  seerEnabled?: boolean;
+};
+
+export type SelectedProductData = {
+  enabled: boolean;
+  budget?: number; // if not provided, the default budget will be used
 };
 
 export type CheckoutFormData = BaseCheckoutData & {
   reserved: Partial<Record<DataCategory, number>>;
 };
 
-export type CheckoutAPIData = BaseCheckoutData & {
+export type CheckoutAPIData = Omit<BaseCheckoutData, 'selectedProducts'> & {
   paymentIntent?: string;
   previewToken?: string;
   referrer?: string;
@@ -37,7 +45,7 @@ export type CheckoutAPIData = BaseCheckoutData & {
   reservedSpans?: number;
   reservedTransactions?: number;
   reservedUptime?: number;
-  seer?: boolean;
+  seer?: boolean; // TODO: in future, we should just use selectedProducts
 };
 
 export type StepProps = {

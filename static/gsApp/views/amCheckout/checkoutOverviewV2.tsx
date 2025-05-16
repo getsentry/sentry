@@ -10,16 +10,17 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
-  SEER_MONTHLY_PRICE_CENTS,
+  RESERVED_BUDGET_QUOTA,
 } from 'getsentry/constants';
 import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
 import {formatReservedWithUnits, isBizPlanFamily} from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
-import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
 type Props = {
@@ -32,12 +33,7 @@ type Props = {
   discountInfo?: Promotion['discountInfo'];
 };
 
-function CheckoutOverviewV2({
-  activePlan,
-  formData,
-  onUpdate: _onUpdate,
-  organization,
-}: Props) {
+function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) {
   const shortInterval = useMemo(() => {
     return utils.getShortInterval(activePlan.billingInterval);
   }, [activePlan.billingInterval]);
@@ -54,8 +50,8 @@ function CheckoutOverviewV2({
     [formData.onDemandMaxSpend]
   );
 
-  const hasSeerEnabled = !!formData.seerEnabled;
-  const hasSeerFeature = organization.features.includes('seer-billing');
+  // const hasSeerEnabled = !!formData.seerEnabled;
+  // const hasSeerFeature = organization.features.includes('seer-billing');
 
   const renderPlanDetails = () => {
     return (
@@ -80,55 +76,55 @@ function CheckoutOverviewV2({
     );
   };
 
-  const renderAdditionalFeatureSummary = ({
-    featureKey,
-    featureEnabled,
-    featureAvailable,
-    title,
-    tooltipTitle,
-    priceCents,
-  }: {
-    featureAvailable: boolean;
-    featureEnabled: boolean;
-    featureKey: string;
-    priceCents: number;
-    title: string;
-    tooltipTitle: string;
-  }) => {
-    return (
-      featureAvailable &&
-      featureEnabled && (
-        <PanelChild data-test-id={`${featureKey}-summary`}>
-          <SpaceBetweenRow style={{alignItems: 'start'}}>
-            <Column>
-              <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
-                <Title>
-                  {title}
-                  &nbsp;&nbsp;
-                  <QuestionTooltip size="xs" title={tooltipTitle} />
-                </Title>
-              </div>
-            </Column>
-            <Column minWidth="150px" alignItems="end">
-              <Title>{`+${utils.displayPrice({cents: priceCents})}/mo`}</Title>
-              <Description>Additional usage billed separately</Description>
-            </Column>
-          </SpaceBetweenRow>
-        </PanelChild>
-      )
-    );
-  };
+  // const renderAdditionalFeatureSummary = ({
+  //   featureKey,
+  //   featureEnabled,
+  //   featureAvailable,
+  //   title,
+  //   tooltipTitle,
+  //   priceCents,
+  // }: {
+  //   featureAvailable: boolean;
+  //   featureEnabled: boolean;
+  //   featureKey: string;
+  //   priceCents: number;
+  //   title: string;
+  //   tooltipTitle: string;
+  // }) => {
+  //   return (
+  //     featureAvailable &&
+  //     featureEnabled && (
+  //       <PanelChild data-test-id={`${featureKey}-summary`}>
+  //         <SpaceBetweenRow style={{alignItems: 'start'}}>
+  //           <Column>
+  //             <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
+  //               <Title>
+  //                 {title}
+  //                 &nbsp;&nbsp;
+  //                 <QuestionTooltip size="xs" title={tooltipTitle} />
+  //               </Title>
+  //             </div>
+  //           </Column>
+  //           <Column minWidth="150px" alignItems="end">
+  //             <Title>{`+${utils.displayPrice({cents: priceCents})}/mo`}</Title>
+  //             <Description>Additional usage billed separately</Description>
+  //           </Column>
+  //         </SpaceBetweenRow>
+  //       </PanelChild>
+  //     )
+  //   );
+  // };
 
-  const renderSeerSummary = () => {
-    return renderAdditionalFeatureSummary({
-      featureKey: 'seer',
-      featureEnabled: hasSeerEnabled,
-      featureAvailable: hasSeerFeature,
-      title: t('Sentry AI Agent'),
-      tooltipTitle: t('Additional Seer information.'),
-      priceCents: SEER_MONTHLY_PRICE_CENTS,
-    });
-  };
+  // const renderSeerSummary = () => {
+  //   return renderAdditionalFeatureSummary({
+  //     featureKey: 'seer',
+  //     featureEnabled: hasSeerEnabled,
+  //     featureAvailable: hasSeerFeature,
+  //     title: t('Sentry AI Agent'),
+  //     tooltipTitle: t('Additional Seer information.'),
+  //     priceCents: SEER_MONTHLY_PRICE_CENTS,
+  //   });
+  // };
 
   const renderPayAsYouGoBudget = (paygBudgetTotal: number) => {
     return (
@@ -171,6 +167,77 @@ function CheckoutOverviewV2({
   };
 
   const renderProductBreakdown = () => {
+    const hasAtLeastOneSelectedProduct = Object.values(
+      activePlan.availableReservedBudgetTypes
+    ).some(budgetTypeInfo => {
+      return formData.selectedProducts[
+        budgetTypeInfo.apiName as string as SelectableProduct
+      ]?.enabled;
+    });
+
+    if (!hasAtLeastOneSelectedProduct) {
+      return null;
+    }
+
+    return (
+      <Fragment>
+        <Separator />
+        <Section>
+          <ReservedVolumes>
+            {Object.values(activePlan.availableReservedBudgetTypes).map(
+              budgetTypeInfo => {
+                const formDataForProduct =
+                  formData.selectedProducts[
+                    budgetTypeInfo.apiName as string as SelectableProduct
+                  ];
+                if (!formDataForProduct) {
+                  return null;
+                }
+
+                if (formDataForProduct.enabled) {
+                  return (
+                    <SpaceBetweenRow
+                      key={budgetTypeInfo.apiName}
+                      data-test-id={`${budgetTypeInfo.apiName}-reserved`}
+                    >
+                      <ReservedItem>
+                        {toTitleCase(budgetTypeInfo.productName)}
+                        <QuestionTooltip
+                          size="xs"
+                          title={t(
+                            '%s use budgets from your monthly reserved cost. Any additional usage will be from your PAYG budget.',
+                            toTitleCase(budgetTypeInfo.productName)
+                          )}
+                        />
+                      </ReservedItem>
+                      <Price>
+                        {utils.displayPrice({
+                          cents: budgetTypeInfo.dataCategories.reduce(
+                            (acc, dataCategory) => {
+                              const bucket = utils.getBucket({
+                                events: RESERVED_BUDGET_QUOTA,
+                                buckets: activePlan.planCategories[dataCategory],
+                              });
+                              return acc + bucket.price;
+                            },
+                            0
+                          ),
+                        })}
+                        /{shortInterval}
+                      </Price>
+                    </SpaceBetweenRow>
+                  );
+                }
+                return null;
+              }
+            )}
+          </ReservedVolumes>
+        </Section>
+      </Fragment>
+    );
+  };
+
+  const renderObservabilityProductBreakdown = () => {
     const paygCategories = [
       DataCategory.MONITOR_SEATS,
       DataCategory.PROFILE_DURATION,
@@ -178,12 +245,19 @@ function CheckoutOverviewV2({
       DataCategory.UPTIME,
     ];
 
+    const budgetCategories = Object.values(
+      activePlan.availableReservedBudgetTypes
+    ).reduce((acc, type) => {
+      acc.push(...type.dataCategories);
+      return acc;
+    }, [] as DataCategory[]);
+
     return (
       <Section>
         <Subtitle>{t('All Sentry Products')}</Subtitle>
         <ReservedVolumes>
           {activePlan.categories
-            .filter(category => activePlan.planCategories[category])
+            .filter(category => !budgetCategories.includes(category))
             .map(category => {
               const eventBucket =
                 activePlan.planCategories[category] &&
@@ -325,18 +399,14 @@ function CheckoutOverviewV2({
   return (
     <StyledPanel data-test-id="checkout-overview-v2">
       {renderPlanDetails()}
-      <Separator />
-      {hasSeerEnabled && renderSeerSummary()}
+      {renderProductBreakdown()}
+      {/* {hasSeerEnabled && renderSeerSummary()} */}
       <Separator />
       {renderPayAsYouGoBudget(paygMonthlyBudget)}
       <Separator />
-      {renderProductBreakdown()}
+      {renderObservabilityProductBreakdown()}
       <TotalSeparator />
-      {renderTotals(
-        committedTotal +
-          (hasSeerFeature && formData.seerEnabled ? SEER_MONTHLY_PRICE_CENTS : 0),
-        paygMonthlyBudget
-      )}
+      {renderTotals(committedTotal, paygMonthlyBudget)}
     </StyledPanel>
   );
 }

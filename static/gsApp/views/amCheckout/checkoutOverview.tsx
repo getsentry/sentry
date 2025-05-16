@@ -8,7 +8,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
-import {ANNUAL, MONTHLY, SEER_MONTHLY_PRICE_CENTS} from 'getsentry/constants';
+import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
@@ -174,46 +174,46 @@ class CheckoutOverview extends Component<Props> {
     );
   }
 
-  renderAdditionalFeature({
-    featureKey,
-    title,
-    description,
-    priceCents,
-    enabledField,
-  }: {
-    description: string;
-    enabledField: string;
-    featureKey: string;
-    priceCents: number;
-    title: string;
-  }) {
-    const {formData} = this.props;
-    const isEnabled = formData[enabledField as keyof CheckoutFormData];
+  // renderAdditionalFeature({
+  //   featureKey,
+  //   title,
+  //   description,
+  //   priceCents,
+  //   enabledField,
+  // }: {
+  //   description: string;
+  //   enabledField: string;
+  //   featureKey: string;
+  //   priceCents: number;
+  //   title: string;
+  // }) {
+  //   const {formData} = this.props;
+  //   const isEnabled = formData[enabledField as keyof CheckoutFormData];
 
-    if (!isEnabled) {
-      return null;
-    }
+  //   if (!isEnabled) {
+  //     return null;
+  //   }
 
-    return (
-      <DetailItem key={featureKey} data-test-id={featureKey}>
-        <div>
-          <DetailTitle>{title}</DetailTitle>
-          {description}
-        </div>
-        <DetailPrice>{`${utils.displayPrice({cents: priceCents})}/mo`}</DetailPrice>
-      </DetailItem>
-    );
-  }
+  //   return (
+  //     <DetailItem key={featureKey} data-test-id={featureKey}>
+  //       <div>
+  //         <DetailTitle>{title}</DetailTitle>
+  //         {description}
+  //       </div>
+  //       <DetailPrice>{`${utils.displayPrice({cents: priceCents})}/mo`}</DetailPrice>
+  //     </DetailItem>
+  //   );
+  // }
 
-  renderSeer() {
-    return this.renderAdditionalFeature({
-      featureKey: 'seer',
-      title: t('Seer: Sentry AI Enhancements'),
-      description: t('Surface insights and propose solutions to fix bugs faster.'),
-      priceCents: SEER_MONTHLY_PRICE_CENTS,
-      enabledField: 'seerEnabled',
-    });
-  }
+  // renderSeer() {
+  //   return this.renderAdditionalFeature({
+  //     featureKey: 'seer',
+  //     title: t('Seer: Sentry AI Enhancements'),
+  //     description: t('Surface insights and propose solutions to fix bugs faster.'),
+  //     priceCents: SEER_MONTHLY_PRICE_CENTS,
+  //     enabledField: 'seerEnabled',
+  //   });
+  // }
 
   renderDetailItems = () => {
     const {activePlan, discountInfo} = this.props;
@@ -265,7 +265,7 @@ class CheckoutOverview extends Component<Props> {
           </PriceContainer>
         </DetailItem>
         {this.renderDataOptions()}
-        {this.renderSeer()}
+        {/* {this.renderSeer()} */}
         {this.renderOnDemand()}
       </Fragment>
     );
