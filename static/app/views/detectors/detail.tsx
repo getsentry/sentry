@@ -18,9 +18,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import DetailsPanel from 'sentry/views/detectors/components/detailsPanel';
 import IssuesList from 'sentry/views/detectors/components/issuesList';
+import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 type Priority = {
@@ -36,9 +38,14 @@ const priorities: Priority[] = [
 export default function DetectorDetail() {
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
+  const {detectorId} = useParams();
+  if (!detectorId) {
+    throw new Error(`Unable to find detector.`);
+  }
+  const {data: detector} = useDetectorQuery(detectorId);
 
   return (
-    <SentryDocumentTitle title={'/endpoint'} noSuffix>
+    <SentryDocumentTitle title={detector?.name} noSuffix>
       <BreadcrumbsProvider
         crumb={{label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)}}
       >
