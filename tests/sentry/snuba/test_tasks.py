@@ -409,7 +409,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_eap_rpc_query_count_delete(self):
+    def test_eap_rpc_query_count(self):
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING,
