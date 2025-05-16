@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import type {PageFilters} from 'sentry/types/core';
-import {getUserTimezone} from 'sentry/utils/dates';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -16,6 +16,8 @@ export function useRelativeDateTime({
   relativeDays,
   retentionDays,
 }: UseRelativeDateTimeOptions): PageFilters['datetime'] {
+  const timezone = useTimezone();
+
   const anchorTime = anchor * 1000;
 
   // Make sure to memo this. Otherwise, each re-render will have
@@ -34,7 +36,7 @@ export function useRelativeDateTime({
   return {
     start: beforeDateTime,
     end: afterDateTime,
-    utc: getUserTimezone() === 'UTC',
+    utc: timezone.includes('UTC'),
     period: null,
   };
 }
