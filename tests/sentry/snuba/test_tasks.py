@@ -370,15 +370,19 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-        sub.status = QuerySubscription.Status.UPDATING.value
         sub.update(
             status=QuerySubscription.Status.UPDATING.value,
-            subscription_id=sub.subscription_id,
         )
         update_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
+
+        sub.update(
+            status=QuerySubscription.Status.DELETING.value,
+        )
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
