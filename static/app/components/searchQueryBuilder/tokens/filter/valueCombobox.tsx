@@ -98,9 +98,7 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
 }
 
 function prepareInputValueForSaving(valueType: FieldValueType, inputValue: string) {
-  const parsed = parseMultiSelectFilterValue(inputValue, {
-    parseWildcardsCheckIsEnabled: false,
-  });
+  const parsed = parseMultiSelectFilterValue(inputValue);
 
   if (!parsed) {
     return '""';
@@ -126,7 +124,7 @@ function getSelectedValuesFromText(
   text: string,
   {escaped = true}: {escaped?: boolean} = {}
 ) {
-  const parsed = parseMultiSelectFilterValue(text, {parseWildcardsCheckIsEnabled: false});
+  const parsed = parseMultiSelectFilterValue(text);
 
   if (!parsed) {
     return [];
@@ -323,7 +321,11 @@ function useFilterSuggestions({
       }),
     [key, filterValue, token, fieldDefinition]
   );
-  const shouldFetchValues = key && !key.predefined && predefinedValues === null;
+  // Only keys that explicitly have predefined values should skip the fetch.
+  // This is because the way keys are fetched doesn't guarantee that we have
+  // every key loaded. So we should try to fetch values for it even if it
+  // doesn't exist in the list of available keys.
+  const shouldFetchValues = key ? !key.predefined && predefinedValues === null : true;
   const canSelectMultipleValues = tokenSupportsMultipleValues(
     token,
     filterKeys,

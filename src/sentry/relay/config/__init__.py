@@ -70,6 +70,7 @@ EXPOSABLE_FEATURES = [
     "organizations:view-hierarchy-scrubbing",
     "projects:ourlogs-breadcrumb-extraction",
     "organizations:performance-issues-spans",
+    "organizations:relay-playstation-ingestion",
 ]
 
 EXTRACT_METRICS_VERSION = 1

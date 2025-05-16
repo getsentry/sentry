@@ -54,6 +54,11 @@ export enum DataConditionType {
   PERCENT_SESSIONS_PERCENT = 'percent_sessions_percent',
   EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT = 'event_unique_user_frequency_with_conditions_count',
   EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT = 'event_unique_user_frequency_with_conditions_percent',
+
+  // frequency types for UI only
+  EVENT_FREQUENCY = 'event_frequency',
+  EVENT_UNIQUE_USER_FREQUENCY = 'event_unique_user_frequency',
+  PERCENT_SESSIONS = 'percent_sessions',
 }
 
 export enum DataConditionGroupLogicType {
@@ -68,6 +73,10 @@ export interface NewDataCondition {
   comparison_type: DataConditionType;
   condition_group?: DataConditionGroup;
   condition_result?: any;
+}
+
+export interface DataCondition extends Readonly<NewDataCondition> {
+  readonly id: string;
 }
 
 export interface DataConditionGroup {

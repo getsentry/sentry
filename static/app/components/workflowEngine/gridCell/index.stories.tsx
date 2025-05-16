@@ -50,7 +50,7 @@ export default storyBook('Grid Cell Components', story => {
       },
       openIssues: 3,
       creator: '1',
-      type: 'trace',
+      type: 'uptime',
     },
     {
       title: {
@@ -95,7 +95,7 @@ export default storyBook('Grid Cell Components', story => {
       },
       actions: [ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL],
       creator: 'sentry',
-      type: 'errors',
+      type: 'uptime',
       timeAgo: null,
       linkedItems: {
         ids: [],

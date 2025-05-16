@@ -10,5 +10,5 @@ export interface NewAutomation {
 
 export interface Automation extends Readonly<NewAutomation> {
   readonly id: string;
-  readonly lastTriggered: Date;
+  readonly lastTriggered: string;
 }

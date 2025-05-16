@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -28,13 +28,13 @@ function GithubIntegrationSetupCard() {
         <CardTitle>{t('Set Up the GitHub Integration')}</CardTitle>
         <CardDescription>
           <span>
-            {tct('Autofix is [bold:a lot better] when it has your codebase as context.', {
+            {tct('Seer is [bold:a lot better] when it has your codebase as context.', {
               bold: <b />,
             })}
           </span>
           <span>
             {tct(
-              'Set up the [integrationLink:GitHub Integration] to allow Autofix to go deeper when troubleshooting and fixing your issues–including writing the code and opening PRs.',
+              'Set up the [integrationLink:GitHub Integration] to allow Seer to go deeper when troubleshooting and fixing your issues–including writing the code and opening PRs.',
               {
                 integrationLink: (
                   <ExternalLink
@@ -67,13 +67,13 @@ function SelectReposCard() {
         <CardTitle>{t('Pick Repositories to Work In')}</CardTitle>
         <CardDescription>
           <span>
-            {tct('Autofix is [bold:a lot better] when it has your codebase as context.', {
+            {tct('Seer is [bold:a lot better] when it has your codebase as context.', {
               bold: <b />,
             })}
           </span>
           <span>
             {tct(
-              'Select the repos Autofix can explore in this project to allow it to go deeper when troubleshooting and fixing your issues–including writing the code and opening PRs.',
+              'Select the repos Seer can explore in this project to allow it to go deeper when troubleshooting and fixing your issues–including writing the code and opening PRs.',
               {
                 integrationLink: (
                   <ExternalLink
@@ -85,7 +85,7 @@ function SelectReposCard() {
           </span>
           <span>
             {t(
-              'You can also configure working branches and custom instructions so Autofix acts just how you like.'
+              'You can also configure working branches and custom instructions so Seer acts just how you like.'
             )}
           </span>
           <span>
@@ -134,7 +134,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
     notices.push(
       <Alert type="warning" showIcon key="multiple-repos">
-        {tct("Autofix can't access these repositories: [repoList].", {
+        {tct("Seer can't access these repositories: [repoList].", {
           repoList: <b>{unreadableRepos.map(repo => repo.name).join(', ')}</b>,
         })}
         {githubRepos.length > 0 && (
@@ -153,10 +153,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
           </Fragment>
         )}
         {nonGithubRepos.length > 0 && (
-          <Fragment>
-            {' '}
-            {t('Autofix currently only supports GitHub repositories.')}
-          </Fragment>
+          <Fragment> {t('Seer currently only supports GitHub repositories.')}</Fragment>
         )}
       </Alert>
     );
@@ -166,7 +163,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       <Alert type="warning" showIcon key="single-repo">
         {unreadableRepo.provider.includes('github')
           ? tct(
-              "Autofix can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",
+              "Seer can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",
               {
                 repo: <b>{unreadableRepo.name}</b>,
                 integrationLink: (
@@ -177,7 +174,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               }
             )
           : tct(
-              "Autofix can't access the [repo] repository. It currently only supports GitHub repositories.",
+              "Seer can't access the [repo] repository. It currently only supports GitHub repositories.",
               {repo: <b>{unreadableRepo.name}</b>}
             )}
       </Alert>
