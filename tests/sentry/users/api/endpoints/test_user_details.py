@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.test import override_settings
 from pytest import fixture
 
@@ -216,6 +218,19 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.email == "c@example.com"
         assert user.username == "c@example.com"
 
+    def test_my_cannot_change_username_to_non_verified(self):
+        user = self.create_user(email="c@example.com", username="c@example.com")
+        self.login_as(user=user)
+
+        self.create_useremail(user, "new@example.com", is_verified=False)
+        resp = self.get_error_response("me", _username="new@example.com", status_code=400)
+        assert resp.data["detail"] == "Verified email address is not found."
+
+        user = User.objects.get(id=user.id)
+
+        assert user.email == "c@example.com"
+        assert user.username == "c@example.com"
+
     def test_saving_nextjs_insights_overview_option(self):
         self.get_success_response(
             "me",
@@ -317,6 +332,23 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
 
+    @patch("sentry.users.api.endpoints.user_details.audit_logger")
+    def test_my_superuser_can_change_is_active(self, mock_logger):
+        self.user.update(is_active=True)
+        self.login_as(user=self.superuser, superuser=True)
+
+        resp = self.get_success_response(
+            self.user.id,
+            IsActive="false",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_active
+        mock_logger.info.assert_called_with(
+            "user.edit", extra={"user_id": 1, "actor_id": 2, "form_data": {"isActive": "false"}}
+        )
+
     def test_superuser_with_permission_can_change_is_active(self):
         self.user.update(is_active=True)
         UserPermission.objects.create(user=self.superuser, permission="users.admin")
@@ -387,6 +419,21 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
             isStaff="true",
             status_code=403,
         )
+        assert resp.data["detail"] == "Missing required permission to add admin."
+
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_staff
+
+    def test_my_superuser_cannot_add_staff(self):
+        self.user.update(is_staff=False)
+        self.login_as(user=self.superuser, superuser=True)
+
+        resp = self.get_error_response(
+            self.user.id,
+            IsStaff="true",
+            status_code=403,
+        )
+
         assert resp.data["detail"] == "Missing required permission to add admin."
 
         user = User.objects.get(id=self.user.id)
