@@ -78,7 +78,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0059_fix_high_priority_condition_triggers"),
+        ("workflow_engine", "0060_rename_azure_devops_action_to_vsts"),
     ]
 
     operations = [

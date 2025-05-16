@@ -5,13 +5,13 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 class TestBackfillMetricAlertResolutionActionFilters(TestMigrations):
     app = "workflow_engine"
-    migrate_from = "0059_fix_high_priority_condition_triggers"
-    migrate_to = "0060_backfill_metric_alert_resolution_action_filters"
+    migrate_from = "0060_rename_azure_devops_action_to_vsts"
+    migrate_to = "0061_backfill_metric_alert_resolution_action_filters"
 
     def mock_aci_objects(self) -> tuple[DataConditionGroup, DataConditionGroup]:
         alert_rule = self.create_alert_rule(organization=self.organization)
         workflow = self.create_workflow(organization=self.organization)
-        self.create_alert_rule_workflow(alert_rule=alert_rule, workflow=workflow)
+        self.create_alert_rule_workflow(alert_rule_id=alert_rule.id, workflow=workflow)
 
         critical_dcg = self.create_data_condition_group(organization=self.organization)
         self.create_workflow_data_condition_group(workflow=workflow, condition_group=critical_dcg)
@@ -33,9 +33,11 @@ class TestBackfillMetricAlertResolutionActionFilters(TestMigrations):
 
         return critical_dcg, warning_dcg
 
-    def create_resolve_action_filter(self, dcg: DataConditionGroup) -> None:
+    def create_resolve_action_filter(
+        self, dcg: DataConditionGroup, comparison: DetectorPriorityLevel
+    ) -> None:
         self.create_data_condition(
-            comparison=DetectorPriorityLevel.HIGH,
+            comparison=comparison,
             condition_result=True,
             type=Condition.ISSUE_PRIORITY_DEESCALATING,
             condition_group=dcg,
@@ -56,12 +58,12 @@ class TestBackfillMetricAlertResolutionActionFilters(TestMigrations):
 
         # both dcgs have a resolution action filter
         self.critical_dcg_2, self.warning_dcg_2 = self.mock_aci_objects()
-        self.create_resolve_action_filter(self.critical_dcg_2)
-        self.create_resolve_action_filter(self.warning_dcg_2)
+        self.create_resolve_action_filter(self.critical_dcg_2, DetectorPriorityLevel.HIGH)
+        self.create_resolve_action_filter(self.warning_dcg_2, DetectorPriorityLevel.MEDIUM)
 
         # only one dcg has a resolution action filter
         self.critical_dcg_3, self.warning_dcg_3 = self.mock_aci_objects()
-        self.create_resolve_action_filter(self.warning_dcg_3)
+        self.create_resolve_action_filter(self.warning_dcg_3, DetectorPriorityLevel.MEDIUM)
 
     def test_simple(self):
         self.assert_resolve_action_filter_exists(self.critical_dcg_1, DetectorPriorityLevel.HIGH)
