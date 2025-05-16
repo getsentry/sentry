@@ -177,6 +177,28 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             )
         rule_data_before["label"] = rule.label
 
+        for action in request.data.get("actions", []):
+            if action["id"] == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction":
+                if not action["channel_id"] and not action["channel"]:
+                    continue
+
+                for old_action in rule_data_before.get("actions", []):
+                    if (
+                        old_action["id"]
+                        == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
+                    ):
+                        if (
+                            action["channel_id"] == old_action["channel_id"]
+                            and action["channel"] != old_action["channel"]
+                        ):
+                            del action["channel_id"]
+
+                        elif (
+                            action["channel"] == old_action["channel"]
+                            and action["channel_id"] != old_action["channel_id"]
+                        ):
+                            del action["channel"]
+
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization},
             data=request.data,
