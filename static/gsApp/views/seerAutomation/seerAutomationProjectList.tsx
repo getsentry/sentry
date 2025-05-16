@@ -116,14 +116,10 @@ export function SeerAutomationProjectList() {
         Array.from(selected).map(projectId => {
           const project = projects.find(p => p.id === projectId);
           if (!project) return Promise.resolve();
-          return new Promise((resolve, reject) => {
-            api.request(`/projects/${organization.slug}/${project.slug}/`, {
+          return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
               method: 'PUT',
               data: {autofixAutomationTuning: value},
-              success: () => resolve(undefined),
-              error: () => reject(new Error(`Failed to update ${project.slug}`)),
             });
-          });
         })
       );
       addSuccessMessage('Projects updated successfully');
