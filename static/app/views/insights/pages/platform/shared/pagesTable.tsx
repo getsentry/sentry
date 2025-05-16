@@ -36,11 +36,13 @@ type SortableField =
   | 'failure_rate()'
   | 'sum(span.duration)'
   | 'avg(span.duration)'
+  | 'p95(span.duration)'
   | 'performance_score(measurements.score.total)';
 
 interface TableData {
   avgDuration: number;
   errorRate: number;
+  p95: number;
   page: string;
   pageViews: number;
   projectID: number;
@@ -53,6 +55,13 @@ const errorRateColorThreshold = {
   error: 0.1,
   warning: 0.05,
 } as const;
+
+const getP95Threshold = (avg: number) => {
+  return {
+    error: avg * 3,
+    warning: avg * 2,
+  };
+};
 
 const getCellColor = (value: number, thresholds: Record<string, number>) => {
   return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0] as
@@ -80,6 +89,8 @@ const pageloadColumnOrder: Array<GridColumnOrder<SortableField>> = [
 const navigationColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Navigations'), width: 132},
+  {key: 'avg(span.duration)', name: t('Avg'), width: 90},
+  {key: 'p95(span.duration)', name: t('P95'), width: 90},
   {key: 'sum(span.duration)', name: t('Time Spent'), width: 110},
 ];
 
@@ -144,10 +155,13 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
   });
 
   const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
-    navigate({
-      pathname,
-      search: qs.stringify({...transactionQuery, [currentCursorParamName]: cursor}),
-    });
+    navigate(
+      {
+        pathname,
+        search: qs.stringify({...transactionQuery, [currentCursorParamName]: cursor}),
+      },
+      {replace: true, preventScrollReset: true}
+    );
   };
 
   const spansRequest = useEAPSpans(
@@ -166,6 +180,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
         'count()',
         'sum(span.duration)',
         'avg(span.duration)',
+        'p95(span.duration)',
         'performance_score(measurements.score.total)',
         'project.id',
       ],
@@ -176,6 +191,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
         typeof location.query[currentCursorParamName] === 'string'
           ? location.query[currentCursorParamName]
           : undefined,
+      keepPreviousData: true,
     },
     Referrer.PAGES_TABLE
   );
@@ -191,6 +207,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
       errorRate: span['failure_rate()'],
       totalTime: span['sum(span.duration)'],
       avgDuration: span['avg(span.duration)'],
+      p95: span['p95(span.duration)'],
       spanOp: span['span.op'],
       projectID: span['project.id'],
       'performance_score(measurements.score.total)':
@@ -250,7 +267,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
     <Fragment>
       <GridEditableContainer>
         <GridEditable<TableData, SortableField>
-          isLoading={spansRequest.isLoading}
+          isLoading={spansRequest.isPending}
           error={spansRequest.error}
           data={tableData}
           columnOrder={columnOrder}
@@ -262,6 +279,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
             onResizeColumn: handleResizeColumn,
           }}
         />
+        {spansRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
       <Pagination pageLinks={pagesTablePageLinks} onCursor={handleCursor} />
     </Fragment>
@@ -290,6 +308,7 @@ const HeadCell = memo(function PagesTableHeadCell({
         }
         direction={sortField === column.key ? sortOrder : undefined}
         canSort
+        preventScrollReset
         generateSortLink={() => {
           const newQuery = {
             ...location.query,
@@ -357,18 +376,44 @@ const BodyCell = memo(function PagesBodyCell({
       const thresholds = errorRateColorThreshold;
       const color = getCellColor(dataRow.errorRate, thresholds);
       return (
-        <ColoredValue color={color}>{formatPercentage(dataRow.errorRate)}</ColoredValue>
+        <ColoredValue color={color}>
+          {formatPercentage(dataRow.errorRate ?? 0)}
+        </ColoredValue>
       );
     }
     case 'sum(span.duration)':
       return <Duration>{getDuration(dataRow.totalTime / 1000, 2, true)}</Duration>;
+    case 'avg(span.duration)': {
+      return <Duration>{getDuration(dataRow.avgDuration / 1000, 2, true)}</Duration>;
+    }
+    case 'p95(span.duration)': {
+      const thresholds = getP95Threshold(dataRow.avgDuration);
+      const color = getCellColor(dataRow.p95, thresholds);
+      return (
+        <ColoredValue color={color}>
+          {getDuration(dataRow.p95 / 1000, 2, true)}
+        </ColoredValue>
+      );
+    }
     default:
       return <div />;
   }
 });
 
 const GridEditableContainer = styled('div')`
+  position: relative;
   margin-bottom: ${space(1)};
+`;
+
+const LoadingOverlay = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: ${p => p.theme.background};
+  opacity: 0.5;
+  z-index: 1;
 `;
 
 const CellLink = styled(Link)`

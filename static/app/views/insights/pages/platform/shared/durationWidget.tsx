@@ -60,7 +60,7 @@ export function DurationWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Duration')} />}
+      Title={<Widget.WidgetTitle title={t('API Latency')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
@@ -79,7 +79,7 @@ export function DurationWidget() {
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Duration'),
+                title: t('API Latency'),
                 children: <ModalChartContainer>{visualization}</ModalChartContainer>,
               });
             }}

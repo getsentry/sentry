@@ -5,6 +5,7 @@ import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {associateTagsWithMeta} from 'sentry/components/events/eventTags/util';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -32,35 +33,34 @@ export function TraceContextTags({rootEventResults}: Props) {
   }
 
   const eventDetails = rootEventResults.data!;
-  return (
-    <TagsContainer hasTraceTabsUi={hasTraceTabsUi}>
-      {isTraceItemDetailsResponse(eventDetails) ? (
-        <AttributesTree
-          attributes={eventDetails.attributes}
-          rendererExtra={{
-            theme,
-            location,
-            organization,
-          }}
-        />
-      ) : (
-        <EventTagsTree
-          event={eventDetails}
-          projectSlug={eventDetails.projectSlug ?? ''}
-          tags={associateTagsWithMeta({
-            tags: eventDetails.tags,
-            meta: eventDetails._meta?.tags,
-          })}
-        />
-      )}
-    </TagsContainer>
+  const rendered = isTraceItemDetailsResponse(eventDetails) ? (
+    <AttributesTree
+      attributes={eventDetails.attributes}
+      rendererExtra={{
+        theme,
+        location,
+        organization,
+      }}
+    />
+  ) : (
+    <EventTagsTree
+      event={eventDetails}
+      projectSlug={eventDetails.projectSlug ?? ''}
+      tags={associateTagsWithMeta({
+        tags: eventDetails.tags,
+        meta: eventDetails._meta?.tags,
+      })}
+    />
   );
+
+  if (hasTraceTabsUi) {
+    return <StyledPanel>{rendered}</StyledPanel>;
+  }
+
+  return rendered;
 }
 
-const TagsContainer = styled('div')<{hasTraceTabsUi: boolean}>`
-  ${p =>
-    p.hasTraceTabsUi &&
-    `
-      padding: 0 ${space(1)};
-    `}
+const StyledPanel = styled(Panel)`
+  padding: ${space(2)} ${space(2)} ${space(2)} 24px;
+  margin: 0;
 `;
