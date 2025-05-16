@@ -511,9 +511,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
     expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Reserved budget updated to $50,000 for spans')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Spans Budget updated to $50,000')).toBeInTheDocument();
   });
 
   it('renders reserved budgets with existing budgets and dynamic sampling', function () {
@@ -544,11 +542,7 @@ describe('Subscription > PendingChanges', function () {
     render(<PendingChanges organization={organization} subscription={sub} />);
 
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Reserved budget updated to $50,000 for accepted spans and stored spans'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText('Spans Budget updated to $50,000')).toBeInTheDocument();
   });
 
   it('renders multiple reserved budgets', function () {
@@ -587,7 +581,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        'Reserved budgets updated to $50,000 for accepted spans and stored spans and $10,000 for errors'
+        'Spans Budget updated to $50,000 and Errors Budget updated to $10,000'
       )
     ).toBeInTheDocument();
   });
@@ -621,9 +615,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
     expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Reserved budget updated to $50,000 for spans')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Spans Budget updated to $50,000')).toBeInTheDocument();
     expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
   });
 
@@ -645,7 +637,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
     expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(screen.queryByText('Reserved budget')).not.toBeInTheDocument();
+    expect(screen.queryByText('Spans Budget')).not.toBeInTheDocument();
     expect(screen.getByText('Reserved spans change to 10,000,000')).toBeInTheDocument();
     expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
   });
