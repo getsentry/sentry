@@ -13,15 +13,15 @@ hybridcloud: 0021_django_arrayfield_scope_list
 
 insights: 0001_add_starred_transactions_model
 
-monitors: 0003_record_date_in_progress
+monitors: 0004_record_date_in_progress_sql_only
 
 nodestore: 0002_nodestore_no_dictfield
 
 remote_subscriptions: 0003_drop_remote_subscription
 
-replays: 0004_index_together
+replays: 0005_drop_replay_index
 
-sentry: 0886_django_arrayfield_scope_list
+sentry: 0896_org_level_access_not_null
 
 social_auth: 0002_default_auto_field
 
@@ -29,4 +29,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0041_uptime_backfill_detector_grouphash
 
-workflow_engine: 0059_fix_high_priority_condition_triggers
+workflow_engine: 0060_rename_azure_devops_action_to_vsts
