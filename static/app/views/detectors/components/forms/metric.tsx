@@ -81,8 +81,6 @@ function ResolveSection() {
 }
 
 function AutomateSection() {
-  // const {openDrawer, isDrawerOpen} = useDrawer();
-  // const showDetails = () => {}
   return (
     <Container>
       <Section title={t('Automate')} description={t('Set up alerts or notifications.')}>

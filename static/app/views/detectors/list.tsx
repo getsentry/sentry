@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-// import moment from 'moment-timezone';
 import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
