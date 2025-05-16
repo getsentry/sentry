@@ -22,6 +22,8 @@ export const FILTER_DATA_CONDITION_TYPES = [
   DataConditionType.TAGGED_EVENT,
   DataConditionType.LEVEL,
   DataConditionType.EVENT_FREQUENCY,
+  DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+  DataConditionType.PERCENT_SESSIONS,
 ];
 
 export enum MatchType {
