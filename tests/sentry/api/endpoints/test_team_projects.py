@@ -403,7 +403,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
         unreal_project = Project.objects.get(id=response.data["id"])
         assert unreal_project.platform == "unreal"
-        unreal_project = ProjectOption.objects.get_value(
+        symbol_sources = ProjectOption.objects.get_value(
             project=unreal_project, key="sentry:builtin_symbol_sources"
         )
         assert symbol_sources == ["nvidia", "ubuntu"]
