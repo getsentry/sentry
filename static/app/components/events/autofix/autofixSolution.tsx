@@ -434,11 +434,11 @@ function AutofixSolutionDisplay({
                 title={
                   hasNoRepos
                     ? t(
-                        'You need to set up the GitHub integration and configure repository access for Autofix to write code for you.'
+                        'You need to set up the GitHub integration and configure repository access for Seer to write code for you.'
                       )
                     : cantReadRepos
                       ? t(
-                          "We can't access any of your repos. Check your GitHub integration and configure repository access for Autofix to write code for you."
+                          "We can't access any of your repos. Check your GitHub integration and configure repository access for Seer to write code for you."
                         )
                       : undefined
                 }
@@ -472,7 +472,7 @@ function AutofixSolutionDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Autofix is uncertain of the solution...')}
+              blockName={t('Seer is uncertain of the solution...')}
             />
           )}
         </AnimatePresence>
