@@ -53,6 +53,7 @@ from sentry.grouping.api import (
     GroupingConfig,
     get_grouping_config_dict_for_project,
 )
+from sentry.grouping.enhancer import get_enhancements_version
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.ingest.config import is_in_transition, update_or_set_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
@@ -471,6 +472,7 @@ class EventManager:
                 "platform": job["event"].platform or "unknown",
                 "sdk": normalized_sdk_tag_from_event(job["event"].data),
                 "in_transition": job["in_grouping_transition"],
+                "split_enhancements": get_enhancements_version(project) == 3,
             }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms

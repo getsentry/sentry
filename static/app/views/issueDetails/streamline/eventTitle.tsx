@@ -40,6 +40,7 @@ type EventNavigationProps = {
    * Data property to help style the component when it's sticky
    */
   'data-stuck'?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
 };
 
@@ -60,12 +61,7 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
 
 export const MIN_NAV_HEIGHT = 44;
 
-export function EventTitle({
-  event,
-  group,
-  ref,
-  ...props
-}: EventNavigationProps & {ref?: React.Ref<HTMLDivElement>}) {
+export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
   const organization = useOrganization();
   const theme = useTheme();
   const showTraceLink = organization.features.includes('performance-view');

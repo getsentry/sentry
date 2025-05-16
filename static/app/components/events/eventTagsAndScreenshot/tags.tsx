@@ -28,6 +28,7 @@ type Props = {
    */
   additionalActions?: React.ReactNode;
   disableCollapsePersistence?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
 };
 
 export function EventTagsDataSection({
@@ -36,9 +37,7 @@ export function EventTagsDataSection({
   projectSlug,
   additionalActions,
   disableCollapsePersistence,
-}: Props & {
-  ref?: React.Ref<HTMLElement>;
-}) {
+}: Props) {
   const sentryTags = getSentryDefaultTags();
 
   const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);

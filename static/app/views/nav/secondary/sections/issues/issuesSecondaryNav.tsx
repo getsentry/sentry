@@ -8,7 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import {IssueViewNavItems} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
+import {IssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViews';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
 export function IssuesSecondaryNav() {
@@ -75,7 +75,7 @@ export function IssuesSecondaryNav() {
             </SecondaryNav.Item>
           </SecondaryNav.Section>
         )}
-        <IssueViewNavItems sectionRef={sectionRef} />
+        <IssueViews sectionRef={sectionRef} />
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNav.Body>
     </SecondaryNav>
