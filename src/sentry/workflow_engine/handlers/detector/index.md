@@ -2,7 +2,19 @@
 
 ## DetectorHandler
 
-## StatefulDetector
+The Base `DetectorHandler` abstraction can be used to evaluate DataPackets that can be evaluated by a Detector, and don't require any stateful tracking.
+
+Some examples of these detectors are:
+
+- N+1 Query Detector: It can evaluate the number of queries in a span, and determine that it needs to create an issue.
+
+## StatefulDetectorHandler
+
+The `StatefulDetectorHandler` is used when you need to have knowledge of a previous state to have the detector update correctly.
+
+Examples of stateful detectors are:
+
+- Metric Issues: These issues are based on a metric in time, if the metric breaches a threshold, the detector will create or resolve an issue correspondingly.
 
 ### Evaluations (`.evaluate`)
 
