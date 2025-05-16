@@ -148,7 +148,7 @@ export interface CheckIn {
   /**
    * Duration (in milliseconds)
    */
-  duration: number;
+  duration: number | null;
   /**
    * environment the check-in was sent to
    */
