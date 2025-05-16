@@ -278,6 +278,7 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     dateCreated: datetime
     dateAdded: datetime
     dateUpdated: datetime
+    dateInProgress: datetime | None
     dateClock: datetime
     expectedTime: datetime
     monitorConfig: MonitorConfigSerializerResponse
@@ -348,6 +349,7 @@ class MonitorCheckInSerializer(Serializer):
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
             "dateClock": obj.date_clock,
+            "dateInProgress": obj.date_in_progress,
             "expectedTime": obj.expected_time,
             "monitorConfig": cast(MonitorConfigSerializerResponse, config),
         }

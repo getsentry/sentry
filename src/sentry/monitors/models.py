@@ -495,6 +495,12 @@ class MonitorCheckIn(Model):
     as detecting misses)
     """
 
+    date_in_progress = models.DateTimeField(null=True)
+    """
+    Records the time when the first in_progress check-in was received by relay.
+    If no in_progress check-in was ever sent this will remain null.
+    """
+
     expected_time = models.DateTimeField(null=True)
     """
     Holds the exact time we expected to receive this check-in
