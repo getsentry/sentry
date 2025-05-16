@@ -46,6 +46,9 @@ export default function CodecovQueryParamsProvider({children}: CodecovProviderPr
     }));
   }, [setLocalStorageState, location.query]);
 
+
+  // Repository, org and branch default to null as its value to the option not being selected. 
+  // These only represent the unselected values and shouldn't be used when fetching backend data.
   const params: CodecovContextData = {
     repository:
       ((typeof location.query.repository === 'string' &&
