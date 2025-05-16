@@ -71,7 +71,7 @@ export type RequestDataFragment = {
   shouldCreateRule: boolean;
 };
 
-interface Props {
+export interface IssueAlertOptionsProps {
   onChange: (updatedData: RequestDataFragment) => void;
   alertSetting?: RuleAction;
   interval?: string;
@@ -125,7 +125,7 @@ export default function IssueAlertOptions({
   metric = MetricValues.ERRORS,
   notificationProps,
   threshold = '10',
-}: Props) {
+}: IssueAlertOptionsProps) {
   const issueAlertOptionsChoices: Array<[RuleAction, React.ReactNode]> = [
     [RuleAction.DEFAULT_ALERT, t('Alert me on high priority issues')],
     [
