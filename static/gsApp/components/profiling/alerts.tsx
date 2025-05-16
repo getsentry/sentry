@@ -381,16 +381,15 @@ function ContinuousProfilingNoQuotaAlertAm2Banner({
   organization,
   subscription,
 }: ContinuousProfilingNoQuotaAlertBannerProps) {
-  const hasBudget = hasBudgetForContinuousOrUiProfilesHours(subscription);
+  const hasBudget = hasBudgetConfiguredForContinuousOrUiProfilesHours(subscription);
 
   // As long as they have a budget set, don't show this banner.
   if (hasBudget) {
     return null;
   }
 
-  // For am2 plans, it's possible they're just using transaction profiles which uses performance units
-  // in this case, we don't want to ask them to set up on-demand budgets for no reason.
-  // So check to see if they're trying to send continuous/ui profiles before shwoing them this banner.
+  // For AM2 plans, if they haven't tried to send any continuous/ui profiles, don't
+  // show this banner because they can still use transaction profiles.
   if (
     !subscription.categories.profileDuration?.usageExceeded &&
     !subscription.categories.profileDurationUI?.usageExceeded
@@ -437,7 +436,7 @@ function ContinuousProfilingNoQuotaAlertAm3Banner({
   organization,
   subscription,
 }: ContinuousProfilingNoQuotaAlertBannerProps) {
-  const hasBudget = hasBudgetForContinuousOrUiProfilesHours(subscription);
+  const hasBudget = hasBudgetConfiguredForContinuousOrUiProfilesHours(subscription);
 
   // As long as they have a budget set, don't show this banner.
   if (hasBudget) {
@@ -478,7 +477,9 @@ function ContinuousProfilingNoQuotaAlertAm3Banner({
   );
 }
 
-function hasBudgetForContinuousOrUiProfilesHours(subscription: Subscription): boolean {
+function hasBudgetConfiguredForContinuousOrUiProfilesHours(
+  subscription: Subscription
+): boolean {
   if (
     subscription.categories.profileDuration?.reserved ||
     subscription.categories.profileDurationUI?.reserved
