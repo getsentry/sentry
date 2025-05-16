@@ -60,7 +60,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
       <Fragment>
         <p>
           {tct(
-            'In order to create pull requests, install and grant write access to the [link:Sentry Autofix GitHub App] for the following repositories:',
+            'In order to create pull requests, install and grant write access to the [link:Sentry Seer GitHub App] for the following repositories:',
             {
               link: (
                 <ExternalLink
@@ -83,7 +83,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
     <Fragment>
       <p>
         {tct(
-          'In order to create pull requests, install and grant write access to the [link:Sentry Autofix GitHub App] for the relevant repositories.',
+          'In order to create pull requests, install and grant write access to the [link:Sentry Seer GitHub App] for the relevant repositories.',
           {
             link: (
               <ExternalLink
@@ -109,7 +109,7 @@ export function AutofixSetupWriteAccessModal({
   return (
     <div id="autofix-write-access-modal">
       <Header closeButton>
-        <h3>{t('Allow Autofix to Make Pull Requests')}</h3>
+        <h3>{t('Allow Seer to Make Pull Requests')}</h3>
       </Header>
       <Body>
         <Content groupId={groupId} closeModal={closeModal} />
@@ -123,7 +123,7 @@ export function AutofixSetupWriteAccessModal({
               external
               priority="primary"
             >
-              {t('Install the Autofix GitHub App')}
+              {t('Install the Seer GitHub App')}
             </LinkButton>
           </ButtonBar>
         </Footer>

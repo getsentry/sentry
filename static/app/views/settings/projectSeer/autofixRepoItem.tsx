@@ -99,10 +99,10 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
             <div>
               <SettingsGroup>
                 <BranchInputLabel>
-                  {t('Branch that Autofix works on')}
+                  {t('Branch that Seer works on')}
                   <QuestionTooltip
                     title={t(
-                      'Optionally provide a specific branch that Autofix will work on. If left blank, Autofix will use the default branch of the repository.'
+                      'Optionally provide a specific branch that Seer will work on. If left blank, Seer will use the default branch of the repository.'
                     )}
                     size="sm"
                   />
@@ -144,12 +144,12 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
               </SettingsGroup>
 
               <SettingsGroup>
-                <BranchInputLabel>{t('Instructions for Autofix')}</BranchInputLabel>
+                <BranchInputLabel>{t('Instructions for Seer')}</BranchInputLabel>
                 <StyledTextArea
                   value={instructionsValue}
                   onChange={handleInstructionsChange}
                   placeholder={t(
-                    'Any special instructions for Autofix in this repository...'
+                    'Any special instructions for Seer in this repository...'
                   )}
                   rows={3}
                 />
