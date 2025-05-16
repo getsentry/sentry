@@ -1048,10 +1048,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const {organization, project} = this.props;
     const {timeWindow, sensitivity, seasonality, thresholdType} = this.state;
-    // don't send the request if historical and current data have incorrect time windows
-    if (!this.TimeWindowsAreConsistent()) {
-      return;
-    }
 
     const direction =
       thresholdType === AlertRuleThresholdType.ABOVE
@@ -1086,7 +1082,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         `/organizations/${organization.slug}/events/anomalies/`,
         {method: 'POST', data: params}
       );
-      this.setState({anomalies});
+      // don't set the anomalies if historical and current data have incorrect time windows
+      if (!this.TimeWindowsAreConsistent()) {
+        this.setState({anomalies});
+      }
     } catch (e) {
       let chartErrorMessage: string | undefined;
       if (e.responseJSON) {
