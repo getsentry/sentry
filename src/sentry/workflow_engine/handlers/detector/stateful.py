@@ -284,12 +284,7 @@ class StatefulDetectorHandler(
             **(thresholds or {}),  # Allow each instance to override
         }
 
-        # Merge all kinds of counters together for the state manager
-        counters = {
-            **self._thresholds,
-        }
-
-        self.state_manager = DetectorStateManager(detector, list(counters.keys()))
+        self.state_manager = DetectorStateManager(detector, list(self._thresholds.keys()))
 
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         return []
