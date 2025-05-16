@@ -47,6 +47,7 @@ from sentry.workflow_engine.models.data_condition_group import get_slow_conditio
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import evaluate_data_conditions
 from sentry.workflow_engine.processors.detector import get_detector_by_event
+from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     evaluate_workflows_action_filters,
@@ -411,54 +412,70 @@ def fire_actions_for_groups(
         },
     )
 
-    for group, group_event in group_to_groupevent.items():
-        event_data = WorkflowEventData(event=group_event)
-        detector = get_detector_by_event(event_data)
+    with track_batch_performance(
+        "workflow_engine.delayed_workflow.group_to_groupevent.loop",
+        logger,
+        threshold=timedelta(seconds=40),
+    ) as tracker:
+        for group, group_event in group_to_groupevent.items():
+            with tracker.track(str(group.id)):
+                event_data = WorkflowEventData(event=group_event)
+                detector = get_detector_by_event(event_data)
 
-        workflow_triggers: set[DataConditionGroup] = set()
-        action_filters: set[DataConditionGroup] = set()
-        for dcg in groups_to_fire[group.id]:
-            if dcg.id in trigger_group_to_dcg_model[DataConditionHandler.Group.WORKFLOW_TRIGGER]:
-                workflow_triggers.add(dcg)
-            elif dcg.id in trigger_group_to_dcg_model[DataConditionHandler.Group.ACTION_FILTER]:
-                action_filters.add(dcg)
+                workflow_triggers: set[DataConditionGroup] = set()
+                action_filters: set[DataConditionGroup] = set()
+                for dcg in groups_to_fire[group.id]:
+                    if (
+                        dcg.id
+                        in trigger_group_to_dcg_model[DataConditionHandler.Group.WORKFLOW_TRIGGER]
+                    ):
+                        workflow_triggers.add(dcg)
+                    elif (
+                        dcg.id
+                        in trigger_group_to_dcg_model[DataConditionHandler.Group.ACTION_FILTER]
+                    ):
+                        action_filters.add(dcg)
 
-        # process action filters
-        filtered_actions = filter_recently_fired_workflow_actions(action_filters, event_data)
+                # process action filters
+                filtered_actions = filter_recently_fired_workflow_actions(
+                    action_filters, event_data
+                )
 
-        # process workflow_triggers
-        workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
+                # process workflow_triggers
+                workflows = set(
+                    Workflow.objects.filter(when_condition_group_id__in=workflow_triggers)
+                )
 
-        filtered_actions = filtered_actions.union(
-            evaluate_workflows_action_filters(workflows, event_data)
-        )
+                filtered_actions = filtered_actions.union(
+                    evaluate_workflows_action_filters(workflows, event_data)
+                )
 
-        # temporary fetching of organization, so not passing in as parameter
-        organization = group.project.organization
+                # temporary fetching of organization, so not passing in as parameter
+                organization = group.project.organization
 
-        metrics.incr(
-            "workflow_engine.delayed_workflow.triggered_actions",
-            amount=len(filtered_actions),
-            tags={"event_type": group_event.group.type},
-        )
+                metrics.incr(
+                    "workflow_engine.delayed_workflow.triggered_actions",
+                    amount=len(filtered_actions),
+                    tags={"event_type": group_event.group.type},
+                )
 
-        logger.info(
-            "workflow_engine.delayed_workflow.triggered_actions",
-            extra={
-                "workflow_ids": [workflow.id for workflow in workflows],
-                "actions": filtered_actions,
-                "event_data": event_data,
-                "group_id": group.id,
-                "event_id": event_data.event.event_id,
-            },
-        )
+                logger.info(
+                    "workflow_engine.delayed_workflow.triggered_actions",
+                    extra={
+                        "workflow_ids": [workflow.id for workflow in workflows],
+                        "actions": filtered_actions,
+                        "event_data": event_data,
+                        "group_id": group.id,
+                        "event_id": event_data.event.event_id,
+                    },
+                )
 
-        if features.has(
-            "organizations:workflow-engine-trigger-actions",
-            organization,
-        ):
-            for action in filtered_actions:
-                action.trigger(event_data, detector)
+                if features.has(
+                    "organizations:workflow-engine-trigger-actions",
+                    organization,
+                ):
+                    for action in filtered_actions:
+                        action.trigger(event_data, detector)
 
 
 def cleanup_redis_buffer(
