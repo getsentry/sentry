@@ -16,13 +16,13 @@ import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useI
 import {useNavContext} from 'sentry/views/nav/context';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
+import {IssueViewQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewQueryCount';
 import {
   constructViewLink,
-  type NavIssueView,
-} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
-import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavQueryCount';
+  type IssueView,
+} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViews';
 
-interface IssueViewNavItemContentProps {
+interface IssueViewItemProps {
   /**
    * Whether the item is active.
    */
@@ -47,7 +47,7 @@ interface IssueViewNavItemContentProps {
   /**
    * The issue view to display
    */
-  view: NavIssueView;
+  view: IssueView;
   /**
    * Ref to the body of the section that contains the reorderable items.
    * This is used as the portal container for the ellipsis menu, and as
@@ -56,14 +56,14 @@ interface IssueViewNavItemContentProps {
   sectionRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export function IssueViewNavItemContent({
+export function IssueViewItem({
   view,
   sectionRef,
   isActive,
   onReorderComplete,
   isDragging,
   setIsDragging,
-}: IssueViewNavItemContentProps) {
+}: IssueViewItemProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
 
@@ -135,7 +135,7 @@ export function IssueViewNavItemContent({
         }
         trailingItems={
           <TrailingItemsWrapper>
-            <IssueViewNavQueryCount view={view} isActive={isActive} />
+            <IssueViewQueryCount view={view} isActive={isActive} />
           </TrailingItemsWrapper>
         }
         onPointerDown={e => {
