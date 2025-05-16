@@ -28,17 +28,16 @@ export function constrainAndAlignListBox({
   const referenceRect = referenceRef.current.getBoundingClientRect();
   const popoverRect = popoverRef.current.getBoundingClientRect();
 
-  // Update all elements that need width syncing
   refsToSync.forEach(ref => {
-    if (ref.current) {
-      ref.current.style.maxWidth = `${referenceRect.width}px`;
-    }
+    if (!ref.current) return;
+    ref.current.style.maxWidth = `${referenceRect.width}px`;
   });
 
-  // Set popover position
+  // Align popover position when it's width is constrained
   if (popoverRect.width === referenceRect.width) {
     const parentOfTarget = popoverRef.current.offsetParent || document.documentElement;
     const parentRect = parentOfTarget.getBoundingClientRect();
+
     const sourceCenterViewport = referenceRect.left + referenceRect.width / 2;
     const desiredTargetLeftViewport = sourceCenterViewport - popoverRect.width / 2;
     const newX = desiredTargetLeftViewport - parentRect.left;
@@ -119,26 +118,22 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
               ref={element => {
                 listBoxRef.current = element;
 
-                if (!element) {
-                  return undefined;
-                }
+                if (!element) return undefined;
 
                 const refsToSync = [listBoxRef, popoverRef];
 
                 constrainAndAlignListBox({
                   popoverRef,
-                  referenceRef: wrapperRef,
                   refsToSync,
+                  referenceRef: wrapperRef,
                 });
 
                 const observer = new ResizeObserver(() => {
                   constrainAndAlignListBox({
                     popoverRef,
-                    referenceRef: wrapperRef,
                     refsToSync,
+                    referenceRef: wrapperRef,
                   });
-
-                  return undefined;
                 });
 
                 observer.observe(element);
