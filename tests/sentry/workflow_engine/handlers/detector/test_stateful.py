@@ -82,7 +82,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             },
         )
 
-    def test_evaualte__override_threshold(self):
+    def test_evaluate__override_threshold(self):
         result = self.handler.evaluate(self.data_packet)
         assert result == {}
 
