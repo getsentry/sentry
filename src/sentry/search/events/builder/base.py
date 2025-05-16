@@ -79,7 +79,7 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 DATASET_TO_ENTITY_MAP: Mapping[Dataset, EntityKey] = {
     Dataset.Events: EntityKey.Events,
     Dataset.Transactions: EntityKey.Transactions,
-    Dataset.EventsAnalyticsPlatform: EntityKey.EAPSpans,
+    Dataset.EventsAnalyticsPlatform: EntityKey.EAPItemsSpan,
 }
 
 

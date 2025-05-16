@@ -415,7 +415,7 @@ def get_metric_issue_aggregates(
                 "incidents.get_incident_aggregates.snql.query.error",
                 tags={
                     "dataset": params.snuba_query.dataset,
-                    "entity": EntityKey.EAPSpans.value,
+                    "entity": EntityKey.EAPItemsSpan.value,
                 },
             )
             raise
