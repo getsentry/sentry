@@ -194,6 +194,29 @@ type ReservedTotalProps = {
 };
 
 /**
+ * Returns the price for a reserved budget category (ie. Seer) in cents.
+ */
+export function getReservedPriceForReservedBudgetCategory({
+  plan,
+  reservedBudgetCategory,
+}: {
+  plan: Plan;
+  reservedBudgetCategory: ReservedBudgetCategoryType;
+}): number {
+  const budgetTypeInfo = plan.availableReservedBudgetTypes[reservedBudgetCategory];
+  if (!budgetTypeInfo) {
+    return 0;
+  }
+  return budgetTypeInfo.dataCategories.reduce((acc, dataCategory) => {
+    const bucket = getBucket({
+      events: RESERVED_BUDGET_QUOTA,
+      buckets: plan.planCategories[dataCategory],
+    });
+    return acc + bucket.price;
+  }, 0);
+}
+
+/**
  * Returns the total plan price (including prices for reserved categories) in cents.
  */
 export function getReservedPriceCents({
@@ -231,13 +254,10 @@ export function getReservedPriceCents({
       const budgetTypeInfo =
         plan.availableReservedBudgetTypes[apiName as ReservedBudgetCategoryType];
       if (budgetTypeInfo) {
-        reservedCents += budgetTypeInfo.dataCategories.reduce((acc, dataCategory) => {
-          const bucket = getBucket({
-            events: RESERVED_BUDGET_QUOTA,
-            buckets: plan.planCategories[dataCategory],
-          });
-          return acc + bucket.price;
-        }, 0);
+        reservedCents += getReservedPriceForReservedBudgetCategory({
+          plan,
+          reservedBudgetCategory: apiName as ReservedBudgetCategoryType,
+        });
       }
     }
   });

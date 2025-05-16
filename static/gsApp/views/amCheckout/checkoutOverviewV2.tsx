@@ -12,11 +12,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {
-  PAYG_BUSINESS_DEFAULT,
-  PAYG_TEAM_DEFAULT,
-  RESERVED_BUDGET_QUOTA,
-} from 'getsentry/constants';
+import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
 import {formatReservedWithUnits, isBizPlanFamily} from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
@@ -212,16 +208,10 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                       </ReservedItem>
                       <Price>
                         {utils.displayPrice({
-                          cents: budgetTypeInfo.dataCategories.reduce(
-                            (acc, dataCategory) => {
-                              const bucket = utils.getBucket({
-                                events: RESERVED_BUDGET_QUOTA,
-                                buckets: activePlan.planCategories[dataCategory],
-                              });
-                              return acc + bucket.price;
-                            },
-                            0
-                          ),
+                          cents: utils.getReservedPriceForReservedBudgetCategory({
+                            plan: activePlan,
+                            reservedBudgetCategory: budgetTypeInfo.apiName,
+                          }),
                         })}
                         /{shortInterval}
                       </Price>

@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
+
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -60,7 +62,14 @@ function ProductSelect({
 
         return (
           <ProductOption key={productInfo.apiName} aria-label={productInfo.productName}>
-            <ProductOptionContent gradientColor={checkoutInfo.gradientEndColor}>
+            <ProductOptionContent
+              gradientColor={checkoutInfo.gradientEndColor}
+              enabled={
+                formData.selectedProducts?.[
+                  productInfo.apiName as string as SelectableProduct
+                ]?.enabled
+              }
+            >
               <Column>
                 <ProductLabel productColor={checkoutInfo.color}>
                   {checkoutInfo.icon}
@@ -109,8 +118,14 @@ function ProductSelect({
                       </Fragment>
                     ) : (
                       <Fragment>
-                        <IconAdd /> {formatCurrency(productInfo.defaultBudget!)}/
-                        {billingInterval}
+                        <IconAdd />{' '}
+                        {formatCurrency(
+                          utils.getReservedPriceForReservedBudgetCategory({
+                            plan: activePlan,
+                            reservedBudgetCategory: productInfo.apiName,
+                          })
+                        )}
+                        /{billingInterval}
                       </Fragment>
                     )}
                   </ButtonContent>
@@ -126,30 +141,16 @@ function ProductSelect({
                     size="xs"
                   />
                 </Subtitle>
+                <IllustrationContainer>
+                  <Stars src={bannerStars} />
+                </IllustrationContainer>
               </Column>
             </ProductOptionContent>
-            {/* </motion.div> */}
           </ProductOption>
         );
       })}
     </Fragment>
   );
-
-  // const renderSeer = () => {
-  //   return renderAdditionalFeature({
-  //     featureKey: 'seer',
-  //     featureEnabled: seerIsEnabled,
-  //     featureAvailable: hasSeerFeature,
-  //     title: 'Add Seer, our AI Agent',
-  //     description: 'Insights and solutions to fix bugs faster',
-  //     icon: <SeerIcon size="lg" />,
-  //     priceCents: SEER_MONTHLY_PRICE_CENTS,
-  //     featureItems: ['Root Cause Analysis', 'Autofix PRs', 'AI Issue Priority'],
-  //     tooltipTitle: t('Additional Seer information.'),
-  //     isNew: true,
-  //     setFeatureEnabled: setSeerIsEnabled,
-  //   });
-  // };
 }
 
 export default ProductSelect;
@@ -165,14 +166,18 @@ const ProductOption = styled(PanelItem)<{isSelected?: boolean}>`
   display: inherit;
 `;
 
-const ProductOptionContent = styled('div')<{gradientColor: string}>`
+const ProductOptionContent = styled('div')<{gradientColor: string; enabled?: boolean}>`
   padding: ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => (p.enabled ? p.gradientColor : p.theme.backgroundSecondary)};
   display: flex;
   gap: ${space(4)};
   justify-content: space-between;
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => (p.enabled ? p.gradientColor : p.theme.innerBorder)};
   border-radius: ${p => p.theme.borderRadius};
+
+  button {
+    border-color: ${p => (p.enabled ? p.gradientColor : p.theme.innerBorder)};
+  }
 
   @keyframes gradient {
     0% {
@@ -242,4 +247,29 @@ const Feature = styled('div')`
   svg {
     flex-shrink: 0;
   }
+`;
+
+const IllustrationContainer = styled('div')`
+  display: none;
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    display: block;
+    position: absolute;
+    bottom: 83px;
+    right: 12px;
+    top: 0;
+    width: 600px;
+    overflow: hidden;
+    border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+    pointer-events: none;
+  }
+`;
+
+const Stars = styled('img')`
+  pointer-events: none;
+  position: absolute;
+  right: -400px;
+  bottom: -70px;
+  overflow: hidden;
+  height: 250px;
 `;
