@@ -73,7 +73,10 @@ export function useServiceIncidents({
 
       return filteredIncidents;
     },
-    // Refetch every 10 minutes
-    refetchInterval: 1000 * 60 * 10,
+    // 5 minutes
+    staleTime: 1000 * 60 * 5,
+    // Refetch every 5 minutes and when window is refocused
+    refetchInterval: 1000 * 60 * 5,
+    refetchOnWindowFocus: true,
   });
 }
