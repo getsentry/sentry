@@ -502,27 +502,22 @@ def fire_rules(
         group_to_groupevent = get_group_to_groupevent(
             log_config, parsed_rulegroup_to_event_data, project_id, groups_to_fire
         )
+        if log_config.num_events_issue_debugging or log_config.workflow_engine_process_workflows:
+            serialized_groups = {
+                group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
+            }
+            logger.info(
+                "delayed_processing.group_to_groupevent",
+                extra={
+                    "group_to_groupevent": serialized_groups,
+                    "project_id": project_id,
+                },
+            )
         group_id_to_group = {group.id: group for group in group_to_groupevent.keys()}
         for rule, group_ids in rules_to_fire.items():
             with tracker.track(f"rule_{rule.id}"):
                 frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
                 freq_offset = now - timedelta(minutes=frequency)
-                if (
-                    log_config.num_events_issue_debugging
-                    or log_config.workflow_engine_process_workflows
-                ):
-                    serialized_groups = {
-                        group.id: group_event.event_id
-                        for group, group_event in group_to_groupevent.items()
-                    }
-                    logger.info(
-                        "delayed_processing.group_to_groupevent",
-                        extra={
-                            "group_to_groupevent": serialized_groups,
-                            "project_id": project_id,
-                            "rule_id": rule.id,
-                        },
-                    )
                 for group_id in group_ids:
                     group = group_id_to_group.get(group_id)
                     if not group:
