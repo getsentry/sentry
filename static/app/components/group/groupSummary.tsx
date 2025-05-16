@@ -2,7 +2,6 @@ import {isValidElement, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
 import {IconDocs, IconFatal, IconFocus, IconRefresh, IconSpan} from 'sentry/icons';
@@ -250,13 +249,6 @@ export function GroupSummary({
             >
               {t('Summarize current event')}
             </Button>
-            <OriginalEventLink
-              to={`/organizations/${organization.slug}/projects/${project.slug}/issues/${group.id}/events/${data.eventId}/`}
-              size="xs"
-              borderless
-            >
-              {t('View original event')}
-            </OriginalEventLink>
           </ResummarizeWrapper>
         )}
       </Content>
@@ -350,8 +342,4 @@ const ResummarizeWrapper = styled('div')`
   align-items: center;
   margin-top: ${space(1)};
   flex-shrink: 0;
-`;
-
-const OriginalEventLink = styled(LinkButton)`
-  margin-left: ${space(1)};
 `;
