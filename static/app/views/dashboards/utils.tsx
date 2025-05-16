@@ -634,7 +634,7 @@ export const performanceScoreTooltip = t('peformance_score is not supported in D
 export function applyDashboardFilters(
   baseQuery: string | undefined,
   dashboardFilters: DashboardFilters | undefined
-): string {
+): string | undefined {
   const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
   if (dashboardFilterConditions) {
     if (baseQuery) {
@@ -642,5 +642,5 @@ export function applyDashboardFilters(
     }
     return dashboardFilterConditions;
   }
-  return baseQuery ?? '';
+  return baseQuery;
 }
