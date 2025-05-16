@@ -59,7 +59,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
       <Fragment>
         <p>
           {tct(
-            'In order to create pull requests, install and grant write access to the [link:Sentry Autofix GitHub App] for the following repositories:',
+            'In order to create pull requests, install and grant write access to the [link:Sentry Seer GitHub App] for the following repositories:',
             {
               link: (
                 <ExternalLink
@@ -82,7 +82,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
     <Fragment>
       <p>
         {tct(
-          'In order to create pull requests, install and grant write access to the [link:Sentry Autofix GitHub App] for the relevant repositories.',
+          'In order to create pull requests, install and grant write access to the [link:Sentry Seer GitHub App] for the relevant repositories.',
           {
             link: (
               <ExternalLink
