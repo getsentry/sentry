@@ -465,19 +465,19 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def get_title_emoji(self, has_action: bool) -> list[str]:
         is_error_issue = self.group.issue_category == GroupCategory.ERROR
 
-        title_emojis = []
+        title_emojis: list[str] = []
         if has_action:
             # if issue is resolved, archived, or assigned, replace circle emojis with white circle
             title_emojis = (
                 ACTION_EMOJI
                 if is_error_issue
-                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category)
+                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category, [])
             )
         elif is_error_issue:
             level_text = LOG_LEVELS[self.group.level]
-            title_emojis = LEVEL_TO_EMOJI.get(level_text)
+            title_emojis = LEVEL_TO_EMOJI.get(level_text, [])
         else:
-            title_emojis = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            title_emojis = CATEGORY_TO_EMOJI.get(self.group.issue_category, [])
 
         return title_emojis
 

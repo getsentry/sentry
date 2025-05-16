@@ -262,7 +262,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status)
         assert "via" not in blocks[4]["elements"][0]["text"]
-        assert ":white_circle:" in blocks[0]["text"]["text"]
+        assert "white_circle" in blocks[0]["elements"][0]["elements"][0]["name"]
 
         assert len(mock_record.mock_calls) == 4
         start_1, success_1, start_2, success_2 = mock_record.mock_calls
@@ -487,7 +487,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status), text
-        assert ":white_circle:" in blocks[0]["text"]["text"]
+        assert "white_circle" in blocks[0]["elements"][0]["elements"][0]["name"]
 
         # Assign to team
         self.assign_issue(original_message, self.team)
@@ -499,7 +499,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status), text
-        assert ":white_circle:" in blocks[0]["text"]["text"]
+        assert "white_circle" in blocks[0]["elements"][0]["elements"][0]["name"]
 
         # Assert group assignment activity recorded
         group_activity = list(Activity.objects.filter(group=self.group))
@@ -542,7 +542,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
         assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
-        assert ":white_circle:" in resp.data["blocks"][0]["text"]["text"]
+        assert "white_circle" in resp.data["blocks"][0]["elements"][0]["elements"][0]["name"]
 
         # Assert group assignment activity recorded
         group_activity = list(Activity.objects.filter(group=self.group))
@@ -738,7 +738,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"] == expect_status
-        assert ":white_circle:" in blocks[0]["text"]["text"]
+        assert "white_circle" in blocks[0]["elements"][0]["elements"][0]["name"]
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
@@ -772,7 +772,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             in blocks[2]["text"]["text"]
         )
         assert blocks[3]["text"]["text"] == expect_status
-        assert ":white_circle: :chart_with_upwards_trend:" in blocks[0]["text"]["text"]
+        assert "white_circle" in blocks[0]["elements"][0]["elements"][0]["name"]
+        assert "chart_with_upwards_trend" in blocks[0]["elements"][0]["elements"][2]["name"]
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_resolve_issue_through_unfurl(self, mock_tags):

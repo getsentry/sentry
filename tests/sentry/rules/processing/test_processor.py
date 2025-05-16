@@ -877,7 +877,9 @@ class RuleProcessorTestFilters(TestCase):
         mock_post.assert_called_once()
         assert (
             "notification_uuid"
-            in json.loads(mock_post.call_args.kwargs["blocks"])[0]["text"]["text"]
+            in json.loads(mock_post.call_args.kwargs["blocks"])[0]["elements"][0]["elements"][-1][
+                "url"
+            ]
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")

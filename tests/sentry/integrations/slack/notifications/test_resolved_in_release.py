@@ -39,11 +39,16 @@ class SlackResolvedInReleaseNotificationTest(
         release_name = notification.activity.data["version"]
         assert fallback_text == f"Issue marked as resolved in {release_name} by {self.name}"
         assert blocks[0]["text"]["text"] == fallback_text
-        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
-        assert (
-            blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved_in_release_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+        notification_uuid = self.get_notification_uuid(
+            blocks[1]["elements"][0]["elements"][-1]["url"]
         )
+        emoji = "red_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved_in_release_activity-slack&notification_uuid={notification_uuid}"
+        text = f"{self.group.title}"
+        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
+
         assert (
             blocks[3]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
@@ -123,7 +128,9 @@ class SlackResolvedInReleaseNotificationTest(
 
         assert fallback_text == f"Issue marked as resolved in 1.0.0 by {self.name}"
         assert blocks[0]["text"]["text"] == fallback_text
-        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        notification_uuid = self.get_notification_uuid(
+            blocks[1]["elements"][0]["elements"][-1]["url"]
+        )
         assert (
             blocks[3]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
