@@ -723,6 +723,8 @@ class Enhancements:
             else:
                 contributes = rust_frame.contributes
 
+            frame_component.update(contributes=contributes)
+
             hint = get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
             if self.run_split_enhancements:
                 split_in_app_hint = (
@@ -736,7 +738,7 @@ class Enhancements:
                     variant_name, frame, frame_component, contributes_rust_frame, "contributes"
                 )
 
-            frame_component.update(contributes=contributes, hint=hint)
+            frame_component.update(hint=hint)
 
             # Add this frame to our tally
             key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
