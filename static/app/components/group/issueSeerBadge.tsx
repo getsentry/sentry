@@ -46,7 +46,7 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
     <Tooltip title={seerTitle} skipWrapper>
       <SeerLink
         to={{
-          pathname: `${issuesPath}${group.id}`,
+          pathname: `${issuesPath}${group.id}/`,
           query: {...location.query, seerDrawer: true},
         }}
       >
