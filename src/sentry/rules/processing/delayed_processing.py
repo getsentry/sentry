@@ -526,8 +526,8 @@ def fire_rules(
                 for group_id in group_ids:
                     group = group_id_to_group.get(group_id)
                     if not group:
-                        logger.info(
-                            "delayed_processing.group_not_found",
+                        logger.error(
+                            "delayed_processing.missing_group_to_fire",
                             extra={
                                 "rule_id": rule.id,
                                 "group_id": group_id,
