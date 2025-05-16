@@ -976,7 +976,7 @@ export type KeyValueListDataItem = {
   key: string;
   subject: string;
   action?: {
-    link?: string | LocationDescriptor;
+    link?: LocationDescriptor;
   };
   actionButton?: React.ReactNode;
   /**
