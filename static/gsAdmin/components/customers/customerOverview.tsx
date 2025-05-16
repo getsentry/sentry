@@ -156,11 +156,6 @@ type ReservedDataProps = {
   customer: Subscription;
 };
 
-type ReservedBudgetProps = {
-  customer: Subscription;
-  reservedBudget: ReservedBudget;
-};
-
 function ReservedData({customer}: ReservedDataProps) {
   const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> = {};
   customer.reservedBudgets?.forEach(budget => {
@@ -254,26 +249,23 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
   );
 }
 
-function ReservedBudgetData({customer, reservedBudget}: ReservedBudgetProps) {
-  const categories = Object.keys(reservedBudget.categories);
-  if (categories.length === 0) {
-    return null;
-  }
-
-  const shouldUseDsNames = customer.planDetails.categories.includes(
-    DataCategory.SPANS_INDEXED
-  );
-
+function ReservedBudgetData({
+  customer,
+  reservedBudget,
+}: {
+  customer: Subscription;
+  reservedBudget: ReservedBudget;
+}) {
   const budgetName = getReservedBudgetDisplayName({
-    plan: customer.planDetails,
-    categories: categories as DataCategory[],
-    hadCustomDynamicSampling: shouldUseDsNames,
+    reservedBudget,
     shouldTitleCase: true,
+    plan: customer.planDetails,
+    hadCustomDynamicSampling: customer.hadCustomDynamicSampling,
   });
 
   return (
     <Fragment>
-      <h6>{budgetName} Reserved Budget</h6>
+      <h6>{budgetName}</h6>
       <DetailList>
         <DetailLabel title="Reserved Budget">
           {displayPriceWithCents({cents: reservedBudget.reservedBudget})}

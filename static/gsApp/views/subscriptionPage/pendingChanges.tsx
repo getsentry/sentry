@@ -6,7 +6,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategory} from 'sentry/types/core';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
@@ -269,26 +269,17 @@ class PendingChanges extends Component<Props> {
 
     if (this.hasReservedBudgetChange()) {
       const reservedBudgetChanges = pendingChanges.reservedBudgets.map(budget => {
-        const budgetCategories = Object.keys(budget.categories) as DataCategory[];
-        const isSpansBudget =
-          budgetCategories.length === 2 &&
-          budgetCategories.includes(DataCategory.SPANS) &&
-          budgetCategories.includes(DataCategory.SPANS_INDEXED);
-        const adjustedCategories =
-          isSpansBudget && !subscription.hadCustomDynamicSampling
-            ? [DataCategory.SPANS]
-            : budgetCategories;
         const newAmount = formatCurrency(budget.reservedBudget);
         const budgetName = getReservedBudgetDisplayName({
+          pendingReservedBudget: budget,
           plan: pendingChanges.planDetails,
-          categories: adjustedCategories,
           hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+          shouldTitleCase: true,
         });
-        return `${newAmount} for ${budgetName}`;
+        return `${budgetName} updated to ${newAmount}`;
       });
       results.push(
-        tct('Reserved [budgetWord] updated to [reservedBudgets]', {
-          budgetWord: reservedBudgetChanges.length === 1 ? 'budget' : 'budgets',
+        tct('[reservedBudgets]', {
           reservedBudgets: oxfordizeArray(reservedBudgetChanges),
         })
       );
