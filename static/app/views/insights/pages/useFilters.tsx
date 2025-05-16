@@ -20,15 +20,17 @@ const domainViews = [
 
 export type DomainViewFilters = {
   isInDomainView?: boolean;
+  isInOverviewPage?: boolean;
   view?: DomainView;
 };
 
 export const useDomainViewFilters = () => {
   const location = useLocation();
   const pathSegments = location.pathname.split('/').filter(Boolean);
-  const indexOfPerformance = pathSegments.indexOf(DOMAIN_VIEW_BASE_URL);
-  const isInDomainView = indexOfPerformance !== -1;
-  const view = pathSegments[indexOfPerformance + 1] as DomainViewFilters['view'];
+  const indexOfInsights = pathSegments.indexOf(DOMAIN_VIEW_BASE_URL);
+  const isInDomainView = indexOfInsights !== -1;
+  const view = pathSegments[indexOfInsights + 1] as DomainViewFilters['view'];
+  const isInOverviewPage = pathSegments.length === indexOfInsights + 2; // TODO: remove this with `useInsightsEap`, only needed to seperately control eap on overview page
 
   if (!domainViews.includes(view || '')) {
     return {isInDomainView: false};
@@ -38,7 +40,9 @@ export const useDomainViewFilters = () => {
     return {
       view,
       isInDomainView,
+      isInOverviewPage,
     };
   }
+
   return {isInDomainView};
 };
