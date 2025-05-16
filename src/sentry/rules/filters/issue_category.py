@@ -30,8 +30,8 @@ class IssueCategoryFilter(EventFilter):
         except (TypeError, ValueError):
             return False
 
-        if group and group.issue_category:
-            return bool(value == group.issue_category)
+        if group:
+            return value == group.issue_category or value == group.issue_category_v2
 
         return False
 

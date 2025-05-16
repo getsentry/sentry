@@ -10,7 +10,7 @@ import {WidgetType} from './types';
 
 describe('IndexedEventsSelectionAlert', () => {
   const widget = WidgetFixture({
-    widgetType: WidgetType.DISCOVER,
+    widgetType: WidgetType.TRANSACTIONS,
   });
 
   it('Shows warning if falling through to indexed events', async () => {

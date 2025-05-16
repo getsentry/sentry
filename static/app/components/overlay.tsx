@@ -181,6 +181,7 @@ interface PositionWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
    * Determines the zindex over the position wrapper
    */
   zIndex: number;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
 /**
@@ -207,9 +208,7 @@ export function PositionWrapper({
   zIndex,
   style,
   ...props
-}: PositionWrapperProps & {
-  ref?: React.Ref<HTMLDivElement>;
-}) {
+}: PositionWrapperProps) {
   const isPresent = useIsPresent();
   return (
     <motion.div

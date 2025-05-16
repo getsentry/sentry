@@ -22,6 +22,7 @@ export interface TextAreaProps
    * Max number of rows to default to.
    */
   maxRows?: number;
+  ref?: React.Ref<HTMLTextAreaElement>;
   /**
    * Number of rows to default to.
    */
@@ -36,9 +37,7 @@ function TextAreaControl({
   maxRows,
   size: _size,
   ...p
-}: TextAreaProps & {
-  ref?: React.Ref<HTMLTextAreaElement>;
-}) {
+}: TextAreaProps) {
   return autosize ? (
     <TextareaAutosize {...p} ref={ref} rows={rows} maxRows={maxRows} />
   ) : (

@@ -606,12 +606,10 @@ function getEventsSeriesRequest(
     return doOnDemandMetricsRequest(api, requestData, widget.widgetType);
   }
 
-  if (organization.features.includes('performance-discover-dataset-selector')) {
-    requestData.queryExtras = {
-      ...requestData.queryExtras,
-      ...getQueryExtraForSplittingDiscover(widget, organization, false),
-    };
-  }
+  requestData.queryExtras = {
+    ...requestData.queryExtras,
+    ...getQueryExtraForSplittingDiscover(widget, organization, false),
+  };
 
   return doEventsRequest<true>(api, requestData);
 }
@@ -678,29 +676,12 @@ export function filterAggregateParams(
 
 const getQueryExtraForSplittingDiscover = (
   widget: Widget,
-  organization: Organization,
-  useOnDemandMetrics: boolean
+  _organization: Organization,
+  _useOnDemandMetrics: boolean
 ) => {
   // We want to send the dashboardWidgetId on the request if we're in the Widget
   // Builder with the selector feature flag
   const isEditing = location.pathname.endsWith('/edit/');
-  const hasDiscoverSelector = organization.features.includes(
-    'performance-discover-dataset-selector'
-  );
-
-  if (!hasDiscoverSelector) {
-    if (
-      !useOnDemandMetrics ||
-      !organization.features.includes('performance-discover-widget-split-ui')
-    ) {
-      return {};
-    }
-    if (widget.id) {
-      return {dashboardWidgetId: widget.id};
-    }
-
-    return {};
-  }
 
   if (isEditing && widget.id) {
     return {dashboardWidgetId: widget.id};
