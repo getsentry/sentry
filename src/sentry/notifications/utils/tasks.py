@@ -31,6 +31,8 @@ def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) ->
     for k, v in raw_data.items():
         if isinstance(v, datetime):
             v = v.isoformat()
+        if isinstance(v, frozenset):
+            v = list(v)
 
         parsed_data[k] = v
 

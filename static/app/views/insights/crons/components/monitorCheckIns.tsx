@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
@@ -28,6 +29,8 @@ import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/type
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
 import {statusToText} from 'sentry/views/insights/crons/utils';
 import {useMonitorCheckIns} from 'sentry/views/insights/crons/utils/useMonitorCheckIns';
+
+import {DEFAULT_MAX_RUNTIME} from './monitorForm';
 
 type Props = {
   monitor: Monitor;
@@ -121,23 +124,26 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                       disabled={!customTimezone}
                       title={
                         <DateTime
-                          date={checkIn.dateCreated}
+                          date={checkIn.dateAdded}
                           forcedTimezone={monitor.config.timezone ?? 'UTC'}
                           timeZone
                           seconds
                         />
                       }
                     >
-                      <DateTime date={checkIn.dateCreated} timeZone seconds />
+                      <DateTime date={checkIn.dateAdded} timeZone seconds />
                     </Tooltip>
                   </div>
                 )}
                 {defined(checkIn.duration) ? (
-                  <div>
+                  <DurationContainer>
                     <Tooltip title={<Duration exact seconds={checkIn.duration / 1000} />}>
                       <Duration seconds={checkIn.duration / 1000} />
                     </Tooltip>
-                  </div>
+                    {checkIn.status === CheckInStatus.TIMEOUT && (
+                      <TimeoutLateBy monitor={monitor} duration={checkIn.duration} />
+                    )}
+                  </DurationContainer>
                 ) : (
                   emptyCell
                 )}
@@ -198,8 +204,49 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
   );
 }
 
+interface TimeoutLateByProps {
+  duration: number;
+  monitor: Monitor;
+}
+
+function TimeoutLateBy({monitor, duration}: TimeoutLateByProps) {
+  const maxRuntimeSeconds = (monitor.config.max_runtime ?? DEFAULT_MAX_RUNTIME) * 60;
+  const lateBySecond = duration / 1000 - maxRuntimeSeconds;
+
+  const maxRuntime = (
+    <strong>
+      <Duration seconds={(monitor.config.max_runtime ?? DEFAULT_MAX_RUNTIME) * 60} />
+    </strong>
+  );
+
+  const lateBy = (
+    <strong>
+      <Duration seconds={lateBySecond} />
+    </strong>
+  );
+
+  return (
+    <Tooltip
+      title={tct(
+        'The closing check-in occurred [lateBy] after this check-in was marked as timed out. The configured maximum allowed runtime is [maxRuntime].',
+        {lateBy, maxRuntime}
+      )}
+    >
+      <Tag type="error">
+        {t('%s late', <Duration abbreviation seconds={lateBySecond} />)}
+      </Tag>
+    </Tooltip>
+  );
+}
+
 const Status = styled('div')`
   line-height: 1.1;
+`;
+
+const DurationContainer = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
 `;
 
 const IssuesContainer = styled('div')`

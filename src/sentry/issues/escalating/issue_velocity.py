@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # for snuba operations
-REFERRER = "sentry.issues.issue_velocity"
+REFERRER = "sentry.issues.escalating.issue_velocity"
 THRESHOLD_QUANTILE = {"name": "p95", "function": "quantile(0.95)"}
 WEEK_IN_HOURS = 7 * 24
 
@@ -137,7 +137,7 @@ def calculate_threshold(project: Project) -> float | None:
         result = raw_snql_query(request, referrer=REFERRER)["data"]
     except Exception:
         logger.exception(
-            "sentry.issues.issue_velocity.calculate_threshold.error",
+            "sentry.issues.escalating.issue_velocity.calculate_threshold.error",
             extra={"project_id": project.id},
         )
         return None

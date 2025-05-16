@@ -9,14 +9,14 @@ from uuid import uuid4
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.issues.escalating import (
+from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
     _start_and_end_dates,
     get_group_hourly_count,
     is_escalating,
     query_groups_past_counts,
 )
-from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
@@ -150,7 +150,7 @@ class HistoricGroupCounts(
         ]
 
     # This forces to test the iteration over the Snuba data
-    @mock.patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=4)
+    @mock.patch("sentry.issues.escalating.escalating.ELEMENTS_PER_SNUBA_PAGE", new=4)
     def test_pagination(self) -> None:
         events = []
         for i in range(20):
@@ -179,9 +179,9 @@ class HistoricGroupCounts(
         # Force pagination to only three elements per page
         # Once we get to Python 3.10+ the formating of this multiple with statement will not be an eye sore
         with (
-            patch("sentry.issues.escalating._query_with_pagination") as query_mock,
-            patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=3),
-            patch("sentry.issues.escalating.BUCKETS_PER_GROUP", new=2),
+            patch("sentry.issues.escalating.escalating._query_with_pagination") as query_mock,
+            patch("sentry.issues.escalating.escalating.ELEMENTS_PER_SNUBA_PAGE", new=3),
+            patch("sentry.issues.escalating.escalating.BUCKETS_PER_GROUP", new=2),
         ):
             query_groups_past_counts(groups)
             # Proj X will expect potentially 4 elements because it has two groups, thus, no other
@@ -312,7 +312,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         Test that when an archived until escalating issue does not have a forecast that is in range,
         the last forecast is used as a fallback and an error is reported
         """
-        with patch("sentry.issues.escalating_group_forecast.logger") as logger:
+        with patch("sentry.issues.escalating.escalating_group_forecast.logger") as logger:
             event = self._create_events_for_group(count=2)
             assert event.group is not None
             archived_group = event.group

@@ -3855,6 +3855,27 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert data_packet_list[0].source_id == str(self.sub.id)
         assert data_packet_list[0].packet["values"] == {"value": 10}
 
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.get_comparison_aggregation_value"
+    )
+    def test_process_data_packets_not_called(
+        self, mock_get_comparison_aggregation_value, mock_process_data_packets
+    ):
+        rule = self.comparison_rule_above
+        trigger = self.trigger
+
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+
+        mock_get_comparison_aggregation_value.return_value = None
+        self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        assert mock_process_data_packets.call_count == 0
+
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)

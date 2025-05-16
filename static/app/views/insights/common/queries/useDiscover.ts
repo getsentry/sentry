@@ -30,6 +30,7 @@ interface UseDiscoverOptions<Fields> {
   cursor?: string;
   enabled?: boolean;
   fields?: Fields;
+  keepPreviousData?: boolean;
   limit?: number;
   noPagination?: boolean;
   orderby?: string | string[];
@@ -167,6 +168,7 @@ export const useDiscover = <
     noPagination,
     samplingMode: shouldSetSamplingMode ? samplingMode : undefined,
     additionalQueryKey: useQueryOptions?.additonalQueryKey,
+    keepPreviousData: options.keepPreviousData,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
