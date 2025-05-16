@@ -20,11 +20,12 @@ def process_message(message: Message[KafkaPayload]) -> None:
     if sampled or options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
         b64encoded = b64encode(message.payload.value).decode("utf-8")
         process_profile_task.delay(payload=b64encoded, sampled=sampled)
-        metrics.distribution("profiling.profile_metrics.uncompressed_bytes", len(b64encoded))
 
         if random.random() < options.get("taskworker.try_compress.profile_metrics"):
             import time
             import zlib
+
+            metrics.distribution("profiling.profile_metrics.uncompressed_bytes", len(b64encoded))
 
             start_time = time.perf_counter()
             metrics.distribution(
