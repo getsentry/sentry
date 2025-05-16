@@ -87,6 +87,7 @@ iniconfig==1.1.1
 iso3166==2.1.1
 isodate==0.6.1
 isort==5.10.1
+jinja2==3.1.6
 jmespath==0.10.0
 jsonschema==4.20.0
 jsonschema-path==0.3.2
