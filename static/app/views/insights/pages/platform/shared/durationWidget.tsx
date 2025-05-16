@@ -18,7 +18,7 @@ import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/s
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
-export function DurationWidget({title}: {title: string}) {
+export function DurationWidget() {
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams();
@@ -60,7 +60,7 @@ export function DurationWidget({title}: {title: string}) {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={title} />}
+      Title={<Widget.WidgetTitle title={t('API Latency')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
@@ -79,7 +79,7 @@ export function DurationWidget({title}: {title: string}) {
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title,
+                title: t('API Latency'),
                 children: <ModalChartContainer>{visualization}</ModalChartContainer>,
               });
             }}
@@ -88,12 +88,4 @@ export function DurationWidget({title}: {title: string}) {
       }
     />
   );
-}
-
-export function DurationWidgetBackend() {
-  return <DurationWidget title={t('Duration')} />;
-}
-
-export function DurationWidgetNextJS() {
-  return <DurationWidget title={t('API Latency')} />;
 }
