@@ -167,7 +167,7 @@ export function SeerAutomationProjectList() {
                   <Checkbox
                     checked={selected.has(project.id)}
                     onChange={() => toggleProject(project.id)}
-                    aria-label={t('Select project')}
+                    aria-label={t('Toggle project')}
                   />
                   <ProjectAvatar project={project} title={project.slug} />
                   <Link
