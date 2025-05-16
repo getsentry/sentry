@@ -102,6 +102,7 @@ def get_deprecation_status(project_sdk: ProjectSDK) -> SDKDeprecation | None:
     minimum_sdk_version = get_minimum_sdk_version(
         project_sdk.event_type,
         project_sdk.sdk_name,
+        hard_limit=False,
     )
 
     # no minimum sdk version was specified
