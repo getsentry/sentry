@@ -11,17 +11,17 @@ import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
+import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import type {
   BaseVisualize,
@@ -43,7 +43,6 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
-  dataset: DiscoverDatasets;
   query: string;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
@@ -69,6 +68,10 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
 
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
+type NamedTimeSeries = TimeSeries & {
+  seriesName?: string;
+};
+
 export function ExploreCharts({
   canUsePreviousResults,
   confidences,
@@ -78,7 +81,6 @@ export function ExploreCharts({
   setVisualizes,
   hideContextMenu,
   samplingMode,
-  dataset,
 }: ExploreChartsProps) {
   const theme = useTheme();
   const [interval, setInterval, intervalOptions] = useChartInterval();
@@ -94,7 +96,7 @@ export function ExploreCharts({
         canUsePreviousResults &&
         dedupedYAxes.every(yAxis => previousTimeseriesResult.data.hasOwnProperty(yAxis));
 
-      const data = dedupedYAxes.flatMap((yAxis, i) => {
+      const data: NamedTimeSeries[] = dedupedYAxes.flatMap((yAxis, i) => {
         const series = shouldUsePreviousResults
           ? previousTimeseriesResult.data[yAxis]
           : timeseriesResult.data[yAxis];
@@ -105,7 +107,7 @@ export function ExploreCharts({
           //
           // We can't do this in top N mode as the series name uses the row
           // values instead of the aggregate function.
-          if (s.field === yAxis) {
+          if (s.yAxis === yAxis) {
             return {
               ...s,
               seriesName: formattedYAxes[i] ?? yAxis,
@@ -152,6 +154,7 @@ export function ExploreCharts({
       return {
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
+        stack: visualize.stack,
         label: visualize.label,
         yAxes: visualize.yAxes,
         formattedYAxes,
@@ -316,19 +319,16 @@ export function ExploreCharts({
                 <TimeSeriesWidgetVisualization
                   plottables={chartInfo.data.map(timeSeries => {
                     return new DataPlottableConstructor(timeSeries, {
+                      alias: timeSeries.seriesName,
                       delay: INGESTION_DELAY,
                       color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
-                      stack: 'all',
+                      stack: chartInfo.stack,
                     });
                   })}
-                  legendSelection={{
-                    // disable the 'Other' series by default since its large values can cause the other lines to be insignificant
-                    Other: false,
-                  }}
                 />
               }
               Footer={
-                <WidgetExtrapolationFooter
+                <ConfidenceFooter
                   sampleCount={chartInfo.sampleCount}
                   isSampled={chartInfo.isSampled}
                   confidence={chartInfo.confidence}
@@ -336,7 +336,6 @@ export function ExploreCharts({
                     topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
                   }
                   dataScanned={chartInfo.dataScanned}
-                  dataset={dataset}
                 />
               }
             />

@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {SeerIcon} from 'sentry/components/ai/SeerIcon';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {getAutofixRunExists} from 'sentry/components/events/autofix/utils';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
@@ -75,6 +78,11 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
     data.issueCategory &&
     !!getReplayCountForIssue(data.id, data.issueCategory);
 
+  const showSeer =
+    organization.features.includes('gen-ai-features') &&
+    !organization.hideAiFeatures &&
+    getAutofixRunExists(data as Group);
+
   const {subtitle} = getTitle(data);
 
   const items = [
@@ -107,6 +115,13 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
       </CommentsLink>
     ) : null,
     showReplayCount ? <IssueReplayCount group={data as Group} /> : null,
+    showSeer ? (
+      <Tooltip title="Seer has a potential fix for this issue" skipWrapper>
+        <CommentsLink to={{pathname: `${issuesPath}${id}`, query: {seerDrawer: true}}}>
+          <SeerIcon size="sm" />
+        </CommentsLink>
+      </Tooltip>
+    ) : null,
     logger ? (
       <LoggerAnnotation>
         <GlobalSelectionLink

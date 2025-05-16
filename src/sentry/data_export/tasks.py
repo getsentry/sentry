@@ -21,7 +21,6 @@ from sentry.taskworker.namespaces import export_tasks
 from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.sdk import capture_exception
 
 from .base import (
@@ -51,6 +50,7 @@ logger = logging.getLogger(__name__)
         namespace=export_tasks,
         retry=Retry(
             times=3,
+            delay=60,
         ),
     ),
 )
@@ -374,7 +374,6 @@ def merge_export_blobs(data_export_id, **kwargs):
             )
             capture_exception(error)
             if isinstance(error, IntegrityError):
-                incr_rollback_metrics(name="data_export_merge_export_blobs")
                 message = "Failed to save the assembled file."
             else:
                 message = "Internal processing failure."

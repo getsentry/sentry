@@ -1,6 +1,7 @@
 import {createContext, type Reducer, useCallback, useContext, useReducer} from 'react';
 
 import type FormModel from 'sentry/components/forms/model';
+import type {ActionType} from 'sentry/types/workflowEngine/actions';
 import {
   type DataConditionGroup,
   DataConditionGroupLogicType,
@@ -29,6 +30,14 @@ export function useAutomationBuilderReducer() {
           return removeIfCondition(state, action, formModel);
         case 'UPDATE_IF_CONDITION':
           return updateIfCondition(state, action);
+        case 'UPDATE_IF_CONDITION_TYPE':
+          return updateIfConditionType(state, action);
+        case 'ADD_IF_ACTION':
+          return addIfAction(state, action);
+        case 'REMOVE_IF_ACTION':
+          return removeIfAction(state, action, formModel);
+        case 'UPDATE_IF_ACTION':
+          return updateIfAction(state, action);
         case 'UPDATE_IF_LOGIC_TYPE':
           return updateIfLogicType(state, action);
         default:
@@ -75,9 +84,34 @@ export function useAutomationBuilderReducer() {
         dispatch({type: 'REMOVE_IF_CONDITION', groupIndex, conditionIndex}),
       [dispatch]
     ),
+    updateIfConditionType: useCallback(
+      (groupIndex: number, conditionIndex: number, conditionType: DataConditionType) =>
+        dispatch({
+          type: 'UPDATE_IF_CONDITION_TYPE',
+          groupIndex,
+          conditionIndex,
+          conditionType,
+        }),
+      [dispatch]
+    ),
     updateIfCondition: useCallback(
       (groupIndex: number, conditionIndex: number, comparison: Record<string, any>) =>
         dispatch({type: 'UPDATE_IF_CONDITION', groupIndex, conditionIndex, comparison}),
+      [dispatch]
+    ),
+    addIfAction: useCallback(
+      (groupIndex: number, actionType: ActionType) =>
+        dispatch({type: 'ADD_IF_ACTION', groupIndex, actionType}),
+      [dispatch]
+    ),
+    removeIfAction: useCallback(
+      (groupIndex: number, actionIndex: number) =>
+        dispatch({type: 'REMOVE_IF_ACTION', groupIndex, actionIndex}),
+      [dispatch]
+    ),
+    updateIfAction: useCallback(
+      (groupIndex: number, actionIndex: number, data: Record<string, any>) =>
+        dispatch({type: 'UPDATE_IF_ACTION', groupIndex, actionIndex, data}),
       [dispatch]
     ),
     updateIfLogicType: useCallback(
@@ -101,15 +135,27 @@ interface AutomationBuilderState {
 // 2. The AutomationActions interface
 interface AutomationActions {
   addIf: () => void;
+  addIfAction: (groupIndex: number, actionType: ActionType) => void;
   addIfCondition: (groupIndex: number, conditionType: DataConditionType) => void;
   addWhenCondition: (conditionType: DataConditionType) => void;
   removeIf: (groupIndex: number) => void;
+  removeIfAction: (groupIndex: number, actionIndex: number) => void;
   removeIfCondition: (groupIndex: number, conditionIndex: number) => void;
   removeWhenCondition: (index: number) => void;
+  updateIfAction: (
+    groupIndex: number,
+    actionIndex: number,
+    data: Record<string, any>
+  ) => void;
   updateIfCondition: (
     groupIndex: number,
     conditionIndex: number,
     comparison: Record<string, any>
+  ) => void;
+  updateIfConditionType: (
+    groupIndex: number,
+    conditionIndex: number,
+    conditionType: DataConditionType
   ) => void;
   updateIfLogicType: (groupIndex: number, logicType: DataConditionGroupLogicType) => void;
   updateWhenCondition: (index: number, comparison: Record<string, any>) => void;
@@ -188,11 +234,37 @@ type RemoveIfConditionAction = {
   type: 'REMOVE_IF_CONDITION';
 };
 
+type UpdateIfConditionTypeAction = {
+  conditionIndex: number;
+  conditionType: DataConditionType;
+  groupIndex: number;
+  type: 'UPDATE_IF_CONDITION_TYPE';
+};
+
 type UpdateIfConditionAction = {
   comparison: Record<string, any>;
   conditionIndex: number;
   groupIndex: number;
   type: 'UPDATE_IF_CONDITION';
+};
+
+type AddIfActionAction = {
+  actionType: ActionType;
+  groupIndex: number;
+  type: 'ADD_IF_ACTION';
+};
+
+type RemoveIfActionAction = {
+  actionIndex: number;
+  groupIndex: number;
+  type: 'REMOVE_IF_ACTION';
+};
+
+type UpdateIfActionAction = {
+  actionIndex: number;
+  data: Record<string, any>;
+  groupIndex: number;
+  type: 'UPDATE_IF_ACTION';
 };
 
 type UpdateIfLogicTypeAction = {
@@ -210,7 +282,11 @@ type AutomationBuilderAction =
   | RemoveIfAction
   | AddIfConditionAction
   | RemoveIfConditionAction
+  | UpdateIfConditionTypeAction
   | UpdateIfConditionAction
+  | AddIfActionAction
+  | RemoveIfActionAction
+  | UpdateIfActionAction
   | UpdateIfLogicTypeAction;
 
 function addWhenCondition(
@@ -374,6 +450,27 @@ function removeIfCondition(
   };
 }
 
+function updateIfConditionType(
+  state: AutomationBuilderState,
+  action: UpdateIfConditionTypeAction
+): AutomationBuilderState {
+  const {groupIndex, conditionIndex, conditionType} = action;
+  return {
+    ...state,
+    actionFilters: state.actionFilters.map((group, i) => {
+      if (i !== groupIndex) {
+        return group;
+      }
+      return {
+        ...group,
+        conditions: group.conditions.map((c, j) =>
+          j === conditionIndex ? {...c, comparison_type: conditionType} : c
+        ),
+      };
+    }),
+  };
+}
+
 function updateIfCondition(
   state: AutomationBuilderState,
   action: UpdateIfConditionAction
@@ -389,6 +486,96 @@ function updateIfCondition(
         ...group,
         conditions: group.conditions.map((c, j) =>
           j === conditionIndex ? {...c, comparison: {...c.comparison, ...comparison}} : c
+        ),
+      };
+    }),
+  };
+}
+
+function addIfAction(
+  state: AutomationBuilderState,
+  action: AddIfActionAction
+): AutomationBuilderState {
+  const {groupIndex, actionType} = action;
+  return {
+    ...state,
+    actionFilters: state.actionFilters.map((group, i) => {
+      if (i !== groupIndex) {
+        return group;
+      }
+      return {
+        ...group,
+        actions: [
+          ...(group.actions ?? []),
+          {
+            type: actionType,
+            data: {},
+          },
+        ],
+      };
+    }),
+  };
+}
+
+function removeIfAction(
+  state: AutomationBuilderState,
+  action: RemoveIfActionAction,
+  formModel?: FormModel
+): AutomationBuilderState {
+  const {groupIndex, actionIndex} = action;
+  if (formModel) {
+    for (const key of formModel.fields.keys()) {
+      if (key.startsWith(`actionFilters.${groupIndex}.actions.${actionIndex}.`)) {
+        formModel.removeField(key);
+      }
+    }
+  }
+  return {
+    ...state,
+    actionFilters: state.actionFilters.map((group, i) => {
+      if (i !== groupIndex) {
+        return group;
+      }
+      return {
+        ...group,
+        actions: group.actions?.filter((_, j) => j !== actionIndex),
+      };
+    }),
+  };
+}
+
+function updateIfAction(
+  state: AutomationBuilderState,
+  action: UpdateIfActionAction
+): AutomationBuilderState {
+  const {groupIndex, actionIndex, data} = action;
+  // special case for integrationId which is outside of data
+  if ('integrationId' in data) {
+    return {
+      ...state,
+      actionFilters: state.actionFilters.map((group, i) => {
+        if (i !== groupIndex) {
+          return group;
+        }
+        return {
+          ...group,
+          actions: group.actions?.map((d, j) =>
+            j === actionIndex ? {...d, integrationId: data.integrationId} : d
+          ),
+        };
+      }),
+    };
+  }
+  return {
+    ...state,
+    actionFilters: state.actionFilters.map((group, i) => {
+      if (i !== groupIndex) {
+        return group;
+      }
+      return {
+        ...group,
+        actions: group.actions?.map((d, j) =>
+          j === actionIndex ? {...d, data: {...d.data, ...data}} : d
         ),
       };
     }),

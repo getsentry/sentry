@@ -40,9 +40,12 @@ def update_auto_detected_active_interval_seconds(
         DataSource.objects.filter(type=DATA_SOURCE_UPTIME_SUBSCRIPTION)
     ):
         uptime_subscription_id = int(data_source.source_id)
-        project_subscription_id = ProjectUptimeSubscription.objects.get(
-            uptime_subscription_id=uptime_subscription_id
-        ).id
+        try:
+            project_subscription_id = ProjectUptimeSubscription.objects.get(
+                uptime_subscription_id=uptime_subscription_id
+            ).id
+        except ProjectUptimeSubscription.DoesNotExist:
+            continue
         detector = data_source.detectors.first()
 
         detector_fingerprint_hash = hash_fingerprint(build_detector_fingerprint_component(detector))
