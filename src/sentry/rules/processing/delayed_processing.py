@@ -500,7 +500,7 @@ def fire_rules(
     ) as tracker:
         groups_to_fire = set().union(*rules_to_fire.values())
         group_to_groupevent = get_group_to_groupevent(
-            parsed_rulegroup_to_event_data, project_id, groups_to_fire
+            log_config, parsed_rulegroup_to_event_data, project_id, groups_to_fire
         )
         group_id_to_group = {group.id: group for group in group_to_groupevent.keys()}
         for rule, group_ids in rules_to_fire.items():
