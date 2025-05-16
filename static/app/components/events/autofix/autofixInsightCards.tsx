@@ -507,33 +507,37 @@ function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}
   const orgSlug = useOrganization().slug;
 
   return useMutation({
-    mutationFn: (params: {
+    mutationFn: async (params: {
       message: string;
       retain_insight_card_index: number | null;
       step_index: number;
     }) => {
-      return api.requestPromise(
-        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
-        {
-          method: 'POST',
-          data: {
-            run_id: runId,
-            payload: {
-              type: 'restart_from_point_with_feedback',
-              message: params.message.trim(),
-              step_index: params.step_index,
-              retain_insight_card_index: params.retain_insight_card_index,
+      try {
+        const response = await api.requestPromise(
+          `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+          {
+            method: 'POST',
+            data: {
+              run_id: runId,
+              payload: {
+                type: 'restart_from_point_with_feedback',
+                message: params.message.trim(),
+                step_index: params.step_index,
+                retain_insight_card_index: params.retain_insight_card_index,
+              },
             },
-          },
-        }
-      );
-    },
-    onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
-      addSuccessMessage(t('Rethinking this...'));
+          }
+        );
+        queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+        addSuccessMessage(t('Rethinking this...'));
+        return response;
+      } catch (e) {
+        addErrorMessage(t('Something went wrong when sending Seer your message.'));
+        throw e;
+      }
     },
     onError: () => {
-      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
+      addErrorMessage(t('Something went wrong when sending Seer your message.'));
     },
   });
 }

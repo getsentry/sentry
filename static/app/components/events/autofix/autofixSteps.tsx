@@ -79,7 +79,7 @@ function Step({
             <Fragment>
               {hasErroredStepBefore && hasStepAbove && (
                 <StepMessage>
-                  {t('Autofix encountered an error. Restarting step from scratch...')}
+                  {t('Seer encountered an error. Restarting step from scratch...')}
                 </StepMessage>
               )}
               {step.type === AutofixStepType.DEFAULT && (

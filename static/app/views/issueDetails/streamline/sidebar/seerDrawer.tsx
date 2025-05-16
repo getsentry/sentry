@@ -228,7 +228,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           />
         </Flex>
         {!aiConfig.needsGenAiAcknowledgement && (
-          <ButtonBarWrapper data-test-id="autofix-button-bar">
+          <ButtonBarWrapper data-test-id="seer-button-bar">
             <ButtonBar gap={1}>
               <Feature features={['organizations:autofix-seer-preferences']}>
                 <LinkButton

@@ -318,7 +318,7 @@ describe('SeerDrawer', () => {
     );
 
     // The feedback button should be visible, but not the Start Over button
-    expect(screen.getByTestId('autofix-button-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-button-bar')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Start Over'})).not.toBeInTheDocument();
 
     // Restore the original implementation
@@ -352,7 +352,7 @@ describe('SeerDrawer', () => {
     );
 
     // Both buttons should be visible, but Start Over should be disabled
-    expect(screen.getByTestId('autofix-button-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-button-bar')).toBeInTheDocument();
     const startOverButton = screen.getByRole('button', {name: 'Start Over'});
     expect(startOverButton).toBeInTheDocument();
     expect(startOverButton).toBeDisabled();
@@ -385,7 +385,7 @@ describe('SeerDrawer', () => {
     );
 
     // Both buttons should be visible, and Start Over should be enabled
-    expect(screen.getByTestId('autofix-button-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-button-bar')).toBeInTheDocument();
     const startOverButton = screen.getByRole('button', {name: 'Start Over'});
     expect(startOverButton).toBeInTheDocument();
     expect(startOverButton).toBeEnabled();
@@ -401,6 +401,10 @@ describe('SeerDrawer', () => {
       organization,
     });
 
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
   });
 
@@ -413,6 +417,10 @@ describe('SeerDrawer', () => {
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization,
     });
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
 
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Start Seer'})).toBeInTheDocument();
@@ -428,6 +436,10 @@ describe('SeerDrawer', () => {
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization,
     });
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
 
     const startOverButton = await screen.findByRole('button', {name: 'Start Over'});
     expect(startOverButton).toBeInTheDocument();

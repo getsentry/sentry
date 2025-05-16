@@ -230,7 +230,7 @@ export function AutofixChanges({
               <MarkdownAlert
                 text={
                   step.termination_reason ||
-                  t('Autofix had trouble applying its code changes.')
+                  t('Seer had trouble applying its code changes.')
                 }
               />
             </Alert.Container>
