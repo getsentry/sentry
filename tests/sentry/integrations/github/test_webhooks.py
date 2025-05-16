@@ -391,7 +391,7 @@ class PushEventWebhookTest(APITestCase):
             name="bàxterthehacker",
         )
 
-        self._create_integration_and_add_send_push_event()
+        self._create_integration_and_send_push_event()
 
         commit_list = list(
             Commit.objects.filter(organization_id=self.project.organization.id)
