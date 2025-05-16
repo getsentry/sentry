@@ -13,7 +13,7 @@
           "type": "valueText",
           "value": "true",
           "quoted": false,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -29,7 +29,12 @@
         "negated": true,
         "key": {"type": "keySimple", "value": "user.id", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "1", "quoted": false, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "1",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

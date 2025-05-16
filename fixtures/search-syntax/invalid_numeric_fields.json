@@ -14,7 +14,12 @@
         },
         "key": {"type": "keySimple", "value": "project.id", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "one", "quoted": false, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "one",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -34,7 +39,12 @@
         },
         "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "two", "quoted": false, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "two",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -58,7 +68,7 @@
           "type": "valueText",
           "value": ">hotdog",
           "quoted": false,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -83,7 +93,7 @@
           "type": "valueText",
           "value": ">hotdog",
           "quoted": false,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -108,7 +118,7 @@
           "type": "valueText",
           "value": ">hotdog",
           "quoted": false,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}

@@ -58,7 +58,7 @@
           "type": "valueText",
           "value": ">2015-05-18",
           "quoted": false,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}

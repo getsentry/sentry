@@ -9,7 +9,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "", "quoted": true, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -22,7 +27,7 @@
           "type": "valueText",
           "value": "Chrome",
           "quoted": true,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -38,7 +43,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "\\\"", "quoted": true, "contains": false}
+        "value": {
+          "type": "valueText",
+          "value": "\\\"",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -51,7 +61,7 @@
           "type": "valueText",
           "value": "Chrome",
           "quoted": true,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
