@@ -141,7 +141,7 @@ function DetectSection() {
         description={t('Sentry will check the following query:')}
       >
         <FirstRow>
-          <DetectColumn style={{maxWidth: 500}} gap={space(1)}>
+          <DetectColumn>
             <VisualizeField
               placeholder={t('Metric')}
               flexibleControlStateSize
@@ -304,9 +304,9 @@ const FirstRow = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const DetectColumn = styled(Flex)`
-  flex-grow: 1;
-`;
+function DetectColumn(props: React.ComponentProps<typeof Flex>) {
+  return <Flex flex={1} gap={space(1)} {...props} />;
+}
 
 const StyledSelectField = styled(SelectField)`
   width: 180px;
