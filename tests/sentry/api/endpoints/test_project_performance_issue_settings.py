@@ -284,6 +284,38 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
         assert response.data == {"detail": "Invalid settings option"}
 
+    @with_feature("organizations:performance-view")
+    @with_feature("organizations:performance-manage-detectors")
+    def test_project_admins_can_manage_detectors(self):
+        self.login_as(user=self.user, superuser=False)
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_queries_detection_enabled=False,
+            method="put",
+            status_code=status.HTTP_200_OK,
+        )
+
+        assert not response.data["n_plus_one_db_queries_detection_enabled"]
+
+    @with_feature("organizations:performance-view")
+    @with_feature("organizations:performance-manage-detectors")
+    def test_project_members_cannot_manage_detectors(self):
+        user = self.create_user("member@localhost")
+        self.create_member(
+            organization=self.project.organization,
+            user=user,
+            role="member",
+        )
+        self.login_as(user=user)
+        self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_queries_detection_enabled=False,
+            method="put",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
     @patch("sentry.api.base.create_audit_entry")
     @with_feature("organizations:performance-view")
     def test_changing_admin_settings_creates_audit_log(self, create_audit_entry: MagicMock):
