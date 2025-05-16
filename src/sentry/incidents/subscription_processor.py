@@ -260,7 +260,6 @@ class SubscriptionProcessor:
         This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
         """
         dataset = self.subscription.snuba_query.dataset
-        organization = self.subscription.project.organization
         try:
             # Check that the project exists
             self.subscription.project
@@ -270,6 +269,9 @@ class SubscriptionProcessor:
         if self.subscription.project.status != ObjectStatus.ACTIVE:
             metrics.incr("incidents.alert_rules.ignore_deleted_project")
             return
+
+        organization = self.subscription.project.organization
+
         if dataset == "events" and not features.has("organizations:incidents", organization):
             # They have downgraded since these subscriptions have been created. So we just ignore updates for now.
             metrics.incr("incidents.alert_rules.ignore_update_missing_incidents")
