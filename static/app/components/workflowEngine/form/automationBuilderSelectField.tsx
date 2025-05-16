@@ -23,13 +23,14 @@ const StyledSelectField = styled(SelectField)`
   > div {
     padding-left: 0;
   }
+  border: none;
 `;
 
-const selectControlStyles = {
+export const selectControlStyles = {
   control: (provided: any) => ({
     ...provided,
-    minHeight: '28px',
-    height: '28px',
+    minHeight: '32px',
+    height: '32px',
     padding: 0,
   }),
 };

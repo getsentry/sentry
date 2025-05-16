@@ -657,6 +657,8 @@ export enum InvoiceItemType {
   ONDEMAND_MONITOR_SEATS = 'ondemand_monitor_seats',
   ONDEMAND_UPTIME = 'ondemand_uptime',
   ONDEMAND_PROFILE_DURATION = 'ondemand_profile_duration',
+  ONDEMAND_SEER_AUTOFIX = 'ondemand_seer_autofix',
+  ONDEMAND_SEER_SCANNER = 'ondemand_seer_scanner',
   RESERVED_ATTACHMENTS = 'reserved_attachments',
   RESERVED_ERRORS = 'reserved_errors',
   RESERVED_TRANSACTIONS = 'reserved_transactions',
@@ -666,6 +668,8 @@ export enum InvoiceItemType {
   RESERVED_MONITOR_SEATS = 'reserved_monitor_seats',
   RESERVED_UPTIME = 'reserved_uptime',
   RESERVED_PROFILE_DURATION = 'reserved_profile_duration',
+  RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
+  RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
 }
 
 export enum InvoiceStatus {
@@ -920,7 +924,7 @@ export interface MonitorCountResponse {
   overQuotaMonitorCount: number;
 }
 
-type PendingReservedBudget = {
+export type PendingReservedBudget = {
   categories: Partial<Record<DataCategory, boolean | null>>;
   reservedBudget: number;
 };

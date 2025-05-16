@@ -35,6 +35,7 @@ import {
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/backend/backendTable';
+import {EAPExperimentButton} from 'sentry/views/insights/pages/backend/eapExperimentButton';
 import {OldBackendOverviewPage} from 'sentry/views/insights/pages/backend/oldBackendOverviewPage';
 import {
   BACKEND_LANDING_TITLE,
@@ -50,7 +51,10 @@ import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platfor
 import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
 import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
-import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {
+  useIsNextJsInsightsAvailable,
+  useIsNextJsInsightsEnabled,
+} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
@@ -65,14 +69,14 @@ function BackendOverviewPage() {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
   const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
-  const useEap = useInsightsEap();
+  const isNewBackendExperienceEnabled = useInsightsEap();
   if (isLaravelPageAvailable) {
     return <LaravelOverviewPage />;
   }
   if (isNextJsPageEnabled) {
     return <NextJsOverviewPage performanceType="backend" />;
   }
-  if (useEap) {
+  if (isNewBackendExperienceEnabled) {
     return <EAPBackendOverviewPage />;
   }
   return <OldBackendOverviewPage />;
@@ -86,6 +90,7 @@ function EAPBackendOverviewPage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
+  const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
 
   const {query: searchBarQuery} = useLocationQuery({
     fields: {
@@ -198,7 +203,13 @@ function EAPBackendOverviewPage() {
     >
       <BackendHeader
         headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={<NewNextJsExperienceButton />}
+        headerActions={
+          isNextJsInsightsAvailable ? (
+            <NewNextJsExperienceButton />
+          ) : (
+            <EAPExperimentButton />
+          )
+        }
       />
       <Layout.Body>
         <Layout.Main fullWidth>
