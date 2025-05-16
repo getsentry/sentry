@@ -144,6 +144,16 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                       <TimeoutLateBy monitor={monitor} duration={checkIn.duration} />
                     )}
                   </DurationContainer>
+                ) : checkIn.status === CheckInStatus.TIMEOUT ? (
+                  <div>
+                    <Tooltip
+                      title={t(
+                        'An in-progress check-in was received, but no closing check-in followed. Your job may be terminating before it reports to Sentry.'
+                      )}
+                    >
+                      <Tag type="error">{t('Incomplete')}</Tag>
+                    </Tooltip>
+                  </div>
                 ) : (
                   emptyCell
                 )}
