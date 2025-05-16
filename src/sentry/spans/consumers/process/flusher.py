@@ -139,6 +139,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.next_step.poll()
 
     def submit(self, message: Message[FilteredPayload | int]) -> None:
+        # Note that submit is not actually a hot path. Their message payloads
+        # are mapped from *batches* of spans, and there are a handful of spans
+        # per second at most. If anything, self.poll() might even be called
+        # more often than submit()
+        if not self.process.is_alive():
+            raise RuntimeError("flusher process is dead")
         if isinstance(message.payload, int):
             self.current_drift.value = message.payload - int(time.time())
         self.next_step.submit(message)
