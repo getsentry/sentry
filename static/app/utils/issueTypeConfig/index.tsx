@@ -153,6 +153,11 @@ export const getConfigForIssueType = (
       ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
 
+  const refinedIssueType: IssueType | undefined = issueType?.replace(
+    '_experimental',
+    ''
+  ) as IssueType | undefined;
+
   const categoryMap = issueTypeConfig[issueCategory];
 
   if (!categoryMap) {
@@ -160,7 +165,8 @@ export const getConfigForIssueType = (
   }
 
   const categoryConfig = categoryMap._categoryDefaults;
-  const overrideConfig = issueType ? categoryMap[issueType] : {};
+
+  const overrideConfig = refinedIssueType ? categoryMap[refinedIssueType] : {};
   const errorResourceConfig = shouldShowCustomErrorResourceConfig(params, project)
     ? getErrorHelpResource({title: title!, project})
     : null;
