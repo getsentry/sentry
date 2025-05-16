@@ -11,7 +11,8 @@ from sentry.grouping.component import (
     FrameGroupingComponent,
     StacktraceGroupingComponent,
 )
-from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.enhancer import ENHANCEMENT_BASES, Enhancements
+from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.interfaces.base import Interface
 from sentry.interfaces.exception import SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
@@ -305,9 +306,18 @@ class StrategyConfiguration:
         if enhancements is None:
             enhancements_instance = Enhancements.from_rules_text("", referrer="strategy_config")
         else:
-            enhancements_instance = Enhancements.from_base64_string(
-                enhancements, referrer="strategy_config"
-            )
+            # If the enhancements string has been loaded from an existing event, it may be from an
+            # obsolete enhancements version, in which case we just use the default enhancements for
+            # this grouping config
+            try:
+                enhancements_instance = Enhancements.from_base64_string(
+                    enhancements, referrer="strategy_config"
+                )
+            except InvalidEnhancerConfig:
+                enhancements_instance = ENHANCEMENT_BASES[
+                    self.enhancements_base or DEFAULT_GROUPING_ENHANCEMENTS_BASE
+                ]
+
         self.enhancements = enhancements_instance
 
     def __repr__(self) -> str:
