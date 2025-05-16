@@ -80,6 +80,14 @@ class DetectorStateManager:
     def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int):
         self.dedupe_updates[group_key] = dedupe_value
 
+    def enqueue_counter_reset(self, group_key: DetectorGroupKey = None) -> None:
+        """
+        Resets the counter values for the detector.
+        This method is to reset the counters when the detector is resolved.
+        """
+        for counter in self.counter_names:
+            self.counter_updates[group_key][counter] = None
+
     def enqueue_counter_update(
         self, group_key: DetectorGroupKey, counter_updates: DetectorCounters
     ):
@@ -265,6 +273,7 @@ class StatefulDetectorHandler(
     Stateful Detectors are provided as a base class for new detectors that need to track state.
 
     See below for helpful hooks and methods to override.
+    # TODO @saponifi3d - turn this into a markdown file
     ``````````````````
     ## Detector Evaluations (`StatefulDetectorHandler.evaluate`)
     This method will be called for each data packet that is processed by the detector.
@@ -521,6 +530,9 @@ class StatefulGroupingDetectorHandler(
                 new_status=GroupStatus.RESOLVED,
                 new_substatus=None,
             )
+
+            # Now that we've resolved the issue, we can reset the counters
+            self.state_manager.enqueue_counter_reset(group_key)
         else:
             detector_occurrence, event_data = self.create_occurrence(
                 processed_data_condition, data_packet, new_status
