@@ -93,6 +93,7 @@ export function SeerReservedBudgetFixture(props: BudgetProps) {
     productName: 'seer',
     canProductTrial: true,
     billingFlag: 'seer-billing',
+    apiName: ReservedBudgetCategoryType.SEER,
     ...props,
   };
 

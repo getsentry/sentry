@@ -143,7 +143,7 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                       key={budgetTypeInfo.apiName}
                       data-test-id={`${budgetTypeInfo.apiName}-reserved`}
                     >
-                      <ReservedItem>
+                      <ReservedItem isIndividualProduct>
                         {toTitleCase(budgetTypeInfo.productName)}
                         <QuestionTooltip
                           size="xs"
@@ -398,11 +398,11 @@ const ReservedVolumes = styled('div')`
   gap: ${space(1.5)};
 `;
 
-const ReservedItem = styled(Title)`
+const ReservedItem = styled(Title)<{isIndividualProduct?: boolean}>`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => (p.isIndividualProduct ? p.theme.textColor : p.theme.subText)};
 `;
 
 const Section = styled(PanelChild)`

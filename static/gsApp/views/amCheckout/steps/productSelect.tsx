@@ -65,7 +65,11 @@ function ProductSelect({
         }
 
         return (
-          <ProductOption key={productInfo.apiName} aria-label={productInfo.productName}>
+          <ProductOption
+            key={productInfo.apiName}
+            aria-label={productInfo.productName}
+            data-test-id={`product-option-${productInfo.apiName}`}
+          >
             <ProductOptionContent
               gradientColor={checkoutInfo.gradientEndColor}
               enabled={
@@ -135,11 +139,19 @@ function ProductSelect({
                   </ButtonContent>
                 </Button>
                 <Subtitle>
-                  {t('Extra usage requires PAYG ')}
+                  {tct('Extra usage requires [budgetTerm] ', {
+                    budgetTerm:
+                      activePlan.budgetTerm === 'pay-as-you-go'
+                        ? 'PAYG'
+                        : activePlan.budgetTerm,
+                  })}
                   <QuestionTooltip
                     title={tct(
-                      'Any [productName] usage beyond the monthly prepaid budget will be charged to your pay-as-you-go budget.',
-                      {productName: toTitleCase(productInfo.productName)}
+                      'Any [productName] usage beyond the monthly prepaid budget will be charged to your [budgetTerm] budget.',
+                      {
+                        productName: toTitleCase(productInfo.productName),
+                        budgetTerm: activePlan.budgetTerm,
+                      }
                     )} // TODO(seer): fix copy i just made this up
                     position="top"
                     size="xs"
