@@ -372,9 +372,8 @@ class StatefulDetectorHandler(
         condition_evaluation, new_priority = self._evaluation_detector_conditions(value)
         state = self.state_manager.get_state_data([None])[None]
 
-        if (state.status == new_priority) or (  # The status hasn't changed
-            not condition_evaluation
-        ):  # If the condition is not met
+        if not condition_evaluation or state.status == new_priority:
+            # If the condition is not met or the status is not the same, nothing to do
             return None
 
         updated_status_count = (state.counter_updates.get(new_priority) or 0) + 1
