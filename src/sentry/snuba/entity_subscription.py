@@ -48,7 +48,6 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.GenericMetricsGauges: "timestamp",
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
-    EntityKey.EAPSpans: "timestamp",
     EntityKey.EAPItemsSpan: "timestamp",
 }
 CRASH_RATE_ALERT_AGGREGATE_RE = (
