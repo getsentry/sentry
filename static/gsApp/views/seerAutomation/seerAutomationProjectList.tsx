@@ -117,9 +117,9 @@ export function SeerAutomationProjectList() {
           const project = projects.find(p => p.id === projectId);
           if (!project) return Promise.resolve();
           return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-              method: 'PUT',
-              data: {autofixAutomationTuning: value},
-            });
+            method: 'PUT',
+            data: {autofixAutomationTuning: value},
+          });
         })
       );
       addSuccessMessage('Projects updated successfully');
