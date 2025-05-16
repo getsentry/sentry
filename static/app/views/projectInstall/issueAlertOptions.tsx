@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
@@ -121,20 +120,12 @@ const getRequestDataFragment = ({
 
 export default function IssueAlertOptions({
   onChange,
-  alertSetting: defaultAlertSetting = RuleAction.DEFAULT_ALERT,
-  interval: defaultInterval = '1m',
-  metric: defaultMetric = MetricValues.ERRORS,
+  alertSetting = RuleAction.DEFAULT_ALERT,
+  interval = '1m',
+  metric = MetricValues.ERRORS,
   notificationProps,
-  threshold: defaultThreshold = '10',
+  threshold = '10',
 }: Props) {
-  // Which radio button is selected
-  const [alertSetting, setAlertSetting] = useState<RuleAction>(defaultAlertSetting);
-
-  // In the case of RuleAction.CUSTOMIZED_ALERTS, we have some extra properties to track
-  const [threshold, setThreshold] = useState(defaultThreshold);
-  const [metric, setMetric] = useState(defaultMetric);
-  const [interval, setInterval] = useState(defaultInterval);
-
   const issueAlertOptionsChoices: Array<[RuleAction, React.ReactNode]> = [
     [RuleAction.DEFAULT_ALERT, t('Alert me on high priority issues')],
     [
@@ -150,7 +141,6 @@ export default function IssueAlertOptions({
               placeholder="10"
               value={threshold}
               onChange={e => {
-                setThreshold(e.target.value);
                 onChange(
                   getRequestDataFragment({
                     alertSetting,
@@ -170,7 +160,6 @@ export default function IssueAlertOptions({
               value={metric}
               options={METRIC_CHOICES}
               onChange={(option: (typeof METRIC_CHOICES)[number]) => {
-                setMetric(option.value);
                 onChange(
                   getRequestDataFragment({
                     alertSetting,
@@ -189,7 +178,6 @@ export default function IssueAlertOptions({
               value={interval}
               options={INTERVAL_CHOICES}
               onChange={(option: (typeof INTERVAL_CHOICES)[number]) => {
-                setInterval(option.value);
                 onChange(
                   getRequestDataFragment({
                     alertSetting,
@@ -217,7 +205,6 @@ export default function IssueAlertOptions({
         label={t('Options for creating an alert')}
         onChange={val => {
           const selectedAlertSetting = parseRuleAction(val);
-          setAlertSetting(selectedAlertSetting);
           onChange(
             getRequestDataFragment({
               alertSetting: selectedAlertSetting,
