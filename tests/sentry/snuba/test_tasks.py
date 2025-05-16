@@ -413,7 +413,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_eap_rpc_query_count(self):
+    def test_eap_rpc_query_count_delete(self):
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING,
@@ -422,15 +422,11 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
             aggregate="count(span.duration)",
             dataset=Dataset.EventsAnalyticsPlatform,
         )
-        with patch("sentry.snuba.tasks._snuba_pool") as pool:
-            resp = Mock()
-            resp.status = 202
-            pool.urlopen.return_value = resp
-
+        with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
             delete_subscription_from_snuba(sub.id)
             assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-            (method, url) = pool.urlopen.call_args[0]
+            (method, url) = urlopen.call_args[0]
             assert method == "DELETE"
             assert (
                 url
