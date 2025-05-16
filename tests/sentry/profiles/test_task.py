@@ -206,7 +206,7 @@ def sample_v1_profile():
   },
   "client_sdk": {
     "name": "sentry.python",
-    "version": "2.23.0"
+    "version": "2.24.1"
   }
 }"""
     )
@@ -273,7 +273,7 @@ def generate_sample_v2_profile():
   },
   "client_sdk": {
     "name": "sentry.python",
-    "version": "2.23.0"
+    "version": "2.24.1"
   }
 }"""
     )
@@ -976,7 +976,7 @@ def test_track_latest_sdk(
             project=project,
             event_type=event_type.value,
             sdk_name="sentry.python",
-            sdk_version="2.23.0",
+            sdk_version="2.24.1",
         )
         is not None
     )
@@ -1079,7 +1079,58 @@ def test_track_latest_sdk_with_payload(
             project=project,
             event_type=EventType.PROFILE.value,
             sdk_name="sentry.python",
-            sdk_version="2.23.0",
+            sdk_version="2.24.1",
         )
         is not None
     )
+
+
+@patch("sentry.profiles.task._track_outcome")
+@patch("sentry.profiles.task._push_profile_to_vroom")
+@django_db_all
+@pytest.mark.parametrize(
+    ["profile", "category", "sdk_version", "dropped"],
+    [
+        pytest.param("sample_v1_profile", DataCategory.PROFILE, "2.23.0", False),
+        pytest.param("sample_v2_profile", DataCategory.PROFILE_CHUNK, "2.23.0", True),
+        pytest.param("sample_v2_profile", DataCategory.PROFILE_CHUNK, "2.24.1", False),
+    ],
+)
+def test_deprecated_sdks(
+    _push_profile_to_vroom,
+    _track_outcome,
+    profile,
+    category,
+    sdk_version,
+    dropped,
+    organization,
+    project,
+    request,
+):
+    profile = request.getfixturevalue(profile)
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+    profile["client_sdk"] = {
+        "name": "sentry.python",
+        "version": sdk_version,
+    }
+
+    with Feature(
+        [
+            "organizations:profiling-sdks",
+            "organizations:profiling-deprecate-sdks",
+        ]
+    ):
+        process_profile_task(profile=profile)
+
+    if dropped:
+        _push_profile_to_vroom.assert_not_called()
+        _track_outcome.assert_called_with(
+            profile=profile,
+            project=project,
+            outcome=Outcome.FILTERED,
+            categories=[category],
+            reason="deprecated sdk",
+        )
+    else:
+        _push_profile_to_vroom.assert_called()
