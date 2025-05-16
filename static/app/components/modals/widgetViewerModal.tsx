@@ -1053,6 +1053,7 @@ function WidgetViewerModal(props: Props) {
                       {widget.widgetType && (
                         <OpenButton
                           widget={primaryWidget}
+                          dashboardFilters={dashboardFilters}
                           organization={organization}
                           selection={modalSelection}
                           selectedQueryIndex={selectedQueryIndex}
@@ -1077,6 +1078,7 @@ function WidgetViewerModal(props: Props) {
 }
 
 interface OpenButtonProps {
+  dashboardFilters: DashboardFilters | undefined;
   organization: Organization;
   selectedQueryIndex: number;
   selection: PageFilters;
@@ -1087,6 +1089,7 @@ interface OpenButtonProps {
 
 function OpenButton({
   widget,
+  dashboardFilters,
   selection,
   organization,
   selectedQueryIndex,
@@ -1100,21 +1103,22 @@ function OpenButton({
   switch (widget.widgetType) {
     case WidgetType.ISSUE:
       openLabel = t('Open in Issues');
-      path = getWidgetIssueUrl(widget, selection, organization);
+      path = getWidgetIssueUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.RELEASE:
       openLabel = t('Open in Releases');
-      path = getWidgetReleasesUrl(widget, selection, organization);
+      path = getWidgetReleasesUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.SPANS:
       openLabel = t('Open in Explore');
-      path = getWidgetExploreUrl(widget, selection, organization);
+      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
       path = getWidgetDiscoverUrl(
         {...widget, queries: [widget.queries[selectedQueryIndex]!]},
+        dashboardFilters,
         selection,
         organization,
         0,

@@ -221,6 +221,7 @@ function WidgetCard(props: Props) {
 
   const actions = props.showContextMenu
     ? getMenuOptions(
+        dashboardFilters,
         organization,
         selection,
         widget,

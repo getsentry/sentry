@@ -26,6 +26,7 @@ function renderModal({
       organization={initialData.organization}
       widget={widget}
       api={api}
+      dashboardFilters={undefined}
     />
   );
 }

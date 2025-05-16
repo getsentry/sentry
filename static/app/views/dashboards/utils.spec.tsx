@@ -169,7 +169,12 @@ describe('Dashboards util', () => {
       };
     });
     it('returns the discover url of the widget query', () => {
-      const url = getWidgetDiscoverUrl(widget, selection, OrganizationFixture());
+      const url = getWidgetDiscoverUrl(
+        widget,
+        undefined,
+        selection,
+        OrganizationFixture()
+      );
       expect(url).toBe(
         '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Query&query=&statsPeriod=7d&yAxis=count%28%29'
       );
@@ -191,9 +196,43 @@ describe('Dashboards util', () => {
           ],
         },
       };
-      const url = getWidgetDiscoverUrl(widget, selection, OrganizationFixture());
+      const url = getWidgetDiscoverUrl(
+        widget,
+        undefined,
+        selection,
+        OrganizationFixture()
+      );
       expect(url).toBe(
         '/organizations/org-slug/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
+      );
+    });
+    it('applies the dashboard filters to the query', () => {
+      widget = {
+        ...widget,
+        ...{
+          displayType: DisplayType.LINE,
+          queries: [
+            {
+              name: '',
+              conditions: 'transaction.op:test',
+              fields: [],
+              aggregates: [],
+              columns: [],
+              orderby: '',
+            },
+          ],
+        },
+      };
+      const url = getWidgetDiscoverUrl(
+        widget,
+        {release: ['1.0.0', '2.0.0']},
+        selection,
+        OrganizationFixture()
+      );
+      const queryString = url.split('?')[1];
+      const urlParams = new URLSearchParams(queryString);
+      expect(urlParams.get('query')).toBe(
+        '(transaction.op:test) release:["1.0.0","2.0.0"] '
       );
     });
   });
@@ -218,10 +257,21 @@ describe('Dashboards util', () => {
       };
     });
     it('returns the issue url of the widget query', () => {
-      const url = getWidgetIssueUrl(widget, selection, OrganizationFixture());
+      const url = getWidgetIssueUrl(widget, undefined, selection, OrganizationFixture());
       expect(url).toBe(
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=date&statsPeriod=7d'
       );
+    });
+    it('applies the dashboard filters to the query', () => {
+      const url = getWidgetIssueUrl(
+        widget,
+        {release: ['1.0.0', '2.0.0']},
+        selection,
+        OrganizationFixture()
+      );
+      const queryString = url.split('?')[1];
+      const urlParams = new URLSearchParams(queryString);
+      expect(urlParams.get('query')).toBe('(is:unresolved) release:["1.0.0","2.0.0"] ');
     });
   });
 
