@@ -110,7 +110,7 @@ export function SeerAutomationProjectList() {
   };
 
   async function updateProjectsSeerValue(value: string) {
-    addLoadingMessage('Updating projects...');
+    addLoadingMessage('Updating projects...', {duration: 30000});
     try {
       await Promise.all(
         Array.from(selected).map(projectId => {
@@ -127,9 +127,10 @@ export function SeerAutomationProjectList() {
         })
       );
       addSuccessMessage('Projects updated successfully');
-      await reloadProjects();
     } catch (err) {
       addErrorMessage('Failed to update some projects');
+    } finally {
+      await reloadProjects();
     }
   }
 
