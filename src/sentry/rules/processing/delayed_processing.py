@@ -3,6 +3,7 @@ import random
 import uuid
 from collections import defaultdict
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
@@ -137,6 +138,29 @@ def get_slow_conditions(rule: Rule) -> list[EventFrequencyConditionData]:
     return slow_conditions  # type: ignore[return-value]
 
 
+@dataclass(frozen=True)
+class LogConfig:
+    """
+    LogConfig efficiently caches the results of features.has calls; these are project/org
+    based, should be stable within our task, and caching them helps avoid generating
+    excessive spans and saves a bit of time.
+    """
+
+    # Cached value of features.has("projects:num-events-issue-debugging", project)
+    num_events_issue_debugging: bool
+    # Cached value of features.has("organizations:workflow-engine-process-workflows", organization)
+    workflow_engine_process_workflows: bool
+
+    @classmethod
+    def create(cls, project: Project) -> "LogConfig":
+        return cls(
+            num_events_issue_debugging=features.has("projects:num-events-issue-debugging", project),
+            workflow_engine_process_workflows=features.has(
+                "organizations:workflow-engine-process-workflows", project.organization
+            ),
+        )
+
+
 def generate_unique_queries(
     condition_data: EventFrequencyConditionData, environment_id: int
 ) -> list[UniqueConditionQuery]:
@@ -229,6 +253,7 @@ def parse_rulegroup_to_event_data(
 
 
 def build_group_to_groupevent(
+    log_config: LogConfig,
     parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
     bulk_event_id_to_events: dict[str, Event],
     bulk_occurrence_id_to_occurrence: dict[str, IssueOccurrence],
@@ -238,7 +263,7 @@ def build_group_to_groupevent(
 
     project = fetch_project(project_id)
     if project:
-        if features.has("projects:num-events-issue-debugging", project):
+        if log_config.num_events_issue_debugging:
             logger.info(
                 "delayed_processing.build_group_to_groupevent_input",
                 extra={
@@ -268,7 +293,7 @@ def build_group_to_groupevent(
         group = group_id_to_group.get(int(rule_group[1]))
 
         if not group or not event:
-            if features.has("projects:num-events-issue-debugging", project):
+            if log_config.num_events_issue_debugging:
                 logger.info(
                     "delayed_processing.missing_event_or_group",
                     extra={
@@ -290,6 +315,7 @@ def build_group_to_groupevent(
 
 
 def get_group_to_groupevent(
+    log_config: LogConfig,
     parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
     project_id: int,
     group_ids: set[int],
@@ -330,6 +356,7 @@ def get_group_to_groupevent(
     }
 
     return build_group_to_groupevent(
+        log_config,
         relevant_rulegroup_to_event_data,
         bulk_event_id_to_events,
         bulk_occurrence_id_to_occurrence,
@@ -457,6 +484,7 @@ def get_rules_to_fire(
 
 
 def fire_rules(
+    log_config: LogConfig,
     rules_to_fire: DefaultDict[Rule, set[int]],
     parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
     alert_rules: list[Rule],
@@ -475,11 +503,12 @@ def fire_rules(
                 frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
                 freq_offset = now - timedelta(minutes=frequency)
                 group_to_groupevent = get_group_to_groupevent(
-                    parsed_rulegroup_to_event_data, project.id, group_ids
+                    log_config, parsed_rulegroup_to_event_data, project.id, group_ids
                 )
-                if features.has(
-                    "organizations:workflow-engine-process-workflows", project.organization
-                ) or features.has("projects:num-events-issue-debugging", project):
+                if (
+                    log_config.num_events_issue_debugging
+                    or log_config.workflow_engine_process_workflows
+                ):
                     serialized_groups = {
                         group.id: group_event.event_id
                         for group, group_event in group_to_groupevent.items()
@@ -530,10 +559,10 @@ def fire_rules(
                         rule, group, groupevent.event_id, notification_uuid
                     )
 
-                    if features.has(
-                        "organizations:workflow-engine-process-workflows-logs",
-                        project.organization,
-                    ) or features.has("projects:num-events-issue-debugging", project):
+                    if (
+                        log_config.workflow_engine_process_workflows
+                        or log_config.num_events_issue_debugging
+                    ):
                         logger.info(
                             "post_process.delayed_processing.triggered_rule",
                             extra={
@@ -558,7 +587,7 @@ def fire_rules(
                         if results is None:
                             not_sent += 1
 
-                    if features.has("projects:num-events-issue-debugging", project):
+                    if log_config.num_events_issue_debugging:
                         logger.info(
                             "delayed_processing.rules_fired",
                             extra={
@@ -571,7 +600,10 @@ def fire_rules(
 
 
 def cleanup_redis_buffer(
-    project: Project, rules_to_groups: DefaultDict[int, set[int]], batch_key: str | None
+    log_config: LogConfig,
+    project: Project,
+    rules_to_groups: DefaultDict[int, set[int]],
+    batch_key: str | None,
 ) -> None:
     hashes_to_delete = [
         f"{rule}:{group}" for rule, groups in rules_to_groups.items() for group in groups
@@ -581,7 +613,7 @@ def cleanup_redis_buffer(
         filters["batch_key"] = batch_key
 
     buffer.backend.delete_hash(model=Project, filters=filters, fields=hashes_to_delete)
-    if features.has("projects:num-events-issue-debugging", project):
+    if log_config.num_events_issue_debugging:
         logger.info(
             "delayed_processing.cleanup_redis_buffer",
             extra={"hashes_to_delete": hashes_to_delete, "project_id": project.id},
@@ -616,6 +648,8 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
         if not project:
             return
 
+        log_config = LogConfig.create(project)
+
         rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id, batch_key)
         rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
         alert_rules = fetch_alert_rules(list(rules_to_groups.keys()))
@@ -638,10 +672,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     ):
         condition_group_results = get_condition_group_results(condition_groups, project)
 
-    has_workflow_engine = features.has(
-        "organizations:workflow-engine-process-workflows", project.organization
-    )
-    if has_workflow_engine or features.has("projects:num-events-issue-debugging", project):
+    if log_config.workflow_engine_process_workflows or log_config.num_events_issue_debugging:
         serialized_results = (
             {str(query): count_dict for query, count_dict in condition_group_results.items()}
             if condition_group_results
@@ -668,7 +699,10 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
             rules_to_fire = get_rules_to_fire(
                 condition_group_results, rules_to_slow_conditions, rules_to_groups, project.id
             )
-            if has_workflow_engine or features.has("projects:num-events-issue-debugging", project):
+            if (
+                log_config.workflow_engine_process_workflows
+                or log_config.num_events_issue_debugging
+            ):
                 logger.info(
                     "delayed_processing.rules_to_fire",
                     extra={
@@ -694,13 +728,15 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     ):
         parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
         with metrics.timer("delayed_processing.fire_rules.duration"):
-            fire_rules(rules_to_fire, parsed_rulegroup_to_event_data, alert_rules, project)
+            fire_rules(
+                log_config, rules_to_fire, parsed_rulegroup_to_event_data, alert_rules, project
+            )
 
     with sentry_sdk.start_span(
         op="delayed_processing.cleanup_redis_buffer",
         name="Clean up redis buffer in delayed processing",
     ):
-        cleanup_redis_buffer(project, rules_to_groups, batch_key)
+        cleanup_redis_buffer(log_config, project, rules_to_groups, batch_key)
 
 
 @delayed_processing_registry.register("delayed_processing")  # default delayed processing
