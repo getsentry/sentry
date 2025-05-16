@@ -526,6 +526,7 @@ describe('projectPerformance', function () {
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
           features: ['performance-view', 'performance-manage-detectors'],
+          access: ['project:read'],
         }),
         initialRouterConfig,
       });
