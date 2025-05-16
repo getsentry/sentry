@@ -12,6 +12,9 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {classifyTagKey} from 'sentry/utils/discover/fields';
+import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   useExploreGroupBys,
@@ -73,7 +76,17 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
         value: UNGROUPED,
         textValue: t('\u2014'),
       },
-      ...potentialOptions.map(key => ({label: key, value: key, textValue: key})),
+      ...potentialOptions.map(key => {
+        const kind = classifyTagKey(key);
+        return {
+          label: key,
+          value: key,
+          textValue: key,
+          trailingItems: <TypeBadge kind={kind} />,
+          showDetailsInOverlay: true,
+          details: <AttributeDetails column={key} kind={kind} label={key} type="span" />,
+        };
+      }),
     ];
   }, [groupBys, tags]);
 
