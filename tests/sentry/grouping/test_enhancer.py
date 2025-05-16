@@ -4,9 +4,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry.grouping.api import get_grouping_config_dict_for_project, load_grouping_config
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.grouping.enhancer import (
     ENHANCEMENT_BASES,
@@ -20,6 +22,7 @@ from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import ReturnValueCache, _cached, create_match_frame
 from sentry.grouping.enhancer.parser import parse_enhancements
 from sentry.grouping.enhancer.rules import EnhancementRule
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 
 
@@ -622,6 +625,49 @@ class EnhancementsTest(TestCase):
                     assert rule.as_classifier_rule() in classifier_rules
                 if rule.has_contributes_actions:
                     assert rule.as_contributes_rule() in contributes_rules
+
+    @patch("sentry.grouping.enhancer.parse_enhancements", wraps=parse_enhancements)
+    def test_caches_enhancements(self, parse_enhancements_spy: MagicMock):
+        self.project.update_option(
+            "sentry:grouping_enhancements", "stack.function:recordMetrics +app -group"
+        )
+        get_grouping_config_dict_for_project(self.project)
+        assert parse_enhancements_spy.call_count == 1
+
+        get_grouping_config_dict_for_project(self.project)
+        # We didn't parse again because the result was cached
+        assert parse_enhancements_spy.call_count == 1
+
+    def test_loads_enhancements_from_base64_string(self):
+        enhancements = Enhancements.from_rules_text("function:playFetch +app")
+        assert len(enhancements.rules) == 1
+        assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app>"
+        assert enhancements.id is None
+
+        strategy_config = load_grouping_config(
+            {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements.base64_string}
+        )
+        assert len(strategy_config.enhancements.rules) == 1
+        assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app>"
+        assert strategy_config.enhancements.id is None
+
+    def test_uses_default_enhancements_when_loading_string_with_invalid_version(self):
+        enhancements = Enhancements.from_rules_text("function:playFetch +app")
+        assert len(enhancements.rules) == 1
+        assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app>"
+        assert enhancements.id is None
+
+        # Version 1 no longer exists
+        enhancements.version = 1
+
+        strategy_config = load_grouping_config(
+            {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements.base64_string}
+        )
+        assert len(strategy_config.enhancements.rules) > 1
+        assert "<EnhancementRule function:playFetch +app>" not in {
+            str(rule) for rule in strategy_config.enhancements.rules
+        }
+        assert strategy_config.enhancements.id == DEFAULT_GROUPING_CONFIG
 
 
 class AssembleStacktraceComponentTest(TestCase):
