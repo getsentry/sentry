@@ -32,12 +32,20 @@ class BrowserResponseType(TypedDict, total=False):
     version: str | None
 
 
+class UserGeoResponseType(TypedDict, total=False):
+    city: str | None
+    country_code: str | None
+    region: str | None
+    subdivision: str | None
+
+
 class UserResponseType(TypedDict, total=False):
     id: str | None
     username: str | None
     email: str | None
     ip: str | None
     display_name: str | None
+    geo: UserGeoResponseType
 
 
 class OTAUpdatesResponseType(TypedDict, total=False):
@@ -132,6 +140,12 @@ def generate_normalized_output(response: list[dict[str, Any]]) -> Generator[Repl
             "username": item.pop("user_username", None),
             "email": item.pop("user_email", None),
             "ip": item.pop("user_ip", None),
+            "geo": {
+                "city": item.pop("user_geo_city", None),
+                "country_code": item.pop("user_geo_country_code", None),
+                "region": item.pop("user_geo_region", None),
+                "subdivision": item.pop("user_geo_subdivision", None),
+            },
         }
         ret_item["user"]["display_name"] = (
             ret_item["user"]["username"]
@@ -225,7 +239,19 @@ def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
         "error_ids": [],
         "environment": None,
         "tags": [],
-        "user": {"id": "Archived Replay", "display_name": "Archived Replay"},
+        "user": {
+            "id": "Archived Replay",
+            "display_name": "Archived Replay",
+            "username": None,
+            "email": None,
+            "ip": None,
+            "geo": {
+                "city": None,
+                "country_code": None,
+                "region": None,
+                "subdivision": None,
+            },
+        },
         "sdk": {"name": None, "version": None},
         "os": {"name": None, "version": None},
         "browser": {"name": None, "version": None},
