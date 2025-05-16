@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -153,10 +153,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
           </Fragment>
         )}
         {nonGithubRepos.length > 0 && (
-          <Fragment> 
-            {' '}
-            {t('Seer currently only supports GitHub repositories.')}
-          </Fragment>
+          <Fragment> {t('Seer currently only supports GitHub repositories.')}</Fragment>
         )}
       </Alert>
     );
