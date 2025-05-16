@@ -170,7 +170,7 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
     const hasAtLeastOneSelectedProduct = Object.values(
       activePlan.availableReservedBudgetTypes
     ).some(budgetTypeInfo => {
-      return formData.selectedProducts[
+      return formData.selectedProducts?.[
         budgetTypeInfo.apiName as string as SelectableProduct
       ]?.enabled;
     });
@@ -187,7 +187,7 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
             {Object.values(activePlan.availableReservedBudgetTypes).map(
               budgetTypeInfo => {
                 const formDataForProduct =
-                  formData.selectedProducts[
+                  formData.selectedProducts?.[
                     budgetTypeInfo.apiName as string as SelectableProduct
                   ];
                 if (!formDataForProduct) {

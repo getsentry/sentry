@@ -17,10 +17,10 @@ export enum SelectableProduct {
 
 type BaseCheckoutData = {
   plan: string;
-  selectedProducts: Record<SelectableProduct, SelectedProductData>;
   applyNow?: boolean;
   onDemandBudget?: OnDemandBudgets;
   onDemandMaxSpend?: number;
+  selectedProducts?: Record<SelectableProduct, SelectedProductData>;
 };
 
 export type SelectedProductData = {

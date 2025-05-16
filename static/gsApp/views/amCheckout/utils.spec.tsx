@@ -3,6 +3,7 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 import {DataCategory} from 'sentry/types/core';
 
 import {InvoiceItemType, PlanTier} from 'getsentry/types';
+import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
@@ -11,6 +12,11 @@ describe('utils', function () {
   const teamPlanAnnual = PlanDetailsLookupFixture('am1_team_auf')!;
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
   const bizPlanAnnual = PlanDetailsLookupFixture('am1_business_auf')!;
+  const DEFAULT_SELECTED_PRODUCTS = {
+    [SelectableProduct.SEER]: {
+      enabled: false,
+    },
+  };
 
   describe('getReservedTotal', function () {
     it('can get base price for team plan', function () {
@@ -21,6 +27,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('29');
     });
@@ -33,6 +40,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('312');
     });
@@ -45,6 +53,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('89');
     });
@@ -57,6 +66,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('960');
     });
@@ -69,6 +79,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('1,992');
     });
@@ -81,8 +92,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
-        seerEnabled: true,
-        seerBudget: 2000,
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('49');
     });
@@ -95,8 +105,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
-        seerEnabled: false,
-        seerBudget: 2000,
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('29');
     });
@@ -369,6 +378,7 @@ describe('utils', function () {
           attachments: 70,
           profileDuration: 80,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       };
 
       expect(getCheckoutAPIData({formData})).toEqual({
@@ -383,6 +393,7 @@ describe('utils', function () {
         reservedUptime: 60,
         reservedAttachments: 70,
         reservedProfileDuration: 80,
+        seer: false,
       });
     });
   });

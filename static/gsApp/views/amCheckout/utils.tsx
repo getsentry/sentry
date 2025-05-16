@@ -186,11 +186,11 @@ export function getBucket({
 type ReservedTotalProps = {
   plan: Plan;
   reserved: Partial<Record<DataCategory, number>>;
-  selectedProducts: Record<SelectableProduct, SelectedProductData>;
   amount?: number;
   creditCategory?: InvoiceItemType;
   discountType?: string;
   maxDiscount?: number;
+  selectedProducts?: Record<SelectableProduct, SelectedProductData>;
 };
 
 /**
@@ -224,7 +224,7 @@ export function getReservedPriceCents({
       }).price)
   );
 
-  Object.entries(selectedProducts).forEach(([apiName, selectedProductData]) => {
+  Object.entries(selectedProducts ?? {}).forEach(([apiName, selectedProductData]) => {
     if (selectedProductData.enabled) {
       // TODO: replace this to use the pricing schedule once that's serialized on availableReservedBudgetTypes
       // This way, we can handle both annual and monthly prices
@@ -499,7 +499,7 @@ export function getCheckoutAPIData({
     referrer: referrer || 'billing',
     ...(previewToken && {previewToken}),
     ...(paymentIntent && {paymentIntent}),
-    seer: formData.selectedProducts.seer?.enabled, // TODO: in future, we should just be able to pass selectedProducts
+    seer: formData.selectedProducts?.seer?.enabled, // TODO: in future, we should just be able to pass selectedProducts
   };
 
   if (formData.applyNow) {

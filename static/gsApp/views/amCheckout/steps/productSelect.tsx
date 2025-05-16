@@ -84,7 +84,7 @@ function ProductSelect({
                         ...formData.selectedProducts,
                         [productInfo.apiName]: {
                           enabled:
-                            !formData.selectedProducts[
+                            !formData.selectedProducts?.[
                               productInfo.apiName as string as SelectableProduct
                             ]?.enabled,
                         },
@@ -94,14 +94,14 @@ function ProductSelect({
                 >
                   <ButtonContent
                     color={
-                      formData.selectedProducts[
+                      formData.selectedProducts?.[
                         productInfo.apiName as string as SelectableProduct
                       ]?.enabled
                         ? checkoutInfo.color
                         : theme.textColor
                     }
                   >
-                    {formData.selectedProducts[
+                    {formData.selectedProducts?.[
                       productInfo.apiName as string as SelectableProduct
                     ]?.enabled ? (
                       <Fragment>

@@ -47,6 +47,7 @@ const AM3_AVAILABLE_RESERVED_BUDGET_TYPES = {
     productName: 'seer',
     canProductTrial: true,
     apiName: ReservedBudgetCategoryType.SEER,
+    billingFlag: 'seer-billing',
   },
 };
 
@@ -62,6 +63,7 @@ const AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES = {
     productName: 'dynamic sampling',
     canProductTrial: false,
     apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
+    billingFlag: null,
   },
 };
 
