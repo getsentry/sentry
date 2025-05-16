@@ -411,10 +411,10 @@ export function EventDetailsContent({
         <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>
       <EventExtraData event={event} />
-      <EventPackageData event={event} />
       <EventDevice event={event} />
       <EventViewHierarchy event={event} project={project} />
       <EventAttachments event={event} project={project} group={group} />
+      <EventPackageData event={event} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {hasStreamlinedUI && (
         <EventProcessingErrors event={event} project={project} isShare={false} />
