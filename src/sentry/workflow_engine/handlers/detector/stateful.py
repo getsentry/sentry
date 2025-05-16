@@ -401,17 +401,22 @@ class StatefulDetectorHandler(
         value = self.extract_value(data_packet)
         condition_evaluation, new_priority = self._evaluation_detector_conditions(value)
         state = self.state_manager.get_state_data([None])[None]
-        updated_status_count = (state.counter_updates.get(new_priority) or 0) + 1
 
-        if (
-            (state.status == new_priority)  # The status hasn't changed
-            or (not condition_evaluation)  # If the condition is not met
-            or (self._thresholds[new_priority] > updated_status_count)  # Threshold not met
-        ):
+        if (state.status == new_priority) or (  # The status hasn't changed
+            not condition_evaluation
+        ):  # If the condition is not met
+            return None
+
+        updated_status_count = (state.counter_updates.get(new_priority) or 0) + 1
+        self.state_manager.enqueue_counter_update(None, {new_priority: updated_status_count})
+
+        if self._thresholds[new_priority] > updated_status_count:
+            # We haven't met the threshold yet, so don't trigger
             return None
 
         if new_priority == DetectorPriorityLevel.OK:
             detector_result = self.create_resolve_message()
+            self.state_manager.enqueue_counter_reset()
         else:
             detector_occurrence, event_data = self.create_occurrence(
                 condition_evaluation, data_packet, new_priority
@@ -502,16 +507,17 @@ class StatefulGroupingDetectorHandler(
             return None
 
         new_status = DetectorPriorityLevel.OK
-        processed_data_condition, new_status = self._evaluation_detector_conditions(value)
+        is_condition_group_met, new_status = self._evaluation_detector_conditions(value)
 
+        if state_data.status == new_status or not is_condition_group_met:
+            return None
+
+        # Update the counter for the new status
         updated_status_count = (state_data.counter_updates.get(new_status) or 0) + 1
         self.state_manager.enqueue_counter_update(group_key, {new_status: updated_status_count})
 
-        if (
-            (state_data.status == new_status)  # The status hasn't changed
-            or (not processed_data_condition)  # there are more conditions to process
-            or (self._thresholds[new_status] > updated_status_count)  # Threshold not met
-        ):
+        if self._thresholds[new_status] > updated_status_count:
+            # We haven't met the threshold yet, so don't trigger
             return None
 
         is_triggered = new_status != DetectorPriorityLevel.OK
@@ -535,7 +541,7 @@ class StatefulGroupingDetectorHandler(
             self.state_manager.enqueue_counter_reset(group_key)
         else:
             detector_occurrence, event_data = self.create_occurrence(
-                processed_data_condition, data_packet, new_status
+                is_condition_group_met, data_packet, new_status
             )
             evidence_data = {
                 **detector_occurrence.evidence_data,
