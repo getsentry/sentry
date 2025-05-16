@@ -16,7 +16,7 @@ export const makeHideAiFeaturesField = (organization: Organization): FieldObject
     type: 'boolean',
     label: t('Show Generative AI Features'),
     help: tct(
-      'Allows organization members to use [docs:features] powered by generative AI',
+      'Allows organization members to access [docs:features] powered by generative AI',
       {
         docs: (
           <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/" />
