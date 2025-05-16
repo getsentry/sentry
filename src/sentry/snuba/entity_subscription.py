@@ -49,6 +49,7 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
     EntityKey.EAPSpans: "timestamp",
+    EntityKey.EAPItemsSpan: "timestamp",
 }
 CRASH_RATE_ALERT_AGGREGATE_RE = (
     r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
@@ -621,7 +622,7 @@ def get_entity_key_from_snuba_query(
 ) -> EntityKey:
     query_dataset = Dataset(snuba_query.dataset)
     if query_dataset == Dataset.EventsAnalyticsPlatform:
-        return EntityKey.EAPSpans
+        return EntityKey.EAPItemsSpan
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,
         organization_id,

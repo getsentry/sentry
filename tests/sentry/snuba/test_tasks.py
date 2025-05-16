@@ -365,28 +365,20 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             aggregate="count(span.duration)",
             dataset=Dataset.EventsAnalyticsPlatform,
         )
-        with patch("sentry.utils.snuba_rpc._snuba_pool") as rpc_pool:
-            with patch("sentry.snuba.tasks._snuba_pool") as pool:
-                resp = Mock()
-                resp.status = 202
-                resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
-                rpc_pool.urlopen.return_value = resp
-                pool.urlopen.return_value = resp
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
 
-                create_subscription_in_snuba(sub.id)
-                sub = QuerySubscription.objects.get(id=sub.id)
-                assert sub.status == QuerySubscription.Status.ACTIVE.value
-                assert sub.subscription_id is not None
-
-                sub.status = QuerySubscription.Status.UPDATING.value
-                sub.update(
-                    status=QuerySubscription.Status.UPDATING.value,
-                    subscription_id=sub.subscription_id,
-                )
-                update_subscription_in_snuba(sub.id)
-                sub = QuerySubscription.objects.get(id=sub.id)
-                assert sub.status == QuerySubscription.Status.ACTIVE.value
-                assert sub.subscription_id is not None
+        sub.status = QuerySubscription.Status.UPDATING.value
+        sub.update(
+            status=QuerySubscription.Status.UPDATING.value,
+            subscription_id=sub.subscription_id,
+        )
+        update_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
 
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
@@ -430,7 +422,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
             assert method == "DELETE"
             assert (
                 url
-                == f"/{Dataset.EventsAnalyticsPlatform.value}/{EntityKey.EAPSpans.value}/subscriptions/{subscription_id}"
+                == f"/{Dataset.EventsAnalyticsPlatform.value}/{EntityKey.EAPItemsSpan.value}/subscriptions/{subscription_id}"
             )
 
     def test_no_subscription_id(self):
