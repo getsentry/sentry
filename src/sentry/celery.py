@@ -33,12 +33,13 @@ def holds_bad_pickle_object(value, memo=None):
             bad_object = holds_bad_pickle_object(item, memo)
             if bad_object is not None:
                 return bad_object
+        return
     elif isinstance(value, dict):
         for item in value.values():
             bad_object = holds_bad_pickle_object(item, memo)
             if bad_object is not None:
                 return bad_object
-
+        return
     if isinstance(value, models.Model):
         return (
             value,
@@ -56,7 +57,7 @@ def holds_bad_pickle_object(value, memo=None):
         return None
     elif value is None:
         return None
-    elif not isinstance(value, (dict, list, str, float, int, bool, tuple, frozenset)):
+    elif not isinstance(value, (str, float, int, bool)):
         return value, "do not pickle stdlib classes"
     return None
 
@@ -69,9 +70,9 @@ def good_use_of_pickle_or_bad_use_of_pickle(task, args, kwargs):
         if bad is not None:
             bad_object, reason = bad
             raise TypeError(
-                "Task %r was invoked with an object that we do not want "
+                "Task %s was invoked with an object that we do not want "
                 "to pass via pickle (%r, reason is %s) in argument %s"
-                % (task, bad_object, reason, name)
+                % (task.name, bad_object, reason, name)
             )
 
 
