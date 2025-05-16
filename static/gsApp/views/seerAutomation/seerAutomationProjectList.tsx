@@ -24,8 +24,12 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {
+  makeDetailedProjectQueryKey,
+  useDetailedProject,
+} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {formatSeerValue, SEER_THRESHOLD_MAP} from 'sentry/views/settings/projectSeer';
@@ -58,9 +62,10 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
 export function SeerAutomationProjectList() {
   const organization = useOrganization();
   const api = useApi();
-  const {projects, fetching, fetchError, reloadProjects} = useProjects();
+  const {projects, fetching, fetchError} = useProjects();
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const queryClient = useQueryClient();
 
   if (fetching) {
     return <LoadingIndicator />;
@@ -126,7 +131,16 @@ export function SeerAutomationProjectList() {
     } catch (err) {
       addErrorMessage('Failed to update some projects');
     } finally {
-      await reloadProjects();
+      Array.from(selected).forEach(projectId => {
+        const project = projects.find(p => p.id === projectId);
+        if (!project) return;
+        queryClient.invalidateQueries({
+          queryKey: makeDetailedProjectQueryKey({
+            orgSlug: organization.slug,
+            projectSlug: project.slug,
+          }),
+        });
+      });
     }
   }
 
