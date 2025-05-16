@@ -37,6 +37,7 @@ export type CheckoutAPIData = BaseCheckoutData & {
   reservedSpans?: number;
   reservedTransactions?: number;
   reservedUptime?: number;
+  seer?: boolean;
 };
 
 export type StepProps = {

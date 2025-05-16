@@ -479,6 +479,9 @@ export function getCheckoutAPIData({
     referrer: referrer || 'billing',
     ...(previewToken && {previewToken}),
     ...(paymentIntent && {paymentIntent}),
+    ...(formData.seerEnabled && {
+      seer: formData.seerEnabled,
+    }),
   };
 
   if (formData.applyNow) {
