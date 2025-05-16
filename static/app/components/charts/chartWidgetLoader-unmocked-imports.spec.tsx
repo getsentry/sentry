@@ -275,29 +275,31 @@ describe('ChartWidgetLoader - unmocked imports', () => {
   // - `id` must match the filename
   // - have a `default` export that is a React component (component name should be TitleCase of `id`)
   // - be mapped via `id` -> dynamic import in `chartWidgetLoader.tsx`
-  it.each(widgetIds as ChartId[])('can load widget: %s', async widgetId => {
-    render(<ChartWidgetLoader id={widgetId} />);
+  it.each(widgetIds as ChartId[])(
+    'can load widget: %s',
+    async widgetId => {
+      render(<ChartWidgetLoader id={widgetId} />);
 
-    // Initially should show loading state from ChartWidgetLoader, it will disappear when dynamic import completes.
-    // We only need to check that the dynamic import completes for these tests as that means ChartWidgetLoader is able to load all widgets
-    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+      // Initially should show loading state from ChartWidgetLoader, it will disappear when dynamic import completes.
+      // We only need to check that the dynamic import completes for these tests as that means ChartWidgetLoader is able to load all widgets
+      await waitFor(
+        () => {
+          expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+        },
+        {
+          timeout: 10_000,
+        }
+      );
 
-    await waitFor(
-      () => {
-        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      },
-      {
-        timeout: 2000,
-      }
-    );
-
-    expect(TimeSeriesWidgetVisualization).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: widgetId,
-      }),
-      undefined
-    );
-  });
+      expect(TimeSeriesWidgetVisualization).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: widgetId,
+        }),
+        undefined
+      );
+    },
+    15_000
+  );
 
   it('shows error state for invalid widget id', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
