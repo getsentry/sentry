@@ -11,8 +11,10 @@ import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import type {
   BilledDataCategoryInfo,
   BillingMetricHistory,
+  PendingReservedBudget,
   Plan,
   RecurringCredit,
+  ReservedBudget,
   Subscription,
 } from 'getsentry/types';
 
@@ -107,29 +109,52 @@ export function getSingularCategoryName({
  */
 export function getReservedBudgetDisplayName({
   plan,
-  categories,
-  hadCustomDynamicSampling = false,
+  hadCustomDynamicSampling,
+  reservedBudget = null,
+  pendingReservedBudget = null,
   shouldTitleCase = false,
 }: Omit<CategoryNameProps, 'category' | 'capitalize'> & {
-  categories: DataCategory[];
+  pendingReservedBudget?: PendingReservedBudget | null;
+  reservedBudget?: ReservedBudget | null;
   shouldTitleCase?: boolean;
 }) {
-  return oxfordizeArray(
-    categories
-      .map(category => {
-        const name = getPlanCategoryName({
-          plan,
-          category,
-          hadCustomDynamicSampling,
-          capitalize: false,
-        });
-        return shouldTitleCase ? toTitleCase(name, {allowInnerUpperCase: true}) : name;
-      })
-      .sort((a, b) => {
-        return a.localeCompare(b);
-      })
+  const categoryList =
+    reservedBudget?.dataCategories ??
+    (Object.keys(pendingReservedBudget?.categories ?? {}) as DataCategory[]);
+  const name =
+    reservedBudget?.name ??
+    Object.values(plan?.availableReservedBudgetTypes ?? {}).find(
+      budgetInfo =>
+        categoryList.length === budgetInfo.dataCategories.length &&
+        categoryList.every(category => budgetInfo.dataCategories.includes(category))
+    )?.name ??
+    '';
+
+  if (name) {
+    return shouldTitleCase ? toTitleCase(name, {allowInnerUpperCase: true}) : name;
+  }
+
+  return (
+    oxfordizeArray(
+      categoryList
+        .map(category => {
+          const categoryName = getPlanCategoryName({
+            plan,
+            category,
+            hadCustomDynamicSampling,
+            capitalize: false,
+          });
+          return shouldTitleCase
+            ? toTitleCase(categoryName, {allowInnerUpperCase: true})
+            : categoryName;
+        })
+        .sort((a, b) => {
+          return a.localeCompare(b);
+        })
+    ) + (shouldTitleCase ? ' Budget' : ' budget')
   );
 }
+
 /**
  * Get a string of display names.
  *
