@@ -261,6 +261,7 @@ class FunctionDefinition:
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
