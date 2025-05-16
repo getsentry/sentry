@@ -60,7 +60,7 @@ export function SeerAutomationProjectList() {
   const api = useApi();
   const {projects, fetching, fetchError, reloadProjects} = useProjects();
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
 
   if (fetching) {
     return <LoadingIndicator />;
