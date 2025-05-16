@@ -3882,7 +3882,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
-    @mock.patch("sentry.incidents.utils.process_update_helpers.get_comparison_aggregation_value")
+    @mock.patch("sentry.incidents.subscription_processor.get_comparison_aggregation_value")
     def test_process_data_packets_not_called(
         self, mock_get_comparison_aggregation_value, mock_process_data_packets
     ):
