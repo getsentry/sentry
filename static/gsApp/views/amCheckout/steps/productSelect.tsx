@@ -44,8 +44,12 @@ function ProductSelect({
       icon: <SeerIcon size="lg" color={'pink400'} />,
       color: theme.pink400 as Color,
       gradientEndColor: theme.pink100 as Color,
-      description: 'Detect and fix issues faster with our AI debugging agent.',
-      features: ['Issue scan', 'Root cause analysis', 'Solution and code changes'],
+      description: t('Detect and fix issues faster with our AI debugging agent.'),
+      features: [
+        t('Issue scan'),
+        t('Root cause analysis'),
+        t('Solution and code changes'),
+      ],
     },
   };
   const billingInterval = utils.getShortInterval(activePlan.billingInterval);

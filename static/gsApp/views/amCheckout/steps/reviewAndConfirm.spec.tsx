@@ -293,7 +293,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       )
     );
 
-    // TODO: Add seer analytics
+    // TODO(seer): Add seer analytics
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.upgrade', {
       organization,
       subscription,
