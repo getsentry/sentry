@@ -56,7 +56,7 @@ const AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES = {
     budgetCategoryType: 'DYNAMIC_SAMPLING',
     name: 'spans budget',
     docLink: '',
-    isFixed: true,
+    isFixed: false,
     defaultBudget: 20_00,
     dataCategories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
     productName: 'dynamic sampling',

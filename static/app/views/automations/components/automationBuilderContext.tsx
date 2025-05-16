@@ -30,6 +30,8 @@ export function useAutomationBuilderReducer() {
           return removeIfCondition(state, action, formModel);
         case 'UPDATE_IF_CONDITION':
           return updateIfCondition(state, action);
+        case 'UPDATE_IF_CONDITION_TYPE':
+          return updateIfConditionType(state, action);
         case 'ADD_IF_ACTION':
           return addIfAction(state, action);
         case 'REMOVE_IF_ACTION':
@@ -80,6 +82,16 @@ export function useAutomationBuilderReducer() {
     removeIfCondition: useCallback(
       (groupIndex: number, conditionIndex: number) =>
         dispatch({type: 'REMOVE_IF_CONDITION', groupIndex, conditionIndex}),
+      [dispatch]
+    ),
+    updateIfConditionType: useCallback(
+      (groupIndex: number, conditionIndex: number, conditionType: DataConditionType) =>
+        dispatch({
+          type: 'UPDATE_IF_CONDITION_TYPE',
+          groupIndex,
+          conditionIndex,
+          conditionType,
+        }),
       [dispatch]
     ),
     updateIfCondition: useCallback(
@@ -139,6 +151,11 @@ interface AutomationActions {
     groupIndex: number,
     conditionIndex: number,
     comparison: Record<string, any>
+  ) => void;
+  updateIfConditionType: (
+    groupIndex: number,
+    conditionIndex: number,
+    conditionType: DataConditionType
   ) => void;
   updateIfLogicType: (groupIndex: number, logicType: DataConditionGroupLogicType) => void;
   updateWhenCondition: (index: number, comparison: Record<string, any>) => void;
@@ -217,6 +234,13 @@ type RemoveIfConditionAction = {
   type: 'REMOVE_IF_CONDITION';
 };
 
+type UpdateIfConditionTypeAction = {
+  conditionIndex: number;
+  conditionType: DataConditionType;
+  groupIndex: number;
+  type: 'UPDATE_IF_CONDITION_TYPE';
+};
+
 type UpdateIfConditionAction = {
   comparison: Record<string, any>;
   conditionIndex: number;
@@ -258,6 +282,7 @@ type AutomationBuilderAction =
   | RemoveIfAction
   | AddIfConditionAction
   | RemoveIfConditionAction
+  | UpdateIfConditionTypeAction
   | UpdateIfConditionAction
   | AddIfActionAction
   | RemoveIfActionAction
@@ -420,6 +445,27 @@ function removeIfCondition(
       return {
         ...group,
         conditions: group.conditions.filter((_, j) => j !== conditionIndex),
+      };
+    }),
+  };
+}
+
+function updateIfConditionType(
+  state: AutomationBuilderState,
+  action: UpdateIfConditionTypeAction
+): AutomationBuilderState {
+  const {groupIndex, conditionIndex, conditionType} = action;
+  return {
+    ...state,
+    actionFilters: state.actionFilters.map((group, i) => {
+      if (i !== groupIndex) {
+        return group;
+      }
+      return {
+        ...group,
+        conditions: group.conditions.map((c, j) =>
+          j === conditionIndex ? {...c, comparison_type: conditionType} : c
+        ),
       };
     }),
   };
