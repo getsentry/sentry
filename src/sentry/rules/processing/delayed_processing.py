@@ -498,13 +498,15 @@ def fire_rules(
         timedelta(seconds=40),
         extra={"project_id": project_id},
     ) as tracker:
+        groups_to_fire = set().union(*rules_to_fire.values())
+        group_to_groupevent = get_group_to_groupevent(
+            parsed_rulegroup_to_event_data, project_id, groups_to_fire
+        )
+        group_id_to_group = {group.id: group for group in group_to_groupevent.keys()}
         for rule, group_ids in rules_to_fire.items():
             with tracker.track(f"rule_{rule.id}"):
                 frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
                 freq_offset = now - timedelta(minutes=frequency)
-                group_to_groupevent = get_group_to_groupevent(
-                    log_config, parsed_rulegroup_to_event_data, project.id, group_ids
-                )
                 if (
                     log_config.num_events_issue_debugging
                     or log_config.workflow_engine_process_workflows
@@ -521,7 +523,19 @@ def fire_rules(
                             "rule_id": rule.id,
                         },
                     )
-                for group, groupevent in group_to_groupevent.items():
+                for group_id in group_ids:
+                    group = group_id_to_group.get(group_id)
+                    if not group:
+                        logger.info(
+                            "delayed_processing.group_not_found",
+                            extra={
+                                "rule_id": rule.id,
+                                "group_id": group_id,
+                                "project_id": project_id,
+                            },
+                        )
+                        continue
+
                     rule_statuses = bulk_get_rule_status(alert_rules, group, project)
                     status = rule_statuses[rule.id]
                     if status.last_active and status.last_active > freq_offset:
