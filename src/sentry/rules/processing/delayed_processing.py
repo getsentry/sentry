@@ -526,6 +526,7 @@ def fire_rules(
                 for group_id in group_ids:
                     group = group_id_to_group.get(group_id)
                     if not group:
+                        # we need to fire the rule for this group, but we don't have the group
                         logger.error(
                             "delayed_processing.missing_group_to_fire",
                             extra={
