@@ -235,12 +235,17 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "urls" in response_data["data"][0]
             assert "user" in response_data["data"][0]
 
-            assert len(response_data["data"][0]["user"]) == 5
+            assert len(response_data["data"][0]["user"]) == 6
             assert "id" in response_data["data"][0]["user"]
             assert "username" in response_data["data"][0]["user"]
             assert "email" in response_data["data"][0]["user"]
             assert "ip" in response_data["data"][0]["user"]
             assert "display_name" in response_data["data"][0]["user"]
+            assert "geo" in response_data["data"][0]["user"]
+            assert "city" in response_data["data"][0]["user"]["geo"]
+            assert "country_code" in response_data["data"][0]["user"]["geo"]
+            assert "region" in response_data["data"][0]["user"]["geo"]
+            assert "subdivision" in response_data["data"][0]["user"]["geo"]
 
     def test_get_replays_tags_field(self):
         """Test replay response with fields requested in production."""
@@ -1079,7 +1084,19 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "error_ids": [],
                     "environment": None,
                     "tags": [],
-                    "user": {"id": "Archived Replay", "display_name": "Archived Replay"},
+                    "user": {
+                        "id": "Archived Replay",
+                        "display_name": "Archived Replay",
+                        "username": None,
+                        "email": None,
+                        "ip": None,
+                        "geo": {
+                            "city": None,
+                            "country_code": None,
+                            "region": None,
+                            "subdivision": None,
+                        },
+                    },
                     "sdk": {"name": None, "version": None},
                     "os": {"name": None, "version": None},
                     "browser": {"name": None, "version": None},
