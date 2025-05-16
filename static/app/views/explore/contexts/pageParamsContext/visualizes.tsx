@@ -89,7 +89,7 @@ export function getVisualizesFromLocation(
   const visualizes: Visualize[] = [];
 
   const baseVisualizes: BaseVisualize[] = rawVisualizes
-    .map(raw => parseVisualizes(raw, organization))
+    .map(raw => parseBaseVisualize(raw, organization))
     .filter(defined);
 
   let i = 0;
@@ -108,7 +108,10 @@ export function getVisualizesFromLocation(
   return visualizes.length ? visualizes : defaultVisualizes();
 }
 
-function parseVisualizes(raw: string, organization: Organization): BaseVisualize | null {
+export function parseBaseVisualize(
+  raw: string,
+  organization: Organization
+): BaseVisualize | null {
   try {
     const parsed = JSON.parse(raw);
     if (!defined(parsed) || !Array.isArray(parsed.yAxes)) {
@@ -135,19 +138,6 @@ function parseVisualizes(raw: string, organization: Organization): BaseVisualize
     return visualize;
   } catch (error) {
     return null;
-  }
-}
-
-export function updateLocationWithVisualizes(
-  location: Location,
-  visualizes: BaseVisualize[] | null | undefined
-) {
-  if (defined(visualizes)) {
-    location.query.visualize = visualizes.map(visualize => {
-      return JSON.stringify(Visualize.fromJSON(visualize).toJSON());
-    });
-  } else if (visualizes === null) {
-    delete location.query.visualize;
   }
 }
 
