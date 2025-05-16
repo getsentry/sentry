@@ -82,3 +82,20 @@ export function findSpanAttributeValue(
 ) {
   return attributes.find(attribute => attribute.name === attributeName)?.value.toString();
 }
+
+// Sort attributes so that span.* attributes are at the beginning and
+// the rest of the attributes are sorted alphabetically.
+export function sortAttributes(attributes: TraceItemResponseAttribute[]) {
+  return [...attributes].sort((a, b) => {
+    const aIsSpan = a.name.startsWith('span.');
+    const bIsSpan = b.name.startsWith('span.');
+
+    if (aIsSpan && !bIsSpan) {
+      return -1;
+    }
+    if (!aIsSpan && bIsSpan) {
+      return 1;
+    }
+    return a.name.localeCompare(b.name);
+  });
+}

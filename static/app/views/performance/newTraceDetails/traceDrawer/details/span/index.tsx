@@ -37,7 +37,10 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {getProfileMeta} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {
+  getProfileMeta,
+  sortAttributes,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -390,7 +393,7 @@ function EAPSpanNodeDetails({
             >
               <AttributesTree
                 columnCount={columnCount}
-                attributes={attributes}
+                attributes={sortAttributes(attributes)}
                 rendererExtra={{
                   theme,
                   location,
