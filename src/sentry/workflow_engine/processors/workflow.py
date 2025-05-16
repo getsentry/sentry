@@ -133,7 +133,11 @@ def evaluate_workflows_action_filters(
         workflow_event_data = event_data
 
         # each DataConditionGroup here has 1 WorkflowDataConditionGroup
-        workflow_data_condition_group = action_condition.workflowdataconditiongroup_set.first()
+        workflow_data_condition_group = (
+            list(action_condition.workflowdataconditiongroup_set.all())[0]
+            if action_condition.workflowdataconditiongroup_set.exists()
+            else None
+        )
 
         # Populate the workflow_env in the event_data for the action_condition evaluation
         if workflow_data_condition_group:
@@ -228,7 +232,6 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             enabled=True,
         )
         .select_related("when_condition_group")
-        .prefetch_related("when_condition_group__conditions")
         .distinct()
     )
 

@@ -361,9 +361,10 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
 
     def test_many_workflows(self):
         workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
-        triggered_workflows = evaluate_workflow_triggers(
-            {self.workflow, workflow_two}, self.event_data
-        )
+        workflows = set(Workflow.objects.all().select_related("when_condition_group").distinct())
+        with self.assertNumQueries(2):
+            # 1 query per workflow to fetch data conditions
+            triggered_workflows = evaluate_workflow_triggers(workflows, self.event_data)
 
         assert triggered_workflows == {self.workflow, workflow_two}
 
@@ -534,6 +535,14 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
     def test_basic__no_filter(self):
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
         assert set(triggered_actions) == {self.action}
+
+    @patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
+    def test_basic__num_queries(self, mock_filter):
+        # isolate the number of queries in the outer function
+        with self.assertNumQueries(3):
+            # 2 queries for action conditions (including subquery to prefetch)
+            # 1 query for workflow data conditions
+            evaluate_workflows_action_filters({self.workflow}, self.event_data)
 
     def test_basic__with_filter__passes(self):
         self.create_data_condition(
