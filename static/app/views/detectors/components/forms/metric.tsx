@@ -164,7 +164,7 @@ function DetectSection() {
           </DetectColumn>
         </FirstRow>
         <MonitorKindField
-          label="...and monitor for changes in the following way:"
+          label={t('...and monitor for changes in the following way:')}
           flexibleControlStateSize
           inline={false}
           name="kind"
@@ -186,7 +186,9 @@ function DetectSection() {
         <Flex column>
           {(!kind || kind === 'threshold') && (
             <Flex column>
-              <MutedText>An issue will be created when query value exceeds:</MutedText>
+              <MutedText>
+                {t('An issue will be created when query value exceeds:')}
+              </MutedText>
               <ThresholdField
                 flexibleControlStateSize
                 inline={false}
@@ -199,7 +201,7 @@ function DetectSection() {
           )}
           {kind === 'change' && (
             <Flex column>
-              <MutedText>An issue will be created when query value is:</MutedText>
+              <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap={space(1)}>
                 <ChangePercentField
                   name="config.low_threshold.change"
@@ -207,7 +209,7 @@ function DetectSection() {
                   hideLabel
                   inline
                 />
-                <span>percent</span>
+                <span>{t('percent')}</span>
                 <DirectionField
                   name="config.low_threshold.direction"
                   hideLabel
@@ -219,7 +221,7 @@ function DetectSection() {
                     ['lower', t('lower')],
                   ]}
                 />
-                <span>than the previous</span>
+                <span>{t('than the previous')}</span>
                 <StyledSelectField
                   name="config.low_threshold.unit"
                   hideLabel
