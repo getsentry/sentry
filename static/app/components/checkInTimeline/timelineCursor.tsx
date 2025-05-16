@@ -65,11 +65,16 @@ function useTimelineCursor<E extends HTMLElement>({
       // within the containerRect. This proves to be less glitchy as some
       // elements within the container may trigger an onMouseLeave even when
       // the mouse is still "inside" of the container
+      //
+      // Also tests that the mouse is not obscured by a overlay element.
       const isInsideContainer =
         e.clientX > containerRect.left &&
         e.clientX < containerRect.right &&
         e.clientY > containerRect.top &&
-        e.clientY < containerRect.bottom;
+        e.clientY < containerRect.bottom &&
+        !document
+          .elementsFromPoint(e.clientX, e.clientY)
+          .some(el => el.hasAttribute('data-overlay'));
 
       if (isInsideContainer !== isVisible) {
         setIsVisible(isInsideContainer);
