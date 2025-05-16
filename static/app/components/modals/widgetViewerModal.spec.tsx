@@ -406,7 +406,7 @@ describe('Modals -> WidgetViewerModal', function () {
         });
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
