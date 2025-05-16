@@ -158,6 +158,9 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
             updateCondition={(index, comparison) =>
               actions.updateIfCondition(groupIndex, index, comparison)
             }
+            updateConditionType={(index, type) =>
+              actions.updateIfConditionType(groupIndex, index, type)
+            }
           />
         </Flex>
       </Step>

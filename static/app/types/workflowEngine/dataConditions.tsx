@@ -54,6 +54,9 @@ export enum DataConditionType {
   PERCENT_SESSIONS_PERCENT = 'percent_sessions_percent',
   EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT = 'event_unique_user_frequency_with_conditions_count',
   EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT = 'event_unique_user_frequency_with_conditions_percent',
+
+  // frequency types for UI only
+  EVENT_FREQUENCY = 'event_frequency',
 }
 
 export enum DataConditionGroupLogicType {
