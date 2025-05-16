@@ -40,6 +40,7 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/header/attachmentsBadge';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/streamline/header/issueIdBreadcrumb';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/header/replayBadge';
+import SeerBadge from 'sentry/views/issueDetails/streamline/header/seerBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/header/userFeedbackBadge';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -193,6 +194,7 @@ export default function StreamlinedGroupHeader({
               <AttachmentsBadge group={group} />
               <UserFeedbackBadge group={group} project={project} />
               <ReplayBadge group={group} project={project} />
+              <SeerBadge group={group} />
             </ErrorBoundary>
           </Flex>
         </HeaderGrid>
