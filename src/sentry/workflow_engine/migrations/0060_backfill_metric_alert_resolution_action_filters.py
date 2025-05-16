@@ -38,14 +38,18 @@ def backfill_resolution_action_filters(apps: Apps, schema_editor: BaseDatabaseSc
             workflow_dcgs = DataConditionGroup.objects.filter(
                 workflowdataconditiongroup__workflow__id=workflow_id
             )
-            if DataCondition.objects.filter(
-                condition_group__in=workflow_dcgs, type="issue_priority_deescalating"
-            ).exists():
-                # the resolution action filters have already been created, either via dual write or a previous migration
-                continue
 
             with transaction.atomic(router.db_for_write(DataCondition)):
                 for dcg in workflow_dcgs:
+                    if DataCondition.objects.filter(
+                        condition_group=dcg, type="issue_priority_deescalating"
+                    ).exists():
+                        # the resolution action filter has already been created, either via dual write or a previous migration
+                        # I have this inside the loop because it's possible someone added a new condition after we turned
+                        # on dual write of resolution action filters, so one of the conditions is correct and the other
+                        # needs to be backfilled
+                        continue
+
                     action_filter = DataCondition.objects.get(
                         condition_group=dcg,
                     )
