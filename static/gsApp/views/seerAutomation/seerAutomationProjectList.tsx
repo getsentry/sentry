@@ -61,7 +61,7 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
 
 export function SeerAutomationProjectList() {
   const organization = useOrganization();
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const {projects, fetching, fetchError} = useProjects();
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
