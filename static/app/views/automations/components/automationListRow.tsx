@@ -9,6 +9,7 @@ import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,6 +34,9 @@ export function AutomationListRow({
   const actions = useAutomationActions(automation);
   const {id, name, disabled, lastTriggered, detectorIds = []} = automation;
   const projectIds = useAutomationProjectIds(automation);
+  const projectSlugs = projectIds.map(
+    projectId => ProjectsStore.getById(projectId)?.slug
+  ) as string[];
   return (
     <RowWrapper disabled={disabled}>
       <InteractionStateLayer />
@@ -57,7 +61,7 @@ export function AutomationListRow({
         <ActionCell actions={actions} disabled={disabled} />
       </CellWrapper>
       <CellWrapper className="projects">
-        <ProjectList projectSlugs={projectIds} />
+        <ProjectList projectSlugs={projectSlugs} />
       </CellWrapper>
       <CellWrapper className="connected-monitors">
         <ConnectionCell ids={detectorIds} type="detector" disabled={disabled} />
