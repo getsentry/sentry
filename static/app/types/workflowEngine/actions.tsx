@@ -4,10 +4,6 @@ export interface NewAction {
   integrationId?: string;
 }
 
-export interface Action extends NewAction {
-  id: string;
-}
-
 export enum ActionType {
   SLACK = 'slack',
   MSTEAMS = 'msteams',
@@ -28,4 +24,8 @@ export enum ActionType {
 export interface Integration {
   id: string;
   name: string;
+  services?: Array<{
+    id: string;
+    name: string;
+  }>;
 }

@@ -10,6 +10,7 @@ import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuer
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {keepPreviousData as keepPreviousDataFn} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -223,10 +224,12 @@ function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
 
 type WrappedDiscoverQueryProps<T> = {
   eventView: EventView;
+  additionalQueryKey?: string[];
   allowAggregateConditions?: boolean;
   cursor?: string;
   enabled?: boolean;
   initialData?: T;
+  keepPreviousData?: boolean;
   limit?: number;
   noPagination?: boolean;
   referrer?: string;
@@ -237,6 +240,7 @@ function useWrappedDiscoverQueryBase<T>({
   eventView,
   initialData,
   enabled,
+  keepPreviousData,
   referrer,
   limit,
   cursor,
@@ -244,6 +248,7 @@ function useWrappedDiscoverQueryBase<T>({
   allowAggregateConditions,
   samplingMode,
   pageFiltersReady,
+  additionalQueryKey,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
@@ -281,6 +286,8 @@ function useWrappedDiscoverQueryBase<T>({
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       staleTime: usesRelativeDateRange ? staleTimeForRelativePeriod : Infinity,
+      additionalQueryKey,
+      placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
     },
     queryExtras,
     noPagination,

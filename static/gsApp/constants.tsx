@@ -168,7 +168,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.SEER_AUTOFIX]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_AUTOFIX],
     canAllocate: false,
-    canProductTrial: true,
+    canProductTrial: false,
     maxAdminGift: 0,
     freeEventsMultiple: 0,
     feature: 'seer-billing',
@@ -176,7 +176,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.SEER_SCANNER]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_SCANNER],
     canAllocate: false,
-    canProductTrial: true,
+    canProductTrial: false,
     maxAdminGift: 0,
     freeEventsMultiple: 0,
     feature: 'seer-billing',

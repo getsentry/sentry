@@ -54,7 +54,7 @@ function decodeTraceSlug(maybeSlug: string | undefined): string {
   return maybeSlug.trim();
 }
 
-export const TRACE_VIEW_PREFERENCES_KEY = 'trace-waterfall-preferences';
+const TRACE_VIEW_PREFERENCES_KEY = 'trace-waterfall-preferences';
 
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
@@ -240,7 +240,7 @@ const TraceExternalLayout = styled('div')`
 const FlexBox = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${space(1)};
 `;
 
 const TraceInnerLayout = styled(FlexBox)`

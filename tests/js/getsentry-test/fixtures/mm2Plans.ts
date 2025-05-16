@@ -66,6 +66,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_100k_ac: {
     isTestPlan: false,
@@ -121,6 +122,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_100k_auf: {
     isTestPlan: false,
@@ -176,6 +178,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_500k: {
     isTestPlan: false,
@@ -231,6 +234,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_500k_ac: {
     isTestPlan: false,
@@ -286,6 +290,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_500k_auf: {
     isTestPlan: false,
@@ -341,6 +346,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_100k: {
     isTestPlan: false,
@@ -385,6 +391,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_100k_ac: {
     isTestPlan: false,
@@ -429,6 +436,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_100k_auf: {
     isTestPlan: false,
@@ -473,6 +481,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_500k: {
     isTestPlan: false,
@@ -518,6 +527,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_500k_ac: {
     isTestPlan: false,
@@ -562,6 +572,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_500k_auf: {
     isTestPlan: false,
@@ -606,6 +617,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_f: {
     isTestPlan: false,
@@ -641,6 +653,7 @@ const MM2_PLANS: Record<string, Plan> = {
     onDemandEventPrice: 0,
     retentionDays: 30,
     features: ['advanced-search'],
+    availableReservedBudgetTypes: {},
   },
   mm2_a: {
     id: 'mm2_a',
@@ -702,6 +715,7 @@ const MM2_PLANS: Record<string, Plan> = {
     },
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
 };
 
