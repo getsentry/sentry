@@ -17,7 +17,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import NewDetectorLayout from 'sentry/views/detectors/layouts/new';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {
+  makeMonitorBasePathname,
+  makeMonitorDetailsPathname,
+} from 'sentry/views/detectors/pathnames';
 
 export default function DetectorNewSettings() {
   const organization = useOrganization();
@@ -30,7 +33,7 @@ export default function DetectorNewSettings() {
   const handleSubmit = useCallback(async () => {
     const data = model.getData() as unknown as Detector;
     const result = await createDetector(data);
-    navigate(`${makeMonitorBasePathname(organization.slug)}${result.id}`);
+    navigate(makeMonitorDetailsPathname(organization.slug, result.id));
   }, [createDetector, model, navigate, organization]);
 
   return (
