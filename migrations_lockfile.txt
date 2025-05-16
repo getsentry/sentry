@@ -30,3 +30,5 @@ tempest: 0002_make_message_type_nullable
 uptime: 0041_uptime_backfill_detector_grouphash
 
 workflow_engine: 0060_rename_azure_devops_action_to_vsts
+
+status_pages: 0001_initial_models
