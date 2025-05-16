@@ -990,7 +990,18 @@ def _insert_vroom_profile(profile: Profile) -> bool:
     with sentry_sdk.start_span(op="task.profiling.insert_vroom"):
         try:
             path = "/chunk" if "profiler_id" in profile else "/profile"
-            response = get_from_profiling_service(method="POST", path=path, json_data=profile)
+            response = get_from_profiling_service(
+                method="POST",
+                path=path,
+                json_data=profile,
+                metric=(
+                    "profiling.profile.payload.size",
+                    {
+                        "type": "chunk" if "profiler_id" in profile else "profile",
+                        "platform": profile["platform"],
+                    },
+                ),
+            )
 
             sentry_sdk.set_tag("vroom.response.status_code", str(response.status))
 

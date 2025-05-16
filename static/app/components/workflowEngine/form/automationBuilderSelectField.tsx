@@ -25,11 +25,11 @@ const StyledSelectField = styled(SelectField)`
   }
 `;
 
-const selectControlStyles = {
+export const selectControlStyles = {
   control: (provided: any) => ({
     ...provided,
-    minHeight: '28px',
-    height: '28px',
+    minHeight: '32px',
+    height: '32px',
     padding: 0,
   }),
 };

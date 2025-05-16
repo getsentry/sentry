@@ -21,7 +21,7 @@ from sentry.workflow_engine.models import ActionGroupStatus, IncidentGroupOpenPe
 
 
 @freeze_time("2024-12-11 03:21:34")
-class TestWorklowEngineSerializer(TestCase):
+class TestWorkflowEngineSerializer(TestCase):
     @assume_test_silo_mode(SiloMode.REGION)
     def setUp(self) -> None:
         self.now = timezone.now()
@@ -134,9 +134,10 @@ class TestWorklowEngineSerializer(TestCase):
         self.group.priority = PriorityLevel.HIGH
         self.group.save()
         ActionGroupStatus.objects.create(action=self.critical_action, group=self.group)
-        self.group_open_period = GroupOpenPeriod.objects.create(
-            group=self.group, project=self.detector.project, date_started=self.incident.date_started
+        self.group_open_period = GroupOpenPeriod.objects.get(
+            group=self.group, project=self.detector.project
         )
+        self.group_open_period.update(date_started=self.incident.date_started)
         self.incident_group_open_period = IncidentGroupOpenPeriod.objects.create(
             group_open_period=self.group_open_period,
             incident_id=self.incident.id,
