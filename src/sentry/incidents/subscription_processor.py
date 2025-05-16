@@ -209,7 +209,6 @@ class SubscriptionProcessor:
         threshold: float = trigger.alert_threshold + resolve_add
         return threshold
 
-
     def get_crash_rate_alert_metrics_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate
     ) -> float | None:
