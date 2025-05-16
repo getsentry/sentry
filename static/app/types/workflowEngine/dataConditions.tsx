@@ -9,9 +9,16 @@ interface SnubaQuery {
   environment?: string;
 }
 
-export interface DataSource {
+interface QueryObject {
   id: string;
   snubaQuery: SnubaQuery;
+  sourceId: string;
+  type: 'snuba_query_subscription';
+}
+
+export interface DataSource {
+  id: string;
+  queryObj: QueryObject;
   status: number;
   subscription?: string;
 }

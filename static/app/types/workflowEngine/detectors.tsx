@@ -12,9 +12,9 @@ export type DetectorType =
   | 'uptime';
 
 interface NewDetector {
+  conditionGroup: DataConditionGroup;
   config: Record<string, unknown>;
-  dataCondition: DataConditionGroup;
-  dataSource: DataSource;
+  dataSources: DataSource[];
   disabled: boolean;
   name: string;
   projectId: string;
@@ -23,9 +23,10 @@ interface NewDetector {
 }
 
 export interface Detector extends Readonly<NewDetector> {
+  readonly connectedWorkflows: string[];
   readonly createdBy: string;
-  readonly dateCreated: Date;
-  readonly dateUpdated: Date;
+  readonly dateCreated: string;
+  readonly dateUpdated: string;
   readonly id: string;
-  readonly lastTriggered: Date;
+  readonly lastTriggered: string;
 }

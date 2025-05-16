@@ -6,6 +6,8 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
@@ -16,12 +18,19 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconArrow, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import DetailsPanel from 'sentry/views/detectors/components/detailsPanel';
 import IssuesList from 'sentry/views/detectors/components/issuesList';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {useDetector} from 'sentry/views/detectors/hooks';
+import {
+  makeMonitorBasePathname,
+  makeMonitorDetailsPathname,
+} from 'sentry/views/detectors/pathnames';
 
 type Priority = {
   sensitivity: string;
@@ -33,16 +42,43 @@ const priorities: Priority[] = [
   {sensitivity: 'high', threshold: 10},
 ];
 
+function getEnvironmentFromDetector(detector: Detector) {
+  return detector.dataSources.find(ds => ds.queryObj.snubaQuery.environment)?.queryObj
+    .snubaQuery.environment;
+}
+
 export default function DetectorDetail() {
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
+  const params = useParams<{detectorId: string}>();
+  const {projects} = useProjects();
+
+  const {
+    data: detector,
+    isPending,
+    isError,
+    refetch,
+  } = useDetector({
+    // TODO: Remove hardcoded project slug or move to project url
+    projectSlug: 'sentry',
+    detectorId: params.detectorId,
+  });
+  const project = projects.find(p => p.id === detector?.projectId);
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError || !project) {
+    return <LoadingError onRetry={refetch} />;
+  }
 
   return (
-    <SentryDocumentTitle title={'/endpoint'} noSuffix>
+    <SentryDocumentTitle title={detector.name} noSuffix>
       <BreadcrumbsProvider
         crumb={{label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)}}
       >
-        <ActionsProvider actions={<Actions />}>
+        <ActionsProvider actions={<Actions detector={detector} />}>
           <DetailLayout project={{slug: 'project-slug', platform: 'javascript-astro'}}>
             <DetailLayout.Main>
               {/* TODO: Add chart here */}
@@ -81,15 +117,17 @@ export default function DetectorDetail() {
                 <KeyValueTable>
                   <KeyValueTableRow
                     keyName={t('Date created')}
-                    value={<DateTime date={new Date()} dateOnly year />}
+                    value={<DateTime date={detector.dateCreated} dateOnly year />}
                   />
-                  <KeyValueTableRow keyName={t('Created by')} value="Jane Doe" />
+                  <KeyValueTableRow keyName={t('Created by')} value="placeholder" />
                   <KeyValueTableRow
                     keyName={t('Last modified')}
-                    value={<TimeSince date={new Date()} />}
+                    value={<TimeSince date={detector.dateUpdated} />}
                   />
-                  <KeyValueTableRow keyName={t('Team')} value="Platform" />
-                  <KeyValueTableRow keyName={t('Environment')} value="prod" />
+                  <KeyValueTableRow
+                    keyName={t('Environment')}
+                    value={getEnvironmentFromDetector(detector)}
+                  />
                 </KeyValueTable>
               </Section>
             </DetailLayout.Sidebar>
@@ -100,7 +138,8 @@ export default function DetectorDetail() {
   );
 }
 
-function Actions() {
+function Actions({detector}: {detector: Detector}) {
+  const organization = useOrganization();
   const disable = () => {
     window.alert('disable');
   };
@@ -109,7 +148,12 @@ function Actions() {
       <Button onClick={disable} size="sm">
         {t('Disable')}
       </Button>
-      <LinkButton to="edit" priority="primary" icon={<IconEdit />} size="sm">
+      <LinkButton
+        to={`${makeMonitorDetailsPathname(organization.slug, detector.id)}edit/`}
+        priority="primary"
+        icon={<IconEdit />}
+        size="sm"
+      >
         {t('Edit')}
       </LinkButton>
     </Fragment>
