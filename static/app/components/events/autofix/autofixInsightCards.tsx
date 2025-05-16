@@ -533,7 +533,7 @@ function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}
       addSuccessMessage(t('Rethinking this...'));
     },
     onError: () => {
-      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
+      addErrorMessage(t('Something went wrong when sending Seer your message.'));
     },
   });
 }

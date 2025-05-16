@@ -198,7 +198,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           {t('Autofix Repositories')}
           <QuestionTooltip
             title={t(
-              'Below are the repositories that Autofix will work on. Autofix will only be able to see code from and make PRs to the repositories that you select here.'
+              'Below are the repositories that Seer will work on. Seer will only be able to see code from and make PRs to the repositories that you select here.'
             )}
             size="sm"
           />
@@ -225,7 +225,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       {showSaveNotice && (
         <Alert type="info" showIcon system>
           {t(
-            'Changes will apply on the next Autofix run or hit "Start Over" in the Autofix panel to start a new run and use your changes.'
+            'Changes will apply on the next Seer run or hit "Start Over" in the Seer panel to start a new run and use your changes.'
           )}
         </Alert>
       )}

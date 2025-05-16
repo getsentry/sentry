@@ -181,7 +181,7 @@ describe('AutofixInsightCards', () => {
 
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith(
-        'Something went wrong when sending Autofix your message.'
+        'Something went wrong when sending Seer your message.'
       );
     });
   });

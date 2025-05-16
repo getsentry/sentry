@@ -53,7 +53,7 @@ describe('AutofixSetupWriteAccessModal', function () {
     expect(screen.getByText('getsentry/seer')).toBeInTheDocument();
 
     expect(
-      screen.getByRole('button', {name: 'Install the Autofix GitHub App'})
+      screen.getByRole('button', {name: 'Install the Seer GitHub App'})
     ).toHaveAttribute('href', 'https://github.com/apps/sentry-autofix/installations/new');
   });
 

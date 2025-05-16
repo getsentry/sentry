@@ -126,7 +126,7 @@ describe('AutofixSteps', () => {
     render(<AutofixSteps {...propsWithErroredStep} />);
     expect(
       await screen.findByText(
-        'Autofix encountered an error. Restarting step from scratch...'
+        'Seer encountered an error. Restarting step from scratch...'
       )
     ).toBeInTheDocument();
   });

@@ -163,12 +163,12 @@ describe('SeerDrawer', () => {
 
     expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
 
-    expect(screen.getByText('Autofix')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Seer'})).toBeInTheDocument();
 
     expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
   });
 
-  it('renders initial state with Start Autofix button', async () => {
+  it('renders initial state with Start Seer button', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
@@ -184,10 +184,10 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByText('Autofix')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Seer'})).toBeInTheDocument();
 
-    // Verify the Start Autofix button is available
-    const startButton = screen.getByRole('button', {name: 'Start Autofix'});
+    // Verify the Start Seer button is available
+    const startButton = screen.getByRole('button', {name: 'Start Seer'});
     expect(startButton).toBeInTheDocument();
   });
 
@@ -219,11 +219,11 @@ describe('SeerDrawer', () => {
     expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
     expect(screen.getByText('Set Up Now')).toBeInTheDocument();
 
-    const startButton = screen.getByRole('button', {name: 'Start Autofix'});
+    const startButton = screen.getByRole('button', {name: 'Start Seer'});
     expect(startButton).toBeInTheDocument();
   });
 
-  it('triggers autofix on clicking the Start button', async () => {
+  it('triggers Seer on clicking the Start button', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       method: 'POST',
@@ -245,7 +245,7 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    const startButton = screen.getByRole('button', {name: 'Start Autofix'});
+    const startButton = screen.getByRole('button', {name: 'Start Seer'});
     await userEvent.click(startButton);
 
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
@@ -318,7 +318,7 @@ describe('SeerDrawer', () => {
     );
 
     // The feedback button should be visible, but not the Start Over button
-    expect(screen.getByTestId('autofix-button-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-button-bar')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Start Over'})).not.toBeInTheDocument();
 
     // Restore the original implementation
@@ -352,7 +352,7 @@ describe('SeerDrawer', () => {
     );
 
     // Both buttons should be visible, but Start Over should be disabled
-    expect(screen.getByTestId('autofix-button-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-button-bar')).toBeInTheDocument();
     const startOverButton = screen.getByRole('button', {name: 'Start Over'});
     expect(startOverButton).toBeInTheDocument();
     expect(startOverButton).toBeDisabled();
@@ -385,7 +385,7 @@ describe('SeerDrawer', () => {
     );
 
     // Both buttons should be visible, and Start Over should be enabled
-    expect(screen.getByTestId('autofix-button-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-button-bar')).toBeInTheDocument();
     const startOverButton = screen.getByRole('button', {name: 'Start Over'});
     expect(startOverButton).toBeInTheDocument();
     expect(startOverButton).toBeEnabled();
@@ -401,6 +401,10 @@ describe('SeerDrawer', () => {
       organization,
     });
 
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
   });
 
@@ -414,10 +418,12 @@ describe('SeerDrawer', () => {
       organization,
     });
 
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
-    expect(
-      await screen.findByRole('button', {name: 'Start Autofix'})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Start Seer'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start Over'})).toBeDisabled();
   });
 
@@ -431,12 +437,16 @@ describe('SeerDrawer', () => {
       organization,
     });
 
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
     const startOverButton = await screen.findByRole('button', {name: 'Start Over'});
     expect(startOverButton).toBeInTheDocument();
     await userEvent.click(startOverButton);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', {name: 'Start Autofix'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Start Seer'})).toBeInTheDocument();
     });
   });
 
@@ -471,7 +481,7 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByText('Autofix')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Seer'})).toBeInTheDocument();
 
     // Since "Install the GitHub Integration" text isn't found, let's check for
     // the "Set Up the GitHub Integration" text which is what the component is actually showing
@@ -505,7 +515,7 @@ describe('SeerDrawer', () => {
     );
 
     // We don't expect to see any notice about repositories since all are readable
-    expect(screen.queryByText(/Autofix can't access/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Seer can't access/)).not.toBeInTheDocument();
   });
 
   it('renders warning for unreadable GitHub repository', async () => {
@@ -533,7 +543,7 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
+    expect(screen.getByText(/Seer can't access the/)).toBeInTheDocument();
     expect(screen.getByText('org/repo')).toBeInTheDocument();
     expect(screen.getByText(/GitHub integration/)).toBeInTheDocument();
   });
@@ -563,7 +573,7 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
+    expect(screen.getByText(/Seer can't access the/)).toBeInTheDocument();
     expect(screen.getByText('org/gitlab-repo')).toBeInTheDocument();
     expect(
       screen.getByText(/It currently only supports GitHub repositories/)

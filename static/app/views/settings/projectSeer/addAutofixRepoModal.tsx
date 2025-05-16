@@ -114,7 +114,7 @@ export function AddAutofixRepoModalContent({
       <Body>
         {showMaxLimitAlert && (
           <Alert type="info" showIcon>
-            {t('Autofix is currently limited to %s repositories.', maxReposLimit)}
+            {t('Seer is currently limited to %s repositories.', maxReposLimit)}
           </Alert>
         )}
         <SearchContainer hasAlert={showMaxLimitAlert}>

@@ -95,7 +95,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }
               analyticsParams={{group_id: groupId}}
             >
-              {t('Start Autofix')}
+              {t('Start Seer')}
             </StyledButton>
           </InputWrapper>
         </Container>

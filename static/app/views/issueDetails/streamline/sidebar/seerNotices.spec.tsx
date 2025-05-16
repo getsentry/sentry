@@ -60,7 +60,7 @@ describe('SeerNotices', function () {
     expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
 
     // Test for text fragments with formatting
-    expect(screen.getByText(/Autofix is/, {exact: false})).toBeInTheDocument();
+    expect(screen.getByText(/Seer is/, {exact: false})).toBeInTheDocument();
     expect(screen.getByText('a lot better')).toBeInTheDocument();
     expect(
       screen.getByText(/when it has your codebase as context/, {exact: false})
@@ -70,7 +70,7 @@ describe('SeerNotices', function () {
     expect(screen.getByText(/Set up the/, {exact: false})).toBeInTheDocument();
     expect(screen.getByText('GitHub Integration', {selector: 'a'})).toBeInTheDocument();
     expect(
-      screen.getByText(/to allow Autofix to go deeper/, {exact: false})
+      screen.getByText(/to allow Seer to go deeper/, {exact: false})
     ).toBeInTheDocument();
 
     expect(screen.getByText('Set Up Now')).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe('SeerNotices', function () {
 
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
-    expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
+    expect(screen.getByText(/Seer can't access the/)).toBeInTheDocument();
     expect(screen.getByText('org/repo')).toBeInTheDocument();
     expect(screen.getByText(/GitHub integration/)).toBeInTheDocument();
   });
@@ -102,7 +102,7 @@ describe('SeerNotices', function () {
 
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
-    expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
+    expect(screen.getByText(/Seer can't access the/)).toBeInTheDocument();
     expect(screen.getByText('org/gitlab-repo')).toBeInTheDocument();
     expect(
       screen.getByText(/It currently only supports GitHub repositories/)
@@ -121,9 +121,7 @@ describe('SeerNotices', function () {
 
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
-    expect(
-      screen.getByText(/Autofix can't access these repositories:/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Seer can't access these repositories:/)).toBeInTheDocument();
     expect(screen.getByText('org/repo1, org/repo2')).toBeInTheDocument();
     expect(screen.getByText(/For best performance, enable the/)).toBeInTheDocument();
     expect(screen.getByText(/GitHub integration/)).toBeInTheDocument();
@@ -149,12 +147,10 @@ describe('SeerNotices', function () {
 
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
-    expect(
-      screen.getByText(/Autofix can't access these repositories:/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Seer can't access these repositories:/)).toBeInTheDocument();
     expect(screen.getByText('org/gitlab-repo1, org/bitbucket-repo2')).toBeInTheDocument();
     expect(
-      screen.getByText(/Autofix currently only supports GitHub repositories/)
+      screen.getByText(/Seer currently only supports GitHub repositories/)
     ).toBeInTheDocument();
   });
 
@@ -170,14 +166,12 @@ describe('SeerNotices', function () {
 
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
-    expect(
-      screen.getByText(/Autofix can't access these repositories:/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Seer can't access these repositories:/)).toBeInTheDocument();
     expect(screen.getByText('org/github-repo, org/gitlab-repo')).toBeInTheDocument();
     expect(screen.getByText(/For best performance, enable the/)).toBeInTheDocument();
     expect(screen.getByText(/GitHub integration/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Autofix currently only supports GitHub repositories/)
+      screen.getByText(/Seer currently only supports GitHub repositories/)
     ).toBeInTheDocument();
   });
 
@@ -198,9 +192,7 @@ describe('SeerNotices', function () {
     expect(screen.getByText('Set Up Now')).toBeInTheDocument();
 
     // Unreadable repos warning
-    expect(
-      screen.getByText(/Autofix can't access these repositories:/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Seer can't access these repositories:/)).toBeInTheDocument();
     expect(screen.getByText('org/repo1, org/repo2')).toBeInTheDocument();
   });
 
@@ -235,7 +227,7 @@ describe('SeerNotices', function () {
     // Should have both the GitHub setup card and the unreadable repos warning
     const setupCard = screen.getByText('Set Up the GitHub Integration').closest('div');
     const warningAlert = screen
-      .getByText(/Autofix can't access these repositories:/)
+      .getByText(/Seer can't access these repositories:/)
       .closest('div');
 
     expect(setupCard).toBeInTheDocument();
@@ -262,5 +254,17 @@ describe('SeerNotices', function () {
     await waitFor(() => {
       expect(screen.getByText('Pick Repositories to Work In')).toBeInTheDocument();
     });
+
+    const titleElement = screen.getByText('Pick Repositories to Work In');
+    const cardDescriptionElement = titleElement.nextElementSibling;
+    const firstSpanInDescription =
+      cardDescriptionElement?.querySelector('span:first-child');
+    expect(firstSpanInDescription?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'Seer is a lot better when it has your codebase as context.'
+    );
+
+    expect(
+      screen.getByText(/Open the Project Settings menu in the top right/)
+    ).toBeInTheDocument();
   });
 });
