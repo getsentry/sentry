@@ -216,18 +216,33 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         assert blocks[0]["text"]["text"] == fallback_text
 
         assert event1.group
-        event1_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event1.group.title}*>"
+        emoji = "red_circle"
+        event1_alert_title = {
+            "url": f"http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue",
+            "text": f"{event1.group.title}",
+        }
 
         assert event2.group
-        event2_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event2.group.title}*>"
+        event2_alert_title = {
+            "url": f"http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue",
+            "text": f"{event2.group.title}",
+        }
 
         # digest order not definitive
         try:
-            assert blocks[1]["text"]["text"] == event1_alert_title
-            assert blocks[5]["text"]["text"] == event2_alert_title
+            assert blocks[1]["elements"][0]["elements"][-1]["text"] == event1_alert_title["text"]
+            assert blocks[1]["elements"][0]["elements"][-1]["url"] == event1_alert_title["url"]
+            assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
+            assert blocks[5]["elements"][0]["elements"][-1]["text"] == event2_alert_title["text"]
+            assert blocks[5]["elements"][0]["elements"][-1]["url"] == event2_alert_title["url"]
+            assert blocks[5]["elements"][0]["elements"][0]["name"] == emoji
         except AssertionError:
-            assert blocks[1]["text"]["text"] == event2_alert_title
-            assert blocks[5]["text"]["text"] == event1_alert_title
+            assert blocks[1]["elements"][0]["elements"][-1]["text"] == event2_alert_title["text"]
+            assert blocks[1]["elements"][0]["elements"][-1]["url"] == event2_alert_title["url"]
+            assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
+            assert blocks[5]["elements"][0]["elements"][-1]["text"] == event1_alert_title["text"]
+            assert blocks[5]["elements"][0]["elements"][-1]["url"] == event1_alert_title["url"]
+            assert blocks[5]["elements"][0]["elements"][0]["name"] == emoji
 
         assert (
             blocks[3]["elements"][0]["text"]

@@ -98,11 +98,17 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         fallback_text = self.mock_post.call_args.kwargs["text"]
         assert fallback_text == f"Issue assigned to {self.name} by themselves"
         assert blocks[0]["text"]["text"] == fallback_text
-        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
-        assert (
-            blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+
+        notification_uuid = self.get_notification_uuid(
+            blocks[1]["elements"][0]["elements"][-1]["url"]
         )
+        emoji = "red_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned_activity-slack&notification_uuid={notification_uuid}"
+        text = f"{self.group.title}"
+        assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[1]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[1]["elements"][0]["elements"][-1]["text"] == text
+
         assert (
             blocks[3]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
