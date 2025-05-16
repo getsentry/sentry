@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {isIssueQuickFixable} from 'sentry/components/events/autofix/utils';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,11 +22,11 @@ function SeerBadge({group}: {group: Group}) {
   }
 
   return (
-    <Tooltip title={'This issue might be quick to fix'} skipWrapper>
+    <Tooltip title={t('This issue might be quick to fix')} skipWrapper>
       <Wrapper>
         <Divider />
         <SeerIcon size="sm" />
-        {seerFixable && <span>Quick Fix</span>}
+        {seerFixable && <span>{t('Quick Fix')}</span>}
       </Wrapper>
     </Tooltip>
   );

@@ -7,6 +7,7 @@ import {
   isIssueQuickFixable,
 } from 'sentry/components/events/autofix/utils';
 import Link from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -28,11 +29,11 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
 
   let seerTitle = null;
   if (autofixRunExists && seerFixable) {
-    seerTitle = 'Seer has a potential quick fix for this issue';
+    seerTitle = t('Seer has a potential quick fix for this issue');
   } else if (autofixRunExists) {
-    seerTitle = 'Seer has insight into this issue';
+    seerTitle = t('Seer has insight into this issue');
   } else if (seerFixable) {
-    seerTitle = 'This issue might be quick to fix';
+    seerTitle = t('This issue might be quick to fix');
   }
 
   if (!showSeer) {
@@ -43,7 +44,7 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
     <Tooltip title={seerTitle} skipWrapper>
       <SeerLink to={{pathname: `${issuesPath}${group.id}`, query: {seerDrawer: true}}}>
         <SeerIcon size="sm" />
-        {seerFixable && <p>Quick Fix</p>}
+        {seerFixable && <p>{t('Quick Fix')}</p>}
       </SeerLink>
     </Tooltip>
   );
