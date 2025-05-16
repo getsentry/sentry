@@ -33,7 +33,7 @@ from sentry.profiles.task import (
 from sentry.profiles.utils import Profile
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
-from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
@@ -1093,6 +1093,7 @@ def test_track_latest_sdk_with_payload(
     [
         pytest.param("sample_v1_profile", DataCategory.PROFILE, "2.23.0", False),
         pytest.param("sample_v2_profile", DataCategory.PROFILE_CHUNK, "2.23.0", True),
+        pytest.param("sample_v2_profile", DataCategory.PROFILE_CHUNK, "2.24.0", False),
         pytest.param("sample_v2_profile", DataCategory.PROFILE_CHUNK, "2.24.1", False),
     ],
 )
@@ -1121,7 +1122,13 @@ def test_deprecated_sdks(
             "organizations:profiling-deprecate-sdks",
         ]
     ):
-        process_profile_task(profile=profile)
+        with override_options(
+            {
+                "sdk-deprecation.profile-chunk.python": "2.24.1",
+                "sdk-deprecation.profile-chunk.python.hard": "2.24.0",
+            }
+        ):
+            process_profile_task(profile=profile)
 
     if dropped:
         _push_profile_to_vroom.assert_not_called()

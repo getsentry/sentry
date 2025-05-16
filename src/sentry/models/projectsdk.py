@@ -180,7 +180,9 @@ MINIMUM_SDK_VERSION_OPTIONS: dict[tuple[int, str], str] = {
 }
 
 
-def get_minimum_sdk_version(event_type: int, sdk_name: str) -> Version | None:
+def get_minimum_sdk_version(
+    event_type: int, sdk_name: str, hard_limit: bool = False
+) -> Version | None:
     parts = sdk_name.split(".", 2)
     if len(parts) < 2:
         return None
@@ -191,7 +193,11 @@ def get_minimum_sdk_version(event_type: int, sdk_name: str) -> Version | None:
     if sdk_version_option is None:
         return None
 
-    sdk_version = options.get(sdk_version_option)
+    if hard_limit:
+        sdk_version = options.get(f"{sdk_version_option}.hard")
+    else:
+        sdk_version = options.get(sdk_version_option)
+
     if sdk_version:
         try:
             return parse_version(sdk_version)

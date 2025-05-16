@@ -1246,7 +1246,7 @@ def determine_client_sdk(profile: Profile, event_type: EventType) -> tuple[str, 
 
 
 def is_sdk_deprecated(event_type: EventType, sdk_name: str, sdk_version: str) -> bool:
-    minimum_version = get_minimum_sdk_version(event_type.value, sdk_name)
+    minimum_version = get_minimum_sdk_version(event_type.value, sdk_name, hard_limit=True)
 
     # no minimum sdk version was specified
     if minimum_version is None:
