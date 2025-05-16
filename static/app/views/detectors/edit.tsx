@@ -17,7 +17,7 @@ export default function DetectorEdit() {
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
   const [title, setTitle] = useState(t('Edit Monitor'));
-  const model = new FormModel();
+  const [model] = useState(() => new FormModel());
 
   return (
     <SentryDocumentTitle title={title} noSuffix>
