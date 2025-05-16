@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Tag} from 'sentry/components/core/badge/tag';
 import {DateTime} from 'sentry/components/dateTime';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import {space} from 'sentry/styles/space';
 import {
   type Column,
   RIGHT_ALIGNED_FIELDS,
@@ -31,9 +33,13 @@ export function renderTableBody({column, row}: TableBodyProps) {
   }
 
   if (key === 'flakeRate') {
-    // Add isBrokenTest
-    // const isBrokenTest = row.isBrokenTest;
-    return <NumberContainer>{value}%</NumberContainer>;
+    const isBrokenTest = row.isBrokenTest;
+    return (
+      <NumberContainer>
+        {isBrokenTest && <StyledTag type={'highlight'}>Broken test</StyledTag>}
+        {value}%
+      </NumberContainer>
+    );
   }
 
   if (key === 'commitsFailed') {
@@ -66,4 +72,8 @@ const NumberContainer = styled('div')`
   text-align: right;
   font-variant-numeric: tabular-nums;
   ${p => p.theme.overflowEllipsis};
+`;
+
+const StyledTag = styled(Tag)`
+  margin-right: ${space(1.5)};
 `;
