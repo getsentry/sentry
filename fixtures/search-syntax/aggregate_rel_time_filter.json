@@ -67,7 +67,7 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "random", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "-2w", "quoted": false}
+        "value": {"type": "valueText", "value": "-2w", "quoted": false, "contains": false}
       },
       {"type": "spaces", "value": ""}
     ]

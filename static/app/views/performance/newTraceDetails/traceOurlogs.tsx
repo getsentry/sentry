@@ -2,6 +2,7 @@ import type React from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Panel from 'sentry/components/panels/panel';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,6 +23,7 @@ import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQ
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
@@ -46,12 +48,23 @@ export function TraceViewLogsDataProvider({
 export function TraceViewLogsSection() {
   const tableData = useLogsPageData();
   const logsSearch = useLogsSearch();
+  const hasTraceTabsUi = useHasTraceTabsUI();
+
+  if (hasTraceTabsUi) {
+    return (
+      <StyledPanel>
+        <LogsSectionContent tableData={tableData.logsData} />
+      </StyledPanel>
+    );
+  }
+
   if (
     !tableData?.logsData ||
     (tableData.logsData.data.length === 0 && logsSearch.isEmpty())
   ) {
     return null;
   }
+
   return (
     <FoldSection
       sectionKey={TraceContextSectionKeys.LOGS as string as SectionKey}
@@ -90,4 +103,9 @@ function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult})
 
 const TableContainer = styled('div')`
   margin-top: ${space(2)};
+`;
+
+const StyledPanel = styled(Panel)`
+  padding: ${space(2)};
+  margin: 0;
 `;

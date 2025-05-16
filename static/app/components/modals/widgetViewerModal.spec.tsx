@@ -230,28 +230,24 @@ describe('Modals -> WidgetViewerModal', function () {
 
       it('renders Edit and Open buttons', async function () {
         mockEvents();
-        await renderModal({initialData, widget: mockWidget});
+        await renderModal({
+          initialData,
+          widget: {...mockWidget, widgetType: WidgetType.ERRORS},
+        });
         expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
         expect(screen.getByText('Open in Discover')).toBeInTheDocument();
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeEnabled();
       });
 
       it('renders Open button disabled for discover widget if dataset selector flag enabled', async function () {
-        const initData = {
-          ...initialData,
-          organization: {
-            ...initialData.organization,
-            features: [
-              ...initialData.organization.features,
-              'performance-discover-dataset-selector',
-            ],
-          },
-        };
         mockEvents();
-        await renderModal({initialData: initData, widget: mockWidget});
+        await renderModal({initialData, widget: mockWidget});
         expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
         expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
       });
 
       it('renders updated table columns and orderby', async function () {
@@ -309,10 +305,13 @@ describe('Modals -> WidgetViewerModal', function () {
 
       it('redirects user to Discover when clicking Open in Discover', async function () {
         mockEvents();
-        await renderModal({initialData, widget: mockWidget});
+        await renderModal({
+          initialData,
+          widget: {...mockWidget, widgetType: WidgetType.ERRORS},
+        });
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
@@ -388,20 +387,26 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEvents();
         initialData.router.location.query = {query: ['7']};
 
-        await renderModal({initialData, widget: mockWidget});
+        await renderModal({
+          initialData,
+          widget: {...mockWidget, widgetType: WidgetType.ERRORS},
+        });
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
       it('renders the correct discover query link when there are multiple queries in a widget', async function () {
         mockEvents();
         initialData.router.location.query = {query: ['1']};
-        await renderModal({initialData, widget: mockWidget});
+        await renderModal({
+          initialData,
+          widget: {...mockWidget, widgetType: WidgetType.ERRORS},
+        });
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
@@ -1026,7 +1031,10 @@ describe('Modals -> WidgetViewerModal', function () {
             widgetType: 'discover',
           },
         });
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
 
         await userEvent.hover(screen.getByRole('button', {name: 'Open in Discover'}));
         expect(await screen.findByText(performanceScoreTooltip)).toBeInTheDocument();
@@ -1307,7 +1315,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Open in Releases'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/releases/?environment=prod&environment=dev&project=1&project=2&statsPeriod=24h'
+        '/organizations/org-slug/releases/?environment=prod&environment=dev&project=1&project=2&query=&statsPeriod=24h'
       );
     });
 

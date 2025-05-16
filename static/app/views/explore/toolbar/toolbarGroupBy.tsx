@@ -23,8 +23,9 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 
 import {
+  ToolbarFooter,
+  ToolbarFooterButton,
   ToolbarHeader,
-  ToolbarHeaderButton,
   ToolbarLabel,
   ToolbarRow,
   ToolbarSection,
@@ -90,15 +91,6 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
               >
                 <ToolbarLabel>{t('Group By')}</ToolbarLabel>
               </Tooltip>
-              <Tooltip title={t('Add a new group')}>
-                <ToolbarHeaderButton
-                  size="zero"
-                  onClick={insertColumn}
-                  borderless
-                  aria-label={t('Add Group')}
-                  icon={<IconAdd />}
-                />
-              </Tooltip>
             </ToolbarHeader>
             {editableColumns.map((column, i) => (
               <ColumnEditorRow
@@ -110,6 +102,18 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
                 onColumnDelete={() => deleteColumnAtIndex(i)}
               />
             ))}
+            <ToolbarFooter>
+              <ToolbarFooterButton
+                borderless
+                size="zero"
+                icon={<IconAdd />}
+                onClick={insertColumn}
+                priority="link"
+                aria-label={t('Add Group')}
+              >
+                {t('Add Group')}
+              </ToolbarFooterButton>
+            </ToolbarFooter>
           </ToolbarSection>
         );
       }}

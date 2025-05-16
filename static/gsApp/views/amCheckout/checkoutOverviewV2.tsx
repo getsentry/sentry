@@ -182,89 +182,88 @@ function CheckoutOverviewV2({
       <Section>
         <Subtitle>{t('All Sentry Products')}</Subtitle>
         <ReservedVolumes>
-          {activePlan.categories.map(category => {
-            const eventBucket =
-              activePlan.planCategories[category] &&
-              activePlan.planCategories[category].length <= 1
-                ? null
-                : utils.getBucket({
-                    events: formData.reserved[category],
-                    buckets: activePlan.planCategories[category],
-                  });
-            const price = utils.displayPrice({
-              cents: eventBucket ? eventBucket.price : 0,
-            });
-            const isMoreThanIncluded =
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              formData.reserved[category] > activePlan.planCategories[category][0].events;
-            return (
-              <SpaceBetweenRow
-                key={category}
-                data-test-id={`${category}-reserved`}
-                style={{alignItems: 'center'}}
-              >
-                <ReservedItem>
-                  {
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    formData.reserved[category] > 0 && (
+          {activePlan.categories
+            .filter(category => activePlan.planCategories[category])
+            .map(category => {
+              const eventBucket =
+                activePlan.planCategories[category] &&
+                activePlan.planCategories[category].length <= 1
+                  ? null
+                  : utils.getBucket({
+                      events: formData.reserved[category],
+                      buckets: activePlan.planCategories[category],
+                    });
+              const price = utils.displayPrice({
+                cents: eventBucket ? eventBucket.price : 0,
+              });
+              const isMoreThanIncluded =
+                (formData.reserved[category] ?? 0) >
+                (activePlan.planCategories[category]?.[0]?.events ?? 0);
+              return (
+                <SpaceBetweenRow
+                  key={category}
+                  data-test-id={`${category}-reserved`}
+                  style={{alignItems: 'center'}}
+                >
+                  <ReservedItem>
+                    {(formData.reserved[category] ?? 0) > 0 && (
                       <Fragment>
                         <EmphasisText>
-                          {
-                            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                            formatReservedWithUnits(formData.reserved[category], category)
-                          }
+                          {formatReservedWithUnits(
+                            formData.reserved[category] ?? 0,
+                            category
+                          )}
                         </EmphasisText>{' '}
                       </Fragment>
-                    )
-                  }
-                  {formData.reserved[category] === 1 &&
-                  category !== DataCategory.ATTACHMENTS
-                    ? getSingularCategoryName({
-                        plan: activePlan,
-                        category,
-                        title: true,
-                      })
-                    : getPlanCategoryName({
-                        plan: activePlan,
-                        category,
-                        title: true,
-                      })}
-                  {paygCategories.includes(category) ? (
-                    <QuestionTooltip
-                      size="xs"
-                      title={t(
-                        "%s use your pay-as-you-go budget. You'll only be charged for actual usage.",
-                        getPlanCategoryName({
+                    )}
+                    {formData.reserved[category] === 1 &&
+                    category !== DataCategory.ATTACHMENTS
+                      ? getSingularCategoryName({
                           plan: activePlan,
                           category,
+                          title: true,
                         })
-                      )}
-                    />
-                  ) : null}
-                </ReservedItem>
-                <Price>
-                  {isMoreThanIncluded ? (
-                    `+ ${price}/${shortInterval}`
-                  ) : (
-                    <Tag
-                      icon={
-                        hasPaygProducts ||
-                        activePlan.checkoutCategories.includes(category) ? undefined : (
-                          <IconLock locked size="xs" />
-                        )
-                      }
-                    >
-                      {activePlan.checkoutCategories.includes(category)
-                        ? t('Included')
-                        : hasPaygProducts
-                          ? t('Available')
-                          : t('Product not available')}
-                    </Tag>
-                  )}
-                </Price>
-              </SpaceBetweenRow>
-            );
-          })}
+                      : getPlanCategoryName({
+                          plan: activePlan,
+                          category,
+                          title: true,
+                        })}
+                    {paygCategories.includes(category) ? (
+                      <QuestionTooltip
+                        size="xs"
+                        title={t(
+                          "%s use your pay-as-you-go budget. You'll only be charged for actual usage.",
+                          getPlanCategoryName({
+                            plan: activePlan,
+                            category,
+                          })
+                        )}
+                      />
+                    ) : null}
+                  </ReservedItem>
+                  <Price>
+                    {isMoreThanIncluded ? (
+                      `+ ${price}/${shortInterval}`
+                    ) : (
+                      <Tag
+                        icon={
+                          hasPaygProducts ||
+                          activePlan.checkoutCategories.includes(category) ? undefined : (
+                            <IconLock locked size="xs" />
+                          )
+                        }
+                      >
+                        {activePlan.checkoutCategories.includes(category)
+                          ? t('Included')
+                          : hasPaygProducts
+                            ? t('Available')
+                            : t('Product not available')}
+                      </Tag>
+                    )}
+                  </Price>
+                </SpaceBetweenRow>
+              );
+            })}
         </ReservedVolumes>
       </Section>
     );

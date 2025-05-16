@@ -73,6 +73,8 @@ export enum FieldKey {
   ISSUE = 'issue',
   ISSUE_CATEGORY = 'issue.category',
   ISSUE_PRIORITY = 'issue.priority',
+  ISSUE_SEER_ACTIONABILITY = 'issue.seer_actionability',
+  ISSUE_SEER_LAST_RUN = 'issue.seer_last_run',
   ISSUE_TYPE = 'issue.type',
   LAST_SEEN = 'lastSeen',
   LEVEL = 'level',
@@ -1522,6 +1524,18 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
+  [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
+    desc: t('How actionable the issue is, determined by Seer'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [FieldKey.ISSUE_SEER_LAST_RUN]: {
+    desc: t('The last time Seer attempted to auto-fix the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+    allowWildcard: false,
+  },
   [FieldKey.ISSUE_TYPE]: {
     desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
     kind: FieldKind.FIELD,
@@ -1894,6 +1908,8 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.IS,
   FieldKey.ISSUE_CATEGORY,
   FieldKey.ISSUE_PRIORITY,
+  FieldKey.ISSUE_SEER_ACTIONABILITY,
+  FieldKey.ISSUE_SEER_LAST_RUN,
   FieldKey.ISSUE_TYPE,
   FieldKey.ISSUE,
   FieldKey.LAST_SEEN,
@@ -2240,6 +2256,9 @@ export const REPLAY_FIELDS = [
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
   ReplayFieldKey.VIEWED_BY_ME,
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {

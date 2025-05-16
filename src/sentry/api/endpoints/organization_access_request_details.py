@@ -15,7 +15,6 @@ from sentry.api.serializers import serialize
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +144,6 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                         organizationmember=access_request.member, team=access_request.team
                     )
             except IntegrityError:
-                incr_rollback_metrics(OrganizationMemberTeam)
                 pass
             else:
                 self.create_audit_entry(
