@@ -22,7 +22,6 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/types';
@@ -52,7 +51,6 @@ const checkStatusToIndicatorStatus: Record<
 const PER_PAGE = 10;
 
 export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
-  const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -88,9 +86,6 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
     t('Expected At'),
   ];
 
-  const customTimezone =
-    monitor.config.timezone && monitor.config.timezone !== user.options.timezone;
-
   return (
     <Fragment>
       <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
@@ -120,19 +115,7 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                   emptyCell
                 ) : (
                   <div>
-                    <Tooltip
-                      disabled={!customTimezone}
-                      title={
-                        <DateTime
-                          date={checkIn.dateAdded}
-                          forcedTimezone={monitor.config.timezone ?? 'UTC'}
-                          timeZone
-                          seconds
-                        />
-                      }
-                    >
-                      <DateTime date={checkIn.dateAdded} timeZone seconds />
-                    </Tooltip>
+                    <DateTime date={checkIn.dateAdded} timeZone seconds />
                   </div>
                 )}
                 {defined(checkIn.duration) ? (
@@ -189,19 +172,7 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                 {hasMultiEnv ? <div>{checkIn.environment}</div> : null}
                 <div>
                   {checkIn.expectedTime ? (
-                    <Tooltip
-                      disabled={!customTimezone}
-                      title={
-                        <DateTime
-                          date={checkIn.expectedTime}
-                          forcedTimezone={monitor.config.timezone ?? 'UTC'}
-                          timeZone
-                          seconds
-                        />
-                      }
-                    >
-                      <Timestamp date={checkIn.expectedTime} timeZone seconds />
-                    </Tooltip>
+                    <Timestamp date={checkIn.expectedTime} timeZone seconds />
                   ) : (
                     emptyCell
                   )}
