@@ -12,6 +12,8 @@ describe('utils', function () {
   const teamPlanAnnual = PlanDetailsLookupFixture('am1_team_auf')!;
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
   const bizPlanAnnual = PlanDetailsLookupFixture('am1_business_auf')!;
+  const am3TeamPlan = PlanDetailsLookupFixture('am3_team')!;
+  const am3TeamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
   const DEFAULT_SELECTED_PRODUCTS = {
     [SelectableProduct.SEER]: {
       enabled: false,
@@ -84,17 +86,40 @@ describe('utils', function () {
       expect(priceDollars).toBe('1,992');
     });
 
-    it('includes Seer budget in the total when enabled', function () {
+    it('includes Seer price in the total when enabled', function () {
       const priceDollars = utils.getReservedTotal({
-        plan: teamPlan,
+        plan: am3TeamPlan,
         reserved: {
           errors: 50_000,
-          transactions: 100_000,
+          spans: 10_000_000,
+          replays: 50,
           attachments: 1,
         },
-        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
+        selectedProducts: {
+          [SelectableProduct.SEER]: {
+            enabled: true,
+          },
+        },
       });
       expect(priceDollars).toBe('49');
+    });
+
+    it('includes Seer annual price in the total when enabled', function () {
+      const priceDollars = utils.getReservedTotal({
+        plan: am3TeamPlanAnnual,
+        reserved: {
+          errors: 50_000,
+          spans: 10_000_000,
+          replays: 50,
+          attachments: 1,
+        },
+        selectedProducts: {
+          [SelectableProduct.SEER]: {
+            enabled: true,
+          },
+        },
+      });
+      expect(priceDollars).toBe('528');
     });
 
     it('does not include Seer budget when not enabled', function () {
