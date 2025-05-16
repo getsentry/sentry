@@ -4,6 +4,7 @@ import {useMemo} from 'react';
 import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
 
 const context = require.context('sentry', true, /\.stories.tsx$/, 'lazy');
+const mdxContext = require.context('sentry', true, /\.mdx$/, 'lazy');
 
 export interface StoryDescriptor {
   exports: Record<string, React.ComponentType | any>;
@@ -11,12 +12,25 @@ export interface StoryDescriptor {
 }
 
 export function useStoryBookFiles() {
-  return useMemo(() => context.keys().map(file => file.replace(/^\.\//, 'app/')), []);
+  return useMemo(
+    () =>
+      [...context.keys(), ...mdxContext.keys()].map(file =>
+        file.replace(/^\.\//, 'app/')
+      ),
+    []
+  );
 }
 
 async function importStory(filename: string): Promise<StoryDescriptor> {
-  const story = await context(filename.replace(/^app\//, './'));
+  if (filename.endsWith('.mdx')) {
+    const story = await mdxContext(filename.replace(/^app\//, './'));
+    return {
+      exports: story,
+      filename,
+    };
+  }
 
+  const story = await context(filename.replace(/^app\//, './'));
   return {
     exports: story,
     filename,
