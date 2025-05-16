@@ -2256,6 +2256,9 @@ export const REPLAY_FIELDS = [
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
   ReplayFieldKey.VIEWED_BY_ME,
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {

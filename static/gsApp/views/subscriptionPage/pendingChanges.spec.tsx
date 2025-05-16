@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
@@ -482,6 +483,32 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
   });
 
+  it('does not render reserved budget changes', function () {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      reservedBudgets: [SeerReservedBudgetFixture({})],
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_business'),
+        plan: 'am3_business',
+        planName: 'Business',
+        reserved: {
+          errors: 100_000,
+        },
+      }),
+    });
+    sub.categories = {
+      ...sub.categories,
+      seerAutofix: MetricHistoryFixture({...sub.categories.seerAutofix, reserved: 0}),
+      seerScanner: MetricHistoryFixture({...sub.categories.seerScanner, reserved: 0}),
+    };
+
+    render(<PendingChanges organization={organization} subscription={sub} />);
+    expect(screen.getByText('Reserved errors change to 100,000')).toBeInTheDocument();
+    expect(screen.queryByText(/product access/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/budget change/)).not.toBeInTheDocument();
+  });
+
   it('renders reserved budgets with existing budgets without dynamic sampling', function () {
     const sub = Am3DsEnterpriseSubscriptionFixture({
       organization,
@@ -511,7 +538,10 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
     expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(screen.getByText('Spans Budget updated to $50,000')).toBeInTheDocument();
+    expect(
+      screen.getByText('Spans budget change from $100,000 to $50,000')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
   });
 
   it('renders reserved budgets with existing budgets and dynamic sampling', function () {
@@ -542,7 +572,46 @@ describe('Subscription > PendingChanges', function () {
     render(<PendingChanges organization={organization} subscription={sub} />);
 
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(screen.getByText('Spans Budget updated to $50,000')).toBeInTheDocument();
+    expect(
+      screen.getByText('Spans budget change from $100,000 to $50,000')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
+  });
+
+  it('renders fixed budget changes', function () {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      hasReservedBudgets: true,
+      reservedBudgets: [SeerReservedBudgetFixture({})],
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_team'),
+        plan: 'am3_team',
+        planName: 'Team',
+        reserved: {
+          seerAutofix: 0,
+          seerScanner: 0,
+        },
+      }),
+    });
+    sub.categories = {
+      ...sub.categories,
+      seerAutofix: MetricHistoryFixture({
+        ...sub.categories.seerAutofix,
+        reserved: RESERVED_BUDGET_QUOTA,
+      }),
+      seerScanner: MetricHistoryFixture({
+        ...sub.categories.seerScanner,
+        reserved: RESERVED_BUDGET_QUOTA,
+      }),
+    };
+
+    render(<PendingChanges organization={organization} subscription={sub} />);
+
+    expect(screen.getByText('Seer product access will be disabled')).toBeInTheDocument();
+    expect(screen.queryByText('Seer budget')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reserved issue fixes/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reserved issue scans/)).not.toBeInTheDocument();
   });
 
   it('renders multiple reserved budgets', function () {
@@ -580,10 +649,11 @@ describe('Subscription > PendingChanges', function () {
 
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Spans Budget updated to $50,000 and Errors Budget updated to $10,000'
-      )
+      screen.getByText('Spans budget change from $100,000 to $50,000')
     ).toBeInTheDocument();
+    expect(screen.getByText('Errors budget change to $10,000')).toBeInTheDocument();
+    expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reserved errors/)).not.toBeInTheDocument();
   });
 
   it('renders reserved budgets without existing budgets', function () {
@@ -615,7 +685,8 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
     expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(screen.getByText('Spans Budget updated to $50,000')).toBeInTheDocument();
+    expect(screen.getByText('Spans budget change to $50,000')).toBeInTheDocument();
+    expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
     expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
   });
 
@@ -637,7 +708,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
     expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(screen.queryByText('Spans Budget')).not.toBeInTheDocument();
+    expect(screen.queryByText('Spans budget')).not.toBeInTheDocument();
     expect(screen.getByText('Reserved spans change to 10,000,000')).toBeInTheDocument();
     expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
   });
