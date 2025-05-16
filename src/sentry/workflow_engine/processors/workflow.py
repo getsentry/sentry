@@ -4,7 +4,7 @@ from enum import StrEnum
 
 import sentry_sdk
 from django.db import router, transaction
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 
 from sentry import buffer, features
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -17,6 +17,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Detector,
     Workflow,
+    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
@@ -121,9 +122,10 @@ def evaluate_workflows_action_filters(
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
+    environment_query = WorkflowDataConditionGroup.objects.select_related("workflow__environment")
     action_conditions = (
         DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow__in=workflows)
-        .prefetch_related("workflowdataconditiongroup_set")
+        .prefetch_related(Prefetch("workflowdataconditiongroup_set", queryset=environment_query))
         .distinct()
     )
 
@@ -131,7 +133,11 @@ def evaluate_workflows_action_filters(
         workflow_event_data = event_data
 
         # each DataConditionGroup here has 1 WorkflowDataConditionGroup
-        workflow_data_condition_group = action_condition.workflowdataconditiongroup_set.first()
+        workflow_data_condition_group = (
+            list(action_condition.workflowdataconditiongroup_set.all())[0]
+            if action_condition.workflowdataconditiongroup_set.exists()
+            else None
+        )
 
         # Populate the workflow_env in the event_data for the action_condition evaluation
         if workflow_data_condition_group:
@@ -224,7 +230,9 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             (Q(environment_id=None) | Q(environment_id=environment.id)),
             detectorworkflow__detector_id=detector.id,
             enabled=True,
-        ).distinct()
+        )
+        .select_related("when_condition_group")
+        .distinct()
     )
 
     if workflows:
