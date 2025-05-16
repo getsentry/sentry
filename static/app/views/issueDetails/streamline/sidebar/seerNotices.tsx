@@ -153,7 +153,10 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
           </Fragment>
         )}
         {nonGithubRepos.length > 0 && (
-          <Fragment> {t('Seer currently only supports GitHub repositories.')}</Fragment>
+          <Fragment> 
+            {' '}
+            {t('Seer currently only supports GitHub repositories.')}
+          </Fragment>
         )}
       </Alert>
     );
