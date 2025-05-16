@@ -507,34 +507,30 @@ function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}
   const orgSlug = useOrganization().slug;
 
   return useMutation({
-    mutationFn: async (params: {
+    mutationFn: (params: {
       message: string;
       retain_insight_card_index: number | null;
       step_index: number;
     }) => {
-      try {
-        const response = await api.requestPromise(
-          `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
-          {
-            method: 'POST',
-            data: {
-              run_id: runId,
-              payload: {
-                type: 'restart_from_point_with_feedback',
-                message: params.message.trim(),
-                step_index: params.step_index,
-                retain_insight_card_index: params.retain_insight_card_index,
-              },
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'restart_from_point_with_feedback',
+              message: params.message.trim(),
+              step_index: params.step_index,
+              retain_insight_card_index: params.retain_insight_card_index,
             },
-          }
-        );
-        queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
-        addSuccessMessage(t('Rethinking this...'));
-        return response;
-      } catch (e) {
-        addErrorMessage(t('Something went wrong when sending Seer your message.'));
-        throw e;
-      }
+          },
+        }
+      );
+    },
+    onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      addSuccessMessage(t('Rethinking this...'));
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending Seer your message.'));
