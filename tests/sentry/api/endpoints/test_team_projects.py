@@ -408,7 +408,6 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert symbol_sources == ["nvidia", "ubuntu"]
 
-
     def test_builtin_symbol_sources_godot(self):
         """
         Test that project option for builtin symbol sources contains relevant buckets
