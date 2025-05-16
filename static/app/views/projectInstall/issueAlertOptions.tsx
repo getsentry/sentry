@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
@@ -126,6 +127,18 @@ export default function IssueAlertOptions({
   notificationProps,
   threshold = '10',
 }: IssueAlertOptionsProps) {
+  useEffect(() => {
+    onChange(
+      getRequestDataFragment({
+        alertSetting,
+        interval,
+        metric,
+        threshold,
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const issueAlertOptionsChoices: Array<[RuleAction, React.ReactNode]> = [
     [RuleAction.DEFAULT_ALERT, t('Alert me on high priority issues')],
     [

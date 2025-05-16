@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
@@ -18,6 +18,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
+import type {Platform} from 'sentry/components/platformPicker';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t, tct} from 'sentry/locale';
@@ -136,6 +137,7 @@ export function CreateProject() {
   const organization = useOrganization();
   const location = useLocation();
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
+  const canUserCreateProject = useCanCreateProject();
   const createProject = useCreateProject();
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
@@ -196,14 +198,12 @@ export function CreateProject() {
   const defaultTeam = accessTeams?.[0]?.slug;
 
   const initialData: FormData = useMemo(() => {
-    const context = autoFill ? createdProject : null;
-
-    if (context) {
+    if (autoFill && createdProject) {
       return {
-        projectName: context.name ?? '',
-        platform: context.platform,
-        team: context.team ?? defaultTeam,
-        alertRuleConfig: context.alertRule ?? {},
+        projectName: createdProject.name ?? '',
+        platform: createdProject.platform,
+        team: createdProject.team ?? defaultTeam,
+        alertRuleConfig: createdProject.alertRule ?? {},
       };
     }
 
@@ -216,6 +216,34 @@ export function CreateProject() {
   }, [autoFill, defaultTeam, createdProject]);
 
   const [formData, setFormData] = useState<FormData>(initialData);
+
+  const canCreateTeam = organization.access.includes('project:admin');
+  const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
+
+  const missingValues = getMissingValues({
+    isOrgMemberWithNoAccess,
+    notificationProps,
+    projectName: formData.projectName,
+    team: formData.team,
+    shouldCreateCustomRule: formData.alertRuleConfig?.shouldCreateCustomRule,
+    shouldCreateRule: formData.alertRuleConfig?.shouldCreateRule,
+    conditions: formData.alertRuleConfig?.conditions,
+  });
+
+  const formErrorCount = [
+    missingValues.isMissingTeam,
+    missingValues.isMissingProjectName,
+    missingValues.isMissingAlertThreshold,
+    missingValues.isMissingMessagingIntegrationChannel,
+  ].filter(value => value).length;
+
+  const canSubmitForm =
+    !createProject.isPending && canUserCreateProject && formErrorCount === 0;
+
+  const submitTooltipText = getSubmitTooltipText({
+    ...missingValues,
+    formErrorCount,
+  });
 
   const updateFormData = useCallback(
     <K extends keyof FormData>(field: K, value: FormData[K]) => {
@@ -380,35 +408,34 @@ export function CreateProject() {
     [configurePlatform, organization]
   );
 
-  const canUserCreateProject = useCanCreateProject();
+  const handlePlatformChange = useCallback(
+    (value: Platform | null) => {
+      if (!value) {
+        updateFormData('platform', {
+          // By unselecting a platform, we don't want to jump to another category
+          category: formData.platform?.category,
+        });
+        return;
+      }
 
-  const canCreateTeam = organization.access.includes('project:admin');
-  const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
+      updateFormData('platform', {
+        ...omit(value, 'id'),
+        key: value.id,
+      });
 
-  const missingValues = getMissingValues({
-    isOrgMemberWithNoAccess,
-    notificationProps,
-    projectName: formData.projectName,
-    team: formData.team,
-    shouldCreateCustomRule: formData.alertRuleConfig?.shouldCreateCustomRule,
-    shouldCreateRule: formData.alertRuleConfig?.shouldCreateRule,
-    conditions: formData.alertRuleConfig?.conditions,
-  });
+      const userModifiedName =
+        !!formData.projectName && formData.projectName !== formData.platform?.key;
+      const newName = userModifiedName ? formData.projectName : value.id;
 
-  const formErrorCount = [
-    missingValues.isMissingTeam,
-    missingValues.isMissingProjectName,
-    missingValues.isMissingAlertThreshold,
-    missingValues.isMissingMessagingIntegrationChannel,
-  ].filter(value => value).length;
-
-  const canSubmitForm =
-    !createProject.isPending && canUserCreateProject && formErrorCount === 0;
-
-  const submitTooltipText = getSubmitTooltipText({
-    ...missingValues,
-    formErrorCount,
-  });
+      updateFormData('projectName', newName);
+    },
+    [
+      updateFormData,
+      formData.projectName,
+      formData.platform?.key,
+      formData.platform?.category,
+    ]
+  );
 
   return (
     <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
@@ -425,114 +452,91 @@ export function CreateProject() {
               }
             )}
           </HelpText>
-          <Fragment>
-            <StyledListItem>{t('Choose your platform')}</StyledListItem>
-            <PlatformPicker
-              platform={formData.platform?.key}
-              defaultCategory={formData.platform?.category}
-              setPlatform={value => {
-                if (!value) {
-                  updateFormData('platform', {
-                    // By unselecting a platform, we don't want to jump to another category
-                    category: formData.platform?.category,
-                  });
-                  return;
-                }
-
-                updateFormData('platform', {
-                  ...omit(value, 'id'),
-                  key: value.id,
-                });
-
-                const userModifiedName =
-                  !!formData.projectName &&
-                  formData.projectName !== formData.platform?.key;
-                const newName = userModifiedName ? formData.projectName : value.id;
-
-                updateFormData('projectName', newName);
-              }}
-              organization={organization}
-              showOther
-              noAutoFilter
-            />
-            <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
-            <IssueAlertOptions
-              alertSetting={
-                formData.alertRuleConfig?.shouldCreateCustomRule
-                  ? RuleAction.CUSTOMIZED_ALERTS
-                  : formData.alertRuleConfig?.shouldCreateRule
-                    ? RuleAction.DEFAULT_ALERT
-                    : RuleAction.CREATE_ALERT_LATER
-              }
-              interval={formData.alertRuleConfig?.conditions?.[0]?.interval}
-              threshold={formData.alertRuleConfig?.conditions?.[0]?.value}
-              metric={
-                formData.alertRuleConfig?.conditions?.[0]?.id.endsWith(
-                  'EventFrequencyCondition'
-                )
-                  ? MetricValues.ERRORS
-                  : MetricValues.USERS
-              }
-              onChange={value => {
-                updateFormData('alertRuleConfig', value);
-              }}
-              notificationProps={notificationProps}
-            />
-            <StyledListItem>{t('Name your project and assign it a team')}</StyledListItem>
-            <FormFieldGroup>
+          <StyledListItem>{t('Choose your platform')}</StyledListItem>
+          <PlatformPicker
+            platform={formData.platform?.key}
+            defaultCategory={formData.platform?.category}
+            setPlatform={handlePlatformChange}
+            organization={organization}
+            showOther
+            noAutoFilter
+          />
+          <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
+          <IssueAlertOptions
+            alertSetting={
+              formData.alertRuleConfig?.shouldCreateCustomRule
+                ? RuleAction.CUSTOMIZED_ALERTS
+                : formData.alertRuleConfig?.shouldCreateRule
+                  ? RuleAction.DEFAULT_ALERT
+                  : RuleAction.CREATE_ALERT_LATER
+            }
+            interval={formData.alertRuleConfig?.conditions?.[0]?.interval}
+            threshold={formData.alertRuleConfig?.conditions?.[0]?.value}
+            metric={
+              formData.alertRuleConfig?.conditions?.[0]?.id.endsWith(
+                'EventFrequencyCondition'
+              )
+                ? MetricValues.ERRORS
+                : MetricValues.USERS
+            }
+            onChange={value => {
+              updateFormData('alertRuleConfig', value);
+            }}
+            notificationProps={notificationProps}
+          />
+          <StyledListItem>{t('Name your project and assign it a team')}</StyledListItem>
+          <FormFieldGroup>
+            <div>
+              <FormLabel>{t('Project name')}</FormLabel>
+              <ProjectNameInputWrap>
+                <StyledPlatformIcon
+                  platform={formData.platform?.key ?? 'other'}
+                  size={20}
+                />
+                <ProjectNameInput
+                  type="text"
+                  name="name"
+                  placeholder={t('project-name')}
+                  autoComplete="off"
+                  value={formData.projectName}
+                  onChange={e => updateFormData('projectName', slugify(e.target.value))}
+                />
+              </ProjectNameInputWrap>
+            </div>
+            {!isOrgMemberWithNoAccess && (
               <div>
-                <FormLabel>{t('Project name')}</FormLabel>
-                <ProjectNameInputWrap>
-                  <StyledPlatformIcon
-                    platform={formData.platform?.key ?? 'other'}
-                    size={20}
+                <FormLabel>{t('Team')}</FormLabel>
+                <TeamSelectInput>
+                  <TeamSelector
+                    allowCreate
+                    name="team"
+                    aria-label={t('Select a Team')}
+                    menuPlacement="auto"
+                    clearable={false}
+                    placeholder={t('Select a Team')}
+                    teamFilter={(tm: Team) => tm.access.includes('team:admin')}
+                    minMenuHeight={240}
+                    value={formData.team}
+                    onChange={({value}: {value: string}) => {
+                      updateFormData('team', value);
+                    }}
                   />
-                  <ProjectNameInput
-                    type="text"
-                    name="name"
-                    placeholder={t('project-name')}
-                    autoComplete="off"
-                    value={formData.projectName}
-                    onChange={e => updateFormData('projectName', slugify(e.target.value))}
-                  />
-                </ProjectNameInputWrap>
+                </TeamSelectInput>
               </div>
-              {!isOrgMemberWithNoAccess && (
-                <div>
-                  <FormLabel>{t('Team')}</FormLabel>
-                  <TeamSelectInput>
-                    <TeamSelector
-                      allowCreate
-                      name="team"
-                      aria-label={t('Select a Team')}
-                      menuPlacement="auto"
-                      clearable={false}
-                      placeholder={t('Select a Team')}
-                      teamFilter={(tm: Team) => tm.access.includes('team:admin')}
-                      minMenuHeight={240}
-                      value={formData.team}
-                      onChange={({value}: {value: string}) => {
-                        updateFormData('team', value);
-                      }}
-                    />
-                  </TeamSelectInput>
-                </div>
-              )}
-              <div>
-                <Tooltip title={submitTooltipText} disabled={formErrorCount === 0}>
-                  <Button
-                    type="submit"
-                    data-test-id="create-project"
-                    priority="primary"
-                    disabled={!canSubmitForm}
-                    onClick={() => handleProjectCreation(formData)}
-                  >
-                    {t('Create Project')}
-                  </Button>
-                </Tooltip>
-              </div>
-            </FormFieldGroup>
-          </Fragment>
+            )}
+            <div>
+              <Tooltip title={submitTooltipText} disabled={formErrorCount === 0}>
+                <Button
+                  data-test-id="create-project"
+                  priority="primary"
+                  disabled={!canSubmitForm}
+                  onClick={() => handleProjectCreation(formData)}
+                >
+                  {t('Create Project')}
+                </Button>
+              </Tooltip>
+            </div>
+          </FormFieldGroup>
           {errors && (
             <Alert.Container>
               <Alert type="error">

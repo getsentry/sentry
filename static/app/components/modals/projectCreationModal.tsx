@@ -170,7 +170,7 @@ export default function ProjectCreationModal({
                 ? MetricValues.ERRORS
                 : MetricValues.USERS
             }
-            onChange={updatedData => setAlertRuleConfig(updatedData)}
+            onChange={setAlertRuleConfig}
           />
           <Subtitle>{t('Name your project and assign it a team')}</Subtitle>
           <ProjectNameTeamSection>
