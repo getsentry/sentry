@@ -378,6 +378,30 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         result = get_group_to_groupevent(self.parsed_data, self.project.id, {0})
         assert len(result) == 0
 
+    def test_filtered_group_ids(self):
+        """Test that get_group_to_groupevent only requests events for specified group IDs."""
+        # Track which event IDs are requested
+        requested_event_ids = set()
+
+        original_bulk_fetch_events = bulk_fetch_events
+
+        def mock_bulk_fetch_events(event_ids, project_id):
+            requested_event_ids.update(event_ids)
+            return original_bulk_fetch_events(event_ids, project_id)
+
+        with patch(
+            "sentry.rules.processing.delayed_processing.bulk_fetch_events",
+            side_effect=mock_bulk_fetch_events,
+        ):
+            # Call get_group_to_groupevent with only group1
+            result = get_group_to_groupevent(self.parsed_data, self.project.id, {self.group1.id})
+
+            # Verify only event1 was requested
+            assert requested_event_ids == {self.event1.event_id}
+            assert len(result) == 1
+            assert result[self.group1] == self.event1
+            assert self.group2 not in result
+
 
 class GetRulesToFireTest(TestCase):
     def setUp(self):
