@@ -12,11 +12,12 @@ import AMCheckout from 'getsentry/views/amCheckout/';
 
 describe('ProductSelect', function () {
   const api = new MockApiClient();
-  const organization = OrganizationFixture({features: ['seer-billing']});
+  const organization = OrganizationFixture({});
   const subscription = SubscriptionFixture({organization});
   const params = {};
 
   beforeEach(function () {
+    organization.features = ['seer-billing'];
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.addMockResponse({
@@ -67,8 +68,26 @@ describe('ProductSelect', function () {
 
     expect(await screen.findByTestId('body-choose-your-plan')).toBeInTheDocument();
     expect(screen.getByTestId('product-option-seer')).toBeInTheDocument();
+    expect(screen.getAllByTestId(/product-option/)).toHaveLength(1);
     expect(screen.getByText('$20/mo')).toBeInTheDocument();
     expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
+  });
+
+  it('does not render products if flags are missing', async function () {
+    organization.features = [];
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByTestId('body-choose-your-plan')).toBeInTheDocument();
+    expect(screen.queryAllByTestId(/product-option/)).toHaveLength(0);
   });
 
   it('renders with correct monthly price for products', async function () {
