@@ -15,6 +15,7 @@ import type {
   Plan,
   RecurringCredit,
   ReservedBudget,
+  ReservedBudgetCategory,
   Subscription,
 } from 'getsentry/types';
 
@@ -105,6 +106,23 @@ export function getSingularCategoryName({
 }
 
 /**
+ * Get the ReservedBudgetCategory from a list of categories and a plan,
+ * if it exists.
+ */
+export function getReservedBudgetCategoryFromCategories(
+  plan: Plan,
+  categories: DataCategory[]
+): ReservedBudgetCategory | null {
+  return (
+    Object.values(plan?.availableReservedBudgetTypes ?? {}).find(
+      budgetInfo =>
+        categories.length === budgetInfo.dataCategories.length &&
+        categories.every(category => budgetInfo.dataCategories.includes(category))
+    ) ?? null
+  );
+}
+
+/**
  * Convert a list of reserved budget categories to a display name for the budget
  */
 export function getReservedBudgetDisplayName({
@@ -113,7 +131,8 @@ export function getReservedBudgetDisplayName({
   reservedBudget = null,
   pendingReservedBudget = null,
   shouldTitleCase = false,
-}: Omit<CategoryNameProps, 'category' | 'capitalize'> & {
+  capitalize = false,
+}: Omit<CategoryNameProps, 'category'> & {
   pendingReservedBudget?: PendingReservedBudget | null;
   reservedBudget?: ReservedBudget | null;
   shouldTitleCase?: boolean;
@@ -123,36 +142,37 @@ export function getReservedBudgetDisplayName({
     (Object.keys(pendingReservedBudget?.categories ?? {}) as DataCategory[]);
   const name =
     reservedBudget?.name ??
-    Object.values(plan?.availableReservedBudgetTypes ?? {}).find(
-      budgetInfo =>
-        categoryList.length === budgetInfo.dataCategories.length &&
-        categoryList.every(category => budgetInfo.dataCategories.includes(category))
-    )?.name ??
-    '';
+    (plan ? getReservedBudgetCategoryFromCategories(plan, categoryList)?.name : '');
 
   if (name) {
-    return shouldTitleCase ? toTitleCase(name, {allowInnerUpperCase: true}) : name;
+    return shouldTitleCase
+      ? toTitleCase(name, {allowInnerUpperCase: true})
+      : capitalize
+        ? upperFirst(name)
+        : name;
   }
 
-  return (
-    oxfordizeArray(
-      categoryList
-        .map(category => {
-          const categoryName = getPlanCategoryName({
-            plan,
-            category,
-            hadCustomDynamicSampling,
-            capitalize: false,
-          });
-          return shouldTitleCase
-            ? toTitleCase(categoryName, {allowInnerUpperCase: true})
-            : categoryName;
-        })
-        .sort((a, b) => {
-          return a.localeCompare(b);
-        })
-    ) + (shouldTitleCase ? ' Budget' : ' budget')
-  );
+  const formattedCategories = categoryList
+    .map(category => {
+      const categoryName = getPlanCategoryName({
+        plan,
+        category,
+        hadCustomDynamicSampling,
+        capitalize: false,
+      });
+      return shouldTitleCase
+        ? toTitleCase(categoryName, {allowInnerUpperCase: true})
+        : categoryName;
+    })
+    .sort((a, b) => {
+      return a.localeCompare(b);
+    });
+
+  if (capitalize) {
+    formattedCategories[0] = upperFirst(formattedCategories[0]);
+  }
+
+  return oxfordizeArray(formattedCategories) + (shouldTitleCase ? ' Budget' : ' budget');
 }
 
 /**
