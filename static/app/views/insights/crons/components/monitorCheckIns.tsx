@@ -11,6 +11,7 @@ import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import ShortId from 'sentry/components/shortId';
 import {
   StatusIndicator,
@@ -81,7 +82,13 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
 
   const headers = [
     t('Status'),
-    t('Started'),
+    <RecordedHeader key="recorded-header">
+      {t('Recorded')}
+      <QuestionTooltip
+        size="sm"
+        title={t('The time when Sentry received the first check-in for this job.')}
+      />
+    </RecordedHeader>,
     t('Duration'),
     t('Issues'),
     ...(hasMultiEnv ? [t('Environment')] : []),
@@ -248,6 +255,12 @@ function TimeoutLateBy({monitor, duration}: TimeoutLateByProps) {
     </Tooltip>
   );
 }
+
+const RecordedHeader = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
 
 const Status = styled('div')`
   line-height: 1.1;
