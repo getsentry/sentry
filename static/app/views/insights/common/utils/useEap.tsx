@@ -1,7 +1,7 @@
 import {defined} from 'sentry/utils';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   BACKEND_LANDING_SUB_PATH,
   USE_NEW_BACKEND_EXPERIENCE,
@@ -13,7 +13,7 @@ export const useInsightsEap = (): boolean => {
   const location = useLocation();
   const {isInOverviewPage, view} = useDomainViewFilters();
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
-  const [isNewBackendExperienceEnabled] = useSyncedLocalStorageState(
+  const [isNewBackendExperienceEnabled] = useLocalStorageState(
     USE_NEW_BACKEND_EXPERIENCE,
     true
   );
