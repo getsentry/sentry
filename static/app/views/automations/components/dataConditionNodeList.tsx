@@ -21,6 +21,7 @@ interface DataConditionNodeListProps {
   onDeleteRow: (id: number) => void;
   placeholder: string;
   updateCondition: (index: number, condition: Record<string, any>) => void;
+  updateConditionType?: (index: number, type: DataConditionType) => void;
 }
 
 export default function DataConditionNodeList({
@@ -31,6 +32,7 @@ export default function DataConditionNodeList({
   onAddRow,
   onDeleteRow,
   updateCondition,
+  updateConditionType,
 }: DataConditionNodeListProps) {
   const options = Array.from(dataConditionNodesMap.entries())
     .map(([value, {label}]) => ({value, label}))
@@ -48,6 +50,7 @@ export default function DataConditionNodeList({
               condition,
               condition_id: `${group}.conditions.${i}`,
               onUpdate: newCondition => updateCondition(i, newCondition),
+              onUpdateType: type => updateConditionType && updateConditionType(i, type),
             }}
           >
             <Node />
