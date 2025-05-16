@@ -91,9 +91,9 @@ export function NextJsOverviewPage({
       <WidgetGrid>
         <WidgetGrid.Position1>
           <TrafficWidget
-            title={t('Traffic')}
-            trafficSeriesName={t('Page views')}
-            baseQuery={'span.op:[navigation,pageload]'}
+            title={t('Pageloads')}
+            trafficSeriesName={t('Pageloads')}
+            baseQuery={'span.op:[pageload]'}
           />
         </WidgetGrid.Position1>
         <WidgetGrid.Position2>
