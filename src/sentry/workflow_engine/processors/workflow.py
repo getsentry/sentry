@@ -95,7 +95,7 @@ def enqueue_workflow(
 
 
 def evaluate_workflow_triggers(
-    workflows: BaseQuerySet[Workflow], event_data: WorkflowEventData
+    workflows: set[Workflow], event_data: WorkflowEventData
 ) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
 
@@ -221,7 +221,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     organization = detector.project.organization
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
-    workflows = (
+    workflows = set(
         Workflow.objects.filter(
             (Q(environment_id=None) | Q(environment_id=environment.id)),
             detectorworkflow__detector_id=detector.id,
