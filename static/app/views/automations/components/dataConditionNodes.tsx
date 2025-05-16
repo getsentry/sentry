@@ -8,10 +8,12 @@ import {
 import AgeComparisonNode from 'sentry/views/automations/components/actionFilters/ageComparison';
 import EventAttributeNode from 'sentry/views/automations/components/actionFilters/eventAttribute';
 import EventFrequencyNode from 'sentry/views/automations/components/actionFilters/eventFrequency';
+import EventUniqueUserFrequencyNode from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
 import IssueOccurrencesNode from 'sentry/views/automations/components/actionFilters/issueOccurrences';
 import IssuePriorityNode from 'sentry/views/automations/components/actionFilters/issuePriority';
 import LatestAdoptedReleaseNode from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
 import LevelNode from 'sentry/views/automations/components/actionFilters/level';
+import PercentSessionsNode from 'sentry/views/automations/components/actionFilters/percentSessions';
 import TaggedEventNode from 'sentry/views/automations/components/actionFilters/taggedEvent';
 
 interface DataConditionNodeProps {
@@ -134,6 +136,48 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Number of events'),
       dataCondition: <EventFrequencyNode />,
+    },
+  ],
+  [
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+    {
+      label: t('Number of users affected'),
+      dataCondition: <EventUniqueUserFrequencyNode />,
+    },
+  ],
+  [
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+    {
+      label: t('Number of users affected'),
+      dataCondition: <EventUniqueUserFrequencyNode />,
+    },
+  ],
+  [
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+    {
+      label: t('Number of users affected'),
+      dataCondition: <EventUniqueUserFrequencyNode />,
+    },
+  ],
+  [
+    DataConditionType.PERCENT_SESSIONS,
+    {
+      label: t('Percentage of sessions affected'),
+      dataCondition: <PercentSessionsNode />,
+    },
+  ],
+  [
+    DataConditionType.PERCENT_SESSIONS_COUNT,
+    {
+      label: t('Percentage of sessions affected'),
+      dataCondition: <PercentSessionsNode />,
+    },
+  ],
+  [
+    DataConditionType.PERCENT_SESSIONS_PERCENT,
+    {
+      label: t('Percentage of sessions affected'),
+      dataCondition: <PercentSessionsNode />,
     },
   ],
 ]);
