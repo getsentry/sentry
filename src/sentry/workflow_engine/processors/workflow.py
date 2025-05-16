@@ -312,7 +312,10 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                 "detector_type": detector.type,
             },
         )
-    if features.has("organizations:workflow-engine-metric-alert-dual-processing-logs"):
+    if features.has(
+        "organizations:workflow-engine-metric-alert-dual-processing-logs",
+        detector.project.organization,
+    ):
         # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
         metrics.incr(
             "workflow_engine.process_workflows.fired_actions",
