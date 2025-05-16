@@ -10,6 +10,7 @@ import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface IssueSeerBadgeProps {
@@ -19,6 +20,7 @@ interface IssueSeerBadgeProps {
 function IssueSeerBadge({group}: IssueSeerBadgeProps) {
   const organization = useOrganization();
   const issuesPath = `/organizations/${organization.slug}/issues/`;
+  const location = useLocation();
 
   const autofixRunExists = getAutofixRunExists(group);
   const seerFixable = isIssueQuickFixable(group);
@@ -42,7 +44,12 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
 
   return (
     <Tooltip title={seerTitle} skipWrapper>
-      <SeerLink to={{pathname: `${issuesPath}${group.id}`, query: {seerDrawer: true}}}>
+      <SeerLink
+        to={{
+          pathname: `${issuesPath}${group.id}`,
+          query: {...location.query, seerDrawer: true},
+        }}
+      >
         <SeerIcon size="sm" />
         {seerFixable && <p>{t('Quick Fix')}</p>}
       </SeerLink>
