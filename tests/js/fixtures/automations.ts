@@ -6,7 +6,7 @@ export function AutomationFixture(params: Partial<Automation>): Automation {
   return {
     id: '1',
     name: 'Automation',
-    lastTriggered: new Date('2025-01-01T00:00:00.000Z'),
+    lastTriggered: '2025-01-01T00:00:00.000Z',
     actionFilters: [],
     detectorIds: [],
     triggers: DataConditionGroupFixture({}),

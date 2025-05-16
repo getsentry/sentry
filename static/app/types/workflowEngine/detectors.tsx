@@ -25,8 +25,8 @@ interface NewDetector {
 
 export interface Detector extends Readonly<NewDetector> {
   readonly createdBy: string;
-  readonly dateCreated: Date;
-  readonly dateUpdated: Date;
+  readonly dateCreated: string;
+  readonly dateUpdated: string;
   readonly id: string;
-  readonly lastTriggered: Date;
+  readonly lastTriggered: string;
 }
