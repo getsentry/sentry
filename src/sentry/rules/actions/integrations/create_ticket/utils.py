@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
+from typing import Any, cast
 
 from rest_framework.response import Response
 
@@ -109,18 +110,18 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
     organization = event.group.project.organization
 
     for future in futures:
-        rule_id = future.rule.id
-        data = future.kwargs.get("data")
-        provider = future.kwargs.get("provider")
-        integration_id = future.kwargs.get("integration_id")
-        generate_footer = future.kwargs.get("generate_footer")
+        rule_id: int = future.rule.id
+        data = cast(dict[str, Any], future.kwargs.get("data"))
+        provider = cast(str, future.kwargs.get("provider"))
+        integration_id = cast(str, future.kwargs.get("integration_id"))
+        generate_footer = cast(Callable[[str], str], future.kwargs.get("generate_footer"))
 
         # If we invoked this handler from the notification action, we need to replace the rule_id with the legacy_rule_id, so we link notifications correctly
         action_id = None
         if features.has("organizations:workflow-engine-trigger-actions", organization):
             # In the Notification Action, we store the rule_id in the action_id field
             action_id = rule_id
-            rule_id = data.get("legacy_rule_id")
+            rule_id = cast(int, data.get("legacy_rule_id"))
 
         integration = integration_service.get_integration(
             integration_id=integration_id,
