@@ -420,6 +420,7 @@ const getTagValues = (): Promise<string[]> => {
   });
 };
 
+// TODO: replace hardcoded tags with data from API
 const FILTER_KEYS: TagCollection = {
   [FieldKey.ASSIGNED]: {
     key: FieldKey.ASSIGNED,
