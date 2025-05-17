@@ -26,7 +26,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import DetailsPanel from 'sentry/views/detectors/components/detailsPanel';
 import IssuesList from 'sentry/views/detectors/components/issuesList';
-import {useDetector} from 'sentry/views/detectors/hooks';
+import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {
   makeMonitorBasePathname,
   makeMonitorDetailsPathname,
@@ -58,11 +58,7 @@ export default function DetectorDetail() {
     isPending,
     isError,
     refetch,
-  } = useDetector({
-    // TODO: Remove hardcoded project slug or move to project url
-    projectSlug: 'sentry',
-    detectorId: params.detectorId,
-  });
+  } = useDetectorQuery(params.detectorId);
   const project = projects.find(p => p.id === detector?.projectId);
 
   if (isPending) {

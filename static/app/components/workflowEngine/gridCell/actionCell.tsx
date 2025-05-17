@@ -31,12 +31,10 @@ export function ActionCell({actions, disabled}: ActionCellProps) {
       </Flex>
     );
   }
-
   const actionsList = actions
     .map(action => ActionMetadata[action]?.name)
     .filter(x => x)
     .join(', ');
-
   return (
     <ActionContainer align="center" gap={space(0.75)}>
       <IconContainer>

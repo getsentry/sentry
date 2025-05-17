@@ -7,8 +7,8 @@ import {
 } from 'sentry/views/automations/components/actionFilters/comparisonBranches';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
-export default function EventFrequencyNode() {
-  return tct('Number of events in an issue is [select]', {
+export default function PercentSessionsNode() {
+  return tct('Percentage of sessions affected by an issue is [select]', {
     select: <ComparisonTypeField />,
   });
 }
@@ -16,10 +16,10 @@ export default function EventFrequencyNode() {
 function ComparisonTypeField() {
   const {condition, condition_id, onUpdateType} = useDataConditionNodeContext();
 
-  if (condition.comparison_type === DataConditionType.EVENT_FREQUENCY_COUNT) {
+  if (condition.comparison_type === DataConditionType.PERCENT_SESSIONS_COUNT) {
     return <CountBranch />;
   }
-  if (condition.comparison_type === DataConditionType.EVENT_FREQUENCY_PERCENT) {
+  if (condition.comparison_type === DataConditionType.PERCENT_SESSIONS_PERCENT) {
     return <PercentBranch />;
   }
 
@@ -30,11 +30,11 @@ function ComparisonTypeField() {
       options={[
         {
           label: 'more than...',
-          value: DataConditionType.EVENT_FREQUENCY_COUNT,
+          value: DataConditionType.PERCENT_SESSIONS_COUNT,
         },
         {
           label: 'relatively higher than...',
-          value: DataConditionType.EVENT_FREQUENCY_PERCENT,
+          value: DataConditionType.PERCENT_SESSIONS_PERCENT,
         },
       ]}
       onChange={(value: DataConditionType) => {
