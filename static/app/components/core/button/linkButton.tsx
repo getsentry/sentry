@@ -2,19 +2,16 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import type {DO_NOT_USE_CommonButtonProps} from 'sentry/components/core/button';
-import {
-  DO_NOT_USE_BUTTON_ICON_SIZES,
-  DO_NOT_USE_getButtonStyles,
-  useButtonFunctionality,
-} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 
-import {getChonkButtonStyles} from './index.chonk';
+import {DO_NOT_USE_BUTTON_ICON_SIZES, DO_NOT_USE_getButtonStyles} from './styles';
+import {DO_NOT_USE_getChonkButtonStyles} from './styles.chonk';
+import type {DO_NOT_USE_CommonButtonProps} from './types';
+import {useButtonFunctionality} from './useButtonFunctionality';
 
 type LinkElementProps = Omit<
   React.AnchorHTMLAttributes<HTMLAnchorElement>,
@@ -127,7 +124,7 @@ const StyledLinkButton = styled(
 )<LinkButtonProps>`
   ${p =>
     p.theme.isChonk
-      ? getChonkButtonStyles(p as any)
+      ? DO_NOT_USE_getChonkButtonStyles(p as any)
       : DO_NOT_USE_getButtonStyles(p as any)}
 `;
 
@@ -136,7 +133,7 @@ const ButtonLabel = styled('span', {
     typeof prop === 'string' &&
     isPropValid(prop) &&
     !['size', 'borderless'].includes(prop),
-})<Pick<LinkButtonProps, 'size' | 'borderless'>>`
+})<Pick<DO_NOT_USE_CommonButtonProps, 'size' | 'borderless'>>`
   height: 100%;
   display: flex;
   align-items: center;
@@ -144,7 +141,10 @@ const ButtonLabel = styled('span', {
   white-space: nowrap;
 `;
 
-const Icon = styled('span')<{hasChildren?: boolean; size?: LinkButtonProps['size']}>`
+const Icon = styled('span')<{
+  hasChildren?: boolean;
+  size?: DO_NOT_USE_CommonButtonProps['size'];
+}>`
   display: flex;
   align-items: center;
   margin-right: ${p =>
