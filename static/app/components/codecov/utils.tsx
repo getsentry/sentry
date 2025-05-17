@@ -19,3 +19,29 @@ export function isValidCodecovRelativePeriod(period: string | null): boolean {
 }
 
 // Date Picker Utils End
+
+// Repo Picker Utils Start
+/**
+ * Creates a mapping of 'A:A' for the repository if it is not null
+ */
+export function mapIndividualRepository(
+  repository: string | null
+): Record<string, string> {
+  if (repository === null) {
+    return {};
+  }
+
+  return {[repository]: repository};
+}
+
+/**
+ * Creates a mapping of 'A:A' for every repository in the repository list if it is not null
+ */
+export function mapRepositoryList(repositories: string[] | null): Record<string, string> {
+  if (!repositories || (repositories && repositories.length === 0)) {
+    return {};
+  }
+
+  return Object.fromEntries(repositories.map(repository => [repository, repository]));
+}
+// Repo Picker Utils End
