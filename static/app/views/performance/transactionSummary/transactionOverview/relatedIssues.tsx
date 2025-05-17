@@ -61,7 +61,7 @@ class RelatedIssues extends Component<Props> {
     });
   };
 
-  renderEmptyMessage = (isEAP: boolean) => {
+  renderEmptyMessage = (isOTelUI: boolean) => {
     const {statsPeriod} = this.props;
 
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -76,7 +76,7 @@ class RelatedIssues extends Component<Props> {
           <EmptyStateWarning>
             <p>
               {tct('No new issues for this [identifier] for the [timePeriod].', {
-                identifier: isEAP ? 'service entry span' : 'transaction',
+                identifier: isOTelUI ? 'service entry span' : 'transaction',
                 timePeriod: displayedPeriod,
               })}
             </p>
@@ -94,7 +94,7 @@ class RelatedIssues extends Component<Props> {
       query: {referrer: 'performance-related-issues', ...queryParams},
     };
 
-    const isEAP = organization.features.includes('performance-transaction-summary-eap');
+    const isOTelUI = organization.features.includes('performance-otel-friendly-ui');
 
     return (
       <Fragment>
@@ -114,7 +114,7 @@ class RelatedIssues extends Component<Props> {
           <GroupList
             queryParams={queryParams}
             canSelectGroups={false}
-            renderEmptyMessage={() => this.renderEmptyMessage(isEAP)}
+            renderEmptyMessage={() => this.renderEmptyMessage(isOTelUI)}
             withChart={false}
             withPagination={false}
             source="performance-related-issues"

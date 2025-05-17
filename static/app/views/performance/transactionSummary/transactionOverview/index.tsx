@@ -74,7 +74,7 @@ function TransactionOverview(props: Props) {
     });
   }, [selection, organization, api]);
 
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  const isOTelUI = organization.features.includes('performance-otel-friendly-ui');
 
   return (
     <MEPSettingProvider>
@@ -85,7 +85,9 @@ function TransactionOverview(props: Props) {
         tab={Tab.TRANSACTION_SUMMARY}
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
-        childComponent={isEAP ? EAPCardinalityLoadingWrapper : CardinalityLoadingWrapper}
+        childComponent={
+          isOTelUI ? EAPCardinalityLoadingWrapper : CardinalityLoadingWrapper
+        }
       />
     </MEPSettingProvider>
   );
@@ -340,8 +342,8 @@ function generateEventView({
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
-  if (isEAP) {
+  const isOTelUI = organization.features.includes('performance-otel-friendly-ui');
+  if (isOTelUI) {
     conditions.setFilterValues('is_transaction', ['true']);
     conditions.setFilterValues(
       'transaction.method',
@@ -359,7 +361,7 @@ function generateEventView({
     }
   });
 
-  const fields = isEAP
+  const fields = isOTelUI
     ? [
         'id',
         'user.email',
@@ -380,7 +382,7 @@ function generateEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
-      dataset: isEAP ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
+      dataset: isOTelUI ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
     },
     location
   );

@@ -113,9 +113,9 @@ export const getTabCrumbs = ({
     view,
   };
 
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+  const isOTelUI = organization.features.includes('performance-otel-friendly-ui');
 
-  isEAP
+  isOTelUI
     ? crumbs.push({
         to: transactionSummaryRouteWithQuery(routeQuery),
         label: t('Service Entry Span Summary'),
