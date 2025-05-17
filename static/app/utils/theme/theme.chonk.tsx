@@ -3,8 +3,8 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled, {
   type CreateStyledComponent,
   type FilteringStyledOptions,
+  type StyledOptions,
 } from '@emotion/styled';
-import type {StyledOptions} from '@emotion/styled/dist/declarations/src/types';
 import color from 'color';
 
 import type {ColorMapping, FormTheme, Theme as SentryTheme} from './theme';
