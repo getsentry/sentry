@@ -95,7 +95,7 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
         const formattedValue = Object.entries(value as Record<string, any>)
           .map(([k, v]) => `${k}: ${v}`)
           .join(', ');
-        
+
         return (
           <Fragment key={`${name}-${index}-object`}>
             {index > 0 && ', '}
@@ -103,7 +103,7 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
           </Fragment>
         );
       }
-      
+
       const target = generateUrl?.(name, value);
 
       return (
