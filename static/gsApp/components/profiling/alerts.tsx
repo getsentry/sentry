@@ -17,8 +17,8 @@ import {openAM2ProfilingUpsellModal} from 'getsentry/actionCreators/modal';
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
-import {isAm2Plan, isEnterprise} from 'getsentry/utils/billing';
+import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {isAm2Plan, isAm3Plan, isEnterprise} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function makeLinkToOwnersAndBillingMembers(
@@ -371,6 +371,170 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
     </Alert.Container>
   );
 }
+
+interface ContinuousProfilingNoQuotaAlertBannerProps {
+  organization: Organization;
+  subscription: Subscription;
+}
+
+function ContinuousProfilingNoQuotaAlertAm2Banner({
+  organization,
+  subscription,
+}: ContinuousProfilingNoQuotaAlertBannerProps) {
+  const hasBudget = hasBudgetConfiguredForContinuousOrUiProfilesHours(subscription);
+
+  // As long as they have a budget set, don't show this banner.
+  if (hasBudget) {
+    return null;
+  }
+
+  // For AM2 plans, if they haven't tried to send any continuous/ui profiles, don't
+  // show this banner because they can still use transaction profiles.
+  if (
+    !subscription.categories.profileDuration?.usageExceeded &&
+    !subscription.categories.profileDurationUI?.usageExceeded
+  ) {
+    return null;
+  }
+
+  const eventTypes: EventType[] = [
+    DataCategoryExact.PROFILE_DURATION,
+    DataCategoryExact.PROFILE_DURATION_UI,
+  ];
+
+  return (
+    <Alert.Container>
+      <Alert
+        system
+        type="warning"
+        showIcon
+        trailingItems={
+          <AddEventsCTA
+            organization={organization}
+            subscription={subscription}
+            buttonProps={{
+              priority: 'default',
+              size: 'xs',
+              style: {marginBlock: `-${space(0.25)}`},
+            }}
+            eventTypes={eventTypes}
+            notificationType="overage_critical"
+            referrer={`no-profiling-quota-${eventTypes.join('-')}`}
+            source="continuous-profiling-no-quota-banner"
+          />
+        }
+      >
+        {t(
+          'Continuous Profiling and UI Profiling requires you to set your On-demand budget.'
+        )}
+      </Alert>
+    </Alert.Container>
+  );
+}
+
+function ContinuousProfilingNoQuotaAlertAm3Banner({
+  organization,
+  subscription,
+}: ContinuousProfilingNoQuotaAlertBannerProps) {
+  const hasBudget = hasBudgetConfiguredForContinuousOrUiProfilesHours(subscription);
+
+  // As long as they have a budget set, don't show this banner.
+  if (hasBudget) {
+    return null;
+  }
+
+  const eventTypes: EventType[] = [
+    DataCategoryExact.PROFILE_DURATION,
+    DataCategoryExact.PROFILE_DURATION_UI,
+  ];
+
+  return (
+    <Alert.Container>
+      <Alert
+        system
+        type="warning"
+        showIcon
+        trailingItems={
+          <AddEventsCTA
+            organization={organization}
+            subscription={subscription}
+            buttonProps={{
+              priority: 'default',
+              size: 'xs',
+              style: {marginBlock: `-${space(0.25)}`},
+            }}
+            eventTypes={eventTypes}
+            referrer={`no-profiling-quota-${eventTypes.join('-')}`}
+            source="continuous-profiling-no-quota-banner"
+          />
+        }
+      >
+        {t(
+          'Continuous Profiling and UI Profiling requires you to set your Pay-as-you-go budget.'
+        )}
+      </Alert>
+    </Alert.Container>
+  );
+}
+
+function hasBudgetConfiguredForContinuousOrUiProfilesHours(
+  subscription: Subscription
+): boolean {
+  if (
+    subscription.categories.profileDuration?.reserved ||
+    subscription.categories.profileDurationUI?.reserved
+  ) {
+    return true;
+  }
+
+  if (subscription.onDemandBudgets) {
+    if (subscription.onDemandBudgets.budgetMode === OnDemandBudgetMode.SHARED) {
+      if (subscription.onDemandBudgets.sharedMaxBudget) {
+        return true;
+      }
+    } else if (
+      subscription.onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+    ) {
+      if (
+        subscription.onDemandBudgets.profileDurationBudget ||
+        subscription.onDemandBudgets.profileDurationUIBudget
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function ContinuousProfilingNoQuotaAlertBannerComponent({
+  organization,
+  subscription,
+}: ContinuousProfilingNoQuotaAlertBannerProps) {
+  if (isAm2Plan(subscription.plan)) {
+    return (
+      <ContinuousProfilingNoQuotaAlertAm2Banner
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+  }
+
+  if (isAm3Plan(subscription.plan)) {
+    return (
+      <ContinuousProfilingNoQuotaAlertAm3Banner
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+  }
+
+  return null;
+}
+
+export const ContinuousProfilingNoQuotaAlertBanner = withSubscription(
+  ContinuousProfilingNoQuotaAlertBannerComponent
+);
 
 interface SDKDeprecation {
   minimumVersion: string;
