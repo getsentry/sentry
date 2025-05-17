@@ -54,6 +54,48 @@ describe('PartnerPlanEndingModal', function () {
     expect(mockCall).toHaveBeenCalled();
   });
 
+  it('does not show request upgrade button when canSelfServe is false', function () {
+    const org = OrganizationFixture({access: []});
+    const sub = SubscriptionFixture({
+      organization: org,
+      contractPeriodEnd: '2024-08-08',
+      canSelfServe: false,
+    });
+    SubscriptionStore.set(org.slug, sub);
+
+    render(
+      <PartnerPlanEndingModal
+        closeModal={jest.fn()}
+        organization={org}
+        subscription={sub}
+      />
+    );
+
+    expect(screen.getByTestId('partner-plan-ending-modal')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Request to Upgrade')).not.toBeInTheDocument();
+  });
+
+  it('does not show request upgrade button when subscription is managed', function () {
+    const org = OrganizationFixture({access: []});
+    const sub = SubscriptionFixture({
+      organization: org,
+      contractPeriodEnd: '2024-08-08',
+      isManaged: true,
+    });
+    SubscriptionStore.set(org.slug, sub);
+
+    render(
+      <PartnerPlanEndingModal
+        closeModal={jest.fn()}
+        organization={org}
+        subscription={sub}
+      />
+    );
+
+    expect(screen.getByTestId('partner-plan-ending-modal')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Request to Upgrade')).not.toBeInTheDocument();
+  });
+
   it('shows an upgrade now button with billing permission', function () {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({organization: org, contractPeriodEnd: '2024-08-08'});
