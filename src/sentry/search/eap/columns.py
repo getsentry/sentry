@@ -20,6 +20,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
+from sentry.search.eap.types import EAPResponse
 from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int | float
@@ -29,6 +30,7 @@ ResolvedArguments: TypeAlias = list[ResolvedArgument]
 class ResolverSettings(TypedDict):
     extrapolation_mode: ExtrapolationMode.ValueType
     snuba_params: SnubaParams
+    query_result_cache: dict[str, EAPResponse]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -259,6 +261,7 @@ class FunctionDefinition:
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -278,6 +281,7 @@ class AggregateDefinition(FunctionDefinition):
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
     ) -> ResolvedAggregate:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -324,6 +328,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
     ) -> ResolvedConditionalAggregate:
         key, filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
@@ -354,6 +359,7 @@ class FormulaDefinition(FunctionDefinition):
         search_type: constants.SearchType,
         resolved_arguments: list[AttributeKey | Any],
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
     ) -> ResolvedFormula:
         resolver_settings = ResolverSettings(
             extrapolation_mode=(
@@ -362,6 +368,7 @@ class FormulaDefinition(FunctionDefinition):
                 else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
             ),
             snuba_params=snuba_params,
+            query_result_cache=query_result_cache,
         )
 
         return ResolvedFormula(

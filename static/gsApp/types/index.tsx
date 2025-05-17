@@ -924,7 +924,7 @@ export interface MonitorCountResponse {
   overQuotaMonitorCount: number;
 }
 
-type PendingReservedBudget = {
+export type PendingReservedBudget = {
   categories: Partial<Record<DataCategory, boolean | null>>;
   reservedBudget: number;
 };
