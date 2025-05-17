@@ -31,6 +31,7 @@ class DetectorType(Enum):
     HTTP_OVERHEAD = "http_overhead"
     EXPERIMENTAL_N_PLUS_ONE_API_CALLS = "experimental_n_plus_one_api_calls"
     EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES = "experimental_n_plus_one_db_queries"
+    SQL_INJECTION = "sql_injection"
     EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES = "experimental_m_n_plus_one_db_queries"
 
 
@@ -49,6 +50,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
     DetectorType.DB_MAIN_THREAD: "performance.issues.db_main_thread.problem-creation",
     DetectorType.HTTP_OVERHEAD: "performance.issues.http_overhead.problem-creation",
+    DetectorType.SQL_INJECTION: "performance.issues.sql_injection.problem-creation",
 }
 
 
