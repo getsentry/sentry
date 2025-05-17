@@ -17,6 +17,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
+from sentry.workflow_engine.types import DeletionStatus
 
 from .json_config import JSONConfigBase
 
@@ -30,6 +31,9 @@ logger = logging.getLogger(__name__)
 class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
 
+    class Meta(OwnerModel.Meta):
+        constraints = OwnerModel.Meta.constraints
+
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
 
@@ -40,6 +44,9 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # If the detector is not enabled, it will not be evaluated. This is how we "snooze" a detector
     enabled = models.BooleanField(db_default=True)
+
+    # The detector's status - used for tracking deletion state
+    status = models.SmallIntegerField(default=DeletionStatus.ACTIVE)
 
     # Optionally set a description of the detector, this will be used in notifications
     description = models.TextField(null=True)
@@ -58,9 +65,6 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # The user that created the detector
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
-
-    class Meta(OwnerModel.Meta):
-        constraints = OwnerModel.Meta.constraints
 
     error_detector_project_options = {
         "fingerprinting_rules": "sentry:fingerprinting_rules",
