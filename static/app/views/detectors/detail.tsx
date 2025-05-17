@@ -42,7 +42,7 @@ const priorities: Priority[] = [
   {sensitivity: 'high', threshold: 10},
 ];
 
-function getEnvironmentFromDetector(detector: Detector) {
+function getDetectorEnvironment(detector: Detector) {
   return detector.dataSources.find(ds => ds.queryObj.snubaQuery.environment)?.queryObj
     .snubaQuery.environment;
 }
@@ -75,7 +75,7 @@ export default function DetectorDetail() {
         crumb={{label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)}}
       >
         <ActionsProvider actions={<Actions detector={detector} />}>
-          <DetailLayout project={{slug: 'project-slug', platform: 'javascript-astro'}}>
+          <DetailLayout project={project}>
             <DetailLayout.Main>
               {/* TODO: Add chart here */}
               <Section title={t('Ongoing Issues')}>
@@ -88,7 +88,7 @@ export default function DetectorDetail() {
             </DetailLayout.Main>
             <DetailLayout.Sidebar>
               <Section title={t('Detect')}>
-                <DetailsPanel />
+                <DetailsPanel detector={detector} />
               </Section>
               <Section title={t('Assign')}>
                 {t('Assign to %s', 'admin@sentry.io')}
@@ -122,7 +122,7 @@ export default function DetectorDetail() {
                   />
                   <KeyValueTableRow
                     keyName={t('Environment')}
-                    value={getEnvironmentFromDetector(detector)}
+                    value={getDetectorEnvironment(detector)}
                   />
                 </KeyValueTable>
               </Section>
