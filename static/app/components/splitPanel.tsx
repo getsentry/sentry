@@ -1,4 +1,4 @@
-import {createContext, useCallback, useMemo} from 'react';
+import {createContext, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
@@ -106,21 +106,26 @@ function SplitPanel(props: SplitPanelProps) {
     sizeStorageKey,
   } = props;
   const isLeftRight = 'left' in props;
-  const initialSize = isLeftRight ? props.left.default : props.top.default;
   const min = isLeftRight ? props.left.min : props.top.min;
   const max = isLeftRight ? props.left.max : props.top.max;
 
-  const {
-    isHeld,
-    onDoubleClick,
-    onMouseDown: onDragStart,
-    size: containerSize,
-    setSize,
-  } = useResizableDrawer({
+  const initialSize = useMemo(() => {
+    const storedSize = sizeStorageKey
+      ? parseInt(localStorage.getItem(sizeStorageKey) ?? '', 10)
+      : undefined;
+    return storedSize ?? (isLeftRight ? props.left.default : props.top.default);
+  }, [sizeStorageKey, props, isLeftRight]);
+
+  const [containerSize, setContainerSize] = useState(initialSize);
+
+  const {isHeld, onMouseDown: onDragStart} = useResizableDrawer({
     direction: isLeftRight ? 'left' : 'down',
     initialSize,
     min,
-    onResize: onResize ?? (() => {}),
+    onResize: (size: number) => {
+      setContainerSize(size);
+      onResize?.(size);
+    },
     sizeStorageKey,
   });
 
@@ -141,12 +146,16 @@ function SplitPanel(props: SplitPanelProps) {
     () => ({
       isMaximized,
       isMinimized,
-      maximiseSize: () => setSize(max),
-      minimiseSize: () => setSize(min),
-      resetSize: () => setSize(initialSize),
+      maximiseSize: () => setContainerSize(max),
+      minimiseSize: () => setContainerSize(min),
+      resetSize: () => setContainerSize(initialSize),
     }),
-    [isMaximized, isMinimized, setSize, max, min, initialSize]
+    [isMaximized, isMinimized, setContainerSize, max, min, initialSize]
   );
+
+  const onDoubleClick = useCallback(() => {
+    setContainerSize(initialSize);
+  }, [initialSize]);
 
   if (isLeftRight) {
     const {left: a, right: b} = props;

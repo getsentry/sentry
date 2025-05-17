@@ -1,5 +1,5 @@
 import type {RefObject} from 'react';
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
@@ -52,13 +52,20 @@ export default function useDetailsSplit({
   // `initialSize` cannot depend on containerRef because the ref starts as
   // `undefined` which then gets set into the hook and doesn't update.
   const initialSize = Math.max(150, window.innerHeight * 0.4);
+  const [containerSize, setContainerSize] = useState(initialSize);
 
-  const {size: containerSize, ...resizableDrawerProps} = useResizableDrawer({
+  const resizableDrawerProps = useResizableDrawer({
     direction: 'up',
     initialSize,
     min: 0,
-    onResize: () => {},
+    onResize: (newSize: number) => {
+      setContainerSize(newSize);
+    },
   });
+
+  const onDoubleClick = useCallback(() => {
+    setContainerSize(initialSize);
+  }, [initialSize]);
 
   const maxContainerHeight =
     (containerRef.current?.clientHeight || window.innerHeight) - handleHeight;
@@ -68,7 +75,11 @@ export default function useDetailsSplit({
   return {
     onClickCell,
     onCloseDetailsSplit,
-    resizableDrawerProps,
+    onDoubleClick,
+    resizableDrawerProps: {
+      ...resizableDrawerProps,
+      onDoubleClick,
+    },
     selectedIndex: getDetailIndex(),
     splitSize,
   };
