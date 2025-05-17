@@ -1,0 +1,169 @@
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.testutils.cases import TestCase
+from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
+from tests.sentry.workflow_engine.handlers.detector.test_base import MockDetectorStateHandler
+
+
+class TestStatefulDetectorHandler(TestCase):
+    def setUp(self):
+        self.detector = self.create_detector(
+            name="Stateful Detector",
+            project=self.project,
+        )
+
+    def test__init_creates_default_thresholds(self):
+        handler = MockDetectorStateHandler(detector=self.detector)
+        assert handler._thresholds == {level: 1 for level in DetectorPriorityLevel}
+
+    def test_init__override_thresholds(self):
+        handler = MockDetectorStateHandler(
+            detector=self.detector,
+            thresholds={
+                DetectorPriorityLevel.LOW: 2,
+            },
+        )
+
+        assert handler._thresholds == {
+            **{level: 1 for level in DetectorPriorityLevel},
+            DetectorPriorityLevel.LOW: 2,
+        }
+
+    def test_init__creates_correct_state_counters(self):
+        handler = MockDetectorStateHandler(detector=self.detector)
+        assert handler.state_manager.counter_names == list(DetectorPriorityLevel)
+
+
+class TestStatefulDetectorHandlerEvaluate(TestCase):
+    def setUp(self):
+        self.group_key: DetectorGroupKey = None
+
+        self.detector = self.create_detector(
+            name="Stateful Detector",
+            project=self.project,
+        )
+        self.detector.workflow_condition_group = self.create_data_condition_group()
+        self.create_data_condition(
+            type="gte",
+            comparison=0,
+            condition_group=self.detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        self.handler = MockDetectorStateHandler(
+            detector=self.detector, thresholds={DetectorPriorityLevel.HIGH: 2}
+        )
+
+        self.data_packet = DataPacket(
+            source_id="1",
+            packet={
+                "id": "1",
+                "group_vals": {self.group_key: 1},
+                "dedupe": 1,
+            },
+        )
+
+        self.data_packet_two = DataPacket(
+            source_id="2",
+            packet={
+                "id": "2",
+                "group_vals": {self.group_key: 1},
+                "dedupe": 2,
+            },
+        )
+
+        self.resolve_data_packet = DataPacket(
+            source_id="3",
+            packet={
+                "id": "3",
+                "group_vals": {self.group_key: -1},
+                "dedupe": 3,
+            },
+        )
+
+    def test_evaluate__override_threshold(self):
+        result = self.handler.evaluate(self.data_packet)
+        assert result == {}
+
+    def test_evaluate__override_threshold__triggered(self):
+        self.handler.evaluate(self.data_packet)
+        result = self.handler.evaluate(self.data_packet_two)
+
+        evaluation_result = result[self.group_key]
+        assert evaluation_result
+        assert evaluation_result.priority == DetectorPriorityLevel.HIGH
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+
+        evidence_data = evaluation_result.result.evidence_data
+        assert evidence_data["detector_id"] == self.detector.id
+
+    def test_evaluate__detector_state(self):
+        self.handler.evaluate(self.data_packet)
+        self.handler.evaluate(self.data_packet_two)
+
+        state_data = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
+
+        assert state_data.is_triggered is True
+        assert state_data.status == DetectorPriorityLevel.HIGH
+
+    def test_evaluate__resolve(self):
+        self.handler.evaluate(self.data_packet)
+        self.handler.evaluate(self.data_packet_two)
+        result = self.handler.evaluate(self.resolve_data_packet)
+        evaluation_result = result[self.group_key]
+
+        assert evaluation_result
+        assert evaluation_result.priority == DetectorPriorityLevel.OK
+        assert isinstance(evaluation_result.result, StatusChangeMessage)
+
+    def test_evaluate__resolve__detector_state(self):
+        self.handler.evaluate(self.data_packet)
+        self.handler.evaluate(self.data_packet_two)
+        self.handler.evaluate(self.resolve_data_packet)
+
+        state_data = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
+
+        # Check that the state is reset
+        assert state_data.is_triggered is False
+        assert state_data.status == DetectorPriorityLevel.OK
+        assert state_data.counter_updates == {level: None for level in DetectorPriorityLevel}
+
+    def test_evaluate__trigger_after_resolve(self):
+        self.handler.evaluate(self.data_packet)
+        self.handler.evaluate(self.data_packet_two)
+        self.handler.evaluate(self.resolve_data_packet)
+
+        # Trigger again
+        assert self.handler._thresholds[DetectorPriorityLevel.HIGH] == 2
+        self.data_packet.packet["dedupe"] = 4
+        self.data_packet_two.packet["dedupe"] = 5
+        result = self.handler.evaluate(self.data_packet)
+        assert self.handler._thresholds[DetectorPriorityLevel.HIGH] == 2
+        assert result == {}
+
+        result = self.handler.evaluate(self.data_packet_two)
+        evaluation_result = result[self.group_key]
+
+        assert evaluation_result
+        assert evaluation_result.priority == DetectorPriorityLevel.HIGH
+        assert isinstance(evaluation_result.result, IssueOccurrence)
+
+    def test_evaluate__trigger_after_resolve__detector_state(self):
+        self.handler.evaluate(self.data_packet)
+        self.handler.evaluate(self.data_packet_two)
+        self.handler.evaluate(self.resolve_data_packet)
+
+        # Trigger again
+        self.data_packet.packet["dedupe"] = 4
+        self.data_packet_two.packet["dedupe"] = 5
+        self.handler.evaluate(self.data_packet)
+        state_data = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
+        assert self.handler._thresholds[DetectorPriorityLevel.HIGH] == 2
+        assert state_data.is_triggered is False
+
+        self.handler.evaluate(self.data_packet_two)
+
+        state_data = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
+        assert state_data.is_triggered is True
+        assert state_data.status == DetectorPriorityLevel.HIGH

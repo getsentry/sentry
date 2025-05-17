@@ -13,6 +13,7 @@ from sentry.workflow_engine.handlers.detector import (
     DetectorOccurrence,
     StatefulGroupingDetectorHandler,
 )
+from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
@@ -54,10 +55,8 @@ def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessa
 
 
 class MockDetectorStateHandler(StatefulGroupingDetectorHandler[dict, int | None]):
-    counter_names = ["test1", "test2"]
-
     def test_get_empty_counter_state(self):
-        return {name: None for name in self.counter_names}
+        return {name: None for name in self.state_manager.counter_names}
 
     def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
         return data_packet.packet.get("dedupe", 0)
@@ -216,7 +215,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         handler: StatefulGroupingDetectorHandler,
         group_key: DetectorGroupKey | None,
         dedupe_value: int | None,
-        counter_updates: dict[str, Any] | None,
+        counter_updates: DetectorCounters | None,
         is_triggered: bool | None,
         priority: DetectorPriorityLevel | None,
     ):
