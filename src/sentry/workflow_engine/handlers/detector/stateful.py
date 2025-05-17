@@ -286,21 +286,6 @@ class StatefulDetectorHandler(
 
         self.state_manager = DetectorStateManager(detector, list(self._thresholds.keys()))
 
-    def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
-        return []
-
-    def create_resolve_message(self) -> StatusChangeMessage:
-        """
-        Create a resolve message for the detectors issue. This is overridable in the subclass, but
-        will work for the majority of cases.
-        """
-        return StatusChangeMessage(
-            fingerprint=[*self.build_issue_fingerprint(), self.state_manager.build_key()],
-            project_id=self.detector.project_id,
-            new_status=GroupStatus.RESOLVED,
-            new_substatus=None,
-        )
-
     def _create_decorated_issue_occurrence(
         self,
         detector_occurrence: DetectorOccurrence,
@@ -355,6 +340,41 @@ class StatefulDetectorHandler(
 
         return condition_evaluation, new_priority
 
+    def _increment_detector_thresholds(
+        self,
+        state: DetectorStateData,
+        new_priority: DetectorPriorityLevel,
+        group_key: DetectorGroupKey = None,
+    ) -> int:
+        results: DetectorCounters = {}
+
+        if new_priority == DetectorPriorityLevel.OK:
+            incremented_value = (state.counter_updates.get(new_priority) or 0) + 1
+            results.update({new_priority: incremented_value})
+        else:
+            for level in self._thresholds.keys():
+                if level <= new_priority and level != DetectorPriorityLevel.OK:
+                    incremented_value = (state.counter_updates.get(level) or 0) + 1
+                    results.update({level: incremented_value})
+
+        self.state_manager.enqueue_counter_update(group_key, results)
+        return results.get(new_priority) or 0
+
+    def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
+        return []
+
+    def create_resolve_message(self) -> StatusChangeMessage:
+        """
+        Create a resolve message for the detectors issue. This is overridable in the subclass, but
+        will work for the majority of cases.
+        """
+        return StatusChangeMessage(
+            fingerprint=[*self.build_issue_fingerprint(), self.state_manager.build_key()],
+            project_id=self.detector.project_id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+        )
+
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult] | None:
@@ -373,11 +393,10 @@ class StatefulDetectorHandler(
         state = self.state_manager.get_state_data([None])[None]
 
         if not condition_evaluation or state.status == new_priority:
-            # If the condition is not met or the status is not the same, nothing to do
+            # If the condition is not met or the status is not the same, nothing to do.
             return None
 
-        updated_status_count = (state.counter_updates.get(new_priority) or 0) + 1
-        self.state_manager.enqueue_counter_update(None, {new_priority: updated_status_count})
+        updated_status_count = self._increment_detector_thresholds(state, new_priority, None)
 
         if self._thresholds[new_priority] > updated_status_count:
             # We haven't met the threshold yet, so don't trigger
@@ -482,8 +501,9 @@ class StatefulGroupingDetectorHandler(
             return None
 
         # Update the counter for the new status
-        updated_status_count = (state_data.counter_updates.get(new_status) or 0) + 1
-        self.state_manager.enqueue_counter_update(group_key, {new_status: updated_status_count})
+        updated_status_count = self._increment_detector_thresholds(
+            state_data, new_status, group_key
+        )
 
         if self._thresholds[new_status] > updated_status_count:
             # We haven't met the threshold yet, so don't trigger

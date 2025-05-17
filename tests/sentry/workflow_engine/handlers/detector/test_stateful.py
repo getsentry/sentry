@@ -35,6 +35,66 @@ class TestStatefulDetectorHandler(TestCase):
         assert handler.state_manager.counter_names == list(DetectorPriorityLevel)
 
 
+class TestStatefulDetectorIncrementThresholds(TestCase):
+    def setUp(self):
+        self.group_key: DetectorGroupKey = None
+        self.detector = self.create_detector(
+            name="Stateful Detector",
+            project=self.project,
+        )
+
+        self.handler = MockDetectorStateHandler(
+            detector=self.detector,
+            thresholds={
+                DetectorPriorityLevel.HIGH: 2,
+                DetectorPriorityLevel.MEDIUM: 3,
+            },
+        )
+
+    def test_increment_detector_thresholds(self):
+        state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
+        self.handler._increment_detector_thresholds(
+            state, DetectorPriorityLevel.HIGH, self.group_key
+        )
+        self.handler.state_manager.commit_state_updates()
+        updated_state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
+
+        # All states should be incremented by 1, except for OK
+        assert updated_state.counter_updates == {
+            **{level: 1 for level in DetectorPriorityLevel},
+            DetectorPriorityLevel.OK: None,
+        }
+
+    def test_increment_detector_thresholds__medium(self):
+        state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
+        self.handler._increment_detector_thresholds(
+            state, DetectorPriorityLevel.MEDIUM, self.group_key
+        )
+        self.handler.state_manager.commit_state_updates()
+        updated_state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
+
+        # All states, lower than high, should be incremented by 1, except for OK
+        assert updated_state.counter_updates == {
+            **{level: 1 for level in DetectorPriorityLevel},
+            DetectorPriorityLevel.HIGH: None,
+            DetectorPriorityLevel.OK: None,
+        }
+
+    def test_increment_detector_thresholds_low(self):
+        state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
+        self.handler._increment_detector_thresholds(
+            state, DetectorPriorityLevel.LOW, self.group_key
+        )
+        self.handler.state_manager.commit_state_updates()
+        updated_state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
+
+        # Since low is the lowest priority, only low should be incremented
+        assert updated_state.counter_updates == {
+            **{level: None for level in DetectorPriorityLevel},
+            DetectorPriorityLevel.LOW: 1,
+        }
+
+
 class TestStatefulDetectorHandlerEvaluate(TestCase):
     def setUp(self):
         self.group_key: DetectorGroupKey = None
@@ -106,6 +166,13 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
 
         assert state_data.is_triggered is True
         assert state_data.status == DetectorPriorityLevel.HIGH
+
+        assert state_data.counter_updates == {
+            DetectorPriorityLevel.HIGH: 2,
+            DetectorPriorityLevel.MEDIUM: 2,
+            DetectorPriorityLevel.LOW: 2,
+            DetectorPriorityLevel.OK: None,
+        }
 
     def test_evaluate__resolve(self):
         self.handler.evaluate(self.data_packet)
