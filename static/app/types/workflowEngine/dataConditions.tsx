@@ -5,16 +5,29 @@ interface SnubaQuery {
   dataset: string;
   id: string;
   query: string;
+  /**
+   * Time window in seconds
+   */
   timeWindow: number;
   environment?: string;
 }
 
-export interface DataSource {
+interface QueryObject {
   id: string;
   snubaQuery: SnubaQuery;
   status: number;
-  subscription?: string;
+  subscription: string;
 }
+
+export interface SnubaQueryDataSource {
+  id: string;
+  organizationId: string;
+  queryObj: QueryObject;
+  sourceId: string;
+  type: 'snuba_query_subscription';
+}
+
+export type DataSource = SnubaQueryDataSource;
 
 export enum DataConditionType {
   // operators
@@ -68,11 +81,17 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
+export const enum DetectorPriorityLevel {
+  HIGH = 75,
+  MEDIUM = 50,
+  LOW = 25,
+}
+
 export interface NewDataCondition {
-  comparison: any;
+  comparison: string | number;
   comparison_type: DataConditionType;
   condition_group?: DataConditionGroup;
-  condition_result?: any;
+  condition_result?: DetectorPriorityLevel;
 }
 
 export interface DataCondition extends Readonly<NewDataCondition> {
