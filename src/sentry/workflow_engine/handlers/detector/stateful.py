@@ -379,6 +379,9 @@ class StatefulDetectorHandler(
         self,
         updated_threshold_counts: DetectorCounters,
     ) -> DetectorPriorityLevel | None:
+        # TODO @saponifi3d - Should this only be for thresholds configured on the detector?
+        # If so, gather the self.detector.when_condition_group.conditions()
+        # and see which ones are configured.
         threshold_keys: list[DetectorPriorityLevel] = list(self._thresholds.keys())
         threshold_keys.sort(reverse=True)
         for level in threshold_keys:
