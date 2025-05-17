@@ -98,7 +98,7 @@ class FrameInfo:
             not frame_file_path
             or frame_file_path[0] in ["[", "<"]
             or frame_file_path.find(" ") > -1
-            or frame_file_path.find("/") == -1
+            or not frame_file_path[0].isalpha()
         ):
             raise UnsupportedFrameInfo("This path is not supported.")
 

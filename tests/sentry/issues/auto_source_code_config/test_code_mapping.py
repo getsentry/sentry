@@ -42,17 +42,12 @@ SENTRY_FILES = [
 ]
 UNSUPPORTED_FRAME_FILENAMES = [
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    "/gtm.js",  # Top source; starts with backslash
     "<anonymous>",
     "<frozen importlib._bootstrap>",
     "[native code]",
     "O$t",
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
     "README",  # top level file
-    "ssl.py",
-    # XXX: The following will need to be supported
-    "initialization.dart",
-    "backburner.js",
 ]
 NO_EXTENSION_FRAME_FILENAMES = [
     "/foo/bar/baz",  # no extension
@@ -108,6 +103,7 @@ def test_buckets_logic() -> None:
         "app:": [FrameInfo({"filename": "app://foo.js"})],
         "cronscripts": [FrameInfo({"filename": "/cronscripts/monitoringsync.php"})],
         "getsentry": [FrameInfo({"filename": "getsentry/billing/tax/manager.py"})],
+        "gtm.js": [FrameInfo({"filename": "/gtm.js"})],
     }
 
 
