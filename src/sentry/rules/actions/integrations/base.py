@@ -50,7 +50,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
         def wrapped_callback(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             with sentry_sdk.start_span(
                 op="rule.action.integration",
-                description=f"{self.provider} integration action",
+                name=f"{self.provider} integration action",
             ):
                 callback(event, futures)
 
