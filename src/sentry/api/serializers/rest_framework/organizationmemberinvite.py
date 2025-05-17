@@ -29,13 +29,6 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
     )
     teams = serializers.ListField(required=False, allow_null=False, default=[])
 
-    reinvite = serializers.BooleanField(
-        required=False,
-        help_text="Whether or not to re-invite a user who has already been invited to the organization. Defaults to True.",
-    )
-
-    regenerate = serializers.BooleanField(required=False)
-
     def validate_email(self, email):
         users = user_service.get_many_by_email(
             emails=[email],
@@ -172,3 +165,10 @@ class ApproveInviteRequestValidator(serializers.Serializer):
             raise serializers.ValidationError(str(err))
 
         return approve
+
+
+class OrganizationMemberReinviteRequestValidator(serializers.Serializer):
+    regenerate = serializers.BooleanField(
+        required=False,
+        help_text="Whether or not to regenerate the token for this invitation",
+    )
