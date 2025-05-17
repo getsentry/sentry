@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useMemo} from 'react';
+import React, {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -89,6 +89,21 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
     }
 
     return values.map((value, index) => {
+      // Handle case when value is an object (like user.geo)
+      if (value !== null && typeof value === 'object' && !React.isValidElement(value)) {
+        // Convert object to a readable string format
+        const formattedValue = Object.entries(value as Record<string, any>)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(', ');
+        
+        return (
+          <Fragment key={`${name}-${index}-object`}>
+            {index > 0 && ', '}
+            <AnnotatedText value={formattedValue} />
+          </Fragment>
+        );
+      }
+      
       const target = generateUrl?.(name, value);
 
       return (
