@@ -345,7 +345,7 @@ class StatefulDetectorHandler(
         state: DetectorStateData,
         new_priority: DetectorPriorityLevel,
         group_key: DetectorGroupKey = None,
-    ) -> int:
+    ) -> DetectorCounters:
         results: DetectorCounters = {}
 
         if new_priority == DetectorPriorityLevel.OK:
@@ -358,7 +358,7 @@ class StatefulDetectorHandler(
                     results.update({level: incremented_value})
 
         self.state_manager.enqueue_counter_update(group_key, results)
-        return results.get(new_priority) or 0
+        return results
 
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         return []
@@ -374,6 +374,19 @@ class StatefulDetectorHandler(
             new_status=GroupStatus.RESOLVED,
             new_substatus=None,
         )
+
+    def _has_breached_threshold(
+        self,
+        updated_threshold_counts: DetectorCounters,
+    ) -> DetectorPriorityLevel | None:
+        threshold_keys: list[DetectorPriorityLevel] = list(self._thresholds.keys())
+        threshold_keys.sort(reverse=True)
+        for level in threshold_keys:
+            level_count = updated_threshold_counts.get(level)
+            if level_count is not None and level_count >= self._thresholds[level]:
+                return level
+
+        return None
 
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
@@ -396,11 +409,13 @@ class StatefulDetectorHandler(
             # If the condition is not met or the status is not the same, nothing to do.
             return None
 
-        updated_status_count = self._increment_detector_thresholds(state, new_priority, None)
-
-        if self._thresholds[new_priority] > updated_status_count:
-            # We haven't met the threshold yet, so don't trigger
+        updated_threshold_counts = self._increment_detector_thresholds(state, new_priority, None)
+        highest_breached_threshold = self._has_breached_threshold(updated_threshold_counts)
+        if highest_breached_threshold is None:
+            # We haven't met any of the thresholds yet, so don't trigger
             return None
+
+        new_priority = highest_breached_threshold
 
         if new_priority == DetectorPriorityLevel.OK:
             detector_result = self.create_resolve_message()
@@ -501,14 +516,16 @@ class StatefulGroupingDetectorHandler(
             return None
 
         # Update the counter for the new status
-        updated_status_count = self._increment_detector_thresholds(
+        updated_threshold_count = self._increment_detector_thresholds(
             state_data, new_status, group_key
         )
 
-        if self._thresholds[new_status] > updated_status_count:
+        breached_threshold = self._has_breached_threshold(updated_threshold_count)
+        if not breached_threshold:
             # We haven't met the threshold yet, so don't trigger
             return None
 
+        new_status = breached_threshold
         is_triggered = new_status != DetectorPriorityLevel.OK
         self.state_manager.enqueue_state_update(group_key, is_triggered, new_status)
 

@@ -144,7 +144,13 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
 
     def test_evaualte__override_threshold(self):
         result = self.handler.evaluate(self.data_packet)
-        assert result == {}
+        evaluation_result = result[self.group_key]
+
+        # Check that the detector is triggered in a medium priority.
+        assert evaluation_result
+        assert evaluation_result.priority == DetectorPriorityLevel.MEDIUM
+        assert evaluation_result.is_triggered is True
+        assert isinstance(evaluation_result.result, IssueOccurrence)
 
     def test_evaluate__override_threshold__triggered(self):
         self.handler.evaluate(self.data_packet)
