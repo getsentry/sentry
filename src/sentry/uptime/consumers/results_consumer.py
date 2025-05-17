@@ -43,11 +43,17 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
-from sentry.uptime.types import IncidentStatus, ProjectUptimeSubscriptionMode
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    IncidentStatus,
+    ProjectUptimeSubscriptionMode,
+)
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.processors.data_packet import process_data_packets
 
 logger = logging.getLogger(__name__)
 
@@ -292,6 +298,12 @@ def handle_active_result(
     result: CheckResult,
     metric_tags: dict[str, str],
 ):
+    if features.has("organizations:uptime-detector-handler", detector.project.organization):
+        process_data_packets(
+            [DataPacket[CheckResult](source_id=result["subscription_id"], packet=result)],
+            DATA_SOURCE_UPTIME_SUBSCRIPTION,
+        )
+
     uptime_status = uptime_subscription.uptime_status
     result_status = result["status"]
 
