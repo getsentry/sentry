@@ -79,7 +79,7 @@ describe('SeerNotices', function () {
   });
 
   it('shows fixability view step if automation is allowed and view not starred', () => {
-    const project = getProjectWithAutomation('on' as any);
+    const project = getProjectWithAutomation('high');
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
       organization,
     });
