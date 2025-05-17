@@ -1,6 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  getAutofixRunExists,
+  isIssueQuickFixable,
+} from 'sentry/components/events/autofix/utils';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
@@ -76,6 +80,13 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
     data.issueCategory &&
     !!getReplayCountForIssue(data.id, data.issueCategory);
 
+  const autofixRunExists = getAutofixRunExists(data as Group);
+  const seerFixable = isIssueQuickFixable(data as Group);
+  const showSeer =
+    organization.features.includes('gen-ai-features') &&
+    !organization.hideAiFeatures &&
+    (autofixRunExists || seerFixable);
+
   const {subtitle} = getTitle(data);
 
   const items = [
@@ -108,7 +119,7 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
       </CommentsLink>
     ) : null,
     showReplayCount ? <IssueReplayCount group={data as Group} /> : null,
-    <IssueSeerBadge group={data as Group} key="issue-seer-badge" />,
+    showSeer ? <IssueSeerBadge group={data as Group} key="issue-seer-badge" /> : null,
     logger ? (
       <LoggerAnnotation>
         <GlobalSelectionLink
