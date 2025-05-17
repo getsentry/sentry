@@ -48,6 +48,7 @@ from sentry.integrations.source_code_management.language_parsers import PATCH_PA
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -638,7 +639,7 @@ class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
 
 
 class GitHubIntegrationProvider(IntegrationProvider):
-    key = "github"
+    key = IntegrationProviderSlug.GITHUB
     name = "GitHub"
     metadata = metadata
     integration_cls: type[IntegrationInstallation] = GitHubIntegration
