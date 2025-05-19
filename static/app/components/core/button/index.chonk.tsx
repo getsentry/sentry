@@ -91,7 +91,9 @@ export function getChonkButtonStyles(
       content: '""',
       display: 'block',
       position: 'absolute',
-      inset: '0px',
+      inset: '0',
+      height: `calc(100% - ${chonkElevation(p.size)})`,
+      top: `${chonkElevation(p.size)}`,
       transform: `translateY(-${chonkElevation(p.size)})`,
       boxShadow: `0 ${chonkElevation(p.size)} 0 0px ${getChonkButtonTheme(type, p.theme).background}`,
       background: getChonkButtonTheme(type, p.theme).background,
@@ -154,9 +156,6 @@ export function getChonkButtonStyles(
 
     '&:disabled, &[aria-disabled="true"]': {
       '&::after': {
-        transform: 'translateY(0px)',
-      },
-      '&::before': {
         transform: 'translateY(0px)',
       },
       '> span:last-child': {
