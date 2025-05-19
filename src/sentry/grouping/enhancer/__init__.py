@@ -805,15 +805,15 @@ class Enhancements:
                 rules = [EnhancementRule._from_config_structure(rule, version) for rule in rules]
                 rust_enhancements = get_rust_enhancements("config_structure", pickled)
 
-                return cls(
-                    rules=rules,
-                    rust_enhancements=rust_enhancements,
-                    version=version,
-                    bases=bases,
-                )
-
             except (LookupError, AttributeError, TypeError, ValueError) as e:
                 raise ValueError("invalid stack trace rule config: %s" % e)
+
+            return cls(
+                rules=rules,
+                rust_enhancements=rust_enhancements,
+                version=version,
+                bases=bases,
+            )
 
     @classmethod
     @sentry_sdk.tracing.trace
