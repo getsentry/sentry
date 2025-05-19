@@ -85,6 +85,7 @@ def get_eap_aggregation_value(
     end: datetime,
     alert_rule_id: int | None = None,
 ) -> float | None:
+    comparison_aggregate: None | float = None
     try:
         rpc_time_series_request = entity_subscription.build_rpc_request(
             query=snuba_query.query,
@@ -126,6 +127,7 @@ def get_aggregation_value(
     end: datetime,
     alert_rule_id: int | None = None,
 ) -> float | None:
+    comparison_aggregate: None | float = None
     try:
         # TODO: determine whether we need to include the subscription query_extra here
         query_builder = entity_subscription.build_query_builder(
