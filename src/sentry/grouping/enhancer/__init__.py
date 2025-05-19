@@ -6,6 +6,7 @@ import os
 import zlib
 from collections import Counter
 from collections.abc import Sequence
+from dataclasses import dataclass
 from functools import cached_property
 from random import random
 from typing import Any, Literal
@@ -54,6 +55,14 @@ VALID_PROFILING_MATCHER_PREFIXES = (
     "package",  # stack.package
 )
 VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
+
+
+@dataclass
+class EnhancementsConfig:
+    rules: list[EnhancementRule]
+    rust_enhancements: RustEnhancements
+    version: int | None = None
+    bases: list[str] | None = None
 
 
 # Hack to fake a subclass of `RustFrame` (which can't be directly subclassed because it's a
