@@ -243,6 +243,7 @@ describe('OnDemandBudgets AM Checkout', function () {
           reservedSpans: undefined,
           reservedTransactions: 100000,
           reservedUptime: 1,
+          seer: false,
         },
       })
     );
