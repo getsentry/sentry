@@ -809,8 +809,8 @@ class Enhancements:
                 else:
                     pickled = zlib.decompress(compressed_pickle)
 
-                rust_enhancements = get_rust_enhancements("config_structure", pickled)
                 config_structure = msgpack.loads(pickled, raw=False)
+                rust_enhancements = get_rust_enhancements("config_structure", pickled)
 
                 metrics_timer_tags.update(
                     # The first entry in the config structure is the enhancements version
