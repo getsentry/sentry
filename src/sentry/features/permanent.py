@@ -124,6 +124,8 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:seer-based-priority": False,
         # Enable Vercel integration - there is a custom handler in getsentry
         "organizations:integrations-vercel": True,
+        # Enable GitHub multi-org for users to connect many Sentry orgs to a single GitHub org.
+        "organizations:github-multi-org": True,
     }
 
     permanent_project_features = {
