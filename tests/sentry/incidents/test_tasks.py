@@ -1,10 +1,8 @@
-from datetime import timedelta
 from functools import cached_property
 from unittest import mock
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock
 
 import pytest
-from django.utils import timezone
 
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -14,11 +12,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentActivityType, IncidentStatus
-from sentry.incidents.tasks import handle_subscription_metrics_logger, handle_trigger_action
-from sentry.incidents.utils.constants import SUBSCRIPTION_METRICS_LOGGER
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import SnubaQuery
-from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
+from sentry.incidents.tasks import handle_trigger_action
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
 from sentry.testutils.skips import requires_kafka, requires_snuba
@@ -105,51 +99,3 @@ class HandleTriggerActionTest(TestCase):
                 metric_value=metric_value,
                 notification_uuid=str(activity.notification_uuid),
             )
-
-
-class TestHandleSubscriptionMetricsLogger(TestCase):
-    @cached_property
-    def subscription(self):
-        snuba_query = create_snuba_query(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Metrics,
-            "hello",
-            "count()",
-            timedelta(minutes=1),
-            timedelta(minutes=1),
-            None,
-        )
-        return create_snuba_subscription(self.project, SUBSCRIPTION_METRICS_LOGGER, snuba_query)
-
-    def build_subscription_update(self):
-        timestamp = timezone.now().replace(microsecond=0)
-        data = {
-            "count": 100,
-            "crashed": 2.0,
-        }
-        values = {"data": [data]}
-        return {
-            "subscription_id": self.subscription.subscription_id,
-            "values": values,
-            "timestamp": timestamp,
-            "interval": 1,
-            "partition": 1,
-            "offset": 1,
-        }
-
-    def test(self):
-        with patch("sentry.incidents.tasks.logger") as logger:
-            subscription_update = self.build_subscription_update()
-            handle_subscription_metrics_logger(subscription_update, self.subscription)
-            assert logger.info.call_args_list == [
-                call(
-                    "handle_subscription_metrics_logger.message",
-                    extra={
-                        "subscription_id": self.subscription.id,
-                        "dataset": self.subscription.snuba_query.dataset,
-                        "snuba_subscription_id": self.subscription.subscription_id,
-                        "result": subscription_update,
-                        "aggregation_value": 98.0,
-                    },
-                )
-            ]
