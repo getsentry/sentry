@@ -910,8 +910,7 @@ class GithubOrganizationSelection(PipelineView):
                 }
             )
 
-            if "chosen_installation_id" in request.GET:
-                chosen_installation_id = request.GET["chosen_installation_id"]
+            if chosen_installation_id := request.GET.get("chosen_installation_id"):
                 if chosen_installation_id == "-1":
                     return pipeline.next_step()
 
@@ -948,13 +947,19 @@ class GitHubInstallation(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             self.active_user_organization = determine_active_organization(request)
+            has_organization = self.active_user_organization is not None
+            has_multi_org_ff = features.has(
+                "organizations:github-multi-org",
+                organization=self.active_user_organization.organization,
+                actor=request.user,
+            )
 
             chosen_installation_id = pipeline.fetch_state("chosen_installation")
             if chosen_installation_id is not None:
                 pipeline.bind_state("installation_id", chosen_installation_id)
 
-            installation_id = request.GET.get(
-                "installation_id", pipeline.fetch_state("installation_id")
+            installation_id = pipeline.fetch_state("installation_id") or request.GET.get(
+                "installation_id", None
             )
             if installation_id is None:
                 return HttpResponseRedirect(self.get_app_url())
@@ -965,7 +970,7 @@ class GitHubInstallation(PipelineView):
                 "organization_id",
                 (
                     self.active_user_organization.organization.id
-                    if self.active_user_organization
+                    if self.active_user_organization is not None
                     else None
                 ),
             )
@@ -975,11 +980,7 @@ class GitHubInstallation(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
                 return error_page
 
-            if self.active_user_organization is not None and features.has(
-                "organizations:github-multi-org",
-                organization=self.active_user_organization.organization,
-                actor=request.user,
-            ):
+            if has_organization and has_multi_org_ff:
                 try:
                     integration = Integration.objects.get(
                         external_id=installation_id, status=ObjectStatus.ACTIVE
@@ -987,11 +988,7 @@ class GitHubInstallation(PipelineView):
                 except Integration.DoesNotExist:
                     return pipeline.next_step()
 
-            elif self.active_user_organization is not None and not features.has(
-                "organizations:github-multi-org",
-                organization=self.active_user_organization.organization,
-                actor=request.user,
-            ):
+            elif has_organization and not has_multi_org_ff:
                 try:
                     # We want to limit GitHub integrations to 1 organization
                     installations_exist = OrganizationIntegration.objects.filter(
