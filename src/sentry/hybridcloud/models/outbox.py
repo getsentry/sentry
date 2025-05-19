@@ -9,7 +9,7 @@ from typing import Any, Self
 
 import sentry_sdk
 from django import db
-from django.db import OperationalError, connections, models, router, transaction
+from django.db import DatabaseError, OperationalError, connections, models, router, transaction
 from django.db.models import Count, Max, Min
 from django.db.models.functions import Now
 from django.db.transaction import Atomic
@@ -195,7 +195,15 @@ class OutboxBase(Model):
             )
 
         if _outbox_context.flushing_enabled:
-            transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
+            try:
+                transaction.on_commit(
+                    lambda: self.drain_shard(), using=router.db_for_write(type(self))
+                )
+            except DatabaseError as e:
+                raise OutboxFlushError(
+                    f"Failed to process Outbox, {OutboxCategory(self.category).name} due to database error",
+                    self,
+                ) from e
 
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)

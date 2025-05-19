@@ -1,10 +1,11 @@
 import logging
 from dataclasses import dataclass
 
-from django.db import OperationalError, router, transaction
+from django.db import router, transaction
 from django.utils.functional import cached_property
 
 from sentry import analytics
+from sentry.hybridcloud.models.outbox import OutboxFlushError
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -39,7 +40,7 @@ class Refresher:
                 self._record_analytics()
                 token = self._create_new_token()
                 return token
-        except OperationalError as e:
+        except OutboxFlushError as e:
             context = {
                 "installation_uuid": self.install.uuid,
                 "client_id": self.application.client_id[:SENSITIVE_CHARACTER_LIMIT],
@@ -48,7 +49,7 @@ class Refresher:
 
             if token is not None:
                 logger.warning(
-                    "refresher.database-failure",
+                    "refresher.outbox-failure",
                     extra=context,
                     exc_info=e,
                 )
