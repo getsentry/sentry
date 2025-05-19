@@ -224,7 +224,7 @@ def get_hint_for_frame(
 
 def _split_rules(
     rules: list[EnhancementRule],
-) -> tuple[list[EnhancementRule], list[EnhancementRule], RustEnhancements, RustEnhancements]:
+) -> tuple[EnhancementsConfig, EnhancementsConfig]:
     """
     Given a list of EnhancementRules, each of which may have both classifier and contributes
     actions, split the rules into separate classifier and contributes rule lists, and return them
@@ -259,10 +259,8 @@ def _split_rules(
     contributes_rust_enhancements = get_rust_enhancements("config_string", contributes_rules_text)
 
     return (
-        classifier_rules,
-        contributes_rules,
-        classifier_rust_enhancements,
-        contributes_rust_enhancements,
+        EnhancementsConfig(classifier_rules, classifier_rust_enhancements),
+        EnhancementsConfig(contributes_rules, contributes_rust_enhancements),
     )
 
 
@@ -451,21 +449,15 @@ class Enhancements:
 
         self.run_split_enhancements = version == 3
         if self.run_split_enhancements:
-            (
-                classifier_rules,
-                contributes_rules,
-                classifier_rust_enhancements,
-                contributes_rust_enhancements,
-            ) = _split_rules(rules)
+            classifier_config, contributes_config = _split_rules(rules)
 
-            self.classifier_rules = classifier_rules
-            self.contributes_rules = contributes_rules
+            self.classifier_rules = classifier_config.rules
+            self.contributes_rules = contributes_config.rules
             self.classifier_rust_enhancements = merge_rust_enhancements(
-                self.bases, classifier_rust_enhancements, type="classifier"
+                self.bases, classifier_config.rust_enhancements, type="classifier"
             )
-
             self.contributes_rust_enhancements = merge_rust_enhancements(
-                self.bases, contributes_rust_enhancements, type="contributes"
+                self.bases, contributes_config.rust_enhancements, type="contributes"
             )
 
     def apply_category_and_updated_in_app_to_frames(
