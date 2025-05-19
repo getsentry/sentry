@@ -2,7 +2,9 @@ import {Fragment, useState} from 'react';
 
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import JSXNode from 'sentry/components/stories/jsxNode';
+import {IconChevron} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -82,6 +84,31 @@ export default storyBook('ButtonBar', (story, APIReference) => {
         </p>
         <ButtonBar>
           <Button>One Lonely Button</Button>
+        </ButtonBar>
+
+        <p>
+          You can also use a <JSXNode name="DropdownMenu" /> inside a{' '}
+          <JSXNode name="ButtonBar" /> to create a button with secondary actions.
+        </p>
+        <ButtonBar merged>
+          <Button>One</Button>
+          <DropdownMenu
+            items={[
+              {
+                key: 'click-me',
+                label: 'Click me',
+                // eslint-disable-next-line no-alert
+                onAction: () => alert('clicked'),
+              },
+            ]}
+            trigger={(triggerProps, isOpen) => (
+              <Button
+                {...triggerProps}
+                aria-label="options"
+                icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+              />
+            )}
+          />
         </ButtonBar>
       </Fragment>
     );
