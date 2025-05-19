@@ -44,8 +44,8 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # The detector's status - used for tracking deletion state
     status = models.SmallIntegerField(
-        default=ObjectStatus.ACTIVE.value,
-        db_default=ObjectStatus.ACTIVE.value,
+        default=ObjectStatus.ACTIVE,
+        db_default=ObjectStatus.ACTIVE,
     )
 
     # Optionally set a description of the detector, this will be used in notifications

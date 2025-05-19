@@ -33,8 +33,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # The workflow's status - used for tracking deletion state
     status = models.SmallIntegerField(
-        default=ObjectStatus.ACTIVE.value,
-        db_default=ObjectStatus.ACTIVE.value,
+        default=ObjectStatus.ACTIVE,
+        db_default=ObjectStatus.ACTIVE,
     )
 
     # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
