@@ -90,7 +90,6 @@ export const ChonkStyledVisibleLabel = chonkStyled('span')<{
   ${p => p.theme.overflowEllipsis}
   user-select: none;
   font-weight: ${p => p.theme.fontWeightBold};
-  ${p => p.size !== 'md' && `transform: translateY(-1px)`};
   text-align: center;
   color: ${p => getTextColor(p)};
 `;

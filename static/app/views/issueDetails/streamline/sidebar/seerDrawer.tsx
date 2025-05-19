@@ -7,8 +7,9 @@ import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumb
 import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
@@ -185,7 +186,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       </SeerDrawerHeader>
       <SeerDrawerNavigator>
         <Flex align="center" gap={space(1)}>
-          <Header>{t('Autofix')}</Header>
+          <Header>{t('Seer')}</Header>
           <FeatureBadge
             type="beta"
             tooltipProps={{
@@ -228,14 +229,14 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           />
         </Flex>
         {!aiConfig.needsGenAiAcknowledgement && (
-          <ButtonBarWrapper data-test-id="autofix-button-bar">
+          <ButtonBarWrapper data-test-id="seer-button-bar">
             <ButtonBar gap={1}>
               <Feature features={['organizations:autofix-seer-preferences']}>
                 <LinkButton
                   to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                   size="xs"
-                  title={t('Project Settings for Autofix')}
-                  aria-label={t('Project Settings for Autofix')}
+                  title={t('Project Settings for Seer')}
+                  aria-label={t('Project Settings for Seer')}
                   icon={<IconSettings />}
                 />
               </Feature>

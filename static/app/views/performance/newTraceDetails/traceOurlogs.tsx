@@ -2,6 +2,7 @@ import type React from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Panel from 'sentry/components/panels/panel';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -51,9 +52,9 @@ export function TraceViewLogsSection() {
 
   if (hasTraceTabsUi) {
     return (
-      <LogsContentWrapper>
+      <StyledPanel>
         <LogsSectionContent tableData={tableData.logsData} />
-      </LogsContentWrapper>
+      </StyledPanel>
     );
   }
 
@@ -104,9 +105,7 @@ const TableContainer = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const LogsContentWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)};
-  overflow: hidden;
+const StyledPanel = styled(Panel)`
+  padding: ${space(2)};
+  margin: 0;
 `;

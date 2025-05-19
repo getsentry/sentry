@@ -18,17 +18,11 @@ import Status from './status';
 type Props = {
   image: ImageWithCombinedStatus;
   onOpenImageDetailsModal: (image: ImageWithCombinedStatus) => void;
+  ref?: React.Ref<HTMLDivElement>;
   style?: React.CSSProperties;
 };
 
-function DebugImage({
-  ref,
-  image,
-  onOpenImageDetailsModal,
-  style,
-}: Props & {
-  ref?: React.Ref<HTMLDivElement>;
-}) {
+function DebugImage({ref, image, onOpenImageDetailsModal, style}: Props) {
   const {unwind_status, debug_status, debug_file, code_file, status} = image;
 
   const codeFilename = getFileName(code_file);
