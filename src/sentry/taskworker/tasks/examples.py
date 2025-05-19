@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from time import sleep
+from typing import Any
 
 from sentry.taskworker.namespaces import exampletasks
 from sentry.taskworker.retry import LastAction, NoRetriesRemainingError, Retry, RetryError
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 @exampletasks.register(name="examples.say_hello")
-def say_hello(name: str) -> None:
+def say_hello(name: str, *args: list[Any], **kwargs: dict[str, Any]) -> None:
     logger.debug("Hello %s", name)
 
 
@@ -83,6 +84,6 @@ def at_most_once_task() -> None:
 
 
 @exampletasks.register(name="examples.timed")
-def timed_task(sleep_seconds: float | str) -> None:
+def timed_task(sleep_seconds: float | str, *args: list[Any], **kwargs: dict[str, Any]) -> None:
     sleep(float(sleep_seconds))
     logger.debug("timed_task complete")
