@@ -428,10 +428,11 @@ class StatefulDetectorHandler(
         # TODO ensure this is not a duplicate packet or reprocessing
 
         value = self.extract_value(data_packet)
-        condition_evaluation, new_priority = self._evaluation_detector_conditions(value)
+        is_condition_group_met, new_priority = self._evaluation_detector_conditions(value)
         state = self.state_manager.get_state_data([None])[None]
 
-        if not condition_evaluation or state.status == new_priority:
+        is_status_changed = state.status != new_priority
+        if not is_condition_group_met or not is_status_changed:
             # If the condition is not met or the status is not the same, nothing to do.
             return None
 
@@ -448,10 +449,10 @@ class StatefulDetectorHandler(
             self.state_manager.enqueue_counter_reset()
         else:
             detector_occurrence, event_data = self.create_occurrence(
-                condition_evaluation, data_packet, new_priority
+                is_condition_group_met, data_packet, new_priority
             )
             detector_result = self._create_decorated_issue_occurrence(
-                detector_occurrence, condition_evaluation, new_priority
+                detector_occurrence, is_condition_group_met, new_priority
             )
 
         return {
@@ -535,15 +536,16 @@ class StatefulGroupingDetectorHandler(
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
             return None
 
-        new_status = DetectorPriorityLevel.OK
-        is_condition_group_met, new_status = self._evaluation_detector_conditions(value)
+        new_priority = DetectorPriorityLevel.OK
+        is_condition_group_met, new_priority = self._evaluation_detector_conditions(value)
+        is_status_changed = state_data.status != new_priority
 
-        if state_data.status == new_status or not is_condition_group_met:
+        if not is_status_changed or not is_condition_group_met:
             return None
 
         # Update the counter for the new status
         updated_threshold_count = self._increment_detector_thresholds(
-            state_data, new_status, group_key
+            state_data, new_priority, group_key
         )
 
         breached_threshold = self._has_breached_threshold(updated_threshold_count)

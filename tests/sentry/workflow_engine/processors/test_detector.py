@@ -311,7 +311,6 @@ class TestGetStateData(BaseDetectorHandlerTest):
             counter_updates={
                 **{level: None for level in handler._thresholds},
                 DetectorPriorityLevel.OK: 5,
-                DetectorPriorityLevel.MEDIUM: 1,
             },
         )
         handler.state_manager.enqueue_dedupe_update(key_1, state_data_1.dedupe_value)
