@@ -43,6 +43,10 @@ function AutomationListTable() {
           <HeaderDivider />
           <Heading>{t('Actions')}</Heading>
         </Flex>
+        <Flex className="projects">
+          <HeaderDivider />
+          <Heading>{t('Projects')}</Heading>
+        </Flex>
         <Flex className="connected-monitors">
           <HeaderDivider />
           <Heading>{t('Monitors')}</Heading>
@@ -50,7 +54,6 @@ function AutomationListTable() {
       </StyledPanelHeader>
       <PanelBody>
         {isLoading ? <LoadingIndicator /> : null}
-
         {automations.map(automation => (
           <AutomationListRow
             key={automation.id}

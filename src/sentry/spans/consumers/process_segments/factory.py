@@ -3,6 +3,7 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 import orjson
+import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -112,12 +113,10 @@ def _process_message(message: Message[KafkaPayload]) -> list[KafkaPayload]:
         segment = orjson.loads(value)
         processed = process_segment(segment["spans"])
         return [_convert_to_trace_item(span) for span in processed]
-    except Exception:  # NOQA
-        raise
-        # TODO: Implement error handling
-        # sentry_sdk.capture_exception()
-        # assert isinstance(message.value, BrokerValue)
-        # raise InvalidMessage(message.value.partition, message.value.offset)
+    except Exception:
+        # TODO: revise error handling
+        sentry_sdk.capture_exception()
+        return []
 
 
 def _convert_to_trace_item(span: Span) -> KafkaPayload:
