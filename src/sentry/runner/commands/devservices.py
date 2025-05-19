@@ -766,7 +766,7 @@ def check_clickhouse(options: dict[str, Any]) -> None:
 
 
 def check_kafka(options: dict[str, Any]) -> None:
-    (port,) = options["ports"].values()
+    port = ("127.0.0.1", "9092")
     subprocess.run(
         (
             "docker",
