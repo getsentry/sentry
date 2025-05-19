@@ -57,10 +57,10 @@ function NoIssuesMatched() {
           </li>
           {(onBreachedMetricsView || onWarningsView) && (
             <li>
-              {tct('Make sure tracing is set up in your project. [link]', {
+              {tct('Make sure [link] is set up in your project.', {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=%2Ftracing%2F">
-                    {t('Learn more')}
+                    {t('tracing')}
                   </ExternalLink>
                 ),
               })}
@@ -68,13 +68,21 @@ function NoIssuesMatched() {
           )}
           {onErrorsAndOutagesView && (
             <li>
-              {tct('Make sure uptime monitoring is set up in your project. [link]', {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/">
-                    {t('Learn more')}
-                  </ExternalLink>
-                ),
-              })}
+              {tct(
+                'Make sure [uptimeLink] and [cronsLink] monitoring is set up in your project.',
+                {
+                  uptimeLink: (
+                    <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/">
+                      {t('uptime')}
+                    </ExternalLink>
+                  ),
+                  cronsLink: (
+                    <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=%2Fcrons%2F">
+                      {t('cron')}
+                    </ExternalLink>
+                  ),
+                }
+              )}
             </li>
           )}
         </Tips>
