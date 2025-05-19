@@ -628,7 +628,6 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
-                has_fired_actions=True,
             ).count()
             == 1
         )
