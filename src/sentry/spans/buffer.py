@@ -64,7 +64,7 @@ Glossary for types of keys:
 from __future__ import annotations
 
 import itertools
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
 import rapidjson
@@ -72,6 +72,7 @@ from django.conf import settings
 from django.utils.functional import cached_property
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
+from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.utils import metrics, redis
 
 # SegmentKey is an internal identifier used by the redis buffer that is also
@@ -325,6 +326,10 @@ class SpansBuffer:
             )
 
         return sum(result)
+
+    def get_memory_info(self) -> Generator[ServiceMemory]:
+        if isinstance(self.client, RedisCluster):
+            yield from iter_cluster_memory_usage(self.client)
 
     def flush_segments(self, now: int, max_segments: int = 0) -> dict[SegmentKey, FlushedSegment]:
         cutoff = now

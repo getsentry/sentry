@@ -42,6 +42,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         output_block_size: int | None,
         produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
         max_inflight_segments: int = 20000000,
+        max_memory_percentage: float = 1.0,
     ):
         super().__init__()
 
@@ -50,6 +51,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_batch_time = max_batch_time
         self.max_flush_segments = max_flush_segments
         self.max_inflight_segments = max_inflight_segments
+        self.max_memory_percentage = max_memory_percentage
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.num_processes = num_processes
@@ -122,8 +124,17 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             nonlocal message_i
 
             if message_i >= self.max_inflight_segments:
-                if buffer.get_current_queue_size() > self.max_inflight_segments:
+                queue_too_large = buffer.get_current_queue_size() > self.max_inflight_segments
+
+                if queue_too_large:
                     raise MessageRejected()
+
+                if self.max_memory_percentage < 1.0:
+                    memory_infos = list(buffer.get_memory_info())
+                    used = sum(x.used for x in memory_infos)
+                    available = sum(x.available for x in memory_infos)
+                    if available > 0 and used / available > self.max_memory_percentage:
+                        raise MessageRejected()
 
                 message_i = 0
 

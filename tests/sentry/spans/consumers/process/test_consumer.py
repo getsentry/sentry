@@ -92,6 +92,7 @@ def test_backpressure(monkeypatch):
         output_block_size=None,
         produce_to_pipe=messages.append,
         max_inflight_segments=10,
+        max_memory_percentage=0.5,
     )
 
     commits = []
