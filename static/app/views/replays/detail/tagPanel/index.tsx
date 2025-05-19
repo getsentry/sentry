@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -72,29 +73,31 @@ export default function TagPanel() {
   const filteredTags = Object.entries(items);
 
   return (
-    <PaddedFluidHeight>
-      <TagFilters tags={tags} {...filterProps} />
-      <TabItemContainer>
-        <StyledPanel>
-          <FluidPanel>
-            {filteredTags.length ? (
-              <KeyValueTable noMargin>
-                {filteredTags.map(([key, values]) => (
-                  <ReplayTagsTableRow
-                    key={key}
-                    name={key}
-                    values={values}
-                    generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
-                  />
-                ))}
-              </KeyValueTable>
-            ) : (
-              <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
-            )}
-          </FluidPanel>
-        </StyledPanel>
-      </TabItemContainer>
-    </PaddedFluidHeight>
+    <ErrorBoundary mini>
+      <PaddedFluidHeight>
+        <TagFilters tags={tags} {...filterProps} />
+        <TabItemContainer>
+          <StyledPanel>
+            <FluidPanel>
+              {filteredTags.length ? (
+                <KeyValueTable noMargin>
+                  {filteredTags.map(([key, values]) => (
+                    <ReplayTagsTableRow
+                      key={key}
+                      name={key}
+                      values={values}
+                      generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
+                    />
+                  ))}
+                </KeyValueTable>
+              ) : (
+                <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
+              )}
+            </FluidPanel>
+          </StyledPanel>
+        </TabItemContainer>
+      </PaddedFluidHeight>
+    </ErrorBoundary>
   );
 }
 

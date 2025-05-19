@@ -1,9 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -11,7 +9,6 @@ import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -111,9 +108,6 @@ function DeadRageClickWidgetVisualization({items}: {items: DeadRageSelectorItem[
               {item.count_rage_clicks || 0}
             </ClickCount>
           </ClicksGridCell>
-          <ClicksGridCell>
-            <ProjectInfo id={item.project_id} />
-          </ClicksGridCell>
         </Fragment>
       ))}
     </ClicksGrid>
@@ -123,25 +117,7 @@ function DeadRageClickWidgetVisualization({items}: {items: DeadRageSelectorItem[
 DeadRageClickWidgetVisualization.LoadingPlaceholder =
   TimeSeriesWidgetVisualization.LoadingPlaceholder;
 
-function ProjectInfo({id}: {id: number}) {
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === id.toString());
-  const platform = project?.platform;
-  const slug = project?.slug;
-  return (
-    <ProjectInfoWrapper>
-      <Tooltip title={slug}>
-        <PlatformIcon
-          style={{display: 'block'}}
-          size={16}
-          platform={platform ?? 'default'}
-        />
-      </Tooltip>
-    </ProjectInfoWrapper>
-  );
-}
-
-const COLUMN_COUNT = 4;
+const COLUMN_COUNT = 3;
 
 const ClicksGrid = styled('div')`
   display: grid;
@@ -170,10 +146,4 @@ const ClickCount = styled(TextOverflow)`
   grid-template-columns: auto auto;
   gap: ${space(0.75)};
   align-items: center;
-`;
-
-const ProjectInfoWrapper = styled('div')`
-  display: block;
-  width: 16px;
-  height: 16px;
 `;

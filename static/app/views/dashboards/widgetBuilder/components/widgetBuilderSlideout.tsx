@@ -7,6 +7,7 @@ import pick from 'lodash/pick';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconClose} from 'sentry/icons';
@@ -225,9 +226,11 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
             </div>
-            <Section>
-              <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
-            </Section>
+            {isSmallScreen && (
+              <Section>
+                <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+              </Section>
+            )}
             <WidgetTemplatesList
               onSave={onSave}
               setOpenWidgetTemplates={setOpenWidgetTemplates}
@@ -305,6 +308,14 @@ function WidgetBuilderSlideout({
 
 export default WidgetBuilderSlideout;
 
+function Section({children}: {children: React.ReactNode}) {
+  return (
+    <SectionWrapper>
+      <ErrorBoundary mini>{children}</ErrorBoundary>
+    </SectionWrapper>
+  );
+}
+
 const CloseButton = styled(Button)`
   color: ${p => p.theme.subText};
   height: fit-content;
@@ -330,6 +341,6 @@ const SlideoutBodyWrapper = styled('div')`
   padding: ${space(4)};
 `;
 
-const Section = styled('div')`
+const SectionWrapper = styled('div')`
   margin-bottom: 24px;
 `;

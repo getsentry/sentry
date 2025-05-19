@@ -45,7 +45,7 @@ class SentryAppPublishRequestTest(APITestCase):
             },
         )
         assert response.status_code == 201
-        send.assert_called_with(to=["partners@sentry.io", self.user.email])
+        send.assert_called_with(to=["integrations-platform@sentry.io", self.user.email])
 
     @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
     def test_publish_request_email_fails(self, send):
@@ -66,7 +66,7 @@ class SentryAppPublishRequestTest(APITestCase):
         assert response.data == {
             "detail": "Something went wrong trying to send publish confirmation email"
         }
-        send.assert_called_with(to=["partners@sentry.io", self.user.email])
+        send.assert_called_with(to=["integrations-platform@sentry.io", self.user.email])
 
     @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
     def test_publish_already_published(self, send_mail):

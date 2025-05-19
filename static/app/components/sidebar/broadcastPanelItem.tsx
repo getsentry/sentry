@@ -65,6 +65,9 @@ const Title = styled(ExternalLink)<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.blue400};
   ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeightBold}`};
+  &:focus-visible {
+    box-shadow: none;
+  }
 `;
 
 const Message = styled('div')`

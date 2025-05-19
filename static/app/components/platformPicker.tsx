@@ -82,6 +82,12 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0]!,
   };
 
+  componentDidUpdate(prevProps: Readonly<PlatformPickerProps>): void {
+    if (this.props.defaultCategory !== prevProps.defaultCategory) {
+      this.setState({category: this.props.defaultCategory ?? categoryList[0]!.id});
+    }
+  }
+
   get platformList() {
     const {category} = this.state;
 

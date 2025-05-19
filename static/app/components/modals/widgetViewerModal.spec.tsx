@@ -1315,7 +1315,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Open in Releases'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/releases/?environment=prod&environment=dev&project=1&project=2&statsPeriod=24h'
+        '/organizations/org-slug/releases/?environment=prod&environment=dev&project=1&project=2&query=&statsPeriod=24h'
       );
     });
 

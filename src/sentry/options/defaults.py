@@ -3107,6 +3107,12 @@ register(
 )
 
 # Taskbroker flags
+register(
+    "taskworker.try_compress.profile_metrics",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "taskworker.route.overrides",
@@ -3189,7 +3195,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "sdk-deprecation.profile-chunk.python.hard",
+    default="2.24.1",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "sdk-deprecation.profile-chunk.cocoa",
+    default="8.49.2",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sdk-deprecation.profile-chunk.cocoa.hard",
     default="8.49.0",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

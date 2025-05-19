@@ -142,13 +142,13 @@ export interface MonitorStat {
 
 export interface CheckIn {
   /**
-   * Date the opening check-in was sent
+   * Date the opening check-in was received.
    */
-  dateCreated: string;
+  dateAdded: string;
   /**
    * Duration (in milliseconds)
    */
-  duration: number;
+  duration: number | null;
   /**
    * environment the check-in was sent to
    */

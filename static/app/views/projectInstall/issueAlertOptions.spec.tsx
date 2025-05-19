@@ -3,7 +3,10 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
+import type {IssueAlertOptionsProps} from 'sentry/views/projectInstall/issueAlertOptions';
+import IssueAlertOptions, {
+  RuleAction,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 
 describe('IssueAlertOptions', function () {
   const notificationProps: IssueAlertNotificationProps = {
@@ -21,8 +24,12 @@ describe('IssueAlertOptions', function () {
   };
 
   const mockOnChange = jest.fn();
-  const getComponent = () => (
-    <IssueAlertOptions notificationProps={notificationProps} onChange={mockOnChange} />
+  const getComponent = (props: Partial<IssueAlertOptionsProps> = {}) => (
+    <IssueAlertOptions
+      {...props}
+      notificationProps={notificationProps}
+      onChange={mockOnChange}
+    />
   );
 
   afterEach(() => {
@@ -72,9 +79,8 @@ describe('IssueAlertOptions', function () {
     ).toBeInTheDocument();
   });
 
-  it('should not render notification configuration if `Create Alerts Later` is selected', async () => {
-    render(getComponent());
-    await userEvent.click(screen.getByLabelText("I'll create my own alerts later"));
+  it('should not render notification configuration if `Create Alerts Later` is selected', () => {
+    render(getComponent({alertSetting: RuleAction.CREATE_ALERT_LATER}));
     expect(
       screen.queryByRole('checkbox', {name: 'Notify via email'})
     ).not.toBeInTheDocument();
