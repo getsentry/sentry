@@ -95,12 +95,12 @@ type Props = {
   /**
    * The name of the specific item we're looking at details of.
    */
-  name: React.ReactNode;
+  name: string;
   /**
    * The "parent" name of the details view. If you were looking at a specific
    * customer this would probably be "Customers"
    */
-  rootName: React.ReactNode;
+  rootName: string;
   /**
    * List of actions available on this view.
    */

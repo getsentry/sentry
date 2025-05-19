@@ -39,7 +39,7 @@ export default function Stories() {
     if (!location.query.name) {
       return files.filter(
         file =>
-          file.endsWith('styles/colors.stories.tsx') ||
+          file.endsWith('styles/colors.mdx') ||
           file.endsWith('styles/typography.stories.tsx')
       );
     }
