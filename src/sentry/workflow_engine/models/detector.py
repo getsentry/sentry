@@ -65,13 +65,13 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     # The user that created the detector
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
+    class Meta(OwnerModel.Meta):
+        constraints = OwnerModel.Meta.constraints
+
     error_detector_project_options = {
         "fingerprinting_rules": "sentry:fingerprinting_rules",
         "resolve_age": "sentry:resolve_age",
     }
-
-    class Meta(OwnerModel.Meta):
-        constraints = OwnerModel.Meta.constraints
 
     @property
     def group_type(self) -> builtins.type[GroupType]:
