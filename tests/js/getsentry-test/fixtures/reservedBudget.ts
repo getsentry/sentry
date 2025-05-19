@@ -38,6 +38,7 @@ export function ReservedBudgetFixture(props: BudgetProps) {
     dataCategories: [],
     productName: '',
     canProductTrial: false,
+    billingFlag: null,
   };
 
   return {
@@ -91,6 +92,8 @@ export function SeerReservedBudgetFixture(props: BudgetProps) {
     dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
     productName: 'seer',
     canProductTrial: true,
+    billingFlag: 'seer-billing',
+    apiName: ReservedBudgetCategoryType.SEER,
     ...props,
   };
 
@@ -119,6 +122,8 @@ export function DynamicSamplingReservedBudgetFixture(props: BudgetProps) {
     dataCategories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
     productName: 'dynamic sampling',
     canProductTrial: false,
+    billingFlag: null,
+    apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
     ...props,
   };
 
