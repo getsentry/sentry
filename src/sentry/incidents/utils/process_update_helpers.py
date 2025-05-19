@@ -101,7 +101,7 @@ def get_eap_aggregation_value(
 
         rpc_response = snuba_rpc.timeseries_rpc([rpc_time_series_request])[0]
         if len(rpc_response.result_timeseries):
-            return rpc_response.result_timeseries[0].data_points[0].data
+            comparison_aggregate = rpc_response.result_timeseries[0].data_points[0].data
 
     except Exception:
         logger.exception(
@@ -113,6 +113,7 @@ def get_eap_aggregation_value(
             },
         )
         return None
+    return comparison_aggregate
 
 
 def get_aggregation_value(
@@ -147,7 +148,7 @@ def get_aggregation_value(
         )
         query_builder.limit = Limit(1)
         results = query_builder.run_query(referrer="subscription_processor.comparison_query")
-        return list(results["data"][0].values())[0]
+        comparison_aggregate = list(results["data"][0].values())[0]
 
     except Exception:
         logger.exception(
@@ -159,6 +160,7 @@ def get_aggregation_value(
             },
         )
         return None
+    return comparison_aggregate
 
 
 def get_comparison_aggregation_value(
