@@ -2280,6 +2280,12 @@ class UptimeCheckSnubaTestCase(TestCase):
         incident_status: IncidentStatus | None = None,
         scheduled_check_time: datetime | None = None,
         http_status: int | None | NotSet = NOT_SET,
+        actual_check_time: datetime | None = None,
+        duration_ms: int | None = None,
+        check_status_reason: CheckStatusReason | None = None,
+        region: str = "default",
+        environment: str = "production",
+        trace_id: UUID | None = None,
     ):
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now() - timedelta(minutes=5)
@@ -2287,12 +2293,17 @@ class UptimeCheckSnubaTestCase(TestCase):
             incident_status = IncidentStatus.NO_INCIDENT
         if check_id is None:
             check_id = uuid.uuid4()
+        if trace_id is None:
+            trace_id = uuid.uuid4()
 
-        check_status_reason: CheckStatusReason | None = None
-        if check_status == "failure":
+        if check_status == "failure" and check_status_reason is None:
             check_status_reason = {"type": "failure", "description": "Mock failure"}
 
-        timestamp = scheduled_check_time + timedelta(seconds=1)
+        if not actual_check_time:
+            actual_check_time = scheduled_check_time + timedelta(seconds=1)
+
+        if duration_ms is None:
+            duration_ms = random.randint(1, 1000)
 
         http_status = default_if_not_set(
             200 if check_status == "success" else random.choice([408, 500, 502, 503, 504]),
@@ -2304,16 +2315,16 @@ class UptimeCheckSnubaTestCase(TestCase):
                 "organization_id": self.organization.id,
                 "project_id": self.project.id,
                 "retention_days": 30,
-                "region": "default",
-                "environment": "production",
+                "region": region,
+                "environment": environment,
                 "subscription_id": subscription_id,
                 "guid": str(check_id),
                 "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
-                "actual_check_time_ms": int(timestamp.timestamp() * 1000),
-                "duration_ms": random.randint(1, 1000),
+                "actual_check_time_ms": int(actual_check_time.timestamp() * 1000),
+                "duration_ms": duration_ms,
                 "status": check_status,
                 "status_reason": check_status_reason,
-                "trace_id": str(uuid.uuid4()),
+                "trace_id": str(trace_id),
                 "incident_status": incident_status.value,
                 "request_info": {
                     "http_status_code": http_status,
