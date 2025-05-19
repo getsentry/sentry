@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import importlib.machinery
 import logging
 import sys
 from collections.abc import Generator, Mapping, Sequence, Sized
@@ -311,6 +310,8 @@ def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
     """
+    import sentry_sdk
+
     sdk_options, dsns = _get_sdk_options()
     if settings.SPOTLIGHT:
         sdk_options["spotlight"] = (
@@ -486,47 +487,10 @@ def configure_sdk():
             LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
             RustInfoIntegration(),
             RedisIntegration(),
-            ThreadingIntegration(propagate_hub=True),
+            ThreadingIntegration(),
         ],
         **sdk_options,
     )
-
-    # monkey patch sentry
-    class ImportRedirector(importlib.abc.MetaPathFinder, importlib.abc.Loader):
-        def __init__(self, original_module, target_module):
-            self.original_module = original_module
-            self.target_module = target_module
-
-        def find_spec(self, fullname, path, target=None):
-            if fullname == self.original_module:
-                # Create a spec for the target module
-                spec = importlib.machinery.ModuleSpec(
-                    fullname,
-                    self,
-                    origin=f"redirected from {self.original_module} to {self.target_module}",
-                )
-                return spec
-            return None
-
-        def create_module(self, spec):
-            return importlib.import_module(self.target_module)
-
-        def exec_module(self, module):
-            pass
-
-    def redirect_import(original_module, target_module):
-        redirector = ImportRedirector(original_module, target_module)
-        sys.meta_path.insert(0, redirector)
-        # TODO: Not sure the original module should be deleted....
-        # iterating over a copy to be able to delete from the original
-        for cached_module in sys.modules.copy():
-            if cached_module.startswith(original_module):
-                # cleaning up cache if the module is already imported
-                del sys.modules[cached_module]
-
-    # monkey patch to anything but sentry_sdk
-    if in_random_rollout("sentry-sdk.use-python-sdk-alpha") or True:
-        redirect_import("sentry_sdk", "sentry_sdk_alpha")
 
 
 def check_tag_for_scope_bleed(
