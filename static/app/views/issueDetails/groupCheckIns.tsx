@@ -160,19 +160,11 @@ function CheckInCell({
                 {dataRow.expectedTime && (
                   <Fragment>
                     <dt>{t('Expected at')}</dt>
-                    <dd>
-                      {moment
-                        .tz(dataRow.expectedTime, userOptions?.timezone ?? '')
-                        .format(format)}
-                    </dd>
+                    <dd>{moment(dataRow.expectedTime).format(format)}</dd>
                   </Fragment>
                 )}
                 <dt>{t('Received at')}</dt>
-                <dd>
-                  {moment
-                    .tz(dataRow[columnKey], userOptions?.timezone ?? '')
-                    .format(format)}
-                </dd>
+                <dd>{moment(dataRow[columnKey]).format(format)}</dd>
               </LabelledTooltip>
             }
           >
