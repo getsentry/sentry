@@ -948,11 +948,6 @@ class GitHubInstallation(PipelineView):
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             self.active_user_organization = determine_active_organization(request)
             has_organization = self.active_user_organization is not None
-            has_multi_org_ff = features.has(
-                "organizations:github-multi-org",
-                organization=self.active_user_organization.organization,
-                actor=request.user,
-            )
 
             chosen_installation_id = pipeline.fetch_state("chosen_installation")
             if chosen_installation_id is not None:
@@ -968,11 +963,7 @@ class GitHubInstallation(PipelineView):
 
             lifecycle.add_extra(
                 "organization_id",
-                (
-                    self.active_user_organization.organization.id
-                    if self.active_user_organization is not None
-                    else None
-                ),
+                (self.active_user_organization.organization.id if has_organization else None),
             )
 
             error_page = self.check_pending_integration_deletion(request=request)
@@ -980,40 +971,45 @@ class GitHubInstallation(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
                 return error_page
 
-            if has_organization and has_multi_org_ff:
-                try:
-                    integration = Integration.objects.get(
-                        external_id=installation_id, status=ObjectStatus.ACTIVE
-                    )
-                except Integration.DoesNotExist:
-                    return pipeline.next_step()
+            if has_organization:
+                if features.has(
+                    "organizations:github-multi-org",
+                    organization=self.active_user_organization.organization,
+                    actor=request.user,
+                ):
+                    try:
+                        integration = Integration.objects.get(
+                            external_id=installation_id, status=ObjectStatus.ACTIVE
+                        )
+                    except Integration.DoesNotExist:
+                        return pipeline.next_step()
 
-            elif has_organization and not has_multi_org_ff:
-                try:
-                    # We want to limit GitHub integrations to 1 organization
-                    installations_exist = OrganizationIntegration.objects.filter(
-                        integration=Integration.objects.get(external_id=installation_id)
-                    ).exists()
-                except Integration.DoesNotExist:
-                    return pipeline.next_step()
+                else:
+                    try:
+                        # We want to limit GitHub integrations to 1 organization
+                        installations_exist = OrganizationIntegration.objects.filter(
+                            integration=Integration.objects.get(external_id=installation_id)
+                        ).exists()
+                    except Integration.DoesNotExist:
+                        return pipeline.next_step()
 
-                if installations_exist:
-                    lifecycle.record_failure(GitHubInstallationError.INSTALLATION_EXISTS)
-                    return error(
-                        request,
-                        self.active_user_organization,
-                        error_short=GitHubInstallationError.INSTALLATION_EXISTS,
-                        error_long=ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
-                    )
+                    if installations_exist:
+                        lifecycle.record_failure(GitHubInstallationError.INSTALLATION_EXISTS)
+                        return error(
+                            request,
+                            self.active_user_organization,
+                            error_short=GitHubInstallationError.INSTALLATION_EXISTS,
+                            error_long=ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
+                        )
 
-                # OrganizationIntegration does not exist, but Integration does exist.
-                try:
-                    integration = Integration.objects.get(
-                        external_id=installation_id, status=ObjectStatus.ACTIVE
-                    )
-                except Integration.DoesNotExist:
-                    lifecycle.record_failure(GitHubInstallationError.MISSING_INTEGRATION)
-                    return error(request, self.active_user_organization)
+                    # OrganizationIntegration does not exist, but Integration does exist.
+                    try:
+                        integration = Integration.objects.get(
+                            external_id=installation_id, status=ObjectStatus.ACTIVE
+                        )
+                    except Integration.DoesNotExist:
+                        lifecycle.record_failure(GitHubInstallationError.MISSING_INTEGRATION)
+                        return error(request, self.active_user_organization)
 
             # Check that the authenticated GitHub user is the same as who installed the app.
             if (
