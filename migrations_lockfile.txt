@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0005_drop_replay_index
 
-sentry: 0896_org_level_access_not_null
+sentry: 0897_rm_extraneous_groupedmessage_index
 
 social_auth: 0002_default_auto_field
 
