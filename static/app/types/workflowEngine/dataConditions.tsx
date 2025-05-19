@@ -88,7 +88,7 @@ export const enum DetectorPriorityLevel {
 }
 
 export interface NewDataCondition {
-  comparison: string | number;
+  comparison: any;
   comparison_type: DataConditionType;
   condition_group?: DataConditionGroup;
   condition_result?: DetectorPriorityLevel;
