@@ -773,22 +773,6 @@ class Enhancements:
         return base64_str
 
     @classmethod
-    def _from_config_structure(
-        cls,
-        data: list[Any],
-        rust_enhancements: RustEnhancements,
-    ) -> Enhancements:
-        version, bases, rules = data
-        if version not in VERSIONS:
-            raise ValueError("Unknown version")
-        return cls(
-            rules=[EnhancementRule._from_config_structure(rule, version=version) for rule in rules],
-            rust_enhancements=rust_enhancements,
-            version=version,
-            bases=bases,
-        )
-
-    @classmethod
     def from_base64_string(
         cls, base64_string: str | bytes, referrer: str | None = None
     ) -> Enhancements:
@@ -810,18 +794,23 @@ class Enhancements:
                     pickled = zlib.decompress(compressed_pickle)
 
                 config_structure = msgpack.loads(pickled, raw=False)
-                rust_enhancements = get_rust_enhancements("config_structure", pickled)
+                version, bases, rules = config_structure
+                if version not in VERSIONS:
+                    raise InvalidEnhancerConfig(f"Unknown enhancements version: {version}")
 
                 metrics_timer_tags.update(
-                    # The first entry in the config structure is the enhancements version
-                    {
-                        "split": config_structure[0] == 3,
-                        "source": "base64_string",
-                        "referrer": referrer,
-                    }
+                    {"split": version == 3, "source": "base64_string", "referrer": referrer}
                 )
 
-                return cls._from_config_structure(config_structure, rust_enhancements)
+                rules = [EnhancementRule._from_config_structure(rule, version) for rule in rules]
+                rust_enhancements = get_rust_enhancements("config_structure", pickled)
+
+                return cls(
+                    rules=rules,
+                    rust_enhancements=rust_enhancements,
+                    version=version,
+                    bases=bases,
+                )
 
             except (LookupError, AttributeError, TypeError, ValueError) as e:
                 raise ValueError("invalid stack trace rule config: %s" % e)
