@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0005_drop_replay_index
 
-sentry: 0899_organization_slug_upper_idx
+sentry: 0902_detection_type_match_size
 
 social_auth: 0002_default_auto_field
 
@@ -29,4 +29,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0042_extra_uptime_indexes
 
-workflow_engine: 0061_backfill_metric_alert_resolution_action_filters
+workflow_engine: 0062_workflow_engine_missing_indexes
