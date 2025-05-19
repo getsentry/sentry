@@ -66,7 +66,10 @@ describe('Connection Cell Component', function () {
     const overlay = await screen.findByRole('link');
     expect(overlay).toBeInTheDocument();
     expect(overlay).toHaveAttribute('href');
-    expect(overlay).toHaveAttribute('href', '/issues/monitors/12345/');
+    expect(overlay).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/monitors/12345/'
+    );
   });
 
   it('renders workflow hovercard', async function () {
@@ -78,7 +81,10 @@ describe('Connection Cell Component', function () {
     const overlay = await screen.findByRole('link');
     expect(overlay).toBeInTheDocument();
     expect(overlay).toHaveAttribute('href');
-    expect(overlay).toHaveAttribute('href', '/issues/automations/12345/');
+    expect(overlay).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/automations/12345/'
+    );
   });
 });
 

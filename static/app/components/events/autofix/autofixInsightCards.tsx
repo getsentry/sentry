@@ -228,7 +228,7 @@ function AutofixInsightCard({
                             groupId={groupId}
                             runId={runId}
                             editable={false}
-                            isExpandable={false}
+                            integratedStyle
                           />
                         </DiffContainer>
                       )}
@@ -533,7 +533,7 @@ function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}
       addSuccessMessage(t('Rethinking this...'));
     },
     onError: () => {
-      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
+      addErrorMessage(t('Something went wrong when sending Seer your message.'));
     },
   });
 }
@@ -543,7 +543,6 @@ const InsightCardRow = styled('div')<{expanded?: boolean; isUserMessage?: boolea
   justify-content: space-between;
   align-items: stretch;
   cursor: pointer;
-  background-color: ${p => (p.expanded ? p.theme.backgroundSecondary : 'transparent')};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -595,6 +594,8 @@ const InsightContainer = styled(motion.div)<{expanded?: boolean}>`
   overflow: hidden;
   margin-bottom: 0;
   background: ${p => p.theme.background};
+  border: 1px dashed ${p => p.theme.border};
+  border-color: ${p => (p.expanded ? p.theme.border : 'transparent')};
 
   box-shadow: ${p => (p.expanded ? p.theme.dropShadowMedium : 'none')};
 
@@ -692,24 +693,16 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
 
 const ContextBody = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background: ${p => p.theme.pink400}10;
+  background: ${p => p.theme.pink400}05;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
+  border-top: 1px dashed ${p => p.theme.innerBorder};
 
   code {
     white-space: pre-wrap;
     word-break: break-word;
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background-color: ${p => p.theme.subText};
+    background-color: transparent;
   }
 `;
 
@@ -739,7 +732,7 @@ const StyledIconChevron = styled(IconChevron)`
 const RightSection = styled('div')`
   display: flex;
   align-items: center;
-  padding-right: ${space(1)};
+  padding-right: ${space(0.5)};
 `;
 
 const EditContainer = styled('div')`
@@ -790,7 +783,9 @@ const AddEditContainer = styled('div')`
 `;
 
 const DiffContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-left: -${space(2)};
+  margin-right: -${space(2)};
+  margin-top: -${space(2)};
 `;
 
 const AddButton = styled(Button)`

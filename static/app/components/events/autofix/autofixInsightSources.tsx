@@ -22,7 +22,8 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
 interface AutofixInsightSourcesProps {
-  sources: InsightSources | undefined;
+  codeUrls?: string[];
+  sources?: InsightSources;
   title?: string;
 }
 
@@ -65,7 +66,7 @@ function getCodeSourceName(url: string): string {
   return url.length > 30 ? url.substring(0, 27) + '...' : url;
 }
 
-function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
+function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSourcesProps) {
   const [showThoughtsPopup, setShowThoughtsPopup] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const thoughtsButtonRef = useRef<HTMLButtonElement>(null);
@@ -87,14 +88,14 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
     };
   }, [overlayRef, thoughtsButtonRef]);
 
-  if (!sources) {
+  if (!sources && !codeUrls) {
     return null;
   }
 
   const sourceCards = [];
 
   // Stacktrace Card
-  if (sources.stacktrace_used) {
+  if (sources?.stacktrace_used) {
     sourceCards.push(
       <SourceCard
         key="stacktrace"
@@ -111,7 +112,7 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
   }
 
   // Breadcrumbs Card
-  if (sources.breadcrumbs_used) {
+  if (sources?.breadcrumbs_used) {
     sourceCards.push(
       <SourceCard
         key="breadcrumbs"
@@ -128,7 +129,7 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
   }
 
   // HTTP Request Card
-  if (sources.http_request_used) {
+  if (sources?.http_request_used) {
     sourceCards.push(
       <SourceCard
         key="http-request"
@@ -145,12 +146,12 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
   }
 
   // Trace Event Cards
-  sources.trace_event_ids_used?.forEach(id => {
+  sources?.trace_event_ids_used?.forEach(id => {
     sourceCards.push(
       <SourceCard
         key={`trace-${id}`}
         onClick={() => {
-          if (sources.event_trace_id) {
+          if (sources?.event_trace_id) {
             window.open(
               `/issues/trace/${sources.event_trace_id}?node=txn-${id}`,
               '_blank'
@@ -166,7 +167,7 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
   });
 
   // Profile ID Cards
-  sources.profile_ids_used?.forEach(id => {
+  sources?.profile_ids_used?.forEach(id => {
     sourceCards.push(
       <SourceCard
         key={`profile-${id}`}
@@ -182,13 +183,13 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
   });
 
   // Connected Error ID Cards
-  sources.connected_error_ids_used?.forEach(id => {
+  sources?.connected_error_ids_used?.forEach(id => {
     sourceCards.push(
       <SourceCard
         key={`error-${id}`}
         size="xs"
         onClick={() => {
-          if (sources.event_trace_id) {
+          if (sources?.event_trace_id) {
             window.open(
               `/issues/trace/${sources.event_trace_id}?node=error-${id}`,
               '_blank'
@@ -203,7 +204,7 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
   });
 
   // Code URL Cards
-  sources.code_used_urls?.forEach((url, index) => {
+  sources?.code_used_urls?.forEach((url, index) => {
     sourceCards.push(
       <SourceCard
         key={`code-${index}`}
@@ -216,8 +217,23 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
     );
   });
 
+  if (codeUrls) {
+    codeUrls.forEach((url, index) => {
+      sourceCards.push(
+        <SourceCard
+          key={`passed-code-${index}`}
+          onClick={() => window.open(url, '_blank')}
+          size="xs"
+          icon={<IconCode size="xs" />}
+        >
+          {getCodeSourceName(url)}
+        </SourceCard>
+      );
+    });
+  }
+
   // Diff URL Cards
-  sources.diff_urls?.forEach((url, index) => {
+  sources?.diff_urls?.forEach((url, index) => {
     sourceCards.push(
       <SourceCard
         key={`diff-${index}`}
@@ -231,7 +247,7 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
   });
 
   // Thoughts Card
-  if (defined(sources.thoughts) && sources.thoughts.length > 0) {
+  if (defined(sources?.thoughts) && sources?.thoughts.length > 0) {
     sourceCards.push(
       <SourceCard
         key="thoughts"
@@ -255,7 +271,7 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
     <SourcesContainer>
       <CardsContainer aria-label="Autofix Insight Sources">{sourceCards}</CardsContainer>
       {showThoughtsPopup &&
-        sources.thoughts &&
+        sources?.thoughts &&
         document.body &&
         createPortal(
           <ThoughtsOverlay
@@ -264,7 +280,7 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
             data-overlay="true"
           >
             <OverlayHeader>
-              <OverlayTitle>{t("Autofix's Thoughts")}</OverlayTitle>
+              <OverlayTitle>{t("Seer's Thoughts")}</OverlayTitle>
               {title && <InsightTitle>"{title.trim()}"</InsightTitle>}
             </OverlayHeader>
             <OverlayContent>
@@ -272,9 +288,7 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
             </OverlayContent>
             <OverlayFooter>
               <OverlayButtonGroup>
-                <Button size="xs" onClick={() => setShowThoughtsPopup(false)}>
-                  {t('Close')}
-                </Button>
+                <Button onClick={() => setShowThoughtsPopup(false)}>{t('Close')}</Button>
               </OverlayButtonGroup>
             </OverlayFooter>
           </ThoughtsOverlay>,
@@ -337,7 +351,7 @@ const OverlayContent = styled('div')`
 `;
 
 const OverlayFooter = styled('div')`
-  padding: ${space(2)};
+  padding: ${space(1)};
   border-top: 1px solid ${p => p.theme.border};
 `;
 

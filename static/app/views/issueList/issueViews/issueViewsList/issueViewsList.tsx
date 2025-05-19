@@ -22,12 +22,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
+import AllViewsWelcomeBanner from 'sentry/views/issueList/issueViews/issueViewsList/allViewsWelcomeBanner';
+import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
 import {
   DEFAULT_ENVIRONMENTS,
   DEFAULT_TIME_FILTERS,
-} from 'sentry/views/issueList/issueViews/issueViews';
-import AllViewsWelcomeBanner from 'sentry/views/issueList/issueViews/issueViewsList/allViewsWelcomeBanner';
-import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
+} from 'sentry/views/issueList/issueViews/utils';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
@@ -146,6 +146,11 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
       queryClient.invalidateQueries({queryKey: tableQueryKey});
     },
   });
+  const updateViewName = (view: GroupSearchView) => {
+    setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
+      return data?.map(v => (v.id === view.id ? {...v, name: view.name} : v));
+    });
+  };
 
   useRouteAnalyticsParams(
     isPending
@@ -169,6 +174,9 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
         }}
         handleDeleteView={view => {
           deleteView({id: view.id});
+        }}
+        onRenameView={view => {
+          updateViewName(view);
         }}
         hideCreatedBy={createdBy === GroupSearchViewCreatedBy.ME}
       />

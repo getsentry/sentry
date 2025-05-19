@@ -53,6 +53,7 @@ from sentry.grouping.api import (
     GroupingConfig,
     get_grouping_config_dict_for_project,
 )
+from sentry.grouping.enhancer import get_enhancements_version
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.ingest.config import is_in_transition, update_or_set_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
@@ -135,7 +136,6 @@ from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -472,6 +472,7 @@ class EventManager:
                 "platform": job["event"].platform or "unknown",
                 "sdk": normalized_sdk_tag_from_event(job["event"].data),
                 "in_transition": job["in_grouping_transition"],
+                "split_enhancements": get_enhancements_version(project) == 3,
             }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
@@ -1474,7 +1475,6 @@ def _create_group(
 
     # Attempt to handle The Mysterious Case of the Stuck Project Counter
     except IntegrityError as err:
-        incr_rollback_metrics(Group)
         if not _is_stuck_counter_error(err, project, short_id):
             raise
 
@@ -1493,9 +1493,7 @@ def _create_group(
                     **group_creation_kwargs,
                 )
 
-        except Exception as e:
-            if isinstance(e, IntegrityError):
-                incr_rollback_metrics(Group)
+        except Exception:
             # Maybe the stuck counter was hiding some other error
             logger.exception("Error after unsticking project counter")
             raise
