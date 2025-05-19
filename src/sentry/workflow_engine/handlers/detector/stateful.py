@@ -278,13 +278,32 @@ class StatefulDetectorHandler(
     def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
         super().__init__(detector)
 
+        # Default to 1 for all the possible levels on a given detector
+        default_thresholds = {level: 1 for level in self._get_configured_detector_levels()}
+
         self._thresholds: DetectorThresholds = {
-            **{level: 1 for level in DetectorPriorityLevel},  # Default to 0 for all levels
+            DetectorPriorityLevel.OK: 1,  # Make sure the OK level is always set
+            **default_thresholds,
             **(self.thresholds or {}),  # Allow each handler to override
             **(thresholds or {}),  # Allow each instance to override
         }
 
         self.state_manager = DetectorStateManager(detector, list(self._thresholds.keys()))
+
+    def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
+        # TODO - Is this something that should be provided by the detector itself rather
+        # than having to query the db for each level?
+        priority_levels: list[DetectorPriorityLevel] = [level for level in DetectorPriorityLevel]
+
+        if self.detector.workflow_condition_group is None:
+            # TODO - Should this default to _all_ levels or no levels?
+            return priority_levels
+
+        condition_result_levels = self.detector.workflow_condition_group.conditions.filter(
+            condition_result__in=priority_levels
+        ).values_list("condition_result", flat=True)
+
+        return list(DetectorPriorityLevel(level) for level in condition_result_levels)
 
     def _create_decorated_issue_occurrence(
         self,
@@ -379,11 +398,15 @@ class StatefulDetectorHandler(
         self,
         updated_threshold_counts: DetectorCounters,
     ) -> DetectorPriorityLevel | None:
-        # TODO @saponifi3d - Should this only be for thresholds configured on the detector?
-        # If so, gather the self.detector.when_condition_group.conditions()
-        # and see which ones are configured.
+        """
+        Get the list of configured thresholds, then sort them to find the highest
+        breached threshold.
+
+        If the threshold is breached, return the highest breached threshold level.
+        """
         threshold_keys: list[DetectorPriorityLevel] = list(self._thresholds.keys())
         threshold_keys.sort(reverse=True)
+
         for level in threshold_keys:
             level_count = updated_threshold_counts.get(level)
             if level_count is not None and level_count >= self._thresholds[level]:
@@ -524,7 +547,7 @@ class StatefulGroupingDetectorHandler(
         )
 
         breached_threshold = self._has_breached_threshold(updated_threshold_count)
-        if not breached_threshold:
+        if breached_threshold is None:
             # We haven't met the threshold yet, so don't trigger
             return None
 

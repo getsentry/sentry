@@ -47,7 +47,6 @@ class TestStatefulDetectorIncrementThresholds(TestCase):
             detector=self.detector,
             thresholds={
                 DetectorPriorityLevel.HIGH: 2,
-                DetectorPriorityLevel.MEDIUM: 3,
             },
         )
 
@@ -59,9 +58,9 @@ class TestStatefulDetectorIncrementThresholds(TestCase):
         self.handler.state_manager.commit_state_updates()
         updated_state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
 
-        # All states should be incremented by 1, except for OK
+        # Default to all states since the detector is not configured with any.
         assert updated_state.counter_updates == {
-            **{level: 1 for level in DetectorPriorityLevel},
+            **{level: 1 for level in self.handler._thresholds},
             DetectorPriorityLevel.OK: None,
         }
 
@@ -144,13 +143,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
 
     def test_evaualte__override_threshold(self):
         result = self.handler.evaluate(self.data_packet)
-        evaluation_result = result[self.group_key]
-
-        # Check that the detector is triggered in a medium priority.
-        assert evaluation_result
-        assert evaluation_result.priority == DetectorPriorityLevel.MEDIUM
-        assert evaluation_result.is_triggered is True
-        assert isinstance(evaluation_result.result, IssueOccurrence)
+        assert result == {}
 
     def test_evaluate__override_threshold__triggered(self):
         self.handler.evaluate(self.data_packet)
@@ -173,10 +166,39 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert state_data.is_triggered is True
         assert state_data.status == DetectorPriorityLevel.HIGH
 
+        # Only has configured states
         assert state_data.counter_updates == {
             DetectorPriorityLevel.HIGH: 2,
-            DetectorPriorityLevel.MEDIUM: 2,
-            DetectorPriorityLevel.LOW: 2,
+            DetectorPriorityLevel.OK: None,
+        }
+
+    def test_evaluate__detector_state__all_levels(self):
+        # Add additional levels to the detector
+        self.create_data_condition(
+            type="gte",
+            comparison=0,
+            condition_group=self.detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.LOW,
+        )
+
+        self.create_data_condition(
+            type="gte",
+            comparison=0,
+            condition_group=self.detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.MEDIUM,
+        )
+
+        # Reinitialize the handler to include the new levels
+        self.handler = MockDetectorStateHandler(
+            detector=self.detector, thresholds={DetectorPriorityLevel.HIGH: 2}
+        )
+
+        self.handler.evaluate(self.data_packet)
+        state_data = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
+
+        # Verify all the levels are present now
+        assert state_data.counter_updates == {
+            **{level: 1 for level in DetectorPriorityLevel},
             DetectorPriorityLevel.OK: None,
         }
 
@@ -200,7 +222,10 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         # Check that the state is reset
         assert state_data.is_triggered is False
         assert state_data.status == DetectorPriorityLevel.OK
-        assert state_data.counter_updates == {level: None for level in DetectorPriorityLevel}
+        # Only has configured states
+        assert state_data.counter_updates == {
+            **{level: None for level in self.handler._thresholds},
+        }
 
     def test_evaluate__trigger_after_resolve(self):
         self.handler.evaluate(self.data_packet)
