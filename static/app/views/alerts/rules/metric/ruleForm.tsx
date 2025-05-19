@@ -1016,6 +1016,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     this.setState({historicalData}, () => this.fetchAnomalies());
   }
 
+  TimeWindowsAreConsistent() {
+    const {currentData, historicalData, timeWindow} = this.state;
+    const currentDataPoint1 = currentData[1];
+    const currentDataPoint0 = currentData[0];
+    if (!currentDataPoint0 || !currentDataPoint1) {
+      return false;
+    }
+    const historicalDataPoint1 = historicalData[1];
+    const historicalDataPoint0 = historicalData[0];
+    if (!historicalDataPoint0 || !historicalDataPoint1) {
+      return false;
+    }
+
+    const currentTimeWindow = (currentDataPoint1[0] - currentDataPoint0[0]) / 60;
+    const historicalTimeWindow = (historicalDataPoint1[0] - historicalDataPoint0[0]) / 60;
+    return currentTimeWindow === historicalTimeWindow && currentTimeWindow === timeWindow;
+  }
+
   async fetchAnomalies() {
     const {comparisonType, historicalData, currentData} = this.state;
     if (
@@ -1030,6 +1048,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const {organization, project} = this.props;
     const {timeWindow, sensitivity, seasonality, thresholdType} = this.state;
+
     const direction =
       thresholdType === AlertRuleThresholdType.ABOVE
         ? 'up'
@@ -1063,7 +1082,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         `/organizations/${organization.slug}/events/anomalies/`,
         {method: 'POST', data: params}
       );
-      this.setState({anomalies});
+      // don't set the anomalies if historical and current data have incorrect time windows
+      if (!this.TimeWindowsAreConsistent()) {
+        this.setState({anomalies});
+      }
     } catch (e) {
       let chartErrorMessage: string | undefined;
       if (e.responseJSON) {
@@ -1352,7 +1374,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                       header={<h5>{t('Delete Alert Rule?')}</h5>}
                       priority="danger"
                       confirmText={t('Delete Rule')}
-                      onConfirm={this.handleDeleteRule}
+                      onConfirm={() => {
+                        this.handleDeleteRule();
+                      }}
                     >
                       <Button priority="danger">{t('Delete Rule')}</Button>
                     </Confirm>

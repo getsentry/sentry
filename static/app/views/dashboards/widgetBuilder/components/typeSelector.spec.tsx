@@ -46,7 +46,7 @@ describe('TypeSelector', () => {
         ...router.location,
         query: expect.objectContaining({displayType: 'bar'}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 

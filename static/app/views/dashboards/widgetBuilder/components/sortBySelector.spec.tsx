@@ -23,7 +23,9 @@ describe('WidgetBuilderSortBySelector', function () {
   let router: InjectedRouter<Record<string, string | undefined>, any>;
   beforeEach(function () {
     const setupOrg = initializeOrg({
-      organization: {features: ['global-views', 'open-membership', 'dashboards-eap']},
+      organization: {
+        features: ['global-views', 'open-membership', 'visibility-explore-view'],
+      },
       projects: [],
       router: {
         location: {
@@ -123,7 +125,7 @@ describe('WidgetBuilderSortBySelector', function () {
         ...router.location,
         query: expect.objectContaining({sort: ['-count()']}),
       }),
-      {replace: true}
+      expect.anything()
     );
 
     await userEvent.click(sortDirectionSelector);
@@ -133,7 +135,7 @@ describe('WidgetBuilderSortBySelector', function () {
         ...router.location,
         query: expect.objectContaining({sort: ['count()']}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -207,7 +209,7 @@ describe('WidgetBuilderSortBySelector', function () {
       expect.objectContaining({
         query: expect.objectContaining({limit: 3}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -225,7 +227,9 @@ describe('WidgetBuilderSortBySelector', function () {
     });
 
     const setupOrg = initializeOrg({
-      organization: {features: ['global-views', 'open-membership', 'dashboards-eap']},
+      organization: {
+        features: ['global-views', 'open-membership', 'visibility-explore-view'],
+      },
       projects: [],
       router: {
         location: {
@@ -267,7 +271,7 @@ describe('WidgetBuilderSortBySelector', function () {
       expect.objectContaining({
         query: expect.objectContaining({sort: ['-count_unique(span.op)']}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 });

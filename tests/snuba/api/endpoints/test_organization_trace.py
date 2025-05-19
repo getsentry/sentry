@@ -1,3 +1,5 @@
+import logging
+from datetime import datetime
 from uuid import uuid4
 
 from django.urls import reverse
@@ -7,13 +9,12 @@ from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-trace"
-    FEATURES = [
-        "organizations:trace-spans-format",
-        "organizations:performance-slow-db-issue",
-    ]
+    FEATURES = ["organizations:trace-spans-format"]
 
     def assert_event(self, result, event_data, message):
         assert result["transaction"] == event_data.transaction, message
@@ -129,7 +130,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def test_with_errors_data(self):
         self.load_trace(is_eap=True)
-        start, _ = self.get_start_end_from_day_ago(1000)
+        _, start = self.get_start_end_from_day_ago(123)
         error_data = load_data(
             "javascript",
             timestamp=start,
@@ -157,6 +158,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert error_event["project_slug"] == self.gen1_project.slug
         assert error_event["level"] == "error"
         assert error_event["issue_id"] == error.group_id
+        assert (
+            error_event["start_timestamp"]
+            == datetime.fromtimestamp(error_data["timestamp"]).astimezone().isoformat()
+        )
 
     def test_with_performance_issues(self):
         self.load_trace(is_eap=True)

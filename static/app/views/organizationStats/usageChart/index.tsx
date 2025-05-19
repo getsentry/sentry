@@ -1,13 +1,9 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {
-  BarSeriesOption,
-  LegendComponentOption,
-  SeriesOption,
-  TooltipComponentOption,
-} from 'echarts';
+import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts';
 
-import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
+import type {BaseChartProps} from 'sentry/components/charts/baseChart';
+import BaseChart from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
 import xAxis from 'sentry/components/charts/components/xAxis';
 import barSeries from 'sentry/components/charts/series/barSeries';
@@ -34,7 +30,7 @@ export type CategoryOption = {
   yAxisMinInterval: number;
 } & SelectValue<DataCategory>;
 
-export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
+export const CHART_OPTIONS_DATACATEGORY = [
   ...Object.values(DATA_CATEGORY_INFO)
     .filter(categoryInfo => categoryInfo.statsInfo.showExternalStats)
     .map(categoryInfo => ({
@@ -43,7 +39,7 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
       disabled: false,
       yAxisMinInterval: categoryInfo.statsInfo.yAxisMinInterval,
     })),
-];
+] satisfies CategoryOption[];
 
 export enum ChartDataTransform {
   CUMULATIVE = 'cumulative',
@@ -97,7 +93,7 @@ export type UsageChartProps = {
   /**
    * Replace default tooltip
    */
-  chartTooltip?: TooltipComponentOption;
+  chartTooltip?: BaseChartProps['tooltip'];
   errors?: Record<string, Error>;
   /**
    * Modify the usageStats using the transformation method selected.

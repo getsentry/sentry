@@ -8,6 +8,7 @@ import {growIn} from 'sentry/styles/animations';
 export interface RadioProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
   nativeSize?: React.InputHTMLAttributes<HTMLInputElement>['size'];
+  ref?: React.Ref<HTMLInputElement>;
   size?: 'sm';
 }
 
@@ -23,9 +24,7 @@ export const Radio = styled(
     nativeSize,
 
     ...props
-  }: RadioProps & {
-    ref?: React.Ref<HTMLInputElement>;
-  }) => <input type="radio" {...props} ref={ref} size={nativeSize} />,
+  }: RadioProps) => <input type="radio" {...props} ref={ref} size={nativeSize} />,
   {
     shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
   }

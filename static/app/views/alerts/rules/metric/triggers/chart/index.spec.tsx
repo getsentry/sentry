@@ -79,6 +79,7 @@ describe('Incident Rules Create', () => {
           statsPeriod: '9998m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
+          dataset: 'errors',
         },
       })
     );
@@ -91,6 +92,7 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '9998m',
           environment: [],
+          dataset: 'errors',
         },
       })
     );
@@ -134,6 +136,7 @@ describe('Incident Rules Create', () => {
           statsPeriod: '9998m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
+          dataset: 'errors',
         },
       })
     );
@@ -146,15 +149,14 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '9998m',
           environment: [],
+          dataset: 'errors',
         },
       })
     );
   });
 
   it('queries the errors dataset if dataset is errors', async () => {
-    const {organization, project, router} = initializeOrg({
-      organization: {features: ['performance-discover-dataset-selector']},
-    });
+    const {organization, project, router} = initializeOrg();
 
     render(
       <TriggersChart
@@ -213,7 +215,7 @@ describe('Incident Rules Create', () => {
 
   it('does a 7 day query for confidence data on the EAP dataset', async () => {
     const {organization, project, router} = initializeOrg({
-      organization: {features: ['alerts-eap']},
+      organization: {features: ['visibility-explore-view']},
     });
 
     render(

@@ -8,7 +8,9 @@ import type {FormSize} from 'sentry/utils/theme';
 
 export interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
-    InputStylesProps {}
+    InputStylesProps {
+  ref?: React.Ref<HTMLInputElement>;
+}
 
 export const inputStyles = (p: InputStylesProps & {theme: Theme}) =>
   p.theme.isChonk ? chonkInputStyles(p as any) : legacyInputStyles(p);
@@ -34,9 +36,7 @@ export const Input = styled(
     nativeSize,
 
     ...props
-  }: InputProps & {
-    ref?: React.Ref<HTMLInputElement>;
-  }) => <input {...props} ref={ref} size={nativeSize} />,
+  }: InputProps) => <input {...props} ref={ref} size={nativeSize} />,
   {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`
   ${inputStyles};

@@ -394,7 +394,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.sites",
     "drf_spectacular",
     "crispy_forms",
-    "pgtrigger",
     "rest_framework",
     "sentry",
     "sentry.analytics",
@@ -736,6 +735,7 @@ CELERY_ALWAYS_EAGER = False
 # Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
 # this works.
 CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
+CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE = 0.02
 
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
@@ -1435,7 +1435,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.vsts.tasks.subscription_check",
-    "sentry.issues.forecasts",
+    "sentry.issues.escalating.forecasts",
     "sentry.middleware.integrations.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
@@ -2696,7 +2696,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.4.0"
+SELF_HOSTED_STABLE_VERSION = "25.5.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2946,6 +2946,7 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
+        "has_index": True,
     },
     "chromium": {
         "type": "http",
@@ -3148,12 +3149,38 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
     "snuba-spans": "default",
+    "snuba-items": "default",
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
-    "taskworker": "default",
-    "taskworker-ingest": "default",
     "snuba-ourlogs": "default",
+    # Taskworker topics
+    "taskworker": "default",
+    "taskworker-dlq": "default",
+    "taskworker-billing": "default",
+    "taskworker-billing-dlq": "default",
+    "taskworker-control": "default",
+    "taskworker-control-dlq": "default",
+    "taskworker-ingest": "default",
+    "taskworker-ingest-dlq": "default",
+    "taskworker-ingest-errors": "default",
+    "taskworker-ingest-errors-dlq": "default",
+    "taskworker-ingest-transactions": "default",
+    "taskworker-ingest-transactions-dlq": "default",
+    "taskworker-internal": "default",
+    "taskworker-internal-dlq": "default",
+    "taskworker-limited": "default",
+    "taskworker-limited-dlq": "default",
+    "taskworker-long": "default",
+    "taskworker-long-dlq": "default",
+    "taskworker-products": "default",
+    "taskworker-products-dlq": "default",
+    "taskworker-sentryapp": "default",
+    "taskworker-sentryapp-dlq": "default",
+    "taskworker-symbolication": "default",
+    "taskworker-symbolication-dlq": "default",
+    "taskworker-usage": "default",
+    "taskworker-usage-dlq": "default",
 }
 
 
@@ -3328,7 +3355,6 @@ SEER_SEVERITY_RETRIES = 1
 SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-SEER_GROUPING_TIMEOUT = 1
 
 SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 

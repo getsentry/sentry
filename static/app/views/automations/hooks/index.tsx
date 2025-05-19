@@ -2,7 +2,7 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export interface UseAutomationsQueryOptions {
+interface UseAutomationsQueryOptions {
   query?: string;
   sort?: string;
 }
@@ -14,3 +14,8 @@ export function useAutomationsQuery(_options: UseAutomationsQueryOptions = {}) {
     retry: false,
   });
 }
+
+export const makeAutomationQueryKey = (
+  orgSlug: string,
+  automationId = ''
+): [url: string] => [`/organizations/${orgSlug}/workflows/${automationId}/`];

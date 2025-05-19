@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models, router, transaction
+from django.db.models.functions.text import Upper
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -208,8 +209,7 @@ class Organization(ReplicatedRegionModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"
-        # TODO: Once we're on a version of Django that supports functional indexes,
-        # include index on `upper((slug::text))` here.
+        indexes = (models.Index(Upper("slug"), name="organization_slug_upper_idx"),)
 
     __repr__ = sane_repr("owner_id", "name", "slug")
 

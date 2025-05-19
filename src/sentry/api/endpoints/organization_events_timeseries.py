@@ -267,11 +267,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 include_other=include_other,
                 query_source=query_source,
                 transform_alias_to_input_format=True,
-                fallback_to_transactions=features.has(
-                    "organizations:performance-discover-dataset-selector",
-                    organization,
-                    actor=request.user,
-                ),
+                fallback_to_transactions=True,
             )
 
         if dataset in {spans_rpc, ourlogs}:
@@ -299,11 +295,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             allow_metric_aggregates=allow_metric_aggregates,
             has_metrics=use_metrics,
             query_source=query_source,
-            fallback_to_transactions=features.has(
-                "organizations:performance-discover-dataset-selector",
-                organization,
-                actor=request.user,
-            ),
+            fallback_to_transactions=True,
             transform_alias_to_input_format=True,
         )
 

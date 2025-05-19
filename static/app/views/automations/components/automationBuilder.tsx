@@ -1,15 +1,20 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   FILTER_DATA_CONDITION_TYPES,
   FILTER_MATCH_OPTIONS,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
 import {
@@ -19,6 +24,13 @@ import {
 
 export default function AutomationBuilder() {
   const {state, actions} = useAutomationBuilderContext();
+  const organization = useOrganization();
+  const api = useApi();
+
+  // fetch org members for SelectMembers dropdowns
+  useEffect(() => {
+    fetchOrgMembers(api, organization.slug);
+  }, [api, organization]);
 
   return (
     <Flex column gap={space(1)}>
@@ -146,6 +158,9 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
             updateCondition={(index, comparison) =>
               actions.updateIfCondition(groupIndex, index, comparison)
             }
+            updateConditionType={(index, type) =>
+              actions.updateIfConditionType(groupIndex, index, type)
+            }
           />
         </Flex>
       </Step>
@@ -156,6 +171,16 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
           })}
         </StepLead>
         {/* TODO: add actions dropdown here */}
+        <ActionNodeList
+          // TODO: replace constant availableActions with API response
+          availableActions={[]}
+          placeholder={t('Select an action')}
+          group={`actionFilters.${groupIndex}`}
+          actions={actionFilterBlock?.actions || []}
+          onAddRow={type => actions.addIfAction(groupIndex, type)}
+          onDeleteRow={index => actions.removeIfAction(groupIndex, index)}
+          updateAction={(index, data) => actions.updateIfAction(groupIndex, index, data)}
+        />
       </Step>
     </IfThenWrapper>
   );

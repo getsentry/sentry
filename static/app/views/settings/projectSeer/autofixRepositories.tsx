@@ -5,18 +5,21 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {RepoSettings} from 'sentry/components/events/autofix/types';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconAdd} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {AddAutofixRepoModalContent} from './addAutofixRepoModal';
 import {AutofixRepoItem} from './autofixRepoItem';
@@ -27,6 +30,7 @@ interface ProjectSeerProps {
 }
 
 export function AutofixRepositories({project}: ProjectSeerProps) {
+  const organization = useOrganization();
   const {data: repositories, isFetching: isFetchingRepositories} =
     useOrganizationRepositories();
   const {
@@ -195,37 +199,48 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     <Panel>
       <PanelHeader hasButtons>
         <Flex align="center" gap={space(0.5)}>
-          {t('Autofix Repositories')}
+          {t('Seer Repositories')}
           <QuestionTooltip
             title={t(
-              'Below are the repositories that Autofix will work on. Autofix will only be able to see code from and make PRs to the repositories that you select here.'
+              'Below are the repositories that Seer will work on. Seer will only be able to see code from and make PRs to the repositories that you select here.'
             )}
             size="sm"
           />
         </Flex>
         <div>
-          <Button
-            size="xs"
-            icon={<IconAdd />}
+          <Tooltip
+            isHoverable
             title={
               isRepoLimitReached
-                ? t('Max repositories reached')
+                ? 'Max repositories reached'
                 : unselectedRepositories?.length === 0
-                  ? t('No repositories to add')
-                  : ''
+                  ? tct(
+                      'No repositories to add. [manageRepositoriesLink:Manage repositories in Organization Settings.]',
+                      {
+                        manageRepositoriesLink: (
+                          <Link to={`/settings/${organization.slug}/repos/`} />
+                        ),
+                      }
+                    )
+                  : null
             }
-            disabled={isRepoLimitReached || unselectedRepositories?.length === 0}
-            onClick={openAddRepoModal}
           >
-            {t('Add Repos')}
-          </Button>
+            <Button
+              size="xs"
+              icon={<IconAdd />}
+              disabled={isRepoLimitReached || unselectedRepositories?.length === 0}
+              onClick={openAddRepoModal}
+            >
+              {t('Add Repos')}
+            </Button>
+          </Tooltip>
         </div>
       </PanelHeader>
 
       {showSaveNotice && (
         <Alert type="info" showIcon system>
           {t(
-            'Changes will apply on the next Autofix run or hit "Start Over" in the Autofix panel to start a new run and use your changes.'
+            'Changes will apply on future Seer runs. Hit "Start Over" in the Seer panel to start a new run and use your new selected repositories.'
           )}
         </Alert>
       )}

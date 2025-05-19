@@ -117,13 +117,11 @@ function IssueViewWrapper({children}: Props) {
 
 function IssueListContainer({children, title = t('Issues')}: Props) {
   const organization = useOrganization();
-  const hasIssueViewSharing = organization?.features.includes(
-    'enforce-stacked-navigation'
-  );
+  const prefersStackedNav = usePrefersStackedNav();
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-      {hasIssueViewSharing ? (
+      {prefersStackedNav ? (
         <IssueViewWrapper>{children}</IssueViewWrapper>
       ) : (
         <StreamWrapper>{children}</StreamWrapper>

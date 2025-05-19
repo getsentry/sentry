@@ -2,6 +2,7 @@ import type {LocationDescriptor} from 'history';
 
 import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
 import type {TitledPlugin} from 'sentry/components/group/pluginActions';
+import {t} from 'sentry/locale';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -101,6 +102,22 @@ export enum IssueCategory {
   DB_QUERY = 'db_query',
   MOBILE = 'mobile',
 }
+
+export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
+  [IssueCategory.ERROR]: t('Runtime errors or exceptions.'),
+  [IssueCategory.OUTAGE]: t('Uptime or cron monitoring issues.'),
+  [IssueCategory.METRIC]: t('Performance regressions or metric threshold violations.'),
+  [IssueCategory.FRONTEND]: t('Frontend performance or usability issues.'),
+  [IssueCategory.HTTP_CLIENT]: t('Inefficient or problematic outgoing HTTP requests.'),
+  [IssueCategory.DB_QUERY]: t('Inefficient or problematic database queries.'),
+  [IssueCategory.MOBILE]: t('Mobile performance or usability issues.'),
+  [IssueCategory.FEEDBACK]: t('Feedback submitted directly by users.'),
+  [IssueCategory.METRIC_ALERT]: '',
+  [IssueCategory.PERFORMANCE]: '',
+  [IssueCategory.CRON]: '',
+  [IssueCategory.REPLAY]: '',
+  [IssueCategory.UPTIME]: '',
+};
 
 export enum IssueType {
   // Error
@@ -215,10 +232,12 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1001: IssueType.PERFORMANCE_SLOW_DB_QUERY,
   1004: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
   1006: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+  1906: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
   1007: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
   1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
   1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
   1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+  1910: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
   1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
   1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
   1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
@@ -822,6 +841,12 @@ export const enum PriorityLevel {
   LOW = 'low',
 }
 
+export const enum FixabilityScoreThresholds {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -865,6 +890,8 @@ export interface BaseGroup {
   latestEventHasAttachments?: boolean;
   openPeriods?: GroupOpenPeriod[] | null;
   owners?: SuggestedOwner[] | null;
+  seerAutofixLastTriggered?: string | null;
+  seerFixabilityScore?: number | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
 }

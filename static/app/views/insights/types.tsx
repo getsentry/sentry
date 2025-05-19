@@ -1,3 +1,6 @@
+import type {PlatformKey} from 'sentry/types/project';
+import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
+
 export enum ModuleName {
   HTTP = 'http',
   DB = 'db',
@@ -87,6 +90,7 @@ export enum SpanFields {
   SPAN_GROUP = 'span.group',
   SPAN_OP = 'span.op',
   RELEASE = 'release',
+  PROJECT_ID = 'project.id',
 }
 
 type WebVitalsMeasurements =
@@ -267,10 +271,6 @@ export type SpanMetricsResponse = {
     [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   };
 
-export type MetricsFilters = {
-  [Property in SpanStringFields as `${Property}`]?: string | string[];
-};
-
 export type SpanMetricsProperty = keyof SpanMetricsResponse;
 
 export type EAPSpanResponse = {
@@ -340,9 +340,11 @@ export enum SpanIndexedField {
   PROJECT = 'project',
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',
+  PROFILEID = 'profile.id',
   RELEASE = 'release',
   TRANSACTION = 'transaction',
   ORIGIN_TRANSACTION = 'origin.transaction',
+  REPLAYID = 'replayId',
   REPLAY_ID = 'replay.id',
   REPLAY = 'replay', // Field alias that coalesces `replay.id` and `replayId`
   BROWSER_NAME = 'browser.name',
@@ -384,6 +386,11 @@ export enum SpanIndexedField {
   CLS_SOURCE = 'cls.source.1',
   NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
   MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
+  DB_SYSTEM = 'db.system',
+  CODE_FILEPATH = 'code.filepath',
+  CODE_LINENO = 'code.lineno',
+  CODE_FUNCTION = 'code.function',
+  PLATFORM = 'platform',
 }
 
 export type SpanIndexedResponse = {
@@ -432,11 +439,14 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
   [SpanIndexedField.PROJECT_ID]: number;
+
   [SpanIndexedField.PROFILE_ID]: string;
+  [SpanIndexedField.PROFILEID]: string;
   [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
   [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
   [SpanIndexedField.ORIGIN_TRANSACTION]: string;
   [SpanIndexedField.REPLAY_ID]: string;
+  [SpanIndexedField.REPLAYID]: string;
   [SpanIndexedField.REPLAY]: string;
   [SpanIndexedField.BROWSER_NAME]: string;
   [SpanIndexedField.USER]: string;
@@ -479,6 +489,11 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.PROJECT]: string;
   [SpanIndexedField.SPAN_GROUP]: string;
   'any(id)': string;
+  [SpanIndexedField.DB_SYSTEM]: SupportedDatabaseSystem;
+  [SpanIndexedField.CODE_FILEPATH]: string;
+  [SpanIndexedField.CODE_LINENO]: number;
+  [SpanIndexedField.CODE_FUNCTION]: string;
+  [SpanIndexedField.PLATFORM]: PlatformKey;
 };
 
 export type SpanIndexedProperty = keyof SpanIndexedResponse;
@@ -497,6 +512,7 @@ export enum SpanFunction {
   CACHE_MISS_RATE = 'cache_miss_rate',
   COUNT_OP = 'count_op',
   TRACE_STATUS_RATE = 'trace_status_rate',
+  FAILURE_RATE_IF = 'failure_rate_if',
 }
 
 // TODO - add more functions and fields, combine shared ones, etc

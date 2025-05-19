@@ -80,14 +80,7 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
   );
 }
 
-function Input({
-  ref,
-  size,
-  disabled,
-  ...props
-}: InputProps & {
-  ref?: React.Ref<HTMLInputElement>;
-}) {
+function Input({ref, size, disabled, ...props}: InputProps) {
   const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
   useLayoutEffect(() => {
@@ -106,14 +99,7 @@ function Input({
   );
 }
 
-function TextArea({
-  ref,
-  size,
-  disabled,
-  ...props
-}: TextAreaProps & {
-  ref?: React.Ref<HTMLTextAreaElement>;
-}) {
+function TextArea({ref, size, disabled, ...props}: TextAreaProps) {
   const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
   useLayoutEffect(() => {
@@ -231,18 +217,16 @@ const getInputStyles = ({
   theme,
 }: InputStyleProps & {theme: Theme}) => css`
   ${leadingWidth &&
-  `
+  css`
     padding-left: calc(
-      ${theme.formPadding[size ?? 'md'].paddingLeft}px * 1.5
-      + ${leadingWidth}px
+      ${theme.formPadding[size ?? 'md'].paddingLeft}px * 1.5 + ${leadingWidth}px
     );
   `}
 
   ${trailingWidth &&
-  `
+  css`
     padding-right: calc(
-      ${theme.formPadding[size ?? 'md'].paddingRight}px * 1.5
-      + ${trailingWidth}px
+      ${theme.formPadding[size ?? 'md'].paddingRight}px * 1.5 + ${trailingWidth}px
     );
   `}
 `;

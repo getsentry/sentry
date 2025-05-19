@@ -60,7 +60,7 @@ class EntityKey(Enum):
     Events = "events"
     Sessions = "sessions"
     Spans = "spans"
-    EAPSpans = "eap_spans"
+    EAPItemsSpan = "eap_items_span"
     Transactions = "transactions"
     MetricsSets = "metrics_sets"
     MetricsCounters = "metrics_counters"

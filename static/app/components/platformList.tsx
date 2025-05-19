@@ -12,6 +12,7 @@ type Props = {
    */
   max?: number;
   platforms?: PlatformKey[];
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * Platform icon size in pixels
    */
@@ -26,7 +27,7 @@ export function PlatformList({
   size = 16,
   className,
   ref,
-}: Props & {ref?: React.Ref<HTMLDivElement>}) {
+}: Props) {
   const visiblePlatforms = platforms.slice(0, max);
 
   function renderContent() {

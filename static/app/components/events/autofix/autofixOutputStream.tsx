@@ -7,7 +7,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {SeerLoadingIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
+import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
 import {IconChevron} from 'sentry/icons';
@@ -95,6 +98,7 @@ interface Props {
   runId: string;
   stream: string;
   activeLog?: string;
+  autofixData?: AutofixData;
   isProcessing?: boolean;
   responseRequired?: boolean;
 }
@@ -104,6 +108,7 @@ export function AutofixOutputStream({
   activeLog = '',
   groupId,
   runId,
+  autofixData,
   responseRequired = false,
 }: Props) {
   const api = useApi({persistInFlight: true});
@@ -143,7 +148,7 @@ export function AutofixOutputStream({
       addSuccessMessage('Thanks for the input.');
     },
     onError: () => {
-      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
+      addErrorMessage(t('Something went wrong when sending Seer your message.'));
     },
   });
 
@@ -190,18 +195,29 @@ export function AutofixOutputStream({
           <Container required={responseRequired}>
             {activeLog && (
               <ActiveLogWrapper>
-                <SeerIconContainer ref={seerIconRef}>
-                  <StyledAnimatedSeerIcon size="lg" />
-                  {seerIconRef.current && isInitializingRun && (
-                    <FlyingLinesEffect targetElement={seerIconRef.current} />
+                <Tooltip
+                  title={t(
+                    "Seer is hard at work. Feel free to leave - it'll keep running in the background."
                   )}
-                </SeerIconContainer>
+                >
+                  <SeerIconContainer ref={seerIconRef}>
+                    <StyledAnimatedSeerIcon size="lg" />
+                    {seerIconRef.current && isInitializingRun && (
+                      <FlyingLinesEffect targetElement={seerIconRef.current} />
+                    )}
+                  </SeerIconContainer>
+                </Tooltip>
                 <ActiveLog
                   dangerouslySetInnerHTML={{
                     __html: singleLineRenderer(displayedActiveLog),
                   }}
                 />
               </ActiveLogWrapper>
+            )}
+            {autofixData && (
+              <ProgressBarWrapper>
+                <AutofixProgressBar autofixData={autofixData} />
+              </ProgressBarWrapper>
             )}
             {!responseRequired && stream && <StreamContentText stream={stream} />}
             <InputWrapper onSubmit={handleSend}>
@@ -363,4 +379,8 @@ const StyledAnimatedSeerIcon = styled(SeerLoadingIcon)`
   flex-shrink: 0;
   color: ${p => p.theme.textColor};
   z-index: 10000;
+`;
+
+const ProgressBarWrapper = styled('div')`
+  position: relative;
 `;
