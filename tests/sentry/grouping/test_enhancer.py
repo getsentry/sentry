@@ -638,6 +638,20 @@ class EnhancementsTest(TestCase):
         # We didn't parse again because the result was cached
         assert parse_enhancements_spy.call_count == 1
 
+    @patch("sentry.grouping.enhancer.parse_enhancements", wraps=parse_enhancements)
+    def test_caches_split_enhancements(self, parse_enhancements_spy: MagicMock):
+        self.project.update_option("sentry:grouping_enhancements", "function:playFetch +app +group")
+
+        # Using version 3 forces the enhancements to be split, and we know a split will happen
+        # because the custom rule added above has both an in-app and a contributes action
+        with patch("sentry.grouping.api.get_enhancements_version", return_value=3):
+            get_grouping_config_dict_for_project(self.project)
+            assert parse_enhancements_spy.call_count == 1
+
+            get_grouping_config_dict_for_project(self.project)
+            # We didn't parse again because the result was cached
+            assert parse_enhancements_spy.call_count == 1
+
     def test_loads_enhancements_from_base64_string(self):
         enhancements = Enhancements.from_rules_text("function:playFetch +app")
         assert len(enhancements.rules) == 1
