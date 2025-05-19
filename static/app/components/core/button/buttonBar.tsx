@@ -33,29 +33,12 @@ const StyledButtonBar = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
         z-index: 2;
       }
 
-      & > div:not(:last-child) > button {
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-      }
-
-      & > div:not(:first-child) > button {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-        margin-left: -1px;
-      }
-
-      & > div:not(:first-child):not(:last-child) > button {
-        margin-left: -1px;
-      }
-
-      & > .dropdown,
-      & > button,
-      & > input,
-      & > a {
+      & > * {
         position: relative;
 
         /* First button is square on the right side */
-        &:first-child:not(:last-child) {
+        &:first-child:not(:last-child),
+        &:first-child:not(:last-child) > button {
           border-top-right-radius: 0;
           border-bottom-right-radius: 0;
 
@@ -66,7 +49,8 @@ const StyledButtonBar = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
         }
 
         /* Middle buttons are square */
-        &:not(:last-child):not(:first-child) {
+        &:not(:last-child):not(:first-child),
+        &:not(:last-child):not(:first-child) > button {
           border-radius: 0;
 
           & > .dropdown-actor > ${StyledButton} {
@@ -75,24 +59,14 @@ const StyledButtonBar = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
         }
 
         /* Middle buttons only need one border so we don't get a double line */
-        &:first-child {
-          & + .dropdown:not(:last-child),
-          & + a:not(:last-child),
-          & + input:not(:last-child),
-          & + button:not(:last-child) {
-            margin-left: -1px;
-          }
+        &:first-child + *:not(:last-child) {
+          margin-left: -1px;
         }
 
         /* Middle buttons only need one border so we don't get a double line */
         /* stylelint-disable-next-line no-duplicate-selectors */
-        &:not(:last-child):not(:first-child) {
-          & + .dropdown,
-          & + button,
-          & + input,
-          & + a {
-            margin-left: -1px;
-          }
+        &:not(:last-child):not(:first-child) + * {
+          margin-left: -1px;
         }
 
         /* Last button is square on the left side */
@@ -101,6 +75,7 @@ const StyledButtonBar = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
           border-bottom-left-radius: 0;
           margin-left: -1px;
 
+          & > button,
           & > .dropdown-actor > ${StyledButton} {
             border-top-left-radius: 0;
             border-bottom-left-radius: 0;
