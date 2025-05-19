@@ -113,8 +113,11 @@ export function getChonkButtonStyles(
     },
 
     '&:focus-visible': {
+      outline: 'none',
+
       '&::after': {
-        ...p.theme.focusRing,
+        border: `1px solid ${p.theme.focusBorder}`,
+        boxShadow: `0 0 0 1px ${p.theme.focusBorder}`,
       },
     },
 
