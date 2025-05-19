@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -26,7 +25,6 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
       >
         <CollapsibleTimelineLabel>{props.title}</CollapsibleTimelineLabel>
         <StyledButton
-          size="zero"
           onClick={props.open ? props.onClose : props.onOpen}
           aria-label={props.open ? t('Expand') : t('Collapse')}
           aria-expanded={props.open}
@@ -43,7 +41,7 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
   );
 }
 
-const StyledButton = styled(Button)`
+const StyledButton = styled('button')`
   height: 12px;
   min-height: 12px;
   padding: ${space(0.25)} ${space(0.5)};
@@ -52,6 +50,9 @@ const StyledButton = styled(Button)`
   border: none;
   box-shadow: none;
   color: ${p => p.theme.subText};
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &[aria-expanded='true'] {
     color: ${p => p.theme.subText};

@@ -10,12 +10,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 interface ExportProfileButtonProps
-  extends Omit<LinkButtonProps, 'onClick' | 'children' | 'external'> {
+  extends Omit<LinkButtonProps, 'title' | 'onClick' | 'children' | 'external'> {
   eventId: string | undefined;
   orgId: string;
   projectId: string | undefined;
   children?: React.ReactNode;
-  variant?: 'xs' | 'default';
+  variant?: 'zero';
 }
 
 export function ExportProfileButton(props: ExportProfileButtonProps) {
@@ -33,23 +33,18 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
 
   const title = t('Export Profile');
 
-  return props.variant === 'xs' ? (
-    <StyledButtonSmall
-      size="zero"
-      title={title}
-      href={href}
-      download={download}
-      {...props}
-    >
+  return props.variant === 'zero' ? (
+    <DownloadButton href={href} download={download} {...props}>
       {props.children}
       <IconDownload size="xs" />
-    </StyledButtonSmall>
+    </DownloadButton>
   ) : (
     <LinkButton
       icon={<IconDownload />}
       title={title}
       href={href}
       download={download}
+      size="zero"
       {...props}
     >
       {props.children}
@@ -57,17 +52,18 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
   );
 }
 
-const StyledButtonSmall = styled(LinkButton)`
-  border: none;
-  background-color: transparent;
-  box-shadow: none;
-  transition: none !important;
-  opacity: 0.5;
+const DownloadButton = styled('a')`
   padding: ${space(0.5)} ${space(0.5)};
+  color: ${p => p.theme.tokens.content.primary};
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     border: none;
     background-color: transparent;
     box-shadow: none;
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;

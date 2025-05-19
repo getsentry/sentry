@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -203,7 +204,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
         />
         <ProfilingDetailsListItem margin="none">
           <ExportProfileButton
-            variant="xs"
+            variant="zero"
             eventId={params.eventId}
             projectId={params.projectId}
             orgId={orgSlug}
@@ -213,30 +214,33 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
         <Separator />
         <ProfilingDetailsListItem>
           <LayoutSelectionContainer>
-            <StyledButton
-              active={flamegraphPreferences.layout === 'table left'}
-              onClick={onTableLeftClick}
-              size="zero"
-              title={t('Table left')}
-            >
-              <IconPanel size="xs" direction="left" />
-            </StyledButton>
-            <StyledButton
-              active={flamegraphPreferences.layout === 'table bottom'}
-              onClick={onTableBottomClick}
-              size="zero"
-              title={t('Table bottom')}
-            >
-              <IconPanel size="xs" direction="down" />
-            </StyledButton>
-            <StyledButton
-              active={flamegraphPreferences.layout === 'table right'}
-              onClick={onTableRightClick}
-              size="zero"
-              title={t('Table right')}
-            >
-              <IconPanel size="xs" direction="right" />
-            </StyledButton>
+            <Tooltip title={t('Table left')} skipWrapper>
+              <StyledButton
+                active={flamegraphPreferences.layout === 'table left'}
+                onClick={onTableLeftClick}
+                title={t('Table left')}
+              >
+                <IconPanel size="xs" direction="left" />
+              </StyledButton>
+            </Tooltip>
+            <Tooltip title={t('Table bottom')} skipWrapper>
+              <StyledButton
+                active={flamegraphPreferences.layout === 'table bottom'}
+                onClick={onTableBottomClick}
+                title={t('Table bottom')}
+              >
+                <IconPanel size="xs" direction="down" />
+              </StyledButton>
+            </Tooltip>
+            <Tooltip title={t('Table right')} skipWrapper>
+              <StyledButton
+                active={flamegraphPreferences.layout === 'table right'}
+                onClick={onTableRightClick}
+                title={t('Table right')}
+              >
+                <IconPanel size="xs" direction="right" />
+              </StyledButton>
+            </Tooltip>
           </LayoutSelectionContainer>
         </ProfilingDetailsListItem>
       </ProfilingDetailsFrameTabs>
@@ -362,7 +366,7 @@ const ProfilingDetailsListItem = styled('li')<{
     margin: 0;
     padding: ${p => (p.size === 'sm' ? space(0.25) : space(0.5))} 0;
     color: ${p => p.theme.textColor};
-    max-height: ${p => (p.size === 'sm' ? '24px' : 'auto')};
+    max-height: ${p => (p.size === 'sm' ? '24px' : undefined)};
 
     &::after {
       display: block;
@@ -386,17 +390,16 @@ const ProfilingDetailsListItem = styled('li')<{
   }
 `;
 
-const StyledButton = styled(Button)<{active: boolean}>`
-  border: none;
-  background-color: transparent;
-  box-shadow: none;
-  transition: none !important;
+const StyledButton = styled('button')<{active: boolean}>`
+  padding: ${space(0.5)} ${space(0.5)};
   opacity: ${p => (p.active ? 0.7 : 0.5)};
+  background-color: transparent;
+
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
-    border: none;
-    background-color: transparent;
-    box-shadow: none;
     opacity: ${p => (p.active ? 0.6 : 0.5)};
   }
 `;
@@ -405,7 +408,7 @@ const LayoutSelectionContainer = styled('div')`
   display: flex;
   align-items: center;
   height: 100%;
-  gap: ${space(1)};
+  gap: ${space(0.25)};
 `;
 
 export {DifferentialFlamegraphDrawer};
