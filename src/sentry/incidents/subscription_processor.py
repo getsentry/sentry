@@ -443,6 +443,16 @@ class SubscriptionProcessor:
             "organizations:anomaly-detection-rollout", self.subscription.project.organization
         )
 
+        alert_triggered_tags = {
+            "detection_type": self.alert_rule.detection_type,
+            "organization_id": None,
+        }
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+            self.subscription.project.organization,
+        ):
+            alert_triggered_tags["organization_id"] = self.alert_rule.organization_id
+
         potential_anomalies = None
         if (
             has_anomaly_detection
@@ -505,7 +515,7 @@ class SubscriptionProcessor:
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.alert",
-                                tags={"detection_type": self.alert_rule.detection_type},
+                                tags=alert_triggered_tags,
                             )
                             incident_trigger = self.trigger_alert_threshold(
                                 trigger, aggregation_value
@@ -522,7 +532,7 @@ class SubscriptionProcessor:
                         ):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.resolve",
-                                tags={"detection_type": self.alert_rule.detection_type},
+                                tags=alert_triggered_tags,
                             )
                             incident_trigger = self.trigger_resolve_threshold(
                                 trigger, aggregation_value
@@ -544,7 +554,7 @@ class SubscriptionProcessor:
                         # And the trigger is not yet active
                         metrics.incr(
                             "incidents.alert_rules.threshold.alert",
-                            tags={"detection_type": self.alert_rule.detection_type},
+                            tags=alert_triggered_tags,
                         )
                         # triggering a threshold will create an incident and set the status to active
                         incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
@@ -562,7 +572,7 @@ class SubscriptionProcessor:
                     ):
                         metrics.incr(
                             "incidents.alert_rules.threshold.resolve",
-                            tags={"detection_type": self.alert_rule.detection_type},
+                            tags=alert_triggered_tags,
                         )
                         incident_trigger = self.trigger_resolve_threshold(
                             trigger, aggregation_value

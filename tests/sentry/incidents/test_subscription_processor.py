@@ -1024,8 +1024,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         assert result is None
 
+    @patch("sentry.incidents.subscription_processor.metrics")
     @patch("sentry.incidents.utils.metric_issue_poc.create_or_update_metric_issue")
-    def test_alert(self, create_metric_issue_mock):
+    def test_alert(self, create_metric_issue_mock, mock_metrics):
         # Verify that an alert rule that only expects a single update to be over the
         # alert threshold triggers correctly
         rule = self.rule
@@ -1054,6 +1055,31 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
         create_metric_issue_mock.assert_not_called()
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "static", "organization_id": None},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+            ],
+        )
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @patch("sentry.incidents.subscription_processor.metrics")
+    def test_alert_metrics(self, mock_metrics):
+        rule = self.rule
+        trigger = self.trigger
+        self.send_update(rule, trigger.alert_threshold + 1)
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "static", "organization_id": rule.organization_id},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+            ],
+        )
 
     def test_alert_dedupe(self):
         # Verify that an alert rule that only expects a single update to be over the
@@ -1174,8 +1200,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
 
+    @patch("sentry.incidents.subscription_processor.metrics")
     @patch("sentry.incidents.utils.metric_issue_poc.create_or_update_metric_issue")
-    def test_resolve(self, create_metric_issue_mock):
+    def test_resolve(self, create_metric_issue_mock, mock_metrics):
         # Verify that an alert rule that only expects a single update to be under the
         # resolve threshold triggers correctly
         rule = self.rule
@@ -1218,6 +1245,42 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
         create_metric_issue_mock.assert_not_called()
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "static", "organization_id": None},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+                call(
+                    "incidents.alert_rules.threshold.resolve",
+                    tags={"detection_type": "static", "organization_id": None},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
+            ]
+        )
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @patch("sentry.incidents.subscription_processor.metrics")
+    def test_resolve_metrics(self, mock_metrics):
+        rule = self.rule
+        trigger = self.trigger
+        self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+        self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "static", "organization_id": rule.organization_id},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+                call(
+                    "incidents.alert_rules.threshold.resolve",
+                    tags={"detection_type": "static", "organization_id": rule.organization_id},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
+            ]
+        )
 
     def test_resolve_multiple_threshold_periods(self):
         # Verify that a rule that expects two consecutive updates to be under the
