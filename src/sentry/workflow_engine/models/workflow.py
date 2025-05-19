@@ -31,7 +31,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     enabled = models.BooleanField(db_default=True)
 
     # The workflow's status - used for tracking deletion state
-    status = models.SmallIntegerField(default=DeletionStatus.ACTIVE)
+    status = models.SmallIntegerField(
+        default=DeletionStatus.ACTIVE, db_default=DeletionStatus.ACTIVE
+    )
 
     # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
     when_condition_group = FlexibleForeignKey(
