@@ -217,6 +217,14 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
 
     # TODO: remove fetching org, only used for feature flag checks
     organization = detector.project.organization
+    workflow_metric_tags = {
+        "detector_type": detector.type,
+        "organization_id": None,
+    }
+    if features.has(
+        "organizations:workflow-engine-metric-alert-dual-processing-logs", organization
+    ):
+        workflow_metric_tags["organization_id"] = organization.id
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(
@@ -231,7 +239,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         metrics.incr(
             "workflow_engine.process_workflows",
             len(workflows),
-            tags={"detector_type": detector.type},
+            tags=workflow_metric_tags,
         )
 
         logger.info(
@@ -254,7 +262,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             metrics.incr(
                 "workflow_engine.process_workflows.triggered_workflows",
                 len(triggered_workflows),
-                tags={"detector_type": detector.type},
+                tags=workflow_metric_tags,
             )
 
             logger.info(
@@ -275,7 +283,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         metrics.incr(
             "workflow_engine.process_workflows.actions",
             amount=len(actions),
-            tags={"detector_type": detector.type},
+            tags=workflow_metric_tags,
         )
 
         logger.info(
@@ -300,7 +308,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         metrics.incr(
             "workflow_engine.process_workflows.triggered_actions",
             amount=len(actions),
-            tags={"detector_type": detector.type},
+            tags=workflow_metric_tags,
         )
         logger.info(
             "workflow_engine.process_workflows.triggered_actions (batch)",
@@ -312,17 +320,10 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                 "detector_type": detector.type,
             },
         )
-    if features.has(
-        "organizations:workflow-engine-metric-alert-dual-processing-logs",
-        detector.project.organization,
-    ):
-        # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
-        metrics.incr(
-            "workflow_engine.process_workflows.fired_actions",
-            tags={
-                "detector_type": detector.type,
-                "organization_id": detector.project.organization_id,
-            },
-        )
+    # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
+    metrics.incr(
+        "workflow_engine.process_workflows.fired_actions",
+        tags=workflow_metric_tags,
+    )
 
     return triggered_workflows
