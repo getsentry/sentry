@@ -31,9 +31,6 @@ logger = logging.getLogger(__name__)
 class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
 
-    class Meta(OwnerModel.Meta):
-        constraints = OwnerModel.Meta.constraints
-
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
 
@@ -47,7 +44,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # The detector's status - used for tracking deletion state
     status = models.SmallIntegerField(
-        default=DeletionStatus.ACTIVE, db_default=DeletionStatus.ACTIVE
+        default=DeletionStatus.ACTIVE.value, db_default=DeletionStatus.ACTIVE.value
     )
 
     # Optionally set a description of the detector, this will be used in notifications
@@ -72,6 +69,9 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         "fingerprinting_rules": "sentry:fingerprinting_rules",
         "resolve_age": "sentry:resolve_age",
     }
+
+    class Meta(OwnerModel.Meta):
+        constraints = OwnerModel.Meta.constraints
 
     @property
     def group_type(self) -> builtins.type[GroupType]:
