@@ -43,7 +43,7 @@ interface TicketRuleModalProps extends ModalRenderProps {
   instance: IssueAlertRuleAction;
   link: string | null;
   onSubmitAction: (
-    data: {[key: string]: string},
+    data: Record<string, string>,
     fetchedFieldOptionsCache: Record<string, Choices>
   ) => void;
   ticketType: string;
@@ -360,6 +360,7 @@ export default function TicketRuleModal({
 
         if (!found) {
           errors[field.name] = (
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
             <FieldErrorLabel>{`Could not fetch saved option for ${field.label}. Please reselect.`}</FieldErrorLabel>
           );
         }

@@ -8,9 +8,11 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-import type {ViewProps} from '../../../types';
-import {filterToColor, SpanOperationBreakdownFilter} from '../../filter';
+import {
+  filterToColor,
+  SpanOperationBreakdownFilter,
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import Chart from './chart';
 import {transformData} from './utils';

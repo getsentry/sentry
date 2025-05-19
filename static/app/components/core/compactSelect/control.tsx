@@ -48,7 +48,7 @@ function nextFrameCallback(cb: () => void) {
   }
 }
 
-export interface SelectContextValue {
+interface SelectContextValue {
   overlayIsOpen: boolean;
   /**
    * Function to be called once when a list is initialized, to register its state in
@@ -541,7 +541,7 @@ export function Control({
                 <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
-                    {loading && <StyledLoadingIndicator size={12} mini />}
+                    {loading && <StyledLoadingIndicator size={12} />}
                     {typeof menuHeaderTrailingItems === 'function'
                       ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
                       : menuHeaderTrailingItems}
@@ -641,9 +641,7 @@ const MenuTitle = styled('span')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    margin: 0 ${space(0.5)} 0 ${space(1)};
-    height: 12px;
-    width: 12px;
+    margin: 0;
   }
 `;
 

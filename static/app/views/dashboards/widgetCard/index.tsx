@@ -21,6 +21,7 @@ import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
@@ -30,13 +31,16 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  OnDemandExtractionState,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-
-import type {DashboardFilters, Widget} from '../types';
-import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
-import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
-import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
@@ -44,7 +48,7 @@ import {WidgetFrame} from './widgetFrame';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
-export const SESSION_DURATION_ALERT_TEXT = t(
+const SESSION_DURATION_ALERT_TEXT = t(
   'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
   getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
 );
@@ -65,6 +69,7 @@ type Props = WithRouterProps & {
   borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
+  disableZoom?: boolean;
   forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
   index?: string;
@@ -105,13 +110,15 @@ type Data = {
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
+  const navigate = useNavigate();
 
   const onDataFetched = (newData: Data) => {
-    if (props.onDataFetched && newData.tableResults) {
-      props.onDataFetched(newData.tableResults);
+    const {...rest} = newData;
+    if (props.onDataFetched && rest.tableResults) {
+      props.onDataFetched(rest.tableResults);
     }
 
-    setData(prevData => ({...prevData, ...newData}));
+    setData(prevData => ({...prevData, ...rest}));
   };
 
   const {
@@ -135,6 +142,7 @@ function WidgetCard(props: Props) {
     disableFullscreen,
     showConfidenceWarning,
     minTableColumnWidth,
+    disableZoom,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -174,12 +182,15 @@ function WidgetCard(props: Props) {
         isSampled: data?.isSampled,
       });
 
-      props.router.push({
-        pathname: `${location.pathname}${
-          location.pathname.endsWith('/') ? '' : '/'
-        }widget/${props.index}/`,
-        query: location.query,
-      });
+      navigate(
+        {
+          pathname: `${location.pathname}${
+            location.pathname.endsWith('/') ? '' : '/'
+          }widget/${props.index}/`,
+          query: location.query,
+        },
+        {preventScrollReset: true}
+      );
     }
   };
 
@@ -210,6 +221,7 @@ function WidgetCard(props: Props) {
 
   const actions = props.showContextMenu
     ? getMenuOptions(
+        dashboardFilters,
         organization,
         selection,
         widget,
@@ -271,6 +283,7 @@ function WidgetCard(props: Props) {
             widgetLegendState={widgetLegendState}
             showConfidenceWarning={showConfidenceWarning}
             minTableColumnWidth={minTableColumnWidth}
+            disableZoom={disableZoom}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>
@@ -345,12 +358,6 @@ const ErrorCard = styled(Placeholder)`
   color: ${p => p.theme.alert.error.textLight};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(2)};
-`;
-
-export const WidgetTitleRow = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
 `;
 
 export const WidgetDescription = styled('small')`

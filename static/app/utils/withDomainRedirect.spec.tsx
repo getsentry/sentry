@@ -55,7 +55,7 @@ describe('withDomainRedirect', function () {
 
   afterEach(function () {
     jest.resetAllMocks();
-    window.location = originalLocation;
+    window.location = originalLocation as typeof window.location & string;
     ConfigStore.loadInitialData(configState);
   });
 
@@ -87,8 +87,7 @@ describe('withDomainRedirect', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />,
-      {router}
+      />
     );
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
@@ -120,8 +119,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext>,
-      {router}
+      </OrganizationContext>
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -155,8 +153,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext>,
-      {router}
+      </OrganizationContext>
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -195,8 +192,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext>,
-      {router}
+      </OrganizationContext>
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -239,8 +235,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext>,
-      {router}
+      </OrganizationContext>
     );
 
     expect(screen.getByText('Org slug: no org slug')).toBeInTheDocument();
@@ -280,8 +275,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext>,
-      {router}
+      </OrganizationContext>
     );
 
     expect(router.replace).toHaveBeenCalledTimes(1);

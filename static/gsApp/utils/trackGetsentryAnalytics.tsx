@@ -6,7 +6,7 @@ import type {EventType} from 'getsentry/components/addEventsCTA';
 import type {CheckoutType, Subscription} from 'getsentry/types';
 
 type HasSub = {subscription: Subscription};
-type QuotaAlert = {event_types: string; is_warning: boolean} & HasSub;
+type QuotaAlert = {event_types: string; is_warning: boolean; source?: string} & HasSub;
 type UpsellProvider = {
   action: string;
   can_trial: boolean;
@@ -92,6 +92,7 @@ type GetsentryEventParameters = {
   } & Checkout;
   // no sub here
   'checkout.upgrade': {
+    // TODO(data categories): check if these can be parsed
     attachments?: number;
     errors?: number;
     monitorSeats?: number;
@@ -178,6 +179,7 @@ type GetsentryEventParameters = {
   'quota_alert.clicked_link': QuotaAlert & {clicked_event: EventType};
   'quota_alert.clicked_see_usage': QuotaAlert;
   'quota_alert.clicked_snooze': QuotaAlert;
+  'quota_alert.clicked_unsnooze': QuotaAlert;
   'quota_alert.shown': QuotaAlert;
   'replay.list_page.manage_sub': UpdateProps;
   'replay.list_page.open_modal': UpdateProps & {
@@ -250,6 +252,7 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'growth.codecov_promotion_opened': 'Growth: Codecov Promotion Opened',
   'quota_alert.shown': 'Quota Alert: Shown',
   'quota_alert.clicked_snooze': 'Quota Alert: Clicked Snooze',
+  'quota_alert.clicked_unsnooze': 'Quota Alert: Clicked Unsnooze',
   'product_trial.clicked_snooze': 'Quota Alert: Clicked Snooze',
   'quota_alert.clicked_link': 'Quota Alert: Clicked Link',
   'quota_alert.clicked_see_usage': 'Quota Alert: Clicked See Usage',

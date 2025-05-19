@@ -53,67 +53,15 @@ function formatDuration(seconds: number): string {
   }
 
   return `${formatNumberWithDynamicDecimalPoints(value)}${
-    unit === 'month' ? 'mo' : METRIC_UNIT_TO_SHORT[unit]
+    unit === 'month' ? 'mo' : formattingSupportedMetricUnits[unit]
   }`;
 }
 
 // The metric units that we have support for in the UI
 // others will still be displayed, but will not have any effect on formatting
-export const formattingSupportedMetricUnits = [
-  'none',
-  'nanosecond',
-  'nanoseconds',
-  'microsecond',
-  'microseconds',
-  'millisecond',
-  'milliseconds',
-  'second',
-  'seconds',
-  'minute',
-  'minutes',
-  'hour',
-  'hours',
-  'day',
-  'days',
-  'week',
-  'weeks',
-  'ratio',
-  'percent',
-  'percents',
-  'bit',
-  'bits',
-  'byte',
-  'bytes',
-  'kibibyte',
-  'kibibytes',
-  'kilobyte',
-  'kilobytes',
-  'mebibyte',
-  'mebibytes',
-  'megabyte',
-  'megabytes',
-  'gibibyte',
-  'gibibytes',
-  'gigabyte',
-  'gigabytes',
-  'tebibyte',
-  'tebibytes',
-  'terabyte',
-  'terabytes',
-  'pebibyte',
-  'pebibytes',
-  'petabyte',
-  'petabytes',
-  'exbibyte',
-  'exbibytes',
-  'exabyte',
-  'exabytes',
-] as const;
+type FormattingSupportedMetricUnit = keyof typeof formattingSupportedMetricUnits;
 
-export type FormattingSupportedMetricUnit =
-  (typeof formattingSupportedMetricUnits)[number];
-
-const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
+const formattingSupportedMetricUnits = {
   nanosecond: 'ns',
   nanoseconds: 'ns',
   microsecond: 'μs',
@@ -162,7 +110,7 @@ const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
   exabyte: 'EB',
   exabytes: 'EB',
   none: '',
-};
+} as const satisfies Record<string, string>;
 
 export function formatMetricUsingUnit(value: number | null, unit: string) {
   if (!defined(value) || Math.abs(value) === Infinity) {

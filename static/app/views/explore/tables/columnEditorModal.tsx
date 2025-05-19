@@ -4,8 +4,9 @@ import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
@@ -19,16 +20,17 @@ import {defined} from 'sentry/utils';
 import {classifyTagKey, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-
-import {DragNDropContext} from '../contexts/dragNDropContext';
-import type {Column} from '../hooks/useDragNDropColumns';
+import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
+import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 
 interface ColumnEditorModalProps extends ModalRenderProps {
   columns: string[];
   numberTags: TagCollection;
   onColumnsChange: (fields: string[]) => void;
   stringTags: TagCollection;
+  handleReset?: () => void;
   hiddenKeys?: string[];
+  isDocsButtonHidden?: boolean;
 }
 
 export function ColumnEditorModal({
@@ -41,6 +43,8 @@ export function ColumnEditorModal({
   numberTags,
   stringTags,
   hiddenKeys,
+  isDocsButtonHidden = false,
+  handleReset,
 }: ColumnEditorModalProps) {
   const tags: Array<SelectOption<string>> = useMemo(() => {
     let allTags = [
@@ -137,9 +141,22 @@ export function ColumnEditorModal({
           </Body>
           <Footer data-test-id="editor-footer">
             <ButtonBar gap={1}>
-              <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
-                {t('Read the Docs')}
-              </LinkButton>
+              {!isDocsButtonHidden && (
+                <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
+                  {t('Read the Docs')}
+                </LinkButton>
+              )}
+              {handleReset ? (
+                <Button
+                  aria-label={t('Reset')}
+                  onClick={() => {
+                    handleReset();
+                    closeModal();
+                  }}
+                >
+                  {t('Reset')}
+                </Button>
+              ) : null}
               <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>

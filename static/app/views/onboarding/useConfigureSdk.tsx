@@ -7,15 +7,12 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {createProject} from 'sentry/actionCreators/projects';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -29,11 +26,14 @@ export function useConfigureSdk({
 }: {
   onComplete: (selectedPlatform: OnboardingSelectedSDK) => void;
 }) {
-  const api = useApi();
-  const {teams} = useTeams();
-  const {projects} = useProjects();
+  const {teams, fetching: isLoadingTeams} = useTeams();
+  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
+  const createProject = useCreateProject();
+
+  const firstAccessTeam = teams.find(team => team.access.includes('team:admin'));
+  const firstTeamSlug = firstAccessTeam?.slug;
 
   const createPlatformProject = useCallback(
     async (selectedPlatform?: OnboardingSelectedSDK) => {
@@ -41,7 +41,7 @@ export function useConfigureSdk({
         return;
       }
 
-      const createProjectForPlatform: OnboardingSelectedSDK | undefined = projects.find(
+      const createProjectForPlatform: OnboardingSelectedSDK | undefined = projects.some(
         p => p.slug === selectedPlatform.key
       )
         ? undefined
@@ -61,40 +61,35 @@ export function useConfigureSdk({
 
       try {
         addLoadingMessage(t('Loading SDK configuration\u2026'));
-
-        const response = (await createProject({
-          api,
-          orgSlug: organization.slug,
-          team: teams[0]!.slug,
-          platform: createProjectForPlatform.key,
+        await createProject.mutateAsync({
           name: createProjectForPlatform.key,
-          options: {
-            defaultRules: true,
-          },
-        })) as Project;
-
-        ProjectsStore.onCreateSuccess(response, organization.slug);
-
+          platform: createProjectForPlatform,
+          firstTeamSlug,
+        });
         onboardingContext.setSelectedPlatform(createProjectForPlatform);
-
         trackAnalytics('growth.onboarding_set_up_your_project', {
-          platform: selectedPlatform.key,
+          platform: createProjectForPlatform.key,
           organization,
         });
-
-        clearIndicators();
         setTimeout(() => onComplete(createProjectForPlatform));
-      } catch (err) {
+      } catch (error) {
         addErrorMessage(t('Failed to load SDK configuration'));
-        Sentry.captureException(err);
+        Sentry.captureException(error);
+      } finally {
+        clearIndicators();
       }
     },
-    [onboardingContext, api, organization, teams, projects, onComplete]
+    [createProject, firstTeamSlug, onboardingContext, onComplete, projects, organization]
   );
 
   const configureSdk = useCallback(
     async (selectedPlatform?: OnboardingSelectedSDK) => {
       if (!selectedPlatform) {
+        return;
+      }
+
+      if (createProject.isPending) {
+        // prevent multiple submissions at the same time
         return;
       }
 
@@ -137,8 +132,11 @@ export function useConfigureSdk({
         }
       );
     },
-    [createPlatformProject, onboardingContext, organization]
+    [createPlatformProject, onboardingContext, organization, createProject]
   );
 
-  return {configureSdk};
+  return {
+    configureSdk,
+    isLoadingData: isLoadingTeams || !projectsLoaded || createProject.isPending,
+  };
 }

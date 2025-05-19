@@ -5,11 +5,11 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Chevron} from 'sentry/components/chevron';
-import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
+import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
+import {LegacyProfilingOnboardingSidebar} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
@@ -23,6 +23,7 @@ import {
 } from 'sentry/components/sidebar/expandedContextProvider';
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {
+  IconChevron,
   IconDashboard,
   IconGraph,
   IconIssues,
@@ -33,7 +34,6 @@ import {
   IconSettings,
   IconSiren,
   IconStats,
-  IconSupport,
   IconTelescope,
   IconTimer,
 } from 'sentry/icons';
@@ -48,6 +48,7 @@ import {space} from 'sentry/styles/space';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -74,8 +75,6 @@ import {
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
 import {OptInBanner} from 'sentry/views/nav/optInBanner';
-
-import {LegacyProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
 import {Broadcasts} from './broadcasts';
 import SidebarHelp from './help';
@@ -228,18 +227,7 @@ function Sidebar() {
         to={`/organizations/${organization?.slug}/explore/logs/`}
         id="ourlogs"
         icon={<SubitemDot collapsed />}
-      />
-    </Feature>
-  );
-
-  const savedQueries = hasOrganization && (
-    <Feature features="performance-saved-queries" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        label={<GuideAnchor target="saved-queries">{t('All Queries')}</GuideAnchor>}
-        to={`/organizations/${organization?.slug}/explore/saved-queries/`}
-        id="performance-saved-queries"
-        icon={<SubitemDot collapsed />}
+        isNew
       />
     </Feature>
   );
@@ -252,18 +240,6 @@ function Sidebar() {
       to={`/organizations/${organization.slug}/releases/`}
       id="releases"
     />
-  );
-
-  const userFeedback = hasOrganization && (
-    <Feature features="old-user-feedback" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconSupport />}
-        label={t('User Feedback')}
-        to={`/organizations/${organization.slug}/user-feedback/`}
-        id="user-feedback"
-      />
-    </Feature>
   );
 
   const feedback = hasOrganization && (
@@ -430,7 +406,6 @@ function Sidebar() {
       {profiling}
       {replays}
       {discover}
-      {savedQueries}
     </SidebarAccordion>
   );
 
@@ -481,7 +456,6 @@ function Sidebar() {
                       {discover}
                       {dashboards}
                       {releases}
-                      {userFeedback}
                     </SidebarSection>
                   </Fragment>
                 )}
@@ -543,8 +517,10 @@ function Sidebar() {
                 collapsed={collapsed || horizontal}
                 organization={organization}
               />
-              {HookStore.get('sidebar:bottom-items').length > 0 &&
-                HookStore.get('sidebar:bottom-items')[0]!({
+              <ChonkOptInBanner collapsed={collapsed || horizontal} />
+
+              {HookStore.get('sidebar:try-business').length > 0 &&
+                HookStore.get('sidebar:try-business')[0]!({
                   orientation,
                   collapsed,
                   hasPanel,
@@ -582,7 +558,9 @@ function Sidebar() {
                   id="collapse"
                   data-test-id="sidebar-collapse"
                   {...sidebarItemProps}
-                  icon={<Chevron direction={collapsed ? 'right' : 'left'} />}
+                  icon={
+                    <IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />
+                  }
                   label={collapsed ? t('Expand') : t('Collapse')}
                   onClick={toggleCollapse}
                 />
@@ -677,7 +655,8 @@ const PrimaryItems = styled('div')`
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
     border-bottom: 1px solid ${p => p.theme.sidebar.border};
     padding-bottom: ${space(1)};
-    box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
+    box-shadow: ${p =>
+      p.theme.isChonk ? 'none' : 'rgba(0, 0, 0, 0.15) 0px -10px 10px inset'};
   }
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     overflow-y: hidden;
@@ -685,10 +664,11 @@ const PrimaryItems = styled('div')`
     flex-direction: row;
     height: 100%;
     align-items: center;
-    border-right: 1px solid ${p => p.theme.sidebar.border};
     padding-right: ${space(1)};
     margin-right: ${space(0.5)};
-    box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;
+    border-right: none;
+    box-shadow: ${p =>
+      p.theme.isChonk ? 'none' : 'rgba(0, 0, 0, 0.15) -10px 0px 10px inset'};
     ::-webkit-scrollbar {
       display: none;
     }

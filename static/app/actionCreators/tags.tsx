@@ -286,7 +286,7 @@ export type FetchOrganizationTagsParams = {
   useFlagsBackend?: boolean;
 };
 
-export const makeFetchOrganizationTags = ({
+const makeFetchOrganizationTags = ({
   orgSlug,
   dataset,
   projectIds,

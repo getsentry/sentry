@@ -32,7 +32,6 @@ function GroupConfigSelect({
 
   return (
     <GroupingConfigSelect
-      eventConfigId={event.groupingConfig.id}
       configId={configId}
       onSelect={selection => setConfigOverride(selection.value)}
     />

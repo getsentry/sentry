@@ -11,7 +11,7 @@ import {
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
@@ -19,7 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,6 +33,7 @@ import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceTree} from './traceModels/traceTree';
@@ -66,6 +67,7 @@ import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvi
 import {
   isAutogroupedNode,
   isCollapsedNode,
+  isEAPErrorNode,
   isEAPSpanNode,
   isEAPTraceNode,
   isMissingInstrumentationNode,
@@ -144,6 +146,7 @@ export function Trace({
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const {theme: colorMode} = useLegacyStore(ConfigStore);
+  const hasTraceTabsUi = useHasTraceTabsUI();
 
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
@@ -409,10 +412,12 @@ export function Trace({
         className="TraceScrollbarContainer"
         ref={manager.registerHorizontalScrollBarContainerRef}
       >
-        <TraceLevelOpsBreakdown
-          isTraceLoading={isLoading}
-          metaQueryResults={metaQueryResults}
-        />
+        {hasTraceTabsUi ? null : (
+          <TraceLevelOpsBreakdown
+            isTraceLoading={isLoading}
+            metaQueryResults={metaQueryResults}
+          />
+        )}
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
@@ -425,14 +430,14 @@ export function Trace({
           ? trace.indicators.map((indicator, i) => {
               const status =
                 indicator.score === undefined
-                  ? 'none'
+                  ? 'None'
                   : STATUS_TEXT[scoreToStatus(indicator.score)];
-              const webvital = indicator.label.toLowerCase() as WebVitals;
+              const vital = indicator.type as WebVitals;
 
               const defaultFormatter = (value: number) =>
                 getFormattedDuration(value / 1000);
               const formatter =
-                WEB_VITALS_METERS_CONFIG[webvital]?.formatter ?? defaultFormatter;
+                WEB_VITALS_METERS_CONFIG[vital]?.formatter ?? defaultFormatter;
 
               return (
                 <Fragment key={i}>
@@ -444,9 +449,10 @@ export function Trace({
                     <Tooltip
                       title={
                         <div>
-                          {WEB_VITAL_DETAILS[`measurements.${webvital}`]?.name}
+                          {VITAL_DETAILS[`measurements.${vital}`]?.name}
                           <br />
-                          {formatter(indicator.measurement.value)} - {status}
+                          {formatter(indicator.measurement.value)}
+                          {status !== 'None' && ` - ${status}`}
                         </div>
                       }
                     >
@@ -496,6 +502,7 @@ export function Trace({
       <div
         ref={setScrollContainer}
         data-test-id="trace-virtualized-list-scroll-container"
+        id="trace-waterfall"
       >
         <div data-test-id="trace-virtualized-list">{virtualizedList.rendered}</div>
         <div className="TraceRow Hidden">
@@ -680,7 +687,7 @@ function RenderTraceRow(props: {
     return <TraceAutogroupedRow {...rowProps} node={node} />;
   }
 
-  if (isTraceErrorNode(node)) {
+  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
     return <TraceErrorRow {...rowProps} node={node} />;
   }
 
@@ -949,6 +956,19 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
+    &.None {
+      color: ${p => p.theme.subText};
+      border: 1px solid ${p => p.theme.border};
+
+      &.light {
+        background-color: rgb(245 245 245);
+      }
+
+      &.dark {
+        background-color: rgb(60 59 59);
+      }
+    }
+
     &.Meh {
       color: ${p => p.theme.yellow400};
       border: 1px solid ${p => p.theme.yellow300};
@@ -1006,6 +1026,15 @@ const TraceStylingWrapper = styled('div')`
             to bottom,
             transparent 0 4px,
             ${p => p.theme.red300} 4px 8px
+          )
+          80%/2px 100% no-repeat;
+      }
+
+      &.None {
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 4px,
+            ${p => p.theme.subText} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -1094,7 +1123,7 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: #a5752c;
         --pattern-even: ${p => p.theme.yellow300};
       }
-      &.performance_issue {
+      &.occurence {
         --pattern-odd: #063690;
         --pattern-even: ${p => p.theme.blue300};
       }
@@ -1135,7 +1164,7 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: #a5752c;
         --pattern-even: ${p => p.theme.yellow300};
       }
-      &.performance_issue {
+      &.occurence {
         --pattern-odd: #063690;
         --pattern-even: ${p => p.theme.blue300};
       }
@@ -1190,7 +1219,7 @@ const TraceStylingWrapper = styled('div')`
     }
     &.error,
     &.fatal,
-    &.performance_issue {
+    &.occurence {
       color: ${p => p.theme.errorText};
       --autogrouped: ${p => p.theme.error};
       --row-children-button-border-color: ${p => p.theme.error};
@@ -1241,8 +1270,8 @@ const TraceStylingWrapper = styled('div')`
       &.fatal {
         background-color: var(--error);
       }
-      &.performance_issue {
-        background-color: var(--performance-issue);
+      &.occurence {
+        background-color: var(--occurence);
       }
       &.default {
         background-color: var(--default);
@@ -1266,7 +1295,7 @@ const TraceStylingWrapper = styled('div')`
 
       &.info,
       &.warning,
-      &.performance_issue,
+      &.occurence,
       &.default,
       &.unknown {
         svg {
@@ -1313,16 +1342,6 @@ const TraceStylingWrapper = styled('div')`
         var(--pattern-odd) 101%
       );
       background-size: 25.5px 17px;
-    }
-
-    .TracePerformanceIssue {
-      position: absolute;
-      top: 0;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      background-color: var(--performance-issue);
-      height: 16px;
     }
 
     .TraceRightColumn.Odd {

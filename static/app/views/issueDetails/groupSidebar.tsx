@@ -40,10 +40,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
 import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   environments: string[];
@@ -84,7 +82,6 @@ export default function GroupSidebar({
   const activeUser = useUser();
   const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(organization, group);
   const {data: currentRelease} = useFetchCurrentRelease(organization, group);
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const location = useLocation();
 
@@ -263,15 +260,7 @@ export default function GroupSidebar({
           <SeerSection group={group} project={project} event={event} />
         </ErrorBoundary>
       )}
-
-      {hasStreamlinedUI && event && (
-        <ErrorBoundary mini>
-          <ExternalIssueSidebarList group={group} event={event} project={project} />
-        </ErrorBoundary>
-      )}
-      {!hasStreamlinedUI && (
-        <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
-      )}
+      <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
       {issueTypeConfig.stats.enabled && (
         <GroupReleaseStats
           organization={organization}
@@ -282,12 +271,12 @@ export default function GroupSidebar({
           currentRelease={currentRelease}
         />
       )}
-      {!hasStreamlinedUI && event && (
+      {event && (
         <ErrorBoundary mini>
           <ExternalIssueList project={project} group={group} event={event} />
         </ErrorBoundary>
       )}
-      {!hasStreamlinedUI && renderPluginIssue()}
+      {renderPluginIssue()}
       {issueTypeConfig.pages.tagsTab.enabled && (
         <TagFacets
           environments={environments}
@@ -308,8 +297,8 @@ export default function GroupSidebar({
       {issueTypeConfig.regression.enabled && event && (
         <EventThroughput event={event} group={group} />
       )}
-      {!hasStreamlinedUI && renderParticipantData()}
-      {!hasStreamlinedUI && renderSeenByList()}
+      {renderParticipantData()}
+      {renderSeenByList()}
     </Container>
   );
 }

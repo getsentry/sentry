@@ -1,13 +1,13 @@
 import {formatRootCauseText} from 'sentry/components/events/autofix/autofixRootCause';
 import {formatSolutionText} from 'sentry/components/events/autofix/autofixSolution';
 import {
+  AUTOFIX_TTL_IN_DAYS,
   type AutofixCodebaseChange,
   type AutofixData,
   AutofixStatus,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
-
-export const AUTOFIX_ROOT_CAUSE_STEP_ID = 'root_cause_analysis';
+import type {Group} from 'sentry/types/group';
 
 export function getRootCauseDescription(autofixData: AutofixData) {
   const rootCause = autofixData.steps?.find(
@@ -131,3 +131,59 @@ export const getCodeChangesIsLoading = (autofixData: AutofixData) => {
 export const isSupportedAutofixProvider = (provider: string) => {
   return provider.toLowerCase().includes('github');
 };
+
+export interface AutofixProgressDetails {
+  overallProgress: number;
+}
+
+export function getAutofixProgressDetails(
+  autofixData?: AutofixData
+): AutofixProgressDetails {
+  if (!autofixData) {
+    return {overallProgress: 0};
+  }
+
+  const steps = autofixData.steps ?? [];
+
+  if (autofixData.status === AutofixStatus.COMPLETED) {
+    return {overallProgress: 100};
+  }
+
+  if (
+    autofixData.status === AutofixStatus.ERROR ||
+    autofixData.status === AutofixStatus.CANCELLED
+  ) {
+    return {overallProgress: 0};
+  }
+
+  const processingSteps = steps.filter(step => step.status === AutofixStatus.PROCESSING);
+  const lastProcessingStep = processingSteps[processingSteps.length - 1];
+
+  if (!lastProcessingStep) {
+    return {overallProgress: 0};
+  }
+
+  const progressCount = lastProcessingStep.progress?.length || 0;
+  // Increment by 8% per progress log, max 97%
+  const progress = Math.min(progressCount * 8, 97);
+
+  return {
+    overallProgress: progress,
+  };
+}
+
+export function getAutofixRunExists(group: Group) {
+  const autofixLastRunAsDate = group.seerAutofixLastTriggered
+    ? new Date(group.seerAutofixLastTriggered)
+    : null;
+  const autofixRanWithinTtl = autofixLastRunAsDate
+    ? autofixLastRunAsDate >
+      new Date(Date.now() - AUTOFIX_TTL_IN_DAYS * 24 * 60 * 60 * 1000)
+    : false;
+
+  return autofixRanWithinTtl;
+}
+
+export function isIssueQuickFixable(group: Group) {
+  return group.seerFixabilityScore && group.seerFixabilityScore > 0.72;
+}

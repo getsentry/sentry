@@ -2,23 +2,22 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {DeprecatedLineProps} from 'sentry/components/events/interfaces/frame/deprecatedLine';
+import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecatedLine';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import Panel from 'sentry/components/panels/panel';
-import {t} from 'sentry/locale';
-import type {Event, Frame} from 'sentry/types/event';
-import type {PlatformKey} from 'sentry/types/project';
-import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
-
-import type {DeprecatedLineProps} from '../../frame/deprecatedLine';
-import DeprecatedLine from '../../frame/deprecatedLine';
 import {
   getHiddenFrameIndices,
   getLastFrameIndex,
   isRepeatedFrame,
   stackTracePlatformIcon,
-} from '../../utils';
+} from 'sentry/components/events/interfaces/utils';
+import Panel from 'sentry/components/panels/panel';
+import type {Event, Frame} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
+import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
 
+import {OmittedFrames} from './omittedFrames';
 import StacktracePlatformIcon from './platformIcon';
 
 type DefaultProps = {
@@ -62,7 +61,7 @@ function Content({
 }: Props) {
   const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
 
-  const {frames = [], framesOmitted, registers} = data;
+  const {frames = [], registers} = data;
 
   function frameIsVisible(frame: Frame, nextFrame: Frame) {
     return (
@@ -74,7 +73,7 @@ function Content({
     );
   }
 
-  function setInitialFrameMap(): {[frameIndex: number]: boolean} {
+  function setInitialFrameMap(): Record<number, boolean> {
     const indexMap: Record<string, boolean> = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
@@ -86,7 +85,7 @@ function Content({
     return indexMap;
   }
 
-  function getInitialFrameCounts(): {[frameIndex: number]: number} {
+  function getInitialFrameCounts(): Record<number, number> {
     let count = 0;
     const countMap: Record<string, number> = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
@@ -116,20 +115,6 @@ function Content({
     }));
   };
 
-  function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
-    return (
-      <li key="omitted" className="frame frames-omitted">
-        {t(
-          'Frames %d until %d were omitted and not available.',
-          firstFrameOmitted,
-          lastFrameOmitted
-        )}
-      </li>
-    );
-  }
-
-  const firstFrameOmitted = framesOmitted?.[0] ?? null;
-  const lastFrameOmitted = framesOmitted?.[1] ?? null;
   const lastFrameIndex = getLastFrameIndex(frames);
   const frameCountMap = getInitialFrameCounts();
   const hiddenFrameIndices: number[] = getHiddenFrameIndices({
@@ -185,11 +170,11 @@ function Content({
 
         nRepeats = 0;
 
-        if (frameIndex === firstFrameOmitted) {
+        if (frameIndex === data.framesOmitted?.[0]) {
           return (
             <Fragment key={frameIndex}>
               <DeprecatedLine {...frameProps} />
-              {renderOmittedFrames(firstFrameOmitted, lastFrameOmitted)}
+              <OmittedFrames omittedFrames={data.framesOmitted} />
             </Fragment>
           );
         }
@@ -201,11 +186,11 @@ function Content({
         nRepeats = 0;
       }
 
-      if (frameIndex !== firstFrameOmitted) {
+      if (frameIndex !== data.framesOmitted?.[0]) {
         return null;
       }
 
-      return renderOmittedFrames(firstFrameOmitted, lastFrameOmitted);
+      return <OmittedFrames key={frameIndex} omittedFrames={data.framesOmitted} />;
     })
     .filter((frame): frame is React.ReactElement => !!frame);
 

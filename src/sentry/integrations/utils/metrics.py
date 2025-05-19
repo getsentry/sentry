@@ -6,6 +6,8 @@ from enum import StrEnum
 from types import TracebackType
 from typing import Any, Self
 
+import sentry_sdk
+
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.utils import metrics
@@ -131,6 +133,8 @@ class EventLifecycle:
 
         sample_rate = 1.0
         metrics.incr(key, tags=tags, sample_rate=sample_rate)
+
+        sentry_sdk.set_tags(tags)
 
         extra = dict(self._extra)
         extra.update(tags)
@@ -262,6 +266,7 @@ class IntegrationPipelineViewType(StrEnum):
     # GitHub
     OAUTH_LOGIN = "oauth_login"
     GITHUB_INSTALLATION = "github_installation"
+    ORGANIZATION_SELECTION = "organization_selection"
 
     # Bitbucket
     VERIFY_INSTALLATION = "verify_installation"
@@ -272,6 +277,9 @@ class IntegrationPipelineViewType(StrEnum):
 
     # Azure DevOps
     ACCOUNT_CONFIG = "account_config"
+
+    # Jira Server
+    WEBHOOK_CREATION = "webhook_creation"
 
 
 class IntegrationPipelineErrorReason(StrEnum):

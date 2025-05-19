@@ -45,6 +45,12 @@ if not is_root_span and redis.call("scard", span_key) > 0 then
     redis.call("sunionstore", set_key, set_key, span_key)
     redis.call("unlink", span_key)
 end
+
+local parent_key = string.format("span-buf:s:{%s}:%s", project_and_trace, parent_span_id)
+if set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
+    redis.call("sunionstore", set_key, set_key, parent_key)
+    redis.call("unlink", parent_key)
+end
 redis.call("expire", set_key, set_timeout)
 
 local has_root_span_key = string.format("span-buf:hrs:%s", set_key)

@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:10.349772+00:00'
+created: '2025-04-25T21:21:51.625521+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,7 +11,7 @@ app:
       chained-exception*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "baz.py"
           type*
@@ -20,7 +20,7 @@ app:
             "hello world"
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "baz.py"
           type*

@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
-
-import {MODULE_DOC_LINK} from '../../settings';
-import type {WebVitals} from '../../types';
-import {Dot} from '../webVitalMeters';
+import {Dot} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 
 import {ORDER} from './performanceScoreChart';
 

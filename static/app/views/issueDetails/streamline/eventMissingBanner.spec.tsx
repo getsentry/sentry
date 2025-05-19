@@ -10,7 +10,11 @@ describe('EventMissingBanner', () => {
     const organization = OrganizationFixture();
     const router = RouterFixture({params: {groupId: 'group-1', eventId: 'recommended'}});
 
-    render(<EventMissingBanner />, {organization, router});
+    render(<EventMissingBanner />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     // Header
     expect(screen.getByText(/We couldn't track down an event/)).toBeInTheDocument();
@@ -26,7 +30,11 @@ describe('EventMissingBanner', () => {
     const organization = OrganizationFixture();
     const router = RouterFixture({params: {groupId: 'group-1', eventId: 'abc123'}});
 
-    render(<EventMissingBanner />, {organization, router});
+    render(<EventMissingBanner />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     // Header
     expect(screen.getByText(/We couldn't track down that event/)).toBeInTheDocument();

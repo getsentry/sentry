@@ -61,7 +61,7 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                 "referrer": "ingest",
                 "use_reranking": True,
             },
-            {"hybrid_fingerprint": False},
+            {"platform": "python", "hybrid_fingerprint": False},
         )
 
     @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
@@ -183,5 +183,5 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                 "referrer": "ingest",
                 "use_reranking": True,
             },
-            {"hybrid_fingerprint": False},
+            {"platform": "python", "hybrid_fingerprint": False},
         )

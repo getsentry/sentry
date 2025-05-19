@@ -1,6 +1,6 @@
 import type {Organization, OrgRole} from 'sentry/types/organization';
 
-export const ORG_ROLES: OrgRole[] = [
+const ORG_ROLES: OrgRole[] = [
   {
     id: 'billing',
     name: 'Billing',

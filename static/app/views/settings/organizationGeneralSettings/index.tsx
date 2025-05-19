@@ -25,6 +25,7 @@ import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
+import {defaultEnableSeerFeaturesValue} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
 import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
 import OrganizationSettingsForm from './organizationSettingsForm';
@@ -115,7 +116,13 @@ export default function OrganizationGeneralSettings() {
         />
         <OrganizationPermissionAlert />
 
-        <OrganizationSettingsForm initialData={organization} onSave={handleSaveForm} />
+        <OrganizationSettingsForm
+          initialData={{
+            ...organization,
+            hideAiFeatures: defaultEnableSeerFeaturesValue(organization),
+          }}
+          onSave={handleSaveForm}
+        />
 
         {organization.access.includes('org:admin') && !organization.isDefault && (
           <Panel>

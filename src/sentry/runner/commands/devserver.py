@@ -186,7 +186,8 @@ def devserver(
             and ctx.get_parameter_source(p.name) == click.core.ParameterSource.COMMANDLINE
         }
 
-        sentry_sdk.set_context("devserver_options", passed_options)
+        for option_name, option_value in passed_options.items():
+            sentry_sdk.set_tag(f"devserver.{option_name}", option_value)
 
         if bind is None:
             bind = "127.0.0.1:8000"
@@ -350,7 +351,6 @@ def devserver(
 
             if settings.SENTRY_USE_UPTIME:
                 kafka_consumers.add("uptime-results")
-                kafka_consumers.add("uptime-configs")
 
             if settings.SENTRY_USE_RELAY:
                 # TODO: Remove this once we have a better way to check if relay is running for new devservices

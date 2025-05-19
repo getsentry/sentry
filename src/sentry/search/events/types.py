@@ -5,7 +5,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, NotRequired, Optional, TypedDict, Union
+from typing import Any, Literal, NotRequired, Optional, TypedDict, Union
 
 from django.utils import timezone as django_timezone
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -73,6 +73,7 @@ class EventsMeta(TypedDict):
     discoverSplitDecision: NotRequired[str]
     # only returned when debug=True
     query: NotRequired[dict[str, Any] | str]
+    full_scan: NotRequired[bool]
 
 
 class EventsResponse(TypedDict):
@@ -80,11 +81,15 @@ class EventsResponse(TypedDict):
     meta: EventsMeta
 
 
+SAMPLING_MODES = Literal["BEST_EFFORT", "PREFLIGHT", "NORMAL", "HIGHEST_ACCURACY"]
+
+
 @dataclass
 class SnubaParams:
     start: datetime | None = None
     end: datetime | None = None
     stats_period: str | None = None
+    query_string: str | None = None
     # granularity is used with timeseries requests to specifiy bucket size
     granularity_secs: int | None = None
     # The None value in this sequence is because the filter params could include that
@@ -93,6 +98,7 @@ class SnubaParams:
     user: RpcUser | None = None
     teams: Iterable[Team] = field(default_factory=list)
     organization: Organization | None = None
+    sampling_mode: SAMPLING_MODES | None = None
 
     def __post_init__(self) -> None:
         if self.start:

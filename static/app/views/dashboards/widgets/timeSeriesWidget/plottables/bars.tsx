@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import Color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
@@ -12,6 +13,8 @@ import {
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
 
+const {error} = Sentry.logger;
+
 interface BarsConfig extends ContinuousTimeSeriesConfig {
   /**
    * Stack name. If provided, bar plottables with the same stack will be stacked visually.
@@ -20,9 +23,20 @@ interface BarsConfig extends ContinuousTimeSeriesConfig {
 }
 
 export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable {
-  constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
-    return new Bars(this.constrainTimeSeries(boundaryStart, boundaryEnd), this.config);
+  onHighlight(dataIndex: number): void {
+    const {config = {}} = this;
+    const datum = this.timeSeries.values.at(dataIndex);
+
+    if (!datum) {
+      error('`Bars` plottable `onHighlight` out-of-range error', {
+        seriesDataIndex: dataIndex,
+      });
+      return;
+    }
+
+    config.onHighlight?.(datum);
   }
+
   toSeries(
     plottingOptions: ContinuousTimeSeriesPlottingOptions
   ): Array<BarSeriesOption | LineSeriesOption> {
@@ -51,13 +65,13 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
         animation: false,
         itemStyle: {
           color: params => {
-            const datum = markedSeries.data[params.dataIndex]!;
+            const datum = markedSeries.values[params.dataIndex]!;
 
-            return datum.delayed ? colorObject.lighten(0.5).string() : color;
+            return datum.delayed ? colorObject.alpha(0.5).string() : color;
           },
           opacity: 1.0,
         },
-        data: markedSeries.data.map(timeSeriesItemToEChartsDataPoint),
+        data: markedSeries.values.map(timeSeriesItemToEChartsDataPoint),
       }),
     ];
   }

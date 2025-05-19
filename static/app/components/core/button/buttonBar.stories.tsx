@@ -75,6 +75,14 @@ export default storyBook('ButtonBar', (story, APIReference) => {
             <Button key={id}>{id}</Button>
           ))}
         </ButtonBar>
+
+        <p>
+          <JSXNode name="ButtonBar" />s can have a single button in which case it looks
+          like a button.
+        </p>
+        <ButtonBar>
+          <Button>One Lonely Button</Button>
+        </ButtonBar>
       </Fragment>
     );
   });

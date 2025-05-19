@@ -1,6 +1,7 @@
 import logging
 from dataclasses import asdict, replace
 from enum import StrEnum
+from typing import Any
 
 import sentry_sdk
 from django.db import router, transaction
@@ -13,7 +14,6 @@ from sentry.models.environment import Environment
 from sentry.utils import json, metrics
 from sentry.workflow_engine.models import (
     Action,
-    AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
     Detector,
@@ -32,6 +32,32 @@ WORKFLOW_ENGINE_BUFFER_LIST_KEY = "workflow_engine_delayed_processing_buffer"
 class WorkflowDataConditionGroupType(StrEnum):
     ACTION_FILTER = "action_filter"
     WORKFLOW_TRIGGER = "workflow_trigger"
+
+
+def delete_workflow(workflow: Workflow) -> bool:
+    with transaction.atomic(router.db_for_write(Workflow)):
+        action_filters = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow=workflow
+        )
+
+        actions = Action.objects.filter(
+            dataconditiongroupaction__condition_group__in=action_filters
+        )
+
+        # Delete the actions associated with a workflow, this is not a cascade delete
+        # because we want to create a UI to maintain notification actions separately
+        if actions:
+            actions.delete()
+
+        if action_filters:
+            action_filters.delete()
+
+        if workflow.when_condition_group:
+            workflow.when_condition_group.delete()
+
+        workflow.delete()
+
+    return True
 
 
 def enqueue_workflow(
@@ -55,6 +81,16 @@ def enqueue_workflow(
         filters={"project_id": project_id},
         field=f"{workflow.id}:{event.group.id}:{condition_groups}:{source}",
         value=value,
+    )
+
+    logger.info(
+        "workflow_engine.enqueue_workflow",
+        extra={
+            "workflow": workflow.id,
+            "group_id": event.group_id,
+            "event_id": event.event_id,
+            "delayed_conditions": [condition.id for condition in delayed_conditions],
+        },
     )
 
 
@@ -86,13 +122,8 @@ def evaluate_workflows_action_filters(
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
-    # Gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
-    workflow_ids_to_envs = {workflow.id: workflow.environment for workflow in workflows}
-
     action_conditions = (
-        DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow_id__in=list(workflow_ids_to_envs.keys())
-        )
+        DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow__in=workflows)
         .prefetch_related("workflowdataconditiongroup_set")
         .distinct()
     )
@@ -100,15 +131,25 @@ def evaluate_workflows_action_filters(
     for action_condition in action_conditions:
         workflow_event_data = event_data
 
+        # each DataConditionGroup here has 1 WorkflowDataConditionGroup
         workflow_data_condition_group = action_condition.workflowdataconditiongroup_set.first()
 
-        # Populate the workflow_env in the job for the action_condition evaluation
+        # Populate the workflow_env in the event_data for the action_condition evaluation
         if workflow_data_condition_group:
             workflow_event_data = replace(
                 workflow_event_data, workflow_env=workflow_data_condition_group.workflow.environment
             )
+        else:
+            logger.info(
+                "workflow_engine.evaluate_workflows_action_filters.no_workflow_data_condition_group",
+                extra={
+                    "group_id": event_data.event.group_id,
+                    "event_id": event_data.event.event_id,
+                    "action_condition_id": action_condition.id,
+                },
+            )
 
-        (evaluation, result), remaining_conditions = process_data_condition_group(
+        group_evaluation, remaining_conditions = process_data_condition_group(
             action_condition.id, workflow_event_data
         )
 
@@ -123,41 +164,24 @@ def evaluate_workflows_action_filters(
                     WorkflowDataConditionGroupType.ACTION_FILTER,
                 )
         else:
-            if evaluation:
+            if group_evaluation.logic_result:
                 filtered_action_groups.add(action_condition)
 
-    return filter_recently_fired_workflow_actions(filtered_action_groups, event_data.event.group)
-
-
-def log_fired_workflows(log_name: str, actions: list[Action], job: WorkflowEventData) -> None:
-    # go from actions to workflows
-    action_ids = {action.id for action in actions}
-    action_conditions = DataConditionGroup.objects.filter(
-        dataconditiongroupaction__action_id__in=action_ids
-    ).values_list("id", flat=True)
-    workflows_to_fire = Workflow.objects.filter(
-        workflowdataconditiongroup__condition_group_id__in=action_conditions
-    )
-    workflow_to_rule = dict(
-        AlertRuleWorkflow.objects.filter(workflow__in=workflows_to_fire).values_list(
-            "workflow_id", "rule_id"
-        )
+    logger.info(
+        "workflow_engine.evaluate_workflows_action_filters",
+        extra={
+            "group_id": event_data.event.group_id,
+            "event_id": event_data.event.event_id,
+            "workflow_ids": [workflow.id for workflow in workflows],
+            "action_conditions": [action_condition.id for action_condition in action_conditions],
+            "filtered_action_groups": [action_group.id for action_group in filtered_action_groups],
+        },
     )
 
-    for workflow in workflows_to_fire:
-        logger.info(
-            log_name,
-            extra={
-                "workflow_id": workflow.id,
-                "rule_id": workflow_to_rule.get(workflow.id),
-                "payload": asdict(job),
-                "group_id": job.event.group_id,
-                "event_id": job.event.event_id,
-            },
-        )
+    return filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
 
 
-def process_workflows(job: WorkflowEventData) -> set[Workflow]:
+def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
@@ -167,21 +191,41 @@ def process_workflows(job: WorkflowEventData) -> set[Workflow]:
     """
     # Check to see if the GroupEvent has an issue occurrence
     try:
-        detector = get_detector_by_event(job)
+        detector = get_detector_by_event(event_data)
     except Detector.DoesNotExist:
         metrics.incr("workflow_engine.process_workflows.error")
-        logger.exception("Detector not found for event", extra={"event_id": job.event.event_id})
+        evt = event_data.event
+        detector_id = evt.occurrence.evidence_data.get("detector_id") if evt.occurrence else None
+
+        logger.exception(
+            "Detector not found for event",
+            extra={
+                "event_id": evt.event_id,
+                "group_id": evt.group_id,
+                "detector_id": detector_id,
+            },
+        )
         return set()
 
     try:
-        environment = job.event.get_environment()
+        environment = event_data.event.get_environment()
     except Environment.DoesNotExist:
         metrics.incr("workflow_engine.process_workflows.error")
-        logger.exception("Missing environment for event", extra={"event_id": job.event.event_id})
+        logger.exception(
+            "Missing environment for event", extra={"event_id": event_data.event.event_id}
+        )
         return set()
 
-    # TODO: remove fetching org, only used for FF check
+    # TODO: remove fetching org, only used for feature flag checks
     organization = detector.project.organization
+    workflow_metric_tags: dict[str, Any] = {
+        "detector_type": detector.type,
+        "organization_id": None,
+    }
+    if features.has(
+        "organizations:workflow-engine-metric-alert-dual-processing-logs", organization
+    ):
+        workflow_metric_tags["organization_id"] = organization.id
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(
@@ -192,62 +236,67 @@ def process_workflows(job: WorkflowEventData) -> set[Workflow]:
         ).distinct()
     )
 
-    if features.has(
-        "organizations:workflow-engine-process-workflows-logs",
-        organization,
-    ):
-        logger.info(
-            "workflow_engine.process_workflows.process_event",
-            extra={
-                "payload": job,
-                "group_id": job.event.group_id,
-                "event_id": job.event.event_id,
-                "event_environment_id": environment.id,
-                "workflows": [workflow.id for workflow in workflows],
-            },
-        )
-
     if workflows:
         metrics.incr(
             "workflow_engine.process_workflows",
             len(workflows),
-            tags={"detector_type": detector.type},
+            tags=workflow_metric_tags,
+        )
+
+        logger.info(
+            "workflow_engine.process_workflows",
+            extra={
+                "payload": event_data,
+                "group_id": event_data.event.group_id,
+                "event_id": event_data.event.event_id,
+                "event_environment_id": environment.id,
+                "workflows": [workflow.id for workflow in workflows],
+                "detector_type": detector.type,
+                "detector_id": detector.id,
+            },
         )
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.evaluate_workflow_triggers"):
-        triggered_workflows = evaluate_workflow_triggers(workflows, job)
+        triggered_workflows = evaluate_workflow_triggers(workflows, event_data)
 
         if triggered_workflows:
             metrics.incr(
                 "workflow_engine.process_workflows.triggered_workflows",
                 len(triggered_workflows),
-                tags={"detector_type": detector.type},
+                tags=workflow_metric_tags,
+            )
+
+            logger.info(
+                "workflow_engine.process_workflows.triggered_workflows",
+                extra={
+                    "group_id": event_data.event.group_id,
+                    "event_id": event_data.event.event_id,
+                    "event_data": asdict(event_data),
+                    "event_environment_id": environment.id,
+                    "triggered_workflows": [workflow.id for workflow in triggered_workflows],
+                },
             )
 
     with sentry_sdk.start_span(
         op="workflow_engine.process_workflows.evaluate_workflows_action_filters"
     ):
-        actions = evaluate_workflows_action_filters(triggered_workflows, job)
+        actions = evaluate_workflows_action_filters(triggered_workflows, event_data)
+        metrics.incr(
+            "workflow_engine.process_workflows.actions",
+            amount=len(actions),
+            tags=workflow_metric_tags,
+        )
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows",
-            organization,
-        ):
-            metrics.incr(
-                "workflow_engine.process_workflows.triggered_actions",
-                amount=len(actions),
-                tags={"detector_type": detector.type},
-            )
-
-        if features.has(
-            "organizations:workflow-engine-process-workflows-logs",
-            organization,
-        ):
-            log_fired_workflows(
-                log_name="workflow_engine.process_workflows.fired_workflow",
-                actions=list(actions),
-                job=job,
-            )
+        logger.info(
+            "workflow_engine.process_workflows.actions (all)",
+            extra={
+                "group_id": event_data.event.group_id,
+                "event_id": event_data.event.event_id,
+                "workflow_ids": [workflow.id for workflow in triggered_workflows],
+                "action_ids": [action.id for action in actions],
+                "detector_type": detector.type,
+            },
+        )
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         if features.has(
@@ -255,32 +304,27 @@ def process_workflows(job: WorkflowEventData) -> set[Workflow]:
             organization,
         ):
             for action in actions:
-                action.trigger(job, detector)
+                action.trigger(event_data, detector)
+
+        metrics.incr(
+            "workflow_engine.process_workflows.triggered_actions",
+            amount=len(actions),
+            tags=workflow_metric_tags,
+        )
+        logger.info(
+            "workflow_engine.process_workflows.triggered_actions (batch)",
+            extra={
+                "group_id": event_data.event.group_id,
+                "event_id": event_data.event.event_id,
+                "workflow_ids": [workflow.id for workflow in triggered_workflows],
+                "action_ids": [action.id for action in actions],
+                "detector_type": detector.type,
+            },
+        )
+    # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
+    metrics.incr(
+        "workflow_engine.process_workflows.fired_actions",
+        tags=workflow_metric_tags,
+    )
 
     return triggered_workflows
-
-
-def delete_workflow(workflow: Workflow) -> bool:
-    with transaction.atomic(router.db_for_write(Workflow)):
-        action_filters = DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow=workflow
-        )
-
-        actions = Action.objects.filter(
-            dataconditiongroupaction__condition_group__in=action_filters
-        )
-
-        # Delete the actions associated with a workflow, this is not a cascade delete
-        # because we want to create a UI to maintain notification actions separately
-        if actions:
-            actions.delete()
-
-        if action_filters:
-            action_filters.delete()
-
-        if workflow.when_condition_group:
-            workflow.when_condition_group.delete()
-
-        workflow.delete()
-
-    return True

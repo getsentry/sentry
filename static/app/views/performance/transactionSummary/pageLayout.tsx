@@ -1,4 +1,5 @@
 import {useCallback, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/core';
 import type {Location} from 'history';
@@ -31,12 +32,11 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-
 import {
   getPerformanceBaseUrl,
   getSelectedProjectPlatforms,
   getTransactionName,
-} from '../utils';
+} from 'sentry/views/performance/utils';
 
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
@@ -339,17 +339,17 @@ const StyledAlert = styled(Alert)`
 const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}>`
   ${p =>
     p.fillSpace &&
-    `
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
+    css`
+      display: flex;
+      flex-direction: column;
+      gap: ${space(3)};
 
-  @media (min-width: ${p.theme.breakpoints.large}) {
-    display: flex;
-    flex-direction: column;
-    gap: ${space(3)};
-  }
-  `}
+      @media (min-width: ${p.theme.breakpoints.large}) {
+        display: flex;
+        flex-direction: column;
+        gap: ${space(3)};
+      }
+    `}
 `;
 
 export function redirectToPerformanceHomepage(

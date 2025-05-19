@@ -1,5 +1,6 @@
 import TextareaAutosize, {type TextareaAutosizeProps} from 'react-textarea-autosize';
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {InputStylesProps} from 'sentry/components/core/input';
@@ -21,6 +22,7 @@ export interface TextAreaProps
    * Max number of rows to default to.
    */
   maxRows?: number;
+  ref?: React.Ref<HTMLTextAreaElement>;
   /**
    * Number of rows to default to.
    */
@@ -35,9 +37,7 @@ function TextAreaControl({
   maxRows,
   size: _size,
   ...p
-}: TextAreaProps & {
-  ref?: React.Ref<HTMLTextAreaElement>;
-}) {
+}: TextAreaProps) {
   return autosize ? (
     <TextareaAutosize {...p} ref={ref} rows={rows} maxRows={maxRows} />
   ) : (
@@ -55,7 +55,7 @@ const StyledTextArea = styled(TextAreaControl, {
   /** Allow react-textarea-autosize to freely control height based on props. */
   ${p =>
     p.autosize &&
-    `
+    css`
       height: unset;
       min-height: unset;
     `}

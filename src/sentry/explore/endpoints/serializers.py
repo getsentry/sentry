@@ -8,7 +8,7 @@ from sentry.utils.dates import parse_stats_period, validate_interval
 
 
 class VisualizeSerializer(serializers.Serializer):
-    chartType = serializers.IntegerField()
+    chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField())
 
 
@@ -89,6 +89,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
 
         return validate_project_ids(projects, self.context["params"]["project_id"])
 
+    # Avoid including any side-effecting logic here, since this logic is also used when generating prebuilt queries on first read
     def validate(self, data):
         query = {}
         query_keys = [

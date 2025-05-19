@@ -6,10 +6,10 @@ import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,6 +25,8 @@ import {
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
@@ -33,14 +35,12 @@ import {
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
 import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-
-import type {Widget} from '../types';
-import {WidgetType} from '../types';
-import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
+import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
 type Props = {
+  dashboardFilters: DashboardFilters | undefined;
   location: Location;
   organization: Organization;
   router: InjectedRouter;
@@ -78,6 +78,7 @@ export const useIndexedEventsWarning = (): string | null => {
 
 function WidgetCardContextMenu({
   organization,
+  dashboardFilters,
   selection,
   widget,
   widgetLimitReached,
@@ -191,6 +192,7 @@ function WidgetCardContextMenu({
   }
 
   const menuOptions = getMenuOptions(
+    dashboardFilters,
     organization,
     selection,
     widget,
@@ -270,6 +272,7 @@ function WidgetCardContextMenu({
 }
 
 export function getMenuOptions(
+  dashboardFilters: DashboardFilters | undefined,
   organization: Organization,
   selection: PageFilters,
   widget: Widget,
@@ -296,6 +299,7 @@ export function getMenuOptions(
     if (widget.queries.length) {
       const discoverPath = getWidgetDiscoverUrl(
         widget,
+        dashboardFilters,
         selection,
         organization,
         0,
@@ -330,7 +334,12 @@ export function getMenuOptions(
             organization,
             widget_type: widget.displayType,
           });
-          openDashboardWidgetQuerySelectorModal({organization, widget, isMetricsData});
+          openDashboardWidgetQuerySelectorModal({
+            organization,
+            widget,
+            isMetricsData,
+            dashboardFilters,
+          });
         },
       });
     }
@@ -340,12 +349,17 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
-      to: getWidgetExploreUrl(widget, selection, organization),
+      to: getWidgetExploreUrl(widget, dashboardFilters, selection, organization),
     });
   }
 
   if (widget.widgetType === WidgetType.ISSUE) {
-    const issuesLocation = getWidgetIssueUrl(widget, selection, organization);
+    const issuesLocation = getWidgetIssueUrl(
+      widget,
+      dashboardFilters,
+      selection,
+      organization
+    );
 
     menuOptions.push({
       key: 'open-in-issues',

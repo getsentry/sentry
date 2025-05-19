@@ -1,5 +1,5 @@
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.workflow_engine.models import (
@@ -30,7 +30,7 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         self.detector = self.create_detector(
             project_id=self.project.id,
             name="Test Detector",
-            type=MetricAlertFire.slug,
+            type=MetricIssue.slug,
             workflow_condition_group=self.data_condition_group,
         )
         self.workflow = self.create_workflow()
@@ -99,7 +99,7 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         detector_2 = self.create_detector(
             project_id=self.project.id,
             name="Testy Detector",
-            type=MetricAlertFire.slug,
+            type=MetricIssue.slug,
         )
         data_source_detector_2 = self.create_data_source_detector(
             data_source=self.data_source, detector=detector_2

@@ -266,31 +266,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         return f"1-{problem_class}-{full_fingerprint}"
 
 
-class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
-    """
-    Detector goals:
-    - Extend N+1 DB Detector to make it compatible with more frameworks.
-    """
-
-    type = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
-
-    __slots__ = (
-        "stored_problems",
-        "potential_parents",
-        "source_span",
-        "n_hash",
-        "n_spans",
-    )
-
-    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        # Only collecting metrics.
-        return False
-
-    def is_creation_allowed_for_project(self, project: Project | None) -> bool:
-        # Only collecting metrics.
-        return False
-
-
 def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
     # Remove the truncation check from the n_plus_one db detector.
     query = span.get("description", None)

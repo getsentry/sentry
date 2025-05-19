@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {useCallback, useState} from 'react';
 
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
@@ -16,15 +16,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
   convertEventsStatsToTimeSeriesData,
   transformToSeriesMap,
 } from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-
-import {type DashboardFilters, DisplayType, type Widget} from '../types';
-import {isEventsStats} from '../utils/isEventsStats';
 
 import type {
   GenericWidgetQueriesChildrenProps,
@@ -43,6 +42,8 @@ type SpansWidgetQueriesProps = {
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onBestEffortDataFetched?: () => void;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
 };
 
@@ -55,13 +56,11 @@ type SpansWidgetQueriesImplProps = SpansWidgetQueriesProps & {
 };
 
 function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
-  const organization = useOrganization();
-
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
-      let seriesConfidence;
-      let seriesSampleCount;
-      let seriesIsSampled;
+      let seriesConfidence: Confidence | null;
+      let seriesSampleCount: number | undefined;
+      let seriesIsSampled: boolean | null;
 
       if (isEventsStats(result)) {
         seriesConfidence = determineSeriesConfidence(result);
@@ -84,8 +83,7 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
         const {sampleCount: calculatedSampleCount, isSampled: calculatedIsSampled} =
           determineSeriesSampleCountAndIsSampled(
             series,
-            Object.keys(result).filter(seriesName => seriesName.toLowerCase() !== 'other')
-              .length > 0
+            Object.keys(result).some(seriesName => seriesName.toLowerCase() !== 'other')
           );
         seriesSampleCount = calculatedSampleCount;
         seriesConfidence = combineConfidenceForSeries(series);
@@ -100,116 +98,12 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
     [props.widget.queries]
   );
 
-  // TODO: Remove the check for the display type when we support progressive loading
-  // for the table request as well.
-  if (
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    ![DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(props.widget.displayType)
-  ) {
-    return (
-      <SpansWidgetQueriesProgressiveLoadingImpl
-        {...props}
-        getConfidenceInformation={getConfidenceInformation}
-      />
-    );
-  }
-
   return (
     <SpansWidgetQueriesSingleRequestImpl
       {...props}
       getConfidenceInformation={getConfidenceInformation}
     />
   );
-}
-
-function SpansWidgetQueriesProgressiveLoadingImpl({
-  children,
-  api,
-  selection,
-  widget,
-  cursor,
-  limit,
-  dashboardFilters,
-  onDataFetched,
-  getConfidenceInformation,
-}: SpansWidgetQueriesImplProps) {
-  const config = SpansConfig;
-  const organization = useOrganization();
-
-  const afterFetchSeriesData = (result: SeriesResult) => {
-    const {seriesConfidence, seriesSampleCount, seriesIsSampled} =
-      getConfidenceInformation(result);
-
-    onDataFetched?.({
-      confidence: seriesConfidence,
-      sampleCount: seriesSampleCount,
-      isSampled: seriesIsSampled,
-    });
-  };
-
-  return getDynamicText({
-    value: (
-      <GenericWidgetQueries<SeriesResult, TableResult>
-        config={config}
-        api={api}
-        organization={organization}
-        selection={selection}
-        widget={widget}
-        cursor={cursor}
-        limit={limit}
-        dashboardFilters={dashboardFilters}
-        afterFetchSeriesData={afterFetchSeriesData}
-        samplingMode={SAMPLING_MODE.PREFLIGHT}
-      >
-        {lowFidelityProps => (
-          <Fragment>
-            {/** TODO(nar): There is currently a bug where subsequent rerenders (i.e. changes in the widget
-             * params or dashboard filters) will cause this to refetch both the preflight and best effort data
-             * at the same time
-            ) */}
-            {lowFidelityProps.loading ? (
-              children({
-                ...lowFidelityProps,
-                isProgressivelyLoading: lowFidelityProps.loading,
-              })
-            ) : (
-              <GenericWidgetQueries<SeriesResult, TableResult>
-                config={config}
-                api={api}
-                organization={organization}
-                selection={selection}
-                widget={widget}
-                cursor={cursor}
-                limit={limit}
-                dashboardFilters={dashboardFilters}
-                afterFetchSeriesData={afterFetchSeriesData}
-                samplingMode={SAMPLING_MODE.BEST_EFFORT}
-              >
-                {highFidelityProps =>
-                  children({
-                    ...highFidelityProps,
-                    ...(highFidelityProps.loading
-                      ? {
-                          ...lowFidelityProps,
-                          loading: true,
-                        }
-                      : {
-                          ...highFidelityProps,
-                        }),
-                    isProgressivelyLoading:
-                      highFidelityProps.loading &&
-                      !lowFidelityProps.errorMessage &&
-                      !highFidelityProps.errorMessage,
-                  })
-                }
-              </GenericWidgetQueries>
-            )}
-          </Fragment>
-        )}
-      </GenericWidgetQueries>
-    ),
-    fixed: <div />,
-  });
 }
 
 function SpansWidgetQueriesSingleRequestImpl({
@@ -257,6 +151,7 @@ function SpansWidgetQueriesSingleRequestImpl({
         dashboardFilters={dashboardFilters}
         onDataFetched={onDataFetched}
         afterFetchSeriesData={afterFetchSeriesData}
+        samplingMode={SAMPLING_MODE.NORMAL}
       >
         {props =>
           children({

@@ -23,9 +23,11 @@ import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-
-import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
-import type {ViewProps} from '../types';
+import {
+  replaceSeriesName,
+  transformEventStatsSmoothed,
+} from 'sentry/views/performance/trends/utils';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import {
   getMaxOfSeries,
@@ -184,7 +186,7 @@ function VitalChart({
 
 export default VitalChart;
 
-export type VitalChartInnerProps = {
+type VitalChartInnerProps = {
   field: string;
   grid: LineChartProps['grid'];
   loading: boolean;

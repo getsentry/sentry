@@ -6,19 +6,22 @@ import responses
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
+
+
+def test_conf_key() -> None:
+    assert OpsGeniePlugin().conf_key == "opsgenie"
+
+
+def test_entry_point() -> None:
+    assert_plugin_installed("opsgenie", OpsGeniePlugin())
 
 
 class OpsGeniePluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return OpsGeniePlugin()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "opsgenie"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("opsgenie", self.plugin)
 
     def test_is_configured(self):
         assert self.plugin.is_configured(self.project) is False

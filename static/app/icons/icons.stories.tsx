@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {PlatformIcon, platforms} from 'platformicons';
 
 import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
 import JSXNode from 'sentry/components/stories/jsxNode';
-import {Tooltip} from 'sentry/components/tooltip';
 import * as Icons from 'sentry/icons';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
@@ -1473,7 +1473,7 @@ const PLUGIN_ICON_KEYS: Array<PluginIconProps['pluginId']> = [
   'victorops',
 ];
 
-const PLUGIN_ICONS = Object.keys(PLUGIN_ICON_KEYS).map(key => ({
+const PLUGIN_ICONS = PLUGIN_ICON_KEYS.map(key => ({
   id: key,
   name: key,
   keywords: [key],
@@ -1539,7 +1539,7 @@ const IDENTITY_ICON_KEYS: Array<IdentityIconProps['providerId']> = [
   'vsts',
 ];
 
-const IDENTITY_ICONS = Object.keys(IDENTITY_ICON_KEYS).map(key => ({
+const IDENTITY_ICONS = IDENTITY_ICON_KEYS.map(key => ({
   id: key,
   name: key,
   keywords: [key],

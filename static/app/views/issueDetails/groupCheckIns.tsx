@@ -3,11 +3,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration';
 import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -91,7 +91,7 @@ export default function GroupCheckIns() {
         emptyMessage={t('No matching check-ins found')}
         data={cronData}
         columnOrder={[
-          {key: 'dateCreated', width: 225, name: t('Timestamp')},
+          {key: 'dateAdded', width: 225, name: t('Timestamp')},
           {key: 'status', width: 100, name: t('Status')},
           {key: 'duration', width: 130, name: t('Duration')},
           {key: 'environment', width: 120, name: t('Environment')},
@@ -146,7 +146,7 @@ function CheckInCell({
   }
 
   switch (columnKey) {
-    case 'dateCreated': {
+    case 'dateAdded': {
       const format = userOptions.clock24Hours
         ? 'MMM D, YYYY HH:mm:ss z'
         : 'MMM D, YYYY h:mm:ss A z';
@@ -160,23 +160,15 @@ function CheckInCell({
                 {dataRow.expectedTime && (
                   <Fragment>
                     <dt>{t('Expected at')}</dt>
-                    <dd>
-                      {moment
-                        .tz(dataRow.expectedTime, userOptions?.timezone ?? '')
-                        .format(format)}
-                    </dd>
+                    <dd>{moment(dataRow.expectedTime).format(format)}</dd>
                   </Fragment>
                 )}
                 <dt>{t('Received at')}</dt>
-                <dd>
-                  {moment
-                    .tz(dataRow[columnKey], userOptions?.timezone ?? '')
-                    .format(format)}
-                </dd>
+                <dd>{moment(dataRow[columnKey]).format(format)}</dd>
               </LabelledTooltip>
             }
           >
-            {FIELD_FORMATTERS.date.renderFunc('dateCreated', dataRow)}
+            {FIELD_FORMATTERS.date.renderFunc('dateAdded', dataRow)}
           </Tooltip>
         </HoverableCell>
       );

@@ -1,6 +1,6 @@
 import os
 import secrets
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Literal, Self, TypeIs
 from urllib.parse import urlparse, urlunparse
 
 import petname
@@ -73,7 +73,7 @@ class ApiApplication(Model):
     )
     # ApiApplication by default provides user level access
     # This field is true if a certain application is limited to access only a specific org
-    requires_org_level_access = models.BooleanField(default=False)
+    requires_org_level_access = models.BooleanField(default=False, db_default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("client_id",))
 
@@ -108,7 +108,7 @@ class ApiApplication(Model):
     def is_active(self):
         return self.status == ApiApplicationStatus.active
 
-    def is_allowed_response_type(self, value):
+    def is_allowed_response_type(self, value: object) -> TypeIs[Literal["code", "token"]]:
         return value in ("code", "token")
 
     def normalize_url(self, value):
@@ -145,7 +145,7 @@ class ApiApplication(Model):
     def get_default_redirect_uri(self):
         return self.redirect_uris.split()[0]
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> list[str]:
         if not self.allowed_origins:
             return []
         return [origin for origin in self.allowed_origins.split()]

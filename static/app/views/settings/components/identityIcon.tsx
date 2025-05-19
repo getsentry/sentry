@@ -52,18 +52,30 @@ export interface IdentityIconProps extends React.RefAttributes<HTMLDivElement> {
 
 export function IdentityIcon({providerId, size = 36, ref}: IdentityIconProps) {
   return (
-    <StyledIdentityIcon
-      ref={ref}
-      size={size}
-      identitySrc={getIdentityIconSource(providerId)}
-    />
+    <StyledIdentityIconContainer size={size}>
+      <StyledIdentityIcon
+        ref={ref}
+        size={size}
+        identitySrc={getIdentityIconSource(providerId)}
+      />
+    </StyledIdentityIconContainer>
   );
 }
 
-const StyledIdentityIcon = styled('div')<{identitySrc: string; size: number}>`
-  position: relative;
+const StyledIdentityIconContainer = styled('div')<{size: number}>`
   height: ${p => p.size}px;
   width: ${p => p.size}px;
+  background-color: ${p => p.theme.white};
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const StyledIdentityIcon = styled('div')<{identitySrc: string; size: number}>`
+  position: relative;
+  height: ${p => p.size - p.size * 0.2}px;
+  width: ${p => p.size - p.size * 0.2}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;

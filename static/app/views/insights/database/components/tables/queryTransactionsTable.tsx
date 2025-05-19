@@ -34,11 +34,10 @@ type Row = Pick<
   | 'epm()'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
-  | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
-  'transaction' | 'epm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
+  'transaction' | 'epm()' | 'avg(span.self_time)' | 'sum(span.self_time)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -58,25 +57,15 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage()',
+    key: 'sum(span.self_time)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const SORTABLE_FIELDS = [
-  'avg(span.self_time)',
-  'epm()',
-  'time_spent_percentage()',
-] as const;
-
 type ValidSort = Sort & {
-  field: (typeof SORTABLE_FIELDS)[number];
+  field: 'avg(span.self_time)' | 'epm()' | 'sum(span.self_time)';
 };
-
-export function isAValidSort(sort: Sort): sort is ValidSort {
-  return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
-}
 
 interface Props {
   data: Row[];
@@ -169,7 +158,7 @@ function renderBodyCell(
 
     const pathname = `${moduleURL}/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
 
-    const query: {[key: string]: string | undefined} = {
+    const query: Record<string, string | undefined> = {
       ...location.query,
       transaction: row.transaction,
       transactionMethod: row['transaction.method'],

@@ -2,11 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
-import {IconWarning} from 'sentry/icons';
+import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
+import {useNavContext} from 'sentry/views/nav/context';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
@@ -15,6 +16,7 @@ import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
 } from 'sentry/views/nav/primary/primaryButtonOverlay';
+import {NavLayout} from 'sentry/views/nav/types';
 
 function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) {
   const {
@@ -23,6 +25,8 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
     overlayProps,
   } = usePrimaryButtonOverlay();
 
+  const {layout} = useNavContext();
+
   return (
     <Fragment>
       <SidebarButton
@@ -30,8 +34,8 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
         label={t('Service status')}
         buttonProps={overlayTriggerProps}
       >
-        <IconWarning />
-        <WarningUnreadIndicator />
+        <IconFire />
+        <DangerUnreadIndicator isMobile={layout === NavLayout.MOBILE} />
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
@@ -66,6 +70,6 @@ const IncidentItemWrapper = styled('div')`
   }
 `;
 
-const WarningUnreadIndicator = styled(SidebarItemUnreadIndicator)`
-  background: ${p => p.theme.warning};
+const DangerUnreadIndicator = styled(SidebarItemUnreadIndicator)`
+  background: ${p => p.theme.danger};
 `;

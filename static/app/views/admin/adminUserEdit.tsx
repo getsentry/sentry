@@ -120,7 +120,7 @@ function RemoveUserModal({user, onRemove, closeModal}: RemoveModalProps) {
 function AdminUserEdit() {
   const {id} = useParams<{id: string}>();
   const userEndpoint = `/users/${id}/`;
-  const formModel = new FormModel();
+  const [formModel] = useState(() => new FormModel());
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
   const queryClient = useQueryClient();

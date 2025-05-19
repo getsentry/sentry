@@ -11,7 +11,7 @@ import CreateAlertButton, {
 import GuideStore from 'sentry/stores/guideStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 
 const onClickMock = jest.fn();
 
@@ -40,7 +40,10 @@ describe('CreateAlertFromViewButton', () => {
         eventView={eventView}
         projects={[ProjectFixture()]}
         onClick={onClickMock}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
     expect(onClickMock).toHaveBeenCalledTimes(1);
@@ -71,10 +74,14 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
+        deprecatedRouterMocks: true,
       }
     );
 
-    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Create Alert'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('enables the button for org-owner/manager', () => {
@@ -98,6 +105,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -137,6 +145,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -157,6 +166,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -177,6 +187,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: adminAccessOrg,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -186,6 +197,7 @@ describe('CreateAlertFromViewButton', () => {
   it('redirects to alert wizard with no project', async () => {
     render(<CreateAlertButton aria-label="Create Alert" organization={organization} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
     await userEvent.click(screen.getByRole('button'));
     expect(navigateTo).toHaveBeenCalledWith(
@@ -207,6 +219,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -234,7 +247,10 @@ describe('CreateAlertFromViewButton', () => {
         projects={projects}
         onClick={onClickMock}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
     await userEvent.click(screen.getByRole('button'));
     expect(router.push).toHaveBeenCalledWith({

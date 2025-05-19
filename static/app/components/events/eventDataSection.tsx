@@ -30,6 +30,7 @@ export interface EventDataSectionProps {
    * you want the overlay to be interactive)
    */
   isHelpHoverable?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * Should the permalink be enabled for this section?
    *
@@ -180,7 +181,7 @@ const SectionHeader = styled('div')`
   }
 `;
 
-export const SectionContents = styled('div')`
+const SectionContents = styled('div')`
   position: relative;
 `;
 

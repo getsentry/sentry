@@ -9,7 +9,7 @@ import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/br
 import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';
 
-export interface WorkflowEngineDetailLayoutProps {
+interface WorkflowEngineDetailLayoutProps {
   /**
    * The main content for this page
    * Expected to include `<DetailLayout.Main>` and `<DetailLayout.Sidebar>` components.
@@ -25,7 +25,7 @@ function DetailLayout({children, project}: WorkflowEngineDetailLayoutProps) {
   const title = useDocumentTitle();
   return (
     <StyledPage>
-      <Layout.Header>
+      <Layout.Header unified>
         <Layout.HeaderContent>
           <BreadcrumbsFromContext />
           <Layout.Title>{title}</Layout.Title>

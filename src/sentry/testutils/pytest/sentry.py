@@ -8,7 +8,7 @@ import string
 import sys
 import time
 from datetime import datetime
-from hashlib import md5
+from hashlib import sha256
 from typing import TypeVar
 from unittest import mock
 
@@ -243,7 +243,6 @@ def pytest_configure(config: pytest.Config) -> None:
     _configure_test_env_regions()
 
     # ID controls
-    settings.SENTRY_USE_BIG_INTS = True
     settings.SENTRY_USE_SNOWFLAKE = True
     settings.SENTRY_SNOWFLAKE_EPOCH_START = datetime(1999, 12, 31, 0, 0).timestamp()
 
@@ -415,7 +414,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             if grouping_strategy == "scope"
             else item.nodeid.encode()
         )
-        item_to_group = int(md5(to_hash).hexdigest(), 16)
+        item_to_group = int(sha256(to_hash).hexdigest(), 16)
 
         # Split tests in different groups
         group_num = item_to_group % total_groups

@@ -4,7 +4,6 @@ from rest_framework import serializers
 
 from sentry import features
 from sentry.api.serializers.rest_framework import ValidationError
-from sentry.models.groupsearchview import GroupSearchViewVisibility
 from sentry.models.project import Project
 from sentry.models.savedsearch import SORT_LITERALS, SortOptions
 
@@ -66,37 +65,8 @@ class ViewValidator(serializers.Serializer):
         return data
 
 
-class GroupSearchViewValidator(serializers.Serializer):
-    views = serializers.ListField(
-        child=ViewValidator(), required=True, min_length=1, max_length=MAX_VIEWS
-    )
-
-    def validate(self, data):
-        return data
-
-
 class GroupSearchViewPostValidator(ViewValidator):
     starred = serializers.BooleanField(required=False)
-
-    def validate(self, data):
-        return super().validate(data)
-
-
-class GroupSearchViewDetailsPutValidator(ViewValidator):
-    visibility = serializers.ChoiceField(
-        required=False, choices=GroupSearchViewVisibility.as_choices()
-    )
-
-    def validate_visibility(self, value):
-        has_share_access = (
-            self.context["access"].has_scope("team:admin")
-            or self.context["access"].has_scope("org:admin")
-            or self.context["access"].has_scope("org:owner")
-        )
-
-        if value == GroupSearchViewVisibility.ORGANIZATION and not has_share_access:
-            raise ValidationError(detail="You do not have permission to share this view")
-        return value
 
     def validate(self, data):
         return super().validate(data)

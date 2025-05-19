@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from datetime import datetime
 from time import time
 from typing import Any
@@ -13,13 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.mocking import capture_results
 
-EMPTY_SEER_RESULTS = (
-    {
-        "results": [],
-        "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-    },
-    None,
-)
+EMPTY_SEER_RESULTS = (None, None)
 
 
 def get_event_data(dog: str = "Charlie") -> dict[str, Any]:
@@ -106,10 +99,6 @@ class SeerEventManagerGroupingTest(TestCase):
                 },
                 self.project,
             )
-            expected_metadata = {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "results": [asdict(seer_result_data)],
-            }
             # In real life just filtering on group id wouldn't be enough to guarantee us a
             # single, specific GroupHash record, but since the database resets before each test,
             # here it's okay
@@ -119,9 +108,8 @@ class SeerEventManagerGroupingTest(TestCase):
             assert should_call_seer_spy.call_count == 1
             assert get_seer_similar_issues_spy.call_count == 1
 
-            # Metadata returned (metadata storage is tested separately in
-            # `test_stores_seer_results_in_grouphash_metadata`)
-            assert get_seer_similar_issues_return_values[0][0] == expected_metadata
+            # Stacktrace distance returned
+            assert get_seer_similar_issues_return_values[0][0] == 0.01
 
             # Parent grouphash returned and parent group used
             assert get_seer_similar_issues_return_values[0][1] == expected_grouphash

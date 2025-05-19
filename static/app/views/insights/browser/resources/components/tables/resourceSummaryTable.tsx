@@ -31,6 +31,7 @@ import {
   ModuleName,
   SpanIndexedField,
   SpanMetricsField,
+  type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
 const {
@@ -41,13 +42,14 @@ const {
   USER_GEO_SUBREGION,
 } = SpanMetricsField;
 
-type Row = {
-  'avg(http.response_content_length)': number;
-  'avg(span.self_time)': number;
-  'epm()': number;
-  'resource.render_blocking_status': '' | 'non-blocking' | 'blocking';
-  transaction: string;
-};
+type Row = Pick<
+  SpanMetricsResponse,
+  | 'avg(http.response_content_length)'
+  | 'avg(span.self_time)'
+  | 'epm()'
+  | 'resource.render_blocking_status'
+  | 'transaction'
+>;
 
 type Column = GridColumnHeader<keyof Row>;
 
@@ -192,15 +194,6 @@ function ResourceSummaryTable() {
     </Fragment>
   );
 }
-
-export const getActionName = (transactionOp: string) => {
-  switch (transactionOp) {
-    case 'ui.action.click':
-      return 'Click';
-    default:
-      return transactionOp;
-  }
-};
 
 const TitleWrapper = styled('div')`
   margin-bottom: ${space(1)};

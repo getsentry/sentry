@@ -52,7 +52,9 @@ class Migration(CheckedMigration):
                 (
                     "group",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.group"
+                        db_constraint=False,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.group",
                     ),
                 ),
                 (

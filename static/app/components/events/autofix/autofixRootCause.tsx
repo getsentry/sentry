@@ -25,10 +25,11 @@ import {
 import {IconCheckmark, IconClose, IconFocus, IconInput} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
@@ -68,9 +69,10 @@ const cardAnimationProps: AnimationProps = {
   }),
 };
 
-export function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
+function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
 
   return useMutation({
     mutationFn: (
@@ -83,33 +85,36 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
             customRootCause: string;
           }
     ) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data:
-          'customRootCause' in params
-            ? {
-                run_id: runId,
-                payload: {
-                  type: 'select_root_cause',
-                  custom_root_cause: params.customRootCause,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data:
+            'customRootCause' in params
+              ? {
+                  run_id: runId,
+                  payload: {
+                    type: 'select_root_cause',
+                    custom_root_cause: params.customRootCause,
+                  },
+                }
+              : {
+                  run_id: runId,
+                  payload: {
+                    type: 'select_root_cause',
+                    cause_id: params.causeId,
+                    instruction: params.instruction,
+                  },
                 },
-              }
-            : {
-                run_id: runId,
-                payload: {
-                  type: 'select_root_cause',
-                  cause_id: params.causeId,
-                  instruction: params.instruction,
-                },
-              },
-      });
+        }
+      );
     },
     onSuccess: (_, params) => {
       setApiQueryData<AutofixResponse>(
         queryClient,
-        makeAutofixQueryKey(groupId),
+        makeAutofixQueryKey(orgSlug, groupId),
         data => {
-          if (!data || !data.autofix) {
+          if (!data?.autofix) {
             return data;
           }
 
@@ -139,7 +144,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
           };
         }
       );
-      addSuccessMessage("Great, let's move forward with this root cause.");
+      addSuccessMessage('On it.');
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the root cause.'));
@@ -190,6 +195,7 @@ function RootCauseDescription({
       {cause.root_cause_reproduction && (
         <AutofixTimeline
           events={cause.root_cause_reproduction}
+          eventCodeUrls={cause.reproduction_urls}
           groupId={groupId}
           runId={runId}
           stepIndex={previousDefaultStepIndex ?? 0}
@@ -387,6 +393,7 @@ function AutofixRootCauseDisplay({
                   : null
               }
               isAgentComment
+              blockName={t('Seer is uncertain of the root cause...')}
             />
           )}
         </AnimatePresence>
@@ -473,10 +480,8 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-left: ${space(0.5)};
-  padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(1)};
+  flex-wrap: wrap;
 `;
 
 const IconWrapper = styled('div')`
@@ -499,7 +504,7 @@ const CustomRootCausePadding = styled('div')`
 
 const CauseDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-top: ${space(1)};
+  margin-top: ${space(0.5)};
 `;
 
 const AnimationWrapper = styled(motion.div)`

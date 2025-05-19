@@ -21,8 +21,8 @@ from sentry.models.search_common import SearchType
 @region_silo_endpoint
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationSearchPermission,)

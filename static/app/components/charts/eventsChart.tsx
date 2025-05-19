@@ -8,7 +8,7 @@ import type {
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
-import type {Query} from 'history';
+import type {Location, Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import type {Client} from 'sentry/api';
@@ -29,7 +29,6 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
@@ -363,6 +362,7 @@ export type EventsChartProps = {
    * Environment condition.
    */
   environments: string[];
+  location: Location;
   organization: OrganizationSummary;
   /**
    * Project ids
@@ -372,7 +372,6 @@ export type EventsChartProps = {
    * The discover query string to find events with.
    */
   query: string;
-  router: InjectedRouter;
   /**
    * Absolute start date.
    */
@@ -508,7 +507,7 @@ class EventsChart extends Component<EventsChartProps> {
       period,
       utc,
       query,
-      router,
+      location,
       start,
       end,
       projects,
@@ -551,7 +550,7 @@ class EventsChart extends Component<EventsChartProps> {
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !disablePrevious && !start && !end;
 
-    const forceChartType = decodeScalar(router.location.query.forceChartType);
+    const forceChartType = decodeScalar(location.query.forceChartType);
     const yAxisArray = decodeList(yAxis);
     const yAxisSeriesNames = yAxisArray.map(name => {
       let yAxisLabel = name && isEquation(name) ? getEquation(name) : name;

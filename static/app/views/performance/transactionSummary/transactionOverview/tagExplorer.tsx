@@ -4,7 +4,7 @@ import type {Location, LocationDescriptorObject} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {GridColumn, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -35,15 +35,14 @@ import {
   type DomainViewFilters,
   useDomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
-
+import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD} from 'sentry/views/performance/transactionSummary/filter';
+import {tagsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionTags/utils';
+import {normalizeSearchConditions} from 'sentry/views/performance/transactionSummary/utils';
 import {
   platformAndConditionsToPerformanceType,
   ProjectPerformanceType,
-} from '../../utils';
-import type {SpanOperationBreakdownFilter} from '../filter';
-import {SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD} from '../filter';
-import {tagsRouteWithQuery} from '../transactionTags/utils';
-import {normalizeSearchConditions} from '../utils';
+} from 'sentry/views/performance/utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
@@ -61,7 +60,7 @@ type TagColumn = GridColumnOrder<ColumnKeys> & {
   field: string;
   canSort?: boolean;
 };
-export const TAG_EXPLORER_COLUMN_ORDER: TagColumn[] = [
+const TAG_EXPLORER_COLUMN_ORDER: TagColumn[] = [
   {
     key: 'key',
     field: 'key',

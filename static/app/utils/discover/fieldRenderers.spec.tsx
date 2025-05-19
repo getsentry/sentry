@@ -1,11 +1,9 @@
-import {ConfigFixture} from 'sentry-fixture/config';
 import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -148,26 +146,13 @@ describe('getFieldRenderer', function () {
   });
 
   describe('date', function () {
-    beforeEach(function () {
-      ConfigStore.loadInitialData(
-        ConfigFixture({
-          user: UserFixture({
-            options: {
-              ...UserFixture().options,
-              timezone: 'America/Los_Angeles',
-            },
-          }),
-        })
-      );
-    });
-
     it('can render date fields', async function () {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
       render(
         renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
       );
 
-      await screen.findByText('Oct 3, 2019 9:13:14 AM PDT');
+      await screen.findByText('Oct 3, 2019 4:13:14 PM UTC');
     });
 
     it('can render date fields using utc when query string has utc set to true', async function () {
@@ -194,18 +179,6 @@ describe('getFieldRenderer', function () {
   });
 
   it('can render timestamp.to_day', function () {
-    // Set timezone
-    ConfigStore.loadInitialData(
-      ConfigFixture({
-        user: UserFixture({
-          options: {
-            ...UserFixture().options,
-            timezone: 'America/Los_Angeles',
-          },
-        }),
-      })
-    );
-
     const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
     render(
       renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
@@ -285,10 +258,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>,
-      {
-        router: context.router,
-      }
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
     );
 
     expect(screen.queryByRole('link')).toHaveAttribute(
@@ -302,10 +272,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('issue', {issue: 'string'});
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>,
-      {
-        router: context.router,
-      }
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
     );
 
     expect(screen.queryByRole('link')).toHaveAttribute(
@@ -319,10 +286,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('project', {project: 'string'});
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>,
-      {
-        router: context.router,
-      }
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
     );
 
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
@@ -335,10 +299,7 @@ describe('getFieldRenderer', function () {
     data = {...data, project: parseInt(project.id, 10)};
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>,
-      {
-        router: context.router,
-      }
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
     );
 
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
@@ -351,10 +312,7 @@ describe('getFieldRenderer', function () {
     });
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>,
-      {
-        router: context.router,
-      }
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
     );
 
     const star = screen.getByRole('button', {name: 'Toggle star for team'});
@@ -371,10 +329,7 @@ describe('getFieldRenderer', function () {
     delete data.project;
 
     render(
-      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>,
-      {
-        router: context.router,
-      }
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
     );
 
     const star = screen.getByRole('button', {name: 'Toggle star for team'});
@@ -395,10 +350,7 @@ describe('getFieldRenderer', function () {
       });
 
       render(
-        renderer(data, {location, organization, theme}) as React.ReactElement<any, any>,
-        {
-          router: context.router,
-        }
+        renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
       );
 
       expect(getWidths()).toEqual(['13.333%', '40.000%', '20.000%', '26.667%', '0.000%']);
@@ -430,8 +382,7 @@ describe('getFieldRenderer', function () {
             team: [],
             topEvents: undefined,
           }),
-        }) as React.ReactElement<any, any>,
-        {router: context.router}
+        }) as React.ReactElement<any, any>
       );
 
       expect(getWidths()).toEqual(['40.000%', '13.333%', '20.000%', '26.667%', '0.000%']);

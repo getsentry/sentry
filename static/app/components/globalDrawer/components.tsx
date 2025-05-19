@@ -38,12 +38,15 @@ interface DrawerPanelProps {
   children: React.ReactNode;
   headerContent: React.ReactNode;
   onClose: DrawerContentContextType['onClose'];
+  drawerCss?: DrawerOptions['drawerCss'];
   drawerKey?: string;
   drawerWidth?: DrawerOptions['drawerWidth'];
+  ref?: React.Ref<HTMLDivElement>;
+  resizable?: DrawerOptions['resizable'];
   transitionProps?: AnimationProps['transition'];
 }
 
-export function DrawerPanel({
+function DrawerPanel({
   ref,
   ariaLabel,
   children,
@@ -51,13 +54,14 @@ export function DrawerPanel({
   onClose,
   drawerWidth,
   drawerKey,
-}: DrawerPanelProps & {
-  ref?: React.Ref<HTMLDivElement>;
-}) {
+  resizable = true,
+  drawerCss,
+}: DrawerPanelProps) {
   const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
     useDrawerResizing({
       drawerKey,
       drawerWidth,
+      enabled: resizable,
     });
 
   // Calculate actual drawer width in pixels
@@ -75,6 +79,7 @@ export function DrawerPanel({
           transitionProps={transitionProps}
           panelWidth="var(--drawer-width)" // Initial width only
           className="drawer-panel"
+          css={drawerCss}
         >
           {drawerKey && enabled && (
             <ResizeHandle
@@ -111,6 +116,7 @@ interface DrawerHeaderProps {
    * If true, hides the close button
    */
   hideCloseButton?: boolean;
+  ref?: React.Ref<HTMLHeadingElement>;
 }
 
 export function DrawerHeader({
@@ -119,9 +125,7 @@ export function DrawerHeader({
   children = null,
   hideBar = false,
   hideCloseButton = false,
-}: DrawerHeaderProps & {
-  ref?: React.Ref<HTMLHeadingElement>;
-}) {
+}: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
 
   return (
@@ -187,6 +191,7 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   border-left: 1px solid ${p => p.theme.border};
   position: relative;
   pointer-events: auto;
+  height: 100%;
 
   --drawer-width: ${DEFAULT_WIDTH_PERCENT}%;
   --drawer-min-width: ${MIN_WIDTH_PERCENT}%;
@@ -212,7 +217,6 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
 
     /* Apply to all scrollable children */
     * {
-      overflow: hidden !important;
       scrollbar-width: none;
 
       &::-webkit-scrollbar {

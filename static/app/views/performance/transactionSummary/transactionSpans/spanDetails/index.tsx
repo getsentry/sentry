@@ -8,10 +8,15 @@ import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-
-import {getTransactionName} from '../../../utils';
-import {NoAccess, redirectToPerformanceHomepage} from '../../pageLayout';
-import {generateSpansEventView, parseSpanSlug} from '../utils';
+import {
+  NoAccess,
+  redirectToPerformanceHomepage,
+} from 'sentry/views/performance/transactionSummary/pageLayout';
+import {
+  generateSpansEventView,
+  parseSpanSlug,
+} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
+import {getTransactionName} from 'sentry/views/performance/utils';
 
 import SpanDetailsContent from './content';
 

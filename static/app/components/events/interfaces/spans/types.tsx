@@ -51,7 +51,7 @@ export type RawSpanType = {
     'avg(span.self_time)'?: number;
   };
   status?: string;
-  tags?: {[key: string]: string};
+  tags?: Record<string, string>;
 };
 
 export type AggregateSpanType = RawSpanType & {
@@ -106,14 +106,14 @@ export type FetchEmbeddedChildrenState =
   | 'loading_embedded_transactions'
   | 'error_fetching_embedded_transactions';
 
-export type SpanGroupProps = {
+type SpanGroupProps = {
   isNestedSpanGroupExpanded: boolean;
   spanNestedGrouping: EnhancedSpan[] | undefined;
   toggleNestedSpanGroup: (() => void) | undefined;
   toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
 };
 
-export type SpanSiblingGroupProps = {
+type SpanSiblingGroupProps = {
   isLastSibling: boolean;
   occurrence: number;
   spanSiblingGrouping: EnhancedSpan[] | undefined;
@@ -174,7 +174,7 @@ export type EnhancedProcessedSpanType =
     } & SpanSiblingGroupProps);
 
 // map span_id to children whose parent_span_id is equal to span_id
-export type SpanChildrenLookupType = {[span_id: string]: SpanType[]};
+export type SpanChildrenLookupType = Record<string, SpanType[]>;
 
 export type ParsedTraceType = {
   childSpans: SpanChildrenLookupType;

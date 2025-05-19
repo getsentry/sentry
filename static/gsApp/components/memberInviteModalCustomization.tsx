@@ -119,7 +119,7 @@ function MemberInviteModalCustomization({
       if (trialStarting) {
         return (
           <TrialInfo>
-            <LoadingIndicator mini relative hideMessage size={16} />
+            <LoadingIndicator mini relative size={16} />
             {trialStartText}
           </TrialInfo>
         );

@@ -12,7 +12,6 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType as ProtoTraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -23,6 +22,7 @@ from sentry.api.endpoints.organization_spans_fields import BaseSpanFieldValuesAu
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
+from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
 from sentry.search.eap.columns import ColumnDefinitions
@@ -30,7 +30,7 @@ from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import translate_internal_to_public_alias
+from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
@@ -42,13 +42,33 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
-    feature_flag = "organizations:ourlogs-enabled"  # Can be changed to performance-trace-explorer once spans work.
+    feature_flags = [
+        "organizations:ourlogs-enabled",
+        "organizations:visibility-explore-view",
+    ]
+
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        batch_features = features.batch_has(
+            self.feature_flags, organization=organization, actor=request.user
+        )
+
+        if batch_features is None:
+            return False
+
+        key = f"organization:{organization.id}"
+        org_features = batch_features.get(key, {})
+
+        return any(org_features.get(feature) for feature in self.feature_flags)
 
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
-    item_type = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=True)
-    attribute_type = serializers.ChoiceField(["string", "number"], required=True)
-    substring_match = serializers.CharField(required=False)
+    itemType = serializers.ChoiceField(
+        [e.value for e in SupportedTraceItemType], required=True, source="item_type"
+    )
+    attributeType = serializers.ChoiceField(
+        ["string", "number"], required=True, source="attribute_type"
+    )
+    substringMatch = serializers.CharField(required=False, source="substring_match")
     query = serializers.CharField(required=False)
 
 
@@ -96,21 +116,10 @@ def as_attribute_key(
     }
 
 
-def empty_filter(trace_item_type: SupportedTraceItemType):
-    column_name = (
-        "sentry.body" if trace_item_type == SupportedTraceItemType.LOGS else "sentry.description"
-    )
-    return TraceItemFilter(
-        exists_filter=ExistsFilter(
-            key=AttributeKey(name=column_name),
-        )
-    )
-
-
 @region_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has(self.feature_flag, organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
@@ -151,7 +160,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         snuba_params.start = adjusted_start_date
         snuba_params.end = adjusted_end_date
 
-        filter = filter or empty_filter(trace_item_type)
         attr_type = (
             AttributeKey.Type.TYPE_DOUBLE
             if attribute_type == "number"
@@ -167,14 +175,15 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             intersecting_attributes_filter=filter,
         )
 
-        rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+        with handle_query_errors():
+            rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
         paginator = ChainPaginator(
             [
                 [
                     as_attribute_key(attribute.name, serialized["attribute_type"], trace_item_type)
                     for attribute in rpc_response.attributes
-                    if attribute.name
+                    if attribute.name and can_expose_attribute(attribute.name, trace_item_type)
                 ],
             ],
             max_limit=max_attributes,
@@ -192,7 +201,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 @region_silo_endpoint
 class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization, key: str) -> Response:
-        if not features.has(self.feature_flag, organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
@@ -230,7 +239,8 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
             definitions=definitions,
         )
 
-        tag_values = executor.execute()
+        with handle_query_errors():
+            tag_values = executor.execute()
         tag_values.sort(key=lambda tag: tag.value)
 
         paginator = ChainPaginator([tag_values], max_limit=max_attribute_values)

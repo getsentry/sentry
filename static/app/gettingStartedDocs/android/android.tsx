@@ -53,7 +53,7 @@ plugins {
   id "io.sentry.android.gradle" version "${getPackageVersion(
     params,
     'sentry.java.android.gradle-plugin',
-    '3.12.0'
+    '5.3.0'
   )}"
 }`;
 
@@ -78,12 +78,28 @@ const getConfigurationSnippet = (params: Params) => `
   <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />`
       : ''
   }${
-    params.isProfilingSelected
+    params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode !== 'continuous'
       ? `
-  <!-- enable profiling when starting transactions, adjust in production env -->
+    <!-- Set sampling rate for profiling, adjust in production env - this is relative to sampled transactions -->
+    <!-- note: there is a known issue in the Android Runtime that can be triggered by Profiling in certain circumstances -->
+    <!-- see https://docs.sentry.io/platforms/android/profiling/troubleshooting/ -->
+    <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />
+    <!-- Enable profiling on app start -->
+    <meta-data android:name="io.sentry.traces.profiling.enable-app-start" android:value="true" />`
+      : ''
+  }${
+    params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode === 'continuous'
+      ? `
+  <!-- Set sampling rate for profiling, adjust in production env - this is evaluated only once per session -->
   <!-- note: there is a known issue in the Android Runtime that can be triggered by Profiling in certain circumstances -->
   <!-- see https://docs.sentry.io/platforms/android/profiling/troubleshooting/ -->
-  <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />`
+  <meta-data android:name="io.sentry.traces.profiling.session-sample-rate" android:value="1.0" />
+  <!-- Set profiling lifecycle, can be \`manual\` (controlled through \`Sentry.startProfiler()\` and \`Sentry.stopProfiler()\`) or \`trace\` (automatically starts and stop a profile whenever a sampled trace starts and finishes) -->
+  <meta-data android:name="io.sentry.traces.profiling.lifecycle" android:value="trace" />
+  <!-- Enable profiling on app start -->
+  <meta-data android:name="io.sentry.traces.profiling.start-on-app-start" android:value="true" />`
       : ''
   }${
     params.isReplaySelected
@@ -96,7 +112,15 @@ const getConfigurationSnippet = (params: Params) => `
   }
 </application>`;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) => `
+${
+  params.isProfilingSelected &&
+  params.profilingOptions?.defaultProfilingMode === 'continuous'
+    ? `
+// Start profiling, if lifecycle is set to \`manual\`
+Sentry.startProfiler()`
+    : ''
+}
 val breakWorld = Button(this).apply {
   text = "Break the world"
   setOnClickListener {
@@ -105,7 +129,15 @@ val breakWorld = Button(this).apply {
 }
 
 addContentView(breakWorld, ViewGroup.LayoutParams(
-  ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))`;
+  ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+${
+  params.isProfilingSelected &&
+  params.profilingOptions?.defaultProfilingMode === 'continuous'
+    ? `
+// Stop profiling, if lifecycle is set to \`manual\`. This call is optional. If you don't stop the profiler, it will keep profiling your application until the process exits.
+Sentry.stopProfiler()`
+    : ''
+}`;
 
 const getReplaySetupSnippetKotlin = (params: Params) => `
 SentryAndroid.init(context) { options ->
@@ -251,7 +283,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             configurations: [
               {
                 language: 'kotlin',
-                code: getVerifySnippet(),
+                code: getVerifySnippet(params),
               },
             ],
           },
@@ -438,11 +470,143 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'Android UI Profiling is available starting in SDK version [code:8.7.0].',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          partialLoading: params.sourcePackageRegistries?.isLoading,
+          code: [
+            {
+              label: 'Groovy',
+              value: 'groovy',
+              language: 'groovy',
+              filename: 'app/build.gradle',
+              code: getManualInstallSnippet(params),
+            },
+          ],
+          additionalInfo: tct(
+            'Version [versionPlugin] of the plugin will automatically add the Sentry Android SDK (version [versionSdk]) to your app.',
+            {
+              versionPlugin: (
+                <code>
+                  {getPackageVersion(
+                    params,
+                    'sentry.java.android.gradle-plugin',
+                    '5.3.0'
+                  )}
+                </code>
+              ),
+              versionSdk: (
+                <code>{getPackageVersion(params, 'sentry.java.android', '8.6.0')}</code>
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct('Set up profiling in your [code:AndroidManifest.xml] file.', {
+        code: <code />,
+      }),
+      configurations: [
+        {
+          language: 'xml',
+          code: [
+            {
+              label: 'XML',
+              value: 'xml',
+              language: 'xml',
+              filename: 'AndroidManifest.xml',
+              code: `
+<application>
+  <meta-data
+    android:name="io.sentry.dsn"
+    android:value="${params.dsn.public}"
+  />
+  <meta-data
+    android:name="io.sentry.traces.sample-rate"
+    android:value="1.0"
+  />${
+    params.profilingOptions?.defaultProfilingMode === 'continuous'
+      ? `
+  <!-- Set sampling rate for profiling, adjust in production env - this is evaluated only once per session -->
+  <!-- note: there is a known issue in the Android Runtime that can be triggered by Profiling in certain circumstances -->
+  <!-- see https://docs.sentry.io/platforms/android/profiling/troubleshooting/ -->
+  <meta-data
+    android:name="io.sentry.traces.profiling.session-sample-rate"
+    android:value="1.0"
+  />
+  <!-- Set profiling lifecycle, can be \`manual\` (controlled through \`Sentry.startProfiler()\` and \`Sentry.stopProfiler()\`) or \`trace\` (automatically starts and stop a profile whenever a sampled trace starts and finishes) -->
+  <meta-data
+    android:name="io.sentry.traces.profiling.lifecycle"
+    android:value="trace"
+  />
+  <!-- Enable profiling on app start -->
+  <meta-data
+    android:name="io.sentry.traces.profiling.start-on-app-start"
+    android:value="true"
+  />`
+      : `
+  <!-- Set sampling rate for profiling, adjust in production env - this is relative to sampled transactions -->
+  <!-- note: there is a known issue in the Android Runtime that can be triggered by Profiling in certain circumstances -->
+  <!-- see https://docs.sentry.io/platforms/android/profiling/troubleshooting/ -->
+  <meta-data
+    android:name="io.sentry.traces.profiling.sample-rate"
+    android:value="1.0"
+  />
+  <!-- Enable profiling on app start -->
+  <meta-data
+    android:name="io.sentry.traces.profiling.enable-app-start"
+    android:value="true"
+  />`
+  }
+</application>
+`,
+            },
+          ],
+        },
+        {
+          description: tct(
+            'For more detailed information on profiling, see the [link:profiling documentation].',
+            {
+              link: (
+                <ExternalLink
+                  href={`https://docs.sentry.io/platforms/android/profiling/`}
+                />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To confirm that profiling is working correctly, run your application and check the Sentry profiles page for the collected profiles.'
+      ),
+    },
+  ],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
   platformOptions,
+  profilingOnboarding,
   replayOnboarding,
 };
 

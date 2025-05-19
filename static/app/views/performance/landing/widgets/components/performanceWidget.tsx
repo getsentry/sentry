@@ -14,15 +14,14 @@ import useApi from 'sentry/utils/useApi';
 import getPerformanceWidgetContainer, {
   type PerformanceWidgetContainerTypes,
 } from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
-
 import type {
   GenericPerformanceWidgetProps,
   WidgetDataConstraint,
   WidgetDataProps,
   WidgetDataResult,
   WidgetPropUnion,
-} from '../types';
-import type {PerformanceWidgetSetting} from '../widgetDefinitions';
+} from 'sentry/views/performance/landing/widgets/types';
+import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 
 import {DataStateSwitch} from './dataStateSwitch';
 import {QueryHandler} from './queryHandler';
@@ -33,7 +32,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   props: WidgetPropUnion<T>
 ) {
   // Use object keyed to chart setting so switching between charts of a similar type doesn't retain data with query components still having inflight requests.
-  const [allWidgetData, setWidgetData] = useState<{[chartSetting: string]: T}>({});
+  const [allWidgetData, setWidgetData] = useState<Record<string, T>>({});
   const widgetData = allWidgetData[props.chartSetting] ?? ({} as T);
   const widgetDataRef = useRef(widgetData);
 
@@ -103,7 +102,7 @@ function trackDataComponentClicks(
   });
 }
 
-export function DataDisplay<T extends WidgetDataConstraint>(
+function DataDisplay<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> &
     WidgetDataProps<T> & {
       containerType: PerformanceWidgetContainerTypes;

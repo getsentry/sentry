@@ -17,6 +17,9 @@ from sentry.db.models.manager.base import BaseManager
 COMMIT_FILE_CHANGE_TYPES = frozenset(("A", "D", "M"))
 
 
+__all__ = ("CommitFileChange",)
+
+
 class CommitFileChangeManager(BaseManager["CommitFileChange"]):
     def get_count_for_commits(self, commits: Iterable[Any]) -> int:
         return int(self.filter(commit__in=commits).values("filename").distinct().count())
@@ -49,8 +52,10 @@ class CommitFileChange(Model):
 
 def process_resource_change(instance, **kwargs):
     from sentry.integrations.bitbucket.integration import BitbucketIntegration
+    from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegration
     from sentry.integrations.github.integration import GitHubIntegration
     from sentry.integrations.gitlab.integration import GitlabIntegration
+    from sentry.integrations.vsts.integration import VstsIntegration
     from sentry.tasks.codeowners import code_owners_auto_sync
 
     def _spawn_task():
@@ -58,14 +63,13 @@ def process_resource_change(instance, **kwargs):
             set(GitHubIntegration.codeowners_locations)
             | set(GitlabIntegration.codeowners_locations)
             | set(BitbucketIntegration.codeowners_locations)
+            | set(BitbucketServerIntegration.codeowners_locations)
+            | set(VstsIntegration.codeowners_locations)
         )
 
         # CODEOWNERS file added or modified, trigger auto-sync
         if instance.filename in filepaths and instance.type in ["A", "M"]:
-            # Trigger the task after 5min to make sure all records in the transactions has been saved.
-            code_owners_auto_sync.apply_async(
-                kwargs={"commit_id": instance.commit_id}, countdown=60 * 5
-            )
+            code_owners_auto_sync.delay(commit_id=instance.commit_id)
 
     transaction.on_commit(_spawn_task, router.db_for_write(CommitFileChange))
 

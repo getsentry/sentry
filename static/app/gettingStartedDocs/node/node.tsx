@@ -19,6 +19,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
   getInstallConfig,
+  getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
@@ -195,6 +196,10 @@ Sentry.init({
   // of transactions for performance monitoring.
   // We recommend adjusting this value in production
   tracesSampleRate: 1.0,
+
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });
 `,
             },
@@ -242,19 +247,15 @@ Sentry.init({
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig = {
-  ...onboarding,
-  introduction: () => null,
-};
-
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-
   performanceOnboarding,
   crashReportOnboarding,
-  profilingOnboarding,
   feedbackOnboardingJsLoader,
+  profilingOnboarding: getNodeProfilingOnboarding({
+    profilingLifecycle: 'manual',
+  }),
 };
 
 export default docs;

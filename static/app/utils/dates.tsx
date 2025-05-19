@@ -4,7 +4,6 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import type {TableDataRow} from './discover/discoverQuery';
 
-// TODO(billy): Move to TimeRangeSelector specific utils
 export const DEFAULT_DAY_START_TIME = '00:00:00';
 export const DEFAULT_DAY_END_TIME = '23:59:59';
 const DATE_FORMAT_NO_TIMEZONE = 'YYYY/MM/DD HH:mm:ss';
@@ -144,7 +143,7 @@ export function getLocalToSystem(dateObj: moment.MomentInput): Date {
 /**
  * Get the beginning of day (e.g. midnight)
  */
-export function getStartOfDay(date: moment.MomentInput): Date {
+function getStartOfDay(date: moment.MomentInput): Date {
   return moment(date)
     .startOf('day')
     .startOf('hour')
@@ -197,7 +196,7 @@ export function shouldUse24Hours() {
 /**
  * Get a common date format
  */
-export function getDateFormat({year}: {year?: boolean}) {
+function getDateFormat({year}: {year?: boolean}) {
   // "Jan 1, 2022" or "Jan 1"
   return year ? 'MMM D, YYYY' : 'MMM D';
 }

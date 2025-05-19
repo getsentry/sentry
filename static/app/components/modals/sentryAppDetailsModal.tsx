@@ -18,7 +18,8 @@ import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
@@ -158,7 +159,7 @@ export default function SentryAppDetailsModal(props: Props) {
           {!!features.length && <Features>{featureTags(features)}</Features>}
         </HeadingInfo>
       </Heading>
-      <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
+      <Description text={overview} />
       <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
       <IntegrationFeatures {...featureProps}>
         {({disabled, disabledReason}) => (
@@ -217,7 +218,7 @@ const Name = styled('div')`
   font-size: 1.4em;
 `;
 
-const Description = styled('div')`
+const Description = styled(MarkedText)`
   margin-bottom: ${space(2)};
 
   li {

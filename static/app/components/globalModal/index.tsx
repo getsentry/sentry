@@ -7,8 +7,8 @@ import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
+import {TooltipContext} from 'sentry/components/core/tooltip';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
-import {TooltipContext} from 'sentry/components/tooltip';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
 import {space} from 'sentry/styles/space';
@@ -284,7 +284,7 @@ const Container = styled('div')`
   overflow-y: auto;
 `;
 
-const Modal = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
+const Modal = styled(motion.div)`
   max-width: 100%;
   width: 640px;
   pointer-events: auto;

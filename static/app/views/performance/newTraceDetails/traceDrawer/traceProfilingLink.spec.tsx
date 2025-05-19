@@ -1,8 +1,8 @@
 import type {LocationDescriptor} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {TraceTree} from '../traceModels/traceTree';
-import {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 import {makeTraceContinuousProfilingLink} from './traceProfilingLink';
 

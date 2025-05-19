@@ -53,7 +53,11 @@ const renderActionDropdown = (
       value={value}
       contextValueType={contextValueType}
     />,
-    {organization, router: mockedRouter}
+    {
+      organization,
+      router: mockedRouter,
+      deprecatedRouterMocks: true,
+    }
   );
 };
 

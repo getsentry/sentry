@@ -4,18 +4,20 @@ import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {TourElement} from 'sentry/components/tours/components';
+import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -38,22 +40,24 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/header/attachmentsBadge';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/streamline/header/issueIdBreadcrumb';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/header/replayBadge';
+import SeerBadge from 'sentry/views/issueDetails/streamline/header/seerBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/header/userFeedbackBadge';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from 'sentry/views/issueDetails/utils';
 
 interface GroupHeaderProps {
   event: Event | null;
   group: Group;
-  groupReprocessingStatus: ReprocessingStatus;
   project: Project;
 }
 
 export default function StreamlinedGroupHeader({
   event,
   group,
-  groupReprocessingStatus,
   project,
 }: GroupHeaderProps) {
   const location = useLocation();
@@ -62,9 +66,15 @@ export default function StreamlinedGroupHeader({
 
   const {sort: _sort, ...query} = location.query;
   const {count: eventCount, userCount} = group;
+  const useGetMaxRetentionDays =
+    HookStore.get('react-hook:use-get-max-retention-days')[0] ??
+    (() => MAX_PICKABLE_DAYS);
+  const maxRetentionDays = useGetMaxRetentionDays();
+  const userCountPeriod = maxRetentionDays ? `(${maxRetentionDays}d)` : '(30d)';
   const {title: primaryTitle, subtitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const isComplete = group.status === 'resolved' || group.status === 'ignored';
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
   const disableActions = [
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
@@ -136,13 +146,13 @@ export default function StreamlinedGroupHeader({
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled &&
               (userCount === 0 ? (
-                t('Users')
+                t('Users %s', userCountPeriod)
               ) : (
                 <StatLink
                   to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
                   aria-label={t('View affected users')}
                 >
-                  {t('Users')}
+                  {t('Users %s', userCountPeriod)}
                 </StatLink>
               ))}
           </StatTitle>
@@ -184,6 +194,7 @@ export default function StreamlinedGroupHeader({
               <AttachmentsBadge group={group} />
               <UserFeedbackBadge group={group} project={project} />
               <ReplayBadge group={group} project={project} />
+              <SeerBadge group={group} />
             </ErrorBoundary>
           </Flex>
         </HeaderGrid>

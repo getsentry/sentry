@@ -2,26 +2,24 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Switch} from 'sentry/components/core/switch';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {TabList} from 'sentry/components/tabs';
 import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
+import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   isModuleConsideredNew,
@@ -59,23 +57,9 @@ export function DomainViewHeader({
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
-  const navigate = useNavigate();
   const moduleURLBuilder = useModuleURLBuilder();
-  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
-  const useEap = location.query?.useEap === '1';
-  const hasEapFlag = organization.features.includes('insights-modules-use-eap');
-
-  const toggleUseEap = () => {
-    const newState = !useEap;
-
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        useEap: newState ? '1' : '0',
-      },
-    });
-  };
+  const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
+  const [isNextJsInsightsEnabled] = useIsNextJsInsightsEnabled();
 
   const crumbs: Crumb[] = [
     {
@@ -89,7 +73,9 @@ export function DomainViewHeader({
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
-  const globalQuery = extractSelectionParameters(location?.query);
+  const globalQuery = {
+    ...extractSelectionParameters(location?.query),
+  };
 
   const tabList: TabListItemProps[] = [
     ...(hasOverviewPage
@@ -128,10 +114,12 @@ export function DomainViewHeader({
             ) : (
               <FeedbackWidgetButton
                 optionOverrides={
-                  isLaravelInsightsEnabled
+                  isLaravelInsightsAvailable || isNextJsInsightsEnabled
                     ? {
                         tags: {
-                          ['feedback.source']: 'laravel-insights',
+                          ['feedback.source']: isLaravelInsightsAvailable
+                            ? 'laravel-insights'
+                            : 'nextjs-insights',
                           ['feedback.owner']: 'telemetry-experience',
                         },
                       }
@@ -140,12 +128,6 @@ export function DomainViewHeader({
               />
             )}
             {additonalHeaderActions}
-            {hasEapFlag && (
-              <Fragment>
-                Use Eap
-                <Switch checked={useEap} onChange={() => toggleUseEap()} />
-              </Fragment>
-            )}
           </ButtonBar>
         </Layout.HeaderActions>
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
@@ -156,7 +138,7 @@ export function DomainViewHeader({
               ))}
             </TabList>
           )}
-          {hideDefaultTabs && tabs && tabs.tabList}
+          {hideDefaultTabs && tabs?.tabList}
         </Layout.HeaderTabs>
       </Layout.Header>
     </Fragment>
@@ -176,7 +158,7 @@ function TabLabel({moduleName}: TabLabelProps) {
     return (
       <TabContainer>
         {moduleTitles[moduleName]}
-        {isModuleConsideredNew(moduleName) && <Badge type="new">{t('New')}</Badge>}
+        {isModuleConsideredNew(moduleName) && <FeatureBadge type="new" />}
         {showBusinessIcon && <IconBusiness />}
       </TabContainer>
     );

@@ -32,9 +32,7 @@ function IntegrationExternalTeamMappings(props: Props) {
   const api = useApi({persistInFlight: true});
   // For inline forms, the mappingKey will be the external name (since multiple will be rendered at one time)
   // For the modal form, the mappingKey will be this.modalMappingKey (since only one modal form is rendered at any time)
-  const [queryResults, setQueryResults] = useState<{
-    [mappingKey: string]: Team[];
-  }>({});
+  const [queryResults, setQueryResults] = useState<Record<string, Team[]>>({});
   const ORGANIZATION_TEAMS_ENDPOINT = `/organizations/${organization.slug}/teams/`;
 
   const query = {

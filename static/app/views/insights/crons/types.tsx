@@ -65,7 +65,7 @@ interface BaseConfig {
 /**
  * The configuration object used when the schedule is a CRONTAB
  */
-export interface CrontabConfig extends BaseConfig {
+interface CrontabConfig extends BaseConfig {
   /**
    * The crontab schedule
    */
@@ -89,12 +89,12 @@ export interface IntervalConfig extends BaseConfig {
 
 export type MonitorConfig = CrontabConfig | IntervalConfig;
 
-export interface MonitorEnvBrokenDetection {
+interface MonitorEnvBrokenDetection {
   environmentMutedTimestamp: string;
   userNotifiedTimestamp: string;
 }
 
-export interface MonitorIncident {
+interface MonitorIncident {
   brokenNotice: MonitorEnvBrokenDetection | null;
   resolvingTimestamp: string;
   startingTimestamp: string;
@@ -142,13 +142,34 @@ export interface MonitorStat {
 
 export interface CheckIn {
   /**
-   * Date the opening check-in was sent
+   * Date the opening check-in was received.
+   */
+  dateAdded: string;
+  /**
+   * Represents the "clock time" that this check in was recorded at. Since the
+   * stream of check-ins is processed within the context of a clock that only
+   * moves forward as we process kafka messages, this time represents the time
+   * at which we processed this check-in, in relation to all other tasks (such
+   * as detecting misses)
+   */
+  dateClock: string;
+  /**
+   * Date the check-in was first processed. The real wall-clock time of when
+   * the check-n was created.
    */
   dateCreated: string;
   /**
+   * Date that the opening in-progress check-in was received
+   */
+  dateInProgress: string | null;
+  /**
+   * Date that the most recent update to this check-in was received.
+   */
+  dateUpdated: string | null;
+  /**
    * Duration (in milliseconds)
    */
-  duration: number;
+  duration: number | null;
   /**
    * environment the check-in was sent to
    */

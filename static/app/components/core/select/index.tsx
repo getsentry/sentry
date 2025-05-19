@@ -7,7 +7,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Chevron} from 'sentry/components/chevron';
 import {
   ChonkClearIndicator,
   ChonkDropdownIndicator,
@@ -27,7 +26,7 @@ import {
   ReactSelect,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconClose} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Choices, SelectValue} from 'sentry/types/core';
@@ -70,7 +69,7 @@ function DropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <Chevron light color="subText" direction="down" size="medium" />
+      <IconChevron color="subText" direction="down" size="xs" />
     </selectComponents.DropdownIndicator>
   );
 }
@@ -499,7 +498,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-export interface PickerProps<OptionType extends OptionTypeBase>
+interface PickerProps<OptionType extends OptionTypeBase>
   extends ControlProps<OptionType> {
   /**
    * Enable async option loading.

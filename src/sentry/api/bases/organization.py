@@ -58,7 +58,10 @@ class OrganizationPermission(DemoSafePermission):
         if not organization.flags.require_2fa:
             return False
 
-        if request.user.has_2fa():  # type: ignore[union-attr]
+        if request.user.is_authenticated and request.user.has_2fa():
+            return False
+
+        if request.user.is_authenticated and request.user.is_sentry_app:
             return False
 
         if is_active_superuser(request):
@@ -213,21 +216,23 @@ class OrganizationAlertRulePermission(OrganizationPermission):
     }
 
 
+class OrganizationDetectorPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
+        # grant org:read permission, but raise permission denied if the members aren't allowed
+        # to create alerts and the user isn't a team admin
+        "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "alerts:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "alerts:write"],
+    }
+
+
 class OrgAuthTokenPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:write", "org:admin"],
-    }
-
-
-class OrganizationMetricsPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:write", "org:admin"],
-        "DELETE": ["org:admin"],
     }
 
 
@@ -454,7 +459,7 @@ class OrganizationEndpoint(Endpoint):
 
             return [p for p in projects if proj_filter(p)]
 
-    def get_requested_project_ids_unchecked(self, request: Request | HttpRequest) -> set[int]:
+    def get_requested_project_ids_unchecked(self, request: HttpRequest) -> set[int]:
         """
         Returns the project ids that were requested by the request.
 

@@ -1,13 +1,19 @@
+from __future__ import annotations
+
 import logging
 import sys
 from collections.abc import Sequence
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 
 from sentry.utils.flag import record_option
 from sentry.utils.hashlib import md5_text
 from sentry.utils.types import Any, type_from_value
+
+if TYPE_CHECKING:
+    from sentry.options.store import Key, OptionsStore
 
 # Prevent ourselves from clobbering the builtin
 _type = type
@@ -171,9 +177,9 @@ class OptionsManager:
     constants in the global configuration.
     """
 
-    def __init__(self, store):
+    def __init__(self, store: OptionsStore):
         self.store = store
-        self.registry = {}
+        self.registry: dict[str, Key] = {}
 
     def set(self, key: str, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
         """
@@ -252,7 +258,12 @@ class OptionsManager:
 
     def isset(self, key: str) -> bool:
         """
-        Check if a key is set on the local cache, network cache, or db in that order.
+        Check if a key is set to a not-None value in the local cache,
+        network cache, or db in that order.
+
+        This method *will not* write misses to the cache, and should not be used in
+        high-throughput situations.
+
         Keep in mind that if an option is deleted, any new calls to options.get()
         will repopulate the cache, resulting in this method to return true.
         """

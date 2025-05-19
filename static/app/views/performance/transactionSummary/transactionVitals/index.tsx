@@ -12,9 +12,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
-
-import PageLayout from '../pageLayout';
-import Tab from '../tabs';
+import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
 import {makeVitalGroups, PERCENTILE} from './constants';
 import VitalsContent from './content';

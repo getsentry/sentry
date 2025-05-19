@@ -28,10 +28,9 @@ describe('Frame - Line', function () {
     trust: null,
     vars: null,
   };
-  const platform = 'javascript' as const;
 
   const defaultProps = {
-    platform,
+    platform: 'javascript',
     emptySourceNotation: false,
     hiddenFrameCount: 0,
     frameMeta: {},

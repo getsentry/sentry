@@ -30,7 +30,7 @@ typecheckable_rules_changed: &typecheckable_rules_changed
 
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
-  - added|modified: '**/*.[tj]{s,sx}'
+  - added|modified: '**/*.{ts,tsx,js,jsx,mjs}'
   - added|modified: 'static/**/*.{less,json,yml,md}'
   - added|modified: '{.volta,vercel,tsconfig,biome,package}.json'
 
@@ -39,10 +39,8 @@ backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
 
 backend_build_changes: &backend_build_changes
-  # If you change this line make sure that workflows using this action (e.g. acceptance, api_docs)
-  # *and* file-filters would be updated as well
-  - '.github/actions/setup-sentry/action.yml'
   - '.github/workflows/backend.yml'
+  - '.github/actions/collect-test-data/**'
   - '.pre-commit-config.yaml'
   - 'Makefile'
   - 'pyproject.toml'
@@ -67,14 +65,18 @@ backend_all: &backend_all
   - '**/*.py'
   - '**/*.pyi'
   - 'devservices/**'
+  # If action.yaml is changed, all workflows that call file-filters.yml and expect
+  # the backend_all output should be triggered.
+  # For instance, acceptance.yml expects steps.changes.outputs.backend_all for the
+  # dorny/paths-filter step and it runs the setup-sentry action.
+  - '.github/actions/setup-sentry/action.yml'
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
   - *frontend_all
   - *backend_all
-  # This is verbose because backend_build_changes includes it, however,
-  - '.github/actions/setup-sentry/action.yml'
   - '.github/workflows/acceptance.yml'
+  - '.github/actions/collect-test-data/**'
 
 api_docs: &api_docs
   - *backend_all

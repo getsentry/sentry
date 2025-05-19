@@ -3,11 +3,12 @@ from unittest import mock
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_alert_detector import (
     MetricAlertComparisonConditionValidator,
     MetricAlertsDetectorValidator,
 )
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
@@ -43,12 +44,25 @@ class MetricAlertComparisonConditionValidatorTest(BaseValidatorTest):
         }
 
     def test_invalid_condition(self):
+        unsupported_condition = Condition.EQUAL
+        data = {
+            "type": unsupported_condition,
+            "comparison": 100,
+            "result": DetectorPriorityLevel.HIGH,
+        }
+        validator = MetricAlertComparisonConditionValidator(data=data)
+        assert not validator.is_valid()
+        assert validator.errors.get("type") == [
+            ErrorDetail(string=f"Unsupported type {unsupported_condition}", code="invalid")
+        ]
+
+    def test_unregistered_condition(self):
         validator = MetricAlertComparisonConditionValidator(
             data={"type": "invalid", "comparison": 100, "result": DetectorPriorityLevel.HIGH}
         )
         assert not validator.is_valid()
         assert validator.errors.get("type") == [
-            ErrorDetail(string="Unsupported type invalid", code="invalid")
+            ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
         ]
 
     def test_invalid_comparison(self):
@@ -93,7 +107,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "detectorType": MetricAlertFire.slug,
+            "detectorType": MetricIssue.slug,
             "dataSource": {
                 "query_type": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.value,
@@ -116,6 +130,10 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                     },
                 ],
             },
+            "config": {
+                "threshold_period": 1,
+                "detection_type": AlertRuleDetectionType.STATIC.value,
+            },
         }
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
@@ -132,7 +150,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         # Verify detector in DB
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
-        assert detector.type == MetricAlertFire.slug
+        assert detector.type == MetricIssue.slug
         assert detector.project_id == self.project.id
 
         # Verify data source and query subscription in DB

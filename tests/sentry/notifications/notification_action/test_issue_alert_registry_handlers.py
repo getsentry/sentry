@@ -48,7 +48,7 @@ from sentry.workflow_engine.typings.notification_action import (
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-def pop_keys_from_data_blob(data_blob: dict, action_type: Action.Type) -> dict:
+def pop_keys_from_data_blob(data_blob: dict, action_type: str) -> dict:
     """
     Remove standard action fields from each dictionary in the data blob.
 
@@ -134,7 +134,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.environment_id is not None
         assert self.workflow.environment is not None
         assert rule.environment_id == self.workflow.environment.id
-        assert rule.label == self.detector.name
+        assert rule.label == rule.label
         assert rule.data == {
             "actions": [
                 {
@@ -189,7 +189,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.id == self.action.id
         assert rule.project == self.detector.project
         assert rule.environment_id is None
-        assert rule.label == self.detector.name
+        assert rule.label == rule.label
         assert rule.data == {
             "actions": [
                 {

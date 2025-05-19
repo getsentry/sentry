@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:52.840625+00:00'
+created: '2025-04-25T21:22:38.124192+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,45 +10,45 @@ app:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "testMethod"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "aha"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "eval"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "test"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function (ignored unknown function name)
               "test/<"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "callback"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "callAnotherThing"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*

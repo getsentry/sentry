@@ -1,6 +1,7 @@
 import {useSearchParams} from 'react-router-dom';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -11,7 +12,6 @@ import {
   NavigationCrumbs,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';

@@ -1,5 +1,5 @@
-import type {MonitorConfig} from '../types';
-import {ScheduleType} from '../types';
+import type {MonitorConfig} from 'sentry/views/insights/crons/types';
+import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 import {scheduleAsText} from './scheduleAsText';
 

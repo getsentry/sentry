@@ -7,7 +7,6 @@ import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/are
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
@@ -15,6 +14,7 @@ import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
@@ -27,13 +27,8 @@ import {
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
-import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
-
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
-  const {
-    options: {timezone},
-  } = ConfigStore.get('user');
-  return moment.tz(date, timezone).format(format);
+  return moment(date).format(format);
 }
 
 function createStatusAreaSeries(
@@ -184,9 +179,10 @@ export function getMetricAlertChartOption(
 
   const series: AreaChartSeries[] = timeseriesData.map(s => s);
   const areaSeries: AreaChartSeries[] = [];
+  const colors = theme.chart.getColorPalette(0);
   // Ensure series data appears below incident/mark lines
   series[0]!.z = 1;
-  series[0]!.color = theme.chart.colors[0][0];
+  series[0]!.color = colors[0];
 
   const dataArr = timeseriesData[0]!.data;
 
@@ -264,9 +260,9 @@ export function getMetricAlertChartOption(
         const timeWindowMs = rule.timeWindow * 60 * 1000;
         const incidentColor =
           warningTrigger &&
-          !statusChanges.find(({value}) => Number(value) === IncidentStatus.CRITICAL)
-            ? theme.yellow300
-            : theme.red300;
+          statusChanges.some(({value}) => Number(value) === IncidentStatus.CRITICAL)
+            ? theme.red300
+            : theme.yellow300;
 
         const incidentStartDate = new Date(incident.dateStarted).getTime();
         const incidentCloseDate = incident.dateClosed

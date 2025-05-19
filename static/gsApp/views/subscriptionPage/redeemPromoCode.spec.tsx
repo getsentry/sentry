@@ -34,7 +34,6 @@ describe('Redeem promo code', () => {
         params={{orgId: organization.slug}}
       />,
       {
-        router,
         organization,
       }
     );
@@ -68,7 +67,6 @@ describe('Redeem promo code', () => {
         params={{orgId: organization.slug}}
       />,
       {
-        router,
         organization,
       }
     );

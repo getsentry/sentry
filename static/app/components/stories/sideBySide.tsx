@@ -14,6 +14,8 @@ export const Grid = styled('div')<{columns?: number}>`
   grid-template-columns: ${p =>
     p.columns ? `repeat(${p.columns}, 1fr)` : 'repeat(auto-fit, minmax(300px, 1fr))'};
   gap: ${space(2)};
+  grid-auto-rows: auto;
+  align-items: start;
 `;
 
 export default SideBySide;

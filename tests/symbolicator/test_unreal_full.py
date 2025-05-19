@@ -110,7 +110,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         # the docker image used in sentrys own tests is updated.
         try:
             make_snapshot()
-        except Exception:
+        except BaseException:
             make_snapshot(subname="new")
 
         return sorted(EventAttachment.objects.filter(event_id=event.event_id), key=lambda x: x.name)

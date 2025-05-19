@@ -59,8 +59,12 @@ describe('WidgetTemplatesList', () => {
           onSave={onSave}
           setOpenWidgetTemplates={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
+          setCustomizeFromLibrary={jest.fn()}
         />
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Duration Distribution')).toBeInTheDocument();
@@ -74,8 +78,12 @@ describe('WidgetTemplatesList', () => {
           onSave={onSave}
           setOpenWidgetTemplates={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
+          setCustomizeFromLibrary={jest.fn()}
         />
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const widgetTemplate = await screen.findByText('Duration Distribution');
@@ -95,9 +103,13 @@ describe('WidgetTemplatesList', () => {
           onSave={onSave}
           setOpenWidgetTemplates={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
+          setCustomizeFromLibrary={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const widgetTemplate = await screen.findByText('Duration Distribution');
@@ -113,7 +125,7 @@ describe('WidgetTemplatesList', () => {
           dataset: 'transactions-like',
         }),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -124,8 +136,12 @@ describe('WidgetTemplatesList', () => {
           onSave={onSave}
           setOpenWidgetTemplates={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
+          setCustomizeFromLibrary={jest.fn()}
         />
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const widgetTemplate = await screen.findByText('Duration Distribution');

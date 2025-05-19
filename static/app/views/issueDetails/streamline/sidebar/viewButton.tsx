@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {space} from 'sentry/styles/space';
 
 export function ViewButton({children, ...props}: LinkButtonProps) {
   return (
-    <TextButton borderless size="zero" {...props}>
+    <TextButton borderless size="zero" preventScrollReset {...props}>
       {children}
     </TextButton>
   );

@@ -1,8 +1,8 @@
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 
-export type AsyncViewState = DeprecatedAsyncComponent['state'];
-export type AsyncViewProps = DeprecatedAsyncComponent['props'];
+type AsyncViewState = DeprecatedAsyncComponent['state'];
+type AsyncViewProps = DeprecatedAsyncComponent['props'];
 
 /**
  * @deprecated use useApiQuery instead.

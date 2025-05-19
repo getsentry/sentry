@@ -160,8 +160,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     expect(await screen.findAllByTestId('relative-ops-breakdown')).toHaveLength(2);
@@ -206,8 +205,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     expect(await screen.findAllByRole('columnheader')).toHaveLength(6);
@@ -241,8 +239,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     expect(await screen.findByRole('link', {name: 'deadbeef'})).toHaveAttribute(
@@ -289,8 +286,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -325,8 +321,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));

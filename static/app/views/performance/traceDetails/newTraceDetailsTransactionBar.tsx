@@ -5,6 +5,7 @@ import type {Location} from 'history';
 import {Observer} from 'mobx-react';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import NewTraceDetailsSpanTree from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanTree';
@@ -57,7 +58,6 @@ import {
   getHumanDuration,
 } from 'sentry/components/performance/waterfall/utils';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconZoom} from 'sentry/icons/iconZoom';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -393,8 +393,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
     );
 
     const embeddedChildrenLength =
-      (embeddedChildren && waterfallModel && waterfallModel.rootSpan.children.length) ??
-      0;
+      (embeddedChildren && waterfallModel?.rootSpan.children.length) ?? 0;
     if (
       hasToggle &&
       (isExpanded || (showEmbeddedChildren && embeddedChildrenLength > 0))

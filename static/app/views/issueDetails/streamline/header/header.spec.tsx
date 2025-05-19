@@ -1,7 +1,7 @@
+import {ActorFixture} from 'sentry-fixture/actor';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 import {TeamFixture} from 'sentry-fixture/team';
 
@@ -13,14 +13,13 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
+jest.mock('sentry/utils/useFeedbackForm', () => ({
+  useFeedbackForm: () => jest.fn(),
+}));
+
 jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
   ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
   useIssueDetailsTour: () => mockTour(),
-}));
-
-jest.mock('sentry/views/issueDetails/utils', () => ({
-  ...jest.requireActual('sentry/views/issueDetails/utils'),
-  useHasStreamlinedUI: () => true,
 }));
 
 describe('StreamlinedGroupHeader', () => {
@@ -30,8 +29,15 @@ describe('StreamlinedGroupHeader', () => {
     platform: 'javascript',
     teams: [TeamFixture()],
   });
-  const group = GroupFixture({issueCategory: IssueCategory.ERROR, isUnhandled: true});
-  const router = RouterFixture();
+  const group = GroupFixture({
+    issueCategory: IssueCategory.ERROR,
+    isUnhandled: true,
+    assignedTo: ActorFixture({
+      id: '101',
+      email: 'leander.rodrigues@sentry.io',
+      name: 'Leander',
+    }),
+  });
 
   describe('JS Project Error Issue', () => {
     const defaultProps = {
@@ -75,7 +81,6 @@ describe('StreamlinedGroupHeader', () => {
         />,
         {
           organization,
-          router,
         }
       );
 
@@ -95,6 +100,7 @@ describe('StreamlinedGroupHeader', () => {
       expect(
         screen.getByRole('button', {name: 'Modify issue assignee'})
       ).toBeInTheDocument();
+      expect(screen.getByText('Leander')).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Manage issue experience'})
       ).toBeInTheDocument();
@@ -110,7 +116,9 @@ describe('StreamlinedGroupHeader', () => {
           project={project}
           event={null}
         />,
-        {organization, router}
+        {
+          organization,
+        }
       );
       expect(
         await screen.findByRole('button', {name: 'Manage issue experience'})
@@ -127,7 +135,6 @@ describe('StreamlinedGroupHeader', () => {
         />,
         {
           organization,
-          router,
         }
       );
 

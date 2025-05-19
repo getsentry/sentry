@@ -31,7 +31,7 @@ def get_password_validators(validator_config):
     return validators
 
 
-def validate_password(password, user=None, password_validators=None):
+def validate_password(password, user=None, password_validators=None) -> None:
     """
     Validate whether the password meets all validator requirements.
 
@@ -62,7 +62,7 @@ def password_validators_help_texts(password_validators=None):
     return help_texts
 
 
-def _password_validators_help_text_html(password_validators=None):
+def _password_validators_help_text_html(password_validators=None) -> str:
     """
     Return an HTML string with all help texts of all configured validators
     in an <ul>.
@@ -80,10 +80,10 @@ class MaximumLengthValidator:
     Validate whether the password is of a maximum length.
     """
 
-    def __init__(self, max_length=256):
+    def __init__(self, max_length: int = 256) -> None:
         self.max_length = max_length
 
-    def validate(self, password, user=None):
+    def validate(self, password: str, user=None) -> None:
         if len(password) > self.max_length:
             raise ValidationError(
                 ngettext(
@@ -95,7 +95,7 @@ class MaximumLengthValidator:
                 params={"max_length": self.max_length},
             )
 
-    def get_help_text(self):
+    def get_help_text(self) -> str:
         return ngettext(
             "Your password must contain no more than %(max_length)d character.",
             "Your password must contain no more than %(max_length)d characters.",
@@ -108,11 +108,11 @@ class PwnedPasswordsValidator:
     Validate whether a password has previously appeared in a data breach.
     """
 
-    def __init__(self, threshold=1, timeout=0.200):
+    def __init__(self, threshold: int = 1, timeout: float = 0.200) -> None:
         self.threshold = threshold
         self.timeout = timeout
 
-    def validate(self, password, user=None):
+    def validate(self, password, user=None) -> None:
         digest = sha1(password.encode("utf-8")).hexdigest().upper()
         prefix = digest[:5]
         suffix = digest[5:]

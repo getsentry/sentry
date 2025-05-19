@@ -1,6 +1,5 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
@@ -15,8 +14,7 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import Dashboard from 'sentry/views/dashboards/dashboard';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-
-import {OrganizationContext} from '../organizationContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -74,7 +72,7 @@ describe('Dashboards > Dashboard', () => {
   const widgetLegendState = new WidgetLegendSelectionState({
     organization,
     dashboard: mockDashboard,
-    router: RouterFixture(),
+    navigate: jest.fn(),
     location: LocationFixture(),
   });
 
@@ -156,8 +154,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         isEditingDashboard={false}
         widgetLegendState={widgetLegendState}
-      />,
-      {router: initialData.router}
+      />
     );
     expect(tagsMock).toHaveBeenCalled();
   });
@@ -181,8 +178,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
         widgetLegendState={widgetLegendState}
-      />,
-      {router: initialData.router}
+      />
     );
     await waitFor(() => expect(mockHandleAddCustomWidget).toHaveBeenCalled());
     expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
@@ -206,8 +202,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
         widgetLegendState={widgetLegendState}
-      />,
-      {router: initialData.router}
+      />
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
     expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
@@ -253,8 +248,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
         widgetLegendState={widgetLegendState}
-      />,
-      {router: initialData.router}
+      />
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
     expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
@@ -441,6 +435,7 @@ describe('Dashboards > Dashboard', () => {
       router = initialData.router,
       location = initialData.router.location,
       isPreview = false,
+      onEditWidget = jest.fn(),
     }: any) => {
       const getDashboardComponent = () => (
         <OrganizationContext value={initialData.organization}>
@@ -460,6 +455,7 @@ describe('Dashboards > Dashboard', () => {
               location={location}
               widgetLimitReached={false}
               isPreview={isPreview}
+              onEditWidget={onEditWidget}
               widgetLegendState={widgetLegendState}
             />
           </MEPSettingProvider>
@@ -492,7 +488,7 @@ describe('Dashboards > Dashboard', () => {
       });
     });
 
-    it('opens the widget builder when editing with the modal access flag', async function () {
+    it('triggers the edit widget callback', async function () {
       const testData = initializeOrg({
         organization: {
           features: ['dashboards-basic', 'dashboards-edit'],
@@ -502,21 +498,21 @@ describe('Dashboards > Dashboard', () => {
         ...mockDashboard,
         widgets: [newWidget],
       };
+      const mockOnEditWidget = jest.fn();
 
       mount({
         dashboard: dashboardWithOneWidget,
         org: testData.organization,
         router: testData.router,
         location: testData.router.location,
+        onEditWidget: mockOnEditWidget,
       });
 
       await userEvent.click(await screen.findByLabelText('Edit Widget'));
 
-      expect(testData.router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/dashboard/1/widget/0/edit/',
-        })
-      );
+      await waitFor(() => {
+        expect(mockOnEditWidget).toHaveBeenCalled();
+      });
     });
 
     it('does not show the add widget button if dashboard is in preview mode', async function () {

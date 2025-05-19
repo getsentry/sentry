@@ -1,18 +1,16 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture, PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import BackendOverviewPage from 'sentry/views/insights/pages/backend/backendOverviewPage';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useOrganization');
 
 let useLocationMock: jest.Mock;
 
@@ -55,7 +53,7 @@ describe('BackendOverviewPage', () => {
         action: 'PUSH',
         key: '',
       });
-      render(<BackendOverviewPage />);
+      render(<BackendOverviewPage />, {organization});
 
       expect(await screen.findByRole('heading', {level: 1})).toHaveTextContent('Backend');
       expect(mainTableApiCall).toHaveBeenCalledWith(
@@ -177,13 +175,8 @@ const setupMocks = () => {
     key: '',
   });
 
-  jest.mocked(useOrganization).mockReturnValue(organization);
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: pageFilterSelection,
-  });
+  jest
+    .mocked(usePageFilters)
+    .mockReturnValue(PageFilterStateFixture({selection: pageFilterSelection}));
   ProjectsStore.loadInitialData(projects);
 };

@@ -18,9 +18,9 @@ import type {
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export function isQuickTraceEvent(
@@ -34,7 +34,7 @@ export type ErrorDestination = 'discover' | 'issue';
 export type TransactionDestination = 'discover' | 'performance';
 
 export function generateIssueEventTarget(
-  event: TraceError | TracePerformanceIssue,
+  event: TraceError | TracePerformanceIssue | TraceTree.EAPError,
   organization: Organization,
   referrer?: string
 ): LocationDescriptor {
@@ -82,41 +82,6 @@ export function generateSingleErrorTarget(
     default:
       return generateDiscoverEventTarget(event, organization, location, referrer);
   }
-}
-
-export function generateMultiTransactionsTarget(
-  currentEvent: Event,
-  events: EventLite[],
-  organization: Organization,
-  groupType: 'Ancestor' | 'Children' | 'Descendant'
-): LocationDescriptor {
-  const queryResults = new MutableSearch([]);
-  const eventIds = events.map(child => child.event_id);
-  for (let i = 0; i < eventIds.length; i++) {
-    queryResults.addOp(i === 0 ? '(' : 'OR');
-    queryResults.addFreeText(`id:${eventIds[i]}`);
-    if (i === eventIds.length - 1) {
-      queryResults.addOp(')');
-    }
-  }
-
-  const {start, end} = getTraceTimeRangeFromEvent(currentEvent);
-  const traceEventView = EventView.fromSavedQuery({
-    id: undefined,
-    name: `${groupType} Transactions of Event ID ${currentEvent.id}`,
-    fields: ['transaction', 'project', 'trace.span', 'transaction.duration', 'timestamp'],
-    orderby: '-timestamp',
-    query: queryResults.formatString(),
-    projects: [...new Set(events.map(child => child.project_id))],
-    version: 2,
-    start,
-    end,
-  });
-  return traceEventView.getResultsViewUrlTarget(
-    organization,
-    false,
-    hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
-  );
 }
 
 const timestampsFieldCandidates = [

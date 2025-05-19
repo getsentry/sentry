@@ -8,7 +8,6 @@ import {
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {
@@ -18,7 +17,7 @@ import {
 
 const DEFAULT_HOVER_TIMEOUT = 200;
 
-export interface UseTraceItemDetailsProps {
+interface UseTraceItemDetailsProps {
   /**
    * Every trace item belongs to a project.
    */
@@ -46,7 +45,7 @@ export interface UseTraceItemDetailsProps {
   enabled?: boolean;
 }
 
-interface TraceItemDetailsResponse {
+export interface TraceItemDetailsResponse {
   attributes: TraceItemResponseAttribute[];
   itemId: string;
   timestamp: string;
@@ -76,10 +75,10 @@ export type TraceItemResponseAttribute =
 export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: props.projectId});
-  const {isReady: pageFiltersReady} = usePageFilters();
-  const enabled = pageFiltersReady && (props.enabled ?? true) && !!project;
+  const enabled = (props.enabled ?? true) && !!project;
 
-  if (!project) {
+  // Only capture exception if the project is not found and the query is enabled.
+  if ((props.enabled ?? true) && !project) {
     captureException(
       new Error(`Project "${props.projectId}" not found in useTraceItemDetails`)
     );
@@ -101,7 +100,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
       queryParams,
     }),
     {
-      enabled: enabled && pageFiltersReady,
+      enabled,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       staleTime: Infinity,

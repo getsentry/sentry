@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {space} from 'sentry/styles/space';
 
-export interface StyleProps {
+interface StyleProps {
   display?: 'block' | 'flex';
 }
 

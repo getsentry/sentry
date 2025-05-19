@@ -2,7 +2,6 @@ import type {ComponentProps} from 'react';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventIdQueryResultFixture} from 'sentry-fixture/eventIdQueryResult';
 import {MembersFixture} from 'sentry-fixture/members';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ShortIdQueryResultFixture} from 'sentry-fixture/shortIdQueryResult';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -15,7 +14,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Result} from './types';
 
 describe('ApiSource', function () {
-  let orgsMock: jest.Mock;
   let projectsMock: jest.Mock;
   let teamsMock: jest.Mock;
   let membersMock: jest.Mock;
@@ -31,15 +29,6 @@ describe('ApiSource', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/',
-      body: [OrganizationFixture({slug: 'test-org'})],
-    });
-
-    orgsMock = MockApiClient.addMockResponse({
-      url: '/organizations/',
-      body: [OrganizationFixture({slug: 'foo-org'})],
-    });
     projectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [ProjectFixture({slug: 'foo-project'})],
@@ -101,39 +90,11 @@ describe('ApiSource', function () {
       </ApiSource>
     );
 
-    await waitFor(() => expect(orgsMock).toHaveBeenCalled());
-    expect(projectsMock).toHaveBeenCalled();
+    await waitFor(() => expect(projectsMock).toHaveBeenCalled());
     expect(teamsMock).toHaveBeenCalled();
     expect(membersMock).toHaveBeenCalled();
     expect(shortIdMock).not.toHaveBeenCalled();
     expect(eventIdMock).not.toHaveBeenCalled();
-  });
-
-  it('queries multiple regions for organization lists', async function () {
-    const mock = jest.fn().mockReturnValue(null);
-    ConfigStore.loadInitialData({
-      ...configState,
-      memberRegions: [
-        {name: 'us', url: 'https://us.sentry.io'},
-        {name: 'de', url: 'https://de.sentry.io'},
-      ],
-    });
-
-    render(
-      <ApiSource {...defaultProps} query="foo">
-        {mock}
-      </ApiSource>
-    );
-
-    await waitFor(() => expect(orgsMock).toHaveBeenCalledTimes(2));
-    expect(orgsMock).toHaveBeenCalledWith(
-      '/organizations/',
-      expect.objectContaining({host: 'https://us.sentry.io'})
-    );
-    expect(orgsMock).toHaveBeenCalledWith(
-      '/organizations/',
-      expect.objectContaining({host: 'https://de.sentry.io'})
-    );
   });
 
   it('only queries for shortids when query matches shortid format', async function () {
@@ -201,7 +162,7 @@ describe('ApiSource', function () {
     );
   });
 
-  it('only queries org endpoint if there is no org in context', async function () {
+  it('Does not query org apis when no org in context', async function () {
     const mock = jest.fn().mockReturnValue(null);
     render(
       <ApiSource {...defaultProps} query="foo">
@@ -210,7 +171,7 @@ describe('ApiSource', function () {
       {organization: null}
     );
 
-    await waitFor(() => expect(orgsMock).toHaveBeenCalled());
+    await waitFor(() => !mock.mock.calls[2][0].isLoading);
     expect(projectsMock).not.toHaveBeenCalled();
     expect(teamsMock).not.toHaveBeenCalled();
     expect(membersMock).not.toHaveBeenCalled();
@@ -228,18 +189,6 @@ describe('ApiSource', function () {
       const results = mock.mock.calls[2][0].results.map((result: Result) => result.item);
 
       expect(results).toEqual([
-        expect.objectContaining({
-          model: expect.objectContaining({slug: 'foo-org'}),
-          sourceType: 'organization',
-          resultType: 'route',
-          to: '/foo-org/',
-        }),
-        expect.objectContaining({
-          model: expect.objectContaining({slug: 'foo-org'}),
-          sourceType: 'organization',
-          resultType: 'settings',
-          to: '/settings/foo-org/',
-        }),
         expect.objectContaining({
           model: expect.objectContaining({slug: 'foo-project'}),
           sourceType: 'project',
@@ -285,7 +234,7 @@ describe('ApiSource', function () {
       const titles = mock.mock.calls[2][0].results.map(
         (result: Result) => result.item.title
       );
-      expect(titles).toEqual(['foo-org Dashboard', 'foo-org Settings', '#foo-team']);
+      expect(titles).toEqual(['#foo-team']);
     });
   });
 
@@ -300,9 +249,10 @@ describe('ApiSource', function () {
     await waitFor(() => {
       // The return values here are because of fuzzy search matching.
       // There are no members that match
-      expect(mock.mock.calls[2][0].results).toHaveLength(6);
+      expect(mock.mock.calls[2][0].results).toHaveLength(4);
     });
-    expect(mock.mock.calls[2][0].results[0].item.model.slug).toBe('foo-org');
+
+    expect(mock.mock.calls[2][0].results[0].item.model.slug).toBe('foo-project');
 
     mock.mockClear();
 
@@ -314,9 +264,9 @@ describe('ApiSource', function () {
 
     await waitFor(() => {
       // Still have 4 results, but is re-ordered
-      expect(mock.mock.calls[0][0].results).toHaveLength(6);
+      expect(mock.mock.calls[0][0].results).toHaveLength(4);
     });
-    expect(mock.mock.calls[0][0].results[0].item.model.slug).toBe('foo-org');
+    expect(mock.mock.calls[0][0].results[0].item.model.slug).toBe('foo-project');
   });
 
   describe('API queries', function () {

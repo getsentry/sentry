@@ -19,7 +19,7 @@ describe('getExploreUrl', () => {
       projectId: '1',
     });
     expect(url).toBe(
-      '/organizations/slug/traces/?dataset=spansRpc&environment=prod&interval=30m&project=1&query=span.op%3Ahttp.client&statsPeriod=7d&visualize=%7B%22chartType%22%3A1%2C%22yAxes%22%3A%5B%22p75%28span.duration%29%22%5D%7D'
+      '/organizations/slug/traces/?environment=prod&interval=30m&project=1&query=span.op%3Ahttp.client&statsPeriod=7d&visualize=%7B%22chartType%22%3A1%2C%22yAxes%22%3A%5B%22p75%28span.duration%29%22%5D%7D'
     );
   });
   it('should return the correct url for 9998m', () => {
@@ -36,7 +36,7 @@ describe('getExploreUrl', () => {
       projectId: '1',
     });
     expect(url).toBe(
-      '/organizations/slug/traces/?dataset=spansRpc&environment=prod&interval=30m&project=1&query=span.op%3Ahttp.client&statsPeriod=7d&visualize=%7B%22chartType%22%3A1%2C%22yAxes%22%3A%5B%22p75%28span.duration%29%22%5D%7D'
+      '/organizations/slug/traces/?environment=prod&interval=30m&project=1&query=span.op%3Ahttp.client&statsPeriod=7d&visualize=%7B%22chartType%22%3A1%2C%22yAxes%22%3A%5B%22p75%28span.duration%29%22%5D%7D'
     );
   });
 });

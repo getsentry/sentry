@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:17.708037+00:00'
+created: '2025-04-25T21:22:12.623025+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
     app*
       exception*
         stacktrace*
-          frame*
+          frame* (marked in-app by the client)
             module*
               "hub"
             filename (module takes precedence)
@@ -19,14 +19,14 @@ app:
               "withScope"
             context-line*
               "*/"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "onunhandledrejection.ts"
             filename (module takes precedence)
               "onunhandledrejection.ts"
             function (ignored unknown function name)
               "<anonymous>"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "jest-mock.build:index"
             filename (module takes precedence)
@@ -35,7 +35,7 @@ app:
               "mockConstructor [as captureException]"
             context-line*
               "return fn.apply(this, arguments);"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "jest-mock.build:index"
             filename (module takes precedence)
@@ -44,7 +44,7 @@ app:
               "<anonymous>"
             context-line*
               "})();"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "jest-mock.build:index"
             filename (module takes precedence)
@@ -53,7 +53,7 @@ app:
               "finalReturnValue"
             context-line*
               "return specificMockImpl.apply(this, arguments);"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "jest-mock.build:index"
             filename (module takes precedence)
@@ -62,7 +62,7 @@ app:
               "<anonymous>"
             context-line*
               "return original.apply(this, arguments);"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "hub.ts"
             filename (module takes precedence)
@@ -71,7 +71,7 @@ app:
               "captureException"
             context-line*
               "if (maxBreadcrumbs <= 0) {"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "hub"
             filename (module takes precedence)
@@ -80,7 +80,7 @@ app:
               "invokeClient"
             context-line*
               "* @returns Scope, the new cloned scope"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "baseclient.ts"
             filename (module takes precedence)
@@ -89,7 +89,7 @@ app:
               "captureException"
             context-line*
               "promisedEvent"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "backend.ts"
             filename (module takes precedence)
