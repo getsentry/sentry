@@ -755,18 +755,17 @@ class Enhancements:
 
         return stacktrace_component
 
+    def _get_base64_bytes_from_rules(self, rules: list[EnhancementRule]) -> bytes:
+        pickled = msgpack.dumps(
+            [self.version, self.bases, [rule._to_config_structure(self.version) for rule in rules]]
+        )
+        compressed_pickle = zstandard.compress(pickled)
+        return base64.urlsafe_b64encode(compressed_pickle).strip(b"=")
+
     @cached_property
     def base64_string(self) -> str:
         """A base64 string representation of the enhancements object"""
-        pickled = msgpack.dumps(
-            [
-                self.version,
-                self.bases,
-                [rule._to_config_structure(self.version) for rule in self.rules],
-            ]
-        )
-        compressed_pickle = zstandard.compress(pickled)
-        base64_bytes = base64.urlsafe_b64encode(compressed_pickle).strip(b"=")
+        base64_bytes = self._get_base64_bytes_from_rules(self.rules)
         base64_str = base64_bytes.decode("ascii")
         return base64_str
 
