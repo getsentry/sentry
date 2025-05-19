@@ -346,7 +346,7 @@ def disable_uptime_detector(detector: Detector):
     uptime_monitor = get_project_subscription(detector)
     uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
 
-    if uptime_monitor.status == ObjectStatus.DISABLED:
+    if uptime_monitor.status == ObjectStatus.DISABLED and not detector.enabled:
         return
 
     if uptime_subscription.uptime_status == UptimeStatus.FAILED:
@@ -388,7 +388,12 @@ def enable_uptime_detector(detector: Detector, ensure_assignment: bool = False):
     no-op. Pass `ensure_assignment=True` to force seat assignment.
     """
     uptime_monitor = get_project_subscription(detector)
-    if not ensure_assignment and uptime_monitor.status != ObjectStatus.DISABLED:
+
+    if (
+        not ensure_assignment
+        and uptime_monitor.status != ObjectStatus.DISABLED
+        and detector.enabled
+    ):
         return
 
     seat_assignment = quotas.backend.check_assign_seat(DataCategory.UPTIME, uptime_monitor)
