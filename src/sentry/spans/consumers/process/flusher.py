@@ -14,6 +14,8 @@ from sentry.spans.buffer import SpansBuffer
 from sentry.utils import metrics
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
+MAX_PROCESS_RESTARTS = 10
+
 
 class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     """
@@ -65,6 +67,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             ),
             daemon=True,
         )
+
+        self.process_restarts = 0
 
         self.process.start()
 
@@ -144,7 +148,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # per second at most. If anything, self.poll() might even be called
         # more often than submit()
         if not self.process.is_alive():
-            raise RuntimeError("flusher process is dead")
+            metrics.incr("sentry.spans.buffer.flusher_dead")
+            if self.process_restarts < MAX_PROCESS_RESTARTS:
+                self.process.start()
+                self.process_restarts += 1
+            else:
+                raise RuntimeError("flusher process is dead")
         if isinstance(message.payload, int):
             self.current_drift.value = message.payload - int(time.time())
         self.next_step.submit(message)
