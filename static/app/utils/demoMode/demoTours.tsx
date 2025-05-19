@@ -12,10 +12,20 @@ import {
   type TourState,
   useTourReducer,
 } from 'sentry/components/tours/tourContext';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export const DEMO_TOURS_STATE_KEY = 'demo-mode:tours';
+
+// TODO: Fetch these from the API
+const DEMO_SELECTED_PROJECT_ID = 4508160347275264;
+const DEMO_SELECTED_TRANSACTION = '/products';
+const DEMO_SELECTED_TRACE_ID = '171df07fc30e4e269358eb4d7cca7b9f';
+const DEMO_SELECTED_ISSUE_ID = 6592614385;
+const DEMO_SELECTED_RELEASE_ID = 'application.monitoring.javascript@25.5.2';
 
 export const enum DemoTour {
   SIDEBAR = 'sidebar',
@@ -47,6 +57,139 @@ export const enum DemoTourStep {
   PERFORMANCE_SPAN_TREE = 'demo-tour-performance-span-tree',
 }
 
+type DemoTourStepWithUrl = {
+  id: DemoTourStep;
+  url?: {pathname: string; query?: Record<string, string>};
+};
+
+const TOUR_STEPS: Record<DemoTour, DemoTourStepWithUrl[]> = {
+  [DemoTour.SIDEBAR]: [
+    {
+      id: DemoTourStep.SIDEBAR_PROJECTS,
+    },
+    {
+      id: DemoTourStep.SIDEBAR_ISSUES,
+    },
+    {
+      id: DemoTourStep.SIDEBAR_PERFORMANCE,
+    },
+    {
+      id: DemoTourStep.SIDEBAR_RELEASES,
+    },
+    {
+      id: DemoTourStep.SIDEBAR_DISCOVER,
+    },
+  ],
+  [DemoTour.ISSUES]: [
+    {
+      id: DemoTourStep.ISSUES_STREAM,
+      url: {
+        pathname: '/issues/',
+      },
+    },
+    {
+      id: DemoTourStep.ISSUES_AGGREGATES,
+      url: {
+        pathname: `/issues/${DEMO_SELECTED_ISSUE_ID}`,
+      },
+    },
+    {
+      id: DemoTourStep.ISSUES_EVENT_DETAILS,
+      url: {
+        pathname: `/issues/${DEMO_SELECTED_ISSUE_ID}`,
+      },
+    },
+    {
+      id: DemoTourStep.ISSUES_DETAIL_SIDEBAR,
+      url: {
+        pathname: `/issues/${DEMO_SELECTED_ISSUE_ID}`,
+      },
+    },
+  ],
+  [DemoTour.RELEASES]: [
+    {
+      id: DemoTourStep.RELEASES_COMPARE,
+      url: {
+        pathname: `/releases/`,
+      },
+    },
+    {
+      id: DemoTourStep.RELEASES_DETAILS,
+      url: {
+        pathname: `/releases/`,
+      },
+    },
+    {
+      id: DemoTourStep.RELEASES_STATES,
+      url: {
+        pathname: `/releases/${DEMO_SELECTED_RELEASE_ID}/`,
+      },
+    },
+  ],
+  [DemoTour.PERFORMANCE]: [
+    {
+      id: DemoTourStep.PERFORMANCE_TABLE,
+      url: {
+        pathname: `/insights/frontend/`,
+      },
+    },
+    {
+      id: DemoTourStep.PERFORMANCE_USER_MISERY,
+      url: {
+        pathname: `/insights/frontend/summary/`,
+        query: {
+          transaction: DEMO_SELECTED_TRANSACTION,
+        },
+      },
+    },
+    {
+      id: DemoTourStep.PERFORMANCE_TRANSACTION_SUMMARY_TABLE,
+      url: {
+        pathname: `/insights/frontend/summary/`,
+        query: {
+          transaction: DEMO_SELECTED_TRANSACTION,
+        },
+      },
+    },
+    {
+      id: DemoTourStep.PERFORMANCE_SPAN_TREE,
+      url: {
+        pathname: `/insights/summary/trace/${DEMO_SELECTED_TRACE_ID}`,
+      },
+    },
+  ],
+};
+
+const emptyTourState = {
+  currentStepId: undefined,
+  isCompleted: false,
+  isRegistered: true,
+  orderedStepIds: [],
+};
+
+const TOUR_STATE_INITIAL_VALUE: Record<DemoTour, TourState<any>> = {
+  [DemoTour.SIDEBAR]: {
+    ...emptyTourState,
+    orderedStepIds: TOUR_STEPS[DemoTour.SIDEBAR].map(s => s.id),
+    tourKey: DemoTour.SIDEBAR,
+  },
+  [DemoTour.ISSUES]: {
+    ...emptyTourState,
+    orderedStepIds: TOUR_STEPS[DemoTour.ISSUES].map(s => s.id),
+    tourKey: DemoTour.ISSUES,
+  },
+  [DemoTour.RELEASES]: {
+    ...emptyTourState,
+    orderedStepIds: TOUR_STEPS[DemoTour.RELEASES].map(s => s.id),
+    tourKey: DemoTour.RELEASES,
+  },
+  [DemoTour.PERFORMANCE]: {
+    ...emptyTourState,
+    orderedStepIds: TOUR_STEPS[DemoTour.PERFORMANCE].map(s => s.id),
+    tourKey: DemoTour.PERFORMANCE,
+  },
+};
+
 type DemoToursContextType = {
   issues: TourContextType<DemoTourStep>;
   performance: TourContextType<DemoTourStep>;
@@ -72,67 +215,38 @@ export function useDemoTour(tourKey: DemoTour): TourContextType<DemoTourStep> | 
   return tourContext[tourKey];
 }
 
-const TOUR_STEPS: Record<DemoTour, DemoTourStep[]> = {
-  [DemoTour.SIDEBAR]: [
-    DemoTourStep.SIDEBAR_PROJECTS,
-    DemoTourStep.SIDEBAR_ISSUES,
-    DemoTourStep.SIDEBAR_PERFORMANCE,
-    DemoTourStep.SIDEBAR_RELEASES,
-    DemoTourStep.SIDEBAR_DISCOVER,
-  ],
-  [DemoTour.ISSUES]: [
-    DemoTourStep.ISSUES_STREAM,
-    DemoTourStep.ISSUES_AGGREGATES, // Metadata and metrics // view data in aggregate 1/6
-    DemoTourStep.ISSUES_EVENT_DETAILS, // Explore details // Explore details 3/6
-    DemoTourStep.ISSUES_DETAIL_SIDEBAR, // Share updates // 6/6
-  ],
-  [DemoTour.RELEASES]: [
-    DemoTourStep.RELEASES_COMPARE,
-    DemoTourStep.RELEASES_DETAILS,
-    DemoTourStep.RELEASES_STATES,
-  ],
-  [DemoTour.PERFORMANCE]: [
-    DemoTourStep.PERFORMANCE_TABLE,
-    DemoTourStep.PERFORMANCE_USER_MISERY,
-    DemoTourStep.PERFORMANCE_TRANSACTION_SUMMARY_TABLE,
-    DemoTourStep.PERFORMANCE_SPAN_TREE,
-  ],
-};
+function useNavigateToStep() {
+  const location = useLocation();
+  const navigate = useNavigate();
 
-const emptyTourState = {
-  currentStepId: undefined,
-  isCompleted: false,
-  isRegistered: true,
-  orderedStepIds: [],
-};
+  const getUrlFromStep = (stepId: DemoTourStep) => {
+    const step = TOUR_STEPS[getTourFromStep(stepId)].find(s => s.id === stepId);
 
-const TOUR_STATE_INITIAL_VALUE: Record<DemoTour, TourState<any>> = {
-  [DemoTour.SIDEBAR]: {
-    ...emptyTourState,
-    orderedStepIds: TOUR_STEPS[DemoTour.SIDEBAR],
-    tourKey: DemoTour.SIDEBAR,
-  },
-  [DemoTour.ISSUES]: {
-    ...emptyTourState,
-    orderedStepIds: TOUR_STEPS[DemoTour.ISSUES],
-    tourKey: DemoTour.ISSUES,
-  },
-  [DemoTour.RELEASES]: {
-    ...emptyTourState,
-    orderedStepIds: TOUR_STEPS[DemoTour.RELEASES],
-    tourKey: DemoTour.RELEASES,
-  },
-  [DemoTour.PERFORMANCE]: {
-    ...emptyTourState,
-    orderedStepIds: TOUR_STEPS[DemoTour.PERFORMANCE],
-    tourKey: DemoTour.PERFORMANCE,
-  },
-};
+    return {
+      pathname: step?.url?.pathname ?? '',
+      query: {
+        ...step?.url?.query,
+        project: DEMO_SELECTED_PROJECT_ID,
+      },
+    };
+  };
+
+  const navigateToStep = (stepId: DemoTourStep) => {
+    PageFiltersStore.updateProjects([DEMO_SELECTED_PROJECT_ID], null);
+    const target = getUrlFromStep(stepId);
+    if (location.pathname !== target.pathname && target.pathname !== '') {
+      navigate(target);
+    }
+  };
+
+  return navigateToStep;
+}
 
 export function DemoToursProvider({children}: {children: React.ReactNode}) {
   const [tourState, setTourState] = useLocalStorageState<
     Record<DemoTour, TourState<any>>
   >(DEMO_TOURS_STATE_KEY, TOUR_STATE_INITIAL_VALUE);
+  const navigateToStep = useNavigateToStep();
 
   const handleStepChange = useCallback(
     (tourKey: DemoTour, stepId: DemoTourStep) => {
@@ -140,9 +254,14 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
         ...prev,
         [tourKey]: {...prev[tourKey], currentStepId: stepId},
       }));
+      navigateToStep(stepId);
     },
-    [setTourState]
+    [setTourState, navigateToStep]
   );
+
+  const handleStartTour = useCallback(() => {
+    PageFiltersStore.updateProjects([DEMO_SELECTED_PROJECT_ID], null);
+  }, []);
 
   const handleEndTour = useCallback(
     (tourKey: DemoTour) => {
@@ -162,10 +281,11 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
   const getTourOptions = useCallback(
     (tourKey: DemoTour) => ({
       onEndTour: () => handleEndTour(tourKey),
+      onStartTour: () => handleStartTour(),
       onStepChange: (stepId: DemoTourStep) => handleStepChange(tourKey, stepId),
       requireAllStepsRegistered: false,
     }),
-    [handleEndTour, handleStepChange]
+    [handleEndTour, handleStepChange, handleStartTour]
   );
 
   const sidebarTour = useTourReducer<DemoTourStep>(
@@ -203,7 +323,7 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
 
 const getTourFromStep = (step: DemoTourStep): DemoTour => {
   for (const [category, steps] of Object.entries(TOUR_STEPS)) {
-    if (steps.includes(step)) {
+    if (steps.some(s => s.id === step)) {
       return category as DemoTour;
     }
   }
