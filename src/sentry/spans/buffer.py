@@ -328,8 +328,7 @@ class SpansBuffer:
         return sum(result)
 
     def get_memory_info(self) -> Generator[ServiceMemory]:
-        if isinstance(self.client, RedisCluster):
-            yield from iter_cluster_memory_usage(self.client)
+        return iter_cluster_memory_usage(self.client)
 
     def flush_segments(self, now: int, max_segments: int = 0) -> dict[SegmentKey, FlushedSegment]:
         cutoff = now
