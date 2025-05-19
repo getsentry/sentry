@@ -62,6 +62,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 id=1, is_new=False, is_regression=True, is_new_group_environment=False
             ),
         )
+        self.workflow_metric_tags = {
+            "detector_type": self.error_detector.type,
+            "organization_id": None,
+        }
 
     def test_skips_disabled_workflows(self):
         workflow_triggers = self.create_data_condition_group()
@@ -276,7 +280,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_incr.assert_any_call(
             "workflow_engine.process_workflows",
             1,
-            tags={"detector_type": self.error_detector.type},
+            tags=self.workflow_metric_tags,
         )
 
     @patch("sentry.utils.metrics.incr")
@@ -286,7 +290,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_incr.assert_any_call(
             "workflow_engine.process_workflows.triggered_workflows",
             1,
-            tags={"detector_type": self.error_detector.type},
+            tags=self.workflow_metric_tags,
         )
 
     @with_feature("organizations:workflow-engine-process-workflows")
@@ -298,7 +302,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_incr.assert_any_call(
             "workflow_engine.process_workflows.triggered_actions",
             amount=0,
-            tags={"detector_type": self.error_detector.type},
+            tags=self.workflow_metric_tags,
         )
 
     @with_feature("organizations:workflow-engine-process-workflows")
