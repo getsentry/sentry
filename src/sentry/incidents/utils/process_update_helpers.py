@@ -188,7 +188,6 @@ def get_comparison_aggregation_value(
     dataset = Dataset(snuba_query.dataset)
     query_type = SnubaQuery.Type(snuba_query.type)
 
-    comparison_aggregate: None | float = None
     if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.EventsAnalyticsPlatform:
         comparison_aggregate = get_eap_aggregation_value(
             entity_subscription,
