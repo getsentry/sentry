@@ -41,16 +41,6 @@ jest.mock(
     })),
   })
 );
-jest.mock(
-  'sentry/views/insights/common/components/widgets/hooks/useAiPipelineGroup',
-  () => ({
-    useAiPipelineGroup: jest.fn(() => ({
-      data: {},
-      isPending: false,
-      error: null,
-    })),
-  })
-);
 jest.mock('sentry/views/insights/sessions/queries/useReleaseNewIssues', () => ({
   __esModule: true,
   default: jest.fn(() => ({
