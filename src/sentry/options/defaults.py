@@ -947,7 +947,7 @@ register(
 register(
     "seer.similarity.grouping-ingest-timeout",
     type=Int,
-    default=1000,
+    default=1,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
