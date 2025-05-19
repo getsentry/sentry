@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0005_drop_replay_index
 
-sentry: 0902_detection_type_match_size
+sentry: 0903_missing_indexes_in_state
 
 social_auth: 0002_default_auto_field
 
