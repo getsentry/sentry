@@ -36,6 +36,7 @@ import {statusToText} from 'sentry/views/insights/crons/utils';
 import {useMonitorCheckIns} from 'sentry/views/insights/crons/utils/useMonitorCheckIns';
 
 import {DEFAULT_MAX_RUNTIME} from './monitorForm';
+import {TimingsTooltip} from './timingTooltip';
 
 type Props = {
   monitor: Monitor;
@@ -128,6 +129,7 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                 ) : (
                   <RecordedContainer>
                     <DateTime date={checkIn.dateAdded} timeZone seconds />
+                    <TimingsTooltip checkIn={checkIn} />
                     <OffScheduleIndicator checkIn={checkIn} />
                   </RecordedContainer>
                 )}
