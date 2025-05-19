@@ -771,6 +771,31 @@ class Enhancements:
         return base64_str
 
     @classmethod
+    def _get_config_from_base64_bytes(cls, bytes_str: bytes) -> EnhancementsConfig:
+        padded_bytes = bytes_str + b"=" * (4 - (len(bytes_str) % 4))
+
+        try:
+            compressed_pickle = base64.urlsafe_b64decode(padded_bytes)
+
+            if compressed_pickle.startswith(b"\x28\xb5\x2f\xfd"):
+                pickled = zstandard.decompress(compressed_pickle)
+            else:
+                pickled = zlib.decompress(compressed_pickle)
+
+            config_structure = msgpack.loads(pickled, raw=False)
+            version, bases, rules = config_structure
+            if version not in VERSIONS:
+                raise InvalidEnhancerConfig(f"Unknown enhancements version: {version}")
+
+            rules = [EnhancementRule._from_config_structure(rule, version) for rule in rules]
+            rust_enhancements = get_rust_enhancements("config_structure", pickled)
+
+        except (LookupError, AttributeError, TypeError, ValueError) as e:
+            raise ValueError("invalid stack trace rule config: %s" % e)
+
+        return EnhancementsConfig(rules, rust_enhancements, version, bases)
+
+    @classmethod
     def from_base64_string(
         cls, base64_string: str | bytes, referrer: str | None = None
     ) -> Enhancements:
@@ -784,31 +809,17 @@ class Enhancements:
                 if isinstance(base64_string, str)
                 else base64_string
             )
-            padded_bytes = bytes_str + b"=" * (4 - (len(bytes_str) % 4))
-            try:
-                compressed_pickle = base64.urlsafe_b64decode(padded_bytes)
 
-                if compressed_pickle.startswith(b"\x28\xb5\x2f\xfd"):
-                    pickled = zstandard.decompress(compressed_pickle)
-                else:
-                    pickled = zlib.decompress(compressed_pickle)
+            unsplit_config = cls._get_config_from_base64_bytes(bytes_str)
 
-                config_structure = msgpack.loads(pickled, raw=False)
-                version, bases, rules = config_structure
-                if version not in VERSIONS:
-                    raise InvalidEnhancerConfig(f"Unknown enhancements version: {version}")
+            version = unsplit_config.version
+            bases = unsplit_config.bases
 
-                metrics_timer_tags.update({"split": version == 3})
-
-                rules = [EnhancementRule._from_config_structure(rule, version) for rule in rules]
-                rust_enhancements = get_rust_enhancements("config_structure", pickled)
-
-            except (LookupError, AttributeError, TypeError, ValueError) as e:
-                raise ValueError("invalid stack trace rule config: %s" % e)
+            metrics_timer_tags.update({"split": version == 3})
 
             return cls(
-                rules=rules,
-                rust_enhancements=rust_enhancements,
+                rules=unsplit_config.rules,
+                rust_enhancements=unsplit_config.rust_enhancements,
                 version=version,
                 bases=bases,
             )
