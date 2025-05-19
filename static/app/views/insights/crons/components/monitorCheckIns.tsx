@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -25,7 +26,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
-import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/types';
+import type {
+  CheckIn,
+  Monitor,
+  MonitorEnvironment,
+} from 'sentry/views/insights/crons/types';
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
 import {statusToText} from 'sentry/views/insights/crons/utils';
 import {useMonitorCheckIns} from 'sentry/views/insights/crons/utils/useMonitorCheckIns';
@@ -121,9 +126,10 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                 {checkIn.status === CheckInStatus.MISSED ? (
                   emptyCell
                 ) : (
-                  <div>
+                  <RecordedContainer>
                     <DateTime date={checkIn.dateAdded} timeZone seconds />
-                  </div>
+                    <OffScheduleIndicator checkIn={checkIn} />
+                  </RecordedContainer>
                 )}
                 {defined(checkIn.duration) ? (
                   <DurationContainer>
@@ -227,10 +233,53 @@ function TimeoutLateBy({monitor, duration}: TimeoutLateByProps) {
   );
 }
 
+interface OffScheduleIndicatorProps {
+  checkIn: CheckIn;
+}
+
+function OffScheduleIndicator({checkIn}: OffScheduleIndicatorProps) {
+  const beforeExpected = moment(checkIn.dateAdded).isBefore(checkIn.expectedTime);
+
+  // The check-in is on time if we're not checking-in before the expected
+  // check-in time. If we are after the expected check-in time this means the
+  // check-in happened before a miss was marked, and we are in the grace window.
+  if (!beforeExpected) {
+    return null;
+  }
+
+  const earlyBy = (
+    <strong>
+      <Duration
+        seconds={moment(checkIn.expectedTime).diff(checkIn.dateAdded, 'seconds')}
+        exact
+        abbreviation
+      />
+    </strong>
+  );
+
+  return (
+    <Tooltip
+      title={tct(
+        'This check-in was received [earlyBy] before it was expected. This is likely due to a misconfiguration.',
+        {earlyBy}
+      )}
+    >
+      <Tag type="error">{t('Off-Schedule')}</Tag>
+    </Tooltip>
+  );
+}
+
 const RecordedHeader = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
+`;
+
+const RecordedContainer = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+  font-variant-numeric: tabular-nums;
 `;
 
 const Status = styled('div')`
