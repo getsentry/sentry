@@ -1,5 +1,6 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
+anton-testing-deleteme-123==3.0.0a1
 sentry-devenv>=1.20
 devservices>=1.1.5
 
