@@ -436,6 +436,7 @@ class Enhancements:
         self,
         rules: list[EnhancementRule],
         rust_enhancements: RustEnhancements,
+        split_enhancement_configs: tuple[EnhancementsConfig, EnhancementsConfig] | None = None,
         version: int | None = None,
         bases: list[str] | None = None,
         id: str | None = None,
@@ -449,7 +450,7 @@ class Enhancements:
 
         self.run_split_enhancements = version == 3
         if self.run_split_enhancements:
-            classifier_config, contributes_config = _split_rules(rules)
+            classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
             self.classifier_rules = classifier_config.rules
             self.contributes_rules = contributes_config.rules
