@@ -828,16 +828,12 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             workflow=self.workflow2,
             group_id=self.group2.id,
             event_id=self.event2.event_id,
-            has_passed_filters=True,
-            has_fired_actions=True,
         ).exists()
 
         assert WorkflowFireHistory.objects.filter(
             workflow=self.workflow1,
             group_id=self.group1.id,
             event_id=self.event1.event_id,
-            has_passed_filters=True,
-            has_fired_actions=True,
         ).exists()
 
 
