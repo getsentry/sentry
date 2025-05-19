@@ -85,17 +85,9 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/llmGroupTotalTokensUsedChartWidget'
     ),
-  llmEventTotalTokensUsedChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmEventTotalTokensUsedChartWidget'
-    ),
   llmGroupNumberOfPipelinesChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/llmGroupNumberOfPipelinesChartWidget'
-    ),
-  llmEventNumberOfPipelinesChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmEventNumberOfPipelinesChartWidget'
     ),
   queuesSummaryThroughputChartWidget: () =>
     import(

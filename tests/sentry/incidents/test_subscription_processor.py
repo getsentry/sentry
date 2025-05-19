@@ -1024,8 +1024,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         assert result is None
 
+    @patch("sentry.incidents.subscription_processor.metrics")
     @patch("sentry.incidents.utils.metric_issue_poc.create_or_update_metric_issue")
-    def test_alert(self, create_metric_issue_mock):
+    def test_alert(self, create_metric_issue_mock, mock_metrics):
         # Verify that an alert rule that only expects a single update to be over the
         # alert threshold triggers correctly
         rule = self.rule
@@ -1054,6 +1055,31 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
         create_metric_issue_mock.assert_not_called()
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "static", "organization_id": None},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+            ],
+        )
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @patch("sentry.incidents.subscription_processor.metrics")
+    def test_alert_metrics(self, mock_metrics):
+        rule = self.rule
+        trigger = self.trigger
+        self.send_update(rule, trigger.alert_threshold + 1)
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "static", "organization_id": rule.organization_id},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+            ],
+        )
 
     def test_alert_dedupe(self):
         # Verify that an alert rule that only expects a single update to be over the
@@ -1174,8 +1200,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
 
+    @patch("sentry.incidents.subscription_processor.metrics")
     @patch("sentry.incidents.utils.metric_issue_poc.create_or_update_metric_issue")
-    def test_resolve(self, create_metric_issue_mock):
+    def test_resolve(self, create_metric_issue_mock, mock_metrics):
         # Verify that an alert rule that only expects a single update to be under the
         # resolve threshold triggers correctly
         rule = self.rule
@@ -1218,6 +1245,42 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
         create_metric_issue_mock.assert_not_called()
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "static", "organization_id": None},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+                call(
+                    "incidents.alert_rules.threshold.resolve",
+                    tags={"detection_type": "static", "organization_id": None},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
+            ]
+        )
+
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @patch("sentry.incidents.subscription_processor.metrics")
+    def test_resolve_metrics(self, mock_metrics):
+        rule = self.rule
+        trigger = self.trigger
+        self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+        self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "incidents.alert_rules.threshold.alert",
+                    tags={"detection_type": "static", "organization_id": rule.organization_id},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "fire"}),
+                call(
+                    "incidents.alert_rules.threshold.resolve",
+                    tags={"detection_type": "static", "organization_id": rule.organization_id},
+                ),
+                call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
+            ]
+        )
 
     def test_resolve_multiple_threshold_periods(self):
         # Verify that a rule that expects two consecutive updates to be under the
@@ -3179,7 +3242,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_comparison_alert_above(self):
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_comparison_alert_above(self, helper_metrics):
         rule = self.comparison_rule_above
         comparison_delta = timedelta(seconds=rule.comparison_delta)
         trigger = self.trigger
@@ -3191,9 +3255,13 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
-        self.metrics.incr.assert_has_calls(
+        helper_metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
@@ -3269,7 +3337,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_comparison_alert_eap(self):
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_comparison_alert_eap(self, helper_metrics):
         rule = self.comparison_rule_above
         rule.update(detection_type=AlertRuleDetectionType.PERCENT)
         rule.snuba_query.update(
@@ -3287,9 +3356,13 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
-        self.metrics.incr.assert_has_calls(
+        helper_metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
@@ -3375,7 +3448,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_comparison_alert_below(self):
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_comparison_alert_below(self, helper_metrics):
         rule = self.comparison_rule_below
         comparison_delta = timedelta(seconds=rule.comparison_delta)
         trigger = self.trigger
@@ -3387,9 +3461,13 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
-        self.metrics.incr.assert_has_calls(
+        helper_metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
@@ -3466,7 +3544,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_is_unresolved_comparison_query(self):
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_is_unresolved_comparison_query(self, helper_metrics):
         """
         Test that uses the ErrorsQueryBuilder (because of the specific query) and requires an entity
         """
@@ -3482,9 +3561,13 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
-        self.metrics.incr.assert_has_calls(
+        helper_metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
@@ -3574,7 +3657,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_comparison_alert_different_aggregate(self):
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_comparison_alert_different_aggregate(self, helper_metrics):
         rule = self.comparison_rule_above
         update_alert_rule(rule, aggregate="count_unique(tags[sentry:user])")
         comparison_delta = timedelta(seconds=rule.comparison_delta)
@@ -3587,9 +3671,13 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
-        self.metrics.incr.assert_has_calls(
+        helper_metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
@@ -3857,9 +3945,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
-    @mock.patch(
-        "sentry.incidents.subscription_processor.SubscriptionProcessor.get_comparison_aggregation_value"
-    )
+    @mock.patch("sentry.incidents.subscription_processor.get_comparison_aggregation_value")
     def test_process_data_packets_not_called(
         self, mock_get_comparison_aggregation_value, mock_process_data_packets
     ):
@@ -3875,6 +3961,20 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
         )
         assert mock_process_data_packets.call_count == 0
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    def test_dual_processing_anomaly_detection(self):
+        """
+        Test that with dual processing _and_ anomaly detection enabled we don't error
+        """
+        rule = self.dynamic_rule
+        trigger = self.trigger
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):

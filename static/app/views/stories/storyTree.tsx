@@ -138,7 +138,10 @@ function normalizeFilename(filename: string) {
   }
 
   // capitalizes the filename
-  return filename.charAt(0).toUpperCase() + filename.slice(1).replace('.stories.tsx', '');
+  return (
+    filename.charAt(0).toUpperCase() +
+    filename.slice(1).replace('.stories.tsx', '').replace('.mdx', '')
+  );
 }
 
 type FileCategory = 'hooks' | 'components' | 'views' | 'styles' | 'assets';
