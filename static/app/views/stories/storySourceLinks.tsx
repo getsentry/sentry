@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
@@ -24,15 +25,15 @@ export function StorySourceLinks(props: {story: StoryDescriptor}) {
       return response.json();
     },
   });
+
   const committerDate = data?.[0]?.commit.committer.date;
 
   return (
     <Fragment>
       {committerDate ? (
-        <Fragment>
-          Story Last Edited:
-          <DateTime date={committerDate} />
-        </Fragment>
+        <LastEdited>
+          Last Edited: <DateTime date={committerDate} />
+        </LastEdited>
       ) : null}
       <LinkButton
         href={`https://github.com/getsentry/sentry/blob/master/static/${props.story.filename}`}
@@ -55,3 +56,8 @@ export function StorySourceLinks(props: {story: StoryDescriptor}) {
     </Fragment>
   );
 }
+
+const LastEdited = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+`;
