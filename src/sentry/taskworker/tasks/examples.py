@@ -50,16 +50,16 @@ def will_retry(failure: str) -> None:
 
 
 @exampletasks.register(name="examples.simple_task")
-def simple_task() -> None:
-    sleep(0.8)
+def simple_task(*args: list[Any], **kwargs: dict[str, Any]) -> None:
+    sleep(0.1)
     logger.debug("simple_task complete")
 
 
 @exampletasks.register(
     name="examples.simple_task_with_processing_deadline", processing_deadline_duration=30
 )
-def simple_task_with_processing_deadline() -> None:
-    sleep(0.8)
+def simple_task_with_processing_deadline(*args: list[Any], **kwargs: dict[str, Any]) -> None:
+    sleep(0.1)
     logger.debug("simple_task complete")
 
 
