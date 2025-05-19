@@ -701,24 +701,22 @@ function TabPinButton(props: {
   onClick?: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
   return (
-    <PinButton
-      size="zero"
-      data-test-id="trace-drawer-tab-pin-button"
-      onClick={props.onClick}
-    >
+    <PinButton data-test-id="trace-drawer-tab-pin-button" onClick={props.onClick}>
       <StyledIconPin size="xs" isSolid={props.pinned} />
     </PinButton>
   );
 }
 
-const PinButton = styled(Button)`
+const PinButton = styled('button')`
   padding: ${space(0.5)};
   margin: 0;
   background-color: transparent;
   border: none;
+  color: ${p => p.theme.tokens.content.muted};
 
   &:hover {
     background-color: transparent;
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
