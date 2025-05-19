@@ -779,6 +779,8 @@ class Enhancements:
         """Convert a base64 string into an `Enhancements` object"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
+            metrics_timer_tags.update({"source": "base64_string", "referrer": referrer})
+
             bytes_str = (
                 base64_string.encode("ascii", "ignore")
                 if isinstance(base64_string, str)
@@ -798,9 +800,7 @@ class Enhancements:
                 if version not in VERSIONS:
                     raise InvalidEnhancerConfig(f"Unknown enhancements version: {version}")
 
-                metrics_timer_tags.update(
-                    {"split": version == 3, "source": "base64_string", "referrer": referrer}
-                )
+                metrics_timer_tags.update({"split": version == 3})
 
                 rules = [EnhancementRule._from_config_structure(rule, version) for rule in rules]
                 rust_enhancements = get_rust_enhancements("config_structure", pickled)
