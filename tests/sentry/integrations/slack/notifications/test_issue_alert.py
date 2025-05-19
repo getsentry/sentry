@@ -700,6 +700,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(
             blocks[1]["elements"][0]["elements"][-1]["url"]
         )
+        assert event.group
         emoji = "red_circle"
         url = f"http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
         text = "Hello world"
@@ -874,6 +875,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(
             blocks[1]["elements"][0]["elements"][-1]["url"]
         )
+        assert event.group
         emoji = "red_circle"
         url = f"http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
         text = "Hello world"
@@ -982,6 +984,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(
             blocks[1]["elements"][0]["elements"][-1]["url"]
         )
+        assert event.group
         emoji = "red_circle"
         url = f"http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
         text = "Hello world"
@@ -1000,6 +1003,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(
             blocks[1]["elements"][0]["elements"][-1]["url"]
         )
+        assert event.group
         emoji = "red_circle"
         url = f"http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
         text = "Hello world"

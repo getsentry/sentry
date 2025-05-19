@@ -33,7 +33,7 @@ CATEGORY_TO_EMOJI = {
 }
 
 ACTIONED_CATEGORY_TO_EMOJI: dict[GroupCategory, list[str]] = {
-    GroupCategory.PERFORMANCE: [ACTION_EMOJI, "chart_with_upwards_trend"],
-    GroupCategory.FEEDBACK: [ACTION_EMOJI, "busts_in_silhouette"],
-    GroupCategory.CRON: [ACTION_EMOJI, "spiral_calendar_pad"],
+    GroupCategory.PERFORMANCE: [ACTION_EMOJI[0], "chart_with_upwards_trend"],
+    GroupCategory.FEEDBACK: [ACTION_EMOJI[0], "busts_in_silhouette"],
+    GroupCategory.CRON: [ACTION_EMOJI[0], "spiral_calendar_pad"],
 }
