@@ -209,7 +209,6 @@ class SubscriptionProcessor:
         threshold: float = trigger.alert_threshold + resolve_add
         return threshold
 
-
     def get_crash_rate_alert_metrics_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate
     ) -> float | None:
@@ -315,18 +314,21 @@ class SubscriptionProcessor:
         )
         comparison_delta = None
 
-        if has_metric_alert_processing:
+        if (
+            has_metric_alert_processing
+            and not self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+        ):
             try:
                 detector = Detector.objects.get(
                     data_sources__source_id=str(self.subscription.id),
                     data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
                 )
+                comparison_delta = detector.config.get("comparison_delta")
             except Detector.DoesNotExist:
                 logger.exception(
                     "Detector not found", extra={"subscription_id": self.subscription.id}
                 )
 
-            comparison_delta = detector.config.get("comparison_delta")
         else:
             comparison_delta = self.alert_rule.comparison_delta
 
