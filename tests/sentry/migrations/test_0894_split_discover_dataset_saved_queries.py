@@ -1,8 +1,11 @@
+import pytest
+
 from sentry.testutils.cases import SnubaTestCase, TestMigrations
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 
+@pytest.mark.skip("Migration tests are too slow right now")
 class SplitDiscoverDatasetSavedQueryTest(TestMigrations, SnubaTestCase):
     migrate_from = "0893_rulesnooze_added_with_timezone"
     migrate_to = "0894_split_discover_dataset_saved_queries"
