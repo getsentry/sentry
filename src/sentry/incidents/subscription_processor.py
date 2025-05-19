@@ -422,20 +422,24 @@ class SubscriptionProcessor:
                 data_packet = DataPacket[MetricDetectorUpdate](
                     source_id=str(self.subscription.id), packet=packet
                 )
-                results = process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
-                if features.has(
-                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                    self.alert_rule.organization,
-                ):
-                    logger.info(
-                        "dual processing results for alert rule",
-                        extra={
-                            "results": results,
-                            "num_results": len(results),
-                            "value": aggregation_value,
-                            "rule_id": self.alert_rule.id,
-                        },
+                # temporarily skip processing any anomaly detection alerts
+                if self.alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC:
+                    results = process_data_packets(
+                        [data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
                     )
+                    if features.has(
+                        "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                        self.alert_rule.organization,
+                    ):
+                        logger.info(
+                            "dual processing results for alert rule",
+                            extra={
+                                "results": results,
+                                "num_results": len(results),
+                                "value": aggregation_value,
+                                "rule_id": self.alert_rule.id,
+                            },
+                        )
 
         has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
