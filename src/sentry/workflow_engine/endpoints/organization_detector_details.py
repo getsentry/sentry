@@ -1,5 +1,6 @@
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,7 +8,7 @@ from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.bases import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -21,20 +22,45 @@ from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues import grouptype
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.project_detector_index import get_detector_validator
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.models import Detector
 
 
+def get_detector_validator(
+    request: Request, project: Project, detector_type_slug: str, instance=None
+):
+    detector_type = grouptype.registry.get_by_slug(detector_type_slug)
+    if detector_type is None:
+        raise ValidationError({"detectorType": ["Unknown detector type"]})
+
+    if detector_type.detector_settings is None or detector_type.detector_settings.validator is None:
+        raise ValidationError({"detectorType": ["Detector type not compatible with detectors"]})
+
+    return detector_type.detector_settings.validator(
+        instance=instance,
+        context={
+            "project": project,
+            "organization": project.organization,
+            "request": request,
+            "access": request.access,
+        },
+        data=request.data,
+    )
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Workflows"])
-class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
+class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     def convert_args(self, request: Request, detector_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         try:
-            kwargs["detector"] = Detector.objects.get(project=kwargs["project"], id=detector_id)
+            detector = Detector.objects.select_related("project").get(id=detector_id)
+            if detector.project.organization_id != kwargs["organization"].id:
+                raise ResourceDoesNotExist
+            kwargs["detector"] = detector
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -49,13 +75,12 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
 
     # TODO: We probably need a specific permission for detectors. Possibly specific detectors have different perms
     # too?
-    permission_classes = (ProjectAlertRulePermission,)
+    permission_classes = (OrganizationAlertRulePermission,)
 
     @extend_schema(
         operation_id="Fetch a Detector",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            GlobalParams.PROJECT_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
         ],
         responses={
@@ -66,7 +91,7 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project: Project, detector: Detector):
+    def get(self, request: Request, organization: Organization, detector: Detector):
         """
         Fetch a detector
         `````````````````````````
@@ -83,7 +108,6 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
         operation_id="Update a Detector",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            GlobalParams.PROJECT_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
         ],
         request=PolymorphicProxySerializer(
@@ -103,14 +127,14 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, project: Project, detector: Detector) -> Response:
+    def put(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
         Update a Detector
         ````````````````
         Update an existing detector for a project.
         """
         group_type = request.data.get("detector_type") or detector.group_type.slug
-        validator = get_detector_validator(request, project, group_type, detector)
+        validator = get_detector_validator(request, detector.project, group_type, detector)
 
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -122,7 +146,6 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
         operation_id="Delete a Detector",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            GlobalParams.PROJECT_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
         ],
         responses={
@@ -131,7 +154,7 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project: Project, detector: Detector):
+    def delete(self, request: Request, organization: Organization, detector: Detector):
         """
         Delete a detector
         """
@@ -141,7 +164,7 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
         RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
         create_audit_entry(
             request=request,
-            organization=project.organization,
+            organization=detector.project.organization,
             target_object=detector.id,
             event=audit_log.get_event_id("DETECTOR_REMOVE"),
             data=detector.get_audit_log_data(),
