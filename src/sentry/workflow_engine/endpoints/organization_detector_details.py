@@ -1,6 +1,6 @@
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,7 +8,7 @@ from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationAlertRulePermission, OrganizationEndpoint
+from sentry.api.bases import OrganizationDetectorPermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -26,6 +26,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
+from sentry.workflow_engine.endpoints.validators.detector_workflow import can_edit_detector
 from sentry.workflow_engine.models import Detector
 
 
@@ -75,7 +76,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
     # TODO: We probably need a specific permission for detectors. Possibly specific detectors have different perms
     # too?
-    permission_classes = (OrganizationAlertRulePermission,)
+    permission_classes = (OrganizationDetectorPermission,)
 
     @extend_schema(
         operation_id="Fetch a Detector",
@@ -133,6 +134,9 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         ````````````````
         Update an existing detector for a project.
         """
+        if not can_edit_detector(detector, request):
+            raise PermissionDenied
+
         group_type = request.data.get("detector_type") or detector.group_type.slug
         validator = get_detector_validator(request, detector.project, group_type, detector)
 
@@ -158,6 +162,9 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         """
         Delete a detector
         """
+        if not can_edit_detector(detector, request):
+            raise PermissionDenied
+
         if detector.type == ErrorGroupType.slug:
             return Response(status=403)
 
