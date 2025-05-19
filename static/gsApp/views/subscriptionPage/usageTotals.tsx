@@ -5,7 +5,8 @@ import colorFn from 'color';
 
 import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
-import {IconChevron} from 'sentry/icons';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
@@ -430,6 +431,10 @@ function UsageTotals({
     getActiveProductTrial(subscription.productTrials ?? null, category) ??
     getPotentialProductTrial(subscription.productTrials ?? null, category);
 
+  const isSeer =
+    category === DataCategory.SEER_AUTOFIX || category === DataCategory.SEER_SCANNER;
+  const showManageButton = isSeer && !productTrial?.isStarted && !productTrial;
+
   const {
     ondemandPercentUsed,
     onDemandTotalAvailable,
@@ -514,6 +519,8 @@ function UsageTotals({
   const hasReservedQuota: boolean =
     reserved !== null && (reserved === UNLIMITED_RESERVED || reserved > 0);
 
+  const checkoutUrl = `/settings/billing/checkout/?referrer=manage_subscription`;
+
   return (
     <SubscriptionCard data-test-id={`usage-card-${category}`}>
       <CardBody>
@@ -521,11 +528,13 @@ function UsageTotals({
           <BaseRow>
             <div>
               <UsageSummaryTitle>
-                {getPlanCategoryName({
-                  plan: subscription.planDetails,
-                  category,
-                  // intentionally not passing hadCustomDynamicSampling as we only show a combined card under "spans" regardless
-                })}{' '}
+                {isSeer && <span>Seer</span>}
+                {!isSeer &&
+                  getPlanCategoryName({
+                    plan: subscription.planDetails,
+                    category,
+                    // intentionally not passing hadCustomDynamicSampling as we only show a combined card under "spans" regardless
+                  })}{' '}
                 {getTitle()}
                 {productTrial && (
                   <MarginSpan>
@@ -570,6 +579,14 @@ function UsageTotals({
                   />
                 </MarginSpan>
               )}
+              {showManageButton && (
+                <MarginSpan>
+                  <LinkButton icon={<IconOpen />} to={checkoutUrl}>
+                    {t('Manage')}
+                  </LinkButton>
+                </MarginSpan>
+              )}
+
               {!disableTable && (
                 <Button
                   data-test-id={`expand-usage-totals-${category}`}
@@ -826,8 +843,6 @@ function UsageTotals({
           />
           {/* Show additional tables for shared reserved budget categories */}
           {hasReservedBudget &&
-            subscription.hadCustomDynamicSampling &&
-            allTotalsByCategory &&
             subscription.reservedBudgets?.map(budget =>
               Object.entries(budget.categories)
                 // Filter out the current category since it's already shown from logic above

@@ -192,7 +192,7 @@ function Overview({location, subscription, promotionData}: Props) {
       nonPlanProductTrials?.filter(pt => pt.category === DataCategory.PROFILES).length >
         0 || false;
 
-    const showAllBudgetTotals = subscription.hadCustomDynamicSampling ? true : false;
+    const showAllBudgetTotals = subscription.hadCustomDynamicSampling;
     if (
       !subscription.hadCustomDynamicSampling &&
       isAm3DsPlan(subscription.plan) &&
@@ -202,6 +202,10 @@ function Overview({location, subscription, promotionData}: Props) {
       // just show one spans UsageTotalsTable
       reservedBudgetCategoryInfo[DataCategory.SPANS]!.reservedSpend +=
         reservedBudgetCategoryInfo[DataCategory.SPANS_INDEXED]!.reservedSpend ?? 0;
+
+      // Combine SEER_SCANNER into SEER_AUTOFIX
+      reservedBudgetCategoryInfo[DataCategory.SEER_AUTOFIX]!.reservedSpend +=
+        reservedBudgetCategoryInfo[DataCategory.SEER_SCANNER]!.reservedSpend ?? 0;
     }
 
     return (
@@ -209,7 +213,11 @@ function Overview({location, subscription, promotionData}: Props) {
         {sortCategories(subscription.categories).map(categoryHistory => {
           const category = categoryHistory.category;
           // Stored spans are combined into the accepted spans category's table
-          if (category === DataCategory.SPANS_INDEXED) {
+          // Seer issue scans are combined into the Seer Autofix table
+          if (
+            category === DataCategory.SPANS_INDEXED ||
+            category === DataCategory.SEER_SCANNER
+          ) {
             return null;
           }
 
