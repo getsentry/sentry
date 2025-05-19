@@ -437,11 +437,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
                 default=False,
             ),
             click.Option(
-                ["--max-inflight-segments", "max_inflight_segments"],
-                default=20000000,
-                help="The number of segments that can be stored in Redis per shard before the consumer backpressures.",
-            ),
-            click.Option(
                 ["--max-memory-percentage", "max_memory_percentage"],
                 default=1.0,
                 help="Maximum memory usage of the Redis cluster in % (0.0-1.0) before the consumer backpressures.",

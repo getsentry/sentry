@@ -307,8 +307,8 @@ class SpansBuffer:
 
         return trees
 
-    def get_current_queue_size(self) -> int:
-        with metrics.timer("spans.buffer.get_current_queue_size"):
+    def get_stored_segments(self) -> int:
+        with metrics.timer("spans.buffer.get_stored_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
                     key = self._get_queue_key(shard)

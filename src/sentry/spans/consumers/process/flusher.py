@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 import threading
 import time
@@ -6,7 +7,7 @@ from collections.abc import Callable
 import rapidjson
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
-from arroyo.processing.strategies.abstract import ProcessingStrategy
+from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import FilteredPayload, Message
 
 from sentry.conf.types.kafka_definition import Topic
@@ -15,6 +16,8 @@ from sentry.utils import metrics
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 MAX_PROCESS_RESTARTS = 10
+
+logger = logging.getLogger(__name__)
 
 
 class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
@@ -35,15 +38,18 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self,
         buffer: SpansBuffer,
         max_flush_segments: int,
+        max_memory_percentage: float,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
         next_step: ProcessingStrategy[FilteredPayload | int],
     ):
         self.buffer = buffer
         self.max_flush_segments = max_flush_segments
+        self.max_memory_percentage = max_memory_percentage
         self.next_step = next_step
 
         self.stopped = multiprocessing.Value("i", 0)
         self.current_drift = multiprocessing.Value("i", 0)
+        self.should_backpressure = multiprocessing.Value("i", 0)
 
         from sentry.utils.arroyo import _get_arroyo_subprocess_initializer
 
@@ -61,6 +67,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 initializer,
                 self.stopped,
                 self.current_drift,
+                self.should_backpressure,
                 self.buffer,
                 self.max_flush_segments,
                 produce_to_pipe,
@@ -77,6 +84,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         initializer: Callable | None,
         stopped,
         current_drift,
+        should_backpressure,
         buffer: SpansBuffer,
         max_flush_segments: int,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
@@ -105,6 +113,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             while not stopped.value:
                 now = int(time.time()) + current_drift.value
                 flushed_segments = buffer.flush_segments(max_segments=max_flush_segments, now=now)
+
+                should_backpressure.value = len(flushed_segments) >= max_flush_segments * len(
+                    buffer.assigned_shards
+                )
 
                 if not flushed_segments:
                     time.sleep(1)
@@ -154,8 +166,30 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 self.process_restarts += 1
             else:
                 raise RuntimeError("flusher process is dead")
+
+        # Execute this to record metrics.
+        self.buffer.get_stored_segments()
+
+        if self.should_backpressure.value:
+            metrics.incr("sentry.spans.buffer.flusher.backpressure")
+            raise MessageRejected()
+
         if isinstance(message.payload, int):
             self.current_drift.value = message.payload - int(time.time())
+
+        if self.max_memory_percentage < 1.0:
+            memory_infos = list(self.buffer.get_memory_info())
+            used = sum(x.used for x in memory_infos)
+            available = sum(x.available for x in memory_infos)
+            if available > 0 and used / available > self.max_memory_percentage:
+                logger.fatal("Pausing consumer due to Redis being full")
+                metrics.incr("sentry.spans.buffer.flusher.hard_backpressure")
+                # Pause consumer if Redis memory is full. Because the drift is
+                # set before we emit backpressure, the flusher effectively
+                # stops as well. Alternatively we may simply crash the consumer
+                # but this would also trigger a lot of rebalancing.
+                raise MessageRejected()
+
         self.next_step.submit(message)
 
     def terminate(self) -> None:
