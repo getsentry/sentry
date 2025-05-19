@@ -947,7 +947,6 @@ class GitHubInstallation(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             self.active_user_organization = determine_active_organization(request)
-            has_organization = self.active_user_organization is not None
 
             chosen_installation_id = pipeline.fetch_state("chosen_installation")
             if chosen_installation_id is not None:
@@ -963,7 +962,11 @@ class GitHubInstallation(PipelineView):
 
             lifecycle.add_extra(
                 "organization_id",
-                (self.active_user_organization.organization.id if has_organization else None),
+                (
+                    self.active_user_organization.organization.id
+                    if self.active_user_organization is not None
+                    else None
+                ),
             )
 
             error_page = self.check_pending_integration_deletion(request=request)
@@ -971,7 +974,7 @@ class GitHubInstallation(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
                 return error_page
 
-            if has_organization:
+            if self.active_user_organization is not None:
                 if features.has(
                     "organizations:github-multi-org",
                     organization=self.active_user_organization.organization,
