@@ -123,8 +123,10 @@ class KeyStatus(enum.IntEnum):
 
 
 STATUS_BINARY_SIZE = 1  # 1 byte used to represent status
-KEY_ID_LENGTH = 16  # 16 bytes == 128 bits == uuid4
-KEY_LENGTH = 44  # 44 bytes -  URL-safe base64 encoded fernet key
+KEY_ID_BINARY_SIZE = 16  # 16 bytes == 128 bits == uuid4
+KEY_BINARY_SIZE = 44  # 44 bytes -  URL-safe base64 encoded fernet key
+VERSION_BINARY_SIZE = 1  # 1 byte used to represent version
+CURRENT_VERSION = 1  # version of the keyset format, allows for later modifications
 
 
 @dataclass
@@ -140,18 +142,22 @@ class KeysetHandler:
 
     def load(self, io_stream: typing.BinaryIO) -> None:
         """
-        TODO: include file version in the stream - for future compatibility
         Load keyset from io stream.
         Keys are loaded in the following format, from the beginning of the stream:
+        - version (1 byte) - 1st byte of the stream
         - status (1 byte)
         - key_id (16 bytes)
         - key (44 bytes)
-        --------------------------------
-        | status | key_id   | key       |
-        --------------------------------
-        | 1 byte | 16 bytes | 44 bytes  |
-        --------------------------------
+        --------------------------------------------
+        | version | status | key_id   | key        |
+        --------------------------------------------
+        | 1 byte  | 1 byte  | 16 bytes | 44 bytes  |
+        --------------------------------------------
         """
+        version = int.from_bytes(io_stream.read(VERSION_BINARY_SIZE), "big")
+        if version != CURRENT_VERSION:
+            raise ValueError(f"Unsupported keyset version: {version}")
+
         while True:
             status_as_bytes = io_stream.read(STATUS_BINARY_SIZE)
             if not status_as_bytes:  # EOF: read returned empty bytes
@@ -162,12 +168,12 @@ class KeysetHandler:
 
             status = KeyStatus(int.from_bytes(status_as_bytes, "big"))
 
-            key_id = io_stream.read(KEY_ID_LENGTH)
-            if len(key_id) < KEY_ID_LENGTH:
+            key_id = io_stream.read(KEY_ID_BINARY_SIZE)
+            if len(key_id) < KEY_ID_BINARY_SIZE:
                 raise ValueError("Malformed keyset file: incomplete key_id read.")
 
-            key_value = io_stream.read(KEY_LENGTH)  # Renamed variable for clarity
-            if len(key_value) < KEY_LENGTH:
+            key_value = io_stream.read(KEY_BINARY_SIZE)  # Renamed variable for clarity
+            if len(key_value) < KEY_BINARY_SIZE:
                 raise ValueError("Malformed keyset file: incomplete key read.")
 
             self.add_key(Key(status, key_id, key_value))
@@ -176,10 +182,13 @@ class KeysetHandler:
         """
         Save keyset to io stream.
         Keys are saved in the following format:
+        - version (1 byte)
         - status (1 byte)
         - key_id (16 bytes)
         - key (44 bytes)
         """
+        io_stream.write(CURRENT_VERSION.to_bytes(VERSION_BINARY_SIZE, "big"))
+
         for key in self._keyset.values():
             io_stream.write(key.status.value.to_bytes(STATUS_BINARY_SIZE, "big"))
             io_stream.write(key.key_id)
@@ -249,7 +258,7 @@ class KeysetHandler:
         """
         Decrypt data
         """
-        key_id, data = data[:KEY_ID_LENGTH], data[KEY_ID_LENGTH:]
+        key_id, data = data[:KEY_ID_BINARY_SIZE], data[KEY_ID_BINARY_SIZE:]
         key = self.get_key(key_id)
         if key.status != KeyStatus.ACTIVE:
             raise ValueError(f"Key {key_id} is not active")
