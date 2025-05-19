@@ -1,6 +1,7 @@
 import logging
 from dataclasses import asdict, replace
 from enum import StrEnum
+from typing import Any
 
 import sentry_sdk
 from django.db import router, transaction
@@ -217,7 +218,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
 
     # TODO: remove fetching org, only used for feature flag checks
     organization = detector.project.organization
-    workflow_metric_tags = {
+    workflow_metric_tags: dict[str, Any] = {
         "detector_type": detector.type,
         "organization_id": None,
     }
