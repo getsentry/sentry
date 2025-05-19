@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("workflow_engine", "0062_workflow_engine_missing_indexes"),
+        ("workflow_engine", "0063_drop_rollout_workflowfirehistory_columns"),
     ]
 
     operations = [
