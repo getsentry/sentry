@@ -17,7 +17,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
-from sentry.workflow_engine.types import DeletionStatus
+from sentry.workflow_engine.types import WorkflowEngineObjectStatus
 
 from .json_config import JSONConfigBase
 
@@ -44,7 +44,8 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # The detector's status - used for tracking deletion state
     status = models.SmallIntegerField(
-        default=DeletionStatus.ACTIVE.value, db_default=DeletionStatus.ACTIVE.value
+        default=WorkflowEngineObjectStatus.ACTIVE.value,
+        db_default=WorkflowEngineObjectStatus.ACTIVE.value,
     )
 
     # Optionally set a description of the detector, this will be used in notifications
