@@ -15,9 +15,6 @@ from sentry.ratelimits.config import RateLimitConfig
 
 logger = logging.getLogger(__name__)
 
-import sentry_sdk
-from sentry_sdk.consts import VERSION as SDK_VERSION
-
 
 @all_silo_endpoint
 class WarmupEndpoint(Endpoint):

@@ -7,11 +7,12 @@ from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
-# Reexport sentry_sdk just in case we ever have to write another shim like we
-# did for raven
 import sentry_sdk
 from django.conf import settings
 from rest_framework.request import Request
+
+# Reexport sentry_sdk just in case we ever have to write another shim like we
+# did for raven
 from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope
 from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
