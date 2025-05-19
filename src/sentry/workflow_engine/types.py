@@ -142,9 +142,3 @@ class DetectorSettings:
     handler: type[DetectorHandler] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
-
-
-class WorkflowEngineObjectStatus(IntEnum):
-    ACTIVE = 0
-    PENDING_DELETION = 1
-    DELETION_IN_PROGRESS = 2

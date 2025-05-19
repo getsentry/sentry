@@ -7,11 +7,12 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
-from sentry.workflow_engine.types import WorkflowEngineObjectStatus, WorkflowEventData
+from sentry.workflow_engine.types import WorkflowEventData
 
 from .json_config import JSONConfigBase
 
@@ -32,8 +33,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # The workflow's status - used for tracking deletion state
     status = models.SmallIntegerField(
-        default=WorkflowEngineObjectStatus.ACTIVE.value,
-        db_default=WorkflowEngineObjectStatus.ACTIVE.value,
+        default=ObjectStatus.ACTIVE.value,
+        db_default=ObjectStatus.ACTIVE.value,
     )
 
     # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
