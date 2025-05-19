@@ -22,7 +22,7 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
         return None
     if not features.has("organizations:gen-ai-features", group.organization):
         return None
-    if not features.has("projects:trigger-issue-summary-on-alerts", group.project):
+    if not features.has("organizations:trigger-autofix-on-issue-summary", group.organization):
         return None
     if not get_seer_org_acknowledgement(org_id=group.organization.id):
         return None
