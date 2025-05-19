@@ -78,7 +78,7 @@ export function ScreenLoadSpansContent() {
           dataset={DiscoverDatasets.METRICS}
           filters={[
             useEap ? 'is_transaction:true' : 'event.type:transaction',
-            'transaction.op:ui.load',
+            'transaction.op:[ui.load,navigation]',
             `transaction:${transactionName}`,
           ]}
           fields={[

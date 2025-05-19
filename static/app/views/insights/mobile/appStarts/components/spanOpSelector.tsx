@@ -49,7 +49,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     // Exclude this span because we can get TTID contributing spans instead
     '!span.description:"Initial Frame Render"',
     'has:span.description',
-    'transaction.op:ui.load',
+    'transaction.op:[ui.load,navigation]',
     `transaction:${transaction}`,
     `has:ttid`,
     `span.op:[${APP_START_SPANS.join(',')}]`,

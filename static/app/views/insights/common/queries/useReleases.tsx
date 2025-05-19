@@ -56,7 +56,7 @@ export function useReleases(
       const newQuery: NewQuery = {
         name: '',
         fields: ['release', 'count()'],
-        query: `transaction.op:ui.load ${escapeFilterValue(
+        query: `transaction.op:[ui.load,navigation] ${escapeFilterValue(
           `release:[${releases.map(r => `"${r.version}"`).join()}]`
         )}`,
         dataset: useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,

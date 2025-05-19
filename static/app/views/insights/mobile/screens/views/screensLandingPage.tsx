@@ -211,7 +211,7 @@ function ScreensLandingPage() {
     vital: VitalItem | undefined;
   }>({status: undefined, vital: undefined});
 
-  const query = new MutableSearch(['transaction.op:ui.load']);
+  const query = new MutableSearch(['transaction.op:[ui.load,navigation]']);
   if (isProjectCrossPlatform) {
     query.addFilterValue('os.name', selectedPlatform);
   }
