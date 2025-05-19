@@ -455,6 +455,7 @@ class _QueryField extends Component<Props> {
           : descriptor.options;
 
         aggregateParameters.forEach(opt => {
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
         });
 
@@ -553,7 +554,9 @@ class _QueryField extends Component<Props> {
           />
         );
       }
-      throw new Error(`Unknown parameter type encountered for ${this.props.fieldValue}`);
+      throw new Error(
+        `Unknown parameter type encountered for ${JSON.stringify(this.props.fieldValue)}`
+      );
     });
 
     if (skipParameterPlaceholder) {
@@ -635,6 +638,7 @@ class _QueryField extends Component<Props> {
       : Object.values(fieldOptions);
 
     allFieldOptions.forEach(opt => {
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
     });
 

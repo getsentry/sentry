@@ -292,6 +292,7 @@ export default function ReleasesList() {
       return null;
     }
     if (releasesError?.status === 400) {
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       return String(releasesError?.responseJSON?.detail);
     }
     return t('There was an error loading releases');

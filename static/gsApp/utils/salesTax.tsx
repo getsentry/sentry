@@ -3,9 +3,9 @@ import {t} from 'sentry/locale';
 import type {BillingDetails} from 'getsentry/types';
 
 type TaxFieldInfo = {
-  label: React.ReactNode;
-  placeholder: React.ReactNode;
-  taxNumberName: React.ReactNode;
+  label: string;
+  placeholder: string;
+  taxNumberName: string;
 };
 
 const getTaxFieldInfo = (countryCode?: BillingDetails['countryCode']): TaxFieldInfo =>
@@ -66,7 +66,7 @@ const taxInfo = {
     placeholder: t('Tax number'),
     taxNumberName: t('Tax Identification Number'),
   },
-};
+} satisfies Record<NonNullable<BillingDetails['countryCode']>, TaxFieldInfo>;
 
 const SALES_TAX_COUNTRY_INFO = {
   AE: taxInfo.TRN,
