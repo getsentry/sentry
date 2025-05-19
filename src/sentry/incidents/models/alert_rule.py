@@ -220,6 +220,7 @@ class AlertRule(Model):
     )
     description = models.CharField(max_length=1000, null=True)
     detection_type = models.CharField(
+        max_length=32,
         default=AlertRuleDetectionType.STATIC,
         db_default=AlertRuleDetectionType.STATIC,
         choices=AlertRuleDetectionType.choices,
