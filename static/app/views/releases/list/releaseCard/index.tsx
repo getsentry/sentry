@@ -166,13 +166,11 @@ function ReleaseCard({
                 <Tooltip
                   isHoverable
                   title={tct('This release was finalized on [date]. [docs:Read More].', {
-                    date: moment
-                      .tz(release.dateReleased, options?.timezone ?? '')
-                      .format(
-                        options?.clock24Hours
-                          ? 'MMMM D, YYYY HH:mm z'
-                          : 'MMMM D, YYYY h:mm A z'
-                      ),
+                    date: moment(release.dateReleased).format(
+                      options?.clock24Hours
+                        ? 'MMMM D, YYYY HH:mm z'
+                        : 'MMMM D, YYYY h:mm A z'
+                    ),
                     docs: (
                       <ExternalLink href="https://docs.sentry.io/cli/releases/#finalizing-releases" />
                     ),
@@ -186,16 +184,11 @@ function ReleaseCard({
                   title={tct(
                     'Set release date to [date].[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
                     {
-                      date: moment
-                        .tz(
-                          release.firstEvent ?? release.dateCreated,
-                          options?.timezone ?? ''
-                        )
-                        .format(
-                          options?.clock24Hours
-                            ? 'MMMM D, YYYY HH:mm z'
-                            : 'MMMM D, YYYY h:mm A z'
-                        ),
+                      date: moment(release.firstEvent ?? release.dateCreated).format(
+                        options?.clock24Hours
+                          ? 'MMMM D, YYYY HH:mm z'
+                          : 'MMMM D, YYYY h:mm A z'
+                      ),
                       br: <br />,
                       code: <code />,
                       docs: (
