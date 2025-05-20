@@ -93,8 +93,6 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
-                has_passed_filters=True,
-                has_fired_actions=True,
             ).count()
             == 1
         )

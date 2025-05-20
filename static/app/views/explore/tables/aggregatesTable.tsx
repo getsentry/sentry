@@ -88,7 +88,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles}>
+      <Table ref={tableRef} style={initialTableStyles}>
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
