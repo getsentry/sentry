@@ -480,11 +480,22 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[
     | {
         # sentry.service is the project id as a string, but map to project for convenience
         "sentry.service": "project",
+        # Temporarily reverse map these old aliases.
+        # TODO: Once TraceItemAttributeNamesResponse is updated
+        # to return the new aliases, remove these temp mappings.
+        "sentry.name": "span.description",
+        "sentry.description": "sentry.normalized_description",
+        "sentry.span_id": "id",
+        "sentry.segment_name": "transaction",
     },
     "number": {
         definition.internal_name: definition.public_alias
         for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
         if not definition.secondary_alias and definition.search_type != "string"
+    }
+    | {
+        "sentry.start_timestamp": PRECISE_START_TS,
+        "sentry.end_timestamp": PRECISE_FINISH_TS,
     },
 }
 
