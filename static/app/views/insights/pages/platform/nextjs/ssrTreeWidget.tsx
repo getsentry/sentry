@@ -27,6 +27,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -321,8 +322,9 @@ function TreeNodeRenderer({
   indent?: number;
   path?: string[];
 }) {
-  const theme = useTheme();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const theme = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const itemPath = [...path, item.name];
 
@@ -330,6 +332,7 @@ function TreeNodeRenderer({
   if (item.type !== 'folder') {
     exploreLink = getExploreUrl({
       organization,
+      selection,
       mode: Mode.SAMPLES,
       visualize: [
         {
