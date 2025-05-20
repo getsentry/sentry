@@ -106,11 +106,15 @@ export function ModulePageFilterBar({
           otherwise two clicks are required because of some rerendering/event propogation issues into the children */}
         <div style={{width: '100px', position: 'absolute', height: '100%'}} />
       </Tooltip>
-      <PageFilterBar condensed>
-        {!disableProjectFilter && <ProjectPageFilter onChange={onProjectChange} />}
-        <EnvironmentPageFilter />
-        <DatePageFilter {...dateFilterProps} />
-      </PageFilterBar>
+      {/* Requires an extra div, else the pagefilterbar will grow to fill the height
+      of the readout ribbon which results in buttons being very large. */}
+      <div>
+        <PageFilterBar condensed>
+          {!disableProjectFilter && <ProjectPageFilter onChange={onProjectChange} />}
+          <EnvironmentPageFilter />
+          <DatePageFilter {...dateFilterProps} />
+        </PageFilterBar>
+      </div>
       {hasDataWithSelectedProjects && extraFilters}
     </Fragment>
   );
