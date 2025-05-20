@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -108,6 +108,7 @@ function DeprecatedLine({
   registersMeta,
   components,
 }: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const [isHovering, setIsHovering] = useState(false);
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
@@ -322,7 +323,9 @@ function DeprecatedLine({
                 <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
             ) : (
-              <div style={{width: 20, height: 20}} />
+              <div
+                style={theme.isChonk ? {width: 26, height: 20} : {width: 20, height: 20}}
+              />
             )}
           </DefaultLineTagWrapper>
         </DefaultLine>
