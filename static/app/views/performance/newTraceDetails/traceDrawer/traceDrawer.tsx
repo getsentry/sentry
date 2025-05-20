@@ -700,24 +700,23 @@ function TabPinButton(props: {
   pinned: boolean;
   onClick?: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
+  const theme = useTheme();
   return (
-    <PinButton data-test-id="trace-drawer-tab-pin-button" onClick={props.onClick}>
-      <StyledIconPin size="xs" isSolid={props.pinned} />
-    </PinButton>
+    <StyledButton
+      data-test-id="trace-drawer-tab-pin-button"
+      onClick={props.onClick}
+      // @ts-expect-error transparent is not supported in legacy button
+      priority={theme.isChonk ? 'transparent' : 'default'}
+      size="zero"
+      aria-label={props.pinned ? t('Unpin Tab') : t('Pin Tab')}
+      icon={<StyledIconPin size="xs" isSolid={props.pinned} />}
+    />
   );
 }
 
-const PinButton = styled('button')`
-  padding: ${space(0.5)};
-  margin: 0;
-  background-color: transparent;
+const StyledButton = styled(Button)`
   border: none;
-  color: ${p => p.theme.tokens.content.muted};
-
-  &:hover {
-    background-color: transparent;
-    color: ${p => p.theme.tokens.content.primary};
-  }
+  box-shadow: none;
 `;
 
 const StyledIconPin = styled(IconPin)`
