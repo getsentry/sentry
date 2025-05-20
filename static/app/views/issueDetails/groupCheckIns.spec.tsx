@@ -90,7 +90,7 @@ describe('GroupCheckIns', () => {
 
     expect(screen.getByRole('time')).toHaveTextContent(/Jan 1, 2025/);
     expect(screen.getByText(statusToText[check.status])).toBeInTheDocument();
-    expect(screen.getByText(`${check.duration}ms`)).toBeInTheDocument();
+    expect(screen.getByText('9s 50ms')).toBeInTheDocument();
     expect(screen.getByText(check.environment)).toBeInTheDocument();
     expect(screen.getByText(check.id)).toBeInTheDocument();
   });
