@@ -762,17 +762,17 @@ if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
 }
 
 // Cache rspack builds
-if (env.WEBPACK_CACHE_PATH) {
-  appConfig.cache = true;
-  appConfig.experiments!.cache = {
-    type: 'persistent',
-    // https://rspack.dev/config/experiments#cachestorage
-    storage: {
-      type: 'filesystem',
-      directory: path.join(__dirname, env.WEBPACK_CACHE_PATH),
-    },
-  };
-}
+// if (env.WEBPACK_CACHE_PATH) {
+//   appConfig.cache = true;
+//   appConfig.experiments!.cache = {
+//     type: 'persistent',
+//     // https://rspack.dev/config/experiments#cachestorage
+//     storage: {
+//       type: 'filesystem',
+//       directory: path.join(__dirname, env.WEBPACK_CACHE_PATH),
+//     },
+//   };
+// }
 
 appConfig.plugins?.push(
   sentryWebpackPlugin({
