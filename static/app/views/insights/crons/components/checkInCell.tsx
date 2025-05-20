@@ -15,20 +15,21 @@ import {
 import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
-import type {CheckIn, Monitor} from 'sentry/views/insights/crons/types';
+import type {CheckIn, CheckInCellKey} from 'sentry/views/insights/crons/types';
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
 import {statusToText} from 'sentry/views/insights/crons/utils';
 
 import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from './monitorForm';
 
 interface CheckInRowProps {
+  cellKey: CheckInCellKey;
   checkIn: CheckIn;
-  monitor: Monitor;
-  hasMultiEnv?: boolean;
+  project: Project;
 }
 
 const checkStatusToIndicatorStatus: Record<
@@ -92,7 +93,7 @@ function getCompletionStatus({status, duration}: CheckIn) {
   return CompletionStatus.INCOMPLETE;
 }
 
-export function CheckInRow({monitor, checkIn, hasMultiEnv}: CheckInRowProps) {
+export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   const organization = useOrganization();
   const {
     status,
@@ -113,11 +114,13 @@ export function CheckInRow({monitor, checkIn, hasMultiEnv}: CheckInRowProps) {
         status={checkStatusToIndicatorStatus[status]}
         tooltipTitle={tct('Check-in Status: [statusText]', {statusText})}
       />
-      <Text>{statusText}</Text>
+      {statusText}
     </Status>
   );
 
-  const expectedTimeColum = expectedTime ? (
+  const environmentColumn = <div>{environment}</div>;
+
+  const expectedAtColumn = expectedTime ? (
     <TimestampContainer>
       <ExpectedDateTime date={expectedTime} timeZone seconds />
       <OffScheduleIndicator checkIn={checkIn} />
@@ -128,17 +131,16 @@ export function CheckInRow({monitor, checkIn, hasMultiEnv}: CheckInRowProps) {
 
   // Missed rows are mostly empty
   if (status === CheckInStatus.MISSED) {
-    return (
-      <Fragment>
-        {statusColumn}
-        {emptyCell}
-        {emptyCell}
-        {emptyCell}
-        {emptyCell}
-        {hasMultiEnv ? emptyCell : null}
-        {expectedTimeColum}
-      </Fragment>
-    );
+    switch (cellKey) {
+      case 'status':
+        return statusColumn;
+      case 'environment':
+        return environmentColumn;
+      case 'expectedAt':
+        return expectedAtColumn;
+      default:
+        return emptyCell;
+    }
   }
 
   const hadInProgress = !!dateInProgress;
@@ -198,7 +200,7 @@ export function CheckInRow({monitor, checkIn, hasMultiEnv}: CheckInRowProps) {
           >
             <StyledShortId
               shortId={shortId}
-              avatar={<ProjectBadge project={monitor.project} hideName avatarSize={12} />}
+              avatar={<ProjectBadge project={project} hideName avatarSize={12} />}
               to={`/organizations/${organization.slug}/issues/${id}/`}
             />
           </QuickContextHovercard>
@@ -208,17 +210,24 @@ export function CheckInRow({monitor, checkIn, hasMultiEnv}: CheckInRowProps) {
       emptyCell
     );
 
-  return (
-    <Fragment>
-      {statusColumn}
-      {startedColumn}
-      {completedColumn}
-      {durationColumn}
-      {groupsColumn}
-      {hasMultiEnv ? <div>{environment}</div> : null}
-      {expectedTimeColum}
-    </Fragment>
-  );
+  switch (cellKey) {
+    case 'status':
+      return statusColumn;
+    case 'started':
+      return startedColumn;
+    case 'completed':
+      return completedColumn;
+    case 'duration':
+      return durationColumn;
+    case 'issues':
+      return groupsColumn;
+    case 'environment':
+      return environmentColumn;
+    case 'expectedAt':
+      return expectedAtColumn;
+    default:
+      return emptyCell;
+  }
 }
 
 interface OffScheduleIndicatorProps {
