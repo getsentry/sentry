@@ -23,6 +23,7 @@ interface NumberInputProps
     > {
   max?: number;
   min?: number;
+  ref?: React.Ref<HTMLInputElement>;
 }
 
 export function NumberInput({
@@ -37,9 +38,7 @@ export function NumberInput({
   nativeSize,
   className,
   ...props
-}: NumberInputProps & {
-  ref?: React.Ref<HTMLInputElement>;
-}) {
+}: NumberInputProps) {
   const localRef = useRef<HTMLInputElement>(null);
 
   const ariaProps = {

@@ -1,15 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import ContextPickerModal from 'sentry/components/contextPickerModal';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationInstallationStatus,
   PluginProjectItem,
@@ -22,8 +19,6 @@ import {
   useApiQuery,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -36,7 +31,6 @@ import type {IntegrationTab} from 'sentry/views/settings/organizationIntegration
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
 import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/installedPlugin';
-import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import PluginDeprecationAlert from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
 
 function makePluginQueryKey({
@@ -57,7 +51,6 @@ function PluginDetailedView() {
 
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
   const {projects} = useProjects();
@@ -187,59 +180,18 @@ function PluginDetailedView() {
     [plugin, organization.slug, integrationSlug, queryClient]
   );
 
-  const handleAddToProject = useCallback(() => {
-    if (!plugin) {
-      return;
-    }
-    trackIntegrationAnalytics('integrations.plugin_add_to_project_clicked', {
-      view: 'integrations_directory_integration_detail',
-      integration: integrationSlug,
-      integration_type: integrationType,
-      already_installed: installationStatus !== 'Not Installed', // pending counts as installed here
-      organization,
-    });
-    openModal(
-      modalProps => (
-        <ContextPickerModal
-          {...modalProps}
-          nextPath={`/settings/${organization.slug}/projects/:projectId/plugins/${plugin.id}/`}
-          needProject
-          needOrg={false}
-          onFinish={to => {
-            modalProps.closeModal();
-            navigate(normalizeUrl(to));
-          }}
-        />
-      ),
-      {closeEvents: 'escape-key'}
+  const renderDeprecatedButton = useCallback(() => {
+    return (
+      <Tooltip
+        title={t(
+          'This Plugin is deprecated and not available to install on new projects.'
+        )}
+        isHoverable
+      >
+        <Button disabled>Add to Project</Button>
+      </Tooltip>
     );
-  }, [integrationSlug, installationStatus, navigate, organization, plugin]);
-
-  const renderTopButton = useCallback(
-    (disabledFromFeatures: boolean, userHasAccess: boolean) => {
-      if (userHasAccess) {
-        return (
-          <AddButton
-            data-test-id="install-button"
-            disabled={disabledFromFeatures}
-            onClick={handleAddToProject}
-            size="sm"
-            priority="primary"
-          >
-            {t('Add to Project')}
-          </AddButton>
-        );
-      }
-      return (
-        <RequestIntegrationButton
-          name={integrationName}
-          slug={integrationSlug}
-          type={integrationType}
-        />
-      );
-    },
-    [handleAddToProject, integrationName, integrationSlug, integrationType]
-  );
+  }, []);
 
   const renderConfigurations = useCallback(() => {
     if (plugin?.projectList.length) {
@@ -274,20 +226,8 @@ function PluginDetailedView() {
         </Fragment>
       );
     }
-    return (
-      <IntegrationLayout.EmptyConfigurations
-        action={
-          <IntegrationLayout.AddInstallButton
-            featureData={featureData}
-            hideButtonIfDisabled
-            renderTopButton={renderTopButton}
-            requiresAccess
-          />
-        }
-      />
-    );
+    return null;
   }, [
-    featureData,
     handlePluginEnableStatus,
     handleResetConfiguration,
     installationStatus,
@@ -295,7 +235,6 @@ function PluginDetailedView() {
     integrationType,
     organization,
     plugin,
-    renderTopButton,
     projects,
   ]);
 
@@ -322,7 +261,7 @@ function PluginDetailedView() {
               featureData={featureData}
               hideButtonIfDisabled={false}
               requiresAccess={false}
-              renderTopButton={renderTopButton}
+              renderTopButton={renderDeprecatedButton}
             />
           }
           additionalCTA={null}
@@ -353,9 +292,5 @@ function PluginDetailedView() {
     />
   );
 }
-
-const AddButton = styled(Button)`
-  margin-bottom: ${space(1)};
-`;
 
 export default withOrganization(PluginDetailedView);

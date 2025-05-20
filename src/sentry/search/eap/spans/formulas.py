@@ -94,7 +94,6 @@ def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bina
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_SUM, key=dividend, extrapolation_mode=extrapolation_mode
@@ -147,10 +146,8 @@ def avg_compare(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
     )
 
     percentage_change = Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             formula=Column.BinaryFormula(
-                default_value_double=0.0,
                 left=avg_second,
                 op=Column.BinaryFormula.OP_SUBTRACT,
                 right=avg_first,
@@ -171,7 +168,6 @@ def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Colu
     (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, value])
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -219,7 +215,6 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -250,26 +245,37 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
 
 
 def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
+    cache_key = "totalvitalcounts"
+    response = None
+    vital_column = f"count_scores(measurements.score.{vital})"
 
-    snuba_params = settings["snuba_params"]
-    query_string = snuba_params.query_string
+    if cache_key in settings["query_result_cache"]:
+        response = settings["query_result_cache"][cache_key]
 
-    rpc_res = spans_rpc.run_table_query(
-        snuba_params,
-        query_string=query_string if query_string is not None else "",
-        referrer=f"totalvitalcount_{vital}",
-        selected_columns=[f"count_scores(measurements.score.{vital}) as count"],
-        orderby=None,
-        offset=0,
-        limit=1,
-        sampling_mode=snuba_params.sampling_mode,
-        config=SearchResolverConfig(
-            auto_fields=True,
-        ),
-    )
+    else:
+        snuba_params = settings["snuba_params"]
+        query_string = snuba_params.query_string
 
-    if len(rpc_res["data"]) > 0 and rpc_res["data"][0]["count"] is not None:
-        return rpc_res["data"][0]["count"]
+        vital_columns = [f"count_scores({v})" for v in WEB_VITALS_MEASUREMENTS]
+
+        response = spans_rpc.run_table_query(
+            snuba_params,
+            query_string=query_string if query_string is not None else "",
+            referrer=cache_key,
+            selected_columns=vital_columns,
+            orderby=None,
+            offset=0,
+            limit=1,
+            sampling_mode=snuba_params.sampling_mode,
+            config=SearchResolverConfig(
+                auto_fields=True,
+            ),
+        )
+
+        settings["query_result_cache"][cache_key] = response
+
+    if len(response["data"]) > 0 and response["data"][0][vital_column] is not None:
+        return response["data"][0][vital_column]
 
     return 0
 
@@ -363,6 +369,72 @@ def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
     return operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
 
 
+def performance_score(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    score_attribute = cast(AttributeKey, args[0])
+    ratio_attribute = transform_vital_score_to_ratio([score_attribute])
+    if ratio_attribute.name == "score.total":
+        return total_performance_score(args, settings)
+
+    web_vital = score_attribute.name.split(".")[-1]
+    vital_count = get_count_of_vital(web_vital, settings)
+
+    return Column.BinaryFormula(
+        default_value_double=0.0,
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_AVG,
+                key=ratio_attribute,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+        op=Column.BinaryFormula.OP_MULTIPLY,
+        right=Column(literal=LiteralValue(val_double=1.0 if vital_count > 0 else 0.0)),
+    )
+
+
+def total_performance_score(
+    _: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
+    vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+    vital_score_columns: list[Column] = []
+
+    performance_score_formulas: list[tuple[Column.BinaryFormula, str]] = []
+    total_weight = 0.0
+    for vital in vitals:
+        vital_score = f"score.{vital}"
+        vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
+        vital_performance_score = performance_score([vital_score_key], settings)
+        hasVitalCount = vital_performance_score.right.literal.val_double > 0
+        if hasVitalCount:
+            performance_score_formulas.append((vital_performance_score, vital))
+            total_weight += WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
+
+    for formula, vital in performance_score_formulas:
+        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital] / total_weight
+        vital_score_columns.append(
+            Column(
+                formula=Column.BinaryFormula(
+                    default_value_double=0.0,
+                    left=Column(formula=formula),
+                    op=Column.BinaryFormula.OP_MULTIPLY,
+                    right=Column(literal=LiteralValue(val_double=weight)),
+                )
+            )
+        )
+
+    if len(vital_score_columns) == 0:
+        # A bit of a hack, but the rcp expects an aggregate formula to be returned so that `group_by` can be applied. otherwise it will break on the frontend
+        vital_score_key = AttributeKey(name="score.lcp", type=AttributeKey.TYPE_DOUBLE)
+        return performance_score([vital_score_key], settings)
+
+    if len(vital_score_columns) == 1:
+        return vital_score_columns[0].formula
+
+    return operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
+
+
 def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
@@ -370,7 +442,6 @@ def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> C
 
     response_codes = RESPONSE_CODE_MAP[code]
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -415,7 +486,6 @@ def trace_status_rate(args: ResolvedArguments, settings: ResolverSettings) -> Co
     status = cast(str, args[0])
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -447,7 +517,6 @@ def cache_miss_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -490,7 +559,6 @@ def ttfd_contribution_rate(
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -516,7 +584,6 @@ def ttid_contribution_rate(
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -564,7 +631,6 @@ def time_spent_percentage(
     total_time = rpc_res["data"][0][f"sum({column})"]
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_SUM,
@@ -590,7 +656,6 @@ def tpm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -623,7 +688,6 @@ def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
     return Column.BinaryFormula(
-        default_value_double=0.0,
         left=Column(
             aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -708,6 +772,20 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=opportunity_score,
         is_aggregate=True,
     ),
+    "performance_score": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                },
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+            ),
+        ],
+        formula_resolver=performance_score,
+        is_aggregate=True,
+    ),
     "avg_compare": FormulaDefinition(
         default_search_type="percentage",
         infer_search_type_from_arguments=False,
@@ -729,7 +807,8 @@ SPAN_FORMULA_DEFINITIONS = {
         is_aggregate=True,
     ),
     "division_if": FormulaDefinition(
-        default_search_type="number",
+        default_search_type="percentage",
+        infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
@@ -756,7 +835,8 @@ SPAN_FORMULA_DEFINITIONS = {
         is_aggregate=True,
     ),
     "division": FormulaDefinition(
-        default_search_type="number",
+        default_search_type="percentage",
+        infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={

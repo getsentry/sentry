@@ -15,6 +15,8 @@ import vroomrs
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
+from packaging.version import InvalidVersion
+from packaging.version import parse as parse_version
 
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
@@ -27,7 +29,7 @@ from sentry.models.eventerror import EventError
 from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.projectsdk import EventType, ProjectSDK
+from sentry.models.projectsdk import EventType, ProjectSDK, get_minimum_sdk_version
 from sentry.profiles.java import (
     convert_android_methods_to_jvm_frames,
     deobfuscate_signature,
@@ -159,6 +161,45 @@ def process_profile_task(
     sentry_sdk.set_tag("project", project.id)
     sentry_sdk.set_tag("project.slug", project.slug)
 
+    if sampled:
+        if features.has("organizations:profiling-sdks", organization):
+            try:
+                event_type = determine_profile_type(profile)
+                sdk_name, sdk_version = determine_client_sdk(profile, event_type)
+
+                ProjectSDK.update_with_newest_version_or_create(
+                    project=project,
+                    event_type=event_type,
+                    sdk_name=sdk_name,
+                    sdk_version=sdk_version,
+                )
+
+                # Check to see if the data is coming from an deprecated SDK
+                # and drop it if needed
+                if is_sdk_deprecated(event_type, sdk_name, sdk_version):
+                    if features.has("organizations:profiling-deprecate-sdks", organization):
+                        category = (
+                            DataCategory.PROFILE_CHUNK
+                            if event_type == EventType.PROFILE_CHUNK
+                            else DataCategory.PROFILE
+                        )
+                        _track_outcome(
+                            profile=profile,
+                            project=project,
+                            outcome=Outcome.FILTERED,
+                            categories=[category],
+                            reason="deprecated sdk",
+                        )
+                        return
+            except UnableToAcquireLock:
+                # unable to acquire the lock means another event is trying to
+                # update the version so we can skip the update from this event
+                pass
+            except (UnknownClientSDKException, UnknownProfileTypeException):
+                pass
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
     profile_context = {
         "organization_id": profile["organization_id"],
         "project_id": profile["project_id"],
@@ -236,14 +277,6 @@ def process_profile_task(
 
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):
-            if features.has("organizations:profiling-sdks", organization):
-                try:
-                    track_latest_sdk(project, profile)
-                except (UnknownClientSDKException, UnknownProfileTypeException):
-                    pass
-                except Exception as e:
-                    sentry_sdk.capture_exception(e)
-
             if not project.flags.has_profiles:
                 first_profile_received.send_robust(project=project, sender=Project)
             try:
@@ -990,7 +1023,18 @@ def _insert_vroom_profile(profile: Profile) -> bool:
     with sentry_sdk.start_span(op="task.profiling.insert_vroom"):
         try:
             path = "/chunk" if "profiler_id" in profile else "/profile"
-            response = get_from_profiling_service(method="POST", path=path, json_data=profile)
+            response = get_from_profiling_service(
+                method="POST",
+                path=path,
+                json_data=profile,
+                metric=(
+                    "profiling.profile.payload.size",
+                    {
+                        "type": "chunk" if "profiler_id" in profile else "profile",
+                        "platform": profile["platform"],
+                    },
+                ),
+            )
 
             sentry_sdk.set_tag("vroom.response.status_code", str(response.status))
 
@@ -1201,21 +1245,32 @@ def determine_client_sdk(profile: Profile, event_type: EventType) -> tuple[str, 
     raise UnknownClientSDKException
 
 
-def track_latest_sdk(project: Project, profile: Profile) -> None:
-    event_type = determine_profile_type(profile)
-    sdk_name, sdk_version = determine_client_sdk(profile, event_type)
+def is_sdk_deprecated(event_type: EventType, sdk_name: str, sdk_version: str) -> bool:
+    minimum_version = get_minimum_sdk_version(event_type.value, sdk_name, hard_limit=True)
+
+    # no minimum sdk version was specified
+    if minimum_version is None:
+        return False
 
     try:
-        ProjectSDK.update_with_newest_version_or_create(
-            project=project,
-            event_type=event_type,
-            sdk_name=sdk_name,
-            sdk_version=sdk_version,
+        version = parse_version(sdk_version)
+    except InvalidVersion:
+        return False
+
+    # satisfies the minimum sdk version
+    if version >= minimum_version:
+        return False
+
+    parts = sdk_name.split(".", 2)
+    if len(parts) >= 2:
+        normalized_sdk_name = ".".join(parts[:2])
+        metrics.incr(
+            "process_profile.sdk.deprecated",
+            tags={"sdk_name": normalized_sdk_name},
+            sample_rate=1.0,
         )
-    except UnableToAcquireLock:
-        # unable to acquire the lock means another event is trying to update the version
-        # so we can skip the update from this event
-        pass
+
+    return True
 
 
 @metrics.wraps("process_profile.process_vroomrs_profile")

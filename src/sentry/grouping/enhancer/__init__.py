@@ -383,7 +383,13 @@ def _check_split_enhancements_stacktrace_contributes_and_hint(
         )
 
 
-def get_enhancements_version(project: Project, grouping_config_id: str) -> int:
+# This makes it so that for any given deployment, an eligible project either will or won't be opted
+# into the split enhancements (which we'll be able to determine from anywhere we have access to the
+# project), but from deployment to deployment it won't always be the same projects opted in
+SPLIT_ENHANCEMENTS_SAMPLING_SEED = int(1000 * random())
+
+
+def get_enhancements_version(project: Project, grouping_config_id: str = "") -> int:
     """
     Decide whether the Enhancements should be version 2 (status quo) or version 3 (split enhancements).
     """
@@ -393,7 +399,15 @@ def get_enhancements_version(project: Project, grouping_config_id: str) -> int:
     if not features.has("organizations:run-split-enhancements", project.organization):
         return 2
 
-    if random() < options.get("grouping.split_enhancements.sample_rate"):
+    sample_rate = options.get("grouping.split_enhancements.sample_rate")
+
+    if sample_rate == 0:
+        return 2
+
+    # Turn 5% into 20 (for ex), so below we can take roughly 1 in every 20 projects and opt it in
+    sample_rate_denominator = round(1 / sample_rate)
+
+    if hash(project.id + SPLIT_ENHANCEMENTS_SAMPLING_SEED) % sample_rate_denominator == 0:
         return 3
 
     return 2
@@ -511,6 +525,71 @@ class Enhancements:
                 ),
             )
 
+    def assemble_stacktrace_component_legacy(
+        self,
+        variant_name: str,
+        frame_components: list[FrameGroupingComponent],
+        frames: list[dict[str, Any]],
+        platform: str | None,
+        exception_data: dict[str, Any] | None = None,
+    ) -> StacktraceGroupingComponent:
+        """
+        This assembles a `stacktrace` grouping component out of the given
+        `frame` components and source frames.
+
+        This also handles cases where the entire stacktrace should be discarded.
+        """
+
+        match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
+        rust_frames = [RustFrame(contributes=c.contributes) for c in frame_components]
+        rust_exception_data = make_rust_exception_data(exception_data)
+
+        # Modify the rust frames by applying +group/-group rules and getting hints for both those
+        # changes and the `in_app` changes applied by earlier in the ingestion process by
+        # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
+        # for the overall stacktrace (returned in `rust_results`).
+        rust_stacktrace_results = self.rust_enhancements.assemble_stacktrace_component(
+            match_frames, rust_exception_data, rust_frames
+        )
+
+        # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
+        # both collect metrics and use the information in decisions about whether to send the event
+        # to Seer
+        frame_counts: Counter[str] = Counter()
+
+        # Update frame components with results from rust
+        for frame, frame_component, rust_frame in zip(frames, frame_components, rust_frames):
+            rust_contributes = bool(rust_frame.contributes)  # bool-ing this for mypy's sake
+            rust_hint = rust_frame.hint
+            rust_hint_type = (
+                None
+                if rust_hint is None
+                else "in-app" if rust_hint.startswith("marked") else "contributes"
+            )
+
+            hint = get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
+
+            if not (variant_name == "system" and rust_hint_type == "in-app"):
+                hint = rust_hint
+
+            frame_component.update(contributes=rust_contributes, hint=hint)
+
+            # Add this frame to our tally
+            key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
+            frame_counts[key] += 1
+
+        stacktrace_contributes = rust_stacktrace_results.contributes
+        stacktrace_hint = rust_stacktrace_results.hint
+
+        stacktrace_component = StacktraceGroupingComponent(
+            values=frame_components,
+            hint=stacktrace_hint,
+            contributes=stacktrace_contributes,
+            frame_counts=frame_counts,
+        )
+
+        return stacktrace_component
+
     def assemble_stacktrace_component(
         self,
         variant_name: str,
@@ -597,21 +676,12 @@ class Enhancements:
             in_app_rust_frames,
             contributes_rust_frames,
         ):
-            frame_type = "in-app" if frame_component.in_app else "system"
-            rust_contributes = bool(rust_frame.contributes)  # bool-ing this for mypy's sake
-            rust_hint = rust_frame.hint
-            rust_hint_type = (
-                None
-                if rust_hint is None
-                else "in-app" if rust_hint.startswith("marked") else "contributes"
-            )
-
             # System frames should never contribute in the app variant, so if that's what we have,
             # force `contribtues=False`, regardless of the rust results
-            if variant_name == "app" and frame_type == "system":
+            if variant_name == "app" and not frame_component.in_app:
                 contributes = False
             else:
-                contributes = rust_contributes
+                contributes = rust_frame.contributes
 
             hint = get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
             if self.run_split_enhancements:
@@ -625,15 +695,6 @@ class Enhancements:
                 split_contributes_hint = get_hint_for_frame(
                     variant_name, frame, frame_component, contributes_rust_frame, "contributes"
                 )
-
-            # TODO: Remove this workaround once we remove the legacy config. It's done this way (as
-            # a second pass at setting the values that undoes what the first pass did, rather than
-            # being incorporated into the first pass) so that we won't have to change any of the
-            # main logic when we remove it.
-            if self.bases and self.bases[0].startswith("legacy"):
-                contributes = rust_contributes
-                if not (variant_name == "system" and rust_hint_type == "in-app"):
-                    hint = rust_hint
 
             frame_component.update(contributes=contributes, hint=hint)
 
@@ -676,13 +737,7 @@ class Enhancements:
         # stacktrace to be wrong, too (if in the process of ignoring rust we turn a stacktrace with
         # at least one contributing frame into one without any). So we need to special-case here as
         # well.
-        #
-        # TODO: Remove the first condition once we get rid of the legacy config
-        if (
-            not (self.bases and self.bases[0].startswith("legacy"))
-            and variant_name == "app"
-            and frame_counts["in_app_contributing_frames"] == 0
-        ):
+        if variant_name == "app" and frame_counts["in_app_contributing_frames"] == 0:
             stacktrace_contributes = False
             stacktrace_hint = None
         else:
@@ -732,7 +787,9 @@ class Enhancements:
         )
 
     @classmethod
-    def from_base64_string(cls, base64_string: str | bytes) -> Enhancements:
+    def from_base64_string(
+        cls, base64_string: str | bytes, referrer: str | None = None
+    ) -> Enhancements:
         """Convert a base64 string into an `Enhancements` object"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
@@ -755,7 +812,11 @@ class Enhancements:
 
                 metrics_timer_tags.update(
                     # The first entry in the config structure is the enhancements version
-                    {"split": config_structure[0] == 3, "source": "base64_string"}
+                    {
+                        "split": config_structure[0] == 3,
+                        "source": "base64_string",
+                        "referrer": referrer,
+                    }
                 )
 
                 return cls._from_config_structure(config_structure, rust_enhancements)
@@ -771,11 +832,14 @@ class Enhancements:
         bases: list[str] | None = None,
         id: str | None = None,
         version: int | None = None,
+        referrer: str | None = None,
     ) -> Enhancements:
         """Create an `Enhancements` object from a text blob containing stacktrace rules"""
 
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
-            metrics_timer_tags.update({"split": version == 3, "source": "rules_text"})
+            metrics_timer_tags.update(
+                {"split": version == 3, "source": "rules_text", "referrer": referrer}
+            )
 
             rust_enhancements = get_rust_enhancements("config_string", rules_text)
             rules = parse_enhancements(rules_text)
@@ -799,7 +863,9 @@ def _load_configs() -> dict[str, Enhancements]:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 filename = filename.replace("@", ":")
-                enhancements = Enhancements.from_rules_text(f.read(), id=filename, version=3)
+                enhancements = Enhancements.from_rules_text(
+                    f.read(), id=filename, version=3, referrer="default_rules"
+                )
                 enhancement_bases[filename] = enhancements
     return enhancement_bases
 

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   GridBodyCell,
   GridHead,
@@ -51,9 +51,9 @@ interface EventListTableProps {
     tableUnits?: string;
     /**
      * The total number of results for this table across all pages
-     * Needs to be a ReactNode for <EventsTable /> to work.
+     * Needs to be a string | number for <EventsTable /> to work.
      */
-    totalCount?: React.ReactNode;
+    totalCount?: string | number;
   };
   /**
    * The title of the table

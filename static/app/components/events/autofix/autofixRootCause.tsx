@@ -195,6 +195,7 @@ function RootCauseDescription({
       {cause.root_cause_reproduction && (
         <AutofixTimeline
           events={cause.root_cause_reproduction}
+          eventCodeUrls={cause.reproduction_urls}
           groupId={groupId}
           runId={runId}
           stepIndex={previousDefaultStepIndex ?? 0}
@@ -392,7 +393,7 @@ function AutofixRootCauseDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Autofix is uncertain of the root cause...')}
+              blockName={t('Seer is uncertain of the root cause...')}
             />
           )}
         </AnimatePresence>
@@ -479,9 +480,6 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-left: ${space(0.5)};
-  padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(1)};
   flex-wrap: wrap;
 `;
@@ -506,7 +504,7 @@ const CustomRootCausePadding = styled('div')`
 
 const CauseDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-top: ${space(1)};
+  margin-top: ${space(0.5)};
 `;
 
 const AnimationWrapper = styled(motion.div)`

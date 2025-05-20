@@ -3,7 +3,8 @@ import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
@@ -39,6 +40,7 @@ type EventNavigationProps = {
    * Data property to help style the component when it's sticky
    */
   'data-stuck'?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
 };
 
@@ -59,12 +61,7 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
 
 export const MIN_NAV_HEIGHT = 44;
 
-export function EventTitle({
-  event,
-  group,
-  ref,
-  ...props
-}: EventNavigationProps & {ref?: React.Ref<HTMLDivElement>}) {
+export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
   const organization = useOrganization();
   const theme = useTheme();
   const showTraceLink = organization.features.includes('performance-view');
@@ -215,9 +212,12 @@ function EventNavigationLink({
         }
 
         setIsCollapsed(false);
-        document
-          .getElementById(config.key)
-          ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+        // Animation frame avoids conflicting with react-router ScrollRestoration
+        requestAnimationFrame(() => {
+          document
+            .getElementById(config.key)
+            ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+        });
       }}
       borderless
       size="xs"

@@ -1,5 +1,4 @@
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -14,23 +13,15 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import {DEFAULT_SAMPLING_MODE} from 'sentry/views/insights/common/queries/useDiscover';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import type {
-  MetricsProperty,
-  SpanFunctions,
-  SpanIndexedField,
-  SpanMetricsProperty,
-} from 'sentry/views/insights/types';
+import type {MetricsProperty} from 'sentry/views/insights/types';
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
-
-export type DiscoverSeries = Series & {
-  meta: EventsMetaType;
-};
 
 interface UseMetricsSeriesOptions<YAxisFields, Fields> {
   fields: Fields;
@@ -46,44 +37,6 @@ interface UseMetricsSeriesOptions<YAxisFields, Fields> {
   transformAliasToInputFormat?: boolean;
 }
 
-export const useTopNSpanMetricsMultiSeries = <
-  YAxisFields extends SpanMetricsProperty[],
-  Fields extends SpanMetricsProperty[],
->(
-  options: UseMetricsSeriesOptions<YAxisFields, Fields>,
-  referrer: string,
-  pageFilters?: PageFilters
-) => {
-  const useEap = useInsightsEap();
-  return useTopNDiscoverMultiSeries<YAxisFields, Fields>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
-    referrer,
-    pageFilters
-  );
-};
-
-type EapSeriesProperties =
-  | MetricsProperty[]
-  | SpanMetricsProperty[]
-  | SpanIndexedField[]
-  | SpanFunctions[]
-  | string[];
-
-export const useTopNSpanEAPMultiSeries = <
-  YAxisFields extends SpanMetricsProperty[],
-  Fields extends EapSeriesProperties,
->(
-  options: UseMetricsSeriesOptions<YAxisFields, Fields>,
-  referrer: string
-) => {
-  return useTopNDiscoverMultiSeries<YAxisFields, Fields>(
-    options,
-    DiscoverDatasets.SPANS_EAP_RPC,
-    referrer
-  );
-};
-
 export const useTopNMetricsMultiSeries = <
   YAxisFields extends MetricsProperty[],
   Fields extends MetricsProperty[],
@@ -98,25 +51,6 @@ export const useTopNMetricsMultiSeries = <
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
     referrer,
     pageFilters
-  );
-};
-
-/**
- * TODO: Remove string type, added to fix types for 'count()'
- */
-export const useTopNSpanIndexedMultiSeries = <
-  YAxisFields extends SpanIndexedField[] | SpanFunctions[] | string[],
-  Fields extends SpanIndexedField[] | SpanFunctions[] | string[],
->(
-  options: UseMetricsSeriesOptions<YAxisFields, Fields>,
-  referrer: string,
-  dataset?: DiscoverDatasets
-) => {
-  const useEap = useInsightsEap();
-  return useTopNDiscoverMultiSeries<YAxisFields, Fields>(
-    options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : (dataset ?? DiscoverDatasets.SPANS_INDEXED),
-    referrer
   );
 };
 

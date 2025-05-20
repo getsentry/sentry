@@ -79,7 +79,7 @@ function Step({
             <Fragment>
               {hasErroredStepBefore && hasStepAbove && (
                 <StepMessage>
-                  {t('Autofix encountered an error. Restarting step from scratch...')}
+                  {t('Seer encountered an error. Restarting step from scratch...')}
                 </StepMessage>
               )}
               {step.type === AutofixStepType.DEFAULT && (
@@ -174,19 +174,19 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
       errorMessage.toLowerCase().includes('tokens')
     ) {
       customErrorMessage = t(
-        "Autofix worked so hard that it couldn't fit all its findings in its own memory. Please try again."
+        "Seer worked so hard that it couldn't fit all its findings in its own memory. Please try again."
       );
     } else if (errorMessage.toLowerCase().includes('iterations')) {
       customErrorMessage = t(
-        'Autofix was taking a ton of iterations, so we pulled the plug out of fear it might go rogue. Please try again.'
+        'Seer was taking a ton of iterations, so we pulled the plug out of fear it might go rogue. Please try again.'
       );
     } else if (errorMessage.toLowerCase().includes('timeout')) {
       customErrorMessage = t(
-        'Autofix was taking way too long, so we pulled the plug to put it out of its misery. Please try again.'
+        'Seer was taking way too long, so we pulled the plug to turn it off and on again. Please try again.'
       );
     } else {
       customErrorMessage = t(
-        "Oops, Autofix went kaput. We've dispatched Autofix to fix Autofix. In the meantime, try again?"
+        "Oops, Seer went kaput. We've dispatched Seer to fix Seer. In the meantime, try again?"
       );
     }
 
@@ -286,6 +286,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
             groupId={groupId}
             runId={runId}
             responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
+            autofixData={data}
           />
         )}
     </StepsContainer>

@@ -178,7 +178,7 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
 // Use if the doc link differs by domain view
 type DocLinkMap = Partial<Record<DomainView, string>>;
 
-export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string | DocLinkMap> = {
+export const MODULE_PRODUCT_DOC_LINKS = {
   [ModuleName.DB]: DB_MODULE_DOC_LINK,
   [ModuleName.HTTP]: HTTP_MODULE_DOC_LINK,
   [ModuleName.CACHE]: CACHE_MODULE_DOC_LINK,
@@ -196,9 +196,9 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string | DocLinkMap> =
   [ModuleName.SESSIONS]: {
     [MOBILE_LANDING_SUB_PATH]: MOBILE_SESSIONS_MODULE_DOC_LINK,
     [FRONTEND_LANDING_SUB_PATH]: FRONTEND_SESSIONS_MODULE_DOC_LINK,
-  },
+  } as DocLinkMap,
   [ModuleName.OTHER]: '',
-};
+} satisfies Record<ModuleName, string | DocLinkMap>;
 
 /**
  * Features that control gating of modules, falling back to upsell style hooks.
@@ -254,5 +254,3 @@ export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
 ]);
 
 export const INGESTION_DELAY = 90;
-
-export const EAP_LOCAL_STORAGE_KEY = 'insights-modules-use-eap';

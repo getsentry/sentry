@@ -33,6 +33,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {EAPExperimentButton} from 'sentry/views/insights/pages/backend/eapExperimentButton';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -45,6 +46,7 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {
   generateBackendPerformanceEventView,
@@ -98,6 +100,7 @@ export function OldBackendOverviewPage() {
   const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
+  const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
@@ -232,7 +235,13 @@ export function OldBackendOverviewPage() {
     >
       <BackendHeader
         headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={<NewNextJsExperienceButton />}
+        headerActions={
+          isNextJsInsightsAvailable ? (
+            <NewNextJsExperienceButton />
+          ) : (
+            <EAPExperimentButton />
+          )
+        }
       />
       <Layout.Body>
         <Layout.Main fullWidth>

@@ -1,6 +1,6 @@
 import os
 import secrets
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Literal, Self, TypeIs
 from urllib.parse import urlparse, urlunparse
 
 import petname
@@ -108,7 +108,7 @@ class ApiApplication(Model):
     def is_active(self):
         return self.status == ApiApplicationStatus.active
 
-    def is_allowed_response_type(self, value):
+    def is_allowed_response_type(self, value: object) -> TypeIs[Literal["code", "token"]]:
         return value in ("code", "token")
 
     def normalize_url(self, value):

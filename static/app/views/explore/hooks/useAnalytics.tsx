@@ -121,6 +121,7 @@ function useTrackAnalytics({
       interval,
     });
 
+    /* eslint-disable @typescript-eslint/no-base-to-string */
     info(
       fmt`trace.explorer.metadata:
       organization: ${organization.slug}
@@ -138,6 +139,7 @@ function useTrackAnalytics({
     `,
       {isAnalytics: true}
     );
+    /* eslint-enable @typescript-eslint/no-base-to-string */
   }, [
     organization,
     dataset,
@@ -372,7 +374,8 @@ export function useCompareAnalytics({
   const query = queryParts.query;
   const fields = queryParts.fields;
   const visualizes = queryParts.yAxes.map(
-    yAxis => new Visualize([yAxis], String(index), queryParts.chartType)
+    yAxis =>
+      new Visualize([yAxis], {label: String(index), chartType: queryParts.chartType})
   );
 
   return useTrackAnalytics({

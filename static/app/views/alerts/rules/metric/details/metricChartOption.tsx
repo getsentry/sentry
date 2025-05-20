@@ -7,7 +7,6 @@ import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/are
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
@@ -29,10 +28,7 @@ import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
-  const {
-    options: {timezone},
-  } = ConfigStore.get('user');
-  return moment.tz(date, timezone).format(format);
+  return moment(date).format(format);
 }
 
 function createStatusAreaSeries(

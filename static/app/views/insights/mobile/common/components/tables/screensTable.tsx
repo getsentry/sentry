@@ -24,7 +24,7 @@ import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCe
 import type {Row} from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-export type TableData = {
+type TableData = {
   data: Array<Record<string, string | number>>;
   meta?: MetaType;
 };
