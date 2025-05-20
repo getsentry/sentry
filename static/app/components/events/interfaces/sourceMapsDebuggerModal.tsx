@@ -1851,9 +1851,8 @@ function ChecklistDoneNote() {
           'You completed all of the steps above. Capture a new event to verify your setup!'
         )}
         {isSelfHosted
-          ? ' ' +
-            tct(
-              'If the newly captured event is still not sourcemapped, please check the logs of the [symbolicator] service of your self-hosted instance.',
+          ? tct(
+              ' If the newly captured event is still not sourcemapped, please check the logs of the [symbolicator] service of your self-hosted instance.',
               {
                 symbolicator: <MonoBlock>symbolicator</MonoBlock>,
               }

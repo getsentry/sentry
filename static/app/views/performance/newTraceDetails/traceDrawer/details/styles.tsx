@@ -1,4 +1,4 @@
-import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
+import {Fragment, type PropsWithChildren, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -426,6 +426,15 @@ function Highlights({
   headerContent,
   bodyContent,
 }: HighlightProps) {
+  const dispatch = useTraceStateDispatch();
+
+  const onOpsBreakdownRowClick = useCallback(
+    (op: string) => {
+      dispatch({type: 'set query', query: `op:${op}`, source: 'external'});
+    },
+    [dispatch]
+  );
+
   if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
     return null;
   }
@@ -475,9 +484,9 @@ function Highlights({
             <PanelBody>{bodyContent}</PanelBody>
           </StyledPanel>
           {isEAPSpanNode(node) ? (
-            <HighLightEAPOpsBreakdown node={node} />
+            <HighLightEAPOpsBreakdown onRowClick={onOpsBreakdownRowClick} node={node} />
           ) : event ? (
-            <HighLightsOpsBreakdown event={event} />
+            <HighLightsOpsBreakdown onRowClick={onOpsBreakdownRowClick} event={event} />
           ) : null}
         </HighlightsRightColumn>
       </HighlightsWrapper>
@@ -490,7 +499,13 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
-function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
+function HighLightsOpsBreakdown({
+  event,
+  onRowClick,
+}: {
+  event: EventTransaction;
+  onRowClick: (op: string) => void;
+}) {
   const theme = useTheme();
   const breakdown = generateStats(event, {type: 'no_filter'});
 
@@ -508,7 +523,10 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
           const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
 
           return (
-            <HighlightsOpRow key={operationName}>
+            <HighlightsOpRow
+              key={operationName}
+              onClick={() => onRowClick(operationName)}
+            >
               <IconCircleFill size="xs" color={color as Color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
@@ -520,7 +538,13 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
   );
 }
 
-function HighLightEAPOpsBreakdown({node}: {node: TraceTreeNode<TraceTree.EAPSpan>}) {
+function HighLightEAPOpsBreakdown({
+  node,
+  onRowClick,
+}: {
+  node: TraceTreeNode<TraceTree.EAPSpan>;
+  onRowClick: (op: string) => void;
+}) {
   const theme = useTheme();
   const breakdown = node.eapSpanOpsBreakdown;
 
@@ -555,7 +579,10 @@ function HighLightEAPOpsBreakdown({node}: {node: TraceTreeNode<TraceTree.EAPSpan
           const pctLabel = Math.round(currOp.percentage);
 
           return (
-            <HighlightsOpRow key={operationName}>
+            <HighlightsOpRow
+              key={operationName}
+              onClick={() => onRowClick(operationName)}
+            >
               <IconCircleFill size="xs" color={color as Color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
@@ -586,6 +613,7 @@ const HighlightsSpanCount = styled('div')`
 const HighlightsOpRow = styled(FlexBox)`
   font-size: 13px;
   gap: ${space(0.5)};
+  cursor: pointer;
 `;
 
 const HighlightsOpsBreakdownWrapper = styled(FlexBox)`
@@ -825,6 +853,7 @@ function KeyValueAction({
         location,
         projectIds,
         rowKey,
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         rowValue.toString(),
         TraceDrawerActionKind.INCLUDE
       ),
@@ -837,6 +866,7 @@ function KeyValueAction({
         location,
         projectIds,
         rowKey,
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         rowValue.toLocaleString(),
         TraceDrawerActionKind.EXCLUDE
       ),
@@ -867,6 +897,7 @@ function KeyValueAction({
           location,
           projectIds,
           rowKey,
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           TraceDrawerActionKind.GREATER_THAN
         ),
@@ -879,6 +910,7 @@ function KeyValueAction({
           location,
           projectIds,
           rowKey,
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           TraceDrawerActionKind.LESS_THAN
         ),
@@ -903,6 +935,7 @@ function KeyValueAction({
         traceAnalytics.trackExploreSearch(
           organization,
           rowKey,
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           key as TraceDrawerActionKind,
           'drawer'

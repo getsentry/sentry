@@ -163,7 +163,20 @@ class DataCondition(DefaultFieldsModel):
         if condition_type in CONDITION_OPS:
             # If the condition is a base type, handle it directly
             op = CONDITION_OPS[Condition(self.type)]
-            result = op(cast(Any, value), self.comparison)
+            result = None
+            try:
+                result = op(cast(Any, value), self.comparison)
+            except TypeError:
+                logger.exception(
+                    "Invalid comparison for data condition",
+                    extra={
+                        "comparison": self.comparison,
+                        "value": value,
+                        "type": self.type,
+                        "condition_id": self.id,
+                    },
+                )
+
             return self.get_condition_result() if result else None
 
         # Otherwise, we need to get the handler and evaluate the value

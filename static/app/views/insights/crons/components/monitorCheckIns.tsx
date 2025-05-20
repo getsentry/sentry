@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
@@ -10,6 +11,7 @@ import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import ShortId from 'sentry/components/shortId';
 import {
   StatusIndicator,
@@ -21,13 +23,14 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/types';
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
 import {statusToText} from 'sentry/views/insights/crons/utils';
 import {useMonitorCheckIns} from 'sentry/views/insights/crons/utils/useMonitorCheckIns';
+
+import {DEFAULT_MAX_RUNTIME} from './monitorForm';
 
 type Props = {
   monitor: Monitor;
@@ -49,7 +52,6 @@ const checkStatusToIndicatorStatus: Record<
 const PER_PAGE = 10;
 
 export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
-  const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -78,15 +80,18 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
 
   const headers = [
     t('Status'),
-    t('Started'),
+    <RecordedHeader key="recorded-header">
+      {t('Recorded')}
+      <QuestionTooltip
+        size="sm"
+        title={t('The time when Sentry received the first check-in for this job.')}
+      />
+    </RecordedHeader>,
     t('Duration'),
     t('Issues'),
     ...(hasMultiEnv ? [t('Environment')] : []),
     t('Expected At'),
   ];
-
-  const customTimezone =
-    monitor.config.timezone && monitor.config.timezone !== user.options.timezone;
 
   return (
     <Fragment>
@@ -117,25 +122,26 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                   emptyCell
                 ) : (
                   <div>
-                    <Tooltip
-                      disabled={!customTimezone}
-                      title={
-                        <DateTime
-                          date={checkIn.dateCreated}
-                          forcedTimezone={monitor.config.timezone ?? 'UTC'}
-                          timeZone
-                          seconds
-                        />
-                      }
-                    >
-                      <DateTime date={checkIn.dateCreated} timeZone seconds />
-                    </Tooltip>
+                    <DateTime date={checkIn.dateAdded} timeZone seconds />
                   </div>
                 )}
                 {defined(checkIn.duration) ? (
-                  <div>
+                  <DurationContainer>
                     <Tooltip title={<Duration exact seconds={checkIn.duration / 1000} />}>
                       <Duration seconds={checkIn.duration / 1000} />
+                    </Tooltip>
+                    {checkIn.status === CheckInStatus.TIMEOUT && (
+                      <TimeoutLateBy monitor={monitor} duration={checkIn.duration} />
+                    )}
+                  </DurationContainer>
+                ) : checkIn.status === CheckInStatus.TIMEOUT ? (
+                  <div>
+                    <Tooltip
+                      title={t(
+                        'An in-progress check-in was received, but no closing check-in followed. Your job may be terminating before it reports to Sentry.'
+                      )}
+                    >
+                      <Tag type="error">{t('Incomplete')}</Tag>
                     </Tooltip>
                   </div>
                 ) : (
@@ -173,19 +179,7 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                 {hasMultiEnv ? <div>{checkIn.environment}</div> : null}
                 <div>
                   {checkIn.expectedTime ? (
-                    <Tooltip
-                      disabled={!customTimezone}
-                      title={
-                        <DateTime
-                          date={checkIn.expectedTime}
-                          forcedTimezone={monitor.config.timezone ?? 'UTC'}
-                          timeZone
-                          seconds
-                        />
-                      }
-                    >
-                      <Timestamp date={checkIn.expectedTime} timeZone seconds />
-                    </Tooltip>
+                    <Timestamp date={checkIn.expectedTime} timeZone seconds />
                   ) : (
                     emptyCell
                   )}
@@ -198,8 +192,55 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
   );
 }
 
+interface TimeoutLateByProps {
+  duration: number;
+  monitor: Monitor;
+}
+
+function TimeoutLateBy({monitor, duration}: TimeoutLateByProps) {
+  const maxRuntimeSeconds = (monitor.config.max_runtime ?? DEFAULT_MAX_RUNTIME) * 60;
+  const lateBySecond = duration / 1000 - maxRuntimeSeconds;
+
+  const maxRuntime = (
+    <strong>
+      <Duration seconds={(monitor.config.max_runtime ?? DEFAULT_MAX_RUNTIME) * 60} />
+    </strong>
+  );
+
+  const lateBy = (
+    <strong>
+      <Duration seconds={lateBySecond} />
+    </strong>
+  );
+
+  return (
+    <Tooltip
+      title={tct(
+        'The closing check-in occurred [lateBy] after this check-in was marked as timed out. The configured maximum allowed runtime is [maxRuntime].',
+        {lateBy, maxRuntime}
+      )}
+    >
+      <Tag type="error">
+        {t('%s late', <Duration abbreviation seconds={lateBySecond} />)}
+      </Tag>
+    </Tooltip>
+  );
+}
+
+const RecordedHeader = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
+
 const Status = styled('div')`
   line-height: 1.1;
+`;
+
+const DurationContainer = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
 `;
 
 const IssuesContainer = styled('div')`

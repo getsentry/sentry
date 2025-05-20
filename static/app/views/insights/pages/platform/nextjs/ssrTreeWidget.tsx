@@ -27,6 +27,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -207,7 +208,9 @@ export default function SSRTreeWidget() {
   return (
     <Widget
       Title={<Widget.WidgetTitle title={WIDGET_TITLE} />}
-      Visualization={<VisualizationWrapper>{visualization}</VisualizationWrapper>}
+      Visualization={
+        <VisualizationWrapper hide={!hasData}>{visualization}</VisualizationWrapper>
+      }
       noVisualizationPadding
       revealActions="always"
       Actions={
@@ -319,8 +322,9 @@ function TreeNodeRenderer({
   indent?: number;
   path?: string[];
 }) {
-  const theme = useTheme();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const theme = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const itemPath = [...path, item.name];
 
@@ -328,6 +332,7 @@ function TreeNodeRenderer({
   if (item.type !== 'folder') {
     exploreLink = getExploreUrl({
       organization,
+      selection,
       mode: Mode.SAMPLES,
       visualize: [
         {
@@ -438,10 +443,17 @@ function TreeNodeRenderer({
 TreeWidgetVisualization.LoadingPlaceholder =
   TimeSeriesWidgetVisualization.LoadingPlaceholder;
 
-const VisualizationWrapper = styled('div')`
+const VisualizationWrapper = styled('div')<{hide: boolean}>`
   margin-top: ${space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
   overflow-y: auto;
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  ${p =>
+    p.hide &&
+    css`
+      display: contents;
+    `}
 `;
 
 const HeaderCell = styled('div')`

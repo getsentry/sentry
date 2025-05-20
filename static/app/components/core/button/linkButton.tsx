@@ -1,54 +1,24 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
 
-import type {DO_NOT_USE_CommonButtonProps} from 'sentry/components/core/button';
-import {
-  DO_NOT_USE_BUTTON_ICON_SIZES,
-  DO_NOT_USE_getButtonStyles,
-  useButtonFunctionality,
-} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 
-import {getChonkButtonStyles} from './index.chonk';
+import {
+  DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
+  DO_NOT_USE_getButtonStyles as getButtonStyles,
+} from './styles';
+import {DO_NOT_USE_getChonkButtonStyles as getChonkButtonStyles} from './styles.chonk';
+import type {
+  DO_NOT_USE_CommonButtonProps as CommonButtonProps,
+  DO_NOT_USE_LinkButtonProps as LinkButtonProps,
+} from './types';
+import {useButtonFunctionality} from './useButtonFunctionality';
 
-type LinkElementProps = Omit<
-  React.AnchorHTMLAttributes<HTMLAnchorElement>,
-  'label' | 'size' | 'title' | 'href'
->;
-
-interface BaseLinkButtonProps extends DO_NOT_USE_CommonButtonProps, LinkElementProps {
-  /**
-   * Determines if the link is disabled.
-   */
-  disabled?: boolean;
-}
-
-interface LinkButtonPropsWithHref extends BaseLinkButtonProps {
-  /**
-   * Determines if the link is external and should open in a new tab.
-   */
-  external?: boolean;
-  href?: string;
-}
-
-interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
-  /**
-   * If true, the link will not reset the scroll position of the page when clicked.
-   */
-  preventScrollReset?: boolean;
-  /**
-   * Determines if the link should replace the current history entry.
-   */
-  replace?: boolean;
-  to?: string | LocationDescriptor;
-}
-
-export type LinkButtonProps = LinkButtonPropsWithHref | LinkButtonPropsWithTo;
+export type {LinkButtonProps};
 
 export function LinkButton({
   size = 'md',
@@ -68,7 +38,9 @@ export function LinkButton({
         aria-disabled={disabled}
         size={size}
         {...props}
+        // @ts-expect-error set href as undefined to force "disabled" state.
         href={disabled ? undefined : 'href' in props ? props.href : undefined}
+        // @ts-expect-error set to as undefined to force "disabled" state
         to={disabled ? undefined : 'to' in props ? props.to : undefined}
         onClick={handleClick}
       >
@@ -82,7 +54,7 @@ export function LinkButton({
         <ButtonLabel size={size} borderless={props.borderless}>
           {props.icon && (
             <Icon size={size} hasChildren={hasChildren}>
-              <IconDefaultsProvider size={DO_NOT_USE_BUTTON_ICON_SIZES[size]}>
+              <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
                 {props.icon}
               </IconDefaultsProvider>
             </Icon>
@@ -123,10 +95,7 @@ const StyledLinkButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<LinkButtonProps>`
-  ${p =>
-    p.theme.isChonk
-      ? getChonkButtonStyles(p as any)
-      : DO_NOT_USE_getButtonStyles(p as any)}
+  ${p => (p.theme.isChonk ? getChonkButtonStyles(p as any) : getButtonStyles(p as any))}
 `;
 
 const ButtonLabel = styled('span', {
@@ -134,7 +103,7 @@ const ButtonLabel = styled('span', {
     typeof prop === 'string' &&
     isPropValid(prop) &&
     !['size', 'borderless'].includes(prop),
-})<Pick<LinkButtonProps, 'size' | 'borderless'>>`
+})<Pick<CommonButtonProps, 'size' | 'borderless'>>`
   height: 100%;
   display: flex;
   align-items: center;
@@ -142,7 +111,10 @@ const ButtonLabel = styled('span', {
   white-space: nowrap;
 `;
 
-const Icon = styled('span')<{hasChildren?: boolean; size?: LinkButtonProps['size']}>`
+const Icon = styled('span')<{
+  hasChildren?: boolean;
+  size?: CommonButtonProps['size'];
+}>`
   display: flex;
   align-items: center;
   margin-right: ${p =>

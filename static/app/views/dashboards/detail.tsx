@@ -70,6 +70,7 @@ import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetB
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
@@ -137,6 +138,7 @@ type State = {
   modifiedDashboard: DashboardDetails | null;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
+  newlyAddedWidget?: Widget;
   openWidgetTemplates?: boolean;
 } & WidgetViewerContextProps;
 
@@ -259,6 +261,7 @@ class DashboardDetail extends Component<Props, State> {
     isSavingDashboardFilters: false,
     isWidgetBuilderOpen: this.isRedesignedWidgetBuilder,
     openWidgetTemplates: undefined,
+    newlyAddedWidget: undefined,
   };
 
   componentDidMount() {
@@ -645,6 +648,12 @@ class DashboardDetail extends Component<Props, State> {
     this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
+  handleScrollToNewWidgetComplete = () => {
+    this.setState({
+      newlyAddedWidget: undefined,
+    });
+  };
+
   onAddWidget = (dataset: DataSet, openWidgetTemplates?: boolean) => {
     const {
       organization,
@@ -667,6 +676,8 @@ class DashboardDetail extends Component<Props, State> {
         if (!defined(dashboardId)) {
           pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
         }
+
+        const defaultLibraryWidget = getTopNConvertedDefaultWidgets(organization)[0];
         navigate(
           normalizeUrl({
             // TODO: Replace with the old widget builder path when swapping over
@@ -674,7 +685,9 @@ class DashboardDetail extends Component<Props, State> {
             query: {
               ...location.query,
               ...(openWidgetTemplates
-                ? {}
+                ? defaultLibraryWidget
+                  ? convertWidgetToBuilderStateParams(defaultLibraryWidget)
+                  : {}
                 : convertWidgetToBuilderStateParams(
                     getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
                   )),
@@ -753,6 +766,9 @@ class DashboardDetail extends Component<Props, State> {
         addLoadingMessage(t('Saving widget'));
         this.handleUpdateWidgetList(newWidgets);
       }
+      this.setState({
+        newlyAddedWidget: mergedWidget,
+      });
 
       this.handleCloseWidgetBuilder();
     } catch (error) {
@@ -1079,8 +1095,14 @@ class DashboardDetail extends Component<Props, State> {
       onDashboardUpdate,
       projects,
     } = this.props;
-    const {modifiedDashboard, dashboardState, widgetLimitReached, seriesData, setData} =
-      this.state;
+    const {
+      modifiedDashboard,
+      dashboardState,
+      widgetLimitReached,
+      seriesData,
+      setData,
+      newlyAddedWidget,
+    } = this.state;
     const {dashboardId} = params;
 
     const hasUnsavedFilters =
@@ -1280,6 +1302,10 @@ class DashboardDetail extends Component<Props, State> {
                                     isPreview={this.isPreview}
                                     widgetLegendState={this.state.widgetLegendState}
                                     onEditWidget={this.onEditWidget}
+                                    newlyAddedWidget={newlyAddedWidget}
+                                    onNewWidgetScrollComplete={
+                                      this.handleScrollToNewWidgetComplete
+                                    }
                                   />
 
                                   <WidgetBuilderV2

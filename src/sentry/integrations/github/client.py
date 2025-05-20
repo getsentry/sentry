@@ -86,12 +86,31 @@ class GithubSetupApiClient(IntegrationProxyClient):
 
     def get_installation_info(self, installation_id: int | str) -> dict[str, Any]:
         """
-        https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
+        Authentication: JWT
+        Docs: https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
         """
         return self.get(f"/app/installations/{installation_id}")
 
     def get_user_info(self) -> dict[str, Any]:
+        """
+        Authentication: Access Token
+        Docs: https://docs.github.com/en/rest/users/users?apiVersion=2022-11-28#get-the-authenticated-user
+        """
         return self.get("/user")
+
+    def get_user_info_installations(self):
+        """
+        Authentication: Access Token
+        Docs: https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
+        """
+        return self.get("/user/installations")
+
+    def get_organization_memberships_for_user(self):
+        """
+        Authentication: Access Token
+        Docs: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#get-an-organization-membership-for-the-authenticated-user
+        """
+        return self.get("/user/memberships/orgs")
 
 
 class GithubProxyClient(IntegrationProxyClient):
@@ -498,15 +517,12 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get(f"/users/{gh_username}")
 
-    def get_labels(self, owner: str, repo: str, paginated: bool = False) -> list[Any]:
+    def get_labels(self, owner: str, repo: str) -> list[Any]:
         """
         Fetches all labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
-        if paginated:
-            return self.get_with_pagination(f"/repos/{owner}/{repo}/labels")
-        else:
-            return self.get(f"/repos/{owner}/{repo}/labels")
+        return self.get_with_pagination(f"/repos/{owner}/{repo}/labels")
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})

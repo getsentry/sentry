@@ -90,10 +90,6 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
     );
   };
 
-  const handleEnablePlugin = (plugin: Plugin) => {
-    updatePlugin(plugin, true);
-  };
-
   const handleDisablePlugin = (plugin: Plugin) => {
     updatePlugin(plugin, false);
   };
@@ -175,7 +171,6 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
               pluginList={(pluginList ?? []).filter(
                 p => p.type === 'notification' && p.hasConfiguration
               )}
-              onEnablePlugin={handleEnablePlugin}
               onDisablePlugin={handleDisablePlugin}
             />
           )}
