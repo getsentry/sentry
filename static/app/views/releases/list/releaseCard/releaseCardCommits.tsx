@@ -42,14 +42,17 @@ function ReleaseCardCommits({release, withHeading = true}: Props) {
   ].join(' ');
 
   return (
-    <div className="release-stats">
+    <ReleaseStatsContainer className="release-stats">
       {withHeading && <ReleaseSummaryHeading>{releaseSummary}</ReleaseSummaryHeading>}
-      <span style={{display: 'inline-block'}}>
-        <AvatarList users={authors} avatarSize={25} typeAvatars="authors" />
-      </span>
-    </div>
+      <AvatarList users={authors} avatarSize={25} typeAvatars="authors" />
+    </ReleaseStatsContainer>
   );
 }
+
+const ReleaseStatsContainer = styled('div')`
+  display: flex;
+  align-items: center;
+`;
 
 const ReleaseSummaryHeading = styled('div')`
   color: ${p => p.theme.subText};
