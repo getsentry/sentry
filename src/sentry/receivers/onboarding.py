@@ -5,11 +5,11 @@ from datetime import datetime, timezone
 
 import sentry_sdk
 from django.db.models import F
+from django.dispatch import Signal
 from django.forms import model_to_dict
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
-from sentry.constants import InsightModules
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
@@ -46,6 +46,23 @@ from sentry.utils.javascript import has_sourcemap
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry")
+
+
+# TODO: find a better place for this
+def set_project_flag_and_signal(project: Project, flag_name: str, signal: Signal, **kwargs) -> int:
+    """Helper function to set a project flag and send a signal."""
+    flag = getattr(Project.flags, flag_name)
+
+    # if the flag is already set, we don't need to do anything
+    # and we can return early
+    if getattr(project.flags, flag_name):
+        return 0
+
+    setattr(project.flags, flag_name, True)
+    updated = project.update(flags=F("flags").bitor(flag))
+    signal.send_robust(project=project, sender=Project, **kwargs)
+    return updated
+
 
 # Used to determine if we should or not record an analytic data
 # for a first event of a project with a minified stack trace
@@ -180,21 +197,12 @@ def record_first_event(project, event, **kwargs):
 
 
 @first_transaction_received.connect(weak=False, dispatch_uid="onboarding.record_first_transaction")
-def _record_first_transaction(project, event, **kwargs):
-    return record_first_transaction(project, event.datetime, **kwargs)
-
-
-def record_first_transaction(project, datetime, **kwargs):
-    if project.flags.has_transactions:
-        return
-
-    project.update(flags=F("flags").bitor(Project.flags.has_transactions))
-
+def record_first_transaction(project, event, **kwargs):
     OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_TRANSACTION,
         status=OnboardingTaskStatus.COMPLETE,
-        date_completed=datetime,
+        date_completed=event.datetime,
     )
 
     analytics.record(
@@ -208,8 +216,6 @@ def record_first_transaction(project, datetime, **kwargs):
 
 @first_profile_received.connect(weak=False, dispatch_uid="onboarding.record_first_profile")
 def record_first_profile(project, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_profiles))
-
     analytics.record(
         "first_profile.sent",
         user_id=get_owner_id(project),
@@ -246,8 +252,6 @@ def record_first_replay(project, **kwargs):
 
 @first_flag_received.connect(weak=False, dispatch_uid="onboarding.record_first_flag")
 def record_first_flag(project, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_flags))
-
     analytics.record(
         "first_flag.sent",
         organization_id=project.organization_id,
@@ -258,8 +262,6 @@ def record_first_flag(project, **kwargs):
 
 @first_feedback_received.connect(weak=False, dispatch_uid="onboarding.record_first_feedback")
 def record_first_feedback(project, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_feedbacks))
-
     analytics.record(
         "first_feedback.sent",
         user_id=get_owner_id(project),
@@ -273,8 +275,6 @@ def record_first_feedback(project, **kwargs):
     weak=False, dispatch_uid="onboarding.record_first_new_feedback"
 )
 def record_first_new_feedback(project, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_new_feedbacks))
-
     analytics.record(
         "first_new_feedback.sent",
         user_id=get_owner_id(project),
@@ -286,16 +286,13 @@ def record_first_new_feedback(project, **kwargs):
 
 @first_cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_first_cron_monitor")
 def record_first_cron_monitor(project, user, from_upsert, **kwargs):
-    updated = project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
-
-    if updated:
-        analytics.record(
-            "first_cron_monitor.created",
-            user_id=get_owner_id(project, user),
-            organization_id=project.organization_id,
-            project_id=project.id,
-            from_upsert=from_upsert,
-        )
+    analytics.record(
+        "first_cron_monitor.created",
+        user_id=get_owner_id(project, user),
+        organization_id=project.organization_id,
+        project_id=project.id,
+        from_upsert=from_upsert,
+    )
 
 
 @cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_cron_monitor_created")
@@ -313,8 +310,6 @@ def record_cron_monitor_created(project, user, from_upsert, **kwargs):
     weak=False, dispatch_uid="onboarding.record_first_cron_checkin"
 )
 def record_first_cron_checkin(project, monitor_id, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_cron_checkins))
-
     analytics.record(
         "first_cron_checkin.sent",
         user_id=get_owner_id(project),
@@ -324,30 +319,10 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
     )
 
 
+@first_insight_span_received.connect(
+    weak=False, dispatch_uid="onboarding.record_first_insight_span"
+)
 def record_first_insight_span(project, module, **kwargs):
-    flag = None
-    if module == InsightModules.HTTP:
-        flag = Project.flags.has_insights_http
-    elif module == InsightModules.DB:
-        flag = Project.flags.has_insights_db
-    elif module == InsightModules.ASSETS:
-        flag = Project.flags.has_insights_assets
-    elif module == InsightModules.APP_START:
-        flag = Project.flags.has_insights_app_start
-    elif module == InsightModules.SCREEN_LOAD:
-        flag = Project.flags.has_insights_screen_load
-    elif module == InsightModules.VITAL:
-        flag = Project.flags.has_insights_vitals
-    elif module == InsightModules.CACHE:
-        flag = Project.flags.has_insights_caches
-    elif module == InsightModules.QUEUE:
-        flag = Project.flags.has_insights_queues
-    elif module == InsightModules.LLM_MONITORING:
-        flag = Project.flags.has_insights_llm_monitoring
-
-    if flag is not None:
-        project.update(flags=F("flags").bitor(flag))
-
     analytics.record(
         "first_insight_span.sent",
         user_id=get_owner_id(project),
@@ -356,9 +331,6 @@ def record_first_insight_span(project, module, **kwargs):
         platform=project.platform,
         module=module,
     )
-
-
-first_insight_span_received.connect(record_first_insight_span, weak=False)
 
 
 # TODO (mifu67): update this to use the new org member invite model
@@ -426,28 +398,16 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         )
         return
 
-    # First, only enter this logic if we've never seen a minified stack trace before
-    if not project.flags.has_minified_stack_trace:
-        # Next, attempt to update the flag, but ONLY if the flag is currently not set.
-        # The number of affected rows tells us whether we succeeded or not. If we didn't, then skip sending the event.
-        # This guarantees us that this analytics event will only be ever sent once.
-        affected = Project.objects.filter(
-            id=project.id, flags=F("flags").bitand(~Project.flags.has_minified_stack_trace)
-        ).update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
-
-        if (
-            project.date_added > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ
-            and affected > 0
-        ):
-            analytics.record(
-                "first_event_with_minified_stack_trace_for_project.sent",
-                user_id=owner_id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                platform=event.platform,
-                project_platform=project.platform,
-                url=dict(event.tags).get("url", None),
-            )
+    if project.date_added > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ:
+        analytics.record(
+            "first_event_with_minified_stack_trace_for_project.sent",
+            user_id=owner_id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=event.platform,
+            project_platform=project.platform,
+            url=dict(event.tags).get("url", None),
+        )
 
 
 @event_processed.connect(weak=False, dispatch_uid="onboarding.record_sourcemaps_received")

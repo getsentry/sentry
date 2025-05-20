@@ -15,6 +15,7 @@ from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEO
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
+from sentry.receivers.onboarding import set_project_flag_and_signal
 from sentry.signals import (
     cron_monitor_created,
     first_cron_checkin_received,
@@ -30,18 +31,20 @@ def signal_first_checkin(project: Project, monitor: Monitor):
         # Backfill users that already have cron monitors
         check_and_signal_first_monitor_created(project, None, False)
         transaction.on_commit(
-            lambda: first_cron_checkin_received.send_robust(
-                project=project, monitor_id=str(monitor.guid), sender=Project
+            lambda: set_project_flag_and_signal(
+                project,
+                "has_new_feedbacks",
+                first_cron_checkin_received,
+                monitor_id=str(monitor.guid),
             ),
             router.db_for_write(Project),
         )
 
 
 def check_and_signal_first_monitor_created(project: Project, user, from_upsert: bool):
-    if not project.flags.has_cron_monitors:
-        first_cron_monitor_created.send_robust(
-            project=project, user=user, from_upsert=from_upsert, sender=Project
-        )
+    set_project_flag_and_signal(
+        project, "has_cron_monitors", first_cron_monitor_created, user=user, from_upsert=from_upsert
+    )
 
 
 def signal_monitor_created(project: Project, user, from_upsert: bool, monitor: Monitor, request):

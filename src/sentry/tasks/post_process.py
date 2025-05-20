@@ -18,6 +18,7 @@ from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
+from sentry.receivers.onboarding import set_project_flag_and_signal
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
@@ -1542,7 +1543,6 @@ def detect_base_urls_for_uptime(job: PostProcessJob):
 
 
 def check_if_flags_sent(job: PostProcessJob) -> None:
-    from sentry.models.project import Project
     from sentry.signals import first_flag_received
 
     event = job["event"]
@@ -1552,8 +1552,7 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
     if flag_context:
         metrics.incr("feature_flags.event_has_flags_context")
         metrics.distribution("feature_flags.num_flags_sent", len(flag_context))
-        if not project.flags.has_flags:
-            first_flag_received.send_robust(project=project, sender=Project)
+        set_project_flag_and_signal(project, "has_flags", first_flag_received)
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:

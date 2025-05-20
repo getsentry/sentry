@@ -1,4 +1,5 @@
 import logging
+import types
 import uuid
 from copy import deepcopy
 from typing import Any, cast
@@ -8,7 +9,7 @@ from django.core.exceptions import ValidationError
 from sentry import options
 from sentry.constants import INSIGHT_MODULE_FILTERS
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
-from sentry.event_manager import get_project_insight_flag
+from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -19,9 +20,9 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.receivers.features import record_generic_event_processed
 from sentry.receivers.onboarding import (
-    record_first_insight_span,
-    record_first_transaction,
+    first_transaction_received,
     record_release_received,
+    set_project_flag_and_signal,
 )
 from sentry.spans.consumers.process_segments.enrichment import (
     match_schemas,
@@ -259,8 +260,18 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
         environment=sentry_tags.get("environment"),
     )
 
-    record_first_transaction(project, to_datetime(segment_span["end_timestamp_precise"]))
+    # signal expects an event like object with a datetime attribute
+    event_like = types.SimpleNamespace(datetime=to_datetime(segment_span["end_timestamp_precise"]))
+
+    set_project_flag_and_signal(
+        project,
+        "has_transactions",
+        first_transaction_received,
+        event=event_like,
+    )
 
     for module, is_module in INSIGHT_MODULE_FILTERS.items():
-        if not get_project_insight_flag(project, module) and is_module(spans):
-            record_first_insight_span(project, module)
+        if is_module(spans):
+            set_project_flag_and_signal(
+                project, INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module], module=module
+            )

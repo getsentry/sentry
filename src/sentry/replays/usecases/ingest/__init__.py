@@ -18,6 +18,7 @@ from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
+from sentry.receivers.onboarding import set_project_flag_and_signal
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
@@ -120,8 +121,7 @@ def _track_initial_segment_event(
     key_id: int | None,
     received: int,
 ) -> None:
-    if not project.flags.has_replays:
-        first_replay_received.send_robust(project=project, sender=Project)
+    set_project_flag_and_signal(project, "has_replays", first_replay_received)
 
     track_outcome(
         org_id=org_id,

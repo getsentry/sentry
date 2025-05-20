@@ -21,6 +21,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
+from sentry.receivers.onboarding import set_project_flag_and_signal
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
@@ -395,17 +396,10 @@ def create_feedback_issue(
     validate_issue_platform_event_schema(event_fixed)
 
     # Analytics
-    if not project.flags.has_feedbacks:
-        first_feedback_received.send_robust(project=project, sender=Project)
+    set_project_flag_and_signal(project, "has_feedbacks", first_feedback_received)
 
-    if (
-        source
-        in [
-            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-        ]
-        and not project.flags.has_new_feedbacks
-    ):
-        first_new_feedback_received.send_robust(project=project, sender=Project)
+    if source == FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE:
+        set_project_flag_and_signal(project, "has_new_feedbacks", first_new_feedback_received)
 
     # Send to issue platform for processing.
     produce_occurrence_to_kafka(

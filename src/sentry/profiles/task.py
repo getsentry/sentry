@@ -41,6 +41,7 @@ from sentry.profiles.utils import (
     apply_stack_trace_rules_to_profile,
     get_from_profiling_service,
 )
+from sentry.receivers.onboarding import set_project_flag_and_signal
 from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
@@ -277,8 +278,7 @@ def process_profile_task(
 
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):
-            if not project.flags.has_profiles:
-                first_profile_received.send_robust(project=project, sender=Project)
+            set_project_flag_and_signal(project, "has_profiles", first_profile_received)
             try:
                 if quotas.backend.should_emit_profile_duration_outcome(
                     organization=organization, profile=profile
