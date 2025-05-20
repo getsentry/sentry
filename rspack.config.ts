@@ -708,7 +708,11 @@ if (IS_UI_DEV_ONLY) {
       rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
     },
   };
-  appConfig.optimization!.runtimeChunk = 'single';
+  if (!IS_PRODUCTION) {
+    appConfig.optimization = {
+      runtimeChunk: 'single',
+    };
+  }
 }
 
 if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
