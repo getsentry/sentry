@@ -1818,7 +1818,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Issues",
                     "displayType": "table",
-                    "widgetType": "discover",
+                    "widgetType": "transaction-like",
                     "interval": "5m",
                     "queries": [
                         {
@@ -1874,7 +1874,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Transactions",
                     "displayType": "table",
-                    "widgetType": "discover",
+                    "widgetType": "transaction-like",
                     "interval": "5m",
                     "queries": [
                         {
@@ -1889,7 +1889,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Errors",
                     "displayType": "table",
-                    "widgetType": "discover",
+                    "widgetType": "error-events",
                     "interval": "5m",
                     "queries": [
                         {
@@ -1914,7 +1914,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Issues",
                     "displayType": "table",
-                    "widgetType": "discover",
+                    "widgetType": "transaction-like",
                     "interval": "5m",
                     "queries": [
                         {
@@ -2656,7 +2656,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
-    widget_type = DashboardWidgetTypes.DISCOVER
+    widget_type = DashboardWidgetTypes.TRANSACTION_LIKE
 
     def setUp(self):
         super().setUp()

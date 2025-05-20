@@ -393,7 +393,7 @@ function AutofixRootCauseDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Autofix is uncertain of the root cause...')}
+              blockName={t('Seer is uncertain of the root cause...')}
             />
           )}
         </AnimatePresence>

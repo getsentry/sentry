@@ -56,15 +56,10 @@ function InnerFeatureBadge({
   ...props
 }: FeatureBadgeProps) {
   const indicatorColors = useFeatureBadgeIndicatorColor();
-  const title = tooltipProps?.title?.toString() ?? defaultTitles[type] ?? '';
+  const title = tooltipProps?.title ?? defaultTitles[type] ?? '';
 
   return (
-    <Tooltip
-      title={title ?? defaultTitles[type]}
-      position="right"
-      {...tooltipProps}
-      skipWrapper
-    >
+    <Tooltip title={title} position="right" {...tooltipProps} skipWrapper>
       {variant === 'badge' || variant === 'short' ? (
         <StyledBadge type={type} {...props}>
           {variant === 'short' ? shortLabels[type] : labels[type]}

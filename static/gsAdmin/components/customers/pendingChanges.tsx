@@ -251,8 +251,8 @@ function getRegularChanges(subscription: Subscription) {
   const newBudgetsChanges: string[] = [];
   oldBudgets?.forEach(budget => {
     const budgetName = getReservedBudgetDisplayName({
+      reservedBudget: budget,
       plan: subscription.planDetails,
-      categories: Object.keys(budget.categories) as DataCategory[],
       hadCustomDynamicSampling: oldPlanUsesDsNames,
     });
     oldBudgetsChanges.push(
@@ -261,8 +261,8 @@ function getRegularChanges(subscription: Subscription) {
   });
   pendingChanges.reservedBudgets.forEach(budget => {
     const budgetName = getReservedBudgetDisplayName({
+      pendingReservedBudget: budget,
       plan: pendingChanges.planDetails,
-      categories: Object.keys(budget.categories) as DataCategory[],
       hadCustomDynamicSampling: newPlanUsesDsNames,
     });
     newBudgetsChanges.push(
