@@ -29,4 +29,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0042_extra_uptime_indexes
 
-workflow_engine: 0062_workflow_engine_missing_indexes
+workflow_engine: 0063_drop_rollout_workflowfirehistory_columns
