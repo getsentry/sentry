@@ -6,7 +6,7 @@ import type {Key, Node} from '@react-types/shared';
 import type {
   SelectOptionOrSectionWithKey,
   SelectSectionWithKey,
-} from 'sentry/components/compactSelect/types';
+} from 'sentry/components/core/compactSelect/types';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
@@ -131,16 +131,6 @@ export function getInitialFilterText(
     default:
       return `${keyText}:${defaultValue}`;
   }
-}
-
-export function mergeSets<T>(...sets: Array<Set<T>>) {
-  const combinedSet = new Set<T>();
-  for (const set of sets) {
-    for (const value of set) {
-      combinedSet.add(value);
-    }
-  }
-  return combinedSet;
 }
 
 export function itemIsSection(

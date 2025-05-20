@@ -26,7 +26,11 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByText('Crash Free Session Rate'));
@@ -65,16 +69,21 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Sessions')).toBeInTheDocument();
     expect(screen.getByText('Performance')).toBeInTheDocument();
     expect(screen.getByText('Uptime Monitoring')).toBeInTheDocument();
+    expect(screen.getByText('Cron Monitoring')).toBeInTheDocument();
     expect(screen.getByText('Custom')).toBeInTheDocument();
     const alertGroups = screen.getAllByRole('radiogroup');
-    expect(alertGroups).toHaveLength(5);
+    expect(alertGroups).toHaveLength(6);
   });
 
   it('should only render alerts for errors in self-hosted errors only', () => {
@@ -97,7 +106,11 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -125,7 +138,11 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('Uptime Monitor')).toBeInTheDocument();

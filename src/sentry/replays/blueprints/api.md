@@ -18,7 +18,7 @@ This document is structured by resource with each resource having actions that c
   - field (optional, string)
   - environment (optional, string)
   - project (optional, string)
-  - sort (optional, string)
+  - sort, sortBy, orderBy (optional, string)
     Default: -startedAt
     Members: + projectId + -projectId + startedAt + -startedAt + finishedAt + -finishedAt + duration + -duration + countErrors + -countErrors
   - statsPeriod (optional, string) - A positive integer suffixed with a unit type.
@@ -249,7 +249,7 @@ Deletes a replay instance.
 - Parameters
 
   - project (optional, string)
-  - sort (optional, string)
+  - sort, sortBy, orderBy (optional, string)
     Default: -count_dead_clicks
     Members:
     - count_dead_clicks
@@ -266,6 +266,7 @@ Deletes a replay instance.
     - w
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
+  - environment (optional, string)
   - per_page (optional, number)
     Default: 10
   - offset (optional, number)

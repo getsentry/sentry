@@ -4,7 +4,6 @@ from datetime import timedelta
 from functools import reduce
 from string import Template
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import router
 from django.db.models import Q
 from django.utils import timezone
@@ -47,7 +46,7 @@ ERR_THROTTLED_RELOCATION = (
 )
 ERR_UNKNOWN_RELOCATION_STATUS = Template("`$status` is not a valid relocation status.")
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 RELOCATION_FILE_SIZE_SMALL = 10 * 1024**2
 RELOCATION_FILE_SIZE_MEDIUM = 100 * 1024**2
@@ -100,6 +99,9 @@ def validate_new_relocation_request(
     if not options.get("relocation.enabled") and not elevated_user:
         return Response({"detail": ERR_FEATURE_DISABLED}, status=status.HTTP_403_FORBIDDEN)
 
+    if not request.user.is_authenticated:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
     # Only superuser/staff can start relocations for other users.
     creator = user_service.get_user(user_id=request.user.id)
     if creator is None:
@@ -129,7 +131,7 @@ def validate_new_relocation_request(
     return None
 
 
-def validate_relocation_uniqueness(owner: RpcUser | AnonymousUser | User) -> Response | None:
+def validate_relocation_uniqueness(owner: RpcUser | User) -> Response | None:
     # Check that this `owner` does not have more than one active `Relocation` in flight.
     if Relocation.objects.filter(
         owner_id=owner.id,
@@ -156,7 +158,7 @@ def get_autopause_value(provenance: Relocation.Provenance) -> int | None:
 
 @region_silo_endpoint
 class RelocationIndexEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -176,6 +178,9 @@ class RelocationIndexEndpoint(Endpoint):
         """
 
         logger.info("relocations.index.get.start", extra={"caller": request.user.id})
+
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         queryset = Relocation.objects.all()
 
@@ -238,6 +243,9 @@ class RelocationIndexEndpoint(Endpoint):
 
         logger.info("relocations.index.post.start", extra={"caller": request.user.id})
 
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         serializer = RelocationsPostSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -287,7 +295,7 @@ class RelocationIndexEndpoint(Endpoint):
         relocation_link_promo_code.send_robust(
             relocation_uuid=relocation.uuid, promo_code=promo_code, sender=self.__class__
         )
-        uploading_start.apply_async(args=[relocation.uuid, None, None])
+        uploading_start.apply_async(args=[str(relocation.uuid), None, None])
         try:
             analytics.record(
                 "relocation.created",

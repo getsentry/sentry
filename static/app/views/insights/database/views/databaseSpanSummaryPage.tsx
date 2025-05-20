@@ -19,23 +19,21 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import DatabaseSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryDurationChartWidget';
+import DatabaseSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryThroughputChartWidget';
 import {
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   DataTitles,
-  getDurationChartTitle,
-  getThroughputChartTitle,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {isAValidSort} from 'sentry/views/insights/database/components/tables/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/insights/database/components/tables/queryTransactionsTable';
-import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {
@@ -45,9 +43,6 @@ import {
   SpanMetricsField,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
 type Query = {
   transaction: string;
@@ -61,8 +56,6 @@ type Props = RouteComponentProps<{groupId: string}, Record<string, unknown>, any
 export function DatabaseSpanSummaryPage({params}: Props) {
   const location = useLocation<Query>();
 
-  const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
-
   const {groupId} = params;
 
   const filters: SpanMetricsQueryFilters = {
@@ -75,17 +68,26 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   // TODO: Fetch sort information using `useLocationQuery`
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
 
   const {data: indexedSpansByGroupId, isPending: areIndexedSpansByGroupIdLoading} =
     useSpansIndexed(
       {
         search: MutableSearch.fromQueryObject({'span.group': params.groupId}),
         limit: 1,
+        sorts: [{field: SpanIndexedField.CODE_FILEPATH, kind: 'desc'}],
         fields: [
           SpanIndexedField.PROJECT_ID,
-          SpanIndexedField.TRANSACTION_ID,
+          SpanIndexedField.TRANSACTION_ID, // TODO: remove this with `useInsightsEap`, it's only needed to get the full event when eap is off
           SpanIndexedField.SPAN_DESCRIPTION,
+          SpanIndexedField.DB_SYSTEM,
+          SpanIndexedField.CODE_FILEPATH,
+          SpanIndexedField.CODE_LINENO,
+          SpanIndexedField.CODE_FUNCTION,
+          SpanIndexedField.SDK_NAME,
+          SpanIndexedField.SDK_VERSION,
+          SpanIndexedField.RELEASE,
+          SpanIndexedField.PLATFORM,
         ],
       },
       'api.starfish.span-description'
@@ -100,11 +102,10 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         SpanMetricsField.SPAN_ACTION,
         SpanMetricsField.SPAN_DOMAIN,
         'count()',
-        `${SpanFunction.SPM}()`,
+        `${SpanFunction.EPM}()`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
-        `${SpanFunction.HTTP_ERROR_COUNT}()`,
+        `${SpanFunction.HTTP_RESPONSE_COUNT}(5)`,
       ],
       enabled: Boolean(groupId),
     },
@@ -125,11 +126,10 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       fields: [
         'transaction',
         'transaction.method',
-        'spm()',
+        'epm()',
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-        'time_spent_percentage()',
-        `${SpanFunction.HTTP_ERROR_COUNT}()`,
+        `${SpanFunction.HTTP_RESPONSE_COUNT}(5)`,
       ],
       sorts: [sort],
       limit: TRANSACTIONS_TABLE_ROW_COUNT,
@@ -161,34 +161,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     requiredParams: ['transaction'],
   });
 
-  const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(filters),
-      yAxis: ['spm()'],
-      enabled: Boolean(groupId),
-      transformAliasToInputFormat: true,
-    },
-    'api.starfish.span-summary-page-metrics-chart'
-  );
-
-  const {
-    isPending: isDurationDataLoading,
-    data: durationData,
-    error: durationError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(filters),
-      yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-      enabled: Boolean(groupId),
-      transformAliasToInputFormat: true,
-    },
-    'api.starfish.span-summary-page-metrics-chart'
-  );
-
   return (
     <Fragment>
       <BackendHeader
@@ -218,7 +190,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                     <MetricReadout
                       title={getThroughputTitle('db')}
                       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                      value={spanMetrics?.[`${SpanFunction.SPM}()`]}
+                      value={spanMetrics?.[`${SpanFunction.EPM}()`]}
                       unit={RateUnit.PER_MINUTE}
                       isLoading={areSpanMetricsLoading}
                     />
@@ -236,11 +208,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.['sum(span.self_time)']}
                       unit={DurationUnit.MILLISECOND}
-                      tooltip={getTimeSpentExplanation(
-                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        spanMetrics?.['time_spent_percentage()'],
-                        'db'
-                      )}
                       isLoading={areSpanMetricsLoading}
                     />
                   </ReadoutRibbon>
@@ -273,23 +240,9 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
               <ModuleLayout.Full>
                 <ChartContainer>
-                  <InsightsLineChartWidget
-                    title={getThroughputChartTitle('db')}
-                    series={[throughputData['spm()']]}
-                    isLoading={isThroughputDataLoading}
-                    error={throughputError}
-                  />
+                  <DatabaseSummaryThroughputChartWidget />
 
-                  <InsightsLineChartWidget
-                    title={getDurationChartTitle('db')}
-                    series={[
-                      durationData[
-                        `${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
-                      ],
-                    ]}
-                    isLoading={isDurationDataLoading}
-                    error={durationError}
-                  />
+                  <DatabaseSummaryDurationChartWidget />
                 </ChartContainer>
               </ModuleLayout.Full>
 
@@ -316,7 +269,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
 const DEFAULT_SORT = {
   kind: 'desc' as const,
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
 };
 
 const TRANSACTIONS_TABLE_ROW_COUNT = 25;

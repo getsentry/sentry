@@ -10,8 +10,10 @@ import {SavedSearchType} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-
-import {SESSION_STATUSES, SESSIONS_FILTER_TAGS} from '../../releaseWidget/fields';
+import {
+  SESSION_STATUSES,
+  SESSIONS_FILTER_TAGS,
+} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 const filterKeySections: FilterKeySection[] = [
   {value: 'session_field', label: t('Suggested'), children: SESSIONS_FILTER_TAGS},
@@ -34,9 +36,15 @@ interface Props {
   onClose: SearchBarProps['onClose'];
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
+  portalTarget?: HTMLElement | null;
 }
 
-export function ReleaseSearchBar({pageFilters, widgetQuery, onClose}: Props) {
+export function ReleaseSearchBar({
+  pageFilters,
+  widgetQuery,
+  onClose,
+  portalTarget,
+}: Props) {
   const organization = useOrganization();
   const orgSlug = organization.slug;
   const projectIds = pageFilters.projects;
@@ -65,6 +73,7 @@ export function ReleaseSearchBar({pageFilters, widgetQuery, onClose}: Props) {
 
   return (
     <SearchQueryBuilder
+      searchOnChange={organization.features.includes('ui-search-on-change')}
       initialQuery={widgetQuery.conditions}
       filterKeySections={filterKeySections}
       filterKeys={supportedTags}
@@ -79,6 +88,7 @@ export function ReleaseSearchBar({pageFilters, widgetQuery, onClose}: Props) {
       disallowFreeText
       invalidMessages={invalidMessages}
       recentSearches={SavedSearchType.SESSION}
+      portalTarget={portalTarget}
     />
   );
 }

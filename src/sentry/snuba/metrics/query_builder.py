@@ -896,14 +896,8 @@ class SnubaQueryBuilder:
             except IndexError:
                 raise InvalidParams(f"Cannot resolve {metric_action_by_field.field} into SnQL")
         else:
-            action_by_name = None
-            if is_group_by:
-                action_by_name = "group by"
-            elif is_order_by:
-                action_by_name = "order by"
-
             raise NotImplementedError(
-                f"Unsupported {action_by_name} field: {metric_action_by_field.field} needs to be either a MetricField or a string"
+                f"Unsupported {"group by" if is_group_by else "order by" if is_order_by else "None"} field: {metric_action_by_field.field} needs to be either a MetricField or a string"
             )
 
     def _build_where(self) -> list[BooleanCondition | Condition]:
@@ -1105,10 +1099,10 @@ class SnubaQueryBuilder:
     def __update_query_dicts_with_component_entities(
         self,
         component_entities: dict[MetricEntity, Sequence[str]],
-        metric_mri_to_obj_dict: dict[tuple[str | None, str, str | None], MetricExpressionBase],
-        fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str | None]]],
+        metric_mri_to_obj_dict: dict[tuple[str | None, str, str], MetricExpressionBase],
+        fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]],
         parent_alias,
-    ) -> dict[tuple[str | None, str, str | None], MetricExpressionBase]:
+    ) -> dict[tuple[str | None, str, str], MetricExpressionBase]:
         # At this point in time, we are only supporting raw metrics in the metrics attribute of
         # any instance of DerivedMetric, and so in this case the op will always be None
         # ToDo(ahmed): In future PR, we might want to allow for dependency metrics to also have an
@@ -1133,11 +1127,11 @@ class SnubaQueryBuilder:
         return metric_mri_to_obj_dict
 
     def get_snuba_queries(self):
-        metric_mri_to_obj_dict: dict[tuple[str | None, str, str | None], MetricExpressionBase] = {}
-        fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str | None]]] = {}
+        metric_mri_to_obj_dict: dict[tuple[str | None, str, str], MetricExpressionBase] = {}
+        fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {}
 
-        for field in self._metrics_query.select:
-            metric_field_obj = metric_object_factory(field.op, field.metric_mri)
+        for select_field in self._metrics_query.select:
+            metric_field_obj = metric_object_factory(select_field.op, select_field.metric_mri)
             # `get_entity` is called the first, to fetch the entities of constituent metrics,
             # and validate especially in the case of SingularEntityDerivedMetric that it is
             # actually composed of metrics that belong to the same entity
@@ -1161,7 +1155,7 @@ class SnubaQueryBuilder:
                         component_entities=component_entities,
                         metric_mri_to_obj_dict=metric_mri_to_obj_dict,
                         fields_in_entities=fields_in_entities,
-                        parent_alias=field.alias,
+                        parent_alias=select_field.alias,
                     )
                     continue
                 elif isinstance(component_entities, str):
@@ -1178,9 +1172,11 @@ class SnubaQueryBuilder:
             if entity not in self._implemented_datasets:
                 raise NotImplementedError(f"Dataset not yet implemented: {entity}")
 
-            metric_mri_to_obj_dict[(field.op, field.metric_mri, field.alias)] = metric_field_obj
+            metric_mri_to_obj_dict[
+                (select_field.op, select_field.metric_mri, select_field.alias)
+            ] = metric_field_obj
             fields_in_entities.setdefault(entity, []).append(
-                (field.op, field.metric_mri, field.alias)
+                (select_field.op, select_field.metric_mri, select_field.alias)
             )
 
         where = self._build_where()
@@ -1258,7 +1254,7 @@ class SnubaResultConverter:
         self,
         organization_id: int,
         metrics_query: DeprecatingMetricsQuery,
-        fields_in_entities: dict,
+        fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]],
         intervals: list[datetime],
         results,
         use_case_id: UseCaseID,

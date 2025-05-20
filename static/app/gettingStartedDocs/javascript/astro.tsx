@@ -24,6 +24,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
+import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -46,6 +47,9 @@ export default defineConfig({
       replaysSessionSampleRate: 0,
       replaysOnErrorSampleRate: 0,`
       }
+      // Setting this option to true will send default PII data to Sentry.
+      // For example, automatic IP address collection on events
+      sendDefaultPii: true,
       sourceMapsUploadOptions: {
         project: "${params.projectSlug}",
         authToken: process.env.SENTRY_AUTH_TOKEN,
@@ -151,7 +155,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'You can further customize your SDK by [manualSetupLink:manually inializing the SDK].',
+            'You can further customize your SDK by [manualSetupLink:manually initializing the SDK].',
             {
               manualSetupLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/" />
@@ -372,13 +376,21 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding = getJavascriptFullStackOnboarding({
+  basePackage: '@sentry/astro',
+  browserProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/astro/profiling/browser-profiling/',
+  nodeProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/astro/profiling/node-profiling/',
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-
   crashReportOnboarding,
   featureFlagOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;

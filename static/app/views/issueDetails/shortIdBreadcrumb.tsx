@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Chevron} from 'sentry/components/chevron';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
-import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -92,7 +92,7 @@ export function ShortIdBreadcrumb({
         <DropdownMenu
           triggerProps={{
             'aria-label': t('Issue copy actions'),
-            icon: <Chevron direction="down" />,
+            icon: <IconChevron direction="down" size="sm" />,
             size: 'zero',
             borderless: true,
             showChevron: false,

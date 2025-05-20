@@ -25,12 +25,10 @@ function XAxis({
   useShortDate,
   useMultilineDate,
   theme,
-
   start,
   end,
   period,
   utc,
-
   addSecondsToTimeFormat = false,
   ...props
 }: XAxisProps): XAXisComponentOption {

@@ -18,9 +18,7 @@ const ReplayGroupContext = createContext<BreadcrumbCustomizationContextType>({})
 export function ReplayGroupContextProvider({children, groupId, eventId}: Props) {
   const value = useMemo(() => ({groupId, eventId}), [groupId, eventId]);
 
-  return (
-    <ReplayGroupContext.Provider value={value}>{children}</ReplayGroupContext.Provider>
-  );
+  return <ReplayGroupContext value={value}>{children}</ReplayGroupContext>;
 }
 
 export const useReplayGroupContext = () => useContext(ReplayGroupContext);

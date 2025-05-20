@@ -14,13 +14,6 @@ describe('django onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-
-    // Renders install instructions
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher("pip install --upgrade 'sentry-sdk[django]'")
-      )
-    ).toBeInTheDocument();
   });
 
   it('renders without tracing', function () {
@@ -44,9 +37,10 @@ describe('django onboarding docs', function () {
 
     // Does not render continuous profiling config
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/"continuous_profiling_auto_start": True,/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
@@ -70,12 +64,10 @@ describe('django onboarding docs', function () {
 
     // Does not render transaction profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
-    ).not.toBeInTheDocument();
-
-    // Does render continuous profiling config
+      screen.getByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+    ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/"continuous_profiling_auto_start": True,/))
+      screen.getByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).toBeInTheDocument();
   });
 });

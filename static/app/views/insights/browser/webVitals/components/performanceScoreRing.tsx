@@ -149,7 +149,7 @@ function PerformanceScoreRing({
         x={foreignObjectOffset}
         y={foreignObjectOffset}
       >
-        {text !== undefined ? <Text {...{textCss}}>{text}</Text> : null}
+        {text === undefined ? null : <Text {...{textCss}}>{text}</Text>}
       </foreignObject>
     </RingSvg>
   );
@@ -192,6 +192,3 @@ const RingBar = styled('circle')<{
 `;
 
 export default PerformanceScoreRing;
-
-// We export components to allow for css selectors
-export {RingBackground, RingBar, Text as RingText};

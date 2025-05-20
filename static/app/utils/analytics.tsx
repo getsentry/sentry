@@ -7,13 +7,16 @@ import {
   alertsEventMap,
   type AlertsEventParameters,
 } from 'sentry/utils/analytics/alertsAnalyticsEvents';
-import type {DDMEventParameters} from 'sentry/utils/analytics/ddmAnalyticsEvents';
-import {ddmEventMap} from 'sentry/utils/analytics/ddmAnalyticsEvents';
 import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
+import {
+  logsAnalyticsEventMap,
+  type LogsAnalyticsEventParameters,
+} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
+import {nextJsInsightsEventMap} from 'sentry/utils/analytics/nextJsInsightsAnalyticsEvents';
 import {
   quickStartEventMap,
   type QuickStartEventParameters,
@@ -43,6 +46,8 @@ import type {IntegrationEventParameters} from './analytics/integrations';
 import {integrationEventMap} from './analytics/integrations';
 import type {IssueEventParameters} from './analytics/issueAnalyticsEvents';
 import {issueEventMap} from './analytics/issueAnalyticsEvents';
+import type {LaravelInsightsEventParameters} from './analytics/laravelInsightsAnalyticsEvents';
+import {laravelInsightsEventMap} from './analytics/laravelInsightsAnalyticsEvents';
 import makeAnalyticsFunction from './analytics/makeAnalyticsFunction';
 import type {MonitorsEventParameters} from './analytics/monitorsAnalyticsEvents';
 import {monitorsEventMap} from './analytics/monitorsAnalyticsEvents';
@@ -67,6 +72,8 @@ import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
 import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
 import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
+import type {TempestEventParameters} from './analytics/tempestAnalyticsEvents';
+import {tempestEventMap} from './analytics/tempestAnalyticsEvents';
 import {tracingEventMap, type TracingEventParameters} from './analytics/tracingEventMap';
 import type {TeamInsightsEventParameters} from './analytics/workflowAnalyticsEvents';
 import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
@@ -76,12 +83,12 @@ interface EventParameters
     AlertsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
-    DDMEventParameters,
     DiscoverEventParameters,
     FeatureFlagEventParameters,
     FeedbackEventParameters,
     InsightEventParameters,
     IssueEventParameters,
+    LaravelInsightsEventParameters,
     MonitorsEventParameters,
     PerformanceEventParameters,
     ProfilingEventParameters,
@@ -97,26 +104,30 @@ interface EventParameters
     IntegrationEventParameters,
     ProjectCreationEventParameters,
     SignupAnalyticsParameters,
+    LogsAnalyticsEventParameters,
     TracingEventParameters,
     StatsEventParameters,
     QuickStartEventParameters,
+    TempestEventParameters,
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
   ...alertsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,
-  ...ddmEventMap,
   ...discoverEventMap,
   ...featureFlagEventMap,
   ...feedbackEventMap,
   ...growthEventMap,
   ...insightEventMap,
   ...issueEventMap,
+  ...laravelInsightsEventMap,
   ...monitorsEventMap,
+  ...nextJsInsightsEventMap,
   ...performanceEventMap,
   ...tracingEventMap,
   ...profilingEventMap,
+  ...logsAnalyticsEventMap,
   ...releasesEventMap,
   ...replayEventMap,
   ...searchEventMap,
@@ -133,6 +144,7 @@ const allEventMap: Record<string, string | null> = {
   ...statsEventMap,
   ...quickStartEventMap,
   ...navigationAnalyticsEventMap,
+  ...tempestEventMap,
 };
 
 /**
@@ -171,16 +183,6 @@ export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
   data,
   options
 ) => HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
-
-/**
- * This should be used to log when a `organization.experiments` experiment
- * variant is checked in the application.
- *
- * Refer for the backend implementation provided through HookStore for more
- * details.
- */
-export const logExperiment: Hooks['analytics:log-experiment'] = options =>
-  HookStore.get('analytics:log-experiment').forEach(cb => cb(options));
 
 type RecordMetric = Hooks['metrics:event'] & {
   endSpan: (opts: {

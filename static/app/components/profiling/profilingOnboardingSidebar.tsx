@@ -2,7 +2,7 @@ import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
@@ -13,6 +13,7 @@ import {
   type DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {TaskSidebar} from 'sentry/components/sidebar/taskSidebar';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -281,11 +282,17 @@ interface ProfilingOnboardingContentProps {
 
 function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   const api = useApi();
+  const organization = useOrganization();
+
   const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: props.organization.slug,
     projSlug: props.projectSlug,
     platform: props.platform,
   });
+
+  const {isPending: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
+
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
 
   if (isLoading) {
@@ -347,8 +354,8 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     isProfilingSelected: true,
     isReplaySelected: false,
     sourcePackageRegistries: {
-      isLoading: false,
-      data: undefined,
+      isLoading: isLoadingRegistry,
+      data: registryData,
     },
     platformOptions: PROFILING_ONBOARDING_STEPS,
     newOrg: false,

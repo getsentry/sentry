@@ -1,13 +1,8 @@
 import {useCallback, useMemo} from 'react';
 
-import type {BreadcrumbFrame, ErrorFrame} from 'sentry/utils/replays/types';
+import type {SortConfig} from 'sentry/components/replays/virtualizedGrid/headerCell';
+import type {ErrorFrame} from 'sentry/utils/replays/types';
 import useUrlParams from 'sentry/utils/useUrlParams';
-
-interface SortConfig {
-  asc: boolean;
-  by: keyof BreadcrumbFrame | string;
-  getValue: (row: BreadcrumbFrame) => any;
-}
 
 const SortStrategies: Record<string, (row: ErrorFrame) => any> = {
   id: row => row.data.eventId,
@@ -39,8 +34,8 @@ function useSortErrors({items}: Opts) {
       ({
         asc: sortAsc === 'true',
         by: sortBy,
-        getValue: SortStrategies[sortBy],
-      }) as SortConfig,
+        getValue: SortStrategies[sortBy]!,
+      }) satisfies SortConfig<ErrorFrame>,
     [sortAsc, sortBy]
   );
 
@@ -65,7 +60,10 @@ function useSortErrors({items}: Opts) {
   };
 }
 
-function sortErrors(frames: ErrorFrame[], sortConfig: SortConfig): ErrorFrame[] {
+function sortErrors(
+  frames: ErrorFrame[],
+  sortConfig: SortConfig<ErrorFrame>
+): ErrorFrame[] {
   return [...frames].sort((a, b) => {
     let valueA = sortConfig.getValue(a);
     let valueB = sortConfig.getValue(b);

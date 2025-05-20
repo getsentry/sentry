@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Select} from 'sentry/components/core/select';
 import {StyledForm} from 'sentry/components/deprecatedforms/form';
-import SelectField from 'sentry/components/deprecatedforms/selectField';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {SelectField} from 'sentry/components/deprecatedforms/selectField';
+import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
@@ -16,11 +17,11 @@ import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
  *
  * This is used in some integrations
  */
-export default class SelectCreatableField extends SelectField {
+class SelectCreatableField extends SelectField {
   options: Array<SelectValue<any>> | undefined;
 
-  constructor(props: any, context: any) {
-    super(props, context);
+  constructor(props: SelectCreatableField['props']) {
+    super(props);
 
     // We only want to parse options once because react-select relies
     // on `options` mutation when you create a new option
@@ -29,13 +30,13 @@ export default class SelectCreatableField extends SelectField {
     this.options = this.getOptions(props);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: any, nextContext: any) {
-    const newError = this.getError(nextProps, nextContext);
+  UNSAFE_componentWillReceiveProps(nextProps: SelectCreatableField['props']) {
+    const newError = this.getError(nextProps);
     if (newError !== this.state.error) {
       this.setState({error: newError});
     }
-    if (this.props.value !== nextProps.value || defined(nextContext.form)) {
-      const newValue = this.getValue(nextProps, nextContext);
+    if (this.props.value !== nextProps.value || defined(nextProps.formContext.form)) {
+      const newValue = this.getValue(nextProps);
       // This is the only thing that is different from parent, we compare newValue against coerced value in state
       // To remain compatible with react-select, we need to store the option object that
       // includes `value` and `label`, but when we submit the format, we need to coerce it
@@ -82,7 +83,7 @@ export default class SelectCreatableField extends SelectField {
 }
 
 // This is because we are removing `control-group` class name which provides margin-bottom
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   ${StyledForm} &, .form-stacked & {
     .control-group & {
       margin-bottom: 0;
@@ -91,3 +92,8 @@ const StyledSelectControl = styled(SelectControl)`
     margin-bottom: 15px;
   }
 `;
+
+/**
+ * @deprecated Do not use this
+ */
+export default withFormContext(SelectCreatableField);

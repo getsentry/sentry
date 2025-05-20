@@ -14,7 +14,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -22,6 +21,7 @@ import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
@@ -31,24 +31,24 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
-import WidgetCardChartContainer from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-
-import type {DashboardFilters, Widget} from '../types';
-import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
-import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
-import {BigNumberWidget} from '../widgets/bigNumberWidget/bigNumberWidget';
-import type {Meta} from '../widgets/common/types';
-import {WidgetFrame} from '../widgets/common/widgetFrame';
-import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  OnDemandExtractionState,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
-import {WidgetCardDataLoader} from './widgetCardDataLoader';
+import {WidgetFrame} from './widgetFrame';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
-export const SESSION_DURATION_ALERT_TEXT = t(
+const SESSION_DURATION_ALERT_TEXT = t(
   'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
   getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
 );
@@ -69,6 +69,7 @@ type Props = WithRouterProps & {
   borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
+  disableZoom?: boolean;
   forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
   index?: string;
@@ -97,7 +98,9 @@ type Props = WithRouterProps & {
 
 type Data = {
   confidence?: Confidence;
+  isSampled?: boolean | null;
   pageLinks?: string;
+  sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -107,13 +110,15 @@ type Data = {
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
+  const navigate = useNavigate();
 
   const onDataFetched = (newData: Data) => {
-    if (props.onDataFetched && newData.tableResults) {
-      props.onDataFetched(newData.tableResults);
+    const {...rest} = newData;
+    if (props.onDataFetched && rest.tableResults) {
+      props.onDataFetched(rest.tableResults);
     }
 
-    setData(prevData => ({...prevData, ...newData}));
+    setData(prevData => ({...prevData, ...rest}));
   };
 
   const {
@@ -137,6 +142,7 @@ function WidgetCard(props: Props) {
     disableFullscreen,
     showConfidenceWarning,
     minTableColumnWidth,
+    disableZoom,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -172,14 +178,19 @@ function WidgetCard(props: Props) {
         seriesResultsType: data?.timeseriesResultsTypes,
         totalIssuesCount: data?.totalIssuesCount,
         confidence: data?.confidence,
+        sampleCount: data?.sampleCount,
+        isSampled: data?.isSampled,
       });
 
-      props.router.push({
-        pathname: `${location.pathname}${
-          location.pathname.endsWith('/') ? '' : '/'
-        }widget/${props.index}/`,
-        query: location.query,
-      });
+      navigate(
+        {
+          pathname: `${location.pathname}${
+            location.pathname.endsWith('/') ? '' : '/'
+          }widget/${props.index}/`,
+          query: location.query,
+        },
+        {preventScrollReset: true}
+      );
     }
   };
 
@@ -210,6 +221,7 @@ function WidgetCard(props: Props) {
 
   const actions = props.showContextMenu
     ? getMenuOptions(
+        dashboardFilters,
         organization,
         selection,
         widget,
@@ -237,97 +249,43 @@ function WidgetCard(props: Props) {
         }
         disabled={Number(props.index) !== 0}
       >
-        {widget.displayType === DisplayType.BIG_NUMBER ? (
-          <WidgetCardDataLoader
-            widget={widget}
+        <WidgetFrame
+          title={widget.title}
+          description={widget.description}
+          badgeProps={badges}
+          warnings={warnings}
+          actionsDisabled={actionsDisabled}
+          error={widgetQueryError}
+          actionsMessage={actionsMessage}
+          actions={actions}
+          onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
+          borderless={props.borderless}
+          revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
+          noVisualizationPadding
+        >
+          <WidgetCardChartContainer
+            location={location}
+            api={api}
+            organization={organization}
             selection={selection}
-            dashboardFilters={dashboardFilters}
-            onDataFetched={onDataFetched}
-            onWidgetSplitDecision={onWidgetSplitDecision}
+            widget={widget}
+            isMobile={isMobile}
+            renderErrorMessage={renderErrorMessage}
             tableItemLimit={tableItemLimit}
-          >
-            {({loading, errorMessage, tableResults}) => {
-              // Big Number widgets only support one query, so we take the first query's results and meta
-              const tableData = tableResults?.[0]?.data;
-              const tableMeta = tableResults?.[0]?.meta as Meta | undefined;
-              const fields = Object.keys(tableMeta?.fields ?? {});
-
-              let field = fields[0]!;
-              let selectedField = field;
-
-              if (defined(widget.queries[0]!.selectedAggregate)) {
-                const index = widget.queries[0]!.selectedAggregate;
-                selectedField = widget.queries[0]!.aggregates[index]!;
-                if (fields.includes(selectedField)) {
-                  field = selectedField;
-                }
-              }
-
-              const value = tableData?.[0]?.[selectedField];
-
-              return (
-                <BigNumberWidget
-                  title={widget.title}
-                  description={widget.description}
-                  badgeProps={badges}
-                  warnings={warnings}
-                  actionsDisabled={actionsDisabled}
-                  actionsMessage={actionsMessage}
-                  actions={actions}
-                  onFullScreenViewClick={
-                    disableFullscreen ? undefined : onFullScreenViewClick
-                  }
-                  isLoading={loading}
-                  thresholds={widget.thresholds ?? undefined}
-                  value={value}
-                  field={field}
-                  meta={tableMeta}
-                  error={widgetQueryError || errorMessage || undefined}
-                  preferredPolarity="-"
-                  borderless={props.borderless}
-                  revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
-                />
-              );
-            }}
-          </WidgetCardDataLoader>
-        ) : (
-          <WidgetFrame
-            title={widget.title}
-            description={widget.description}
-            badgeProps={badges}
-            warnings={warnings}
-            actionsDisabled={actionsDisabled}
-            error={widgetQueryError}
-            actionsMessage={actionsMessage}
-            actions={actions}
-            onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
-            borderless={props.borderless}
-            revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
-            noVisualizationPadding
-          >
-            <WidgetCardChartContainer
-              location={location}
-              api={api}
-              organization={organization}
-              selection={selection}
-              widget={widget}
-              isMobile={isMobile}
-              renderErrorMessage={renderErrorMessage}
-              tableItemLimit={tableItemLimit}
-              windowWidth={windowWidth}
-              onDataFetched={onDataFetched}
-              dashboardFilters={dashboardFilters}
-              chartGroup={DASHBOARD_CHART_GROUP}
-              onWidgetSplitDecision={onWidgetSplitDecision}
-              shouldResize={shouldResize}
-              onLegendSelectChanged={onLegendSelectChanged}
-              legendOptions={legendOptions}
-              widgetLegendState={widgetLegendState}
-              showConfidenceWarning={showConfidenceWarning}
-              minTableColumnWidth={minTableColumnWidth}
-            />
-          </WidgetFrame>
-        )}
+            windowWidth={windowWidth}
+            onDataFetched={onDataFetched}
+            dashboardFilters={dashboardFilters}
+            chartGroup={DASHBOARD_CHART_GROUP}
+            onWidgetSplitDecision={onWidgetSplitDecision}
+            shouldResize={shouldResize}
+            onLegendSelectChanged={onLegendSelectChanged}
+            legendOptions={legendOptions}
+            widgetLegendState={widgetLegendState}
+            showConfidenceWarning={showConfidenceWarning}
+            minTableColumnWidth={minTableColumnWidth}
+            disableZoom={disableZoom}
+          />
+        </WidgetFrame>
       </VisuallyCompleteWithData>
     </ErrorBoundary>
   );
@@ -402,13 +360,7 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-export const WidgetTitleRow = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
-
 export const WidgetDescription = styled('small')`
   ${p => p.theme.overflowEllipsis}
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

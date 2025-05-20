@@ -14,9 +14,7 @@ from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
-
-from ..base import (
+from sentry.utils.performance_issues.base import (
     DetectorType,
     PerformanceDetector,
     fingerprint_http_spans,
@@ -25,8 +23,9 @@ from ..base import (
     get_url_from_span,
     parameterize_url,
 )
-from ..performance_problem import PerformanceProblem
-from ..types import PerformanceProblemsMap, Span
+from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.utils.performance_issues.types import PerformanceProblemsMap, Span
 
 
 class NPlusOneAPICallsDetector(PerformanceDetector):
@@ -44,8 +43,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     __slots__ = ["stored_problems"]
     type = DetectorType.N_PLUS_ONE_API_CALLS
     settings_key = DetectorType.N_PLUS_ONE_API_CALLS
-
-    HOST_DENYLIST: list[str] = []
 
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
@@ -134,9 +131,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # won't have to do this, since the URLs will be sent in as `span.data`
         # in a parsed format
         parsed_url = urlparse(str(url))
-
-        if parsed_url.netloc in cls.HOST_DENYLIST:
-            return False
 
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern

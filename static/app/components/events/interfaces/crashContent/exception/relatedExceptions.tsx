@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ExceptionValue} from 'sentry/types/event';
@@ -150,7 +150,7 @@ export function RelatedExceptions({
   newestFirst,
   onExceptionClick,
 }: ExceptionGroupContextProps) {
-  if (!mechanism || !mechanism.is_exception_group) {
+  if (!mechanism?.is_exception_group) {
     return null;
   }
 

@@ -2,11 +2,19 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
+import PanelLayout from 'sentry/components/devtoolbar/components/panelLayout';
 import ReleaseIsssues from 'sentry/components/devtoolbar/components/releases/releaseIssues';
 import useReleaseSessions from 'sentry/components/devtoolbar/components/releases/useReleaseSessions';
 import useToolbarRelease from 'sentry/components/devtoolbar/components/releases/useToolbarRelease';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import {listItemPlaceholderWrapperCss} from 'sentry/components/devtoolbar/styles/listItem';
+import {
+  panelDescCss,
+  panelInsetContentCss,
+  panelSectionCss,
+  panelSectionCssNoBorder,
+} from 'sentry/components/devtoolbar/styles/panel';
 import {
   infoHeaderCss,
   releaseBoxCss,
@@ -17,6 +25,7 @@ import {
   resetFlexColumnCss,
   resetFlexRowCss,
 } from 'sentry/components/devtoolbar/styles/reset';
+import {smallCss} from 'sentry/components/devtoolbar/styles/typography';
 import type {ApiResult} from 'sentry/components/devtoolbar/types';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -33,16 +42,6 @@ import {
   VersionWrapper,
 } from 'sentry/views/releases/list/releaseCard';
 import ReleaseCardCommits from 'sentry/views/releases/list/releaseCard/releaseCardCommits';
-
-import useConfiguration from '../../hooks/useConfiguration';
-import {
-  panelDescCss,
-  panelInsetContentCss,
-  panelSectionCss,
-  panelSectionCssNoBorder,
-} from '../../styles/panel';
-import {smallCss} from '../../styles/typography';
-import PanelLayout from '../panelLayout';
 
 const summaryPlaceholderHeight = '65px';
 const crashComparisonPlaceholderHeight = '61px';

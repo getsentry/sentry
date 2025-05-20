@@ -184,7 +184,7 @@ function computeProfileOffset(
   let offset = flamegraph.profile.startedAt;
 
   const transactionStart =
-    transaction.type === 'resolved' ? transaction.data?.startTimestamp ?? null : null;
+    transaction.type === 'resolved' ? (transaction.data?.startTimestamp ?? null) : null;
 
   if (
     defined(transactionStart) &&
@@ -1155,18 +1155,13 @@ function Flamegraph(): ReactElement {
     return [spansCanvasRef];
   }, [spansCanvasRef]);
 
-  const spansCanvasBounds = useResizeCanvasObserver(
-    spansCanvases,
-    canvasPoolManager,
-    spansCanvas,
-    spansView
-  );
+  useResizeCanvasObserver(spansCanvases, canvasPoolManager, spansCanvas, spansView);
 
   const uiFramesCanvases = useMemo(() => {
     return [uiFramesCanvasRef];
   }, [uiFramesCanvasRef]);
 
-  const uiFramesCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     uiFramesCanvases,
     canvasPoolManager,
     uiFramesCanvas,
@@ -1177,7 +1172,7 @@ function Flamegraph(): ReactElement {
     return [batteryChartCanvasRef];
   }, [batteryChartCanvasRef]);
 
-  const batteryChartCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     batteryChartCanvases,
     canvasPoolManager,
     batteryChartCanvas,
@@ -1188,7 +1183,7 @@ function Flamegraph(): ReactElement {
     return [cpuChartCanvasRef];
   }, [cpuChartCanvasRef]);
 
-  const cpuChartCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     cpuChartCanvases,
     canvasPoolManager,
     cpuChartCanvas,
@@ -1198,7 +1193,8 @@ function Flamegraph(): ReactElement {
   const memoryChartCanvases = useMemo(() => {
     return [memoryChartCanvasRef];
   }, [memoryChartCanvasRef]);
-  const memoryChartCanvasBounds = useResizeCanvasObserver(
+
+  useResizeCanvasObserver(
     memoryChartCanvases,
     canvasPoolManager,
     memoryChartCanvas,
@@ -1209,7 +1205,7 @@ function Flamegraph(): ReactElement {
     return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
   }, [flamegraphCanvasRef, flamegraphOverlayCanvasRef]);
 
-  const flamegraphCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     flamegraphCanvases,
     canvasPoolManager,
     flamegraphCanvas,
@@ -1412,7 +1408,6 @@ function Flamegraph(): ReactElement {
           hasUIFrames ? (
             <FlamegraphUIFrames
               status={profiles.type}
-              canvasBounds={uiFramesCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               setUIFramesCanvasRef={setUIFramesCanvasRef}
               uiFramesCanvasRef={uiFramesCanvasRef}
@@ -1430,7 +1425,6 @@ function Flamegraph(): ReactElement {
               chartCanvasRef={batteryChartCanvasRef}
               chartCanvas={batteryChartCanvas}
               setChartCanvasRef={setBatteryChartCanvasRef}
-              canvasBounds={batteryChartCanvasBounds}
               chartView={batteryChartView}
               canvasPoolManager={canvasPoolManager}
               chart={batteryChart}
@@ -1452,7 +1446,6 @@ function Flamegraph(): ReactElement {
               chartCanvasRef={memoryChartCanvasRef}
               chartCanvas={memoryChartCanvas}
               setChartCanvasRef={setMemoryChartCanvasRef}
-              canvasBounds={memoryChartCanvasBounds}
               chartView={memoryChartView}
               canvasPoolManager={canvasPoolManager}
               chart={memoryChart}
@@ -1478,7 +1471,6 @@ function Flamegraph(): ReactElement {
               chartCanvasRef={cpuChartCanvasRef}
               chartCanvas={cpuChartCanvas}
               setChartCanvasRef={setCpuChartCanvasRef}
-              canvasBounds={cpuChartCanvasBounds}
               chartView={cpuChartView}
               canvasPoolManager={canvasPoolManager}
               chart={CPUChart}
@@ -1500,7 +1492,6 @@ function Flamegraph(): ReactElement {
         spans={
           spanChart ? (
             <FlamegraphSpans
-              canvasBounds={spansCanvasBounds}
               spanChart={spanChart}
               spansCanvas={spansCanvas}
               spansCanvasRef={spansCanvasRef}
@@ -1533,7 +1524,6 @@ function Flamegraph(): ReactElement {
             <FlamegraphZoomView
               scheduler={scheduler}
               profileGroup={profileGroup}
-              canvasBounds={flamegraphCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}
               flamegraphRenderer={flamegraphRenderer}

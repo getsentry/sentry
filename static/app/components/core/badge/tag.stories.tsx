@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
-import {Button} from 'sentry/components/button';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -28,8 +28,6 @@ export default storyBook('Tag', (story, APIReference) => {
           <Tag type="error">Error</Tag>
           <Tag type="warning">Warning</Tag>
           <Tag type="info">Info</Tag>
-          <Tag type="black">Black</Tag>
-          <Tag type="white">White</Tag>
           <Tag type="promotion">Promotion</Tag>
           <Tag type="highlight">Highlight</Tag>
         </SizingWindow>

@@ -25,7 +25,12 @@ class TestServiceHooks(TestCase):
             data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
 
-        process_service_hook(self.hook.id, event)
+        process_service_hook(
+            self.hook.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+        )
 
         body = json.dumps(get_payload_v0(event))
 
@@ -45,7 +50,41 @@ class TestServiceHooks(TestCase):
             data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
 
-        process_service_hook(self.hook.id, event)
+        process_service_hook(
+            self.hook.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+        )
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+
+        assert kwargs["url"] == self.hook.url
+        assert data == json.loads(json.dumps(get_payload_v0(event)))
+        assert kwargs["headers"].keys() <= {
+            "Content-Type",
+            "X-ServiceHook-Timestamp",
+            "X-ServiceHook-GUID",
+            "X-ServiceHook-Signature",
+        }
+
+    @patch("sentry.sentry_apps.tasks.service_hooks.safe_urlopen")
+    @responses.activate
+    def test_event_created_sends_service_hook_with_event_id(self, safe_urlopen):
+        self.hook.update(events=["event.created", "event.alert"])
+
+        event = self.store_event(
+            data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
+        )
+        assert event.group
+
+        process_service_hook(
+            self.hook.id,
+            project_id=event.project_id,
+            group_id=event.group.id,
+            event_id=event.event_id,
+        )
 
         ((_, kwargs),) = safe_urlopen.call_args_list
         data = json.loads(kwargs["data"])
@@ -68,7 +107,12 @@ class TestServiceHooks(TestCase):
         )
         assert event.group is not None
 
-        process_service_hook(self.hook.id, event)
+        process_service_hook(
+            self.hook.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+        )
         body = get_payload_v0(event)
         assert (
             body["group"]["url"]

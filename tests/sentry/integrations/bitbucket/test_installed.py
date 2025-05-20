@@ -186,8 +186,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             with assume_test_silo_mode(SiloMode.REGION):
                 org = serialize_rpc_organization(self.organization)
             BitbucketIntegrationProvider().post_install(
-                integration=integration,
-                organization=org,
+                integration=integration, organization=org, extra={}
             )
 
             with assume_test_silo_mode(SiloMode.REGION):
@@ -235,6 +234,8 @@ class BitbucketInstalledEndpointTest(APITestCase):
         with self.tasks():
             with assume_test_silo_mode(SiloMode.REGION):
                 org = serialize_rpc_organization(self.organization)
-            BitbucketIntegrationProvider().post_install(integration=integration, organization=org)
+            BitbucketIntegrationProvider().post_install(
+                integration=integration, organization=org, extra={}
+            )
 
             assert "bitbucket" not in [p.slug for p in plugins.for_project(project)]

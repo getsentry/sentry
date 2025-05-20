@@ -1,14 +1,16 @@
 from typing import Any
 
 from django.db.models import Q
+from django.db.models.query import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
+from sentry.api.helpers.environments import get_environment_id
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
@@ -43,7 +45,7 @@ def get_dataset(dataset_label: str) -> Any:
 
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
-class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
+class OrganizationProjectsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -81,6 +83,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         datasetName = request.GET.get("dataset", "discover")
         dataset = get_dataset(datasetName)
 
+        queryset: QuerySet[Project]
         if request.auth and not request.user.is_authenticated:
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
@@ -116,8 +119,10 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
-                    value = " ".join(value)
-                    queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
+                    value_s = " ".join(value)
+                    queryset = queryset.filter(
+                        Q(name__icontains=value_s) | Q(slug__icontains=value_s)
+                    )
                 elif key == "id":
                     if all(v.isdigit() for v in value):
                         queryset = queryset.filter(id__in=value)
@@ -173,7 +178,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 expand.add("options")
 
             def serialize_on_result(result):
-                environment_id = self._get_environment_id_from_request(request, organization.id)
+                environment_id = get_environment_id(request, organization.id)
                 serializer = ProjectSummarySerializer(
                     environment_id=environment_id,
                     stats_period=stats_period,
@@ -194,7 +199,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
 
 @region_silo_endpoint
-class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):
+class OrganizationProjectsCountEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

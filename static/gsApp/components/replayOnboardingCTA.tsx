@@ -2,8 +2,9 @@ import type {ReactNode} from 'react';
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
@@ -172,13 +173,13 @@ function ReplayOnboardingCTAUpsell({
           )}
         </p>
         <ButtonList gap={1}>
-          <Button
+          <LinkButton
             to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard-managed-cta`}
             onClick={onClickManageSubscription}
             priority="primary"
           >
             {t('Manage Subscription')}
-          </Button>
+          </LinkButton>
           <LinkButton href="https://docs.sentry.io/product/session-replay/" external>
             {t('Read Docs')}
           </LinkButton>
@@ -200,13 +201,13 @@ function ReplayOnboardingCTAUpsell({
         </p>
         <ButtonList gap={1}>
           {hasBillingAccess ? (
-            <Button
+            <LinkButton
               to={`/settings/${organization.slug}/billing/overview/?referrer=replay_onboard_mmx-cta`}
               onClick={onClickManageSubscription}
               priority="primary"
             >
               {t('Manage Subscription')}
-            </Button>
+            </LinkButton>
           ) : (
             <Button disabled={isDismissed} onClick={onEmailOwner} priority="primary">
               {t('Request to Update Plan')}

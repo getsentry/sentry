@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -10,24 +11,21 @@ import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {BillingDetails, Invoice} from 'getsentry/types';
 import {InvoiceItemType, InvoiceStatus} from 'getsentry/types';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
-
-import {displayPriceWithCents} from '../amCheckout/utils';
+import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 import InvoiceDetailsActions from './actions';
 
-type Props = RouteComponentProps<{invoiceGuid: string}, unknown> & {
-  organization: Organization;
-};
+interface Props extends RouteComponentProps<{invoiceGuid: string}, unknown> {}
 
-function InvoiceDetails({organization, params}: Props) {
+function InvoiceDetails({params}: Props) {
+  const organization = useOrganization();
   const {
     data: billingDetails,
     isPending: isBillingDetailsLoading,
@@ -102,6 +100,23 @@ function InvoiceDetails({organization, params}: Props) {
             </SenderContainer>
             <hr />
             <InvoiceDetailsContents invoice={invoice} billingDetails={billingDetails} />
+            <FinePrint>
+              {tct(
+                'Your subscription will automatically renew on or about the same day each [period] and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly [budgetTerm] fees. You may cancel your subscription at any time [here:here].',
+                {
+                  budgetTerm:
+                    'planDetails' in invoice.customer
+                      ? invoice.customer.planDetails.budgetTerm
+                      : 'pay-as-you-go',
+                  period:
+                    'billingInterval' in invoice.customer &&
+                    invoice.customer.billingInterval === 'annual'
+                      ? 'year'
+                      : 'month',
+                  here: <ExternalLink href="/settings/billing/cancel" />,
+                }
+              )}
+            </FinePrint>
           </PanelBody>
         )}
       </Panel>
@@ -241,7 +256,7 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
   );
 }
 
-export default withOrganization(InvoiceDetails);
+export default InvoiceDetails;
 
 const SenderName = styled('h3')`
   display: flex;
@@ -325,4 +340,10 @@ const RefundRow = styled('tr')`
   th {
     background: ${p => p.theme.alert.warning.backgroundLight};
   }
+`;
+
+const FinePrint = styled('div')`
+  margin-top: ${space(1)};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.gray300};
 `;

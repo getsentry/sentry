@@ -4,6 +4,7 @@ from django.core import mail
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
+from sentry.db.pending_deletion import build_pending_deletion_key
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.exceptions import PluginError
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -177,7 +178,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         # Left over from a botched deletion.
         OrganizationOption.objects.create(
             organization_id=self.organization.id,
-            key=repo.build_pending_deletion_key(),
+            key=build_pending_deletion_key(repo),
             value="",
         )
 

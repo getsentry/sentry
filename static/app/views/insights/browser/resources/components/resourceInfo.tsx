@@ -8,7 +8,6 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/insights/browser/resources/settings';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   DataTitles,
   getThroughputTitle,
@@ -21,7 +20,6 @@ type Props = {
   avgTransferSize: number;
   isLoading: boolean;
   throughput: number;
-  timeSpentPercentage: number;
   timeSpentTotal: number;
 };
 
@@ -33,7 +31,6 @@ function ResourceInfo(props: Props) {
     avgDuration,
     avgTransferSize,
     throughput,
-    timeSpentPercentage,
     timeSpentTotal,
   } = props;
 
@@ -112,7 +109,6 @@ function ResourceInfo(props: Props) {
           title={DataTitles.timeSpent}
           value={timeSpentTotal}
           unit={DurationUnit.MILLISECOND}
-          tooltip={getTimeSpentExplanation(timeSpentPercentage, 'resource')}
           isLoading={isLoading}
         />
       </ReadoutRibbon>

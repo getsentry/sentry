@@ -1,28 +1,33 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 from urllib import parse
 
-import sentry_sdk
 from django.db.models import Max
 from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
-from sentry.incidents.logic import get_incident_aggregates
+from sentry.incidents.logic import GetMetricIssueAggregatesParams, get_metric_issue_aggregates
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
     Incident,
+    IncidentProject,
     IncidentStatus,
     IncidentTrigger,
 )
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
+from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
+from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
 QUERY_AGGREGATION_DISPLAY = {
     "count()": "events",
@@ -48,7 +53,7 @@ class AttachmentInfo(TypedDict):
     text: str
     status: str
     logo_url: str
-    date_started: datetime | None
+    date_started: NotRequired[datetime | None]
 
 
 class TitleLinkParams(TypedDict, total=False):
@@ -56,6 +61,7 @@ class TitleLinkParams(TypedDict, total=False):
     referrer: str
     detection_type: str
     notification_uuid: str
+    project_id: int | None
 
 
 def logo_url() -> str:
@@ -81,7 +87,22 @@ def get_metric_count_from_incident(incident: Incident) -> float | None:
     else:
         start, end = None, None
 
-    return get_incident_aggregates(incident=incident, start=start, end=end).get("count")
+    organization = Organization.objects.get_from_cache(id=incident.organization_id)
+
+    project_ids = list(
+        IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+    )
+
+    params = GetMetricIssueAggregatesParams(
+        snuba_query=incident.alert_rule.snuba_query,
+        date_started=incident.date_started,
+        current_end_date=incident.current_end_date,
+        organization=organization,
+        project_ids=project_ids,
+        start_arg=start,
+        end_arg=end,
+    )
+    return get_metric_issue_aggregates(params).get("count")
 
 
 def get_incident_status_text(
@@ -103,10 +124,7 @@ def get_incident_status_text(
         agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, snuba_query.aggregate)
 
     if agg_text.startswith("%"):
-        if metric_value is not None:
-            metric_and_agg_text = f"{metric_value}{agg_text}"
-        else:
-            metric_and_agg_text = f"No{agg_text[1:]}"
+        metric_and_agg_text = f"{metric_value}{agg_text}"
     else:
         metric_and_agg_text = f"{metric_value} {agg_text}"
 
@@ -135,8 +153,25 @@ def get_title(status: str, name: str) -> str:
     return f"{status}: {name}"
 
 
+def build_title_link_workflow_engine_ui(
+    identifier_id: int, organization: Organization, project_id: int, params: TitleLinkParams
+) -> str:
+    """Builds the URL for the metric issue with the given parameters."""
+    return organization.absolute_url(
+        reverse(
+            "sentry-group",
+            kwargs={
+                "organization_slug": organization.slug,
+                "project_id": project_id,
+                "group_id": identifier_id,
+            },
+        ),
+        query=parse.urlencode(params),
+    )
+
+
 def build_title_link(
-    identifier_id: str, organization: Organization, params: TitleLinkParams
+    identifier_id: int, organization: Organization, params: TitleLinkParams
 ) -> str:
     """Builds the URL for an alert rule with the given parameters."""
     return organization.absolute_url(
@@ -152,60 +187,88 @@ def build_title_link(
 
 
 def incident_attachment_info(
-    incident: Incident,
-    new_status: IncidentStatus,
-    # WIP(iamrajjoshi): This should shouldn't be None, but it sometimes is. Working on figuring out why.
-    metric_value: float | None = None,
-    notification_uuid=None,
-    referrer="metric_alert",
+    organization: Organization,
+    alert_context: AlertContext,
+    metric_issue_context: MetricIssueContext,
+    referrer: str = "metric_alert",
+    notification_uuid: str | None = None,
 ) -> AttachmentInfo:
-    alert_rule = incident.alert_rule
-
-    if metric_value is None:
-        sentry_sdk.capture_message(
-            "Metric value is None when building incident attachment info",
-            level="warning",
-        )
-        # TODO(iamrajjoshi): This should be fixed by the time we get rid of this function.
-        metric_value = get_metric_count_from_incident(incident)
-
-    status = get_status_text(new_status)
+    status = get_status_text(metric_issue_context.new_status)
 
     text = ""
-    if metric_value is not None:
+    if metric_issue_context.metric_value is not None:
         text = get_incident_status_text(
-            alert_rule.snuba_query,
-            (
-                AlertRuleThresholdType(alert_rule.threshold_type)
-                if alert_rule.threshold_type is not None
-                else None
-            ),
-            alert_rule.comparison_delta,
-            str(metric_value),
+            metric_issue_context.snuba_query,
+            alert_context.threshold_type,
+            alert_context.comparison_delta,
+            str(metric_issue_context.metric_value),
         )
-    if features.has(
-        "organizations:anomaly-detection-alerts", incident.organization
-    ) and features.has("organizations:anomaly-detection-rollout", incident.organization):
-        text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
-    title = get_title(status, alert_rule.name)
+    if features.has("organizations:anomaly-detection-alerts", organization) and features.has(
+        "organizations:anomaly-detection-rollout", organization
+    ):
+        text += f"\nThreshold: {alert_context.detection_type.title()}"
+
+    title = get_title(status, alert_context.name)
 
     title_link_params: TitleLinkParams = {
-        "alert": str(incident.identifier),
+        "alert": str(metric_issue_context.open_period_identifier),
         "referrer": referrer,
-        "detection_type": alert_rule.detection_type,
+        "detection_type": alert_context.detection_type.value,
     }
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    title_link = build_title_link(alert_rule.id, alert_rule.organization, title_link_params)
+    if features.has("organizations:workflow-engine-trigger-actions", organization):
+        try:
+            alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
+                detector_id=alert_context.action_identifier_id
+            )
+            if alert_rule_id is None:
+                raise ValueError("Alert rule id not found when querying for AlertRuleDetector")
+        except AlertRuleDetector.DoesNotExist:
+            raise ValueError("Alert rule detector not found when querying for AlertRuleDetector")
+
+        try:
+            open_period_incident = IncidentGroupOpenPeriod.objects.get(
+                group_open_period_id=metric_issue_context.open_period_identifier
+            )
+        except IncidentGroupOpenPeriod.DoesNotExist:
+            raise ValueError(
+                "Incident group open period not found when querying for IncidentGroupOpenPeriod"
+            )
+
+        workflow_engine_params = title_link_params.copy()
+
+        workflow_engine_params["alert"] = str(open_period_incident.incident_identifier)
+
+        title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
+
+    elif features.has("organizations:workflow-engine-ui-links", organization):
+        if metric_issue_context.group is None:
+            raise ValueError("Group is required for workflow engine UI links")
+
+        # We don't need to save the query param the alert rule id here because the link is to the group and not the alert rule
+        # TODO(iamrajjoshi): This this through and perhaps
+        workflow_engine_ui_params = title_link_params.copy()
+        workflow_engine_ui_params.pop("alert", None)
+
+        title_link = build_title_link_workflow_engine_ui(
+            metric_issue_context.group.id,
+            organization,
+            metric_issue_context.group.project.id,
+            workflow_engine_ui_params,
+        )
+    else:
+        title_link = build_title_link(
+            alert_context.action_identifier_id, organization, title_link_params
+        )
 
     return AttachmentInfo(
         title=title,
         text=text,
         logo_url=logo_url(),
         status=status,
-        date_started=incident.date_started,
         title_link=title_link,
     )
 
@@ -252,7 +315,7 @@ def metric_alert_unfurl_attachment_info(
             and latest_incident.status != IncidentStatus.CLOSED
         ):
             # Without a selected incident, use latest incident if it is not resolved
-            incident_info = latest_incident
+            incident_info: Incident | None = latest_incident
         else:
             incident_info = selected_incident
 

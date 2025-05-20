@@ -167,6 +167,10 @@ class UserOption(Model):
         - Whether the user prefers the new issue details experience (boolean)
      - prefers_stacked_navigation
         - Whether the user prefers the new stacked navigation experience (boolean)
+    - prefers_nextjs_insights_overview
+        - Whether the user prefers the new NextJS insights overview experience (boolean)
+     - prefers_chonk_ui
+        - Whether the user prefers the new Chonk UI experience (boolean)
      - quick_start_display
         - Tracks whether the quick start guide was already automatically shown to the user during their second visit
      - language

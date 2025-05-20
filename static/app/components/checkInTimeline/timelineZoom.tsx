@@ -58,9 +58,9 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
 
         const absoluteOffset = Math.abs(offset);
 
-        const start = !isLeft
-          ? initialX.current
-          : Math.max(0, initialX.current - absoluteOffset);
+        const start = isLeft
+          ? Math.max(0, initialX.current - absoluteOffset)
+          : initialX.current;
 
         const width =
           e.clientX < containerRect.left
@@ -169,7 +169,7 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
 
 const Selection = styled(motion.div)`
   pointer-events: none;
-  background: ${p => p.theme.translucentBorder};
+  background: ${p => (p.theme.isChonk ? p.theme.gray200 : p.theme.translucentGray200)};
   border-left: 1px solid ${p => p.theme.purple200};
   border-right: 1px solid ${p => p.theme.purple200};
   height: 100%;

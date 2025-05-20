@@ -99,8 +99,8 @@ describe('Recurring Credits', function () {
       categoryDisplayNames: {
         ...subscription.planDetails.categoryDisplayNames,
         [DataCategory.PROFILE_DURATION]: {
-          singular: 'profile hour',
-          plural: 'profile hours',
+          singular: 'continuous profile hour',
+          plural: 'continuous profile hours',
         },
       },
     };
@@ -111,7 +111,44 @@ describe('Recurring Credits', function () {
 
     await screen.findByRole('heading', {name: /recurring credits/i});
 
-    expect(screen.getByText('profile hours')).toBeInTheDocument();
+    expect(screen.getByText('continuous profile hours')).toBeInTheDocument();
+    expect(screen.getByTestId('amount')).toHaveTextContent('+10/mo');
+  });
+
+  it('renders profile duration ui recurring credits', async function () {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/recurring-credits/`,
+      method: 'GET',
+      body: [
+        RecurringCreditFixture({
+          id: 1,
+          periodStart: moment().format(),
+          periodEnd: moment().utc().add(3, 'months').format(),
+          amount: 10,
+          type: CreditType.PROFILE_DURATION_UI,
+          totalAmountRemaining: null,
+        }),
+      ],
+    });
+
+    const planDetails: Plan = {
+      ...subscription.planDetails,
+      categoryDisplayNames: {
+        ...subscription.planDetails.categoryDisplayNames,
+        [DataCategory.PROFILE_DURATION_UI]: {
+          singular: 'ui profile hour',
+          plural: 'ui profile hours',
+        },
+      },
+    };
+
+    render(<RecurringCredits displayType="data" planDetails={planDetails} />, {
+      organization,
+    });
+
+    await screen.findByRole('heading', {name: /recurring credits/i});
+
+    expect(screen.getByText('ui profile hours')).toBeInTheDocument();
     expect(screen.getByTestId('amount')).toHaveTextContent('+10/mo');
   });
 

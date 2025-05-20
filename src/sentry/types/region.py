@@ -9,11 +9,10 @@ import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest
 from pydantic.dataclasses import dataclass
-from pydantic.tools import parse_obj_as
 
 from sentry import options
+from sentry.conf.types.region_config import RegionConfig
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState, control_silo_function
-from sentry.utils import json
 from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
@@ -151,25 +150,15 @@ class RegionDirectory:
             region.validate()
 
 
-def _parse_raw_config(region_config: Any) -> Iterable[Region]:
-    if isinstance(region_config, (str, bytes)):
-        json_config_values = json.loads(region_config)
-        config_values = parse_obj_as(list[Region], json_config_values)
-    else:
-        config_values = region_config
-
-    if not isinstance(config_values, (list, tuple)):
-        config_values = [config_values]  # type: ignore[unreachable]
-
-    for config_value in config_values:
-        if isinstance(config_value, Region):
-            yield config_value
-        else:
-            category = config_value["category"]  # type: ignore[unreachable]
-            config_value["category"] = (
-                category if isinstance(category, RegionCategory) else RegionCategory[category]
-            )
-            yield Region(**config_value)
+def _parse_raw_config(region_config: list[RegionConfig]) -> Iterable[Region]:
+    for config_value in region_config:
+        yield Region(
+            name=config_value["name"],
+            snowflake_id=config_value["snowflake_id"],
+            category=RegionCategory(config_value["category"]),
+            address=config_value["address"],
+            visible=config_value.get("visible", True),
+        )
 
 
 def _generate_monolith_region_if_needed(regions: Collection[Region]) -> Iterable[Region]:
@@ -198,7 +187,7 @@ def _generate_monolith_region_if_needed(regions: Collection[Region]) -> Iterable
         )
 
 
-def load_from_config(region_config: Any) -> RegionDirectory:
+def load_from_config(region_config: list[RegionConfig]) -> RegionDirectory:
     try:
         regions = set(_parse_raw_config(region_config))
         regions |= set(_generate_monolith_region_if_needed(regions))

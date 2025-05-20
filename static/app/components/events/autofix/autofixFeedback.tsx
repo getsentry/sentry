@@ -1,6 +1,6 @@
 import {useRef} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
@@ -18,7 +18,7 @@ function AutofixFeedback() {
       size="xs"
       onClick={() =>
         openForm({
-          messagePlaceholder: t('How can we make Autofix better for you?'),
+          messagePlaceholder: t('How can we make Seer better for you?'),
           tags: {
             ['feedback.source']: 'issue_details_ai_autofix',
             ['feedback.owner']: 'ml-ai',

@@ -3,6 +3,8 @@ import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/
 import type {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 
 export function canUseTransactionMetricsData(
@@ -36,4 +38,9 @@ export function getTransactionMEPParamsIfApplicable(
   }
 
   return getMEPQueryParams(mepSetting, true);
+}
+
+type EAPSeriesData = Record<string, DiscoverSeries>;
+export function eapSeriesDataToTimeSeries(data: EAPSeriesData) {
+  return Object.values(data).map(convertSeriesToTimeseries);
 }

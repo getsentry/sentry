@@ -1,12 +1,7 @@
 import type React from 'react';
-import {
-  type ReducerAction,
-  type ReducerState,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {type ReducerState, useCallback, useMemo, useRef, useState} from 'react';
+
+import type {ReducerAction} from 'sentry/types/reducerAction';
 
 /**
  * A hook that wraps a reducer to provide an observer pattern for the state.
@@ -18,11 +13,11 @@ import {
  */
 
 export interface DispatchingReducerMiddleware<R extends React.Reducer<any, any>> {
-  ['before action']: (S: Readonly<ReducerState<R>>, A: React.ReducerAction<R>) => void;
+  ['before action']: (S: Readonly<ReducerState<R>>, A: ReducerAction<R>) => void;
   ['before next state']: (
     P: Readonly<React.ReducerState<R>>,
     S: Readonly<React.ReducerState<R>>,
-    A: React.ReducerAction<R>
+    A: ReducerAction<R>
   ) => void;
 }
 

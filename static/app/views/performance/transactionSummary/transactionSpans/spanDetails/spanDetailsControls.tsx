@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import SearchBar from 'sentry/components/events/searchBar';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -13,8 +13,10 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
-import {SPAN_RELATIVE_PERIODS, SPAN_RETENTION_DAYS} from '../utils';
+import {
+  SPAN_RELATIVE_PERIODS,
+  SPAN_RETENTION_DAYS,
+} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
 
 import {ZoomKeys} from './utils';
 

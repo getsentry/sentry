@@ -1,23 +1,32 @@
 /* eslint-disable no-alert */
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import FormModel from 'sentry/components/forms/model';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
+import {MetricDetectorForm} from 'sentry/views/detectors/components/forms/metric';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 export default function DetectorEdit() {
+  const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
+  const [title, setTitle] = useState(t('Edit Monitor'));
+  const [model] = useState(() => new FormModel());
 
   return (
-    <SentryDocumentTitle title={t('Edit Monitor')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/monitors'}}>
+    <SentryDocumentTitle title={title} noSuffix>
+      <BreadcrumbsProvider
+        crumb={{label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)}}
+      >
         <ActionsProvider actions={<Actions />}>
-          <EditLayout>
-            <h2>Edit Monitor</h2>
+          <EditLayout onTitleChange={setTitle}>
+            <MetricDetectorForm model={model} />
           </EditLayout>
         </ActionsProvider>
       </BreadcrumbsProvider>

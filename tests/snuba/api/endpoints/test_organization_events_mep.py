@@ -2258,16 +2258,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "transaction",
                     "p50()",
                 ],
+                # Doing !has on the metrics dataset doesn't really make sense
                 "query": "!has:transaction.status",
                 "dataset": "metrics",
             }
         )
 
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 0
-        meta = response.data["meta"]
-        assert meta["isMetricsData"]
+        assert response.status_code == 400, response.content
 
         response = self.do_request(
             {
@@ -3640,6 +3637,47 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[2]["span.module"] == "other"
         assert data[2]["avg(span.self_time)"] == 4
 
+    def test_metrics_enhanced_with_has_filter_falls_back_to_indexed_data(self):
+        transaction_data = load_data("transaction")
+        self.store_event(
+            {
+                **transaction_data,
+                "tags": {"existingTag": "true"},
+                "start_timestamp": before_now(days=1, minutes=1).isoformat(),
+                "timestamp": before_now(days=1).isoformat(),
+                "measurements": {"time_to_initial_display": {"value": 222}},
+            },
+            project_id=self.project.id,
+        )
+
+        for hour in range(6):
+            timestamp = self.min_ago
+            self.store_transaction_metric(
+                111,
+                metric="measurements.time_to_initial_display",
+                timestamp=timestamp,
+                tags={"existingTag": "true"},
+            )
+        query = {
+            "field": ["avg(measurements.time_to_initial_display)"],
+            "query": "has:existingTag !has:nonExistingTag",
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "dataset": "metricsEnhanced",
+        }
+        response = self.do_request(
+            query,
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+
+        # The request fell back to indexed data because !has is not supported in metrics
+        assert response.data["meta"]["isMetricsData"] is False
+
+        # First bucket, where the transaction should be
+        assert response.data["data"][0]["avg(measurements.time_to_initial_display)"] == 222
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -3913,7 +3951,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
                 "per_page": 50,
                 "dashboardWidgetId": widget.id,
             },
-            features={"organizations:performance-discover-dataset-selector": True},
         )
 
         assert response.status_code == 200, response.content
@@ -3961,7 +3998,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
                 "per_page": 50,
                 "dashboardWidgetId": widget.id,
             },
-            features={"organizations:performance-discover-dataset-selector": True},
         )
 
         assert response.status_code == 200, response.content

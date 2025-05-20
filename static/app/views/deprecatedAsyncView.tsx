@@ -1,8 +1,8 @@
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 
-export type AsyncViewState = DeprecatedAsyncComponent['state'];
-export type AsyncViewProps = DeprecatedAsyncComponent['props'];
+type AsyncViewState = DeprecatedAsyncComponent['state'];
+type AsyncViewProps = DeprecatedAsyncComponent['props'];
 
 /**
  * @deprecated use useApiQuery instead.
@@ -20,7 +20,7 @@ export default abstract class DeprecatedAsyncView<
   render() {
     return (
       <SentryDocumentTitle title={this.getTitle()}>
-        {this.renderComponent() as React.ReactChild}
+        {this.renderComponent()}
       </SentryDocumentTitle>
     );
   }

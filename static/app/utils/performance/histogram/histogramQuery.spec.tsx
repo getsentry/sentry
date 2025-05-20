@@ -49,7 +49,7 @@ describe('HistogramQuery', function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-histogram/',
       body: {
-        'measurements.fp': Array(10)
+        'measurements.fp': new Array(10)
           .fill(null)
           .map((_, i) => ({bin: i * 1000, count: i})),
       },

@@ -13,7 +13,7 @@ describe('withSentryAppComponents HoC', function () {
     const Container = withSentryAppComponents(MyComponent);
     render(<Container />);
 
-    expect(MyComponent).toHaveBeenCalledWith({components: []}, {});
+    expect((MyComponent.mock.calls[0] as any)[0]).toEqual({components: []});
 
     MyComponent.mockClear();
 
@@ -34,15 +34,12 @@ describe('withSentryAppComponents HoC', function () {
       ])
     );
 
-    expect(MyComponent).toHaveBeenCalledWith(
-      {
-        components: [
-          expect.objectContaining({type: 'issue-link'}),
-          expect.objectContaining({type: 'stacktrace-link'}),
-        ],
-      },
-      {}
-    );
+    expect((MyComponent.mock.calls[0] as any)[0]).toEqual({
+      components: [
+        expect.objectContaining({type: 'issue-link'}),
+        expect.objectContaining({type: 'stacktrace-link'}),
+      ],
+    });
   });
 
   it('handles components of a certain type', function () {
@@ -52,7 +49,7 @@ describe('withSentryAppComponents HoC', function () {
     });
     render(<Container />);
 
-    expect(MyComponent).toHaveBeenCalledWith({components: []}, {});
+    expect((MyComponent.mock.calls[0] as any)[0]).toEqual({components: []});
 
     act(() =>
       SentryAppComponentsStore.loadComponents([
@@ -71,18 +68,15 @@ describe('withSentryAppComponents HoC', function () {
       ])
     );
 
-    expect(MyComponent).toHaveBeenCalledWith(
-      {
-        components: [
-          {
-            type: 'issue-link',
-            sentryApp: {uuid: 'uuid', name: '', slug: '', avatars: []},
-            uuid: '',
-            schema: {uri: '', url: '', type: 'stacktrace-link'},
-          },
-        ],
-      },
-      {}
-    );
+    expect((MyComponent.mock.calls[1] as any)[0]).toEqual({
+      components: [
+        {
+          type: 'issue-link',
+          sentryApp: {uuid: 'uuid', name: '', slug: '', avatars: []},
+          uuid: '',
+          schema: {uri: '', url: '', type: 'stacktrace-link'},
+        },
+      ],
+    });
   });
 });

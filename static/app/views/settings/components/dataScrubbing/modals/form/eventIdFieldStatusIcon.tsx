@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {ControlState} from 'sentry/components/forms/fieldGroup/controlState';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-
-import {EventIdStatus} from '../../types';
+import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 
 type Props = {
   onClickIconClose: () => void;
@@ -44,7 +43,7 @@ const CloseIcon = styled('div')`
 const StyledIconClose = styled(IconClose)`
   color: ${p => p.theme.gray200};
   :hover {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
   cursor: pointer;
 `;

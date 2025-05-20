@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {
   BaseTraceChildrenProps,
   EventLite,

@@ -1,12 +1,10 @@
 import {Fragment, useEffect} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import {Badge} from 'sentry/components/core/badge';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import AlertStore from 'sentry/stores/alertStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -18,7 +16,7 @@ const POLICY_URL =
 const SUPERUSER_MESSAGE = 'You are in superuser mode.';
 const WARNING_MESSAGE = (
   <Fragment>
-    Please be familiar with the{' '}
+    Please refer to Sentry's{' '}
     <a href={POLICY_URL} target="_none">
       rules for handling customer data
     </a>
@@ -47,7 +45,7 @@ function ExitSuperuserButton() {
         top: space(0.5),
         bottom: space(0.75),
       }}
-      size="xs"
+      size="sm"
       priority="primary"
       onClick={() => {
         handleExitSuperuser(api);
@@ -59,10 +57,11 @@ function ExitSuperuserButton() {
 }
 
 type Props = {
+  className?: string;
   organization?: Organization;
 };
 
-function SuperuserWarning({organization}: Props) {
+function SuperuserWarning({organization, className}: Props) {
   const isExcludedOrg = shouldExcludeOrg(organization);
 
   useEffect(() => {
@@ -87,43 +86,40 @@ function SuperuserWarning({organization}: Props) {
   }
 
   return (
-    <SuperuserBadge type="warning" stackedNav={prefersStackedNav()}>
+    <StyledBadge type="warning" className={className}>
       <Tooltip
         isHoverable
         title={
-          <Fragment>
+          <TooltipContent>
+            <Content>{WARNING_MESSAGE}</Content>
             <ExitSuperuserButton />
-            <br />
-            <br />
-            {WARNING_MESSAGE}
-          </Fragment>
+          </TooltipContent>
         }
       >
         Superuser
       </Tooltip>
-    </SuperuserBadge>
+    </StyledBadge>
   );
 }
 
-export default SuperuserWarning;
-
-const SuperuserBadge = styled(Badge)<{stackedNav: boolean}>`
-  position: absolute;
-  top: -5px;
-  right: 5px;
-
-  ${p =>
-    p.stackedNav &&
-    css`
-      top: -12px;
-      left: 2px;
-      right: 2px;
-      font-size: 10px;
-      margin: 0;
-    `}
-
-  /* Hiding on smaller screens because it looks misplaced */
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: none;
-  }
+const StyledBadge = styled(Badge)`
+  color: ${p => (p.theme.isChonk ? p.theme.white : undefined)};
+  background: ${p =>
+    p.theme.isChonk ? (p.theme as any).colors.chonk.red400 : undefined};
 `;
+
+const TooltipContent = styled('div')`
+  padding: ${space(0.5)} ${space(0.25)};
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: column;
+  gap: ${space(1)};
+  text-align: left;
+`;
+
+const Content = styled('p')`
+  margin: 0;
+`;
+
+export default SuperuserWarning;

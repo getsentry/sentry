@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {
@@ -14,13 +15,10 @@ import {
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 
-type Props = {
-  index: number;
-  query: ReadableExploreQueryParts;
-};
+type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function GroupBySection({query, index}: Props) {
-  const tags = useSpanTags();
+  const {tags} = useSpanTags();
 
   const updateGroupBys = useUpdateQueryAtIndex(index);
 
@@ -36,17 +34,19 @@ export function GroupBySection({query, index}: Props) {
       return 1;
     });
 
-    return potentialOptions.map(key => ({
-      label: key,
-      value: key,
-      textValue: key,
-    }));
+    return potentialOptions.map(key => ({label: key, value: key, textValue: key}));
   }, [tags, query.groupBys]);
 
   return (
     <Section data-test-id={`section-group-by-${index}`}>
       <SectionHeader>
-        <SectionLabel underlined={false}>{t('Group By')}</SectionLabel>
+        <Tooltip
+          title={t(
+            'Aggregate data by a key attribute to calculate averages, percentiles, count and more.'
+          )}
+        >
+          <SectionLabel>{t('Group By')}</SectionLabel>
+        </Tooltip>
       </SectionHeader>
       <StyledCompactSelect
         multiple

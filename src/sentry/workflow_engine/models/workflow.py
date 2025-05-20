@@ -1,3 +1,4 @@
+from dataclasses import replace
 from typing import Any
 
 from django.conf import settings
@@ -6,11 +7,12 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 
 from .json_config import JSONConfigBase
 
@@ -23,11 +25,14 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
 
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
     enabled = models.BooleanField(db_default=True)
+
+    # The workflow's status - used for tracking deletion state
+    status = models.SmallIntegerField(db_default=ObjectStatus.ACTIVE)
 
     # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
     when_condition_group = FlexibleForeignKey(
@@ -42,21 +47,19 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     DEFAULT_FREQUENCY = 30
 
-    @property
-    def config_schema(self) -> dict[str, Any]:
-        return {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "Workflow Schema",
-            "type": "object",
-            "properties": {
-                "frequency": {
-                    "description": "How often the workflow should fire for a Group (minutes)",
-                    "type": "integer",
-                    "minimum": 0,
-                },
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Workflow Schema",
+        "type": "object",
+        "properties": {
+            "frequency": {
+                "description": "How often the workflow should fire for a Group (minutes)",
+                "type": "integer",
+                "minimum": 0,
             },
-            "additionalProperties": False,
-        }
+        },
+        "additionalProperties": False,
+    }
 
     __repr__ = sane_repr("name", "organization_id")
 
@@ -64,16 +67,12 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         app_label = "workflow_engine"
         db_table = "workflow_engine_workflow"
 
-        constraints = [
-            models.UniqueConstraint(
-                fields=["name", "organization"], name="unique_workflow_name_per_org"
-            )
-        ]
-
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}
 
-    def evaluate_trigger_conditions(self, job: WorkflowJob) -> tuple[bool, list[DataCondition]]:
+    def evaluate_trigger_conditions(
+        self, event_data: WorkflowEventData
+    ) -> tuple[bool, list[DataCondition]]:
         """
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
@@ -85,11 +84,11 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.when_condition_group is None:
             return True, []
 
-        job["workflow"] = self
-        (evaluation, _), remaining_conditions = process_data_condition_group(
-            self.when_condition_group.id, job
+        workflow_event_data = replace(event_data, workflow_env=self.environment)
+        group_evaluation, remaining_conditions = process_data_condition_group(
+            self.when_condition_group.id, workflow_event_data
         )
-        return evaluation, remaining_conditions
+        return group_evaluation.logic_result, remaining_conditions
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:

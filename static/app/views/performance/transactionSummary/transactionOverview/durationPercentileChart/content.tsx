@@ -1,16 +1,18 @@
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-import type {ViewProps} from '../../../types';
-import {filterToColor, SpanOperationBreakdownFilter} from '../../filter';
+import {
+  filterToColor,
+  SpanOperationBreakdownFilter,
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import Chart from './chart';
 import {transformData} from './utils';
@@ -46,6 +48,7 @@ function Content({
   environment,
   project,
 }: Props) {
+  const theme = useTheme();
   const eventView = EventView.fromSavedQuery({
     id: '',
     name: '',
@@ -95,8 +98,8 @@ function Content({
 
   const colors = () =>
     currentFilter === SpanOperationBreakdownFilter.NONE
-      ? getChartColorPalette(1)
-      : [filterToColor(currentFilter)];
+      ? theme.chart.getColorPalette(1)
+      : [filterToColor(currentFilter, theme)];
 
   return <Chart series={transformData(chartData.data, false)} colors={colors} />;
 }

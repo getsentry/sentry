@@ -7,10 +7,11 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-export type ScoreCardProps = {
+type ScoreCardProps = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
+  isEstimate?: boolean;
   isTooltipHoverable?: boolean;
   renderOpenButton?: () => React.ReactNode;
   score?: React.ReactNode;
@@ -28,6 +29,8 @@ function ScoreCard({
   renderOpenButton,
   isTooltipHoverable,
 }: ScoreCardProps) {
+  const displayScore = score ?? '\u2014';
+
   return (
     <ScorePanel className={className}>
       <HeaderWrapper>
@@ -46,7 +49,7 @@ function ScoreCard({
       </HeaderWrapper>
 
       <ScoreWrapper>
-        <Score>{score ?? '\u2014'}</Score>
+        <Score>{displayScore}</Score>
         {defined(trend) && (
           <Trend trendStatus={trendStatus}>
             <TextOverflow>{trend}</TextOverflow>
@@ -76,7 +79,7 @@ export const ScorePanel = styled(Panel)`
   min-height: 96px;
 `;
 
-export const HeaderTitle = styled('div')`
+const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
   gap: ${space(1)};

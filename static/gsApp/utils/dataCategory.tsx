@@ -1,77 +1,60 @@
 import upperFirst from 'lodash/upperFirst';
 
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import type {DataCategoryExact} from 'sentry/types/core';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
+import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import type {
+  BilledDataCategoryInfo,
   BillingMetricHistory,
+  PendingReservedBudget,
   Plan,
   RecurringCredit,
+  ReservedBudget,
+  ReservedBudgetCategory,
   Subscription,
 } from 'getsentry/types';
-import {CreditType} from 'getsentry/types';
-import titleCase from 'getsentry/utils/titleCase';
 
-export const GIFT_CATEGORIES: string[] = [
-  DataCategory.ERRORS,
-  DataCategory.TRANSACTIONS,
-  DataCategory.REPLAYS,
-  DataCategory.ATTACHMENTS,
-  DataCategory.MONITOR_SEATS,
-  DataCategory.SPANS,
-  DataCategory.SPANS_INDEXED,
-  DataCategory.PROFILE_DURATION,
-  DataCategory.UPTIME,
-];
-
-const DATA_CATEGORY_FEATURES: {[key: string]: string | null} = {
-  [DataCategory.ERRORS]: null, // All plans have access to errors
-  [DataCategory.TRANSACTIONS]: 'performance-view',
-  [DataCategory.REPLAYS]: 'session-replay',
-  [DataCategory.ATTACHMENTS]: 'event-attachments',
-  [DataCategory.MONITOR_SEATS]: 'monitor-seat-billing',
-  [DataCategory.SPANS]: 'spans-usage-tracking',
-  [DataCategory.UPTIME]: 'uptime',
-};
-
-const CREDIT_TYPE_TO_DATA_CATEGORY = {
-  [CreditType.ERROR]: DataCategory.ERRORS,
-  [CreditType.TRANSACTION]: DataCategory.TRANSACTIONS,
-  [CreditType.SPAN]: DataCategory.SPANS,
-  [CreditType.PROFILE_DURATION]: DataCategory.PROFILE_DURATION,
-  [CreditType.ATTACHMENT]: DataCategory.ATTACHMENTS,
-  [CreditType.REPLAY]: DataCategory.REPLAYS,
-  [CreditType.MONITOR_SEAT]: DataCategory.MONITOR_SEATS,
-  [CreditType.UPTIME]: DataCategory.UPTIME,
-};
-
-export const SINGULAR_DATA_CATEGORY = {
-  default: 'default',
-  errors: 'error',
-  transactions: 'transaction',
-  profiles: 'profile',
-  attachments: 'attachment',
-  replays: 'replay',
-  monitorSeats: 'monitorSeat',
-  spans: 'span',
-  uptime: 'uptime',
-};
+/**
+ * Returns the data category info defined in DATA_CATEGORY_INFO for the given category,
+ * with billing context defined in BILLED_DATA_CATEGORY_INFO.
+ *
+ * Returns null for categories not defined in DATA_CATEGORY_INFO.
+ */
+export function getCategoryInfoFromPlural(
+  category: DataCategory
+): BilledDataCategoryInfo | null {
+  const info = Object.values(BILLED_DATA_CATEGORY_INFO).find(c => c.plural === category);
+  if (!info) {
+    return null;
+  }
+  return info;
+}
 
 /**
  *
  * Get the data category for a recurring credit type
  */
-export function getCreditDataCategory(credit: RecurringCredit) {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return CREDIT_TYPE_TO_DATA_CATEGORY[credit.type];
+export function getCreditDataCategory(credit: RecurringCredit): DataCategory | null {
+  const category =
+    (DATA_CATEGORY_INFO[credit.type as string as DataCategoryExact]
+      ?.plural as DataCategory) || null;
+  if (!category) {
+    return null;
+  }
+  return category;
 }
 
 type CategoryNameProps = {
-  category: string;
+  category: DataCategory;
   capitalize?: boolean;
   hadCustomDynamicSampling?: boolean;
   plan?: Plan;
+  title?: boolean;
 };
 
 /**
@@ -82,8 +65,8 @@ export function getPlanCategoryName({
   category,
   hadCustomDynamicSampling = false,
   capitalize = true,
+  title = false,
 }: CategoryNameProps) {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const displayNames = plan?.categoryDisplayNames?.[category];
   const categoryName =
     category === DataCategory.SPANS && hadCustomDynamicSampling
@@ -91,7 +74,11 @@ export function getPlanCategoryName({
       : displayNames
         ? displayNames.plural
         : category;
-  return capitalize ? upperFirst(categoryName) : categoryName;
+  return title
+    ? toTitleCase(categoryName, {allowInnerUpperCase: true})
+    : capitalize
+      ? upperFirst(categoryName)
+      : categoryName;
 }
 
 /**
@@ -102,8 +89,8 @@ export function getSingularCategoryName({
   category,
   hadCustomDynamicSampling = false,
   capitalize = true,
+  title = false,
 }: CategoryNameProps) {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const displayNames = plan?.categoryDisplayNames?.[category];
   const categoryName =
     category === DataCategory.SPANS && hadCustomDynamicSampling
@@ -111,7 +98,28 @@ export function getSingularCategoryName({
       : displayNames
         ? displayNames.singular
         : category.substring(0, category.length - 1);
-  return capitalize ? upperFirst(categoryName) : categoryName;
+  return title
+    ? toTitleCase(categoryName, {allowInnerUpperCase: true})
+    : capitalize
+      ? upperFirst(categoryName)
+      : categoryName;
+}
+
+/**
+ * Get the ReservedBudgetCategory from a list of categories and a plan,
+ * if it exists.
+ */
+export function getReservedBudgetCategoryFromCategories(
+  plan: Plan,
+  categories: DataCategory[]
+): ReservedBudgetCategory | null {
+  return (
+    Object.values(plan?.availableReservedBudgetTypes ?? {}).find(
+      budgetInfo =>
+        categories.length === budgetInfo.dataCategories.length &&
+        categories.every(category => budgetInfo.dataCategories.includes(category))
+    ) ?? null
+  );
 }
 
 /**
@@ -119,27 +127,54 @@ export function getSingularCategoryName({
  */
 export function getReservedBudgetDisplayName({
   plan,
-  categories,
-  hadCustomDynamicSampling = false,
+  hadCustomDynamicSampling,
+  reservedBudget = null,
+  pendingReservedBudget = null,
   shouldTitleCase = false,
-}: Omit<CategoryNameProps, 'category' | 'capitalize'> & {
-  categories: string[];
+  capitalize = false,
+}: Omit<CategoryNameProps, 'category'> & {
+  pendingReservedBudget?: PendingReservedBudget | null;
+  reservedBudget?: ReservedBudget | null;
   shouldTitleCase?: boolean;
 }) {
-  return oxfordizeArray(
-    categories
-      .map(category => {
-        const name = getPlanCategoryName({
-          plan,
-          category,
-          hadCustomDynamicSampling,
-          capitalize: false,
-        });
-        return shouldTitleCase ? titleCase(name) : name;
-      })
-      .sort()
-  );
+  const categoryList =
+    reservedBudget?.dataCategories ??
+    (Object.keys(pendingReservedBudget?.categories ?? {}) as DataCategory[]);
+  const name =
+    reservedBudget?.name ??
+    (plan ? getReservedBudgetCategoryFromCategories(plan, categoryList)?.name : '');
+
+  if (name) {
+    return shouldTitleCase
+      ? toTitleCase(name, {allowInnerUpperCase: true})
+      : capitalize
+        ? upperFirst(name)
+        : name;
+  }
+
+  const formattedCategories = categoryList
+    .map(category => {
+      const categoryName = getPlanCategoryName({
+        plan,
+        category,
+        hadCustomDynamicSampling,
+        capitalize: false,
+      });
+      return shouldTitleCase
+        ? toTitleCase(categoryName, {allowInnerUpperCase: true})
+        : categoryName;
+    })
+    .sort((a, b) => {
+      return a.localeCompare(b);
+    });
+
+  if (capitalize) {
+    formattedCategories[0] = upperFirst(formattedCategories[0]);
+  }
+
+  return oxfordizeArray(formattedCategories) + (shouldTitleCase ? ' Budget' : ' budget');
 }
+
 /**
  * Get a string of display names.
  *
@@ -149,17 +184,25 @@ export function listDisplayNames({
   plan,
   categories,
   hadCustomDynamicSampling = false,
+  shouldTitleCase = false,
 }: {
-  categories: string[];
+  categories: DataCategory[];
   plan: Plan;
   hadCustomDynamicSampling?: boolean;
+  shouldTitleCase?: boolean;
 }) {
   const categoryNames = categories
     .filter(
       category => category !== DataCategory.SPANS_INDEXED || hadCustomDynamicSampling // filter out stored spans if no DS
     )
     .map(category =>
-      getPlanCategoryName({plan, category, capitalize: false, hadCustomDynamicSampling})
+      getPlanCategoryName({
+        plan,
+        category,
+        capitalize: false,
+        hadCustomDynamicSampling,
+        title: shouldTitleCase,
+      })
     );
   return oxfordizeArray(categoryNames);
 }
@@ -167,15 +210,15 @@ export function listDisplayNames({
 /**
  * Sort data categories in order.
  */
-export function sortCategories(categories?: {
-  [key: string]: BillingMetricHistory;
-}): BillingMetricHistory[] {
+export function sortCategories(
+  categories?: Record<string, BillingMetricHistory>
+): BillingMetricHistory[] {
   return Object.values(categories || {}).sort((a, b) => (a.order > b.order ? 1 : -1));
 }
 
-export function sortCategoriesWithKeys(categories?: {
-  [key: string]: BillingMetricHistory;
-}): Array<[string, BillingMetricHistory]> {
+export function sortCategoriesWithKeys(
+  categories?: Record<string, BillingMetricHistory>
+): Array<[string, BillingMetricHistory]> {
   return Object.entries(categories || {}).sort((a, b) =>
     a[1].order > b[1].order ? 1 : -1
   );
@@ -184,11 +227,11 @@ export function sortCategoriesWithKeys(categories?: {
 /**
  * Whether the subscription plan includes a data category.
  */
-function hasCategory(subscription: Subscription, category: string) {
+function hasCategory(subscription: Subscription, category: DataCategory) {
   return hasPlanCategory(subscription.planDetails, category);
 }
 
-function hasPlanCategory(plan: Plan, category: string) {
+function hasPlanCategory(plan: Plan, category: DataCategory) {
   return plan.categories.includes(category);
 }
 
@@ -199,7 +242,7 @@ function hasPlanCategory(plan: Plan, category: string) {
  * custom feature handlers and plan trial. Used for usage UI.
  */
 export function hasCategoryFeature(
-  category: string,
+  category: DataCategory,
   subscription: Subscription,
   organization: Organization
 ) {
@@ -207,9 +250,26 @@ export function hasCategoryFeature(
     return true;
   }
 
-  const feature = DATA_CATEGORY_FEATURES[category];
-  if (typeof feature === 'undefined') {
+  const feature = getCategoryInfoFromPlural(category)?.feature;
+  if (!feature) {
     return false;
   }
   return feature ? organization.features.includes(feature) : true;
+}
+
+export function isContinuousProfiling(category: DataCategory | string) {
+  return (
+    category === DataCategory.PROFILE_DURATION ||
+    category === DataCategory.PROFILE_DURATION_UI
+  );
+}
+
+export function getChunkCategoryFromDuration(category: DataCategory) {
+  if (category === DataCategory.PROFILE_DURATION) {
+    return DataCategory.PROFILE_CHUNKS;
+  }
+  if (category === DataCategory.PROFILE_DURATION_UI) {
+    return DataCategory.PROFILE_CHUNKS_UI;
+  }
+  return '';
 }

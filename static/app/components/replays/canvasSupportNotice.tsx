@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconClose} from 'sentry/icons';
@@ -27,11 +27,6 @@ export function CanvasSupportNotice() {
     organization,
     projectId: [projectId ?? '-1'],
   });
-
-  // No need for notice if they are not feature flagged into the replayer
-  if (!organization.features.includes('session-replay-enable-canvas-replayer')) {
-    return null;
-  }
 
   // User has dismissed this alert already, do not show
   if (isDismissed || isFetching) {

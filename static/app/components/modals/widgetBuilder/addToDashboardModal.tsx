@@ -10,9 +10,9 @@ import {
 } from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Select} from 'sentry/components/core/select';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters, SelectValue} from 'sentry/types/core';
@@ -22,6 +22,7 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import type {
   DashboardDetails,
@@ -99,6 +100,7 @@ function AddToDashboardModal({
   allowCreateNewDashboard = true,
 }: Props) {
   const api = useApi();
+  const navigate = useNavigate();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
   const [selectedDashboard, setSelectedDashboard] = useState<DashboardDetails | null>(
     null
@@ -151,11 +153,7 @@ function AddToDashboardModal({
         ? `/organizations/${organization.slug}/dashboards/new/`
         : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/`;
 
-    const builderSuffix = organization.features.includes(
-      'dashboards-widget-builder-redesign'
-    )
-      ? 'widget-builder/widget/new/'
-      : 'widget/new/';
+    const builderSuffix = 'widget-builder/widget/new/';
 
     const pathname =
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
@@ -244,7 +242,7 @@ function AddToDashboardModal({
 
   const widgetLegendState = new WidgetLegendSelectionState({
     location,
-    router,
+    navigate,
     organization,
     dashboard: selectedDashboard,
   });
@@ -261,7 +259,7 @@ function AddToDashboardModal({
       </Header>
       <Body>
         <Wrapper>
-          <SelectControl
+          <Select
             disabled={dashboards === null}
             menuPlacement="auto"
             name="dashboard"

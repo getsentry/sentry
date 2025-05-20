@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -8,6 +8,10 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
+  type SpansRPCQueryExtras,
+  useProgressiveQuery,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
   getQueryMode,
   useReadQueriesFromLocation,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
@@ -16,11 +20,12 @@ import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSorte
 interface UseMultiQueryTimeseriesOptions {
   enabled: boolean;
   index: number;
+  queryExtras?: SpansRPCQueryExtras;
 }
 
-export interface UseMultiQueryTimeseriesResults {
+interface UseMultiQueryTimeseriesResults {
   canUsePreviousResults: boolean;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  result: ReturnType<typeof useSortedTimeSeries>;
 }
 
 export const DEFAULT_TOP_EVENTS = 5;
@@ -28,6 +33,39 @@ export const DEFAULT_TOP_EVENTS = 5;
 export function useMultiQueryTimeseries({
   enabled,
   index,
+}: UseMultiQueryTimeseriesOptions) {
+  const canTriggerHighAccuracy = useCallback(
+    (results: ReturnType<typeof useMultiQueryTimeseriesImpl>['result']) => {
+      const hasData = Object.values(results.data).some(result => {
+        return Object.values(result).some(series => {
+          return series.sampleCount?.some(({value}) => {
+            return value > 0;
+          });
+        });
+      });
+      const canGetMoreData = Object.values(results.data).some(result => {
+        return Object.values(result).some(series => {
+          return series.dataScanned === 'partial';
+        });
+      });
+
+      return !hasData && canGetMoreData;
+    },
+    []
+  );
+  return useProgressiveQuery<typeof useMultiQueryTimeseriesImpl>({
+    queryHookImplementation: useMultiQueryTimeseriesImpl,
+    queryHookArgs: {enabled, index},
+    queryOptions: {
+      canTriggerHighAccuracy,
+    },
+  });
+}
+
+function useMultiQueryTimeseriesImpl({
+  enabled,
+  index,
+  queryExtras,
 }: UseMultiQueryTimeseriesOptions): UseMultiQueryTimeseriesResults {
   const queries = useReadQueriesFromLocation();
   const [interval] = useChartInterval();
@@ -71,8 +109,9 @@ export function useMultiQueryTimeseries({
       interval,
       topEvents: mode === Mode.SAMPLES ? undefined : DEFAULT_TOP_EVENTS,
       enabled,
+      ...queryExtras,
     };
-  }, [query, yAxes, fields, orderby, interval, mode, enabled]);
+  }, [query, yAxes, fields, orderby, interval, mode, enabled, queryExtras]);
 
   const previousQuery = usePrevious(query);
   const previousOptions = usePrevious(options);
@@ -119,5 +158,5 @@ export function useMultiQueryTimeseries({
     DiscoverDatasets.SPANS_EAP_RPC
   );
 
-  return {timeseriesResult, canUsePreviousResults};
+  return {result: timeseriesResult, canUsePreviousResults};
 }

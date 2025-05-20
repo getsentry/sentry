@@ -1,4 +1,5 @@
 import type {ComponentProps, ReactNode} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -10,11 +11,11 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -52,6 +53,7 @@ import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeFor
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {
+  determineIsSampled,
   determineMultiSeriesConfidence,
   determineSeriesConfidence,
 } from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
@@ -77,6 +79,7 @@ import {
   DEFAULT_CHANGE_TIME_WINDOW,
   DEFAULT_COUNT_TIME_WINDOW,
   DEFAULT_DYNAMIC_TIME_WINDOW,
+  getTimeWindowOptions,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
 import {
@@ -110,6 +113,7 @@ type Props = {
   projects: Project[];
   routes: PlainRoute[];
   rule: MetricRule;
+  theme: Theme;
   userTeamIds: string[];
   disableProjectSelector?: boolean;
   eventView?: EventView;
@@ -141,13 +145,14 @@ type State = {
   sensitivity: UnsavedMetricRule['sensitivity'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
-  triggerErrors: Map<number, {[fieldName: string]: string}>;
+  triggerErrors: Map<number, Record<string, string>>;
   triggers: Trigger[];
   chartError?: boolean;
   chartErrorMessage?: string;
   comparisonDelta?: number;
   confidence?: Confidence;
   isExtrapolatedChartData?: boolean;
+  isSampled?: boolean | null;
   seasonality?: AlertRuleSeasonality;
 } & DeprecatedAsyncComponent['state'];
 
@@ -174,11 +179,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      !['span_metrics', 'eap_metrics'].includes(alertType)
+      ['span_metrics', 'eap_metrics'].includes(alertType)
         ? query
+        : query
           ? `(${query}) AND (${eventTypeFilter})`
           : eventTypeFilter
-        : query
     ).trim();
     return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
   }
@@ -219,7 +224,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // TODO(issues): Does this need to be smarter about where its inserting the new filter?
     const query = isErrorMigration
       ? `is:unresolved ${rule.query ?? ''}`
-      : rule.query ?? '';
+      : (rule.query ?? '');
 
     return {
       ...super.getDefaultState(),
@@ -398,14 +403,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const isBelow = thresholdType === AlertRuleThresholdType.BELOW;
     let errorMessage = '';
 
-    if (typeof resolveThreshold !== 'number') {
-      errorMessage = isBelow
-        ? t('Resolution threshold must be greater than alert')
-        : t('Resolution threshold must be less than alert');
-    } else {
+    if (typeof resolveThreshold === 'number') {
       errorMessage = isBelow
         ? t('Alert threshold must be less than resolution')
         : t('Alert threshold must be greater than resolution');
+    } else {
+      errorMessage = isBelow
+        ? t('Resolution threshold must be greater than alert')
+        : t('Resolution threshold must be less than alert');
     }
 
     errors.set(triggerIndex, {
@@ -603,7 +608,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
         return {
           [name]: value,
-          alertType: alertType !== newAlertType ? 'custom_transactions' : alertType,
+          alertType: alertType === newAlertType ? alertType : 'custom_transactions',
           dataset,
         };
       });
@@ -720,7 +725,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     await Sentry.withScope(async scope => {
       try {
         scope.setTag('type', AlertRuleType.METRIC);
-        scope.setTag('operation', !rule.id ? 'create' : 'edit');
+        scope.setTag('operation', rule.id ? 'edit' : 'create');
         for (const trigger of sanitizedTriggers) {
           for (const action of trigger.actions) {
             if (action.type === 'slack' || action.type === 'discord') {
@@ -880,14 +885,19 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
     let updateState = {};
+    const {timeWindow, dataset} = this.state;
+    const supportedTimeWindows = getTimeWindowOptions(dataset, value).map(
+      windows => windows.value
+    );
     switch (value) {
       case AlertRuleComparisonType.DYNAMIC:
-        this.fetchAnomalies();
         updateState = {
           comparisonType: value,
           comparisonDelta: undefined,
           thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
-          timeWindow: DEFAULT_DYNAMIC_TIME_WINDOW,
+          timeWindow: supportedTimeWindows.includes(timeWindow)
+            ? timeWindow
+            : DEFAULT_DYNAMIC_TIME_WINDOW,
           sensitivity: AlertRuleSensitivity.MEDIUM,
           seasonality: AlertRuleSeasonality.AUTO,
         };
@@ -897,7 +907,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           comparisonType: value,
           comparisonDelta: DEFAULT_CHANGE_COMP_DELTA,
           thresholdType: AlertRuleThresholdType.ABOVE,
-          timeWindow: DEFAULT_CHANGE_TIME_WINDOW,
+          timeWindow: supportedTimeWindows.includes(timeWindow)
+            ? timeWindow
+            : DEFAULT_CHANGE_TIME_WINDOW,
           sensitivity: undefined,
           seasonality: undefined,
         };
@@ -907,7 +919,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           comparisonType: value,
           comparisonDelta: undefined,
           thresholdType: AlertRuleThresholdType.ABOVE,
-          timeWindow: DEFAULT_COUNT_TIME_WINDOW,
+          timeWindow: supportedTimeWindows.includes(timeWindow)
+            ? timeWindow
+            : DEFAULT_COUNT_TIME_WINDOW,
           sensitivity: undefined,
           seasonality: undefined,
         };
@@ -915,7 +929,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       default:
         break;
     }
-    this.setState({...updateState, chartError: false, chartErrorMessage: undefined});
+    this.setState({...updateState, chartError: false, chartErrorMessage: undefined}, () =>
+      this.fetchAnomalies()
+    );
   };
 
   handleDeleteRule = async () => {
@@ -989,7 +1005,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const confidence = isEventsStats(data)
       ? determineSeriesConfidence(data)
       : determineMultiSeriesConfidence(data);
-    this.setState({confidence});
+    const isSampled = determineIsSampled(data);
+    this.setState({confidence, isSampled});
   }
 
   handleHistoricalTimeSeriesDataFetched(
@@ -999,9 +1016,26 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     this.setState({historicalData}, () => this.fetchAnomalies());
   }
 
+  TimeWindowsAreConsistent() {
+    const {currentData, historicalData, timeWindow} = this.state;
+    const currentDataPoint1 = currentData[1];
+    const currentDataPoint0 = currentData[0];
+    if (!currentDataPoint0 || !currentDataPoint1) {
+      return false;
+    }
+    const historicalDataPoint1 = historicalData[1];
+    const historicalDataPoint0 = historicalData[0];
+    if (!historicalDataPoint0 || !historicalDataPoint1) {
+      return false;
+    }
+
+    const currentTimeWindow = (currentDataPoint1[0] - currentDataPoint0[0]) / 60;
+    const historicalTimeWindow = (historicalDataPoint1[0] - historicalDataPoint0[0]) / 60;
+    return currentTimeWindow === historicalTimeWindow && currentTimeWindow === timeWindow;
+  }
+
   async fetchAnomalies() {
     const {comparisonType, historicalData, currentData} = this.state;
-
     if (
       comparisonType !== AlertRuleComparisonType.DYNAMIC ||
       !(Array.isArray(currentData) && Array.isArray(historicalData)) ||
@@ -1014,6 +1048,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const {organization, project} = this.props;
     const {timeWindow, sensitivity, seasonality, thresholdType} = this.state;
+
     const direction =
       thresholdType === AlertRuleThresholdType.ABOVE
         ? 'up'
@@ -1030,10 +1065,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       organization_id: organization.id,
       project_id: project.id,
       config: {
-        time_period: timeWindow,
-        sensitivity,
         direction,
-        expected_seasonality: seasonality,
+        time_period: timeWindow,
+        sensitivity: sensitivity ?? AlertRuleSeasonality.AUTO,
+        expected_seasonality: seasonality ?? AlertRuleSensitivity.MEDIUM,
       },
       // remove historical data that overlaps with current dataset
       historical_data: historicalData.filter(
@@ -1047,7 +1082,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         `/organizations/${organization.slug}/events/anomalies/`,
         {method: 'POST', data: params}
       );
-      this.setState({anomalies});
+      // don't set the anomalies if historical and current data have incorrect time windows
+      if (!this.TimeWindowsAreConsistent()) {
+        this.setState({anomalies});
+      }
     } catch (e) {
       let chartErrorMessage: string | undefined;
       if (e.responseJSON) {
@@ -1171,6 +1209,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
       includeConfidence: alertType === 'eap_metrics',
       confidence,
+      theme: this.props.theme,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1335,7 +1374,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                       header={<h5>{t('Delete Alert Rule?')}</h5>}
                       priority="danger"
                       confirmText={t('Delete Rule')}
-                      onConfirm={this.handleDeleteRule}
+                      onConfirm={() => {
+                        this.handleDeleteRule();
+                      }}
                     >
                       <Button priority="danger">{t('Delete Rule')}</Button>
                     </Confirm>
@@ -1407,9 +1448,9 @@ function formatStatsToHistoricalDataset(
   data: EventsStats | MultiSeriesEventsStats | null
 ): Array<[number, {count: number}]> {
   return Array.isArray(data?.data)
-    ? data.data.flatMap(([timestamp, entries]) =>
+    ? (data.data.flatMap(([timestamp, entries]) =>
         entries.map(entry => [timestamp, entry] as [number, {count: number}])
-      ) ?? []
+      ) ?? [])
     : [];
 }
 
@@ -1440,7 +1481,7 @@ const AlertInfo = styled('div')`
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.formText};
+  background: ${p => p.theme.subText};
   height: ${space(1)};
   margin-right: ${space(0.5)};
 `;

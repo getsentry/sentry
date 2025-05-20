@@ -1,15 +1,18 @@
-import React, {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
+import type React from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import type {ListProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
+import type {ListRowRenderer} from 'react-virtualized/dist/es/List';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {
   BreadcrumbTransactionEvent,
   BreadcrumbWithMeta,
 } from 'sentry/components/events/interfaces/breadcrumbs/types';
 import type {PanelTableProps} from 'sentry/components/panels/panelTable';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,7 +28,7 @@ import type {BreadcrumbProps} from './breadcrumb';
 import {Breadcrumb} from './breadcrumb';
 
 const PANEL_MIN_HEIGHT = 200;
-export const PANEL_INITIAL_HEIGHT = 400;
+const PANEL_INITIAL_HEIGHT = 400;
 
 const noop = () => void 0;
 
@@ -38,25 +41,14 @@ interface SharedListProps extends ListProps {
   breadcrumbs: BreadcrumbWithMeta[];
   displayRelativeTime: boolean;
   event: BreadcrumbProps['event'];
-  index: number;
   organization: Organization;
   relativeTime: string;
   searchTerm: string;
   transactionEvents: BreadcrumbTransactionEvent[] | undefined;
+  index?: number;
 }
 
-interface BreadCrumbListClass extends Omit<List, 'props'> {
-  props: SharedListProps;
-}
-
-interface RenderBreadCrumbRowProps {
-  index: number;
-  key: string;
-  parent: BreadCrumbListClass;
-  style: React.CSSProperties;
-}
-
-function renderBreadCrumbRow({index, key, parent, style}: RenderBreadCrumbRowProps) {
+const renderBreadCrumbRow: ListRowRenderer = ({index, key, parent, style}) => {
   return (
     <CellMeasurer
       columnIndex={0}
@@ -87,7 +79,7 @@ function renderBreadCrumbRow({index, key, parent, style}: RenderBreadCrumbRowPro
       </BreadcrumbRow>
     </CellMeasurer>
   );
-}
+};
 
 interface Props
   extends Pick<
@@ -114,11 +106,11 @@ function Breadcrumbs({
 }: Props) {
   const {projects, fetching: loadingProjects} = useProjects();
 
-  const maybeProject = !loadingProjects
-    ? projects.find(project => {
+  const maybeProject = loadingProjects
+    ? null
+    : projects.find(project => {
         return event && project.id === event.projectID;
-      })
-    : null;
+      });
 
   const listRef = useRef<List>(null);
 
@@ -274,7 +266,7 @@ export const StyledBreadcrumbPanelTable = styled(PanelTable)`
       grid-column: 1/-1;
       ${p =>
         !p.isEmpty &&
-        `
+        css`
           padding: 0;
         `}
     }
@@ -310,7 +302,7 @@ const Time = styled('div')`
 const StyledIconSort = styled(IconSort)`
   transition: 0.15s color;
   :hover {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 
@@ -343,9 +335,9 @@ const PanelDragHandle = styled('div')`
 // It gives the list have a dynamic height; otherwise, in the case of filtered
 // options, a list will be displayed with an empty space
 
-const VirtualizedList = React.forwardRef<any, SharedListProps>((props, ref) => {
+function VirtualizedList({ref, ...props}: SharedListProps & {ref: React.RefObject<any>}) {
   return <StyledList ref={ref} {...props} />;
-});
+}
 const StyledList = styled(List as any)<SharedListProps>`
   height: auto !important;
   max-height: ${p => p.height}px;

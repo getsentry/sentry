@@ -1,8 +1,8 @@
-import {useCallback, useContext} from 'react';
+import {useCallback} from 'react';
 
-import type {ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {convertToReloadPath, getEventPath} from 'getsentry/utils/routeAnalytics';
@@ -15,7 +15,7 @@ export default function useButtonTracking({
   analyticsParams,
   'aria-label': ariaLabel,
 }: Props) {
-  const organization = useContext(OrganizationContext);
+  const organization = useOrganization({allowNull: true});
   const routes = useRoutes();
 
   const trackButton = useCallback(() => {
@@ -29,10 +29,10 @@ export default function useButtonTracking({
       // note null means something different than undefined for eventName so
       // checking for that explicitly
       const eventKey =
-        analyticsEventKey !== undefined
-          ? analyticsEventKey
-          : `button_click.${reloadPath}`;
-      const eventName = analyticsEventName !== undefined ? analyticsEventName : null;
+        analyticsEventKey === undefined
+          ? `button_click.${reloadPath}`
+          : analyticsEventKey;
+      const eventName = analyticsEventName === undefined ? null : analyticsEventName;
 
       rawTrackAnalyticsEvent({
         eventKey,

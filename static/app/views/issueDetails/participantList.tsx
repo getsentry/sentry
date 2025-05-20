@@ -2,9 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import Avatar from 'sentry/components/avatar';
-import TeamAvatar from 'sentry/components/avatar/teamAvatar';
-import {Button} from 'sentry/components/button';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -38,7 +38,7 @@ function ParticipantScrollbox({users, teams}: ParticipantScrollboxProps) {
       {showHeaders && <ListTitle>{t('Individuals (%s)', users.length)}</ListTitle>}
       {users.map(user => (
         <UserRow key={user.id}>
-          <Avatar user={user} size={28} />
+          <UserAvatar user={user} size={28} />
           <div>
             {user.name}
             <SubText>{user.email}</SubText>
@@ -134,7 +134,7 @@ const ListTitle = styled('div')`
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeSmall};

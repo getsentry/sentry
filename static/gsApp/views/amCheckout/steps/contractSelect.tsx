@@ -1,8 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
@@ -109,6 +109,7 @@ class ContractSelect extends Component<Props> {
           const price = getReservedTotal({
             plan,
             reserved: formData.reserved,
+            selectedProducts: formData.selectedProducts,
             ...discountData,
           });
 

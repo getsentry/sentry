@@ -131,6 +131,14 @@ export type ReleaseProject = {
   healthData?: Health;
 };
 
+/**
+ * From the `/releases/stats/` endpoint
+ */
+export type ReleaseMetaBasic = {
+  date: string;
+  version: string;
+};
+
 export type ReleaseMeta = {
   commitCount: number;
   commitFilesChanged: number;
@@ -166,7 +174,7 @@ export type Health = {
   totalUsers24h: number | null;
 };
 
-export type HealthGraphData = Record<string, TimeseriesValue[]>;
+type HealthGraphData = Record<string, TimeseriesValue[]>;
 
 export enum ReleaseComparisonChartType {
   CRASH_FREE_USERS = 'crashFreeUsers',

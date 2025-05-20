@@ -39,14 +39,14 @@ from sentry.utils import metrics
 # specific events are for each resource.
 EVENT_EXPANSION = {
     "issue": [
-        "issue.created",
-        "issue.resolved",
-        "issue.ignored",
         "issue.assigned",
+        "issue.created",
+        "issue.ignored",
+        "issue.resolved",
         "issue.unresolved",
     ],
     "error": ["error.created"],
-    "comment": ["comment.created", "comment.updated", "comment.deleted"],
+    "comment": ["comment.created", "comment.deleted", "comment.updated"],
 }
 
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not

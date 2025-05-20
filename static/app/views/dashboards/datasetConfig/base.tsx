@@ -15,12 +15,12 @@ import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {DisplayType, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
+import {getNumEquations} from 'sentry/views/dashboards/utils';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
-
-import type {DisplayType, Widget, WidgetQuery} from '../types';
-import {WidgetType} from '../types';
-import {getNumEquations} from '../utils';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {ErrorsConfig} from './errors';
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
@@ -36,6 +36,7 @@ export type WidgetBuilderSearchBarProps = {
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
+  portalTarget?: HTMLElement | null;
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
@@ -43,7 +44,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Dataset specific search bar for the 'Filter' step in the
    * widget builder.
    */
-  SearchBar: (props: WidgetBuilderSearchBarProps) => JSX.Element;
+  SearchBar: (props: WidgetBuilderSearchBarProps) => React.JSX.Element;
   /**
    * Default field to add to the widget query when adding a new field.
    */
@@ -159,7 +160,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters,
     onDemandControlContext?: OnDemandControlContext,
     referrer?: string,
-    mepSetting?: MEPState | null
+    mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
   ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Get the result type of the series. ie duration, size, percentage, etc
@@ -182,7 +184,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     limit?: number,
     cursor?: string,
     referrer?: string,
-    mepSetting?: MEPState | null
+    mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
   ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the list of sort options for table

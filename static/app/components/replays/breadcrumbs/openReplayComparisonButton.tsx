@@ -2,7 +2,7 @@ import {Fragment, lazy, type ReactNode, Suspense} from 'react';
 import {css} from '@emotion/react';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, type ButtonProps} from 'sentry/components/button';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

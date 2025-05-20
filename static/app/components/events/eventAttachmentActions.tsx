@@ -1,7 +1,8 @@
 import {useRole} from 'sentry/components/acl/useRole';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {hasInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {IconDelete, IconDownload, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -40,11 +41,11 @@ function EventAttachmentActions({
           icon={<IconShow />}
           onClick={onPreviewClick}
           title={
-            !hasAttachmentRole
-              ? t('Insufficient permissions to preview attachments')
-              : !hasPreview
-                ? t('This attachment cannot be previewed')
-                : undefined
+            hasAttachmentRole
+              ? hasPreview
+                ? undefined
+                : t('This attachment cannot be previewed')
+              : t('Insufficient permissions to preview attachments')
           }
         >
           {t('Preview')}

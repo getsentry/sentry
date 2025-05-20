@@ -1,14 +1,16 @@
 import {Fragment} from 'react';
+import {useLocation} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ListLink from 'sentry/components/links/listLink';
-import NavTabs from 'sentry/components/navTabs';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconCodecov} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {openCodecovModal} from 'getsentry/actionCreators/modal';
@@ -63,7 +65,13 @@ const tabConfig = [
   {
     key: 'details',
     name: t('Billing Details'),
-    show: requireBilling,
+    show: (
+      organization: Organization,
+      isDisabled: boolean,
+      subscription: Subscription
+    ) => {
+      return requireBilling(organization, isDisabled) && !subscription.isSelfServePartner;
+    },
   },
   {
     key: 'usage-log',
@@ -85,6 +93,10 @@ function SubscriptionHeader(props: Props) {
   const {subscription, organization} = props;
   const hasBillingPerms = hasPermissions(organization, 'org:billing');
   const isDisabled = isDisabledByPartner(subscription);
+  const location = useLocation();
+
+  const tab = location.pathname.split('/').at(-2);
+  const activeTab = tabConfig.find(({key}) => key === tab) ?? tabConfig[0];
 
   return (
     <Fragment>
@@ -94,32 +106,40 @@ function SubscriptionHeader(props: Props) {
         data-test-id="subscription-page"
         title={t('Subscription')}
         tabs={
-          <NavTabs underlined>
-            {tabConfig.reduce((acc, {key, name, show}) => {
-              if (show(organization, isDisabled)) {
-                acc.push(
-                  <ListLink
-                    key={key}
-                    to={`/settings/${organization.slug}/billing/${key}/`}
-                  >
-                    {name}
-                  </ListLink>
-                );
-              }
-              return acc;
-            }, [] as React.ReactNode[])}
-          </NavTabs>
+          <TabsContainer>
+            <Tabs value={activeTab.key}>
+              <TabList>
+                {tabConfig
+                  .map(({key, name, show}) => {
+                    if (show(organization, isDisabled, subscription)) {
+                      return (
+                        <TabList.Item
+                          key={key}
+                          to={normalizeUrl(
+                            `/settings/${organization.slug}/billing/${key}/`
+                          )}
+                        >
+                          {name}
+                        </TabList.Item>
+                      );
+                    }
+                    return null;
+                  })
+                  .filter(n => !!n)}
+              </TabList>
+            </Tabs>
+          </TabsContainer>
         }
         action={
           <ActionContainer>
             {subscription.canSelfServe && hasBillingPerms && (
-              <Button
+              <LinkButton
                 size="md"
                 to={`/settings/${organization.slug}/billing/checkout/?referrer=manage_subscription`}
                 aria-label="Manage subscription"
               >
                 {t('Manage Subscription')}
-              </Button>
+              </LinkButton>
             )}
             {hasAccessToSubscriptionOverview(subscription, organization) ? (
               <Button
@@ -146,6 +166,10 @@ function SubscriptionHeader(props: Props) {
     </Fragment>
   );
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 /**
  * It's important to separate the views for folks with billing permissions (org:billing) and those without.  Only

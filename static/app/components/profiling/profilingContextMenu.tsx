@@ -1,20 +1,18 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
 interface MenuProps
   extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   children: React.ReactNode;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
-const Menu = styled(
-  forwardRef((props: MenuProps, ref: React.Ref<HTMLDivElement> | undefined) => {
-    return <div ref={ref} role="menu" {...props} />;
-  })
-)`
+const Menu = styled(({ref, ...props}: MenuProps) => {
+  return <div ref={ref} role="menu" {...props} />;
+})`
   position: absolute;
   font-size: ${p => p.theme.fontSizeMedium};
   z-index: ${p => p.theme.zIndex.dropdown};
@@ -59,27 +57,26 @@ const MenuItemCheckboxLabel = styled('label')`
 interface MenuItemCheckboxProps
   extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   checked?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
-const MenuItemCheckbox = forwardRef(
-  (props: MenuItemCheckboxProps, ref: React.Ref<HTMLDivElement> | undefined) => {
-    const {children, checked, ...rest} = props;
+function MenuItemCheckbox({ref, ...props}: MenuItemCheckboxProps) {
+  const {children, checked, ...rest} = props;
 
-    return (
-      <MenuContentOuterContainer>
-        <MenuContentContainer ref={ref} role="menuitem" {...rest}>
-          <MenuItemCheckboxLabel>
-            <MenuLeadingItem>
-              <Input type="checkbox" checked={checked} onChange={() => void 0} />
-              <IconCheckmark />
-            </MenuLeadingItem>
-            <MenuContent>{children}</MenuContent>
-          </MenuItemCheckboxLabel>
-        </MenuContentContainer>
-      </MenuContentOuterContainer>
-    );
-  }
-);
+  return (
+    <MenuContentOuterContainer>
+      <MenuContentContainer ref={ref} role="menuitem" {...rest}>
+        <MenuItemCheckboxLabel>
+          <MenuLeadingItem>
+            <Input type="checkbox" checked={checked} onChange={() => void 0} />
+            <IconCheckmark />
+          </MenuLeadingItem>
+          <MenuContent>{children}</MenuContent>
+        </MenuItemCheckboxLabel>
+      </MenuContentContainer>
+    </MenuContentOuterContainer>
+  );
+}
 
 export {MenuItemCheckbox as ProfilingContextMenuItemCheckbox};
 
@@ -90,24 +87,23 @@ interface MenuItemButtonProps
   > {
   disabled?: boolean;
   icon?: React.ReactNode;
+  ref?: React.Ref<HTMLButtonElement>;
   tooltip?: string;
 }
 
-const MenuItemButton = forwardRef(
-  (props: MenuItemButtonProps, ref: React.Ref<HTMLButtonElement> | undefined) => {
-    const {children, tooltip, ...rest} = props;
-    return (
-      <MenuContentOuterContainer>
-        <Tooltip title={tooltip}>
-          <MenuButton disabled={props.disabled} ref={ref} role="menuitem" {...rest}>
-            {props.icon ? <MenuLeadingItem>{props.icon}</MenuLeadingItem> : null}
-            {children}
-          </MenuButton>
-        </Tooltip>
-      </MenuContentOuterContainer>
-    );
-  }
-);
+function MenuItemButton({ref, ...props}: MenuItemButtonProps) {
+  const {children, tooltip, ...rest} = props;
+  return (
+    <MenuContentOuterContainer>
+      <Tooltip title={tooltip}>
+        <MenuButton disabled={props.disabled} ref={ref} role="menuitem" {...rest}>
+          {props.icon ? <MenuLeadingItem>{props.icon}</MenuLeadingItem> : null}
+          {children}
+        </MenuButton>
+      </Tooltip>
+    </MenuContentOuterContainer>
+  );
+}
 
 export {MenuItemButton as ProfilingContextMenuItemButton};
 
@@ -186,20 +182,19 @@ const Input = styled('input')`
 interface MenuItemProps
   extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   children: React.ReactNode;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
-const MenuItem = styled(
-  forwardRef((props: MenuItemProps, ref: React.Ref<HTMLDivElement> | undefined) => {
-    const {children, ...rest} = props;
-    return (
-      <MenuContentOuterContainer>
-        <MenuContentContainer ref={ref} role="menuitem" {...rest}>
-          <MenuContent>{children}</MenuContent>
-        </MenuContentContainer>
-      </MenuContentOuterContainer>
-    );
-  })
-)`
+const MenuItem = styled(({ref, ...props}: MenuItemProps) => {
+  const {children, ...rest} = props;
+  return (
+    <MenuContentOuterContainer>
+      <MenuContentContainer ref={ref} role="menuitem" {...rest}>
+        <MenuContent>{children}</MenuContent>
+      </MenuContentContainer>
+    </MenuContentOuterContainer>
+  );
+})`
   cursor: pointer;
   color: ${p => p.theme.textColor};
   background: transparent;

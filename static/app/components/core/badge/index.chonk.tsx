@@ -35,6 +35,11 @@ const StyledChonkBadge = chonkStyled('span')<ChonkBadgeProps>`
   border-radius: ${p => p.theme.radius.sm};
   font-size: ${p => p.theme.fontSizeSmall};
 
+  display: inline-flex;
+  align-items: center;
+  line-height: initial;
+  height: 20px;
+  font-weight: ${p => p.theme.fontWeightBold};
   padding: ${p => p.theme.space.micro} ${p => p.theme.space.mini};
 
   // @TODO(jonasbadalic): this exists on the old badge, but should be removed
@@ -49,63 +54,57 @@ function makeChonkBadgeTheme(
     // @TODO(jonasbadalic) these should use feature badge variants
     case 'alpha':
       return {
-        color: theme.colors.static.black,
-        // @TODO(jonasbadalic) should this use theme colors?
-        background: `linear-gradient(103deg, #EE8019 0%, #FAA80A 25%, #FBB20B 50%, #FAA80A 75%, #EE8019 100%);`,
+        color: theme.colors.black,
+        background: theme.colors.chonk.pink400,
       };
     case 'beta':
       return {
-        color: theme.colors.static.white,
-        // @TODO(jonasbadalic) should this use theme colors?
-        background: `linear-gradient(103deg, #FC8B61 0%, #FC5F64 50%, #F32474 100%);`,
+        color: theme.colors.black,
+        background: theme.colors.chonk.yellow400,
       };
     case 'new':
       return {
-        color: theme.colors.static.white,
-        // @TODO(jonasbadalic) should this use theme colors?
-        background: `linear-gradient(103deg, #7B51F8 0%, #F644AB 100%);`,
+        color: theme.colors.black,
+        background: theme.colors.chonk.green400,
       };
     case 'experimental':
       return {
-        color: theme.colors.static.white,
-        // @TODO(jonasbadalic) should this use theme colors?
-        background: `linear-gradient(103deg, #4E2A9A 0%, #7C30A9 25%, #A737B4 50%, #F2306F 75%, #EE8019 100%);`,
+        color: theme.colors.gray500,
+        background: theme.colors.gray100,
       };
     // End feature badge variants
     case 'default':
       return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.grayTransparent400,
+        color: theme.colors.gray500,
+        background: theme.colors.gray100,
       };
+
+    // Highlight maps to info badge for now, but the highlight variant should be removed
+    case 'highlight':
     case 'info':
       return {
-        background: theme.colors.static.blue400,
-        color: theme.colors.static.white,
-      };
-    case 'success':
-      return {
-        background: theme.colors.static.green400,
-        color: theme.colors.static.black,
-      };
-    case 'warning':
-      return {
-        background: theme.colors.static.yellow400,
-        color: theme.colors.static.black,
-      };
-    case 'danger':
-      return {
-        background: theme.colors.static.red400,
-        color: theme.colors.static.white,
+        color: theme.colors.content.accent,
+        background: theme.colors.blue100,
       };
     case 'promotion':
       return {
-        background: theme.colors.static.pink400,
-        color: theme.colors.static.black,
+        color: theme.colors.content.promotion,
+        background: theme.colors.pink100,
       };
-    case 'highlight':
+    case 'danger':
       return {
-        background: theme.colors.dynamic.blue400,
-        color: theme.colors.static.white,
+        color: theme.colors.content.danger,
+        background: theme.colors.red100,
+      };
+    case 'warning':
+      return {
+        color: theme.colors.content.warning,
+        background: theme.colors.yellow100,
+      };
+    case 'success':
+      return {
+        color: theme.colors.content.success,
+        background: theme.colors.green100,
       };
     default:
       unreachable(p.type);

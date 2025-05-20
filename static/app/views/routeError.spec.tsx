@@ -21,6 +21,7 @@ describe('RouteError', function () {
   it('captures errors with sentry', async function () {
     render(<RouteError error={new Error('Big Bad Error')} />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() =>

@@ -1,6 +1,6 @@
 import {css, type Theme} from '@emotion/react';
 
-import type {TickStyle} from '../types';
+import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 
 export function getTickStyle<Status extends string>(
   statusStyles: Record<Status, TickStyle>,
@@ -19,7 +19,8 @@ export function getTickStyle<Status extends string>(
     border: 1px solid ${theme[style.tickColor]};
     background-size: 3px 3px;
     opacity: 0.5;
-    background-image: linear-gradient(
+    background-image:
+      linear-gradient(
         -45deg,
         ${theme[style.hatchTick]} 25%,
         transparent 25%,

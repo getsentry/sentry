@@ -1,5 +1,5 @@
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -8,11 +8,7 @@ class TestIssueResolutionChangeCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-            }
-        )
+        self.event_data = WorkflowEventData(event=self.group_event)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison=1,
@@ -21,10 +17,10 @@ class TestIssueResolutionChangeCondition(ConditionTestCase):
 
     def test_evaluate_value(self):
         self.group_event.group.status = 1
-        result = self.dc.evaluate_value(self.job)
+        result = self.dc.evaluate_value(self.event_data)
         assert result is self.dc.get_condition_result()
 
     def test_evaluate_value__not_matching_comparison(self):
         self.group_event.group.status = 2
-        result = self.dc.evaluate_value(self.job)
+        result = self.dc.evaluate_value(self.event_data)
         assert result is None

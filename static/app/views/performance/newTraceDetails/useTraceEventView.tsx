@@ -35,7 +35,7 @@ export function useTraceEventView(
       version: 2,
       start: startTimeStamp,
       end: endTimeStamp,
-      range: !(startTimeStamp || endTimeStamp) ? params.statsPeriod : undefined,
+      range: startTimeStamp || endTimeStamp ? undefined : params.statsPeriod,
       ...partialSavedQuery,
     });
   }, [params, traceSlug, partialSavedQuery]);

@@ -1,4 +1,3 @@
-import {forwardRef, useCallback} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
@@ -29,7 +28,7 @@ interface TabProps extends AriaTabProps {
   overflowing: boolean;
   state: TabListState<any>;
   as?: React.ElementType;
-  borderStyle?: BaseTabProps['borderStyle'];
+  ref?: React.Ref<HTMLLIElement>;
   variant?: BaseTabProps['variant'];
 }
 
@@ -53,150 +52,120 @@ export interface BaseTabProps {
   overflowing: boolean;
   tabProps: DOMAttributes<FocusableElement>;
   as?: React.ElementType;
-  /**
-   * This controls the border style of the tab. Only active when
-   * `variant='filled'` since other variants do not have a border
-   */
-  borderStyle?: 'solid' | 'dashed';
+  ref?: React.Ref<HTMLLIElement>;
   to?: string;
-  variant?: 'flat' | 'filled' | 'floating';
+  variant?: 'flat' | 'floating';
 }
 
-export const BaseTab = forwardRef(
-  (props: BaseTabProps, forwardedRef: React.ForwardedRef<HTMLLIElement>) => {
-    const {
-      to,
-      orientation,
-      overflowing,
-      tabProps,
-      hidden,
-      isSelected,
-      variant = 'flat',
-      borderStyle = 'solid',
-      as = 'li',
-    } = props;
+function InnerWrap({
+  children,
+  to,
+  orientation,
+}: Pick<BaseTabProps, 'children' | 'to' | 'orientation'>) {
+  return to ? (
+    <TabLink
+      to={to}
+      onMouseDown={handleLinkClick}
+      onPointerDown={handleLinkClick}
+      orientation={orientation}
+      tabIndex={-1}
+    >
+      {children}
+    </TabLink>
+  ) : (
+    <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
+  );
+}
 
-    const ref = useObjectRef(forwardedRef);
-    const InnerWrap = useCallback(
-      ({children}: any) =>
-        to ? (
-          <TabLink
-            to={to}
-            onMouseDown={handleLinkClick}
-            onPointerDown={handleLinkClick}
-            orientation={orientation}
-            tabIndex={-1}
-          >
-            {children}
-          </TabLink>
-        ) : (
-          <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
-        ),
-      [to, orientation]
-    );
-    if (variant === 'filled') {
-      return (
-        <FilledTabWrap
-          {...tabProps}
-          hidden={hidden}
-          overflowing={overflowing}
-          borderStyle={borderStyle}
-          ref={ref}
-          as={as}
-        >
-          {!isSelected && (
-            <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
-          )}
-          <FilledFocusLayer />
-          {props.children}
-        </FilledTabWrap>
-      );
-    }
-
-    if (variant === 'floating') {
-      return (
-        <FloatingTabWrap
-          {...tabProps}
-          hidden={hidden}
-          overflowing={overflowing}
-          ref={ref}
-          as={as}
-        >
-          <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
-          <VariantFocusLayer />
-          {props.children}
-        </FloatingTabWrap>
-      );
-    }
-
+function BaseTab({
+  to,
+  children,
+  ref,
+  orientation,
+  overflowing,
+  tabProps,
+  hidden,
+  isSelected,
+  variant = 'flat',
+  as = 'li',
+}: BaseTabProps) {
+  if (variant === 'floating') {
     return (
-      <TabWrap
+      <FloatingTabWrap
         {...tabProps}
         hidden={hidden}
-        selected={isSelected}
         overflowing={overflowing}
         ref={ref}
         as={as}
       >
-        <InnerWrap>
-          <StyledInteractionStateLayer
-            orientation={orientation}
-            higherOpacity={isSelected}
-          />
-          <FocusLayer orientation={orientation} />
-          {props.children}
-          <TabSelectionIndicator orientation={orientation} selected={isSelected} />
-        </InnerWrap>
-      </TabWrap>
+        <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
+        <VariantFocusLayer />
+        {children}
+      </FloatingTabWrap>
     );
   }
-);
+
+  return (
+    <TabWrap
+      {...tabProps}
+      hidden={hidden}
+      selected={isSelected}
+      overflowing={overflowing}
+      ref={ref}
+      as={as}
+    >
+      <InnerWrap to={to} orientation={orientation}>
+        <StyledInteractionStateLayer
+          orientation={orientation}
+          higherOpacity={isSelected}
+        />
+        <FocusLayer orientation={orientation} />
+        {children}
+        <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+      </InnerWrap>
+    </TabWrap>
+  );
+}
 
 /**
  * Renders a single tab item. This should not be imported directly into any
  * page/view – it's only meant to be used by <TabsList />. See the correct
  * usage in tabs.stories.js
  */
-export const Tab = forwardRef(
-  (
-    {
-      item,
-      state,
-      orientation,
-      overflowing,
-      variant,
-      borderStyle = 'solid',
-      as = 'li',
-    }: TabProps,
-    forwardedRef: React.ForwardedRef<HTMLLIElement>
-  ) => {
-    const ref = useObjectRef(forwardedRef);
+export function Tab({
+  ref,
+  item,
+  state,
+  orientation,
+  overflowing,
+  variant,
+  as = 'li',
+}: TabProps) {
+  const objectRef = useObjectRef(ref);
 
-    const {
-      key,
-      rendered,
-      props: {to, hidden},
-    } = item;
-    const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, ref);
+  const {
+    key,
+    rendered,
+    props: {to, hidden},
+  } = item;
+  const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, objectRef);
 
-    return (
-      <BaseTab
-        tabProps={tabProps}
-        isSelected={isSelected}
-        to={to}
-        hidden={hidden}
-        orientation={orientation}
-        overflowing={overflowing}
-        ref={ref}
-        borderStyle={borderStyle}
-        variant={variant}
-        as={as}
-      >
-        {rendered}
-      </BaseTab>
-    );
-  }
-);
+  return (
+    <BaseTab
+      tabProps={tabProps}
+      isSelected={isSelected}
+      to={to}
+      hidden={hidden}
+      orientation={orientation}
+      overflowing={overflowing}
+      ref={objectRef}
+      variant={variant}
+      as={as}
+    >
+      {rendered}
+    </BaseTab>
+  );
+}
 const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;
 }>`
@@ -210,7 +179,7 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   &[aria-selected='false'] {
     border-top: 1px solid transparent;
   }
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   border-radius: 6px;
   padding: ${space(0.5)} ${space(1)};
   transform: translateY(1px);
@@ -218,43 +187,6 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   &:focus {
     outline: none;
   }
-  ${p =>
-    p.overflowing &&
-    css`
-      opacity: 0;
-      pointer-events: none;
-    `}
-`;
-
-const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
-  borderStyle: 'dashed' | 'solid';
-  overflowing: boolean;
-}>`
-  &[aria-selected='true'] {
-    ${p => css`
-      border-top: 1px ${p.borderStyle} ${p.theme.border};
-      border-left: 1px ${p.borderStyle} ${p.theme.border};
-      border-right: 1px ${p.borderStyle} ${p.theme.border};
-      background-color: ${p.theme.background};
-      font-weight: ${p.theme.fontWeightBold};
-    `}
-  }
-
-  &[aria-selected='false'] {
-    border-top: 1px solid transparent;
-  }
-
-  border-radius: 6px 6px 1px 1px;
-  padding: ${space(0.75)} ${space(1.5)};
-
-  transform: translateY(1px);
-
-  cursor: pointer;
-
-  &:focus {
-    outline: none;
-  }
-
   ${p =>
     p.overflowing &&
     css`
@@ -305,7 +237,7 @@ const innerWrapStyles = ({
   align-items: center;
   position: relative;
   height: calc(
-    ${theme.form.sm.height}px + ${orientation === 'horizontal' ? space(0.75) : '0px'}
+    ${theme.form.sm.height} + ${orientation === 'horizontal' ? space(0.75) : '0px'}
   );
   border-radius: ${theme.borderRadius};
   transform: translateY(1px);
@@ -375,26 +307,6 @@ const FocusLayer = styled('div')<{orientation: Orientation}>`
     box-shadow:
       ${p => p.theme.focusBorder} 0 0 0 1px,
       inset ${p => p.theme.focusBorder} 0 0 0 1px;
-  }
-`;
-
-const FilledFocusLayer = styled('div')`
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-
-  pointer-events: none;
-  border-radius: inherit;
-  z-index: 0;
-  transition: border 0.1s ease-out;
-  transition: border 0.1s ease-in;
-
-  li:focus-visible & {
-    border-top: 2px solid ${p => p.theme.focusBorder};
-    border-left: 2px solid ${p => p.theme.focusBorder};
-    border-right: 2px solid ${p => p.theme.focusBorder};
   }
 `;
 

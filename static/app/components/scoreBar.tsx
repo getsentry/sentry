@@ -40,10 +40,10 @@ function BaseScoreBar({
 
   return (
     <div className={className} {...props}>
-      {[...Array(scoreInBounds)].map((_j, i) => (
+      {[...new Array(scoreInBounds)].map((_j, i) => (
         <Bar {...barProps} key={i} color={palette[paletteIndex]} />
       ))}
-      {[...Array(maxScore - scoreInBounds)].map((_j, i) => (
+      {[...new Array(maxScore - scoreInBounds)].map((_j, i) => (
         <Bar key={`empty-${i}`} {...barProps} empty />
       ))}
     </div>
@@ -73,11 +73,10 @@ const Bar = styled('div')<BarProps>`
   border-radius: ${p => p.radius}px;
   margin: 2px;
   /* @TODO(jonasbadalic) This used to be defined on the theme, but is component specific and had no dark mode color. */
-  ${p => p.empty && `background-color: #e2dee6;`}
-  ${p => p.color && `background-color: ${p.color};`}
+  background-color: ${p => (p.empty ? p.theme.gray200 : p.color)};
 
-  width: ${p => (!p.vertical ? p.thickness : p.size)}px;
-  height: ${p => (!p.vertical ? p.size : p.thickness)}px;
+  width: ${p => (p.vertical ? p.size : p.thickness)}px;
+  height: ${p => (p.vertical ? p.thickness : p.size)}px;
 `;
 
 export default ScoreBar;

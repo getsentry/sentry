@@ -15,9 +15,12 @@ from sentry.integrations.source_code_management.repo_trees import (
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.utils import metrics
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
+from .constants import METRIC_PREFIX, SECOND_LEVEL_TLDS, STACK_ROOT_MAX_LEVEL
 from .integration_utils import InstallationNotFoundError, get_installation
+from .utils.platform import PlatformConfig
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +54,14 @@ class NeedsExtension(Exception):
     pass
 
 
+class MissingModuleOrAbsPath(Exception):
+    pass
+
+
+class DoesNotFollowJavaPackageNamingConvention(Exception):
+    pass
+
+
 def derive_code_mappings(
     organization: Organization,
     frame: Mapping[str, Any],
@@ -63,7 +74,7 @@ def derive_code_mappings(
     trees_helper = CodeMappingTreesHelper(trees)
     try:
         frame_filename = FrameInfo(frame, platform)
-        return trees_helper.list_file_matches(frame_filename)
+        return trees_helper.get_file_and_repo_matches(frame_filename)
     except NeedsExtension:
         logger.warning("Needs extension: %s", frame.get("filename"))
 
@@ -73,7 +84,12 @@ def derive_code_mappings(
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameInfo:
     def __init__(self, frame: Mapping[str, Any], platform: str | None = None) -> None:
-        # XXX: platform will be used in a following PR
+        if platform:
+            platform_config = PlatformConfig(platform)
+            if platform_config.extracts_filename_from_module():
+                self.frame_info_from_module(frame)
+                return
+
         frame_file_path = frame["filename"]
         frame_file_path = self.transformations(frame_file_path)
 
@@ -123,6 +139,15 @@ class FrameInfo:
 
         return frame_file_path
 
+    def frame_info_from_module(self, frame: Mapping[str, Any]) -> None:
+        if frame.get("module") and frame.get("abs_path"):
+            stack_root, filepath = get_path_from_module(frame["module"], frame["abs_path"])
+            self.stack_root = stack_root
+            self.raw_path = filepath
+            self.normalized_path = filepath
+        else:
+            raise MissingModuleOrAbsPath("Investigate why the data is missing.")
+
     def __repr__(self) -> str:
         return f"FrameInfo: {self.raw_path}"
 
@@ -149,20 +174,23 @@ class CodeMappingTreesHelper:
         self.code_mappings = {}
         self.platform = platform
 
-        buckets: dict[str, list[FrameInfo]] = self._stacktrace_buckets(frames)
+        with metrics.timer(
+            f"{METRIC_PREFIX}.generate_code_mappings.duration", tags={"platform": platform}
+        ):
+            buckets: dict[str, list[FrameInfo]] = self._stacktrace_buckets(frames)
 
-        # We reprocess stackframes until we are told that no code mappings were produced
-        # This is order to reprocess past stackframes in light of newly discovered code mappings
-        # This allows for idempotency since the order of the stackframes will not matter
-        # This has no performance issue because stackframes that match an existing code mapping
-        # will be skipped
-        while True:
-            if not self._process_stackframes(buckets):
-                break
+            # We reprocess stackframes until we are told that no code mappings were produced
+            # This is order to reprocess past stackframes in light of newly discovered code mappings
+            # This allows for idempotency since the order of the stackframes will not matter
+            # This has no performance issue because stackframes that match an existing code mapping
+            # will be skipped
+            while True:
+                if not self._process_stackframes(buckets):
+                    break
 
         return list(self.code_mappings.values())
 
-    def list_file_matches(self, frame_filename: FrameInfo) -> list[dict[str, str]]:
+    def get_file_and_repo_matches(self, frame_filename: FrameInfo) -> list[dict[str, str]]:
         """List all the files in a repo that match the frame_filename"""
         file_matches = []
         for repo_full_name in self.trees.keys():
@@ -214,8 +242,12 @@ class CodeMappingTreesHelper:
                 buckets[frame_filename.stack_root].append(frame_filename)
             except UnsupportedFrameInfo:
                 logger.warning("Frame's filepath not supported: %s", frame.get("filename"))
+            except MissingModuleOrAbsPath:
+                logger.warning("Do not panic. I'm collecting this data.")
             except NeedsExtension:
                 logger.warning("Needs extension: %s", frame.get("filename"))
+            except DoesNotFollowJavaPackageNamingConvention:
+                pass
             except Exception:
                 logger.exception("Unable to split stacktrace path into buckets")
 
@@ -393,11 +425,8 @@ def convert_stacktrace_frame_path_to_source_path(
 
 def create_code_mapping(
     organization: Organization,
+    code_mapping: CodeMapping,
     project: Project,
-    stacktrace_root: str,
-    source_path: str,
-    repo_name: str,
-    branch: str,
 ) -> RepositoryProjectPathConfig:
     installation = get_installation(organization)
     # It helps with typing since org_integration can be None
@@ -405,21 +434,22 @@ def create_code_mapping(
         raise InstallationNotFoundError
 
     repository, _ = Repository.objects.get_or_create(
-        name=repo_name,
+        name=code_mapping.repo.name,
         organization_id=organization.id,
         defaults={"integration_id": installation.model.id},
     )
     new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
         project=project,
-        stack_root=stacktrace_root,
+        stack_root=code_mapping.stacktrace_root,
         defaults={
             "repository": repository,
             "organization_id": organization.id,
             "integration_id": installation.model.id,
             "organization_integration_id": installation.org_integration.id,
-            "source_root": source_path,
-            "default_branch": branch,
-            "automatically_generated": True,
+            "source_root": code_mapping.source_path,
+            "default_branch": code_mapping.repo.branch,
+            # This function is called from the UI, thus, we know that the code mapping is user generated
+            "automatically_generated": False,
         },
     )
 
@@ -507,8 +537,10 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
         return (stack_root, "")
     elif source_path.endswith(stack_path):  # "Packaged" logic
         source_prefix = source_path.rpartition(stack_path)[0]
-        package_dir = stack_path.split("/")[0]
-        return (f"{stack_root}{package_dir}/", f"{source_prefix}{package_dir}/")
+        return (
+            f"{stack_root}{frame_filename.stack_root}/".replace("//", "/"),
+            f"{source_prefix}{frame_filename.stack_root}/".replace("//", "/"),
+        )
     elif stack_path.endswith(source_path):
         stack_prefix = stack_path.rpartition(source_path)[0]
         return (f"{stack_root}{stack_prefix}", "")
@@ -541,3 +573,42 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
     # validate_source_url should have ensured the file names match
     # so if we get here something went wrong and there is a bug
     raise UnexpectedPathException("Could not find common root from paths")
+
+
+# Based on # https://github.com/getsentry/symbolicator/blob/450f1d6a8c346405454505ed9ca87e08a6ff34b7/crates/symbolicator-proguard/src/symbolication.rs#L450-L485
+def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
+    """This attempts to generate a modified module and a real path from a Java module name and filename.
+    Returns a tuple of (stack_root, source_path).
+    """
+    # An `abs_path` is valid if it contains a `.` and doesn't contain a `$`.
+    if "$" in abs_path or "." not in abs_path:
+        # Split the module at the first '$' character and take the part before it
+        # If there's no '$', use the entire module
+        file_path = module.split("$", 1)[0] if "$" in module else module
+        stack_root = module.rsplit(".", 1)[0].replace(".", "/") + "/"
+        return stack_root, file_path.replace(".", "/")
+
+    if "." not in module:
+        raise DoesNotFollowJavaPackageNamingConvention
+
+    # Gets rid of the class name
+    parts = module.rsplit(".", 1)[0].split(".")
+    dirpath = "/".join(parts)
+    # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
+    granularity = 1
+
+    if len(parts) > 1:
+        # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
+        #    stack_root: com/example/foo/
+        #    file_path:  com/example/foo/bar/Baz.kt
+        granularity = STACK_ROOT_MAX_LEVEL - 1
+
+        if parts[1] in SECOND_LEVEL_TLDS:
+            # uk.co.example.foo.bar.Baz$InnerClass, Baz.kt ->
+            #    stack_root: uk/co/example/foo/
+            #    file_path:  uk/co/example/foo/bar/Baz.kt
+            granularity = STACK_ROOT_MAX_LEVEL
+
+    stack_root = "/".join(parts[:granularity]) + "/"
+    file_path = f"{dirpath}/{abs_path}"
+    return stack_root, file_path

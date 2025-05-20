@@ -3,8 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as useOrganization from 'sentry/utils/useOrganization';
-
 import {TraceTree} from './traceTree';
 import {makeTrace, makeTransaction} from './traceTreeTestUtils';
 
@@ -13,7 +11,6 @@ describe('incremental trace fetch', () => {
 
   beforeEach(function () {
     jest.clearAllMocks();
-    jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
   });
 
   it('Fetches and updates tree with fetched trace', async () => {

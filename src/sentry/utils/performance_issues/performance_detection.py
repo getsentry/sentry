@@ -17,20 +17,26 @@ from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.performance_issues.detectors.experiments.mn_plus_one_db_span_detector import (
+    MNPlusOneDBSpanExperimentalDetector,
+)
+from sentry.utils.performance_issues.detectors.experiments.n_plus_one_db_span_detector import (
+    NPlusOneDBSpanExperimentalDetector,
+)
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
 from .detectors.consecutive_http_detector import ConsecutiveHTTPSpanDetector
+from .detectors.experiments.n_plus_one_api_calls_detector import (
+    NPlusOneAPICallsExperimentalDetector,
+)
 from .detectors.http_overhead_detector import HTTPOverheadDetector
 from .detectors.io_main_thread_detector import DBMainThreadDetector, FileIOMainThreadDetector
 from .detectors.large_payload_detector import LargeHTTPPayloadDetector
 from .detectors.mn_plus_one_db_span_detector import MNPlusOneDBSpanDetector
 from .detectors.n_plus_one_api_calls_detector import NPlusOneAPICallsDetector
-from .detectors.n_plus_one_db_span_detector import (
-    NPlusOneDBSpanDetector,
-    NPlusOneDBSpanDetectorExtended,
-)
+from .detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from .detectors.render_blocking_asset_span_detector import RenderBlockingAssetSpanDetector
 from .detectors.slow_db_query_detector import SlowDBQueryDetector
 from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
@@ -115,7 +121,7 @@ class EventPerformanceProblem:
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(
-    data: dict[str, Any], project: Project, is_standalone_spans: bool = False
+    data: dict[str, Any], project: Project, standalone: bool = False
 ) -> list[PerformanceProblem]:
     try:
         rate = options.get("performance.issues.all.problem-detection")
@@ -126,9 +132,7 @@ def detect_performance_problems(
                 metrics.timer("performance.detect_performance_issue", sample_rate=0.01),
                 sentry_sdk.start_span(op="py.detect_performance_issue", name="none") as sdk_span,
             ):
-                return _detect_performance_problems(
-                    data, sdk_span, project, is_standalone_spans=is_standalone_spans
-                )
+                return _detect_performance_problems(data, sdk_span, project, standalone=standalone)
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -245,9 +249,10 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
-        DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: {
+        DetectorType.EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES: {
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
         DetectorType.CONSECUTIVE_DB_OP: {
             # time saved by running all queries in parallel
@@ -280,10 +285,25 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
         },
+        DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS: {
+            "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
+            "concurrency_threshold": 10,  # ms
+            "count": 5,
+            "allowed_span_ops": ["http.client"],
+            "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
+        },
         DetectorType.M_N_PLUS_ONE_DB: {
             "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 5,
+            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
+        },
+        DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: {
+            "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "minimum_occurrences_of_pattern": 3,
+            "max_sequence_length": 8,
+            "max_allowable_depth": 3,  # This should not be user-configurable, to avoid O(n^2) complexity and load issues.
+            "min_percentage_of_db_spans": 0.05,
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
@@ -321,10 +341,12 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     SlowDBQueryDetector,
     RenderBlockingAssetSpanDetector,
     NPlusOneDBSpanDetector,
-    NPlusOneDBSpanDetectorExtended,
+    NPlusOneDBSpanExperimentalDetector,
     FileIOMainThreadDetector,
     NPlusOneAPICallsDetector,
+    NPlusOneAPICallsExperimentalDetector,
     MNPlusOneDBSpanDetector,
+    MNPlusOneDBSpanExperimentalDetector,
     UncompressedAssetSpanDetector,
     LargeHTTPPayloadDetector,
     HTTPOverheadDetector,
@@ -332,18 +354,27 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
 
 
 def _detect_performance_problems(
-    data: dict[str, Any], sdk_span: Any, project: Project, is_standalone_spans: bool = False
+    data: dict[str, Any], sdk_span: Any, project: Project, standalone: bool = False
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
 
     with sentry_sdk.start_span(op="function", name="get_detection_settings"):
         detection_settings = get_detection_settings(project.id)
 
+    if standalone:
+        # The performance detectors expect the span list to be ordered/flattened in the way they
+        # are structured in the tree. This is an implicit assumption in the performance detectors.
+        # So we build a tree and flatten it depth first.
+        # TODO: See if we can update the detectors to work without this assumption so we can
+        # just pass it a list of spans.
+        tree, segment_id = build_tree(data.get("spans", []))
+        data = {**data, "spans": flatten_tree(tree, segment_id)}
+
     with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
             detector_class(detection_settings, data)
             for detector_class in DETECTOR_CLASSES
-            if detector_class.is_detector_enabled()
+            if detector_class.is_detection_allowed_for_system()
         ]
 
     for detector in detectors:
@@ -360,7 +391,7 @@ def _detect_performance_problems(
             detectors,
             sdk_span,
             project.organization,
-            is_standalone_spans=is_standalone_spans,
+            standalone=standalone,
         )
 
     organization = project.organization
@@ -370,7 +401,6 @@ def _detect_performance_problems(
         for detector in detectors:
             if all(
                 [
-                    detector.is_creation_allowed_for_system(),
                     detector.is_creation_allowed_for_organization(organization),
                     detector.is_creation_allowed_for_project(project),
                 ]
@@ -409,6 +439,63 @@ def run_detector_on_data(detector: PerformanceDetector, data: dict[str, Any]) ->
     detector.on_complete()
 
 
+def build_tree(spans: Sequence[dict[str, Any]]) -> tuple[dict[str, Any], str | None]:
+    span_tree: dict[str, tuple[dict[str, Any], list[dict[str, Any]]]] = {}
+    segment_id = None
+
+    for span in spans:
+        span_id = span["span_id"]
+        is_root = span["is_segment"]
+        if is_root:
+            segment_id = span_id
+        if span_id not in span_tree:
+            span_tree[span_id] = (span, [])
+
+    for span, _ in span_tree.values():
+        parent_id = span.get("parent_span_id")
+        if parent_id is not None and parent_id in span_tree:
+            _, children = span_tree[parent_id]
+            children.append(span)
+
+    return span_tree, segment_id
+
+
+def dfs(
+    visited: set[str], flattened_spans: list[dict[str, Any]], tree: dict[str, Any], span_id: str
+) -> None:
+    stack = [span_id]
+
+    while len(stack):
+        span_id = stack.pop()
+
+        span, children = tree[span_id]
+
+        if span_id not in visited:
+            flattened_spans.append(span)
+            tree.pop(span_id)
+            visited.add(span_id)
+
+        for child in sorted(children, key=lambda span: span["start_timestamp"], reverse=True):
+            if child["span_id"] not in visited:
+                stack.append(child["span_id"])
+
+
+def flatten_tree(tree: dict[str, Any], segment_id: str | None) -> list[dict[str, Any]]:
+    visited: set[str] = set()
+    flattened_spans: list[dict[str, Any]] = []
+
+    if segment_id:
+        dfs(visited, flattened_spans, tree, segment_id)
+
+    # Catch all for orphan spans
+    remaining = sorted(tree.items(), key=lambda span: span[1][0]["start_timestamp"])
+    for span_id, _ in remaining:
+        if span_id not in visited:
+            dfs(visited, flattened_spans, tree, span_id)
+
+    return flattened_spans
+
+
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
     event: dict[str, Any],
@@ -416,7 +503,7 @@ def report_metrics_for_detectors(
     detectors: Sequence[PerformanceDetector],
     sdk_span: Any,
     organization: Organization,
-    is_standalone_spans: bool = False,
+    standalone: bool = False,
 ) -> None:
     all_detected_problems = [i for d in detectors for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
@@ -431,11 +518,11 @@ def report_metrics_for_detectors(
     if has_detected_problems:
         set_tag("_pi_all_issue_count", len(all_detected_problems))
         set_tag("_pi_sdk_name", sdk_name or "")
-        set_tag("is_standalone_spans", is_standalone_spans)
+        set_tag("is_standalone_spans", standalone)
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
-            tags={"sdk_name": sdk_name, "is_standalone_spans": is_standalone_spans},
+            tags={"sdk_name": sdk_name, "is_standalone_spans": standalone},
         )
         if event_id:
             set_tag("_pi_transaction", event_id)
@@ -466,7 +553,7 @@ def report_metrics_for_detectors(
     detected_tags = {
         "sdk_name": sdk_name,
         "is_early_adopter": bool(organization.flags.early_adopter),
-        "is_standalone_spans": is_standalone_spans,
+        "is_standalone_spans": standalone,
     }
 
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
@@ -502,7 +589,7 @@ def report_metrics_for_detectors(
 
         set_tag(f"_pi_{detector_key}", span_id)
 
-        op_tags = {"is_standalone_spans": is_standalone_spans}
+        op_tags = {"is_standalone_spans": standalone}
         for problem in detected_problems.values():
             op = problem.op
             op_tags[f"op_{op}"] = True

@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Confirm, {openConfirmModal} from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
@@ -104,6 +104,38 @@ export default storyBook('Confirm', story => {
       </SideBySide>
     </Fragment>
   ));
+
+  story('Async Confirmations', () => {
+    return (
+      <Fragment>
+        <p>
+          If you pass a promise to <JSXProperty name="onConfirm" value={Function} />, the
+          modal will not close until the promise is resolved. This is useful if you have
+          actions that require a endpoint to respond before the modal can be closed, such
+          as when confirming the deletion of the page you are on.
+        </p>
+        <Confirm
+          onConfirm={() => new Promise(resolve => setTimeout(resolve, 1000))}
+          header="Are you sure?"
+          message="This confirmation takes 1 second to complete"
+        >
+          <Button>This confirmation takes 1 second to complete</Button>
+        </Confirm>
+        <p>
+          This also allows you to respond to display errors in the modal in the case of
+          network errors.
+        </p>
+        <Confirm
+          onConfirm={() => new Promise((_, reject) => setTimeout(reject, 1000))}
+          header="Are you sure?"
+          message="This confirmation will error"
+          errorMessage="Custom error message"
+        >
+          <Button>This confirmation will error</Button>
+        </Confirm>
+      </Fragment>
+    );
+  });
 
   story('Callbacks & bypass={true}', () => {
     const [callbacks, setCallbacks] = useState<string[]>([]);

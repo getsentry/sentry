@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import TrialAlert from 'getsentry/views/subscriptionPage/trialAlert';
 
@@ -9,9 +10,13 @@ describe('Subscription > TrialAlert', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
 
-  beforeEach(() =>
-    jest.spyOn(Date, 'now').mockImplementation(() => new Date('2021-01-01').getTime())
-  );
+  beforeEach(() => {
+    setMockDate(new Date('2021-01-01'));
+  });
+
+  afterEach(() => {
+    resetMockDate();
+  });
 
   it('does not render not on trial', function () {
     const sub = {
@@ -74,7 +79,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.getByText('Enterprise Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        "With your trial you have access to Sentry's business plan features, and unlimited errors, transactions, replays, attachments, cron monitors, and uptime monitors."
+        "With your trial you have access to Sentry's business plan features."
       )
     ).toBeInTheDocument();
   });
@@ -92,7 +97,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.getByText('Enterprise Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        "With your trial you have access to Sentry's business plan features, and unlimited errors, replays, attachments, cron monitors, spans, profile hours, and uptime monitors."
+        "With your trial you have access to Sentry's business plan features."
       )
     ).toBeInTheDocument();
   });
@@ -129,7 +134,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.getByText('Performance Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        `With your trial you have access to Sentry's performance features, and unlimited transactions and attachments.`
+        `With your trial you have access to Sentry's performance features.`
       )
     ).toBeInTheDocument();
   });

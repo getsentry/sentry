@@ -1,5 +1,5 @@
-import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
@@ -38,8 +38,7 @@ export default function FeedbackListBulkSelection({
   const newMailboxSpam =
     mailbox === 'ignored' ? GroupStatus.UNRESOLVED : GroupStatus.IGNORED;
 
-  const hasDelete =
-    organization.features.includes('issue-platform-deletion-ui') && selectedIds !== 'all';
+  const hasDelete = selectedIds !== 'all';
   const disableDelete = !organization.access.includes('event:admin');
 
   return (
@@ -100,6 +99,9 @@ export default function FeedbackListBulkSelection({
                 hidden: !hasDelete,
                 disabled: disableDelete,
                 onAction: onDelete,
+                tooltip: disableDelete
+                  ? t('You must be an admin to delete feedback.')
+                  : undefined,
               },
             ]}
           />

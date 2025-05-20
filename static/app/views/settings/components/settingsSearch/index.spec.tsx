@@ -1,5 +1,5 @@
 import {MembersFixture} from 'sentry-fixture/members';
-import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationsFixture} from 'sentry-fixture/organizations';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
@@ -7,22 +7,17 @@ import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibr
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import FormSearchStore from 'sentry/stores/formSearchStore';
+import {setSearchMap} from 'sentry/components/search/sources/formSource';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
 import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
-jest.mock('sentry/actionCreators/formSearch');
 jest.mock('sentry/actionCreators/navigation');
 
 describe('SettingsSearch', function () {
-  let orgsMock: jest.Mock;
-
   beforeEach(function () {
-    FormSearchStore.loadSearchMap([]);
+    OrganizationsStore.load(OrganizationsFixture());
+    setSearchMap([]);
     MockApiClient.clearMockResponses();
-    orgsMock = MockApiClient.addMockResponse({
-      url: '/organizations/',
-      body: [OrganizationFixture({slug: 'billy-org', name: 'billy org'})],
-    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [ProjectFixture({slug: 'foo-project'})],
@@ -73,29 +68,9 @@ describe('SettingsSearch', function () {
   it('can search', async function () {
     render(<SettingsSearch />);
 
-    await userEvent.type(screen.getByPlaceholderText('Search'), 'bil');
+    await userEvent.type(screen.getByPlaceholderText('Search'), 'test');
+    await userEvent.click(await screen.findByText(textWithMarkupMatcher('test-1')));
 
-    expect(orgsMock.mock.calls).toEqual([
-      [
-        '/organizations/',
-        expect.objectContaining({
-          // This nested 'query' is correct
-          query: {query: 'b'},
-        }),
-      ],
-      [
-        '/organizations/',
-        expect.objectContaining({
-          // This nested 'query' is correct
-          query: {query: 'bi'},
-        }),
-      ],
-    ]);
-
-    await userEvent.click(
-      await screen.findByText(textWithMarkupMatcher('billy-org Dashboard'))
-    );
-
-    expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
+    expect(navigateTo).toHaveBeenCalledWith('/test-1/', expect.anything(), undefined);
   });
 });

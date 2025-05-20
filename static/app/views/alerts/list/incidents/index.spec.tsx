@@ -32,7 +32,11 @@ describe('IncidentsList', () => {
         <AlertsContainer>
           <IncidentsList {...routerProps} organization={organization} />
         </AlertsContainer>,
-        {router, organization}
+        {
+          deprecatedRouterMocks: true,
+          organization,
+          router,
+        }
       ),
       router,
     };

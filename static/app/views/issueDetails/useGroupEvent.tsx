@@ -25,7 +25,12 @@ export function useGroupEvent({
   options,
 }: UseGroupEventOptions) {
   const organization = useOrganization();
-  const location = useLocation<{query?: string}>();
+  const location = useLocation<{
+    end?: string;
+    query?: string;
+    start?: string;
+    statsPeriod?: string;
+  }>();
   const defaultIssueEvent = useDefaultIssueEvent();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const environments = useEnvironmentsFromUrl();
@@ -41,7 +46,12 @@ export function useGroupEvent({
       : undefined;
 
   const {selection: pageFilters} = usePageFilters();
-  const periodQuery = hasStreamlinedUI ? getPeriod(pageFilters.datetime) : {};
+
+  // Only use stats period if it is set in the URL
+  const hasSetStatsPeriod =
+    location.query.statsPeriod || location.query.start || location.query.end;
+  const periodQuery =
+    hasStreamlinedUI && hasSetStatsPeriod ? getPeriod(pageFilters.datetime) : {};
 
   const queryKey = getGroupEventQueryKey({
     orgSlug: organization.slug,

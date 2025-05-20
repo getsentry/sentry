@@ -2,6 +2,7 @@ import {css} from '@emotion/react';
 
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -36,6 +37,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {updateDynamicSdkLoaderOptions} from './jsLoader/updateDynamicSdkLoaderOptions';
@@ -192,63 +194,85 @@ Sentry.captureException(new Error("Something went wrong!"));`,
 const isAutoInstall = (params: Params) =>
   params.platformOptions.installationMode === InstallationMode.AUTO;
 
-const getSdkSetupSnippet = (params: Params) => `
-import * as Sentry from "@sentry/browser";
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  integrations: [${
-    params.isPerformanceSelected
-      ? `
-        Sentry.browserTracingIntegration(),`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-          Sentry.browserProfilingIntegration(),`
-      : ''
-  }${
-    params.isFeedbackSelected
-      ? `
-        Sentry.feedbackIntegration({
-// Additional SDK configuration goes in here, for example:
-colorScheme: "system",
-${getFeedbackConfigOptions(params.feedbackOptions)}}),`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-        Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
-      : ''
+const getIntegrations = (params: Params): string[] => {
+  const integrations = [];
+  if (params.isPerformanceSelected) {
+    integrations.push(`Sentry.browserTracingIntegration()`);
   }
-],${
-  params.isPerformanceSelected
-    ? `
+
+  if (params.isProfilingSelected) {
+    integrations.push(`Sentry.browserProfilingIntegration()`);
+  }
+
+  if (params.isReplaySelected) {
+    integrations.push(
+      `Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)})`
+    );
+  }
+
+  if (params.isFeedbackSelected) {
+    integrations.push(`
+      Sentry.feedbackIntegration({
+        colorScheme: "system",
+        ${getFeedbackConfigOptions(params.feedbackOptions)}
+      }),`);
+  }
+
+  return integrations;
+};
+
+const getDynamicParts = (params: Params): string[] => {
+  const dynamicParts: string[] = [];
+
+  if (params.isPerformanceSelected) {
+    dynamicParts.push(`
       // Tracing
       tracesSampleRate: 1.0, //  Capture 100% of the transactions
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
-    : ''
-}${
-  params.isReplaySelected
-    ? `
+      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
+  }
+
+  if (params.isReplaySelected) {
+    dynamicParts.push(`
       // Session Replay
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-      replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-    : ''
-}${
-  params.isProfilingSelected
-    ? `
+      replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+  }
+
+  if (params.isProfilingSelected) {
+    dynamicParts.push(`
         // Set profilesSampleRate to 1.0 to profile every transaction.
         // Since profilesSampleRate is relative to tracesSampleRate,
         // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
         // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
         // results in 25% of transactions being profiled (0.5*0.5=0.25)
-        profilesSampleRate: 1.0,`
-    : ''
-}
+        profilesSampleRate: 1.0`);
+  }
+
+  return dynamicParts;
+};
+
+const getSdkSetupSnippet = (params: Params) => {
+  const config = buildSdkConfig({
+    params,
+    staticParts: [
+      `dsn: "${params.dsn.public}"`,
+      `// Setting this option to true will send default PII data to Sentry.
+      // For example, automatic IP address collection on events
+      sendDefaultPii: true`,
+    ],
+    getIntegrations,
+    getDynamicParts,
+  });
+
+  return `
+import * as Sentry from "@sentry/browser";
+
+Sentry.init({
+  ${config}
 });
 `;
+};
 
 const getVerifyJSSnippet = () => `
 myUndefinedFunction();`;
@@ -268,6 +292,12 @@ const getInstallConfig = () => [
         value: 'yarn',
         language: 'bash',
         code: 'yarn add @sentry/browser',
+      },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: 'pnpm add @sentry/browser',
       },
     ],
   },
@@ -296,7 +326,7 @@ const getVerifyConfig = () => [
 
 const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
-    tct('In this quick guide you’ll use our [strong: Loader Script] to set up:', {
+    tct("In this quick guide you'll use our [strong: Loader Script] to set up:", {
       strong: <strong />,
     }),
   install: params => [
@@ -341,10 +371,10 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
 <script>
   Sentry.onLoad(function() {
     Sentry.init({${
-      !(params.isPerformanceSelected || params.isReplaySelected)
-        ? `
+      params.isPerformanceSelected || params.isReplaySelected
+        ? ''
+        : `
         // You can add any additional configuration here`
-        : ''
     }${
       params.isPerformanceSelected
         ? `
@@ -430,14 +460,17 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
 
 const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
-    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
-      strong: <strong />,
-    }),
+    tct(
+      "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
+      {
+        strong: <strong />,
+      }
+    ),
   install: () => [
     {
       type: StepType.INSTALL,
       description: t(
-        'Sentry captures data by using an SDK within your application’s runtime.'
+        "Sentry captures data by using an SDK within your application's runtime."
       ),
       configurations: getInstallConfig(),
     },
@@ -477,6 +510,28 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
         organization: params.organization,
         platform: params.platformKey,
         project_id: params.projectId,
+      });
+    };
+  },
+  onProductSelectionChange: params => {
+    return products => {
+      updateDynamicSdkLoaderOptions({
+        orgSlug: params.organization.slug,
+        projectSlug: params.projectSlug,
+        products,
+        projectKey: params.projectKeyId,
+        api: params.api,
+      });
+    };
+  },
+  onProductSelectionLoad: params => {
+    return products => {
+      updateDynamicSdkLoaderOptions({
+        orgSlug: params.organization.slug,
+        projectSlug: params.projectSlug,
+        products,
+        projectKey: params.projectKeyId,
+        api: params.api,
       });
     };
   },
@@ -678,6 +733,9 @@ Sentry.init({
   tracesSampleRate: 1.0,
   // Set \`tracePropagationTargets\` to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });
 `,
           additionalInfo: tct(
@@ -712,6 +770,9 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [Sentry.browserTracingIntegration()],
   tracePropagationTargets: ["https://myproject.org", /^\/api\//],
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });
 `,
         },
@@ -734,10 +795,10 @@ Sentry.init({
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
-  ...onboarding,
-  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
-};
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  getInstallConfig,
+  docsLink: 'https://docs.sentry.io/platforms/javascript/profiling/browser-profiling/',
+});
 
 export const featureFlagOnboarding: OnboardingConfig = {
   install: () => [],
@@ -745,7 +806,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
     const {integrationName, makeConfigureCode, makeVerifyCode, packageName} =
       FEATURE_FLAG_CONFIGURATION_MAP[
         featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
-      ]!;
+      ];
 
     const installConfig = [
       {
@@ -762,6 +823,12 @@ export const featureFlagOnboarding: OnboardingConfig = {
             value: 'yarn',
             language: 'bash',
             code: `yarn add @sentry/browser ${packageName}`,
+          },
+          {
+            label: 'pnpm',
+            value: 'pnpm',
+            language: 'bash',
+            code: `pnpm add @sentry/browser ${packageName}`,
           },
         ],
       },
@@ -813,7 +880,6 @@ const docs: Docs<PlatformOptions> = {
   replayOnboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,
-
   crashReportOnboarding,
   platformOptions,
   profilingOnboarding,

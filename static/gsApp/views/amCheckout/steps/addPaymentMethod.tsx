@@ -2,18 +2,19 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Radio} from 'sentry/components/core/radio';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelItem from 'sentry/components/panels/panelItem';
-import Radio from 'sentry/components/radio';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import CreditCardSetup from 'getsentry/components/creditCardSetup';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {FTCConsentLocation} from 'getsentry/types';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
@@ -46,6 +47,8 @@ function AddPaymentMethod({
         organization={organization}
         onSuccess={onPaymentAccepted}
         buttonText="Continue"
+        location={FTCConsentLocation.CHECKOUT}
+        budgetModeText={subscription.planDetails.budgetTerm}
       />
     );
 

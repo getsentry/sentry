@@ -125,7 +125,7 @@ def test_run_detection_options(
     if expected_performance_project:
         assert detect_transaction_trends.apply_async.called
         detect_transaction_trends.apply_async.assert_has_calls(
-            [mock.call(args=[[], [project.id], timestamp], countdown=0)]
+            [mock.call(args=[[], [project.id], timestamp.isoformat()], countdown=0)]
         )
     else:
         assert not detect_transaction_trends.apply_async.called
@@ -133,7 +133,7 @@ def test_run_detection_options(
     if expected_profiling_project:
         assert detect_function_trends.apply_async.called
         detect_function_trends.apply_async.assert_has_calls(
-            [mock.call(args=[[project.id], timestamp], countdown=0)]
+            [mock.call(args=[[project.id], timestamp.isoformat()], countdown=0)]
         )
     else:
         assert not detect_function_trends.apply_async.called
@@ -173,7 +173,7 @@ def test_run_detection_options_multiple_batches(
                 args=[
                     [],
                     [project.id for project in projects[i : i + 5]],
-                    timestamp,
+                    timestamp.isoformat(),
                 ],
                 countdown=countdown,
             )
@@ -184,7 +184,7 @@ def test_run_detection_options_multiple_batches(
     detect_function_trends.apply_async.assert_has_calls(
         [
             mock.call(
-                args=[[project.id for project in projects[i : i + 5]], timestamp],
+                args=[[project.id for project in projects[i : i + 5]], timestamp.isoformat()],
                 countdown=countdown,
             )
             for i, countdown in zip(range(0, len(projects), 5), itertools.count(start=0, step=17))
@@ -221,7 +221,7 @@ def test_detect_transaction_trends_options(
     }
 
     with override_options(options):
-        detect_transaction_trends([project.organization_id], [project.id], timestamp)
+        detect_transaction_trends([project.organization_id], [project.id], timestamp.isoformat())
     assert query_transactions.called == (task_enabled and option_enabled)
 
 
@@ -254,8 +254,30 @@ def test_detect_function_trends_options(
     }
 
     with override_options(options):
-        detect_function_trends([project.id], timestamp)
+        detect_function_trends([project.id], timestamp.isoformat())
     assert query_functions.called == (task_enabled and option_enabled)
+
+
+@mock.patch("sentry.tasks.statistical_detectors.query_functions")
+@django_db_all
+def test_detect_function_trends_options_with_str(
+    query_functions,
+    timestamp,
+    project,
+):
+    ProjectOption.objects.set_value(
+        project=project,
+        key="sentry:performance_issue_settings",
+        value={InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: True},
+    )
+
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    with override_options(options):
+        detect_function_trends([project.id], timestamp.isoformat())
+    assert query_functions.called == (True and True)
 
 
 @mock.patch("sentry.snuba.functions.query")
@@ -266,7 +288,7 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
     }
 
     with override_options(options):
-        detect_function_trends([project.id], timestamp)
+        detect_function_trends([project.id], timestamp.isoformat())
 
     assert functions_query.called
     params = functions_query.mock_calls[0].kwargs["snuba_params"]
@@ -312,7 +334,7 @@ def test_detect_transaction_trends(
 
     with override_options(options):
         for ts in timestamps:
-            detect_transaction_trends([project.organization.id], [project.id], ts)
+            detect_transaction_trends([project.organization.id], [project.id], ts.isoformat())
 
     if should_emit:
         assert detect_transaction_change_points.apply_async.called
@@ -357,7 +379,7 @@ def test_detect_transaction_trends_auto_resolution(
 
     with override_options(options):
         for ts in timestamps[:50]:
-            detect_transaction_trends([project.organization.id], [project.id], ts)
+            detect_transaction_trends([project.organization.id], [project.id], ts.isoformat())
 
     assert detect_transaction_change_points.apply_async.called
 
@@ -373,7 +395,7 @@ def test_detect_transaction_trends_auto_resolution(
             regressed=300,
         )
         for ts in timestamps[50:]:
-            detect_transaction_trends([project.organization.id], [project.id], ts)
+            detect_transaction_trends([project.organization.id], [project.id], ts.isoformat())
 
     status_change = StatusChangeMessage(
         fingerprint=[generate_fingerprint(RegressionType.ENDPOINT, "/123")],
@@ -442,7 +464,7 @@ def test_detect_transaction_trends_ratelimit(
 
     with override_options(options):
         for ts in timestamps:
-            detect_transaction_trends([project.organization.id], [project.id], ts)
+            detect_transaction_trends([project.organization.id], [project.id], ts.isoformat())
 
     if expected_calls > 0:
         assert detect_transaction_change_points.apply_async.call_count == 1
@@ -685,7 +707,7 @@ def test_get_regression_versions_active(
         "evidence_data": {},
         "evidence_display": [],
         "type": issue_type.type_id,
-        "detection_time": timestamp.isoformat(),
+        "detection_time": timestamp,
         "level": "info",
         "culprit": "",
         "payload_type": PayloadType.OCCURRENCE.value,
@@ -773,7 +795,7 @@ def test_detect_function_trends(
 
     with override_options(options):
         for ts in timestamps:
-            detect_function_trends([project.id], ts)
+            detect_function_trends([project.id], ts.isoformat())
 
     if should_emit:
         assert detect_function_change_points.apply_async.called
@@ -816,7 +838,7 @@ def test_detect_function_trends_auto_resolution(
 
     with override_options(options):
         for ts in timestamps[:50]:
-            detect_function_trends([project.id], ts)
+            detect_function_trends([project.id], ts.isoformat())
 
     assert detect_function_change_points.apply_async.called
 
@@ -832,7 +854,7 @@ def test_detect_function_trends_auto_resolution(
             regressed=300,
         )
         for ts in timestamps[50:]:
-            detect_function_trends([project.id], ts)
+            detect_function_trends([project.id], ts.isoformat())
 
     assert produce_occurrence_to_kafka.called
 
@@ -892,7 +914,7 @@ def test_detect_function_trends_ratelimit(
 
     with override_options(options):
         for ts in timestamps:
-            detect_function_trends([project.id], ts)
+            detect_function_trends([project.id], ts.isoformat())
 
     if expected_calls > 0:
         assert detect_function_change_points.apply_async.call_count == 1
@@ -968,7 +990,8 @@ def test_detect_function_change_points(
     }
 
     with override_options(options):
-        detect_function_change_points([(project.id, fingerprint)], timestamp)
+        detect_function_change_points([(project.id, fingerprint)], timestamp.isoformat())
+
     assert mock_emit_function_regression_issue.called
 
 
@@ -1895,6 +1918,6 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                     (self.projects[0].id, "transaction_2"),
                     (self.projects[1].id, "transaction_1"),
                 ],
-                self.now,
+                self.now.isoformat(),
             )
         assert mock_send_regression_to_platform.called

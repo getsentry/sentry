@@ -281,15 +281,10 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             dataset=Dataset.EventsAnalyticsPlatform,
             time_window=time_window,
         )
-        with patch("sentry.utils.snuba_rpc._snuba_pool") as pool:
-            resp = Mock()
-            resp.status = 202
-            resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
-            pool.urlopen.return_value = resp
-
+        with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
             create_subscription_in_snuba(sub.id)
 
-            rpc_request_body = pool.urlopen.call_args[1]["body"]
+            rpc_request_body = urlopen.call_args[1]["body"]
             createSubscriptionRequest = CreateSubscriptionRequest.FromString(rpc_request_body)
 
             assert createSubscriptionRequest.time_window_secs == time_window
@@ -306,11 +301,11 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
                 == "http.client"
             )
             assert (
-                createSubscriptionRequest.time_series_request.aggregations[0].aggregate
+                createSubscriptionRequest.time_series_request.expressions[0].aggregation.aggregate
                 == FUNCTION_COUNT
             )
             assert (
-                createSubscriptionRequest.time_series_request.aggregations[0].key.name
+                createSubscriptionRequest.time_series_request.expressions[0].aggregation.key.name
                 == "sentry.duration_ms"
             )
             # Validate that the spm function uses the correct time window
@@ -370,28 +365,24 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             aggregate="count(span.duration)",
             dataset=Dataset.EventsAnalyticsPlatform,
         )
-        with patch("sentry.utils.snuba_rpc._snuba_pool") as rpc_pool:
-            with patch("sentry.snuba.tasks._snuba_pool") as pool:
-                resp = Mock()
-                resp.status = 202
-                resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
-                rpc_pool.urlopen.return_value = resp
-                pool.urlopen.return_value = resp
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
 
-                create_subscription_in_snuba(sub.id)
-                sub = QuerySubscription.objects.get(id=sub.id)
-                assert sub.status == QuerySubscription.Status.ACTIVE.value
-                assert sub.subscription_id is not None
+        sub.update(
+            status=QuerySubscription.Status.UPDATING.value,
+        )
+        update_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
 
-                sub.status = QuerySubscription.Status.UPDATING.value
-                sub.update(
-                    status=QuerySubscription.Status.UPDATING.value,
-                    subscription_id=sub.subscription_id,
-                )
-                update_subscription_in_snuba(sub.id)
-                sub = QuerySubscription.objects.get(id=sub.id)
-                assert sub.status == QuerySubscription.Status.ACTIVE.value
-                assert sub.subscription_id is not None
+        sub.update(
+            status=QuerySubscription.Status.DELETING.value,
+        )
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
@@ -427,19 +418,15 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
             aggregate="count(span.duration)",
             dataset=Dataset.EventsAnalyticsPlatform,
         )
-        with patch("sentry.snuba.tasks._snuba_pool") as pool:
-            resp = Mock()
-            resp.status = 202
-            pool.urlopen.return_value = resp
-
+        with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
             delete_subscription_from_snuba(sub.id)
             assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-            (method, url) = pool.urlopen.call_args[0]
+            (method, url) = urlopen.call_args[0]
             assert method == "DELETE"
             assert (
                 url
-                == f"/{Dataset.EventsAnalyticsPlatform.value}/{EntityKey.EAPSpans.value}/subscriptions/{subscription_id}"
+                == f"/{Dataset.EventsAnalyticsPlatform.value}/{EntityKey.EAPItemsSpan.value}/subscriptions/{subscription_id}"
             )
 
     def test_no_subscription_id(self):

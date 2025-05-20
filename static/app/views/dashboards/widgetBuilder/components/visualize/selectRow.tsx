@@ -1,8 +1,8 @@
-import {useCallback, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,6 +16,7 @@ import {
   parseFunction,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -32,6 +33,11 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {
+  DEFAULT_VISUALIZATION_AGGREGATE,
+  DEFAULT_VISUALIZATION_FIELD,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type AggregateFunction = [
   AggregationKeyWithAlias,
@@ -95,7 +101,7 @@ export function SelectRow({
   field,
   index,
   hasColumnParameter,
-  columnOptions,
+  columnOptions: defaultColumnOptions,
   aggregateOptions,
   stringFields,
   error,
@@ -125,6 +131,27 @@ export function SelectRow({
       columnSelectRef.current?.querySelector('button')?.click();
     });
   }, []);
+
+  // We want to lock down the fields dropdown when using count so that we can
+  // render `count(spans)` for better legibility. However, for backwards
+  // compatibility, we don't want to lock down all `count` queries immediately.
+  const lockOptions =
+    state.dataset === WidgetType.SPANS &&
+    field.kind === FieldValueKind.FUNCTION &&
+    field.function[0] === DEFAULT_VISUALIZATION_AGGREGATE &&
+    field.function[1] === DEFAULT_VISUALIZATION_FIELD;
+
+  const columnOptions = useMemo(() => {
+    return lockOptions
+      ? [
+          {
+            label: t('spans'),
+            value: DEFAULT_VISUALIZATION_FIELD,
+            textValue: DEFAULT_VISUALIZATION_FIELD,
+          },
+        ]
+      : defaultColumnOptions;
+  }, [lockOptions, defaultColumnOptions]);
 
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
@@ -196,13 +223,94 @@ export function SelectRow({
               widget_type: state.dataset ?? '',
               organization,
             });
-          } else if (!isNone) {
+          } else if (isNone) {
+            // Handle selecting NONE so we can select just a field, e.g. for samples
+            // If NONE is selected, set the field to a field value
+
+            // When selecting NONE, the next possible columns may be different from the
+            // possible columns for the previous aggregate. Calculate the valid columns,
+            // see if the current field's function argument is in the valid columns, and if so,
+            // set the field to a field value. Otherwise, set the field to the first valid column.
+            const validColumnFields = getColumnOptions(
+              state.dataset ?? WidgetType.ERRORS,
+              {
+                kind: FieldValueKind.FIELD,
+                field: '',
+              },
+              fieldOptions,
+              // If no column filter method is provided, show all options
+              columnFilterMethod ?? (() => true)
+            );
+            const functionArgInValidColumnFields =
+              (currentField.kind === FieldValueKind.FUNCTION &&
+                validColumnFields.find(
+                  option => option.value === currentField.function[1]
+                )) ||
+              undefined;
+            const validColumn =
+              functionArgInValidColumnFields?.value ??
+              validColumnFields?.[0]?.value ??
+              '';
+            newFields[index] = {
+              kind: FieldValueKind.FIELD,
+              field: validColumn,
+            };
+
+            trackAnalytics('dashboards_views.widget_builder.change', {
+              builder_version: WidgetBuilderVersion.SLIDEOUT,
+              field: 'visualize.updateAggregate',
+              from: source,
+              new_widget: !isEditing,
+              value: 'column',
+              widget_type: state.dataset ?? '',
+              organization,
+            });
+            openColumnSelect();
+          } else {
             if (currentField.kind === FieldValueKind.FUNCTION) {
+              const originalFunction = currentField.function[0];
               // Handle setting an aggregate from an aggregate
               currentField.function[0] = parseAggregateFromValueKey(
                 dropdownSelection.value as string
               ) as AggregationKeyWithAlias;
+
               if (
+                // when switching to the count aggregate, we want to reset the
+                // field to the default
+                state.dataset === WidgetType.SPANS &&
+                currentField.function[0] === DEFAULT_VISUALIZATION_AGGREGATE
+              ) {
+                currentField.function[1] = DEFAULT_VISUALIZATION_FIELD;
+
+                // Wipe out the remaining parameters that are unnecessary
+                for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
+                  currentField.function[i + 1] = undefined;
+                }
+              } else if (
+                // when switching to the count_unique aggregate, we want to reset the
+                // field to the default
+                state.dataset === WidgetType.SPANS &&
+                currentField.function[0] === AggregationKey.COUNT_UNIQUE
+              ) {
+                currentField.function[1] = SpanIndexedField.SPAN_OP;
+
+                // Wipe out the remaining parameters that are unnecessary
+                for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
+                  currentField.function[i + 1] = undefined;
+                }
+              } else if (
+                // when switching away from the count_unique aggregate, we want to reset the
+                // field to the default
+                state.dataset === WidgetType.SPANS &&
+                originalFunction === AggregationKey.COUNT_UNIQUE
+              ) {
+                currentField.function[1] = DEFAULT_VISUALIZATION_FIELD;
+
+                // Wipe out the remaining parameters that are unnecessary
+                for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
+                  currentField.function[i + 1] = undefined;
+                }
+              } else if (
                 selectedAggregate?.value.meta &&
                 'parameters' in selectedAggregate.value.meta
               ) {
@@ -331,49 +439,6 @@ export function SelectRow({
               widget_type: state.dataset ?? '',
               organization,
             });
-          } else {
-            // Handle selecting NONE so we can select just a field, e.g. for samples
-            // If NONE is selected, set the field to a field value
-
-            // When selecting NONE, the next possible columns may be different from the
-            // possible columns for the previous aggregate. Calculate the valid columns,
-            // see if the current field's function argument is in the valid columns, and if so,
-            // set the field to a field value. Otherwise, set the field to the first valid column.
-            const validColumnFields = getColumnOptions(
-              state.dataset ?? WidgetType.ERRORS,
-              {
-                kind: FieldValueKind.FIELD,
-                field: '',
-              },
-              fieldOptions,
-              // If no column filter method is provided, show all options
-              columnFilterMethod ?? (() => true)
-            );
-            const functionArgInValidColumnFields =
-              (currentField.kind === FieldValueKind.FUNCTION &&
-                validColumnFields.find(
-                  option => option.value === currentField.function[1]
-                )) ||
-              undefined;
-            const validColumn =
-              functionArgInValidColumnFields?.value ??
-              validColumnFields?.[0]?.value ??
-              '';
-            newFields[index] = {
-              kind: FieldValueKind.FIELD,
-              field: validColumn,
-            };
-
-            trackAnalytics('dashboards_views.widget_builder.change', {
-              builder_version: WidgetBuilderVersion.SLIDEOUT,
-              field: 'visualize.updateAggregate',
-              from: source,
-              new_widget: !isEditing,
-              value: 'column',
-              widget_type: state.dataset ?? '',
-              organization,
-            });
-            openColumnSelect();
           }
           dispatch({
             type: updateAction,
@@ -392,7 +457,7 @@ export function SelectRow({
             options={columnOptions}
             value={
               field.kind === FieldValueKind.FUNCTION
-                ? parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? ''
+                ? (parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? '')
                 : field.field
             }
             onChange={newField => {
@@ -423,6 +488,7 @@ export function SelectRow({
             triggerProps={{
               'aria-label': t('Column Selection'),
             }}
+            disabled={lockOptions}
           />
         </SelectWrapper>
       )}

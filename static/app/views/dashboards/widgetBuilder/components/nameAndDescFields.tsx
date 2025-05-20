@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import TextArea from 'sentry/components/forms/controls/textarea';
+import {Button} from 'sentry/components/core/button';
+import {TextArea} from 'sentry/components/core/textarea';
 import TextField from 'sentry/components/forms/fields/textField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,7 +33,7 @@ function WidgetBuilderNameAndDescription({
   return (
     <Fragment>
       <SectionHeader title={t('Widget Name & Description')} />
-      <StyledInput
+      <StyledTextField
         name={t('Widget Name')}
         size="md"
         placeholder={t('Name')}
@@ -61,7 +61,7 @@ function WidgetBuilderNameAndDescription({
         inline={false}
       />
       {!isDescSelected && (
-        <AddDescriptionButton
+        <Button
           priority="link"
           aria-label={t('Add Widget Description')}
           onClick={() => {
@@ -70,7 +70,7 @@ function WidgetBuilderNameAndDescription({
           data-test-id={'add-description'}
         >
           {t('+ Add Widget Description')}
-        </AddDescriptionButton>
+        </Button>
       )}
       {isDescSelected && (
         <DescriptionTextArea
@@ -101,14 +101,10 @@ function WidgetBuilderNameAndDescription({
 
 export default WidgetBuilderNameAndDescription;
 
-const StyledInput = styled(TextField)`
+const StyledTextField = styled(TextField)`
   margin-bottom: ${space(1)};
   padding: 0;
   border: none;
-`;
-
-const AddDescriptionButton = styled(Button)`
-  margin-bottom: ${space(1)};
 `;
 
 const DescriptionTextArea = styled(TextArea)`

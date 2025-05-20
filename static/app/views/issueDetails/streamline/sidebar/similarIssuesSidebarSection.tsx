@@ -19,7 +19,6 @@ export function SimilarIssuesSidebarSection() {
           pathname: `${baseUrl}${TabPaths[Tab.SIMILAR_ISSUES]}`,
           query: location.query,
         }}
-        replace
       >
         {t('View')}
       </ViewButton>

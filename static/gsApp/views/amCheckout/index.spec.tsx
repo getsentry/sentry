@@ -135,6 +135,32 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('button', {name: 'Cancel Subscription'})).toBeInTheDocument();
   });
 
+  it('renders pending cancellation button', async function () {
+    const sub: SubscriptionType = {
+      ...subscription,
+      canCancel: true,
+      cancelAtPeriodEnd: true,
+    };
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={sub.planTier as PlanTier}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Change Subscription'})
+    ).toBeInTheDocument();
+
+    expect(await screen.findByText('Pending Cancellation')).toBeInTheDocument();
+  });
+
   it('does not renders cancel subscription button if cannot cancel', async function () {
     render(
       <AMCheckout
@@ -1154,7 +1180,7 @@ describe('AM3 Checkout', function () {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toString(),
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am2_sponsored_team_auf',
       planTier: PlanTier.AM2,
       isSponsored: true,
@@ -1204,13 +1230,14 @@ describe('AM3 Checkout', function () {
         data: {tier: PlanTier.AM3},
       })
     );
+    organization.features.pop(); // clean up
   });
 
   it('renders for self-serve partners', async function () {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toString(),
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am3_f',
       planTier: PlanTier.AM3,
       isSelfServePartner: true,
@@ -1268,7 +1295,7 @@ describe('AM3 Checkout', function () {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toString(),
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am3_f',
       planTier: PlanTier.AM3,
       isSelfServePartner: true,
@@ -1417,6 +1444,7 @@ describe('AM3 Checkout', function () {
       },
       onDemandMaxSpend: 2000,
       supportsOnDemand: true,
+      isFree: false,
     });
 
     SubscriptionStore.set(organization.slug, sub);
@@ -1435,9 +1463,10 @@ describe('AM3 Checkout', function () {
     expect(
       await screen.findByRole('heading', {name: 'Change Subscription'})
     ).toBeInTheDocument();
-    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument(); // skips over first step when subscription is already on Business plan
     expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
 
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument(); // skips over first step when subscription is already on Business plan
     // TODO: Can better write this once we have
     // https://github.com/testing-library/jest-dom/issues/478
     expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
@@ -1544,6 +1573,7 @@ describe('AM3 Checkout', function () {
         enabled: true,
       },
       supportsOnDemand: true,
+      isFree: false,
     });
 
     SubscriptionStore.set(organization.slug, sub);
@@ -1563,11 +1593,16 @@ describe('AM3 Checkout', function () {
       await screen.findByRole('heading', {name: 'Change Subscription'})
     ).toBeInTheDocument();
 
-    // Verify that the component renders without errors
-    expect(screen.getByTestId('replays-volume-item')).toBeInTheDocument();
-
     // For AM3, we should see "Set Your Pay-as-you-go Budget" first
     expect(screen.getByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
+
+    // Verify that the 'Pay-as-you-go budget' is correctly set
+    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    // Verify that the component renders without errors
+    expect(screen.getByTestId('replays-volume-item')).toBeInTheDocument();
 
     // Check that missing 'Errors' category defaults to 50,000 errors
     expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
@@ -1584,9 +1619,6 @@ describe('AM3 Checkout', function () {
       'aria-valuetext',
       '1'
     );
-
-    // Verify that the 'Pay-as-you-go budget' is correctly set
-    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
   });
 
   it('handles zero platform reserve', function () {

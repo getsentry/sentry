@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -37,6 +38,7 @@ function RelatedTransactions({
   filter,
   location,
 }: RelatedTransactionsProps) {
+  const theme = useTheme();
   const [widths, setWidths] = useState<number[]>([]);
   const eventView = getMetricRuleDiscoverQuery({
     rule,
@@ -57,7 +59,7 @@ function RelatedTransactions({
 
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
-    const rendered = fieldRenderer(dataRow, {organization, location});
+    const rendered = fieldRenderer(dataRow, {organization, location, theme});
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
@@ -116,7 +118,7 @@ function RelatedTransactions({
 
   const columnOrder = eventView
     .getColumns()
-    .map((col: TableColumn<React.ReactText>, i: number) => {
+    .map((col: TableColumn<string | number>, i: number) => {
       if (typeof widths[i] === 'number') {
         return {...col, width: widths[i]};
       }

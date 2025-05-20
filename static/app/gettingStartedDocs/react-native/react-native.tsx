@@ -39,10 +39,7 @@ const platformOptions = {
         value: InstallationMode.MANUAL,
       },
     ],
-    defaultValue:
-      navigator.userAgent.indexOf('Win') !== -1
-        ? InstallationMode.MANUAL
-        : InstallationMode.AUTO,
+    defaultValue: InstallationMode.AUTO,
   },
 } satisfies BasePlatformOptions;
 
@@ -56,7 +53,10 @@ const getConfigureSnippet = (params: Params) => `
 import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
-  dsn: "${params.dsn.public}",${
+  dsn: "${params.dsn.public}",
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  sendDefaultPii: true,${
     params.isPerformanceSelected
       ? `
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
@@ -69,6 +69,14 @@ Sentry.init({
   // profilesSampleRate is relative to tracesSampleRate.
   // Here, we'll capture profiles for 100% of transactions.
   profilesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+  // Record Session Replays for 10% of Sessions and 100% of Errors
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+  integrations: [Sentry.mobileReplayIntegration()],`
       : ''
   }
 });`;
@@ -123,6 +131,52 @@ Sentry.mobileReplayIntegration({
   maskAllVectors: true,
 }),`;
 
+const getReactNativeProfilingOnboarding = (): OnboardingConfig => ({
+  install: params => [
+    {
+      title: t('Install'),
+      description: t(
+        'Make sure your Sentry React Native SDK version is at least 5.32.0. If you already have the SDK installed, you can update it to the latest version with:'
+      ),
+      configurations: getInstallConfig(params, {
+        basePackage: '@sentry/react-native',
+      }),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Enable Tracing and Profiling by adding [code:tracesSampleRate] and [code:profilesSampleRate] to your [code:Sentry.init()] call.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: getConfigureSnippet({
+            ...params,
+            platformOptions: {
+              ...params.platformOptions,
+              installationMode: InstallationMode.MANUAL,
+            },
+            isProfilingSelected: true,
+          }),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To confirm that profiling is working correctly, run your application and check the Sentry profiles page for the collected profiles.'
+      ),
+    },
+  ],
+});
+
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
     isAutoInstall(params)
@@ -161,36 +215,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                         {t('Add debug symbols upload to your build process')}
                       </ListItem>
                     </List>
-                    <p />
-                    <p>
-                      <strong>{t('Wrap Your App')}</strong>
-                    </p>
-                    <p>
-                      {tct(
-                        'After the wizard completes, wrap your app with Sentry to enable automatic [touchEventLink:touch event tracking] and [autoInstrumentationLink:automatic instrumentation]:',
-                        {
-                          touchEventLink: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/react-native/configuration/touchevents/" />
-                          ),
-                          autoInstrumentationLink: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/automatic-instrumentation/" />
-                          ),
-                        }
-                      )}
-                    </p>
                   </Fragment>
-                ),
-                code: [
-                  {
-                    label: 'JavaScript',
-                    value: 'javascript',
-                    language: 'javascript',
-                    filename: 'App.js',
-                    code: `export default Sentry.wrap(App);`,
-                  },
-                ],
-                additionalInfo: t(
-                  'This step is not required if your app does not have a single parent "App" component.'
                 ),
               },
             ],
@@ -224,12 +249,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               {
                 language: 'javascript',
                 code: getConfigureSnippet(params),
-                additionalInfo: tct(
-                  'The "sentry-wizard" will try to add it to your [code:App.tsx]',
-                  {
-                    code: <code />,
-                  }
-                ),
               },
               {
                 language: 'javascript',
@@ -553,6 +572,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding: feedbackOnboardingCrashApi,
   replayOnboarding,
   platformOptions,
+  profilingOnboarding: getReactNativeProfilingOnboarding(),
 };
 
 export default docs;

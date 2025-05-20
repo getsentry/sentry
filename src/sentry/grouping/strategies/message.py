@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 from itertools import islice
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sentry import analytics
-from sentry.eventstore.models import Event
 from sentry.grouping.component import MessageGroupingComponent
 from sentry.grouping.parameterization import Parameterizer, UniqueIdExperiment
 from sentry.grouping.strategies.base import (
@@ -14,6 +15,10 @@ from sentry.grouping.strategies.base import (
 from sentry.interfaces.message import Message
 from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
+from sentry.utils.settings import is_self_hosted
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 
 @metrics.wraps("grouping.normalize_message_for_grouping")
@@ -53,7 +58,8 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
 
     def _shoudl_run_experiment(experiment_name: str) -> bool:
         return bool(
-            event.project_id
+            not is_self_hosted()
+            and event.project_id
             and (
                 in_rollout_group(
                     f"grouping.experiments.parameterization.{experiment_name}", event.project_id

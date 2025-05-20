@@ -1,23 +1,23 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
+
+import * as ChonkTag from './tag.chonk';
 
 type TagType =
   // @TODO(jonasbadalic): "default" is a bad API naming
-  | 'default'
-  | 'promotion'
-  | 'highlight'
-  | 'warning'
-  | 'success'
-  | 'error'
-  | 'info'
-  | 'white'
-  | 'black';
+  'default' | 'info' | 'success' | 'warning' | 'error' | 'promotion' | 'highlight';
+
+/**
+ * @deprecated Do not use these tag types
+ */
+type DeprecatedTagType = 'white' | 'black';
+
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Icon on the left side.
@@ -27,45 +27,51 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
    * Shows clickable IconClose on the right side.
    */
   onDismiss?: () => void;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * Dictates color scheme of the tag.
    */
-  type?: TagType;
+  type?: TagType | DeprecatedTagType;
 }
 
-export const Tag = forwardRef<HTMLDivElement, TagProps>(
-  ({type = 'default', icon, onDismiss, children, ...props}: TagProps, ref) => {
-    return (
-      <StyledTag type={type} data-test-id="tag-background" ref={ref} {...props}>
-        {icon && (
-          <IconWrapper>
-            <IconDefaultsProvider size="xs">{icon}</IconDefaultsProvider>
-          </IconWrapper>
-        )}
+export function Tag({
+  ref,
+  type = 'default',
+  icon,
+  onDismiss,
+  children,
+  ...props
+}: TagProps) {
+  return (
+    <StyledTag type={type} data-test-id="tag-background" ref={ref} {...props}>
+      {icon && (
+        <IconWrapper>
+          <IconDefaultsProvider size="xs">{icon}</IconDefaultsProvider>
+        </IconWrapper>
+      )}
 
-        {/* @TODO(jonasbadalic): Can, and should we make children required? */}
-        {children && <Text>{children}</Text>}
+      {/* @TODO(jonasbadalic): Can, and should we make children required? */}
+      {children && <Text>{children}</Text>}
 
-        {onDismiss && (
-          <DismissButton
-            onClick={event => {
-              event.preventDefault();
-              onDismiss?.();
-            }}
-            size="zero"
-            priority="link"
-            borderless
-            aria-label={t('Dismiss')}
-            icon={<IconClose isCircled size="xs" />}
-          />
-        )}
-      </StyledTag>
-    );
-  }
-);
+      {onDismiss && (
+        <DismissButton
+          onClick={event => {
+            event.preventDefault();
+            onDismiss?.();
+          }}
+          size="zero"
+          priority="link"
+          borderless
+          aria-label={t('Dismiss')}
+          icon={<IconClose isCircled size="xs" />}
+        />
+      )}
+    </StyledTag>
+  );
+}
 
-const StyledTag = styled('div')<{
-  type: TagType;
+const TagPill = styled('div')<{
+  type: NonNullable<TagProps['type']>;
 }>`
   font-size: ${p => p.theme.fontSizeSmall};
   background-color: ${p => p.theme.tag[p.type].background};
@@ -85,6 +91,8 @@ const StyledTag = styled('div')<{
   }
 `;
 
+const StyledTag = withChonk(TagPill, ChonkTag.TagPill, ChonkTag.chonkTagPropMapping);
+
 const Text = styled('div')`
   overflow: hidden;
   white-space: nowrap;
@@ -93,6 +101,7 @@ const Text = styled('div')`
   /* @TODO(jonasbadalic): Some occurrences pass other things than strings into the children prop. */
   display: flex;
   align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const IconWrapper = styled('span')`

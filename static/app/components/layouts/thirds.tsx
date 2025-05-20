@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tabs} from 'sentry/components/tabs';
@@ -34,14 +35,14 @@ export const Header = styled('header')<{
 }>`
   display: grid;
   grid-template-columns: ${p =>
-    !p.noActionWrap ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'};
+    p.noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
 
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   background-color: ${p => (p.unified ? p.theme.background : 'transparent')};
 
   ${p =>
     !p.unified &&
-    `
+    css`
       border-bottom: 1px ${p.borderStyle ?? 'solid'} ${p.theme.border};
     `}
 
@@ -59,19 +60,8 @@ export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
-  margin-bottom: ${space(2)};
   overflow: hidden;
   max-width: 100%;
-
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    margin-bottom: ${space(1)};
-  }
-
-  ${p =>
-    p.unified &&
-    `
-      margin-bottom: 0;
-    `}
 `;
 
 /**
@@ -130,15 +120,14 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${p =>
-      !p.noRowGap ? `${space(3)} ${space(4)}` : `${space(2)} ${space(4)}`};
+    padding: ${p => (p.noRowGap ? `${space(2)} ${space(4)}` : `${space(3)} ${space(4)}`)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
-    gap: ${p => (!p.noRowGap ? `${space(3)}` : `0 ${space(3)}`)};
+    gap: ${p => (p.noRowGap ? `0 ${space(3)}` : `${space(3)}`)};
   }
 `;
 

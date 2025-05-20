@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 from urllib.parse import urlparse
 
@@ -14,10 +14,11 @@ from sentry import http
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
-    IntegrationFeatureNotImplementedError,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationMetadata,
 )
+from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssuesSpec
 from sentry.integrations.github.utils import get_jwt
@@ -26,11 +27,11 @@ from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.utils import jwt
+from sentry.utils import jwt, metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
@@ -172,9 +173,12 @@ class GitHubEnterpriseIntegration(
 
     # IntegrationInstallation methods
 
-    def message_from_error(self, exc):
+    def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiError):
-            message = API_ERRORS.get(exc.code)
+            if exc.code is None:
+                message = None
+            else:
+                message = API_ERRORS.get(exc.code)
             if message is None:
                 message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
             return f"Error Communicating with GitHub Enterprise (HTTP {exc.code}): {message}"
@@ -208,7 +212,7 @@ class GitHubEnterpriseIntegration(
         ]
 
     def source_url_matches(self, url: str) -> bool:
-        raise IntegrationFeatureNotImplementedError
+        return url.startswith(f"https://{self.model.metadata["domain_name"]}")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         # Must format the url ourselves since `check_file` is a head request
@@ -216,16 +220,40 @@ class GitHubEnterpriseIntegration(
         return f"{repo.url}/blob/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        raise IntegrationFeatureNotImplementedError
+        url = url.replace(f"{repo.url}/blob/", "")
+        branch, _, _ = url.partition("/")
+        return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        raise IntegrationFeatureNotImplementedError
+        url = url.replace(f"{repo.url}/blob/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
 
     def search_issues(self, query: str | None, **kwargs):
         return self.get_client().search_issues(query)
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         # TODO: define this, used to migrate repositories
+        return False
+
+    # CommitContextIntegration methods
+
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        if api_error.json:
+            if ISSUE_LOCKED_ERROR_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "issue_locked_error"},
+                )
+                return True
+
+            elif RATE_LIMITED_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "rate_limited_error"},
+                )
+                return True
+
         return False
 
 
@@ -393,12 +421,13 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         pass
 
-    def get_installation_info(self, installation_data, access_token, installation_id):
+    def _get_ghe_installation_info(self, installation_data, access_token, installation_id):
         headers = {
             # TODO(jess): remove this whenever it's out of preview
             "Accept": "application/vnd.github.machine-man-preview+json",
@@ -438,16 +467,16 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
 
         return None
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         identity = state["identity"]["data"]
         installation_data = state["installation_data"]
         user = get_user_info(installation_data["url"], identity["access_token"])
-        installation = self.get_installation_info(
+        installation = self._get_ghe_installation_info(
             installation_data, identity["access_token"], state["installation_id"]
         )
 
         domain = urlparse(installation["account"]["html_url"]).netloc
-        integration = {
+        return {
             "name": installation["account"]["login"],
             # installation id is not enough to be unique for self-hosted GH
             "external_id": "{}:{}".format(domain, installation["id"]),
@@ -473,8 +502,6 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             },
             "idp_config": state["oauth_config_information"],
         }
-
-        return integration
 
     def setup(self):
         from sentry.plugins.base import bindings

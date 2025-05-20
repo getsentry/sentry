@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -158,6 +157,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if not span_id or not op or not hash or not description:
             return False
 
+        if not op.startswith("http.client"):
+            return False
+
         if (
             not description.strip().upper().startswith(("GET", "POST", "DELETE", "PUT", "PATCH"))
         ):  # Just using all methods to see if anything interesting pops up
@@ -176,9 +178,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         self._validate_and_store_performance_problem()
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-consecutive-http-detector", organization, actor=None
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]

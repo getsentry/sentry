@@ -1,58 +1,76 @@
-import {Fragment, useCallback, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {Fragment, useRef} from 'react';
 
-import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {GridResizer} from 'sentry/components/gridEditable/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {LOGS_PROPS_DOCS_URL} from 'sentry/constants';
+import Pagination from 'sentry/components/pagination';
 import {IconArrow, IconWarning} from 'sentry/icons';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t, tct} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
+  Table,
+  TableHead,
+  TableHeadCell,
+  TableHeadCellContent,
+  TableStatus,
+  useTableStyles,
+} from 'sentry/views/explore/components/table';
+import {
+  useLogsFields,
+  useLogsIsTableFrozen,
   useLogsSearch,
   useLogsSortBys,
+  useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
 import {
-  bodyRenderer,
-  severityCircleRenderer,
-  severityTextRenderer,
-  TimestampRenderer,
-} from 'sentry/views/explore/logs/fieldRenderers';
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+  FirstTableHeadCell,
+  LogTableBody,
+  LogTableRow,
+} from 'sentry/views/explore/logs/styles';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
-import {
-  DetailsFooter,
-  DetailsGrid,
-  DetailsLabel,
-  DetailsSubGrid,
-  DetailsValue,
-  DetailsWrapper,
-  getLogColors,
-  HeaderCell,
-  LogPanelContent,
-  StyledChevronButton,
-  StyledPanel,
-  StyledPanelItem,
-} from './styles';
-import {getLogBodySearchTerms, getLogSeverityLevel} from './utils';
+import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
 
-type LogsRowProps = {
-  dataRow: OurLogsResponseItem;
-  highlightTerms: string[];
+export const LOGS_INSTRUCTIONS_URL =
+  'https://docs.sentry.io/product/explore/logs/getting-started/';
+
+type LogsTableProps = {
+  tableData: UseExploreLogsTableResult;
+  allowPagination?: boolean;
+  numberAttributes?: TagCollection;
+  showHeader?: boolean;
+  stringAttributes?: TagCollection;
 };
 
-export function LogsTable() {
+export function LogsTable({
+  tableData,
+  showHeader = true,
+  allowPagination = true,
+  stringAttributes,
+  numberAttributes,
+}: LogsTableProps) {
+  const fields = useLogsFields();
   const search = useLogsSearch();
-  const {data, isError, isPending} = useExploreLogsTable({
-    limit: 100,
-    search,
+  const setCursor = useSetLogsCursor();
+  const isTableFrozen = useLogsIsTableFrozen();
+
+  const {data, isError, isPending, pageLinks, meta} = tableData;
+
+  const tableRef = useRef<HTMLTableElement>(null);
+  const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
+    minimumColumnWidth: 50,
+    prefixColumnWidth: 'min-content',
+    staticColumnWidths: {
+      [OurLogKnownFieldKey.MESSAGE]: '1fr',
+    },
   });
 
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0;
@@ -60,153 +78,117 @@ export function LogsTable() {
   const sortBys = useLogsSortBys();
   const setSortBys = useSetLogsSortBys();
 
-  const headers: Array<{align: 'left' | 'right'; field: string; label: string}> = [
-    {field: 'log.severity_number', label: t('Severity'), align: 'left'},
-    {field: 'log.body', label: t('Message'), align: 'left'},
-    {field: 'timestamp', label: t('Timestamp'), align: 'right'},
-  ];
-
-  return (
-    <StyledPanel>
-      <LogPanelContent>
-        {headers.map((header, index) => {
-          const direction = sortBys.find(s => s.field === header.field)?.kind;
-          return (
-            <HeaderCell
-              key={index}
-              align={header.align}
-              lightText
-              onClick={() => setSortBys([{field: header.field}])}
-            >
-              {header.label}
-              {defined(direction) && (
-                <IconArrow
-                  size="xs"
-                  direction={
-                    direction === 'desc' ? 'down' : direction === 'asc' ? 'up' : undefined
-                  }
-                />
-              )}
-            </HeaderCell>
-          );
-        })}
-        {isPending && (
-          <StyledPanelItem span={3} overflow>
-            <LoadingIndicator />
-          </StyledPanelItem>
-        )}
-        {isError && (
-          <StyledPanelItem span={3} overflow>
-            <EmptyStreamWrapper>
-              <IconWarning color="gray300" size="lg" />
-            </EmptyStreamWrapper>
-          </StyledPanelItem>
-        )}
-        {isEmpty && (
-          <StyledPanelItem span={3} overflow>
-            <EmptyStateWarning withIcon>
-              <EmptyStateText size="fontSizeExtraLarge">
-                {t('No logs found')}
-              </EmptyStateText>
-              <EmptyStateText size="fontSizeMedium">
-                {tct('Try adjusting your filters or refer to [docSearchProps].', {
-                  docSearchProps: (
-                    <ExternalLink href={LOGS_PROPS_DOCS_URL}>
-                      {t('docs for search properties')}
-                    </ExternalLink>
-                  ),
-                })}
-              </EmptyStateText>
-            </EmptyStateWarning>
-          </StyledPanelItem>
-        )}
-        {data?.map((row, index) => (
-          <LogsRow key={index} dataRow={row} highlightTerms={highlightTerms} />
-        ))}
-      </LogPanelContent>
-    </StyledPanel>
-  );
-}
-
-function LogsRow({dataRow, highlightTerms}: LogsRowProps) {
-  const [expanded, setExpanded] = useState<boolean>(false);
-  const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
-  const theme = useTheme();
-  const level = getLogSeverityLevel(
-    dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
-    dataRow[OurLogKnownFieldKey.SEVERITY_TEXT]
-  );
-  const logColors = getLogColors(level, theme);
-
   return (
     <Fragment>
-      <StyledPanelItem align="left" center onClick={onClickExpand}>
-        <StyledChevronButton
-          icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
-          aria-label={t('Toggle trace details')}
-          aria-expanded={expanded}
-          size="zero"
-          borderless
-        />
-        {severityCircleRenderer(
-          dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
-          dataRow[OurLogKnownFieldKey.SEVERITY_TEXT],
-          logColors
-        )}
-        {severityTextRenderer(
-          dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
-          dataRow[OurLogKnownFieldKey.SEVERITY_TEXT],
-          logColors
-        )}
-      </StyledPanelItem>
-      <StyledPanelItem overflow>
-        {bodyRenderer(dataRow[OurLogKnownFieldKey.BODY], highlightTerms)}
-      </StyledPanelItem>
-      <StyledPanelItem align="right">
-        <TimestampRenderer timestamp={dataRow.timestamp} />
-      </StyledPanelItem>
-      {expanded && <LogDetails dataRow={dataRow} highlightTerms={highlightTerms} />}
-    </Fragment>
-  );
-}
+      <Table
+        ref={tableRef}
+        style={initialTableStyles}
+        data-test-id="logs-table"
+        hideBorder={isTableFrozen}
+        showVerticalScrollbar={isTableFrozen}
+      >
+        {showHeader ? (
+          <TableHead>
+            <LogTableRow>
+              <FirstTableHeadCell isFirst align="left">
+                <TableHeadCellContent isFrozen />
+              </FirstTableHeadCell>
+              {fields.map((field, index) => {
+                const direction = sortBys.find(s => s.field === field)?.kind;
 
-function LogDetails({
-  dataRow,
-  highlightTerms,
-}: {
-  dataRow: OurLogsResponseItem;
-  highlightTerms: string[];
-}) {
-  const level = getLogSeverityLevel(
-    dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
-    dataRow[OurLogKnownFieldKey.SEVERITY_TEXT]
-  );
-  const theme = useTheme();
-  const logColors = getLogColors(level, theme);
-  return (
-    <DetailsWrapper span={3}>
-      <DetailsGrid>
-        <DetailsSubGrid>
-          <DetailsLabel>Timestamp</DetailsLabel>
-          <DetailsValue>
-            <TimestampRenderer timestamp={dataRow.timestamp} />
-          </DetailsValue>
-        </DetailsSubGrid>
-        <DetailsSubGrid>
-          <DetailsLabel>Severity</DetailsLabel>
-          <DetailsValue>
-            {severityTextRenderer(
-              dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER],
-              dataRow[OurLogKnownFieldKey.SEVERITY_TEXT],
-              logColors,
-              true
-            )}
-          </DetailsValue>
-        </DetailsSubGrid>
-      </DetailsGrid>
-      <DetailsFooter logColors={logColors}>
-        {bodyRenderer(dataRow['log.body'], highlightTerms, true)}
-      </DetailsFooter>
-    </DetailsWrapper>
+                const fieldType = meta?.fields?.[field];
+                const align = logsFieldAlignment(field, fieldType);
+                const headerLabel = getTableHeaderLabel(
+                  field,
+                  stringAttributes,
+                  numberAttributes
+                );
+
+                if (isPending) {
+                  return <TableHeadCell key={index} isFirst={index === 0} />;
+                }
+                return (
+                  <TableHeadCell
+                    align={index === 0 ? 'left' : align}
+                    key={index}
+                    isFirst={index === 0}
+                  >
+                    <TableHeadCellContent
+                      onClick={isTableFrozen ? undefined : () => setSortBys([{field}])}
+                      isFrozen={isTableFrozen}
+                    >
+                      <Tooltip showOnlyOnOverflow title={headerLabel}>
+                        {headerLabel}
+                      </Tooltip>
+                      {defined(direction) && (
+                        <IconArrow
+                          size="xs"
+                          direction={
+                            direction === 'desc'
+                              ? 'down'
+                              : direction === 'asc'
+                                ? 'up'
+                                : undefined
+                          }
+                        />
+                      )}
+                    </TableHeadCellContent>
+                    {index !== fields.length - 1 && (
+                      <GridResizer
+                        dataRows={!isError && !isPending && data ? data.length : 0}
+                        onMouseDown={e => onResizeMouseDown(e, index)}
+                      />
+                    )}
+                  </TableHeadCell>
+                );
+              })}
+            </LogTableRow>
+          </TableHead>
+        ) : null}
+        <LogTableBody showHeader={showHeader}>
+          {isPending && (
+            <TableStatus>
+              <LoadingIndicator />
+            </TableStatus>
+          )}
+          {isError && (
+            <TableStatus>
+              <IconWarning color="gray300" size="lg" />
+            </TableStatus>
+          )}
+          {isEmpty && (
+            <TableStatus>
+              <EmptyStateWarning withIcon>
+                <EmptyStateText size="fontSizeExtraLarge">
+                  {t('No logs found')}
+                </EmptyStateText>
+                <EmptyStateText size="fontSizeMedium">
+                  {tct(
+                    'Try adjusting your filters or get started with sending logs by checking these [instructions]',
+                    {
+                      instructions: (
+                        <ExternalLink href={LOGS_INSTRUCTIONS_URL}>
+                          {t('instructions')}
+                        </ExternalLink>
+                      ),
+                    }
+                  )}
+                </EmptyStateText>
+              </EmptyStateWarning>
+            </TableStatus>
+          )}
+          {data?.map((row, index) => (
+            <LogRowContent
+              dataRow={row}
+              meta={meta}
+              highlightTerms={highlightTerms}
+              sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+              key={index}
+            />
+          ))}
+        </LogTableBody>
+      </Table>
+      {allowPagination ? <Pagination pageLinks={pageLinks} onCursor={setCursor} /> : null}
+    </Fragment>
   );
 }

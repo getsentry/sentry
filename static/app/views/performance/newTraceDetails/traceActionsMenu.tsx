@@ -1,20 +1,20 @@
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {getTraceProject} from 'sentry/views/performance/newTraceDetails/tracePreferencesDropdown';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
+import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
 import {
   getSearchInExploreTarget,
   TraceDrawerActionKind,
@@ -22,44 +22,43 @@ import {
 import {traceAnalytics} from './traceAnalytics';
 import {getCustomInstrumentationLink} from './traceConfigurations';
 import {TraceShortcutsModal} from './traceShortcutsModal';
-import {useHasTraceNewUi} from './useHasTraceNewUi';
 
 function TraceActionsMenu({
   traceSlug,
   rootEventResults,
   traceEventView,
 }: {
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  rootEventResults: TraceRootEventQueryResults;
   traceEventView: EventView;
   traceSlug: string | undefined;
 }) {
   const location = useLocation();
-  const hasTraceNewUi = useHasTraceNewUi();
   const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
-  const hasDrawerAction = organization.features.includes('trace-drawer-action');
+  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
+  const hasTraceTabsUi = useHasTraceTabsUI();
 
-  if (!hasTraceNewUi) {
+  if (hasTraceTabsUi) {
     return null;
   }
 
-  const traceProject = rootEventResults.data
-    ? projects.find(p => p.id === rootEventResults.data.projectID)
-    : undefined;
+  const traceProject = getTraceProject(projects, rootEventResults);
 
   return (
     <DropdownMenu
       items={[
         {
           key: 'open_trace_events',
-          label: hasDrawerAction
+          label: hasExploreEnabled
             ? t('Open Events in Explore')
             : t('Open Events in Discover'),
           onAction: () => {
-            let target;
+            let target:
+              | ReturnType<typeof getSearchInExploreTarget>
+              | ReturnType<typeof traceEventView.getResultsViewUrlTarget>;
 
-            if (hasDrawerAction) {
+            if (hasExploreEnabled) {
               const key = 'trace';
               const value = traceSlug ?? '';
 
@@ -104,22 +103,23 @@ function TraceActionsMenu({
           },
         },
         {
-          key: 'custom_instrumentation_button',
-          label: t('Add Instrumentation'),
-          onAction: () => {
-            const docsLink = getCustomInstrumentationLink(traceProject);
-            if (docsLink) {
-              window.location.href = docsLink;
-            }
-          },
-        },
-        {
           key: 'shortcuts_button',
           label: t('See Shortcuts'),
           onAction: () => {
             traceAnalytics.trackViewShortcuts(organization);
             openModal(props => <TraceShortcutsModal {...props} />);
           },
+        },
+        {
+          key: 'external-actions',
+          children: [
+            {
+              key: 'custom_instrumentation_button',
+              label: t('Add Instrumentation'),
+              externalHref: getCustomInstrumentationLink(traceProject),
+              leadingItems: <IconOpen />,
+            },
+          ],
         },
       ]}
       trigger={triggerProps => (

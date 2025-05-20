@@ -30,7 +30,7 @@ function GridList({onDelete, ...props}: GridListProps) {
   return (
     <div {...gridProps} ref={ref}>
       {[...state.collection].map(item => {
-        return !item.value ? null : (
+        return item.value ? (
           <DeletableToken
             key={item.value.key}
             item={item}
@@ -40,7 +40,7 @@ function GridList({onDelete, ...props}: GridListProps) {
           >
             <span data-test-id={`item-${item.key}`}>{item.key}</span>
           </DeletableToken>
-        );
+        ) : null;
       })}
     </div>
   );

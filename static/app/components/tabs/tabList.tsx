@@ -1,4 +1,5 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
@@ -8,8 +9,8 @@ import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -26,7 +27,7 @@ import {tabsShouldForwardProp} from './utils';
  * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
  * containing of keys of overflowing tabs.
  */
-export function useOverflowTabs({
+function useOverflowTabs({
   tabListRef,
   tabItemsRef,
   tabItems,
@@ -38,7 +39,7 @@ export function useOverflowTabs({
   disabled: boolean | undefined;
   tabItems: TabListItemProps[];
   tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
-  tabListRef: React.RefObject<HTMLUListElement>;
+  tabListRef: React.RefObject<HTMLUListElement | null>;
 }) {
   const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
 
@@ -95,7 +96,7 @@ export function useOverflowTabs({
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
-export function OverflowMenu({state, overflowMenuItems, disabled}: any) {
+function OverflowMenu({state, overflowMenuItems, disabled}: any) {
   return (
     <TabListOverflowWrap>
       <CompactSelect
@@ -232,7 +233,9 @@ function BaseTabList({
             state={state}
             orientation={orientation}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
-            ref={element => (tabItemsRef.current[item.key] = element)}
+            ref={element => {
+              tabItemsRef.current[item.key] = element;
+            }}
             variant={variant}
           />
         ))}
@@ -307,20 +310,20 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
 
   ${p =>
     p.orientation === 'horizontal'
-      ? `
-        grid-auto-flow: column;
-        justify-content: start;
-        gap: ${p.variant === 'filled' || p.variant === 'floating' ? 0 : space(2)};
-        ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
-      `
-      : `
-        height: 100%;
-        grid-auto-flow: row;
-        align-content: start;
-        gap: 1px;
-        padding-right: ${space(2)};
-        ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
-      `};
+      ? css`
+          grid-auto-flow: column;
+          justify-content: start;
+          gap: ${p.variant === 'floating' ? 0 : space(2)};
+          ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
+        `
+      : css`
+          height: 100%;
+          grid-auto-flow: row;
+          align-content: start;
+          gap: 1px;
+          padding-right: ${space(2)};
+          ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
+        `};
 `;
 
 const TabListOverflowWrap = styled('div')`

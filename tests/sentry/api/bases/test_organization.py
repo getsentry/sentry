@@ -9,6 +9,7 @@ from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.views import APIView
 
 from sentry.api.bases.organization import (
     NoProjects,
@@ -86,8 +87,8 @@ class PermissionBaseTestCase(TestCase):
         )
         drf_request = drf_request_from_request(request)
         result_with_obj = perm.has_permission(
-            request=drf_request, view=None
-        ) and perm.has_object_permission(request=drf_request, view=None, organization=obj)
+            drf_request, APIView()
+        ) and perm.has_object_permission(drf_request, APIView(), obj)
         if result_with_org_rpc is not None:
             return bool(result_with_obj and result_with_org_rpc and result_with_org_context_rpc)
         return result_with_obj
@@ -167,6 +168,25 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         self.create_member(user=user, organization=self.org, role="member")
         with pytest.raises(SuperuserRequired):
             assert self.has_object_perm("GET", self.org, user=user)
+
+    def test_sentryapp_passes_2fa(self):
+        self.org_require_2fa()
+        internal_sentry_app = self.create_internal_integration(
+            name="My Internal App",
+            organization=self.org,
+            scopes=["org:admin"],
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_sentry_app
+        )
+
+        request = drf_request_from_request(
+            self.make_request(user=internal_sentry_app.proxy_user, auth=token, method="GET")
+        )
+        permission = self.permission_cls()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            permission.determine_access(request=request, organization=self.org)
 
     def test_member_limit_error(self):
         user = self.create_user()
@@ -280,7 +300,7 @@ class BaseOrganizationEndpointTest(TestCase):
             user = self.user
         request.user = user
         request.auth = None
-        request.access = from_request(request, self.org)
+        request.access = from_request(drf_request_from_request(request), self.org)
         return request
 
 

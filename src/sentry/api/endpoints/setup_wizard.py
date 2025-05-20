@@ -12,7 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
-from sentry.utils.demo_mode import is_demo_user
+from sentry.demo_mode.utils import is_demo_user
 
 logger = logging.getLogger("sentry.api")
 SETUP_WIZARD_CACHE_KEY = "setup-wizard-keys:v1:"

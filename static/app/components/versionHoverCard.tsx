@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
-import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';
@@ -72,7 +72,7 @@ function VersionHoverCard({
               'Connect a repository to see commit info, files changed, and authors involved in future releases.'
             )}
           </p>
-          <LinkButton to={`/organizations/${orgSlug}/repos/`} priority="primary">
+          <LinkButton to={`/settings/${orgSlug}/repos/`} priority="primary">
             {t('Connect a repository')}
           </LinkButton>
         </ConnectRepo>
@@ -132,9 +132,9 @@ function VersionHoverCard({
                 <div>
                   <h6>
                     {release.commitCount}{' '}
-                    {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
+                    {release.commitCount === 1 ? t('commit ') : t('commits ')} {t('by ')}{' '}
                     {release.authors.length}{' '}
-                    {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
+                    {release.authors.length === 1 ? t('author') : t('authors')}{' '}
                   </h6>
                   <AvatarListContainer>
                     <AvatarList
@@ -224,7 +224,7 @@ const ConnectRepo = styled('div')`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

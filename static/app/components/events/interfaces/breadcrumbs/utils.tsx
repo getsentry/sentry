@@ -25,6 +25,7 @@ export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
     switch (category) {
       case 'console':
       case 'Logcat':
+      case 'Timber':
         return {...breadcrumb, type: BreadcrumbType.DEBUG};
       case 'session':
         return {...breadcrumb, type: BreadcrumbType.NAVIGATION};
@@ -50,7 +51,7 @@ export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
   return breadcrumb;
 }
 
-export function getCrumbDescriptionAndColor(
+function getCrumbDescriptionAndColor(
   type: BreadcrumbType
 ): Pick<Crumb, 'color' | 'description'> {
   switch (type) {

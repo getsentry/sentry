@@ -14,6 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
+import {mockTour} from 'sentry/components/tours/testUtils';
 import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
@@ -36,7 +37,7 @@ const group = GroupFixture({
 
 const issuePlatformGroup = GroupFixture({
   id: '1338',
-  issueCategory: IssueCategory.PERFORMANCE,
+  issueCategory: IssueCategory.FEEDBACK,
   project,
 });
 
@@ -44,6 +45,11 @@ const organization = OrganizationFixture({
   id: '4660',
   slug: 'org',
 });
+
+jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+  useIssueDetailsTour: () => mockTour(),
+}));
 
 describe('GroupActions', function () {
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
@@ -60,7 +66,10 @@ describe('GroupActions', function () {
     it('renders correctly', async function () {
       render(
         <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {organization}
+        {
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
       expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
     });
@@ -79,7 +88,10 @@ describe('GroupActions', function () {
     it('can subscribe', async function () {
       render(
         <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {organization}
+        {
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
       await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
 
@@ -106,7 +118,10 @@ describe('GroupActions', function () {
     it('can bookmark', async function () {
       render(
         <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {organization}
+        {
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -131,7 +146,10 @@ describe('GroupActions', function () {
 
       render(
         <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {organization}
+        {
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -147,7 +165,10 @@ describe('GroupActions', function () {
 
       render(
         <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {organization}
+        {
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
@@ -159,27 +180,6 @@ describe('GroupActions', function () {
       await userEvent.click(reprocessActionButton);
       await waitFor(() => expect(onReprocessEventFunc).toHaveBeenCalled());
     });
-  });
-
-  it('opens share modal from more actions dropdown', async () => {
-    const org = {
-      ...organization,
-      features: ['shared-issues'],
-    };
-
-    render(
-      <Fragment>
-        <GlobalModal />
-        <GroupActions group={group} project={project} disabled={false} event={null} />
-      </Fragment>,
-      {organization: org}
-    );
-
-    await userEvent.click(screen.getByLabelText('More Actions'));
-    await userEvent.click(await screen.findByText('Publish'));
-
-    const modal = screen.getByRole('dialog');
-    expect(within(modal).getByText('Publish Issue')).toBeInTheDocument();
   });
 
   describe('delete', function () {
@@ -204,7 +204,11 @@ describe('GroupActions', function () {
           <GlobalModal />
           <GroupActions group={group} project={project} disabled={false} event={null} />
         </Fragment>,
-        {router, organization: org}
+        {
+          router,
+          organization: org,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -225,52 +229,53 @@ describe('GroupActions', function () {
     });
 
     it('delete for issue platform', async () => {
+      const router = RouterFixture();
       const org = OrganizationFixture({
-        access: ['event:admin'], // Delete is only shown if this is present
+        ...organization,
+        access: [...organization.access, 'event:admin'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'PUT',
+        body: {},
+      });
+      const deleteMock = MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'DELETE',
+        body: {},
       });
       render(
-        <GroupActions
-          group={issuePlatformGroup}
-          project={project}
-          disabled={false}
-          event={null}
-        />,
-        {organization: org}
+        <Fragment>
+          <GlobalModal />
+          <GroupActions
+            group={issuePlatformGroup}
+            project={project}
+            disabled={false}
+            event={null}
+          />
+        </Fragment>,
+        {
+          router,
+          organization: org,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
-      expect(await screen.findByTestId('delete-issue')).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
-      expect(await screen.findByTestId('delete-and-discard')).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
-    });
-    it('delete for issue platform is enabled with feature flag', async () => {
-      const org = OrganizationFixture({
-        access: ['event:admin'],
-        features: ['issue-platform-deletion-ui'],
-      });
-      render(
-        <GroupActions
-          group={issuePlatformGroup}
-          project={project}
-          disabled={false}
-          event={null}
-        />,
-        {organization: org}
-      );
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
-      await userEvent.click(screen.getByLabelText('More Actions'));
-      expect(await screen.findByTestId('delete-issue')).not.toHaveAttribute(
-        'aria-disabled'
-      );
-      expect(await screen.findByTestId('delete-and-discard')).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+      const modal = screen.getByRole('dialog');
+      expect(
+        within(modal).getByText(/Deleting this issue is permanent/)
+      ).toBeInTheDocument();
+
+      await userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
+
+      expect(deleteMock).toHaveBeenCalled();
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: `/organizations/${org.slug}/issues/`,
+        query: {project: project.id},
+      });
     });
   });
 
@@ -283,7 +288,10 @@ describe('GroupActions', function () {
 
     const {rerender} = render(
       <GroupActions group={group} project={project} disabled={false} event={null} />,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
@@ -310,7 +318,7 @@ describe('GroupActions', function () {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Resolved'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Unresolve'}));
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,
@@ -329,7 +337,10 @@ describe('GroupActions', function () {
 
     render(
       <GroupActions group={group} project={project} disabled={false} event={null} />,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));

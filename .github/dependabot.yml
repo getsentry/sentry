@@ -68,7 +68,7 @@ updates:
     schedule:
       interval: 'daily'
     reviewers:
-      - '@getsentry/open-source'
+      - '@getsentry/dev-infra'
       - '@getsentry/security'
     # security only updates
     open-pull-requests-limit: 0

@@ -11,7 +11,6 @@ import type {DebugFile} from 'sentry/types/debugFiles';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -20,18 +19,13 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import ProjectProguardRow from './projectProguardRow';
 
-export type ProjectProguardProps = RouteComponentProps<{projectId: string}> & {
+type ProjectProguardProps = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   project: Project;
 };
 
 export type ProguardMappingAssociation = {
   releases: string[];
-};
-
-export type AssociatedMapping = {
-  mapping?: DebugFile;
-  releaseAssociation?: DebugIdBundleAssociation[];
 };
 
 function ProjectProguard({organization, location, router, params}: ProjectProguardProps) {
@@ -159,9 +153,8 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
         isEmpty={mappings?.length === 0}
         isLoading={isLoading}
       >
-        {!mappings?.length
-          ? null
-          : mappings.map((mapping, index) => {
+        {mappings?.length
+          ? mappings.map((mapping, index) => {
               const downloadUrl = `${api.baseUrl}/projects/${
                 organization.slug
               }/${projectId}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
@@ -176,7 +169,8 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
                   orgSlug={organization.slug}
                 />
               );
-            })}
+            })
+          : null}
       </StyledPanelTable>
       <Pagination pageLinks={mappingsPageLinks} />
     </Fragment>

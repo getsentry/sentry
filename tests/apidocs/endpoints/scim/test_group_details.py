@@ -15,7 +15,10 @@ class SCIMTeamDetailsDocs(APIDocsTestCase, SCIMTestCase):
         )
         self.url = reverse(
             "sentry-api-0-organization-scim-team-details",
-            kwargs={"organization_id_or_slug": self.organization.slug, "team_id": self.team.id},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "team_id_or_slug": self.team.id,
+            },
         )
 
     def test_get(self):

@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -59,7 +60,7 @@ function ProjectProguardRow({
               'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
               {
                 downloadRole,
-                orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+                orHigher: downloadRole === 'owner' ? '' : ` ${t('or higher')}`,
                 settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
               }
             )}

@@ -28,9 +28,9 @@ function OrganizationMembershipSettingsForm({
           field.disabled = ({features, access}: any) =>
             !access.has('org:write') || !features.has('team-roles');
           field.disabledReason = ({features}: any) =>
-            !features.has('team-roles')
-              ? t('You must be on a business plan to toggle this feature.')
-              : undefined;
+            features.has('team-roles')
+              ? undefined
+              : t('You must be on a business plan to toggle this feature.');
         }
       }
     });

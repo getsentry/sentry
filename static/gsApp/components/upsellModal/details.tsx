@@ -214,11 +214,11 @@ class Body extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    this.features = !hasPerformance(props.subscription.planDetails)
-      ? PERFORMANCE_FEATURES
-      : this.shouldShowTeamFeatures
+    this.features = hasPerformance(props.subscription.planDetails)
+      ? this.shouldShowTeamFeatures
         ? [...INSIGHTS_FEATURES, ...BUSINESS_FEATURES, ...TEAM_FEATURES]
-        : [...INSIGHTS_FEATURES, ...BUSINESS_FEATURES];
+        : [...INSIGHTS_FEATURES, ...BUSINESS_FEATURES]
+      : PERFORMANCE_FEATURES;
 
     const highlightedFeatureId = this.features.some(f => f.id === props.source)
       ? props.source
@@ -292,7 +292,7 @@ class Body extends Component<Props, State> {
   selectFeature = (feature: Feature) => {
     this.stopAutoRotate();
     this.setState(state => ({
-      highlightedFeatureId: feature.id !== state.highlightedFeatureId ? feature.id : null,
+      highlightedFeatureId: feature.id === state.highlightedFeatureId ? null : feature.id,
       hasClickedFeature: true,
     }));
     const {organization, source, subscription} = this.props;
@@ -393,12 +393,12 @@ class Body extends Component<Props, State> {
           'Enable all power features by starting your %s day trial',
           getTrialLength(organization)
         )
-      : !hasPerformance(subscription.planDetails)
-        ? tct(
+      : hasPerformance(subscription.planDetails)
+        ? tct('Upgrade to our [strong:Business Plan] today.', {strong: <strong />})
+        : tct(
             "You're currently on one of our legacy plans. Upgrade to our newer [strong:Performance Plans].",
             {strong: <strong />}
-          )
-        : tct('Upgrade to our [strong:Business Plan] today.', {strong: <strong />});
+          );
   }
 
   renderMessage() {
@@ -436,7 +436,7 @@ class Body extends Component<Props, State> {
             features={this.features}
             selected={highlightedFeature}
             onClick={this.selectFeature}
-            withCountdown={!this.state.hasClickedFeature ? ROTATE_INTERVAL : undefined}
+            withCountdown={this.state.hasClickedFeature ? undefined : ROTATE_INTERVAL}
             shouldShowTeamFeatures={this.shouldShowTeamFeatures}
             shouldShowPerformanceFeatures={!hasPerformance(subscription.planDetails)}
             {...orgSub}

@@ -10,6 +10,7 @@ import {PlanTier} from 'getsentry/types';
 
 type PlanIds = keyof typeof AM1_PLANS &
   keyof typeof AM2_PLANS &
+  keyof typeof AM3_PLANS &
   keyof typeof MM1_PLANS &
   keyof typeof MM2_PLANS;
 
@@ -21,7 +22,7 @@ export function PlanDetailsLookupFixture(planId: PlanIds, tier?: PlanTier) {
   }
 
   const planData =
-    tier ?? planId.startsWith(PlanTier.AM3)
+    (tier ?? planId.startsWith(PlanTier.AM3))
       ? AM3_PLANS[planId]
       : planId.startsWith(PlanTier.AM1)
         ? AM1_PLANS[planId]

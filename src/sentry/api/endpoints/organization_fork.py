@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class OrganizationForkEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -69,6 +69,9 @@ class OrganizationForkEndpoint(Endpoint):
         """
 
         logger.info("relocations.fork.post.start", extra={"caller": request.user.id})
+
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         org_mapping = (
             organization_mapping_service.get(organization_id=organization_id_or_slug)
@@ -147,7 +150,7 @@ class OrganizationForkEndpoint(Endpoint):
         # duplicate from the foreign region.
         provenance = Relocation.Provenance.SAAS_TO_SAAS
         with atomic_transaction(using=(router.db_for_write(Relocation))):
-            new_relocation: Relocation = Relocation.objects.create(
+            new_relocation = Relocation.objects.create(
                 creator_id=request.user.id,
                 owner_id=owner.id,
                 step=Relocation.Step.UPLOADING.value,

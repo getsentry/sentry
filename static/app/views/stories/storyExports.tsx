@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {ErrorBoundary} from '@sentry/react';
 
 import {space} from 'sentry/styles/space';
 import {StorySourceLinks} from 'sentry/views/stories/storySourceLinks';
@@ -12,7 +13,9 @@ export function StoryExports(props: {story: StoryDescriptor}) {
   return (
     <Fragment>
       <StorySourceLinksContainer>
-        <StorySourceLinks story={props.story} />
+        <ErrorBoundary>
+          <StorySourceLinks story={props.story} />
+        </ErrorBoundary>
       </StorySourceLinksContainer>
       {/* Render default export first */}
       {DefaultExport ? (
@@ -20,19 +23,21 @@ export function StoryExports(props: {story: StoryDescriptor}) {
           <DefaultExport />
         </Story>
       ) : null}
-      {Object.entries(namedExports).map(([name, MaybeComponent]) => {
-        if (typeof MaybeComponent === 'function') {
-          return (
-            <Story key={name}>
-              <MaybeComponent />
-            </Story>
-          );
-        }
+      {props.story.filename.endsWith('.mdx')
+        ? null
+        : Object.entries(namedExports).map(([name, MaybeComponent]) => {
+            if (typeof MaybeComponent === 'function') {
+              return (
+                <Story key={name}>
+                  <MaybeComponent />
+                </Story>
+              );
+            }
 
-        throw new Error(
-          `Story exported an unsupported key ${name} with value: ${typeof MaybeComponent}`
-        );
-      })}
+            throw new Error(
+              `Story exported an unsupported key ${name} with value: ${typeof MaybeComponent}`
+            );
+          })}
     </Fragment>
   );
 }

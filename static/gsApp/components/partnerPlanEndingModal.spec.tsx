@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import PartnerPlanEndingModal from 'getsentry/components/partnerPlanEndingModal';
@@ -11,7 +12,7 @@ import {PlanName} from 'getsentry/types';
 
 describe('PartnerPlanEndingModal', function () {
   beforeEach(() => {
-    jest.spyOn(Date, 'now').mockImplementation(() => new Date('2024-08-01').getTime());
+    setMockDate(new Date('2024-08-01'));
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -23,6 +24,10 @@ describe('PartnerPlanEndingModal', function () {
         }),
       ],
     });
+  });
+
+  afterEach(() => {
+    resetMockDate();
   });
 
   it('shows request upgrade when user does not have billing permissions', async function () {

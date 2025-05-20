@@ -1,73 +1,111 @@
+from abc import abstractmethod
+from typing import Any, Generic, TypeVar
+
+from jsonschema import ValidationError as JsonValidationError
 from rest_framework import serializers
-from rest_framework.fields import Field
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.endpoints.validators.utils import (
+    validate_json_primitive,
+    validate_json_schema,
+)
+from sentry.workflow_engine.models.data_condition import CONDITION_OPS, Condition, DataCondition
+from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import DataConditionHandler
+
+ComparisonType = TypeVar("ComparisonType")
+ConditionResult = TypeVar("ConditionResult")
 
 
-class BaseDataConditionValidator(CamelSnakeSerializer):
-    type = serializers.CharField(
-        required=True,
-        max_length=200,
-        help_text="Condition used to compare data value to the stored comparison value",
-    )
+class AbstractDataConditionValidator(
+    CamelSnakeSerializer,
+    Generic[ComparisonType, ConditionResult],
+):
+    id = serializers.IntegerField(required=False)
+    type = serializers.ChoiceField(choices=[(t.value, t.value) for t in Condition])
+    comparison = serializers.JSONField(required=True)
+    condition_result = serializers.JSONField(required=True)
+    condition_group_id = serializers.IntegerField(required=False)
 
-    @property
-    def comparison(self) -> Field:
-        raise NotImplementedError
+    @abstractmethod
+    def validate_comparison(self, value: Any) -> ComparisonType:
+        pass
 
-    @property
-    def result(self) -> Field:
-        raise NotImplementedError
-
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-        return attrs
-
-
-class BaseDataConditionGroupValidator(CamelSnakeSerializer):
-    logic_type = serializers.CharField(required=True)
-    organization_id = serializers.IntegerField(required=True)
-    conditions = BaseDataConditionValidator(many=True)
+    @abstractmethod
+    def validate_condition_result(self, value: Any) -> ConditionResult:
+        pass
 
 
-class NumericComparisonConditionValidator(BaseDataConditionValidator):
-    comparison = serializers.FloatField(
-        required=True,
-        help_text="Comparison value to be compared against value from data.",
-    )
-    condition_result = serializers.ChoiceField(
-        choices=[
-            (DetectorPriorityLevel.HIGH, "High"),
-            (DetectorPriorityLevel.MEDIUM, "Medium"),
-            (DetectorPriorityLevel.LOW, "Low"),
-        ]
-    )
+class BaseDataConditionValidator(
+    AbstractDataConditionValidator[Any, Any],
+):
+    def _get_handler(self) -> DataConditionHandler | None:
+        if self._is_operator_condition():
+            return None
 
-    @property
-    def supported_conditions(self) -> frozenset[Condition]:
-        raise NotImplementedError
+        condition_type = self.initial_data.get("type")
 
-    @property
-    def supported_condition_results(self) -> frozenset[DetectorPriorityLevel]:
-        raise NotImplementedError
-
-    def validate_type(self, value: str) -> Condition:
         try:
-            type = Condition(value)
-        except ValueError:
-            type = None
+            return condition_handler_registry.get(condition_type)
+        except NoRegistrationExistsError:
+            raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
 
-        if type not in self.supported_conditions:
-            raise serializers.ValidationError(f"Unsupported type {value}")
-        return type
+    def _is_operator_condition(self) -> bool:
+        condition_type = self.initial_data.get("type")
+        return condition_type in CONDITION_OPS
 
-    def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
+    def validate_comparison(self, value: Any) -> Any:
+        """
+        Validate the comparison field. Get the schema configuration for the type, if
+        there is no schema configuration, then we assume the comparison field is a primitive value.
+        """
+
+        handler = self._get_handler()
+
+        if not handler:
+            if self._is_operator_condition():
+                return validate_json_primitive(value)
+            else:
+                raise serializers.ValidationError("Invalid comparison value for condition type")
+
         try:
-            result = DetectorPriorityLevel(int(value))
-        except ValueError:
-            result = None
-        if result not in self.supported_condition_results:
-            raise serializers.ValidationError("Unsupported condition result")
-        return result
+            return validate_json_schema(value, handler.comparison_json_schema)
+        except JsonValidationError:
+            raise serializers.ValidationError(
+                f"Value, {value} does not match JSON Schema for comparison"
+            )
+
+    def validate_condition_result(self, value: Any) -> Any:
+        """
+        Validate the condition_result field.
+
+        Gets the schema for this type of DataCondition, if there is no schema for that type,
+        then we assume the condition_result field is a primitive value.
+        """
+        handler = self._get_handler()
+
+        if not handler:
+            if self._is_operator_condition():
+                return validate_json_primitive(value)
+            else:
+                raise serializers.ValidationError(
+                    "Invalid condition result value for condition type"
+                )
+
+        try:
+            return validate_json_schema(value, handler.condition_result_schema)
+        except JsonValidationError:
+            raise serializers.ValidationError(
+                f"Value, {value}, does not match JSON Schema for condition result"
+            )
+
+    def update(self, instance: DataCondition, validated_data: dict[str, Any]) -> DataCondition:
+        instance.update(**validated_data)
+        return instance
+
+    def create(self, validated_data: dict[str, Any]) -> DataCondition:
+        """
+        Create a DataCondition object from the validated data.
+        """
+        return DataCondition.objects.create(**validated_data)

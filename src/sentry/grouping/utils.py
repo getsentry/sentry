@@ -21,15 +21,20 @@ _fingerprint_var_re = re.compile(r"\{\{\s*(\S+)\s*\}\}")
 DEFAULT_FINGERPRINT_VARIABLE = "{{ default }}"
 
 
-def parse_fingerprint_var(value: str) -> str | None:
-    match = _fingerprint_var_re.match(value)
-    if match is not None and match.end() == len(value):
+def parse_fingerprint_entry_as_variable(entry: str) -> str | None:
+    """
+    Determine if the given fingerprint entry is a variable, and if it is, return its key (that is,
+    extract the variable name from a variable string of the form "{{ var_name }}"). If the given
+    entry isn't the correct form to be a variable, return None.
+    """
+    match = _fingerprint_var_re.match(entry)
+    if match is not None and match.end() == len(entry):
         return match.group(1)
     return None
 
 
 def is_default_fingerprint_var(value: str) -> bool:
-    return parse_fingerprint_var(value) == "default"
+    return parse_fingerprint_entry_as_variable(value) == "default"
 
 
 def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingComponent]) -> str:
@@ -82,80 +87,95 @@ def bool_from_string(value: str) -> bool | None:
     return None
 
 
-def get_fingerprint_value(var: str, data: NodeData | Mapping[str, Any]) -> str | None:
-    if var == "transaction":
-        return data.get("transaction") or "<no-transaction>"
-    elif var == "message":
+def resolve_fingerprint_variable(
+    variable_key: str, event_data: NodeData | Mapping[str, Any]
+) -> str | None:
+    if variable_key == "transaction":
+        return event_data.get("transaction") or "<no-transaction>"
+
+    elif variable_key == "message":
         message = (
-            get_path(data, "logentry", "formatted")
-            or get_path(data, "logentry", "message")
-            or get_path(data, "exception", "values", -1, "value")
+            get_path(event_data, "logentry", "formatted")
+            or get_path(event_data, "logentry", "message")
+            or get_path(event_data, "exception", "values", -1, "value")
         )
         return message or "<no-message>"
-    elif var in ("type", "error.type"):
-        ty = get_path(data, "exception", "values", -1, "type")
-        return ty or "<no-type>"
-    elif var in ("value", "error.value"):
-        value = get_path(data, "exception", "values", -1, "value")
+
+    elif variable_key in ("type", "error.type"):
+        exception_type = get_path(event_data, "exception", "values", -1, "type")
+        return exception_type or "<no-type>"
+
+    elif variable_key in ("value", "error.value"):
+        value = get_path(event_data, "exception", "values", -1, "value")
         return value or "<no-value>"
-    elif var in ("function", "stack.function"):
-        frame = get_crash_frame_from_event_data(data)
+
+    elif variable_key in ("function", "stack.function"):
+        frame = get_crash_frame_from_event_data(event_data)
         func = frame.get("function") if frame else None
         return func or "<no-function>"
-    elif var in ("path", "stack.abs_path"):
-        frame = get_crash_frame_from_event_data(data)
+
+    elif variable_key in ("path", "stack.abs_path"):
+        frame = get_crash_frame_from_event_data(event_data)
         abs_path = frame.get("abs_path") or frame.get("filename") if frame else None
         return abs_path or "<no-abs-path>"
-    elif var == "stack.filename":
-        frame = get_crash_frame_from_event_data(data)
+
+    elif variable_key == "stack.filename":
+        frame = get_crash_frame_from_event_data(event_data)
         filename = frame.get("filename") or frame.get("abs_path") if frame else None
         return filename or "<no-filename>"
-    elif var in ("module", "stack.module"):
-        frame = get_crash_frame_from_event_data(data)
-        mod = frame.get("module") if frame else None
-        return mod or "<no-module>"
-    elif var in ("package", "stack.package"):
-        frame = get_crash_frame_from_event_data(data)
+
+    elif variable_key in ("module", "stack.module"):
+        frame = get_crash_frame_from_event_data(event_data)
+        module = frame.get("module") if frame else None
+        return module or "<no-module>"
+
+    elif variable_key in ("package", "stack.package"):
+        frame = get_crash_frame_from_event_data(event_data)
         pkg = frame.get("package") if frame else None
         if pkg:
+            # If the package is formatted as either a POSIX or Windows path, grab the last segment
             pkg = pkg.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
         return pkg or "<no-package>"
-    elif var == "level":
-        return data.get("level") or "<no-level>"
-    elif var == "logger":
-        return data.get("logger") or "<no-logger>"
-    elif var.startswith("tags."):
+
+    elif variable_key == "level":
+        return event_data.get("level") or "<no-level>"
+
+    elif variable_key == "logger":
+        return event_data.get("logger") or "<no-logger>"
+
+    elif variable_key.startswith("tags."):
         # Turn "tags.some_tag" into just "some_tag"
-        tag = var[5:]
-        for t, value in data.get("tags") or ():
-            if t == tag and value is not None:
-                return value
-        return "<no-value-for-tag-%s>" % tag
+        requested_tag = variable_key[5:]
+        for tag_name, tag_value in event_data.get("tags") or ():
+            if tag_name == requested_tag and tag_value is not None:
+                return tag_value
+        return "<no-value-for-tag-%s>" % requested_tag
     else:
         return None
 
 
-def resolve_fingerprint_values(values: list[str], event_data: NodeData) -> list[str]:
-    def _get_fingerprint_value(value: str) -> str:
-        var = parse_fingerprint_var(value)
-        if var == "default":
+def resolve_fingerprint_values(fingerprint: list[str], event_data: NodeData) -> list[str]:
+    def _resolve_single_entry(entry: str) -> str:
+        variable_key = parse_fingerprint_entry_as_variable(entry)
+        if variable_key == "default":  # entry is some variation of `{{ default }}`
             return DEFAULT_FINGERPRINT_VARIABLE
-        if var is None:
-            return value
-        rv = get_fingerprint_value(var, event_data)
-        if rv is None:
-            return value
-        return rv
+        if variable_key is None:  # entry isn't a variable
+            return entry
+        resolved_value = resolve_fingerprint_variable(variable_key, event_data)
+        if resolved_value is None:  # variable wasn't recognized
+            return entry
+        return resolved_value
 
-    return [_get_fingerprint_value(x) for x in values]
+    return [_resolve_single_entry(entry) for entry in fingerprint]
 
 
 def expand_title_template(template: str, event_data: Mapping[str, Any]) -> str:
     def _handle_match(match: Match[str]) -> str:
-        var = match.group(1)
-        rv = get_fingerprint_value(var, event_data)
-        if rv is not None:
-            return rv
+        variable_key = match.group(1)
+        resolved_value = resolve_fingerprint_variable(variable_key, event_data)
+        if resolved_value is not None:
+            return resolved_value
+        # If the variable can't be resolved, return it as is
         return match.group(0)
 
     return _fingerprint_var_re.sub(_handle_match, template)

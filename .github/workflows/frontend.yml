@@ -53,7 +53,7 @@ jobs:
           node-version-file: '.volta.json'
 
       - name: node_modules cache
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: nodemodulescache
         with:
           path: node_modules
@@ -68,16 +68,48 @@ jobs:
         run: |
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/tsc.json"
-          echo "::add-matcher::.github/eslint-stylish.json"
 
       - name: tsc
         id: tsc
-        if: steps.dependencies.outcome == 'success'
-        run: yarn tsc -p config/tsconfig.ci.json
+        run: yarn tsc -p tsconfig.json
+
+  eslint:
+    if: needs.files-changed.outputs.frontend_all == 'true'
+    needs: files-changed
+    name: eslint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        id: setup-node
+        with:
+          node-version-file: '.volta.json'
+
+      - name: node_modules cache
+        uses: actions/cache@v4.2.0
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock', '.volta.json') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
+
+      # Setup custom eslint matcher, see https://github.com/actions/setup-node/issues/97
+      - name: setup matchers
+        run: |
+          echo "::remove-matcher owner=masters::"
+          echo "::add-matcher::.github/eslint-stylish.json"
+
+      - name: eslint
+        id: eslint
+        run: yarn run lint:js
 
   frontend-jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
-    needs: [files-changed, typescript]
+    needs: [files-changed]
     name: Jest
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
@@ -102,7 +134,7 @@ jobs:
           node-version-file: '.volta.json'
 
       - name: node_modules cache
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: nodemodulescache
         with:
           path: node_modules
@@ -152,7 +184,7 @@ jobs:
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
   # This check is the only required Github check
   frontend-required-check:
-    needs: [files-changed, frontend-jest-tests, typescript]
+    needs: [files-changed, frontend-jest-tests, typescript, eslint]
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()

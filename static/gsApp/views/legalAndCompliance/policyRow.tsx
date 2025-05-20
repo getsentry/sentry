@@ -5,8 +5,9 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -15,6 +16,7 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {Policy, Subscription} from 'getsentry/types';
+import {PolicyStatus} from 'getsentry/views/legalAndCompliance/policyStatus';
 import {PanelItemPolicy} from 'getsentry/views/legalAndCompliance/styles';
 
 type PolicyRowProps = {
@@ -94,19 +96,19 @@ export function PolicyRow({
       ({Header, Footer, Body, closeModal}) => (
         <Fragment>
           <Header>
-            {curPolicy.slug !== policy.slug ? (
-              <div style={{textAlign: 'center'}}>
-                {tct("You must first agree to Sentry's [policy]", {
-                  policy: <a onClick={showPolicy}>{curPolicy.name}</a>,
-                })}
-              </div>
-            ) : (
+            {curPolicy.slug === policy.slug ? (
               <PolicyHeader>
                 <h5>{curPolicy.name}</h5>
                 <Button size="sm" onClick={showPolicy}>
                   {t('Download')}
                 </Button>
               </PolicyHeader>
+            ) : (
+              <div style={{textAlign: 'center'}}>
+                {tct("You must first agree to Sentry's [policy]", {
+                  policy: <a onClick={showPolicy}>{curPolicy.name}</a>,
+                })}
+              </div>
             )}
           </Header>
           <Body>
@@ -172,7 +174,6 @@ export function PolicyRow({
       {modalCss: modalCss(theme)}
     );
   };
-
   const getPolicySubstatus = () => {
     const {consent, updatedAt, version} = policy;
     if (consent && showConsentText) {
@@ -198,7 +199,8 @@ export function PolicyRow({
         </PolicyTitle>
         <PolicySubtext>{getPolicySubstatus()}</PolicySubtext>
       </div>
-      <div>
+      <PolicyStatusRow>
+        <PolicyStatus policy={policy} />
         {policy.url &&
           policyUrl &&
           (policy.consent?.acceptedVersion === policy.version ? (
@@ -207,7 +209,8 @@ export function PolicyRow({
             </LinkButton>
           ) : policy.hasSignature &&
             policy.slug !== 'privacy' &&
-            policy.slug !== 'terms' ? (
+            policy.slug !== 'terms' &&
+            hasBillingAccess ? (
             <Button
               size="sm"
               priority="primary"
@@ -216,11 +219,9 @@ export function PolicyRow({
               title={
                 activeSuperUser
                   ? t("Superusers can't consent to policies")
-                  : !hasBillingAccess
-                    ? t(
-                        "You don't have access to manage billing and subscription details."
-                      )
-                    : undefined
+                  : hasBillingAccess
+                    ? undefined
+                    : t("You don't have access to accept policies.")
               }
             >
               {t('Review and Accept')}
@@ -230,7 +231,7 @@ export function PolicyRow({
               {t('Review')}
             </LinkButton>
           ))}
-      </div>
+      </PolicyStatusRow>
     </PanelItemPolicy>
   );
 }
@@ -272,4 +273,9 @@ const modalCss = (theme: Theme) => css`
     width: 80%;
     max-width: 1200px;
   }
+`;
+export const PolicyStatusRow = styled('div')`
+  display: flex;
+  align-items: center;
+  height: 100%;
 `;

@@ -1,12 +1,11 @@
 import {type CSSProperties, Fragment, useCallback, useEffect, useState} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
-import {css, useTheme} from '@emotion/react';
+import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
-import {useNavContext} from 'sentry/components/nav/context';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
@@ -27,7 +26,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useUser} from 'sentry/utils/useUser';
 import {
   type DashboardDetails,
   type DashboardFilters,
@@ -45,6 +43,7 @@ import {
   WIDGET_PREVIEW_DRAG_ID,
   type WidgetDragPositioning,
 } from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
+import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import WidgetPreview from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
 import {
@@ -53,6 +52,8 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useNavContext} from 'sentry/views/nav/context';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export interface ThresholdMetaState {
@@ -65,7 +66,7 @@ type WidgetBuilderV2Props = {
   dashboardFilters: DashboardFilters;
   isOpen: boolean;
   onClose: () => void;
-  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   openWidgetTemplates: boolean;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
@@ -84,7 +85,6 @@ function WidgetBuilderV2({
 
   const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
   const theme = useTheme();
-  const user = useUser();
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
   const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
@@ -98,11 +98,9 @@ function WidgetBuilderV2({
   const {navParentRef} = useNavContext();
   // Check if we have a valid nav reference
   const hasValidNav = Boolean(navParentRef?.current);
+  const prefersStackedNav = usePrefersStackedNav();
 
-  const hasNewNav =
-    hasValidNav &&
-    organization.features.includes('navigation-sidebar-v2') &&
-    user.options.prefersStackedNavigation;
+  const hasNewNav = hasValidNav && prefersStackedNav;
 
   const dimensions = useDimensions({elementRef: navParentRef});
 
@@ -151,6 +149,13 @@ function WidgetBuilderV2({
     <Fragment>
       {isOpen && (
         <Fragment>
+          <Global
+            styles={css`
+              body {
+                overflow: hidden;
+              }
+            `}
+          />
           <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />
           <AnimatePresence>
             {isOpen && (
@@ -161,7 +166,7 @@ function WidgetBuilderV2({
                 >
                   <SpanTagsProvider
                     dataset={DiscoverDatasets.SPANS_EAP}
-                    enabled={organization.features.includes('dashboards-eap')}
+                    enabled={organization.features.includes('visibility-explore-view')}
                   >
                     <ContainerWithoutSidebar
                       sidebarCollapsed={sidebarCollapsed}
@@ -272,8 +277,8 @@ export function WidgetPreviewContainer({
     transform: isDragEnabled
       ? `translate3d(${isDragging ? translate?.x : 0}px, ${isDragging ? translate?.y : 0}px, 0)`
       : undefined,
-    top: isDragEnabled ? top ?? 0 : undefined,
-    left: isDragEnabled ? left ?? 0 : undefined,
+    top: isDragEnabled ? (top ?? 0) : undefined,
+    left: isDragEnabled ? (left ?? 0) : undefined,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragEnabled
       ? theme.zIndex.modal
@@ -317,6 +322,13 @@ export function WidgetPreviewContainer({
     return PREVIEW_HEIGHT_PX;
   };
 
+  const animatedProps = {
+    initial: {opacity: 0, x: '50%', y: 0},
+    animate: {opacity: 1, x: 0, y: 0},
+    exit: {opacity: 0, x: '50%', y: 0},
+    transition: animationTransitionSettings,
+  };
+
   return (
     <DashboardsMEPProvider>
       <MetricsCardinalityProvider organization={organization} location={location}>
@@ -341,20 +353,12 @@ export function WidgetPreviewContainer({
                 {...listeners}
               >
                 {!isSmallScreen && (
-                  <WidgetPreviewTitle
-                    initial={{opacity: 0, x: '50%', y: 0}}
-                    animate={{opacity: 1, x: 0, y: 0}}
-                    exit={{opacity: 0, x: '50%', y: 0}}
-                    transition={animationTransitionSettings}
-                  >
+                  <WidgetPreviewTitle {...animatedProps}>
                     {t('Widget Preview')}
                   </WidgetPreviewTitle>
                 )}
                 <SampleWidgetCard
-                  initial={{opacity: 0, x: '50%', y: 0}}
-                  animate={{opacity: 1, x: 0, y: 0}}
-                  exit={{opacity: 0, x: '50%', y: 0}}
-                  transition={animationTransitionSettings}
+                  {...animatedProps}
                   style={{
                     width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
                     height: getPreviewHeight(),
@@ -380,6 +384,12 @@ export function WidgetPreviewContainer({
                     />
                   )}
                 </SampleWidgetCard>
+
+                {!isSmallScreen && (
+                  <FilterBarContainer {...animatedProps}>
+                    <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+                  </FilterBarContainer>
+                )}
               </DraggableWidgetContainer>
             </MEPSettingProvider>
           )}
@@ -537,4 +547,23 @@ const WidgetPreviewTitle = styled(motion.h5)`
   margin-left: ${space(1)};
   color: ${p => p.theme.white};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const FilterBarContainer = styled(motion.div)`
+  margin-top: ${space(1)};
+  background-color: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    width: 40vw;
+    min-width: 300px;
+    z-index: ${p => p.theme.zIndex.modal};
+    cursor: auto;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) and (min-width: ${p =>
+      p.theme.breakpoints.medium}) {
+    width: 30vw;
+    min-width: 100px;
+  }
 `;

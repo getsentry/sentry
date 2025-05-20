@@ -1,13 +1,13 @@
 import {openModal} from 'sentry/actionCreators/modal';
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import type {FeedbackModalProps} from 'sentry/components/featureFeedback/feedbackModal';
 import {FeedbackModal, modalCss} from 'sentry/components/featureFeedback/feedbackModal';
 import type {Data} from 'sentry/components/forms/types';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-export type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
+type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
   buttonProps?: Partial<ButtonProps>;
   secondaryAction?: React.ReactNode;
 };

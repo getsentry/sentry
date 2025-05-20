@@ -4,11 +4,11 @@ import {AutoSizer, List, type ListRowRenderer} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -145,7 +145,9 @@ export function ProjectsTable({
           <AutoSizer>
             {({width, height}) => (
               <List
-                ref={list => (listRef.current = list)}
+                ref={list => {
+                  listRef.current = list;
+                }}
                 width={width}
                 height={height}
                 rowCount={sortedItems.length}
@@ -371,9 +373,9 @@ const TableRow = memo(function TableRow({
         </FirstCellLine>
         {error ? (
           <ErrorMessage>{error}</ErrorMessage>
-        ) : sampleRate !== initialSampleRate ? (
+        ) : sampleRate === initialSampleRate ? null : (
           <SmallPrint>{t('previous: %s%%', initialSampleRate)}</SmallPrint>
-        ) : null}
+        )}
       </Cell>
     </TableRowWrapper>
   );

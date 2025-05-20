@@ -54,7 +54,9 @@
   </script>
   {% endscript %}
 
-  {% include "sentry/partial/preload-data.html" %}
+  {% block preload_data %}
+    {% include "sentry/partial/preload-data.html" %}
+  {% endblock %}
 
   {% block scripts %}
   {% block scripts_main_entrypoint %}
@@ -76,7 +78,7 @@
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
-    {% if request.is_superuser %}
+    {% if request.superuser.is_active %}
         {% show_system_status %}
     {% endif %}
 

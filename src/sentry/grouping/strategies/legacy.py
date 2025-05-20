@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import posixpath
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sentry.eventstore.models import Event
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
     ContextLineGroupingComponent,
@@ -29,6 +30,10 @@ from sentry.interfaces.exception import Exception as ChainedException
 from sentry.interfaces.exception import SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 from sentry.interfaces.threads import Threads
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+
 
 _ruby_anon_func = re.compile(r"_\d{2,}")
 _filename_version_re = re.compile(
@@ -447,7 +452,7 @@ def stacktrace_legacy(
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
-    stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
+    stacktrace_component = context.config.enhancements.assemble_stacktrace_component_legacy(
         variant_name, frame_components, frames_for_filtering, event.platform
     )
     stacktrace_component.update(contributes=contributes, hint=hint)

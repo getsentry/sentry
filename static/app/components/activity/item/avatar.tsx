@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSentry} from 'sentry/icons';
 import type {AvatarUser} from 'sentry/types/user';
@@ -12,7 +12,7 @@ type Props = {
   user?: AvatarUser;
 };
 
-function ActivityAvatar({className, type, user, size = 38}: Props) {
+export function ActivityAvatar({className, type, user, size = 38}: Props) {
   if (user) {
     return <UserAvatar user={user} size={size} className={className} />;
   }
@@ -35,8 +35,6 @@ function ActivityAvatar({className, type, user, size = 38}: Props) {
     />
   );
 }
-
-export {ActivityAvatar};
 
 type SystemAvatarProps = {
   size: number;

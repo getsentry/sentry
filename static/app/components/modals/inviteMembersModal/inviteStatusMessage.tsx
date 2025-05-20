@@ -75,7 +75,7 @@ export default function InviteStatusMessage({
   if (sendingInvites) {
     return (
       <StatusMessage>
-        <LoadingIndicator mini relative hideMessage size={16} />
+        <LoadingIndicator mini relative size={16} />
         {willInvite
           ? t('Sending organization invitations\u2026')
           : t('Sending invite requests\u2026')}
@@ -112,7 +112,7 @@ export const StatusMessage = styled('div')<{
     p.status === 'error' && !p.isNewInviteModal ? p.theme.errorText : p.theme.textColor};
 `;
 
-export const BoldCount = styled('div')`
+const BoldCount = styled('div')`
   display: inline;
   font-weight: bold;
 `;

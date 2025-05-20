@@ -1,15 +1,16 @@
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface Props {
-  tags: Record<string, string>;
+  tags: Record<string, string | ReactNode>;
 }
 
 export default function TagsSection({tags}: Props) {

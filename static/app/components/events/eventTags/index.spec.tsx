@@ -93,7 +93,7 @@ describe('event tags', function () {
     expect(screen.getByText('mytransaction')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/performance/summary/?project=1&referrer=event-tags-table&transaction=mytransaction`
+      `/organizations/${organization.slug}/insights/summary/?project=1&referrer=event-tags-table&transaction=mytransaction`
     );
   });
 });

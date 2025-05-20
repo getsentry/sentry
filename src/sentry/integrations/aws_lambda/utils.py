@@ -12,6 +12,8 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
 
 SUPPORTED_RUNTIMES = [
+    "nodejs22.x",
+    "nodejs20.x",
     "nodejs18.x",
     "nodejs16.x",
     "nodejs14.x",
@@ -24,6 +26,8 @@ SUPPORTED_RUNTIMES = [
     "python3.9",
     "python3.10",
     "python3.11",
+    "python3.12",
+    "python3.13",
 ]
 
 INVALID_LAYER_TEXT = "Invalid existing layer %s"

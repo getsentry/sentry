@@ -160,7 +160,13 @@ describe('Native StackTrace', function () {
     };
 
     render(
-      <NativeContent data={newData} platform="cocoa" event={event} includeSystemFrames />
+      <NativeContent
+        data={newData}
+        platform="cocoa"
+        event={event}
+        includeSystemFrames
+        newestFirst={false}
+      />
     );
 
     const frames = screen.getAllByTestId('stack-trace-frame');
@@ -197,7 +203,13 @@ describe('Native StackTrace', function () {
     };
 
     render(
-      <NativeContent data={newData} platform="cocoa" event={event} includeSystemFrames />
+      <NativeContent
+        data={newData}
+        platform="cocoa"
+        event={event}
+        includeSystemFrames
+        newestFirst
+      />
     );
 
     expect(screen.getByRole('button', {name: 'Collapse Context'})).toBeInTheDocument();

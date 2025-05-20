@@ -51,7 +51,7 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
         return {
           value: [
             getDateFromMoment(dateTime, usageDateInterval, usageDateShowUtc),
-            threshold !== 0 ? threshold : '--',
+            threshold === 0 ? '--' : threshold,
           ],
         };
       }
@@ -79,20 +79,20 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
       // Round down the start time and round up the end time
       storedSpikes.forEach(spike => {
         const spikeDates = {startDate: '', endDate: ''};
-        if (!spike.end) {
+        if (spike.end) {
+          const {startDate, endDate} = getSpikeInterval(
+            spikeThresholds.intervals,
+            getDateFromString(spike.start),
+            getDateFromString(spike.end)
+          );
+          spikeDates.startDate = startDate!;
+          spikeDates.endDate = endDate!;
+        } else {
           // For an ongoing spike, assume the spike end is the end of the graph
           // for visualization purposes
           const {startDate, endDate} = getOngoingSpikeInterval(
             spikeThresholds.intervals,
             getDateFromString(spike.start)
-          );
-          spikeDates.startDate = startDate!;
-          spikeDates.endDate = endDate!;
-        } else {
-          const {startDate, endDate} = getSpikeInterval(
-            spikeThresholds.intervals,
-            getDateFromString(spike.start),
-            getDateFromString(spike.end)
           );
           spikeDates.startDate = startDate!;
           spikeDates.endDate = endDate!;

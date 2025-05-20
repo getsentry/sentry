@@ -5,12 +5,14 @@ service. Most tests live in tests/symbolicator/
 
 from __future__ import annotations
 
+import re
 from typing import Any
 from unittest import mock
 
 import pytest
 
 from sentry.lang.native.processing import (
+    ELECTRON_FIRST_MODULE_REWRITE_RULES,
     _merge_image,
     get_frames_for_symbolication,
     process_native_stacktraces,
@@ -227,6 +229,44 @@ def test_instruction_addr_adjustment_none():
 
     assert not processed_frames[0]["adjust_instruction_addr"]
     assert not processed_frames[1]["adjust_instruction_addr"]
+
+
+def test_rewrite_electron_debug_file():
+    def rewrite(debug_file):
+        for rule in ELECTRON_FIRST_MODULE_REWRITE_RULES:
+            # Need to patch the regexes and replacement strings here
+            # from Rust to Python syntax.
+            # In regex: ?<group> -> ?P<group>
+            # In replacement: $group -> \g<group>
+            from_patched = re.sub("\\?<", "?P<", rule["from"])
+            to_patched = re.sub("\\$(\\w+)", "\\\\g<\\1>", rule["to"])
+            replaced = re.sub(from_patched, to_patched, debug_file)
+            if replaced != debug_file:
+                return replaced
+
+        return debug_file
+
+    assert rewrite("/home/My Awesome Crasher") == "/home/electron"
+    assert (
+        rewrite("/home/My Awesome Crasher Helper (Renderer)") == "/home/Electron Helper (Renderer)"
+    )
+    assert rewrite("/home/My Awesome Crasher Helper") == "/home/Electron Helper"
+    assert (
+        rewrite("C:/projects/src/out/Default/myapp.exe.pdb")
+        == "C:/projects/src/out/Default/electron.exe.pdb"
+    )
+    assert (
+        rewrite("C:\\projects\\src\\out\\Default\\myapp.exe.pdb")
+        == "C:\\projects\\src\\out\\Default\\electron.exe.pdb"
+    )
+    assert (
+        rewrite("C:\\projects\\src\\out\\Default\\myapp-exe-pdb")
+        == "C:\\projects\\src\\out\\Default\\electron"
+    )
+    assert (
+        rewrite("/home/************/usr/lib/slack/slack")
+        == "/home/************/usr/lib/slack/electron"
+    )
 
 
 @django_db_all

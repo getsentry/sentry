@@ -7,11 +7,11 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
+from sentry.demo_mode.utils import is_demo_user
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.api.serializers.userip import UserIPSerializer
 from sentry.users.models.user import User
 from sentry.users.models.userip import UserIP
-from sentry.utils.demo_mode import is_demo_user
 
 
 @control_silo_endpoint

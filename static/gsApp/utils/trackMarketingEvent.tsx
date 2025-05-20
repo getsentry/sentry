@@ -15,7 +15,7 @@ function trackMarketingEvent(
     function (...args: any[]) {
       (window.ga.q = window.ga.q || []).push(args);
     };
-  window.ga.l = +new Date();
+  window.ga.l = Date.now();
   window.ga('send', {
     hitType: 'event',
     eventCategory: 'User',

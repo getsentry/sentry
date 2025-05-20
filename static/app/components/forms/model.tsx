@@ -2,14 +2,15 @@ import isEqual from 'lodash/isEqual';
 import type {ObservableMap} from 'mobx';
 import {action, computed, makeObservable, observable} from 'mobx';
 
-import {addErrorMessage, saveOnBlurUndoMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {APIRequestMethod} from 'sentry/api';
 import {Client} from 'sentry/api';
+import {addUndoableFormChangeMessage} from 'sentry/components/forms/formIndicators';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 export const fieldIsRequiredMessage = t('Field is required');
 
@@ -552,7 +553,7 @@ class FormModel {
 
         // Only use `allowUndo` option if explicitly defined
         if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
-          saveOnBlurUndoMessage(change, this, id);
+          addUndoableFormChangeMessage(change, this, id);
         }
 
         if (this.options.onSubmitSuccess) {
@@ -607,7 +608,7 @@ class FormModel {
     // Check if field needs to handle transforming request object
     const getDataFn = typeof getData === 'function' ? getData : (a: any) => a;
 
-    const defaultErrorMsg = isDemoModeEnabled()
+    const defaultErrorMsg = isDemoModeActive()
       ? t('Editing data is not allowed in demo mode.')
       : t('Failed to save');
 
@@ -731,7 +732,7 @@ class FormModel {
 
   setFieldState(id: string, key: string, value: FieldValue) {
     const state = {
-      ...(this.fieldState.get(id) || {}),
+      ...this.fieldState.get(id),
       [key]: value,
     };
     this.fieldState.set(id, state);
@@ -782,7 +783,7 @@ class FormModel {
       this.isValidRequiredField(field)
     );
 
-    this.formState = !formComplete ? FormState.INCOMPLETE : FormState.READY;
+    this.formState = formComplete ? FormState.READY : FormState.INCOMPLETE;
   }
 
   handleErrorResponse({responseJSON: resp}: {responseJSON?: any} = {}) {

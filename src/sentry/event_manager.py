@@ -41,7 +41,7 @@ from sentry.constants import (
     InsightModules,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
+from sentry.dynamic_sampling import record_latest_release
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
@@ -53,8 +53,9 @@ from sentry.grouping.api import (
     GroupingConfig,
     get_grouping_config_dict_for_project,
 )
+from sentry.grouping.enhancer import get_enhancements_version
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.grouping.ingest.config import is_in_transition, update_grouping_config_if_needed
+from sentry.grouping.ingest.config import is_in_transition, update_or_set_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
     find_grouphash_with_group,
     get_or_create_grouphashes,
@@ -88,6 +89,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import GroupOpenPeriod, has_initial_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -103,18 +105,19 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
-from sentry.receivers.onboarding import record_release_received
+from sentry.receivers.onboarding import (
+    record_first_insight_span,
+    record_first_transaction,
+    record_release_received,
+)
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
-    first_insight_span_received,
-    first_transaction_received,
     issue_unresolved,
 )
 from sentry.tasks.process_buffer import buffer_incr
-from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -134,7 +137,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.sdk import set_measurement
+from sentry.utils.sdk import set_span_data
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
@@ -391,6 +394,7 @@ class EventManager:
 
         pre_normalize_type = self._data.get("type")
         self._data = rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
+
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
@@ -455,23 +459,11 @@ class EventManager:
         event_type = self._data.get("type")
         if event_type == "transaction":
             job["data"]["project"] = project.id
-            jobs = save_transaction_events([job], projects)
-
-            if not project.flags.has_transactions and not skip_send_first_transaction:
-                first_transaction_received.send_robust(
-                    project=project, event=jobs[0]["event"], sender=Project
-                )
-
-            for module, is_module in INSIGHT_MODULE_FILTERS.items():
-                if not get_project_insight_flag(project, module) and is_module(job["data"]):
-                    first_insight_span_received.send_robust(
-                        project=project, module=module, sender=Project
-                    )
+            jobs = save_transaction_events([job], projects, skip_send_first_transaction)
             return jobs[0]["event"]
         elif event_type == "generic":
             job["data"]["project"] = project.id
             jobs = save_generic_events([job], projects)
-
             return jobs[0]["event"]
         else:
             project = job["event"].project
@@ -480,6 +472,7 @@ class EventManager:
                 "platform": job["event"].platform or "unknown",
                 "sdk": normalized_sdk_tag_from_event(job["event"].data),
                 "in_transition": job["in_grouping_transition"],
+                "split_enhancements": get_enhancements_version(project) == 3,
             }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
@@ -686,98 +679,41 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
 @sentry_sdk.tracing.trace
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    jobs_with_releases: dict[tuple[int, str], list[Job]] = {}
-    release_date_added: dict[tuple[int, str], datetime] = {}
-
     for job in jobs:
-        if not job["release"]:
-            continue
+        data = job["data"]
+        if not data.get("release"):
+            return
 
-        release_key = (job["project_id"], job["release"])
-        jobs_with_releases.setdefault(release_key, []).append(job)
-        new_datetime = job["event"].datetime
-        old_datetime = release_date_added.get(release_key)
-        if old_datetime is None or new_datetime > old_datetime:
-            release_date_added[release_key] = new_datetime
+        project = projects[job["project_id"]]
+        date = job["event"].datetime
 
-    for (project_id, version), jobs_to_update in jobs_with_releases.items():
         try:
             release = Release.get_or_create(
-                project=projects[project_id],
-                version=version,
-                date_added=release_date_added[(project_id, version)],
+                project=project,
+                version=data["release"],
+                date_added=date,
             )
         except ValidationError:
-            release = None
             logger.exception(
                 "Failed creating Release due to ValidationError",
-                extra={
-                    "project": projects[project_id],
-                    "version": version,
-                },
+                extra={"project": project, "version": data["release"]},
             )
+            release = None
 
-        if release:
-            for job in jobs_to_update:
-                # Don't allow a conflicting 'release' tag
-                data = job["data"]
-                pop_tag(data, "release")
-                set_tag(data, "sentry:release", release.version)
+        job["release"] = release
+        if not release:
+            return
 
-                job["release"] = release
+        # Don't allow a conflicting 'release' tag
+        pop_tag(data, "release")
+        set_tag(data, "sentry:release", release.version)
 
-                if job["dist"]:
-                    job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
+        if data.get("dist"):
+            job["dist"] = release.add_dist(data["dist"], date)
 
-                    # don't allow a conflicting 'dist' tag
-                    pop_tag(job["data"], "dist")
-                    set_tag(job["data"], "sentry:dist", job["dist"].name)
-
-                # Dynamic Sampling - Boosting latest release functionality
-                if (
-                    features.has(
-                        "organizations:dynamic-sampling", projects[project_id].organization
-                    )
-                    and data.get("type") == "transaction"
-                ):
-                    with sentry_sdk.start_span(
-                        op="event_manager.dynamic_sampling_observe_latest_release"
-                    ) as span:
-                        try:
-                            latest_release_params = LatestReleaseParams(
-                                release=release,
-                                project=projects[project_id],
-                                environment=_get_environment_from_transaction(data),
-                            )
-
-                            def on_release_boosted() -> None:
-                                span.set_tag(
-                                    "dynamic_sampling.observe_release_status",
-                                    "(release, environment) pair observed and boosted",
-                                )
-                                span.set_data("release", latest_release_params.release.id)
-                                span.set_data("environment", latest_release_params.environment)
-
-                                schedule_invalidate_project_config(
-                                    project_id=project_id,
-                                    trigger="dynamic_sampling:boost_release",
-                                )
-
-                            LatestReleaseBias(
-                                latest_release_params=latest_release_params
-                            ).observe_release(on_boosted_release_added=on_release_boosted)
-                        except Exception:
-                            sentry_sdk.capture_exception()
-
-
-def _get_environment_from_transaction(data: EventDict) -> str | None:
-    environment = data.get("environment", None)
-    # We handle the case in which the users sets the empty string as environment, for us that
-    # is equal to having no environment at all.
-    if environment == "":
-        environment = None
-
-    return environment
+            # don't allow a conflicting 'dist' tag
+            pop_tag(job["data"], "dist")
+            set_tag(job["data"], "sentry:dist", job["dist"].name)
 
 
 @sentry_sdk.tracing.trace
@@ -1312,7 +1248,7 @@ def assign_event_to_group(
     # hashes, we're free to perform a config update if needed. Future events will use the new
     # config, but will also be grandfathered into the current config for a week, so as not to
     # erroneously create new groups.
-    update_grouping_config_if_needed(project, "ingest")
+    update_or_set_grouping_config_if_needed(project, "ingest")
 
     # The only way there won't be group info is we matched to a performance, cron, replay, or
     # other-non-error-type group because of a hash collision - exceedingly unlikely, and not
@@ -1562,6 +1498,13 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
+    if features.has("organizations:issue-open-periods", project.organization):
+        GroupOpenPeriod.objects.create(
+            group=group,
+            project_id=project.id,
+            date_started=group.first_seen,
+            date_ended=None,
+        )
     return group
 
 
@@ -1686,7 +1629,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             sender="handle_regression",
         )
         if not options.get("groups.enable-post-update-signal"):
-            post_save.send(
+            post_save.send_robust(
                 sender=Group,
                 instance=group,
                 created=False,
@@ -1770,6 +1713,15 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
+        if features.has(
+            "organizations:issue-open-periods", group.project.organization
+        ) and has_initial_open_period(group):
+            GroupOpenPeriod.objects.create(
+                group=group,
+                project_id=group.project_id,
+                date_started=event.datetime,
+                date_ended=None,
+            )
 
     return is_regression
 
@@ -1867,6 +1819,10 @@ def _process_existing_aggregate(
         **incoming_metadata,
         "title": _get_updated_group_title(existing_metadata, incoming_metadata),
     }
+    initial_priority = updated_group_values["data"]["metadata"].get("initial_priority")
+    if initial_priority is not None:
+        # cast to an int, as we don't want to pickle enums into task args.
+        updated_group_values["data"]["metadata"]["initial_priority"] = int(initial_priority)
 
     # We pass `times_seen` separately from all of the other columns so that `buffer_inr` knows to
     # increment rather than overwrite the existing value
@@ -2509,17 +2465,20 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 
 
 @sentry_sdk.tracing.trace
-def _detect_performance_problems(
-    jobs: Sequence[Job], projects: ProjectsMapping, is_standalone_spans: bool = False
-) -> None:
+def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        job["performance_problems"] = detect_performance_problems(
-            job["data"], projects[job["project_id"]], is_standalone_spans=is_standalone_spans
-        )
+        if job["data"].get("_performance_issues_spans"):
+            job["performance_problems"] = []
+        else:
+            job["performance_problems"] = detect_performance_problems(
+                job["data"], projects[job["project_id"]]
+            )
 
 
 @sentry_sdk.tracing.trace
-def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+def _record_transaction_info(
+    jobs: Sequence[Job], projects: ProjectsMapping, skip_send_first_transaction: bool
+) -> None:
     for job in jobs:
         try:
             event = job["event"]
@@ -2528,12 +2487,20 @@ def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> 
             with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
                 record_transaction_name_for_clustering(project, event.data)
 
-            # these are what the "transaction_processed" signal hooked into
-            # we should not use signals here, so call the recievers directly
-            # instead of sending a signal. we should consider potentially
-            # deleting these
             record_event_processed(project, event)
-            record_release_received(project, event)
+
+            if not skip_send_first_transaction:
+                record_first_transaction(project, event.datetime)
+
+            spans = job["data"]["spans"]
+            for module, is_module in INSIGHT_MODULE_FILTERS.items():
+                if not get_project_insight_flag(project, module) and is_module(spans):
+                    record_first_insight_span(project, module)
+
+            if job["release"]:
+                environment = job["data"].get("environment") or None  # coorce "" to None
+                record_latest_release(project, job["release"], environment)
+                record_release_received(project, job["release"].version)
         except Exception:
             sentry_sdk.capture_exception()
 
@@ -2556,7 +2523,7 @@ def save_grouphash_and_group(
     event: Event,
     new_grouphash: str,
     **group_kwargs: Any,
-) -> tuple[Group, bool]:
+) -> tuple[Group, bool, GroupHash]:
     group = None
     with transaction.atomic(router.db_for_write(GroupHash)):
         group_hash, created = GroupHash.objects.get_or_create(project=project, hash=new_grouphash)
@@ -2570,7 +2537,7 @@ def save_grouphash_and_group(
         # Group, we can guarantee that the Group will exist at this point and
         # fetch it via GroupHash
         group = Group.objects.get(grouphash__project=project, grouphash__hash=new_grouphash)
-    return group, created
+    return group, created, group_hash
 
 
 @sentry_sdk.tracing.trace
@@ -2602,7 +2569,11 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
 
 
 @sentry_sdk.tracing.trace
-def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
+def save_transaction_events(
+    jobs: Sequence[Job],
+    projects: ProjectsMapping,
+    skip_send_first_transaction: bool = False,
+) -> Sequence[Job]:
     from .ingest.types import ConsumerType
 
     organization_ids = {project.organization_id for project in projects.values()}
@@ -2616,9 +2587,8 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
                 )
             except KeyError:
                 continue
-
-    set_measurement(measurement_name="jobs", value=len(jobs))
-    set_measurement(measurement_name="projects", value=len(projects))
+    set_span_data("jobs", len(jobs))
+    set_span_data("projects", len(projects))
 
     # NOTE: Keep this list synchronized with sentry/spans/consumers/process_segments/message.py
 
@@ -2645,7 +2615,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _track_outcome_accepted_many(jobs)
     _detect_performance_problems(jobs, projects)
     _send_occurrence_to_platform(jobs, projects)
-    _record_transaction_info(jobs, projects)
+    _record_transaction_info(jobs, projects, skip_send_first_transaction)
 
     return jobs
 

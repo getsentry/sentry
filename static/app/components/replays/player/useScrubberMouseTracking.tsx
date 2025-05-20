@@ -7,7 +7,7 @@ import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurr
 import useMouseTracking from 'sentry/utils/useMouseTracking';
 
 type Opts<T extends Element> = {
-  elem: RefObject<T>;
+  elem: RefObject<T | null>;
 };
 
 export function useScrubberMouseTracking<T extends Element>({elem}: Opts<T>) {
@@ -88,5 +88,3 @@ export function useTimelineScrubberMouseTracking<T extends Element>(
   });
   return mouseTrackingProps;
 }
-
-export default useScrubberMouseTracking;

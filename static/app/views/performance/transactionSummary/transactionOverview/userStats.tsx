@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
@@ -11,6 +10,7 @@ import UserMisery from 'sentry/components/userMisery';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {WebVital} from 'sentry/utils/fields';
@@ -53,7 +53,7 @@ function UserStats({
 
   const hasWebVitalsFlag = organization.features.includes('insights-initial-modules');
 
-  let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
+  let userMisery = error === null ? <Placeholder height="34px" /> : <div>{'\u2014'}</div>;
 
   if (!isLoading && error === null && totals) {
     const threshold: number | undefined = totals.project_threshold_config
@@ -142,7 +142,14 @@ function UserStats({
       )}
       {!hasTransactionSummaryCleanupFlag && (
         <Fragment>
-          <GuideAnchor target="user_misery" position="left">
+          <DemoTourElement
+            id={DemoTourStep.PERFORMANCE_USER_MISERY}
+            title={t('Identify the root cause')}
+            description={t(
+              `Dive into the details behind a slow transaction.
+              See User Misery, Apdex, and more metrics, along with related events and suspect spans.`
+            )}
+          >
             <SectionHeading>
               {t('User Misery')}
               <QuestionTooltip
@@ -151,7 +158,7 @@ function UserStats({
                 size="sm"
               />
             </SectionHeading>
-          </GuideAnchor>
+          </DemoTourElement>
           {userMisery}
         </Fragment>
       )}

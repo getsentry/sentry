@@ -9,7 +9,6 @@ import useOrganizationReleases from 'sentry/views/insights/sessions/queries/useO
 
 export default function ReleaseHealth({filters}: {filters: string[]}) {
   const {releaseData, isLoading, isError, pageLinks} = useOrganizationReleases({
-    tableType: 'health',
     filters,
   });
 
@@ -31,9 +30,12 @@ export default function ReleaseHealth({filters}: {filters: string[]}) {
             crash_free_sessions: 'percentage',
             sessions: 'integer',
             error_count: 'integer',
+            status: 'string',
+            adoption: 'percentage',
           },
           units: {
             crash_free_sessions: '%',
+            adoption: '%',
           },
         }}
       />
@@ -42,7 +44,7 @@ export default function ReleaseHealth({filters}: {filters: string[]}) {
         onCursor={(cursor, path, searchQuery) => {
           navigate({
             pathname: path,
-            query: {...searchQuery, cursor_health_table: cursor},
+            query: {...searchQuery, cursor},
           });
         }}
       />

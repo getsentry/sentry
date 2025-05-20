@@ -85,11 +85,11 @@ function BuiltInRepositories({
           {({hasAccess}) => (
             <StyledSelectField
               disabledReason={
-                !hasAccess
-                  ? t(
+                hasAccess
+                  ? undefined
+                  : t(
                       'You do not have permission to edit built-in repositories configurations.'
                     )
-                  : undefined
               }
               disabled={!hasAccess}
               name="builtinSymbolSources"

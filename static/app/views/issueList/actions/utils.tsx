@@ -4,7 +4,6 @@ import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import commonTheme from 'sentry/utils/theme';
 
 import ExtraDescription from './extraDescription';
 
@@ -126,7 +125,7 @@ export function getConfirm({
         );
         break;
       default:
-        message = !canBeUndone ? <p>{t('This action cannot be undone.')}</p> : null;
+        message = canBeUndone ? null : <p>{t('This action cannot be undone.')}</p>;
     }
 
     return (
@@ -158,15 +157,15 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
   };
 }
 
-// A mapping of which screen sizes will trigger the column to disappear
+// A mapping of which container sizes will trigger the column to disappear
 // e.g. 'Trend': screen.small => 'Trend' column will disappear on screen.small widths
 export const COLUMN_BREAKPOINTS = {
   ISSUE: undefined, // Issue column is always visible
-  TREND: commonTheme.breakpoints.small,
-  AGE: commonTheme.breakpoints.xlarge,
-  SEEN: commonTheme.breakpoints.xlarge,
-  EVENTS: commonTheme.breakpoints.medium,
-  USERS: commonTheme.breakpoints.medium,
-  PRIORITY: commonTheme.breakpoints.large,
-  ASSIGNEE: commonTheme.breakpoints.xsmall,
+  TREND: '800px',
+  LAST_SEEN: '500px',
+  FIRST_SEEN: '900px',
+  EVENTS: '700px',
+  USERS: '900px',
+  PRIORITY: '1100px',
+  ASSIGNEE: '500px',
 };

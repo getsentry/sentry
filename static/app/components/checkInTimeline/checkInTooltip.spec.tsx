@@ -8,6 +8,7 @@ import type {JobTickData, TimeWindowConfig} from './types';
 
 const tickConfig: TimeWindowConfig = {
   start: new Date('2023-06-15T11:00:00Z'),
+  periodStart: new Date('2023-06-15T11:00:00Z'),
   end: new Date('2023-06-15T12:00:00Z'),
   dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
   elapsedMinutes: 60,
@@ -23,9 +24,9 @@ const tickConfig: TimeWindowConfig = {
     interval: 0,
     timelineUnderscanWidth: 0,
     totalBuckets: 0,
-    underscanPeriod: 0,
+    underscanBuckets: 0,
+    underscanStartOffset: 0,
   },
-  showUnderscanHelp: false,
 };
 
 describe('CheckInTooltip', function () {
@@ -50,6 +51,7 @@ describe('CheckInTooltip', function () {
         statusLabel={testStatusLabel}
         statusStyle={testStatusStyle}
         forceVisible
+        makeUnit={() => 'some unit'}
       />
     );
 
@@ -81,23 +83,28 @@ describe('CheckInTooltip', function () {
         statusLabel={testStatusLabel}
         statusStyle={testStatusStyle}
         forceVisible
+        makeUnit={() => 'some unit'}
       />
     );
 
     const okayRow = (await screen.findAllByRole('row'))[1]!;
     expect(within(okayRow).getByText('Okay')).toBeInTheDocument();
     expect(within(okayRow).getByText('1')).toBeInTheDocument();
+    expect(within(okayRow).getByText('some unit')).toBeInTheDocument();
 
     const missedRow = screen.getAllByRole('row')[2]!;
     expect(within(missedRow).getByText('Missed')).toBeInTheDocument();
     expect(within(missedRow).getByText('1')).toBeInTheDocument();
+    expect(within(missedRow).getByText('some unit')).toBeInTheDocument();
 
     const timeoutRow = screen.getAllByRole('row')[3]!;
     expect(within(timeoutRow).getByText('Timed Out')).toBeInTheDocument();
     expect(within(timeoutRow).getByText('1')).toBeInTheDocument();
+    expect(within(timeoutRow).getByText('some unit')).toBeInTheDocument();
 
     const errorRow = screen.getAllByRole('row')[4]!;
     expect(within(errorRow).getByText('Failed')).toBeInTheDocument();
     expect(within(errorRow).getByText('1')).toBeInTheDocument();
+    expect(within(errorRow).getByText('some unit')).toBeInTheDocument();
   });
 });

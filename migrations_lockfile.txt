@@ -5,22 +5,28 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
+explore: 0004_add_explore_last_visited_table
+
 feedback: 0004_index_together
 
-hybridcloud: 0018_add_alert_and_member_invite_scopes_to_sentry_apps
+hybridcloud: 0021_django_arrayfield_scope_list
+
+insights: 0001_add_starred_transactions_model
+
+monitors: 0005_record_date_in_progress_state
 
 nodestore: 0002_nodestore_no_dictfield
 
 remote_subscriptions: 0003_drop_remote_subscription
 
-replays: 0004_index_together
+replays: 0005_drop_replay_index
 
-sentry: 0836_create_groupsearchviewstarred_table
+sentry: 0904_onboarding_task_project_id_idx
 
 social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0028_drop_migrated_column
+uptime: 0042_extra_uptime_indexes
 
-workflow_engine: 0032_remove_data_source_query_id
+workflow_engine: 0065_add_status_to_detector_and_workflow

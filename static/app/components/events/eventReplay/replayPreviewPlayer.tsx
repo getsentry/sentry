@@ -2,9 +2,10 @@ import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton, type LinkButtonProps} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Panel from 'sentry/components/panels/panel';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
@@ -32,7 +33,8 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-function ReplayPreviewPlayer({
+export default function ReplayPreviewPlayer({
+  errorBeforeReplayStart,
   replayId,
   fullReplayButtonProps,
   replayRecord,
@@ -42,6 +44,7 @@ function ReplayPreviewPlayer({
   showNextAndPrevious,
   playPausePriority,
 }: {
+  errorBeforeReplayStart: boolean;
   replayId: string;
   replayRecord: ReplayRecord;
   fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
@@ -59,7 +62,7 @@ function ReplayPreviewPlayer({
     useReplayContext();
   const eventView = EventView.fromLocation(location);
 
-  const fullscreenRef = useRef(null);
+  const fullscreenRef = useRef<HTMLDivElement | null>(null);
   const {toggle: toggleFullscreen} = useFullscreen({
     elementRef: fullscreenRef,
   });
@@ -78,6 +81,13 @@ function ReplayPreviewPlayer({
 
   return (
     <PlayerPanel>
+      {errorBeforeReplayStart && (
+        <StyledAlert type="warning">
+          {t(
+            'For this event, the replay recording started after the error happened, so the replay below shows the user experience after the error.'
+          )}
+        </StyledAlert>
+      )}
       <HeaderWrapper>
         <StyledReplayCell
           key="session"
@@ -167,9 +177,7 @@ function ReplayPreviewPlayer({
   );
 }
 
-const PlayerPanel = styled(Panel)`
-  padding: ${space(3)} ${space(3)} ${space(1.5)};
-  margin: 0;
+const PlayerPanel = styled('div')`
   display: flex;
   gap: ${space(1)};
   flex-direction: column;
@@ -242,4 +250,6 @@ const HeaderWrapper = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-export default ReplayPreviewPlayer;
+const StyledAlert = styled(Alert)`
+  margin: ${space(1)} 0;
+`;

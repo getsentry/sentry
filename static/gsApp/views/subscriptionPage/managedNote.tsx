@@ -18,6 +18,8 @@ const SALES_MESSAGE = tct(
 /**
  * Partner-specific message templates.
  * Each partner has their own marketplace or dashboard where users can manage their subscriptions.
+ *
+ * NOTE: this is for legacy partners only; use partnership_support_note instead for any new channel partnerships
  */
 const PARTNER_MESSAGES = {
   // GitHub Marketplace message
@@ -87,11 +89,11 @@ function ManagedNote({subscription}: Props) {
           {isSalesAccount
             ? // Sales-managed accounts are directed to the sales team
               SALES_MESSAGE
-            : (subscription.partner &&
+            : ((subscription.partner &&
                 // Partner accounts get partner-specific messages, others get the default support message
                 // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 PARTNER_MESSAGES[subscription.partner?.partnership.id]) ??
-              DEFAULT_MESSAGE}
+              DEFAULT_MESSAGE)}
         </TextBlock>
       </PanelBody>
     </Panel>

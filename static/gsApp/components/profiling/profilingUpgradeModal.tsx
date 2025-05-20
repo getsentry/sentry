@@ -7,7 +7,8 @@ import * as Sentry from '@sentry/react';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -21,14 +22,13 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 
+import PlanTable from 'getsentry/components/upgradeNowModal/planTable';
+import usePreviewData from 'getsentry/components/upgradeNowModal/usePreviewData';
+import useUpgradeNowParams from 'getsentry/components/upgradeNowModal/useUpgradeNowParams';
+import {redirectToManage} from 'getsentry/components/upgradeNowModal/utils';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-
-import PlanTable from '../upgradeNowModal/planTable';
-import usePreviewData from '../upgradeNowModal/usePreviewData';
-import useUpgradeNowParams from '../upgradeNowModal/useUpgradeNowParams';
-import {redirectToManage} from '../upgradeNowModal/utils';
 
 type Props = ModalRenderProps &
   Omit<ComponentProps<typeof ActionButtons>, 'hasPriceChange'> & {
@@ -154,7 +154,7 @@ const UpsellContent = styled('div')`
 `;
 
 const Note = styled('p')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
@@ -247,12 +247,12 @@ function ActionButtons({
       >
         {t('Update Now')}
       </Button>
-      <Button
+      <LinkButton
         to={`/settings/${organization.slug}/billing/checkout/?referrer=profiling_onboard_modal-owner-modal`}
         onClick={onClickManageSubscription}
       >
         {t('Manage Subscription')}
-      </Button>
+      </LinkButton>
     </ButtonRow>
   ) : (
     <ButtonRow>

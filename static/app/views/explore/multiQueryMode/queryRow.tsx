@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
@@ -53,10 +54,12 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     enabled: mode === Mode.SAMPLES,
   });
 
-  const {timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
+  const {result: timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
     index,
     enabled: true,
   });
+
+  const [interval] = useChartInterval();
 
   useCompareAnalytics({
     aggregatesTableResult,
@@ -65,6 +68,8 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     spansTableResult,
     timeseriesResult,
     queryType: mode === Mode.AGGREGATE ? 'aggregate' : 'samples',
+    interval,
+    isTopN: mode === Mode.AGGREGATE,
   });
 
   return (
@@ -110,29 +115,28 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
 
 const QueryConstructionSection = styled('div')`
   display: grid;
-  width: 100%;
+  gap: ${space(1)};
+  margin-bottom: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: minmax(400px, 1fr) 1fr;
-    margin-bottom: 0;
-    gap: ${space(2)};
   }
 `;
 
 const DropDownGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, auto)) ${space(2)};
-  align-items: start;
-  gap: ${space(2)};
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const DeleteButton = styled(Button)`
-  margin-top: ${space(4)};
+  margin-top: ${space(2)};
 `;
 
 const QueryVisualizationSection = styled('div')`
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  margin-bottom: ${space(1)};
-  gap: ${space(2)};
+  grid-template-columns: 2fr 1.2fr;
+  gap: ${space(1)};
+  margin-bottom: ${space(2)};
 `;

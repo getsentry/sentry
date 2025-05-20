@@ -16,9 +16,6 @@ describe('apple-ios onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {name: 'Experimental Features'})
-    ).toBeInTheDocument();
   });
 
   it('renders performance onboarding docs correctly', async function () {
@@ -78,16 +75,16 @@ describe('apple-ios onboarding docs', function () {
     ).not.toBeInTheDocument();
 
     // Does render continuous profiling config
-    const startMatches = screen.queryAllByText(
-      textWithMarkupMatcher(/SentrySDK.startProfiler\(\)/)
+    const sessionSampleRateElements = screen.queryAllByText(
+      textWithMarkupMatcher(/\$0\.sessionSampleRate = 1\.0/)
     );
-    expect(startMatches.length).toBeGreaterThan(0);
-    startMatches.forEach(match => expect(match).toBeInTheDocument());
+    expect(sessionSampleRateElements).toHaveLength(2);
+    sessionSampleRateElements.forEach(element => expect(element).toBeInTheDocument());
 
-    const stopMatches = screen.queryAllByText(
-      textWithMarkupMatcher(/SentrySDK.stopProfiler\(\)/)
+    const lifecycleElements = screen.queryAllByText(
+      textWithMarkupMatcher(/\$0\.lifecycle = \.trace/)
     );
-    expect(stopMatches.length).toBeGreaterThan(0);
-    stopMatches.forEach(match => expect(match).toBeInTheDocument());
+    expect(lifecycleElements).toHaveLength(2);
+    lifecycleElements.forEach(element => expect(element).toBeInTheDocument());
   });
 });

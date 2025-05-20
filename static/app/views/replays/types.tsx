@@ -1,5 +1,14 @@
 import type {Duration} from 'moment-timezone';
 
+type Geo = Record<string, string>;
+// Geo could be this, not sure:
+// {
+//   city?: string;
+//   country_code?: string;
+//   region?: string;
+//   subdivision?: string;
+// };
+
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {
@@ -78,6 +87,7 @@ export type ReplayRecord = {
     id: null | string;
     ip: null | string;
     username: null | string;
+    geo?: Geo;
   };
   /**
    * The number of dead clicks associated with the replay.
@@ -156,13 +166,6 @@ export type ReplayListRecord = Pick<
   | 'user'
 >;
 
-export type ReplaySegment = {
-  dateAdded: string;
-  projectId: string;
-  replayId: string;
-  segmentId: number;
-};
-
 /**
  * This is a result of a custom discover query
  */
@@ -217,6 +220,7 @@ export interface DeadRageSelectorQueryParams {
   cursor?: string | string[] | undefined | null;
   per_page?: number;
   prefix?: string;
+  query?: string;
   sort?:
     | 'count_dead_clicks'
     | '-count_dead_clicks'

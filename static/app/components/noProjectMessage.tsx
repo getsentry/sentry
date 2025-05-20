@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -11,6 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {
   organization: Organization;
@@ -26,7 +27,6 @@ function NoProjectMessage({
   const user = useUser();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
-  const orgSlug = organization.slug;
   const canUserCreateProject = useCanCreateProject();
   const canJoinTeam = organization.access.includes('team:read');
 
@@ -49,7 +49,7 @@ function NoProjectMessage({
       title={canJoinTeam ? undefined : t('You do not have permission to join a team.')}
       disabled={!canJoinTeam}
       priority={orgHasProjects ? 'primary' : 'default'}
-      to={`/settings/${orgSlug}/teams/`}
+      to={`/settings/${organization.slug}/teams/`}
     >
       {t('Join a Team')}
     </LinkButton>
@@ -64,7 +64,7 @@ function NoProjectMessage({
       }
       disabled={!canUserCreateProject}
       priority={orgHasProjects ? 'default' : 'primary'}
-      to={`/organizations/${orgSlug}/projects/new/`}
+      to={makeProjectsPathname({path: '/new/', organization})}
     >
       {t('Create project')}
     </LinkButton>
@@ -78,13 +78,13 @@ function NoProjectMessage({
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
         <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
         <Actions gap={1}>
-          {!orgHasProjects ? (
-            createProjectAction
-          ) : (
+          {orgHasProjects ? (
             <Fragment>
               {joinTeamAction}
               {createProjectAction}
             </Fragment>
+          ) : (
+            createProjectAction
           )}
         </Actions>
       </Content>

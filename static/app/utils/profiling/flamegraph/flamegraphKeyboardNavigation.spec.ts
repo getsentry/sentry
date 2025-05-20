@@ -1,6 +1,5 @@
 import type {DeepPartial} from 'sentry/types/utils';
-
-import type {FlamegraphFrame} from '../flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {selectNearestFrame} from './flamegraphKeyboardNavigation';
 
@@ -34,7 +33,7 @@ function addChild(frame: FlamegraphFrame) {
 
 function addChildrenToDepth(frame: FlamegraphFrame, n: number) {
   let node = frame;
-  Array.from(Array(n)).forEach(() => {
+  Array.from(new Array(n)).forEach(() => {
     node = addChild(node);
   });
   return node;

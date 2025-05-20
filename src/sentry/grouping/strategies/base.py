@@ -1,21 +1,27 @@
+from __future__ import annotations
+
 import inspect
 from collections.abc import Callable, Iterator, Sequence
-from typing import Any, Generic, Protocol, Self, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Generic, Protocol, Self, TypeVar, overload
 
 from sentry import projectoptions
-from sentry.eventstore.models import Event
 from sentry.grouping.component import (
     BaseGroupingComponent,
     ExceptionGroupingComponent,
     FrameGroupingComponent,
     StacktraceGroupingComponent,
 )
-from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.enhancer import ENHANCEMENT_BASES, Enhancements
+from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.interfaces.base import Interface
 from sentry.interfaces.exception import SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 
-STRATEGIES: dict[str, "Strategy[Any]"] = {}
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+
+
+STRATEGIES: dict[str, Strategy[Any]] = {}
 
 RISK_LEVEL_LOW = 0
 RISK_LEVEL_MEDIUM = 1
@@ -43,14 +49,14 @@ class StrategyFunc(Protocol[ConcreteInterface]):
         self,
         interface: ConcreteInterface,
         event: Event,
-        context: "GroupingContext",
+        context: GroupingContext,
         **meta: Any,
     ) -> ReturnedVariants: ...
 
 
 class VariantProcessor(Protocol):
     def __call__(
-        self, variants: ReturnedVariants, context: "GroupingContext", **meta: Any
+        self, variants: ReturnedVariants, context: GroupingContext, **meta: Any
     ) -> ReturnedVariants: ...
 
 
@@ -58,7 +64,7 @@ def strategy(
     ids: Sequence[str],
     interface: type[Interface],
     score: int | None = None,
-) -> Callable[[StrategyFunc[ConcreteInterface]], "Strategy[ConcreteInterface]"]:
+) -> Callable[[StrategyFunc[ConcreteInterface]], Strategy[ConcreteInterface]]:
     """
     Registers a strategy
 
@@ -89,7 +95,7 @@ def strategy(
 
 
 class GroupingContext:
-    def __init__(self, strategy_config: "StrategyConfiguration"):
+    def __init__(self, strategy_config: StrategyConfiguration):
         # The initial context is essentially the grouping config options
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
@@ -169,7 +175,7 @@ class GroupingContext:
         return rv
 
 
-def lookup_strategy(strategy_id: str) -> "Strategy[Any]":
+def lookup_strategy(strategy_id: str) -> Strategy[Any]:
     """Looks up a strategy by id."""
     try:
         return STRATEGIES[strategy_id]
@@ -286,8 +292,7 @@ class Strategy(Generic[ConcreteInterface]):
 
 class StrategyConfiguration:
     id: str | None
-    base: type["StrategyConfiguration"] | None = None
-    config_class = None
+    base: type[StrategyConfiguration] | None = None
     strategies: dict[str, Strategy[Any]] = {}
     delegates: dict[str, Strategy[Any]] = {}
     changelog: str | None = None
@@ -299,9 +304,20 @@ class StrategyConfiguration:
 
     def __init__(self, enhancements: str | None = None, **extra: Any):
         if enhancements is None:
-            enhancements_instance = Enhancements.from_config_string("")
+            enhancements_instance = Enhancements.from_rules_text("", referrer="strategy_config")
         else:
-            enhancements_instance = Enhancements.loads(enhancements)
+            # If the enhancements string has been loaded from an existing event, it may be from an
+            # obsolete enhancements version, in which case we just use the default enhancements for
+            # this grouping config
+            try:
+                enhancements_instance = Enhancements.from_base64_string(
+                    enhancements, referrer="strategy_config"
+                )
+            except InvalidEnhancerConfig:
+                enhancements_instance = ENHANCEMENT_BASES[
+                    self.enhancements_base or DEFAULT_GROUPING_ENHANCEMENTS_BASE
+                ]
+
         self.enhancements = enhancements_instance
 
     def __repr__(self) -> str:

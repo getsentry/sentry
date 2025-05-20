@@ -18,10 +18,10 @@ export const BASE_URL = 'database';
 
 export const BASE_FILTERS = {
   'span.module': ModuleName.DB,
-  has: 'span.description',
+  has: 'sentry.normalized_description',
 };
 
-export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
+export const MIN_SDK_VERSION_BY_PLATFORM: Record<string, string> = {
   'sentry.python': '1.29.2',
   'sentry.javascript': '7.63.0',
   'sentry.laravel': '3.8.0',
@@ -56,9 +56,6 @@ export const DISTRIBUTION_GRANULARITIES = new GranularityLadder([
   [0, '1m'],
 ]);
 
-export const MODULE_DESCRIPTION = t(
-  'Investigate the performance of database queries and get the information necessary to improve them.'
-);
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/backend/queries/';
 
 export const MODULE_FEATURES = ['insights-initial-modules'];

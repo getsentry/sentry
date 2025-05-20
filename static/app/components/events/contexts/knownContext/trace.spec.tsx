@@ -48,13 +48,28 @@ const MOCK_REDACTION = {
 
 describe('TraceContext', function () {
   const location = LocationFixture();
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['performance-view'],
+    extraOptions: {
+      traces: {
+        checkSpanExtractionDate: false,
+        spansExtractionDate: 1,
+      },
+    },
+  });
 
   it('returns values and according to the parameters', function () {
     expect(
       getTraceContextData({
         data: MOCK_TRACE_CONTEXT,
-        event: EventFixture(),
+        event: EventFixture({
+          timestamp: 2,
+          contexts: {
+            trace: {
+              trace_id: TRACE_ID,
+            },
+          },
+        }),
         organization,
         location,
       })
@@ -65,7 +80,7 @@ describe('TraceContext', function () {
         value: TRACE_ID,
         action: {
           link: expect.objectContaining({
-            pathname: '/organizations/org-slug/discover/results/',
+            pathname: `/organizations/org-slug/traces/trace/${TRACE_ID}/`,
           }),
         },
       },

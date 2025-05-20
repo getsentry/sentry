@@ -14,6 +14,7 @@ from sentry.integrations.msteams.card_builder.block import OpenUrlAction
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
 
@@ -122,7 +123,7 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
 class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder):
     def __init__(
         self,
-        notification: GroupActivityNotification,
+        notification: GroupActivityNotification | AlertRuleNotification,
         context: Mapping[str, Any],
         recipient: Actor,
     ):

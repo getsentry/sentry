@@ -51,7 +51,7 @@ interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'projec
   eventRoute: LocationDescriptor;
 }
 
-export function GroupHeaderTabs({
+function GroupHeaderTabs({
   baseUrl,
   disabledTabs,
   eventRoute,
@@ -130,10 +130,10 @@ export function GroupHeaderTabs({
         {t('Attachments')}
       </TabList.Item>
       <TabList.Item
-        key={Tab.TAGS}
+        key={Tab.DISTRIBUTIONS}
         hidden={!issueTypeConfig.pages.tagsTab.enabled}
-        disabled={disabledTabs.includes(Tab.TAGS)}
-        to={{pathname: `${baseUrl}tags/`, query: queryParams}}
+        disabled={disabledTabs.includes(Tab.DISTRIBUTIONS)}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`, query: queryParams}}
       >
         {t('Tags')}
       </TabList.Item>
@@ -251,7 +251,6 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
               data={group}
               message={message}
               level={group.level}
-              levelIndicatorSize={11}
               type={group.type}
               showUnhandled={group.isUnhandled}
             />
@@ -269,15 +268,15 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
                 </GuideAnchor>
                 <div className="count">
                   <h6 className="nav-header">{t('Users')}</h6>
-                  {userCount !== 0 ? (
+                  {userCount === 0 ? (
+                    <span>0</span>
+                  ) : (
                     <Link
                       disabled={disableActions}
-                      to={`${baseUrl}tags/user/${location.search}`}
+                      to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
                     >
                       <Count className="count" value={userCount} />
                     </Link>
-                  ) : (
-                    <span>0</span>
                   )}
                 </div>
               </Fragment>

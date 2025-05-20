@@ -13,9 +13,8 @@ import {
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {IncidentStatus} from 'sentry/views/alerts/types';
-
-import {withChonk} from '../../../utils/theme/withChonk';
 
 import {ChonkAlertBadgeDiamondBackground} from './alertBadge.chonk';
 
@@ -56,7 +55,7 @@ export function AlertBadge(props: AlertBadgeProps) {
       <DiamondBackground
         {...props}
         role="presentation"
-        aria-label={!props.withText ? text : undefined}
+        aria-label={props.withText ? undefined : text}
       >
         <Icon width={13} height={13} />
       </DiamondBackground>

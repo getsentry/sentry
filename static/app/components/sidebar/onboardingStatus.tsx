@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {LegacyOnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {useOverdueDoneTasks} from 'sentry/components/onboardingWizard/useOverdueDoneTasks';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -17,11 +16,12 @@ import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import type {CommonSidebarProps} from './types';
@@ -41,6 +41,7 @@ export function OnboardingStatus({
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const {activateSidebar} = useOnboardingSidebar();
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
     `quick-start:${organization.slug}:completed`,
@@ -48,7 +49,7 @@ export function OnboardingStatus({
   );
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
-  const demoMode = isDemoModeEnabled();
+  const demoMode = isDemoModeActive();
 
   const {
     allTasks,
@@ -56,23 +57,19 @@ export function OnboardingStatus({
     beyondBasicsTasks,
     doneTasks,
     completeTasks,
+    completeOrOverdueTasks,
     refetch,
   } = useOnboardingTasks({
     disabled: !isActive,
   });
 
-  const {overdueTasks} = useOverdueDoneTasks({doneTasks});
-
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
-  const allTasksCompleted = allTasks.length === completeTasks.length;
-  const allTasksDone = allTasks.length === doneTasks.length;
+  const allTasksCompleted = allTasks.length === completeOrOverdueTasks.length;
 
   const skipQuickStart =
     (!demoMode && !organization.features?.includes('onboarding')) ||
-    (allTasksCompleted && !isActive) ||
-    // Skip if all tasks are completed and there are overdue tasks
-    (allTasksDone && overdueTasks.length > 0);
+    (allTasksCompleted && !isActive);
 
   const orgId = organization.id;
 
@@ -83,7 +80,7 @@ export function OnboardingStatus({
   const quickStartDisplayStatus = quickStartDisplay[orgId] ?? 0;
 
   const handleShowPanel = useCallback(() => {
-    if (!demoMode && !isActive === true) {
+    if (!demoMode && isActive !== true) {
       trackAnalytics('quick_start.opened', {
         organization,
         user_clicked: true,
@@ -143,7 +140,7 @@ export function OnboardingStatus({
   }
 
   return (
-    <GuideAnchor target="onboarding_sidebar" position="right">
+    <GuideAnchor target="onboarding_sidebar" position="right" disabled={hasStreamlinedUI}>
       <Container
         role="button"
         aria-label={label}
@@ -211,7 +208,7 @@ const Heading = styled('div')`
 const Remaining = styled('div')`
   transition: color 100ms;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   display: grid;
   grid-template-columns: max-content max-content;
   gap: ${space(0.75)};

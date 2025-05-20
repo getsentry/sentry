@@ -13,7 +13,7 @@ describe('Projects ActionCreators', function () {
     });
     expect(mock).not.toHaveBeenCalled();
 
-    _debouncedLoadStats(api, new Set([...Array(50)].map((_, i) => String(i))), {
+    _debouncedLoadStats(api, new Set([...new Array(50)].map((_, i) => String(i))), {
       projectId: project.id,
       orgId: organization.slug,
     });

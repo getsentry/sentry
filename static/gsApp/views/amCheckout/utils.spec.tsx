@@ -2,14 +2,23 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 
 import {DataCategory} from 'sentry/types/core';
 
-import {PlanTier} from 'getsentry/types';
+import {InvoiceItemType, PlanTier} from 'getsentry/types';
+import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
+import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
 describe('utils', function () {
   const teamPlan = PlanDetailsLookupFixture('am1_team')!;
   const teamPlanAnnual = PlanDetailsLookupFixture('am1_team_auf')!;
   const bizPlan = PlanDetailsLookupFixture('am1_business')!;
   const bizPlanAnnual = PlanDetailsLookupFixture('am1_business_auf')!;
+  const am3TeamPlan = PlanDetailsLookupFixture('am3_team')!;
+  const am3TeamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
+  const DEFAULT_SELECTED_PRODUCTS = {
+    [SelectableProduct.SEER]: {
+      enabled: false,
+    },
+  };
 
   describe('getReservedTotal', function () {
     it('can get base price for team plan', function () {
@@ -20,6 +29,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('29');
     });
@@ -32,6 +42,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('312');
     });
@@ -44,6 +55,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('89');
     });
@@ -56,6 +68,7 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('960');
     });
@@ -68,8 +81,58 @@ describe('utils', function () {
           transactions: 100_000,
           attachments: 1,
         },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
       });
       expect(priceDollars).toBe('1,992');
+    });
+
+    it('includes Seer price in the total when enabled', function () {
+      const priceDollars = utils.getReservedTotal({
+        plan: am3TeamPlan,
+        reserved: {
+          errors: 50_000,
+          spans: 10_000_000,
+          replays: 50,
+          attachments: 1,
+        },
+        selectedProducts: {
+          [SelectableProduct.SEER]: {
+            enabled: true,
+          },
+        },
+      });
+      expect(priceDollars).toBe('49');
+    });
+
+    it('includes Seer annual price in the total when enabled', function () {
+      const priceDollars = utils.getReservedTotal({
+        plan: am3TeamPlanAnnual,
+        reserved: {
+          errors: 50_000,
+          spans: 10_000_000,
+          replays: 50,
+          attachments: 1,
+        },
+        selectedProducts: {
+          [SelectableProduct.SEER]: {
+            enabled: true,
+          },
+        },
+      });
+      expect(priceDollars).toBe('528');
+    });
+
+    it('does not include Seer budget when not enabled', function () {
+      const priceDollars = utils.getReservedTotal({
+        plan: teamPlan,
+        reserved: {
+          errors: 50_000,
+          transactions: 100_000,
+          attachments: 1,
+        },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
+      });
+      expect(priceDollars).toBe('29');
     });
   });
 
@@ -80,7 +143,7 @@ describe('utils', function () {
           basePrice: 1000,
           amount: 10 * 100,
           discountType: 'percentPoints',
-          creditCategory: 'subscription',
+          creditCategory: InvoiceItemType.SUBSCRIPTION,
         })
       ).toBe(900);
       expect(
@@ -88,7 +151,7 @@ describe('utils', function () {
           basePrice: 8900,
           amount: 40 * 100,
           discountType: 'percentPoints',
-          creditCategory: 'subscription',
+          creditCategory: InvoiceItemType.SUBSCRIPTION,
         })
       ).toBe(5340);
       expect(
@@ -96,7 +159,7 @@ describe('utils', function () {
           basePrice: 10000,
           amount: 1000,
           discountType: 'amountCents',
-          creditCategory: 'subscription',
+          creditCategory: InvoiceItemType.SUBSCRIPTION,
         })
       ).toBe(9000);
     });
@@ -322,6 +385,41 @@ describe('utils', function () {
       expect(utils.getToggleTier(PlanTier.AM3)).toBeNull();
       expect(utils.getToggleTier(PlanTier.AM2)).toBe(PlanTier.AM1);
       expect(utils.getToggleTier(PlanTier.AM1)).toBe(PlanTier.AM2);
+    });
+  });
+
+  describe('utils.getCheckoutAPIData', function () {
+    it('returns correct reserved api data', function () {
+      const formData = {
+        plan: 'am3_business',
+        onDemandMaxSpend: 100,
+        reserved: {
+          errors: 10,
+          transactions: 20,
+          replays: 30,
+          spans: 40,
+          monitorSeats: 50,
+          uptime: 60,
+          attachments: 70,
+          profileDuration: 80,
+        },
+        selectedProducts: DEFAULT_SELECTED_PRODUCTS,
+      };
+
+      expect(getCheckoutAPIData({formData})).toEqual({
+        onDemandMaxSpend: 100,
+        plan: 'am3_business',
+        referrer: 'billing',
+        reservedErrors: 10,
+        reservedTransactions: 20,
+        reservedReplays: 30,
+        reservedSpans: 40,
+        reservedMonitorSeats: 50,
+        reservedUptime: 60,
+        reservedAttachments: 70,
+        reservedProfileDuration: 80,
+        seer: false,
+      });
     });
   });
 });

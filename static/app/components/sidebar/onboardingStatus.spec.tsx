@@ -7,6 +7,7 @@ import {setMockDate} from 'sentry-test/utils';
 
 import * as taskConfig from 'sentry/components/onboardingWizard/taskConfig';
 import * as useOnboardingTasks from 'sentry/components/onboardingWizard/useOnboardingTasks';
+import {findCompleteOrOverdueTasks} from 'sentry/components/onboardingWizard/utils';
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import ConfigStore from 'sentry/stores/configStore';
@@ -58,7 +59,6 @@ describe('Onboarding Status', function () {
         {
           task: OnboardingTaskKey.FIRST_PROJECT,
           status: 'complete',
-          user: UserFixture(),
           completionSeen: undefined,
           dateCompleted: undefined,
         },
@@ -107,7 +107,6 @@ describe('Onboarding Status', function () {
         {
           task: OnboardingTaskKey.FIRST_PROJECT,
           status: 'complete',
-          user: UserFixture(),
           completionSeen: '2024-12-16T14:52:01.385227Z',
           dateCompleted: '2024-12-13T09:35:05.010028Z',
         },
@@ -270,6 +269,7 @@ describe('Onboarding Status', function () {
       allTasks: doneTasks,
       beyondBasicsTasks: [],
       completeTasks: [],
+      completeOrOverdueTasks: doneTasks.filter(findCompleteOrOverdueTasks),
       doneTasks,
       gettingStartedTasks: [],
       refetch: jest.fn(),
@@ -290,7 +290,7 @@ describe('Onboarding Status', function () {
       }
     );
 
-    expect(mutateOnboardingTasksMock).toHaveBeenCalledTimes(2);
+    expect(mutateOnboardingTasksMock).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', {name: 'Onboarding'})).not.toBeInTheDocument();
   });
 });

@@ -37,7 +37,7 @@ from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.users.services.user.service import user_service
 from sentry.utils.email.message_builder import MessageBuilder as MessageBuilder
 
-logger = logging.getLogger("sentry.relocation.tasks")
+logger = logging.getLogger("sentry.relocation")
 
 
 # Relocation tasks are always performed in sequential order. We can leverage this to check for any
@@ -405,7 +405,7 @@ class LoggingPrinter(Printer):
     and `export_*` backup methods rely on.
     """
 
-    def __init__(self, uuid: UUID):
+    def __init__(self, uuid: str):
         self.uuid = uuid
         super().__init__()
 
@@ -420,13 +420,13 @@ class LoggingPrinter(Printer):
             logger.error(
                 "Import failed: %s",
                 text,
-                extra={"uuid": str(self.uuid), "task": OrderedTask.IMPORTING.name},
+                extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
             )
         else:
             logger.info(
                 "Import info: %s",
                 text,
-                extra={"uuid": str(self.uuid), "task": OrderedTask.IMPORTING.name},
+                extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
             )
 
 
@@ -459,7 +459,7 @@ def send_relocation_update_email(
 
 
 def start_relocation_task(
-    uuid: UUID, task: OrderedTask, allowed_task_attempts: int
+    uuid: str, task: OrderedTask, allowed_task_attempts: int
 ) -> tuple[Relocation | None, int]:
     """
     All tasks for relocation are done sequentially, and take the UUID of the `Relocation` model as
@@ -468,7 +468,7 @@ def start_relocation_task(
     Returns a tuple of relocation model and the number of attempts remaining for this task.
     """
 
-    logger_data = {"uuid": str(uuid), "task": task.name}
+    logger_data = {"uuid": uuid, "task": task.name}
     try:
         relocation: Relocation = Relocation.objects.get(uuid=uuid)
     except Relocation.DoesNotExist:
@@ -494,7 +494,22 @@ def start_relocation_task(
         return (None, 0)
 
     logger_data["task"] = task.name
+    logger_data["latest_task"] = relocation.latest_task
+
     if relocation.latest_task not in {prev_task_name, task.name}:
+        latest_task = OrderedTask[relocation.latest_task]
+        if task.value < latest_task.value:
+            # A previous task has retried, we can skip this task as it is redundant.
+            # We don't want to fail the relocation as it could be progressing still.
+            logger.info(
+                "Task %s tried to follow %s, but %s has already been completed",
+                task.name,
+                prev_task_name,
+                task.name,
+                extra=logger_data,
+            )
+            return (None, allowed_task_attempts)
+        # A future task has been attempted, this is an error.
         logger.error(
             "Task %s tried to follow %s which is the wrong order",
             task.name,
@@ -790,10 +805,3 @@ def create_cloudbuild_validation_step(
         timeout=str(timeout) + "s",
         wait_for=make_cloudbuild_step_args(3, wait_for),
     )
-
-
-def uuid_to_identifier(uuid: UUID) -> int:
-    """
-    Take a UUID object and generated a unique-enough 64-bit identifier from it's final 64 bits.
-    """
-    return uuid.int & ((1 << 63) - 1)

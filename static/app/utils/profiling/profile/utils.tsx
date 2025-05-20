@@ -5,8 +5,6 @@ import {defined} from 'sentry/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
-import type {CallTreeNode} from '../callTreeNode';
-
 type FrameIndex = Record<string | number, Frame>;
 
 export function createContinuousProfileFrameIndex(
@@ -44,6 +42,51 @@ export function createContinuousProfileFrameIndex(
         symbol: frame.symbol,
         symbolAddr: frame.sym_addr,
         symbolicatorStatus: frame.status,
+      },
+      platform
+    );
+    index[++idx] = f;
+    insertionCache[frameKey] = f;
+  }
+
+  return index;
+}
+
+export function createAndroidContinuousProfileFrameIndex(
+  frames: Profiling.SentryAndroidContinuousProfileChunk['shared']['frames'],
+  platform: 'mobile' | 'node' | 'javascript' | string
+): FrameIndex {
+  const index: FrameIndex = {};
+  const insertionCache: Record<string, Frame> = {};
+  let idx = -1;
+
+  for (let i = 0; i < frames.length; i++) {
+    const frame = frames[i]!;
+    const frameKey = `${frame.file ?? ''}:${frame.name ?? 'unknown'}:${String(
+      frame.lineNumber
+    )}:${frame.instructionAddr ?? ''}`;
+
+    const existing = insertionCache[frameKey];
+    if (existing) {
+      index[++idx] = existing;
+      continue;
+    }
+
+    const f = new Frame(
+      {
+        key: i,
+        is_application: frame.is_application,
+        file: frame.file,
+        path: frame.path,
+        module: frame.module,
+        package: frame.package,
+        name: frame.name ?? 'unknown',
+        line: frame.lineNumber,
+        column: frame.colno ?? frame?.col ?? frame?.column,
+        instructionAddr: frame.instructionAddr,
+        symbol: frame.symbol,
+        symbolAddr: frame.symbolAddr,
+        symbolicatorStatus: frame.symbolicatorStatus,
       },
       platform
     );
@@ -120,9 +163,9 @@ export function createFrameIndex(
         {
           key: index,
           resource:
-            frame.resourceId !== undefined
-              ? trace.resources[frame.resourceId]
-              : undefined,
+            frame.resourceId === undefined
+              ? undefined
+              : trace.resources[frame.resourceId],
           ...frame,
         },
         'javascript'
@@ -217,14 +260,6 @@ export function wrapWithSpan<T>(
     });
   });
 }
-
-export const isSystemCall = (node: CallTreeNode): boolean => {
-  return !node.frame.is_application;
-};
-
-export const isApplicationCall = (node: CallTreeNode): boolean => {
-  return !!node.frame.is_application;
-};
 
 function indexNodeToParents(
   roots: readonly FlamegraphFrame[],
@@ -323,7 +358,7 @@ export function sortProfileSamples<S extends SortableProfileSample>(
   frames: Readonly<Profiling.SentrySampledProfile['profile']['frames']>,
   frameFilter?: (i: number) => boolean
 ) {
-  const frameIds = [...Array(frames.length).keys()].sort((a, b) => {
+  const frameIds = [...new Array(frames.length).keys()].sort((a, b) => {
     const frameA = frames[a]!;
     const frameB = frames[b]!;
 

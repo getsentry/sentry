@@ -95,7 +95,7 @@ describe('SubscriptionHeader', function () {
       },
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toString(),
+      contractPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -127,7 +127,7 @@ describe('SubscriptionHeader', function () {
       },
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(50, 'days').toString(),
+      contractPeriodEnd: now.add(50, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -166,7 +166,7 @@ describe('SubscriptionHeader', function () {
       }),
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toString(),
+      contractPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -205,7 +205,7 @@ describe('SubscriptionHeader', function () {
       }),
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toString(),
+      contractPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -263,6 +263,19 @@ describe('SubscriptionHeader', function () {
     render(<SubscriptionHeader organization={organization} subscription={sub} />);
 
     expect(screen.queryByText(/Notifications/i)).not.toBeInTheDocument();
+  });
+
+  it('does not render Billing Details tab for self serve partner', function () {
+    const organization = OrganizationFixture({
+      access: ['org:billing'],
+    });
+    const sub = SubscriptionFixture({
+      organization,
+      isSelfServePartner: true,
+    });
+    render(<SubscriptionHeader organization={organization} subscription={sub} />);
+
+    expect(screen.queryByText(/Billing Details/i)).not.toBeInTheDocument();
   });
 
   it('renders managed note for non-self-serve subscriptions', function () {

@@ -144,7 +144,8 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
     },
     Error
   >({
-    queryKey: ['traceData', replayTraces],
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    queryKey: ['traceData', replayTraces.map(trace => trace.traceSlug)],
     queryFn: () =>
       fetchTraceMetaInBatches(
         api,
@@ -153,6 +154,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
         normalizedParams,
         filters.selection
       ),
+    staleTime: 1000 * 60 * 10,
     enabled: replayTraces.length > 0,
   });
 
@@ -163,7 +165,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
       status:
         query.data?.apiErrors?.length === replayTraces.length ? 'error' : query.status,
     };
-  }, [query, replayTraces.length]);
+  }, [query.data, query.status, replayTraces.length]);
 
   // When projects don't have performance set up, we allow them to view a sample transaction.
   // The backend creates the sample transaction, however the trace is created async, so when the

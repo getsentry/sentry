@@ -69,13 +69,11 @@ export function ReplayPlayerStateContextProvider({children}: {children: ReactNod
   );
 
   return (
-    <StateContext.Provider value={state}>
-      <DispatchContext.Provider value={dispatch}>
-        <UserActionContext.Provider value={handleUserAction}>
-          {children}
-        </UserActionContext.Provider>
-      </DispatchContext.Provider>
-    </StateContext.Provider>
+    <StateContext value={state}>
+      <DispatchContext value={dispatch}>
+        <UserActionContext value={handleUserAction}>{children}</UserActionContext>
+      </DispatchContext>
+    </StateContext>
   );
 }
 
@@ -153,7 +151,7 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
       return {...state, currentSpeed: replayerAction.speedState.context.timer.speed};
     default:
       // @ts-expect-error TS(2339): Property 'type' does not exist on type 'never'.
-      throw Error('Unknown action: ' + replayerAction.type);
+      throw new Error('Unknown action: ' + replayerAction.type);
   }
 }
 
@@ -197,7 +195,7 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
       return;
     }
     default:
-      throw Error('Unknown action: ' + (userAction as any).type);
+      throw new Error('Unknown action: ' + (userAction as any).type);
   }
 }
 

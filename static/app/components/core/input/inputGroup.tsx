@@ -1,6 +1,5 @@
 import {
   createContext,
-  forwardRef,
   useContext,
   useLayoutEffect,
   useMemo,
@@ -13,10 +12,18 @@ import styled from '@emotion/styled';
 
 import type {InputProps} from 'sentry/components/core/input';
 import {Input as _Input} from 'sentry/components/core/input';
-import type {TextAreaProps} from 'sentry/components/forms/controls/textarea';
-import _TextArea from 'sentry/components/forms/controls/textarea';
-import {space} from 'sentry/styles/space';
+import {
+  ChonkStyledInput,
+  ChonkStyledLeadingItemsWrap,
+  ChonkStyledTextArea,
+  ChonkStyledTrailingItemsWrap,
+  InputItemsWrap,
+  type InputStyleProps,
+} from 'sentry/components/core/input/inputGroup.chonk';
+import type {TextAreaProps} from 'sentry/components/core/textarea';
+import {TextArea as _TextArea} from 'sentry/components/core/textarea';
 import type {FormSize} from 'sentry/utils/theme';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
 interface InputContext {
   /**
@@ -36,7 +43,7 @@ interface InputContext {
    */
   trailingWidth?: number;
 }
-export const InputGroupContext = createContext<InputContext>({inputProps: {}});
+const InputGroupContext = createContext<InputContext>({inputProps: {}});
 
 /**
  * Wrapper for input group. To be used alongisde `Input`, `InputGroup.LeadingItems`,
@@ -65,55 +72,51 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
   );
 
   return (
-    <InputGroupContext.Provider value={contextValue}>
+    <InputGroupContext value={contextValue}>
       <InputGroupWrap disabled={inputProps.disabled} {...props}>
         {children}
       </InputGroupWrap>
-    </InputGroupContext.Provider>
+    </InputGroupContext>
   );
 }
 
-const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({size, disabled, ...props}, ref) => {
-    const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
+function Input({ref, size, disabled, ...props}: InputProps) {
+  const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
-    useLayoutEffect(() => {
-      setInputProps?.({size, disabled});
-    }, [size, disabled, setInputProps]);
+  useLayoutEffect(() => {
+    setInputProps?.({size, disabled});
+  }, [size, disabled, setInputProps]);
 
-    return (
-      <StyledInput
-        ref={ref}
-        leadingWidth={leadingWidth}
-        trailingWidth={trailingWidth}
-        size={size}
-        disabled={disabled}
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <StyledInput
+      ref={ref}
+      leadingWidth={leadingWidth}
+      trailingWidth={trailingWidth}
+      size={size}
+      disabled={disabled}
+      {...props}
+    />
+  );
+}
 
-const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
-  ({size, disabled, ...props}, ref) => {
-    const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
+function TextArea({ref, size, disabled, ...props}: TextAreaProps) {
+  const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
-    useLayoutEffect(() => {
-      setInputProps?.({size, disabled});
-    }, [size, disabled, setInputProps]);
+  useLayoutEffect(() => {
+    setInputProps?.({size, disabled});
+  }, [size, disabled, setInputProps]);
 
-    return (
-      <StyledTextArea
-        ref={ref}
-        leadingWidth={leadingWidth}
-        trailingWidth={trailingWidth}
-        size={size}
-        disabled={disabled}
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <StyledTextArea
+      ref={ref}
+      leadingWidth={leadingWidth}
+      trailingWidth={trailingWidth}
+      size={size}
+      disabled={disabled}
+      {...props}
+    />
+  );
+}
 
 interface InputItemsProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -202,27 +205,10 @@ InputGroup.TrailingItems = TrailingItems;
 
 export type {InputProps, TextAreaProps};
 
-export const InputGroupWrap = styled('div')<{disabled?: boolean}>`
+const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   position: relative;
   ${p => p.disabled && `color: ${p.theme.disabled};`};
 `;
-
-const InputItemsWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: ${space(1)};
-
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-`;
-
-interface InputStyleProps {
-  leadingWidth?: number;
-  size?: FormSize;
-  trailingWidth?: number;
-}
 
 const getInputStyles = ({
   leadingWidth,
@@ -231,42 +217,52 @@ const getInputStyles = ({
   theme,
 }: InputStyleProps & {theme: Theme}) => css`
   ${leadingWidth &&
-  `
+  css`
     padding-left: calc(
-      ${theme.formPadding[size ?? 'md'].paddingLeft}px * 1.5
-      + ${leadingWidth}px
+      ${theme.formPadding[size ?? 'md'].paddingLeft}px * 1.5 + ${leadingWidth}px
     );
   `}
 
   ${trailingWidth &&
-  `
+  css`
     padding-right: calc(
-      ${theme.formPadding[size ?? 'md'].paddingRight}px * 1.5
-      + ${trailingWidth}px
+      ${theme.formPadding[size ?? 'md'].paddingRight}px * 1.5 + ${trailingWidth}px
     );
   `}
 `;
 
-const StyledInput = styled(_Input)<InputStyleProps>`
-  ${getInputStyles}
-`;
+const StyledInput = withChonk(
+  styled(_Input)<InputStyleProps>`
+    ${getInputStyles}
+  `,
+  ChonkStyledInput
+);
 
-const StyledTextArea = styled(_TextArea)<InputStyleProps>`
-  ${getInputStyles}
-`;
+const StyledTextArea = withChonk(
+  styled(_TextArea)<InputStyleProps>`
+    ${getInputStyles}
+  `,
+  ChonkStyledTextArea
+);
 
-const InputLeadingItemsWrap = styled(InputItemsWrap)<{
-  size: FormSize;
-  disablePointerEvents?: boolean;
-}>`
-  left: ${p => p.theme.formPadding[p.size].paddingLeft + 1}px;
-  ${p => p.disablePointerEvents && `pointer-events: none;`}
-`;
+const InputLeadingItemsWrap = withChonk(
+  styled(InputItemsWrap)<{
+    size: FormSize;
+    disablePointerEvents?: boolean;
+  }>`
+    left: ${p => p.theme.formPadding[p.size].paddingLeft + 1}px;
+    ${p => p.disablePointerEvents && `pointer-events: none;`}
+  `,
+  ChonkStyledLeadingItemsWrap
+);
 
-const InputTrailingItemsWrap = styled(InputItemsWrap)<{
-  size: FormSize;
-  disablePointerEvents?: boolean;
-}>`
-  right: ${p => p.theme.formPadding[p.size].paddingRight * 0.75 + 1}px;
-  ${p => p.disablePointerEvents && `pointer-events: none;`}
-`;
+const InputTrailingItemsWrap = withChonk(
+  styled(InputItemsWrap)<{
+    size: FormSize;
+    disablePointerEvents?: boolean;
+  }>`
+    right: ${p => p.theme.formPadding[p.size].paddingRight * 0.75 + 1}px;
+    ${p => p.disablePointerEvents && `pointer-events: none;`}
+  `,
+  ChonkStyledTrailingItemsWrap
+);

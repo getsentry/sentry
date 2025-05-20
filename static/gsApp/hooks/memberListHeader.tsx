@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconBusiness, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -21,7 +21,7 @@ type Props = {
 };
 
 function MemberListHeader({members, organization, subscription}: Props) {
-  const hasDisabledMembers = !!members.find(isMemberDisabledFromLimit);
+  const hasDisabledMembers = members.some(isMemberDisabledFromLimit);
   const {data: billingConfig} = useBillingConfig({organization, subscription});
 
   const getDefaultView = () => <PanelHeader>{t('Members')}</PanelHeader>;

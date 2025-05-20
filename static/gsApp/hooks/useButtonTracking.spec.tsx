@@ -5,7 +5,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import type {ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
@@ -34,9 +34,9 @@ describe('buttonTracking', function () {
   };
 
   const wrapper = ({children}: ButtonProps) => (
-    <OrganizationContext.Provider value={organization}>
-      <TestRouteContext.Provider value={router}>{children}</TestRouteContext.Provider>
-    </OrganizationContext.Provider>
+    <OrganizationContext value={organization}>
+      <TestRouteContext value={router}>{children}</TestRouteContext>
+    </OrganizationContext>
   );
 
   afterEach(function () {

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import type {LinkButtonProps} from 'sentry/components/button';
-import {LinkButton} from 'sentry/components/button';
+import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -34,7 +34,13 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
   const title = t('Export Profile');
 
   return props.variant === 'xs' ? (
-    <StyledButtonSmall size="xs" title={title} href={href} download={download} {...props}>
+    <StyledButtonSmall
+      size="zero"
+      title={title}
+      href={href}
+      download={download}
+      {...props}
+    >
       {props.children}
       <IconDownload size="xs" />
     </StyledButtonSmall>

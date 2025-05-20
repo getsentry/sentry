@@ -129,9 +129,7 @@ interface ProfileEventsCellProps<F extends FieldType> {
   baggage: RenderBagger;
   column: GridColumnOrder<F>;
   columnIndex: number;
-  dataRow: {
-    [key: string]: any;
-  };
+  dataRow: Record<string, any>;
   meta: EventsResults<F>['meta'];
   rowIndex: number;
 }
@@ -248,9 +246,8 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
           <Link
             to={linkToSummary}
             onClick={() =>
-              trackAnalytics('profiling_views.go_to_transaction', {
+              trackAnalytics('profiling_views.landing.tab.transaction_click', {
                 organization: props.baggage.organization,
-                source: 'profiling.landing.transaction_table',
               })
             }
           >
@@ -300,7 +297,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
       );
     case 'duration': {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      const multiplier = columnUnit ? DURATION_UNITS[columnUnit as string] ?? 1 : 1;
+      const multiplier = columnUnit ? (DURATION_UNITS[columnUnit as string] ?? 1) : 1;
       return (
         <NumberContainer>
           <PerformanceDuration milliseconds={value * multiplier} abbreviation />

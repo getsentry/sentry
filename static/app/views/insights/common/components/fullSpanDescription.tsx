@@ -65,7 +65,7 @@ export function FullSpanDescription({
   if (areIndexedSpansLoading || (isLoading && isFetching)) {
     return (
       <PaddedSpinner>
-        <LoadingIndicator mini hideMessage relative />
+        <LoadingIndicator mini relative />
       </PaddedSpinner>
     );
   }

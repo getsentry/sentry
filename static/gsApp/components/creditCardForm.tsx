@@ -3,12 +3,11 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import rubikFontPath from 'sentry/../fonts/rubik-regular.woff';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NODE_ENV} from 'sentry/constants';
@@ -16,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 
+import type {FTCConsentLocation} from 'getsentry/types';
 import {loadStripe} from 'getsentry/utils/stripe';
 
 export type SubmitData = {
@@ -45,6 +45,10 @@ type Props = {
    */
   onSubmit: (data: SubmitData) => void;
   /**
+   * budget mode text for fine print, if any.
+   */
+  budgetModeText?: string;
+  /**
    * Text for the submit button.
    */
   buttonText?: string;
@@ -70,6 +74,10 @@ type Props = {
    */
   footerClassName?: string;
   /**
+   * Location of form, if any.
+   */
+  location?: FTCConsentLocation;
+  /**
    * Handler for cancellation.
    */
   onCancel?: () => void;
@@ -94,9 +102,10 @@ function CreditCardForm({
   cancelButtonText = t('Cancel'),
   footerClassName = 'form-actions',
   referrer,
+  location,
+  budgetModeText,
 }: Props) {
   const theme = useTheme();
-  const [postalCode, setPostalCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [stripe, setStripe] = useState<stripe.Stripe>();
   const [cardElement, setCardElement] = useState<stripe.elements.Element>();
@@ -141,7 +150,6 @@ function CreditCardForm({
       fonts: [{family: 'Rubik', src: `url(${rubikFontPath})`, weight: '400'}],
     });
     const stripeCardElement = stripeElements.create('card', {
-      hidePostalCode: true,
       style: stripeElementStyles,
     });
 
@@ -164,9 +172,6 @@ function CreditCardForm({
     setBusy(true);
 
     const validationErrors: string[] = [];
-    if (postalCode === '') {
-      validationErrors.push(t('Postal code is required.'));
-    }
 
     if (!stripe || !cardElement) {
       return;
@@ -180,19 +185,6 @@ function CreditCardForm({
       return;
     }
     onCancel?.();
-  }
-
-  function handlePostalCodeChange(value: string) {
-    setPostalCode(value);
-    if (cardElement) {
-      cardElement.update({value: {postalCode: value}});
-    }
-  }
-  function handlePostalCodeBlur(value: string) {
-    setPostalCode(value);
-    if (cardElement) {
-      cardElement.update({value: {postalCode: value}});
-    }
   }
 
   function handleErrorRetry(event: React.MouseEvent) {
@@ -243,18 +235,6 @@ function CreditCardForm({
             <div ref={stripeMount} />
           </FormControl>
         </StyledField>
-        <StyledTextField
-          required
-          stacked
-          flexibleControlStateSize
-          inline={false}
-          maxLength={12}
-          name="postal"
-          label={t('Postal Code')}
-          value={postalCode}
-          onChange={handlePostalCodeChange}
-          onBlur={handlePostalCodeBlur}
-        />
 
         <Info>
           <small>
@@ -262,6 +242,20 @@ function CreditCardForm({
               stripe: <ExternalLink href="https://stripe.com/" />,
             })}
           </small>
+          {location !== null && location !== undefined && (
+            <FinePrint>
+              {tct(
+                'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable [budgetModeText] fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for [budgetModeText] fees. You may cancel your subscription at any time [here:here].',
+                {
+                  buttonText: <b>{buttonText}</b>,
+                  budgetModeText,
+                  here: (
+                    <ExternalLink href="https://sentry.io/settings/billing/cancel/" />
+                  ),
+                }
+              )}
+            </FinePrint>
+          )}
         </Info>
 
         <div className={footerClassName}>
@@ -304,14 +298,16 @@ const StyledField = styled(FieldGroup)`
   padding-top: 0;
 `;
 
-const StyledTextField = styled(TextField)`
-  ${fieldCss};
-`;
-
-const Info = styled('p')`
+const Info = styled('div')`
   ${fieldCss};
   margin-bottom: ${space(3)};
   margin-top: ${space(1)};
+`;
+
+const FinePrint = styled('div')`
+  margin-top: ${space(1)};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.gray300};
 `;
 
 const CreditCardInfoWrapper = styled('div')<{isLoading?: boolean}>`

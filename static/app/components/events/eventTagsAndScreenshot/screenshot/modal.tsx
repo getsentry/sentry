@@ -4,12 +4,13 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
-import KeyValueData from 'sentry/components/keyValueData';
+import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventAttachment} from 'sentry/types/group';
@@ -21,8 +22,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import ImageVisualization from './imageVisualization';
 import ScreenshotPagination from './screenshotPagination';
-
-export const MAX_SCREENSHOTS_PER_PAGE = 20;
 
 interface ScreenshotModalProps extends ModalRenderProps {
   downloadUrl: string;

@@ -38,7 +38,7 @@ function Tokens(props: TokensProp) {
   );
 
   return (
-    <ArithmeticBuilderContext.Provider
+    <ArithmeticBuilderContext
       value={{
         dispatch: wrappedDispatch,
         focusOverride: state.focusOverride,
@@ -47,12 +47,12 @@ function Tokens(props: TokensProp) {
       }}
     >
       <TokenGrid tokens={state.expression.tokens} />
-    </ArithmeticBuilderContext.Provider>
+    </ArithmeticBuilderContext>
   );
 }
 
 function getLastInput() {
-  const input = screen.getAllByRole('combobox', {name: 'Add a term'}).at(-1);
+  const input = screen.getAllByLabelText('Add a term').at(-1);
 
   expect(input).toBeInTheDocument();
 

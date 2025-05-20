@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import {IntegrationLink} from 'sentry/components/issueSyncListElement';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -101,7 +101,9 @@ function SentryAppExternalIssueActions({
   };
 
   const onAddRemoveClick = () => {
-    if (!externalIssue) {
+    if (externalIssue) {
+      deleteIssue();
+    } else {
       doOpenSentryAppIssueModal({
         organization,
         group,
@@ -109,8 +111,6 @@ function SentryAppExternalIssueActions({
         sentryAppComponent,
         sentryAppInstallation,
       });
-    } else {
-      deleteIssue();
     }
   };
 
@@ -137,7 +137,7 @@ function SentryAppExternalIssueActions({
         >
           <StyledIntegrationLink
             onClick={e =>
-              disabled
+              disabled || externalIssue
                 ? e.preventDefault()
                 : doOpenSentryAppIssueModal({
                     organization,

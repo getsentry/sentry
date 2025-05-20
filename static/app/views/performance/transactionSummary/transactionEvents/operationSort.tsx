@@ -4,9 +4,9 @@ import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {Radio} from 'sentry/components/core/radio';
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
-import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -85,7 +85,7 @@ class OperationSort extends Component<Props, State> {
           <RadioLabel>
             <StyledRadio
               readOnly
-              radioSize="small"
+              size="sm"
               checked={eventView.sorts.some(({field}) => field === operation)}
               onClick={() => {
                 const sortLink = this.generateSortLink({field: operation});

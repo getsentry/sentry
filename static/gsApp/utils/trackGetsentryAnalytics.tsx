@@ -6,7 +6,7 @@ import type {EventType} from 'getsentry/components/addEventsCTA';
 import type {CheckoutType, Subscription} from 'getsentry/types';
 
 type HasSub = {subscription: Subscription};
-type QuotaAlert = {event_types: string; is_warning: boolean} & HasSub;
+type QuotaAlert = {event_types: string; is_warning: boolean; source?: string} & HasSub;
 type UpsellProvider = {
   action: string;
   can_trial: boolean;
@@ -85,13 +85,14 @@ type GetsentryEventParameters = {
   'checkout.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate;
   'checkout.ondemand_changed': {cents: number} & Checkout;
-  'checkout.payg_changed': {cents: number} & Checkout;
+  'checkout.payg_changed': {cents: number; method?: 'button' | 'textbox'} & Checkout;
   'checkout.transactions_upgrade': {
     previous_transactions: number;
     transactions: number;
   } & Checkout;
   // no sub here
   'checkout.upgrade': {
+    // TODO(data categories): check if these can be parsed
     attachments?: number;
     errors?: number;
     monitorSeats?: number;
@@ -103,9 +104,11 @@ type GetsentryEventParameters = {
     previous_replays?: number;
     previous_spans?: number;
     previous_transactions?: number;
+    previous_uptime?: number;
     replays?: number;
     spans?: number;
     transactions?: number;
+    uptime?: number;
   } & Checkout;
   'data_consent_modal.learn_more': Record<PropertyKey, unknown>;
   'data_consent_priority.viewed': Record<PropertyKey, unknown>;
@@ -165,6 +168,7 @@ type GetsentryEventParameters = {
     partner: undefined | string;
   } & HasSub;
   'past_due_modal.seen': HasSub;
+  'performance.quota_exceeded_alert.displayed': {referrer: string};
   'power_icon.clicked': {
     source?: string;
   } & HasSub;
@@ -175,6 +179,7 @@ type GetsentryEventParameters = {
   'quota_alert.clicked_link': QuotaAlert & {clicked_event: EventType};
   'quota_alert.clicked_see_usage': QuotaAlert;
   'quota_alert.clicked_snooze': QuotaAlert;
+  'quota_alert.clicked_unsnooze': QuotaAlert;
   'quota_alert.shown': QuotaAlert;
   'replay.list_page.manage_sub': UpdateProps;
   'replay.list_page.open_modal': UpdateProps & {
@@ -247,10 +252,13 @@ const getsentryEventMap: Record<GetsentryEventKey, string> = {
   'growth.codecov_promotion_opened': 'Growth: Codecov Promotion Opened',
   'quota_alert.shown': 'Quota Alert: Shown',
   'quota_alert.clicked_snooze': 'Quota Alert: Clicked Snooze',
+  'quota_alert.clicked_unsnooze': 'Quota Alert: Clicked Unsnooze',
   'product_trial.clicked_snooze': 'Quota Alert: Clicked Snooze',
   'quota_alert.clicked_link': 'Quota Alert: Clicked Link',
   'quota_alert.clicked_see_usage': 'Quota Alert: Clicked See Usage',
   'quota_alert.alert_displayed': 'Quota Alert: Alert Displayed',
+  'performance.quota_exceeded_alert.displayed':
+    'Performance: Quota Exceeded Alert Displayed',
   'trial_ended_notice.dismissed_understood': 'Trial Ended Notice: Dismissed understood',
   'grace_period_modal.seen': 'Grace Period Modal Seen',
   'usage_exceeded_modal.seen': 'Usage Exceeded Modal Seen',

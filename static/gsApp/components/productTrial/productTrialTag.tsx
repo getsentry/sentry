@@ -1,7 +1,6 @@
-import type {Theme} from '@emotion/react';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {IconBusiness} from 'sentry/icons';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconFlag} from 'sentry/icons/iconFlag';
@@ -13,7 +12,7 @@ import type {ProductTrial} from 'getsentry/types';
 interface ProductTrialTagProps {
   trial: ProductTrial;
   showTrialEnded?: boolean;
-  type?: keyof Theme['tag'];
+  type?: TagProps['type'];
 }
 
 function ProductTrialTag({trial, type, showTrialEnded = false}: ProductTrialTagProps) {

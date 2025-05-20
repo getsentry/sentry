@@ -35,7 +35,7 @@ function AlertBuilderProjectProvider(props: Props) {
 
   const {projects, initiallyLoaded, fetching, fetchError} = useProjects();
   const project = useFirstProject
-    ? projects.find(p => p.isMember) ?? (projects.length && projects[0])
+    ? (projects.find(p => p.isMember) ?? (projects.length && projects[0]))
     : projects.find(({slug}) => slug === projectId);
 
   useEffect(() => {
@@ -82,7 +82,7 @@ function AlertBuilderProjectProvider(props: Props) {
       {children && isValidElement(children)
         ? cloneElement(children, {
             ...other,
-            ...children.props,
+            ...(children as any).props,
             project,
             projectId: useFirstProject ? project.slug : projectId,
             organization,

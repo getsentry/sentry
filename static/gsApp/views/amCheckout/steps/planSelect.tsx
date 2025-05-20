@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
@@ -17,6 +17,7 @@ import {type Plan, PlanTier} from 'getsentry/types';
 import {
   getBusinessPlanOfTier,
   isBizPlanFamily,
+  isNewPayingCustomer,
   isTeamPlan,
   isTeamPlanFamily,
 } from 'getsentry/utils/billing';
@@ -27,13 +28,14 @@ import {
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
 import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
+import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {formatPrice, getDiscountedPrice} from 'getsentry/views/amCheckout/utils';
 
 export type PlanContent = {
   description: React.ReactNode;
-  features: {[key: string]: React.ReactNode};
+  features: Record<string, React.ReactNode>;
   hasMoreLink?: boolean;
 };
 
@@ -88,7 +90,7 @@ const REFERRER_FEATURE_HIGHLIGHTS = {
 
 function getHighlightedFeatures(referrer?: string): string[] {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return referrer ? REFERRER_FEATURE_HIGHLIGHTS[referrer] ?? [] : [];
+  return referrer ? (REFERRER_FEATURE_HIGHLIGHTS[referrer] ?? []) : [];
 }
 
 /**
@@ -133,7 +135,6 @@ function PlanSelect({
   onCompleteStep,
 }: StepProps) {
   const {data: promotionData, refetch} = usePromotionTriggerCheck(organization);
-
   const discountInfo = promotion?.discountInfo;
   let trailingItems: React.ReactNode = null;
   if (showSubscriptionDiscount({activePlan, discountInfo}) && discountInfo) {
@@ -172,6 +173,9 @@ function PlanSelect({
   };
 
   const renderBody = () => {
+    const shouldShowDefaultPayAsYouGo =
+      isNewPayingCustomer(subscription, organization) && checkoutTier === PlanTier.AM3; // TODO(isabella): Test if this behavior works as expected on older tiers
+
     const planOptions = getPlanOptions({billingConfig, activePlan});
     return (
       <PanelBody data-test-id="body-choose-your-plan">
@@ -225,6 +229,8 @@ function PlanSelect({
                   ? discountInfo
                   : undefined
               }
+              shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
+              shouldShowEventPrice
             />
           );
         })}
@@ -323,6 +329,14 @@ function PlanSelect({
         organization={organization}
       />
       {isActive && renderBody()}
+      {isActive && (
+        <ProductSelect
+          activePlan={activePlan}
+          organization={organization}
+          formData={formData}
+          onUpdate={onUpdate}
+        />
+      )}
       {isActive && renderFooter()}
     </Panel>
   );

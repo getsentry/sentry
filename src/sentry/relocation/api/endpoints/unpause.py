@@ -23,12 +23,12 @@ ERR_NOT_UNPAUSABLE_STATUS = Template(
     `$status`."""
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 @region_silo_endpoint
 class RelocationUnpauseEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,
@@ -108,7 +108,11 @@ class RelocationUnpauseEndpoint(Endpoint):
                 status=400,
             )
 
-        task.delay(str(relocation.uuid))
+        transaction.on_commit(
+            lambda: task.delay(str(relocation.uuid)),
+            using=router.db_for_write(Relocation),
+        )
+
         return None
 
     def put(self, request: Request, relocation_uuid: str) -> Response:

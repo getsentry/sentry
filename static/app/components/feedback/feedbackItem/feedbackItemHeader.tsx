@@ -1,12 +1,11 @@
 import {useRef} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackActions from 'sentry/components/feedback/feedbackItem/feedbackActions';
 import FeedbackShortId from 'sentry/components/feedback/feedbackItem/feedbackShortId';
-import IssueTrackingSection from 'sentry/components/feedback/feedbackItem/issueTrackingSection';
+import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -17,14 +16,6 @@ interface Props {
   eventData: Event | undefined;
   feedbackItem: FeedbackIssue;
 }
-
-const fixIssueLinkSpacing = css`
-  gap: ${space(1)} ${space(2)};
-
-  & > span > div {
-    margin-bottom: 0;
-  }
-`;
 
 type Dimensions = ReturnType<typeof useDimensions>;
 function dimensionsToSize({width}: Dimensions) {
@@ -54,15 +45,15 @@ export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
       </Flex>
 
       {eventData && feedbackItem.project ? (
-        <Flex wrap="wrap" justify="flex-start" css={fixIssueLinkSpacing}>
-          <ErrorBoundary mini>
-            <IssueTrackingSection
+        <ErrorBoundary mini>
+          <Flex wrap="wrap" justify="flex-start" align="center" gap={space(1)}>
+            <StreamlinedExternalIssueList
               group={feedbackItem as unknown as Group}
               project={feedbackItem.project}
               event={eventData}
             />
-          </ErrorBoundary>
-        </Flex>
+          </Flex>
+        </ErrorBoundary>
       ) : null}
     </VerticalSpacing>
   );

@@ -14,6 +14,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/macos';
 import {t, tct} from 'sentry/locale';
+import {appleProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/apple';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
@@ -35,10 +36,7 @@ const platformOptions = {
         value: InstallationMode.MANUAL,
       },
     ],
-    defaultValue:
-      navigator.userAgent.indexOf('Win') !== -1
-        ? InstallationMode.MANUAL
-        : InstallationMode.AUTO,
+    defaultValue: InstallationMode.AUTO,
   },
 } satisfies BasePlatformOptions;
 
@@ -52,7 +50,7 @@ const getManualInstallSnippet = (params: Params) => `
 .package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
   params,
   'sentry.cocoa',
-  '8.9.3'
+  '8.49.0'
 )}"),`;
 
 const getConfigurationSnippet = (params: Params) => `
@@ -65,7 +63,11 @@ func application(_ application: UIApplication,
 
     SentrySDK.start { options in
         options.dsn = "${params.dsn.public}"
-        options.debug = true // Enabling debug when first installing is always helpful${
+        options.debug = true // Enabling debug when first installing is always helpful
+
+        // Adds IP for users.
+        // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+        options.sendDefaultPii = true${
           params.isPerformanceSelected
             ? `
 
@@ -81,22 +83,26 @@ func application(_ application: UIApplication,
         // Sample rate for profiling, applied on top of TracesSampleRate.
         // We recommend adjusting this value in production.
         options.profilesSampleRate = 1.0`
+            : params.isProfilingSelected &&
+                params.profilingOptions?.defaultProfilingMode === 'continuous'
+              ? `
+
+        // Configure the profiler to start profiling when there is an active root span
+        // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
+        options.configureProfiling = {
+            $0.lifecycle = .trace
+            $0.sessionSampleRate = 1.0
+        }`
+              : ''
+        }${
+          params.isReplaySelected
+            ? `
+
+        // Record Session Replays for 100% of Errors and 10% of Sessions
+        options.sessionReplay.onErrorSampleRate = 1.0
+        options.sessionReplay.sessionSampleRate = 0.1`
             : ''
         }
-    }${
-      params.isProfilingSelected &&
-      params.profilingOptions?.defaultProfilingMode === 'continuous'
-        ? `
-
-    // Manually call startProfiler and stopProfiler
-    // to profile the code in between
-    SentrySDK.startProfiler()
-    // this code will be profiled
-    //
-    // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
-    // your application until the process exits or stopProfiler is called.
-    SentrySDK.stopProfiler()`
-        : ''
     }
 
     return true
@@ -110,7 +116,11 @@ struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
             options.dsn = "${params.dsn.public}"
-            options.debug = true // Enabling debug when first installing is always helpful${
+            options.debug = true // Enabling debug when first installing is always helpful
+
+            // Adds IP for users.
+            // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+            options.sendDefaultPii = true${
               params.isPerformanceSelected
                 ? `
 
@@ -126,22 +136,26 @@ struct SwiftUIApp: App {
             // Sample rate for profiling, applied on top of TracesSampleRate.
             // We recommend adjusting this value in production.
             options.profilesSampleRate = 1.0`
+                : params.isProfilingSelected &&
+                    params.profilingOptions?.defaultProfilingMode === 'continuous'
+                  ? `
+
+            // Configure the profiler to start profiling when there is an active root span
+            // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
+            options.configureProfiling = {
+                $0.lifecycle = .trace
+                $0.sessionSampleRate = 1.0
+            }`
+                  : ''
+            }${
+              params.isReplaySelected
+                ? `
+
+            // Record Session Replays for 100% of Errors and 10% of Sessions
+            options.sessionReplay.onErrorSampleRate = 1.0
+            options.sessionReplay.sessionSampleRate = 0.1`
                 : ''
             }
-        }${
-          params.isProfilingSelected &&
-          params.profilingOptions?.defaultProfilingMode === 'continuous'
-            ? `
-
-        // Manually call startProfiler and stopProfiler
-        // to profile the code in between
-        SentrySDK.startProfiler()
-        // this code will be profiled
-        //
-        // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
-        // your application until the process exits or stopProfiler is called.
-        SentrySDK.stopProfiler()`
-            : ''
         }
     }
 }`;
@@ -157,34 +171,6 @@ view.addSubview(button)
     fatalError("Break the world")
 }`;
 
-const getExperimentalFeaturesSnippetSwift = () => `
-import Sentry
-
-SentrySDK.start { options in
-    // ...
-
-    // Enable all experimental features
-    options.attachViewHierarchy = true
-    options.enableMetricKit = true
-    options.enableTimeToFullDisplayTracing = true
-    options.swiftAsyncStacktraces = true
-    options.enableAppLaunchProfiling = true
-}`;
-
-const getExperimentalFeaturesSnippetObjC = () => `
-@import Sentry;
-
-[SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
-    // ...
-
-    // Enable all experimental features
-    options.attachViewHierarchy = YES;
-    options.enableMetricKit = YES;
-    options.enableTimeToFullDisplayTracing = YES;
-    options.swiftAsyncStacktraces = YES;
-    options.enableAppLaunchProfiling = YES;
-}];`;
-
 const getReplaySetupSnippet = (params: Params) => `
 SentrySDK.start(configureOptions: { options in
   options.dsn = "${params.dsn.public}"
@@ -195,8 +181,8 @@ SentrySDK.start(configureOptions: { options in
 })`;
 
 const getReplayConfigurationSnippet = () => `
-options.sessionReplay.redactAllText = true
-options.sessionReplay.redactAllImages = true`;
+options.sessionReplay.maskAllText = true
+options.sessionReplay.maskAllImages = true`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
@@ -361,51 +347,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               'The Sentry wizard automatically adds a code snippet that captures a message to your project. Simply run your app and you should see this message in your Sentry project.'
             ),
           },
-          {
-            title: t('Experimental Features'),
-            description: tct(
-              'Want to play with some new features? Try out our experimental features for [vh: View Hierarchy], [ttfd: Time to Full Display (TTFD)], [metricKit: MetricKit], [prewarmedAppStart: Prewarmed App Start Tracing], and [asyncStacktraces: Swift Async Stacktraces]. Experimental features are still a work-in-progress and may have bugs. We recognize the irony. [break] Let us know if you have feedback through [gh: GitHub issues].',
-              {
-                vh: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/enriching-events/viewhierarchy/" />
-                ),
-                ttfd: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#time-to-full-display" />
-                ),
-                metricKit: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/watchos/configuration/metric-kit/" />
-                ),
-                prewarmedAppStart: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/tracing/instrumentation/automatic-instrumentation/#prewarmed-app-start-tracing" />
-                ),
-                asyncStacktraces: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/#stitch-together-swift-concurrency-stack-traces" />
-                ),
-                gh: (
-                  <ExternalLink href="https://github.com/getsentry/sentry-cocoa/issues" />
-                ),
-                break: <br />,
-              }
-            ),
-            configurations: [
-              {
-                code: [
-                  {
-                    label: 'Swift',
-                    value: 'swift',
-                    language: 'swift',
-                    code: getExperimentalFeaturesSnippetSwift(),
-                  },
-                  {
-                    label: 'Objective-C',
-                    value: 'c',
-                    language: 'c',
-                    code: getExperimentalFeaturesSnippetObjC(),
-                  },
-                ],
-              },
-            ],
-          },
         ]
       : [
           {
@@ -544,6 +485,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding: appleFeedbackOnboarding,
   platformOptions,
   replayOnboarding,
+  profilingOnboarding: appleProfilingOnboarding,
 };
 
 export default docs;

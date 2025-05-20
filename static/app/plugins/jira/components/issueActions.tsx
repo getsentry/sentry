@@ -35,7 +35,7 @@ class IssueActions extends DefaultIssueActions {
                   let val: any;
                   if (
                     field.choices &&
-                    !field.choices.find(c => c[0] === oldData[field.name])
+                    !field.choices.some(c => c[0] === oldData[field.name])
                   ) {
                     val = field.default;
                   } else {
@@ -93,7 +93,7 @@ class IssueActions extends DefaultIssueActions {
             </div>
           );
         };
-        const isRequired = (f: any) => (f.required !== null ? f.required : true);
+        const isRequired = (f: any) => (f.required === null ? true : f.required);
 
         const fields = this.state.createFieldList;
         const requiredFields = fields.filter(f => isRequired(f)).map(f => renderField(f));
