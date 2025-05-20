@@ -19,7 +19,7 @@ export default function EventFrequencyNode() {
       <RowLine>
         {tct('Number of events in an issue is [select] [where]', {
           select: <ComparisonTypeField />,
-          where: hasSubfilters && <ConditionBadge>{t('Where')}</ConditionBadge>,
+          where: hasSubfilters ? <ConditionBadge>{t('Where')}</ConditionBadge> : null,
         })}
       </RowLine>
       <SubfiltersList />
