@@ -45,7 +45,6 @@ export function useExploreSpansTable({
     queryHookImplementation: useExploreSpansTableImp,
     queryHookArgs: {enabled, limit, query},
     queryOptions: {
-      withholdBestEffort: true,
       canTriggerHighAccuracy,
     },
   });
