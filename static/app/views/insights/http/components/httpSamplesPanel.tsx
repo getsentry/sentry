@@ -40,7 +40,7 @@ import {
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
+import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {
   DataTitles,
   getDurationChartTitle,
@@ -205,20 +205,20 @@ export function HTTPSamplesPanel() {
     isFetching: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useSpanMetricsTopNSeries({
-    search,
-    fields: ['span.status_code', 'count()'],
-    yAxis: ['count()'],
-    topEvents: 5,
-    sorts: [
-      {
+  } = useTopNSpanMetricsSeries(
+    {
+      search,
+      fields: ['span.status_code', 'count()'],
+      yAxis: ['count()'],
+      topN: 5,
+      sort: {
         kind: 'desc',
         field: 'count()',
       },
-    ],
-    enabled: isPanelOpen && query.panel === 'status',
-    referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART,
-  });
+      enabled: isPanelOpen && query.panel === 'status',
+    },
+    Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART
+  );
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
