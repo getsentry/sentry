@@ -1,15 +1,15 @@
 import {CheckInFixture} from 'sentry-fixture/checkIn';
-import {MonitorFixture} from 'sentry-fixture/monitor';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
 
-import {CheckInRow} from './checkInRow';
+import {MonitorCheckInsGrid} from './monitorCheckInsGrid';
 
 describe('CheckInRow', () => {
-  const monitor = MonitorFixture();
+  const project = ProjectFixture();
 
   it('represents a simple Missed check-in', function () {
     const checkIn = CheckInFixture({
@@ -17,7 +17,7 @@ describe('CheckInRow', () => {
       duration: null,
     });
 
-    render(<CheckInRow monitor={monitor} checkIn={checkIn} />);
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
 
     expect(screen.getByText('Missed')).toBeInTheDocument();
     expect(screen.getByText('Jan 1, 2025 12:00:00 AM UTC')).toBeInTheDocument();
@@ -28,7 +28,7 @@ describe('CheckInRow', () => {
       status: CheckInStatus.OK,
     });
 
-    render(<CheckInRow monitor={monitor} checkIn={checkIn} />);
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
 
     expect(screen.getByText('Okay')).toBeInTheDocument();
     expect(screen.getByText('Jan 1, 2025 12:00:01 AM UTC')).toBeInTheDocument();
@@ -49,7 +49,7 @@ describe('CheckInRow', () => {
       duration: null,
     });
 
-    render(<CheckInRow monitor={monitor} checkIn={checkIn} />);
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
 
     expect(screen.getAllByText('In Progress')).toHaveLength(2);
   });
@@ -60,7 +60,7 @@ describe('CheckInRow', () => {
       environment: 'prod',
     });
 
-    render(<CheckInRow monitor={monitor} checkIn={checkIn} hasMultiEnv />);
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} hasMultiEnv />);
 
     expect(screen.getByText('prod')).toBeInTheDocument();
   });
@@ -72,7 +72,7 @@ describe('CheckInRow', () => {
       dateInProgress: null,
     });
 
-    render(<CheckInRow monitor={monitor} checkIn={checkIn} />);
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
 
     const notSent = screen.getByText('Not Sent');
     expect(notSent).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe('CheckInRow', () => {
       duration: null,
     });
 
-    render(<CheckInRow monitor={monitor} checkIn={checkIn} />);
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
 
     const incomplete = screen.getByText('Incomplete');
     expect(incomplete).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('CheckInRow', () => {
       duration: 12 * 60 * 1000,
     });
 
-    render(<CheckInRow monitor={monitor} checkIn={checkIn} />);
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
 
     const overrunBadge = screen.getByText(textWithMarkupMatcher('2min late'));
     expect(overrunBadge).toBeInTheDocument();
@@ -135,7 +135,7 @@ describe('CheckInRow', () => {
       expectedTime: '2025-01-02T00:00:00Z',
     });
 
-    render(<CheckInRow monitor={monitor} checkIn={checkIn} />);
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
 
     const earlyBadge = screen.getByText(textWithMarkupMatcher('Early'));
     expect(earlyBadge).toBeInTheDocument();
@@ -158,7 +158,7 @@ describe('CheckInRow', () => {
       duration: 12 * 60 * 1000,
     });
 
-    render(<CheckInRow monitor={monitor} checkIn={checkIn} />);
+    render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
 
     const earlyBadge = screen.getByText(textWithMarkupMatcher('Early'));
     expect(earlyBadge).toBeInTheDocument();
