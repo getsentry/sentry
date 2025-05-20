@@ -133,82 +133,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     organization.features.includes('release-bubbles-ui') &&
     props.showReleaseAs === 'bubble';
 
-  // find min/max timestamp of *all* timeSeries
-  const allBoundaries = props.plottables
-    .flatMap(plottable => [plottable.start, plottable.end])
-    .toSorted();
-  const earliestTimeStamp = allBoundaries.at(0);
-  const latestTimeStamp = allBoundaries.at(-1);
-
-  const {
-    connectReleaseBubbleChartRef,
-    releaseBubbleSeries,
-    releaseBubbleXAxis,
-    releaseBubbleGrid,
-  } = useReleaseBubbles({
-    chartId: props.id,
-    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
-    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
-    releases: hasReleaseBubbles
-      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
-      : [],
-  });
-
-  const releaseSeries = props.releases
-    ? hasReleaseBubbles
-      ? releaseBubbleSeries
-      : ReleaseSeries(
-          theme,
-          props.releases,
-          function onReleaseClick(release: Release) {
-            if (organization.features.includes('release-bubbles-ui')) {
-              navigate(
-                makeReleaseDrawerPathname({
-                  location,
-                  release: release.version,
-                  source: 'time-series-widget',
-                })
-              );
-              return;
-            }
-            navigate(
-              makeReleasesPathname({
-                organization,
-                path: `/${encodeURIComponent(release.version)}/`,
-              })
-            );
-          },
-          utc ?? false
-        )
-    : null;
-
-  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
-
-  const handleChartRef = useCallback(
-    (e: ReactEchartsRef | null) => {
-      if (!e?.getEchartsInstance) {
-        return;
-      }
-
-      for (const plottable of props.plottables) {
-        plottable.handleChartRef?.(e);
-      }
-
-      const echartsInstance = e.getEchartsInstance();
-      registerWithWidgetSyncContext(echartsInstance);
-
-      if (hasReleaseBubblesSeries) {
-        connectReleaseBubbleChartRef(e);
-      }
-    },
-    [
-      hasReleaseBubblesSeries,
-      connectReleaseBubbleChartRef,
-      registerWithWidgetSyncContext,
-      props.plottables,
-    ]
-  );
-
   const {onDataZoom, ...chartZoomProps} = useChartZoom({
     saveOnZoom: true,
   });
@@ -430,6 +354,88 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
+
+  // find min/max timestamp of *all* timeSeries
+  const allBoundaries = props.plottables
+    .flatMap(plottable => [plottable.start, plottable.end])
+    .toSorted();
+  const earliestTimeStamp = allBoundaries.at(0);
+  const latestTimeStamp = allBoundaries.at(-1);
+
+  const {
+    connectReleaseBubbleChartRef,
+    releaseBubbleSeries,
+    releaseBubbleXAxis,
+    releaseBubbleGrid,
+    releaseBubbleYAxis,
+  } = useReleaseBubbles({
+    chartId: props.id,
+    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
+    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
+    releases: hasReleaseBubbles
+      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
+      : [],
+    yAxisIndex: yAxes.length,
+  });
+
+  if (releaseBubbleYAxis) {
+    yAxes.push(releaseBubbleYAxis);
+  }
+
+  const releaseSeries = props.releases
+    ? hasReleaseBubbles
+      ? releaseBubbleSeries
+      : ReleaseSeries(
+          theme,
+          props.releases,
+          function onReleaseClick(release: Release) {
+            if (organization.features.includes('release-bubbles-ui')) {
+              navigate(
+                makeReleaseDrawerPathname({
+                  location,
+                  release: release.version,
+                  source: 'time-series-widget',
+                })
+              );
+              return;
+            }
+            navigate(
+              makeReleasesPathname({
+                organization,
+                path: `/${encodeURIComponent(release.version)}/`,
+              })
+            );
+          },
+          utc ?? false
+        )
+    : null;
+
+  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
+
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef | null) => {
+      if (!e?.getEchartsInstance) {
+        return;
+      }
+
+      for (const plottable of props.plottables) {
+        plottable.handleChartRef?.(e);
+      }
+
+      const echartsInstance = e.getEchartsInstance();
+      registerWithWidgetSyncContext(echartsInstance);
+
+      if (hasReleaseBubblesSeries) {
+        connectReleaseBubbleChartRef(e);
+      }
+    },
+    [
+      hasReleaseBubblesSeries,
+      connectReleaseBubbleChartRef,
+      registerWithWidgetSyncContext,
+      props.plottables,
+    ]
+  );
 
   const showXAxisProp = props.showXAxis ?? 'auto';
   const showXAxis = showXAxisProp === 'auto';

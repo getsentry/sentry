@@ -938,6 +938,19 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             />
           </MediumWidget>
         </SideBySide>
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(sampleThroughputTimeSeries),
+                new Line(sampleDurationTimeSeries),
+                new Line(sampleDurationTimeSeriesP50),
+              ]}
+              releases={releases}
+              showReleaseAs="bubble"
+            />
+          </MediumWidget>
+        </SideBySide>
       </Fragment>
     );
   });
