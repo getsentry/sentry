@@ -10,18 +10,12 @@ from sentry.search.eap.columns import (
     simple_sentry_field,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS
-from sentry.utils.validators import is_event_id, is_span_id
+from sentry.utils.validators import is_event_id
 
 OURLOG_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
     for column in COMMON_COLUMNS
     + [
-        ResolvedAttribute(
-            public_alias="span_id",
-            internal_name="sentry.span_id",
-            search_type="string",
-            validator=is_span_id,
-        ),
         ResolvedAttribute(
             public_alias="severity_number",
             internal_name="sentry.severity_number",
