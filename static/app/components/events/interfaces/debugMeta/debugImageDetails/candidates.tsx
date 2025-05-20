@@ -105,6 +105,7 @@ class Candidates extends Component<Props, State> {
           return false;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         if (!defined(info) || !String(info).trim()) {
           return false;
         }

@@ -16,17 +16,10 @@ type Props = {
   disabled?: boolean;
   onDeleteRule?: (id: Rule['id']) => void;
   onEditRule?: (id: Rule['id']) => void;
+  ref?: React.Ref<HTMLUListElement>;
 };
 
-function Rules({
-  ref,
-  rules,
-  onEditRule,
-  onDeleteRule,
-  disabled,
-}: Props & {
-  ref?: React.Ref<HTMLUListElement>;
-}) {
+function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
   return (
     <List ref={ref} isDisabled={disabled} data-test-id="advanced-data-scrubbing-rules">
       {rules.map(rule => {

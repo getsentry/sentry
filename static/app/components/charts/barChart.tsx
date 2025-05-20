@@ -16,6 +16,7 @@ export interface BarChartProps extends BaseChartProps {
   animation?: boolean;
   barOpacity?: number;
   hideZeros?: boolean;
+  ref?: React.Ref<ReactEchartsRef>;
   stacked?: boolean;
 }
 
@@ -69,9 +70,7 @@ export function BarChart({
   xAxis,
   animation,
   ...props
-}: BarChartProps & {
-  ref?: React.Ref<ReactEchartsRef>;
-}) {
+}: BarChartProps) {
   const transformedSeries = useMemo(() => {
     return transformToBarSeries({barOpacity, hideZeros, series, stacked, animation});
   }, [animation, barOpacity, hideZeros, series, stacked]);

@@ -7,15 +7,16 @@ import type {
   DevServer,
   OptimizationSplitChunksCacheGroup,
   RspackPluginInstance,
+  RuleSetRule,
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
 import CompressionPlugin from 'compression-webpack-plugin';
-import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
 import path from 'node:path';
+import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 
@@ -170,6 +171,35 @@ for (const locale of supportedLocales) {
   };
 }
 
+const swcReactLoaderConfig: RuleSetRule['options'] = {
+  jsc: {
+    experimental: {
+      plugins: [
+        [
+          '@swc/plugin-emotion',
+          {
+            sourceMap: true,
+            // The "dev-only" option does not seem to apply correctly
+            autoLabel: DEV_MODE ? 'always' : 'never',
+          },
+        ],
+      ],
+    },
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+    },
+    transform: {
+      react: {
+        runtime: 'automatic',
+        development: DEV_MODE,
+        refresh: DEV_MODE,
+        importSource: '@emotion/react',
+      },
+    },
+  },
+};
+
 /**
  * Main Webpack config for Sentry React SPA.
  */
@@ -217,34 +247,19 @@ const appConfig: Configuration = {
         test: /\.(js|jsx|ts|tsx)$/,
         exclude: /\/node_modules\//,
         loader: 'builtin:swc-loader',
-        options: {
-          jsc: {
-            experimental: {
-              plugins: [
-                [
-                  '@swc/plugin-emotion',
-                  {
-                    sourceMap: true,
-                    // The "dev-only" option does not seem to apply correctly
-                    autoLabel: DEV_MODE ? 'always' : 'never',
-                  },
-                ],
-              ],
-            },
-            parser: {
-              syntax: 'typescript',
-              tsx: true,
-            },
-            transform: {
-              react: {
-                runtime: 'automatic',
-                development: DEV_MODE,
-                refresh: DEV_MODE,
-                importSource: '@emotion/react',
-              },
-            },
+        options: swcReactLoaderConfig,
+      },
+      {
+        test: /\.mdx?$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: swcReactLoaderConfig,
           },
-        },
+          {
+            loader: '@mdx-js/loader',
+          },
+        ],
       },
       {
         test: /\.po$/,
@@ -306,13 +321,9 @@ const appConfig: Configuration = {
 
     ...(SHOULD_FORK_TS
       ? [
-          new ForkTsCheckerWebpackPlugin({
+          new TsCheckerRspackPlugin({
             typescript: {
               configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
-              configOverwrite: {
-                compilerOptions: {incremental: true},
-              },
-              memoryLimit: 4096,
             },
             devServer: false,
           }),

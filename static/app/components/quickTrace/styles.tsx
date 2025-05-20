@@ -100,7 +100,7 @@ type DropdownItemProps = {
   children: React.ReactNode;
   allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
-  to?: string | LocationDescriptor;
+  to?: LocationDescriptor;
   width?: 'small' | 'large';
 };
 

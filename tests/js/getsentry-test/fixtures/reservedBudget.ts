@@ -1,6 +1,7 @@
 import {DataCategory} from 'sentry/types/core';
 
 import type {
+  PendingReservedBudget as TPendingReservedBudget,
   ReservedBudget as TReservedBudget,
   ReservedBudgetCategory as TReservedBudgetCategory,
   ReservedBudgetMetricHistory as TReservedBudgetMetricHistory,
@@ -10,6 +11,7 @@ import {ReservedBudgetCategoryType} from 'getsentry/types';
 type ReservedBudgetCategoryProps = Partial<TReservedBudgetCategory>;
 type BudgetProps = Partial<TReservedBudget>;
 type MetricHistoryProps = Partial<TReservedBudgetMetricHistory>;
+export type PendingBudgetProps = Partial<TPendingReservedBudget>;
 
 export function ReservedBudgetCategoryFixture(props: ReservedBudgetCategoryProps) {
   return {
@@ -36,6 +38,7 @@ export function ReservedBudgetFixture(props: BudgetProps) {
     dataCategories: [],
     productName: '',
     canProductTrial: false,
+    billingFlag: null,
   };
 
   return {
@@ -46,6 +49,15 @@ export function ReservedBudgetFixture(props: BudgetProps) {
     percentUsed: 0,
     categories: {},
     ...defaultCategoryProps,
+    ...props,
+  };
+}
+
+export function PendingReservedBudgetFixture(props: PendingBudgetProps) {
+  return {
+    id: '',
+    categories: {},
+    reservedBudget: 0,
     ...props,
   };
 }
@@ -79,7 +91,39 @@ export function SeerReservedBudgetFixture(props: BudgetProps) {
     defaultBudget: 20_00,
     dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
     productName: 'seer',
+    canProductTrial: true,
+    billingFlag: 'seer-billing',
+    apiName: ReservedBudgetCategoryType.SEER,
+    ...props,
+  };
+
+  return ReservedBudgetFixture(defaultProps);
+}
+
+export function DynamicSamplingReservedBudgetFixture(props: BudgetProps) {
+  const defaultProps = {
+    id: '',
+    reservedBudget: 10_000_00, // random values since there are no defaults
+    categories: {
+      [DataCategory.SPANS]: ReservedBudgetMetricHistoryFixture({
+        reservedCpe: 1_000_000,
+        reservedSpend: 0,
+      }),
+      [DataCategory.SPANS_INDEXED]: ReservedBudgetMetricHistoryFixture({
+        reservedCpe: 2_000_000,
+        reservedSpend: 0,
+      }),
+    },
+    budgetCategoryType: 'DYNAMIC_SAMPLING',
+    name: 'spans budget',
+    docLink: '',
+    isFixed: false,
+    defaultBudget: null,
+    dataCategories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
+    productName: 'dynamic sampling',
     canProductTrial: false,
+    billingFlag: null,
+    apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
     ...props,
   };
 
