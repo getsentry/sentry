@@ -700,8 +700,8 @@ class EnhancementsTest(TestCase):
             == "<EnhancementRule function:playFetch +group>"
         )
         assert strategy_config.enhancements.id is None
-        # Currently we re-split the rules when translating from base64 back to object
-        assert split_rules_spy.call_count == 2
+        # Rules didn't have to be split again because they were cached in split form
+        assert split_rules_spy.call_count == 1
 
     def test_uses_default_enhancements_when_loading_string_with_invalid_version(self):
         enhancements = Enhancements.from_rules_text("function:playFetch +app")
