@@ -1,4 +1,4 @@
-import Anchor from './anchor';
+import {Anchor} from './link';
 
 interface ExternalLinkProps
   extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'target'> {

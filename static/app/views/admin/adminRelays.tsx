@@ -2,8 +2,10 @@ import {Component} from 'react';
 import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
-import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
+import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import ResultGrid from 'sentry/components/resultGrid';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import withApi from 'sentry/utils/withApi';
@@ -52,14 +54,14 @@ class AdminRelays extends Component<Props, State> {
       </td>,
       <td key="tools" style={{textAlign: 'right'}}>
         <span className="editor-tools">
-          <LinkWithConfirmation
-            className="danger"
-            title="Remove"
+          <Confirm
             message={t('Are you sure you wish to delete this relay?')}
             onConfirm={() => this.onDelete(row.id)}
           >
-            {t('Remove')}
-          </LinkWithConfirmation>
+            <Button priority="danger" size="sm" icon={<IconDelete />}>
+              {t('Remove Relay')}
+            </Button>
+          </Confirm>
         </span>
       </td>,
     ];
