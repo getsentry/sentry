@@ -50,7 +50,7 @@ function chonkElevation(size: NonNullable<ButtonProps['size']>): string {
   }
 }
 
-export function getChonkButtonStyles(
+export function DO_NOT_USE_getChonkButtonStyles(
   p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled' | 'borderless'> & {
     size: NonNullable<ButtonProps['size']>;
     theme: DO_NOT_USE_ChonkTheme;
