@@ -520,6 +520,11 @@ def process_delayed_workflows(
 
         workflow_event_dcg_data = fetch_group_to_event_data(project_id, Workflow, batch_key)
 
+        metrics.incr(
+            "workflow_engine.delayed_workflow",
+            amount=len(workflow_event_dcg_data),
+        )
+
         # Get mappings from DataConditionGroups to other info
         dcg_to_groups, trigger_group_to_dcg_model = get_dcg_group_workflow_detector_data(
             workflow_event_dcg_data

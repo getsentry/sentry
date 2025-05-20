@@ -6,6 +6,7 @@ import {
   EventDrawerBody,
   EventDrawerContainer,
   EventDrawerHeader,
+  EventNavigator,
   NavigationCrumbs,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
@@ -56,32 +57,34 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
   );
 
   return (
-    <EventDrawerContainer>
-      <EventDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            {label: getShortEventId(event.id)},
-            {label: t('Logs')},
-          ]}
-        />
-      </EventDrawerHeader>
-      <EventDrawerBody>
-        <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+    <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+      <EventDrawerContainer>
+        <EventDrawerHeader>
+          <NavigationCrumbs
+            crumbs={[
+              {
+                label: (
+                  <CrumbContainer>
+                    <ProjectAvatar project={project} />
+                    <ShortId>{group.shortId}</ShortId>
+                  </CrumbContainer>
+                ),
+              },
+              {label: getShortEventId(event.id)},
+              {label: t('Logs')},
+            ]}
+          />
+        </EventDrawerHeader>
+        <EventNavigator>
+          <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+        </EventNavigator>
+        <EventDrawerBody>
           <LogsTableContainer>
-            <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
             <LogsTable showHeader={false} allowPagination tableData={tableData} />
           </LogsTableContainer>
-        </SearchQueryBuilderProvider>
-      </EventDrawerBody>
-    </EventDrawerContainer>
+        </EventDrawerBody>
+      </EventDrawerContainer>
+    </SearchQueryBuilderProvider>
   );
 }
 
