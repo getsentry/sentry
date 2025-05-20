@@ -1,3 +1,4 @@
+import React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -13,24 +14,48 @@ interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'cla
 
 export function ButtonBar({children, merged = false, gap = 0, ...props}: ButtonBarProps) {
   return (
-    <StyledButtonBar merged={merged} gap={gap} {...props}>
+    <StyledButtonBar
+      merged={merged}
+      gap={gap}
+      {...props}
+      listSize={React.Children.count(children)}
+    >
       {children}
     </StyledButtonBar>
   );
 }
 
-const StyledButtonBar = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
+const getChildTransforms = (count: number) => {
+  return Array.from(
+    {length: count},
+    (_, index) => css`
+      > *:nth-child(${index + 1}),
+      > *:nth-child(${index + 1}) > button {
+        transform: translateX(-${index}px);
+      }
+    `
+  );
+};
+
+const StyledButtonBar = styled('div')<{
+  gap: ValidSize | 0;
+  listSize: number;
+  merged: boolean;
+}>`
   display: grid;
   grid-auto-flow: column;
   grid-column-gap: ${p => (p.gap === 0 ? '0' : space(p.gap))};
   align-items: center;
+
+  ${p => getChildTransforms(p.listSize)}
 
   ${p =>
     p.merged &&
     css`
       /* Raised buttons show borders on both sides. Useful to create pill bars */
       & > .active,
-      & > *:focus-within {
+      & > *:focus-within,
+      & > *:focus-within > * {
         z-index: 2;
       }
 
@@ -59,28 +84,15 @@ const StyledButtonBar = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
           }
         }
 
-        /* Middle buttons only need one border so we don't get a double line */
-        &:first-child + *:not(:last-child) {
-          transform: translateX(-1px);
-        }
-
-        /* Middle buttons only need one border so we don't get a double line */
-        /* stylelint-disable-next-line no-duplicate-selectors */
-        &:not(:last-child):not(:first-child) + * {
-          transform: translateX(-1px);
-        }
-
         /* Last button is square on the left side */
         &:last-child:not(:first-child) {
           border-top-left-radius: 0;
           border-bottom-left-radius: 0;
-          transform: translateX(-1px);
 
           & > button,
           & > .dropdown-actor > ${StyledButton} {
             border-top-left-radius: 0;
             border-bottom-left-radius: 0;
-            transform: translateX(-1px);
           }
         }
       }

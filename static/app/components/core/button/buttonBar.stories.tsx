@@ -92,6 +92,8 @@ export default storyBook('ButtonBar', (story, APIReference) => {
         </p>
         <ButtonBar merged>
           <Button>One</Button>
+          <Button>One</Button>
+          <Button>One</Button>
           <DropdownMenu
             items={[
               {
@@ -109,6 +111,16 @@ export default storyBook('ButtonBar', (story, APIReference) => {
               />
             )}
           />
+          <Button>One</Button>
+          <Button>One</Button>
+          <Button>One</Button>
+          <Button>One</Button>
+          <Button>One</Button>
+          <Button>One</Button>
+          <Button>One</Button>
+          <Button>One</Button>
+          <Button>One</Button>
+          <Button>One</Button>
         </ButtonBar>
       </Fragment>
     );
