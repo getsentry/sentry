@@ -21,11 +21,11 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
-from sentry.receivers.onboarding import set_project_flag_and_signal
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)

@@ -18,7 +18,6 @@ from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
-from sentry.receivers.onboarding import set_project_flag_and_signal
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
@@ -41,6 +40,7 @@ from sentry.replays.usecases.pack import pack
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.projectflags import set_project_flag_and_signal
 
 CACHE_TIMEOUT = 3600
 COMMIT_FREQUENCY_SEC = 1

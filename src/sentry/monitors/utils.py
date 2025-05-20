@@ -15,7 +15,6 @@ from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEO
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
-from sentry.receivers.onboarding import set_project_flag_and_signal
 from sentry.signals import (
     cron_monitor_created,
     first_cron_checkin_received,
@@ -24,6 +23,7 @@ from sentry.signals import (
 from sentry.users.models.user import User
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.auth import AuthenticatedHttpRequest
+from sentry.utils.projectflags import set_project_flag_and_signal
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):

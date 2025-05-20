@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 
 import sentry_sdk
 from django.db.models import F
-from django.dispatch import Signal
 from django.forms import model_to_dict
 from django.utils import timezone as django_timezone
 
@@ -46,23 +45,6 @@ from sentry.utils.javascript import has_sourcemap
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry")
-
-
-# TODO: find a better place for this
-def set_project_flag_and_signal(project: Project, flag_name: str, signal: Signal, **kwargs) -> int:
-    """Helper function to set a project flag and send a signal."""
-    flag = getattr(Project.flags, flag_name)
-
-    # if the flag is already set, we don't need to do anything
-    # and we can return early
-    if getattr(project.flags, flag_name):
-        return 0
-
-    setattr(project.flags, flag_name, True)
-    updated = project.update(flags=F("flags").bitor(flag))
-    signal.send_robust(project=project, sender=Project, **kwargs)
-    return updated
-
 
 # Used to determine if we should or not record an analytic data
 # for a first event of a project with a minified stack trace

@@ -19,11 +19,7 @@ from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.receivers.features import record_generic_event_processed
-from sentry.receivers.onboarding import (
-    first_transaction_received,
-    record_release_received,
-    set_project_flag_and_signal,
-)
+from sentry.receivers.onboarding import first_transaction_received, record_release_received
 from sentry.spans.consumers.process_segments.enrichment import (
     match_schemas,
     set_exclusive_time,
@@ -34,6 +30,7 @@ from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
+from sentry.utils.projectflags import set_project_flag_and_signal
 
 logger = logging.getLogger(__name__)
 

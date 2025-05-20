@@ -41,7 +41,6 @@ from sentry.profiles.utils import (
     apply_stack_trace_rules_to_profile,
     get_from_profiling_service,
 )
-from sentry.receivers.onboarding import set_project_flag_and_signal
 from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
@@ -54,6 +53,7 @@ from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.sdk import set_measurement
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
