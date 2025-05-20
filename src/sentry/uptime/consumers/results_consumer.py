@@ -464,6 +464,35 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             )
             return
 
+        subscription_interval_ms = 1000 * subscription.interval_seconds
+        num_intervals = (
+            result["scheduled_check_time_ms"] - last_update_ms
+        ) / subscription_interval_ms
+
+        # If the scheduled check is two or more intervals since the last seen check, we can declare the
+        # intervening checks missed.
+        if last_update_raw is not None and num_intervals > 1:
+            num_missed_checks = num_intervals - 1
+            metrics.distribution(
+                "uptime.result_processer.num_missing_check",
+                num_missed_checks,
+                tags=metric_tags,
+            )
+            logger.info(
+                "uptime.result_processor.num_missing_check",
+                extra={"num_missed_checks": num_missed_checks, **result},
+            )
+            if num_intervals != int(num_intervals):
+                logger.info(
+                    "uptime.result_processor.invalid_check_interval",
+                    extra={
+                        "last_update_ms": last_update_ms,
+                        "current_update_ms": result["scheduled_check_time_ms"],
+                        "interval_ms": subscription_interval_ms,
+                        **result,
+                    },
+                )
+
         if features.has("organizations:uptime-detailed-logging", organization):
             logger.info("handle_result_for_project.after_dedupe", extra=result)
 
