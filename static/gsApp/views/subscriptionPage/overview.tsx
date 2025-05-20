@@ -193,6 +193,18 @@ function Overview({location, subscription, promotionData}: Props) {
         0 || false;
 
     const showAllBudgetTotals = subscription.hadCustomDynamicSampling;
+
+    // Ensure relevant categories in reservedBudgetCategoryInfo have reservedSpend initialized
+    // and safely access source properties.
+    const spansCategoryInfo = reservedBudgetCategoryInfo[DataCategory.SPANS];
+    if (spansCategoryInfo) {
+      spansCategoryInfo.reservedSpend = spansCategoryInfo.reservedSpend ?? 0;
+    }
+    const seerAutofixCategoryInfo = reservedBudgetCategoryInfo[DataCategory.SEER_AUTOFIX];
+    if (seerAutofixCategoryInfo) {
+      seerAutofixCategoryInfo.reservedSpend = seerAutofixCategoryInfo.reservedSpend ?? 0;
+    }
+
     if (
       !subscription.hadCustomDynamicSampling &&
       isAm3DsPlan(subscription.plan) &&
@@ -200,12 +212,18 @@ function Overview({location, subscription, promotionData}: Props) {
     ) {
       // if the customer has not yet stated using custom DS in the current period,
       // just show one spans UsageTotalsTable
-      reservedBudgetCategoryInfo[DataCategory.SPANS]!.reservedSpend +=
-        reservedBudgetCategoryInfo[DataCategory.SPANS_INDEXED]!.reservedSpend ?? 0;
+      const spansIndexedSpend =
+        reservedBudgetCategoryInfo[DataCategory.SPANS_INDEXED]?.reservedSpend ?? 0;
+      if (spansCategoryInfo) {
+        spansCategoryInfo.reservedSpend += spansIndexedSpend;
+      }
 
       // Combine SEER_SCANNER into SEER_AUTOFIX
-      reservedBudgetCategoryInfo[DataCategory.SEER_AUTOFIX]!.reservedSpend +=
-        reservedBudgetCategoryInfo[DataCategory.SEER_SCANNER]!.reservedSpend ?? 0;
+      const seerScannerSpend =
+        reservedBudgetCategoryInfo[DataCategory.SEER_SCANNER]?.reservedSpend ?? 0;
+      if (seerAutofixCategoryInfo) {
+        seerAutofixCategoryInfo.reservedSpend += seerScannerSpend;
+      }
     }
 
     return (
