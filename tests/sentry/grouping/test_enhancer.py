@@ -128,10 +128,9 @@ def test_basic_parsing(insta_snapshot, version):
 
     enhancements_str = enhancements.base64_string
     assert Enhancements.from_base64_string(enhancements_str).base64_string == enhancements_str
-    assert (
-        Enhancements.from_base64_string(enhancements_str)._to_config_structure()
-        == enhancements._to_config_structure()
-    )
+    assert Enhancements.from_base64_string(enhancements_str)._get_base64_bytes_from_rules(
+        enhancements.rules
+    ) == enhancements._get_base64_bytes_from_rules(enhancements.rules)
     assert isinstance(enhancements_str, str)
 
 
