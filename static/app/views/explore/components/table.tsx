@@ -23,10 +23,10 @@ interface TableProps extends React.ComponentProps<typeof _TableWrapper> {
   showVerticalScrollbar?: boolean;
 }
 
-export function Table({ref, children, styles, ...props}: TableProps) {
+export function Table({ref, children, style, ...props}: TableProps) {
   return (
     <_TableWrapper {...props}>
-      <_Table ref={ref} style={styles}>
+      <_Table ref={ref} style={style}>
         {children}
       </_Table>
     </_TableWrapper>
