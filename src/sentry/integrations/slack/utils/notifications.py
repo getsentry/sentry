@@ -276,6 +276,7 @@ def _send_notification(
                 "error": str(e),
                 "incident_id": metric_issue_context.id,
                 "incident_status": str(metric_issue_context.new_status),
+                "integration_id": integration.id,
             }
             if channel:
                 log_params["channel_id"] = channel
