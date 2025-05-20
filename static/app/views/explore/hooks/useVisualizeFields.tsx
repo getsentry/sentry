@@ -2,12 +2,8 @@ import {useMemo} from 'react';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {defined} from 'sentry/utils';
-import {
-  type ParsedFunction,
-  parseFunction,
-  prettifyTagKey,
-} from 'sentry/utils/discover/fields';
-import {AggregationKey} from 'sentry/utils/fields';
+import {type ParsedFunction, parseFunction} from 'sentry/utils/discover/fields';
+import {AggregationKey, prettifyTagKey} from 'sentry/utils/fields';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 interface Props {

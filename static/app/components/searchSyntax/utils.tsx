@@ -230,10 +230,6 @@ type GetKeyNameOpts = {
    * Include arguments in aggregate key names
    */
   aggregateWithArgs?: boolean;
-  /**
-   * Display explicit tags with `tags[name]` instead of `name`
-   */
-  showExplicitTagPrefix?: boolean;
 };
 
 /**
@@ -252,27 +248,53 @@ export const getKeyName = (
   >,
   options: GetKeyNameOpts = {}
 ) => {
-  const {aggregateWithArgs, showExplicitTagPrefix = false} = options;
+  const {aggregateWithArgs} = options;
   switch (key.type) {
     case Token.KEY_SIMPLE:
       return key.value;
     case Token.KEY_EXPLICIT_TAG:
-      if (showExplicitTagPrefix) {
-        return key.text;
-      }
       return key.key.value;
     case Token.KEY_AGGREGATE:
       return aggregateWithArgs
         ? `${key.name.value}(${key.args ? key.args.text : ''})`
         : key.name.value;
     case Token.KEY_EXPLICIT_NUMBER_TAG:
-      // number tags always need to be expressed with the
-      // explicit tag prefix + type
       return key.text;
     case Token.KEY_EXPLICIT_STRING_TAG:
-      if (showExplicitTagPrefix) {
-        return key.text;
-      }
+      return key.text;
+    case Token.KEY_EXPLICIT_FLAG:
+      return key.text;
+    case Token.KEY_EXPLICIT_NUMBER_FLAG:
+      return key.text;
+    case Token.KEY_EXPLICIT_STRING_FLAG:
+      return key.text;
+    default:
+      return '';
+  }
+};
+
+export const getKeyLabel = (
+  key: TokenResult<
+    | Token.KEY_SIMPLE
+    | Token.KEY_EXPLICIT_TAG
+    | Token.KEY_AGGREGATE
+    | Token.KEY_EXPLICIT_NUMBER_TAG
+    | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_FLAG
+    | Token.KEY_EXPLICIT_NUMBER_FLAG
+    | Token.KEY_EXPLICIT_STRING_FLAG
+  >
+) => {
+  switch (key.type) {
+    case Token.KEY_SIMPLE:
+      return key.value;
+    case Token.KEY_EXPLICIT_TAG:
+      return key.text;
+    case Token.KEY_AGGREGATE:
+      return key.name.value;
+    case Token.KEY_EXPLICIT_NUMBER_TAG:
+      return key.key.value;
+    case Token.KEY_EXPLICIT_STRING_TAG:
       return key.key.value;
     case Token.KEY_EXPLICIT_FLAG:
       return key.text;

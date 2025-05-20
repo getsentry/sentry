@@ -19,8 +19,8 @@ import {
   fieldAlignment,
   parseFunction,
   prettifyParsedFunction,
-  prettifyTagKey,
 } from 'sentry/utils/discover/fields';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   TableBody,
