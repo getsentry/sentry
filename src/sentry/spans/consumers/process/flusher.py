@@ -169,7 +169,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 self.process.start()
                 self.process_restarts += 1
             else:
-                raise RuntimeError("flusher process has crashed")
+                raise RuntimeError(
+                    "flusher process has crashed.\n\nSearch for sentry_spans_buffer_component:flusher in Sentry to get the original error."
+                )
 
         self.buffer.record_stored_segments()
 
