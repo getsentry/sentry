@@ -257,6 +257,46 @@ def _split_rules(
     )
 
 
+def _combine_hints(
+    variant_name: str,
+    frame_component: FrameGroupingComponent,
+    in_app_hint: str | None,
+    contributes_hint: str | None,
+) -> str | None:
+    """
+    Given possible in-app and contributes hints, determine the frame's final hint.
+    """
+    frame_type = "in-app" if frame_component.in_app else "system"
+
+    # In-app hints never apply to the system stacktrace, so even if the contributes hint is `None`,
+    # it's the one we want
+    if variant_name == "system":
+        return contributes_hint
+
+    # From here on out everything we're doing is for the app variant
+
+    # System frames never contribute to the app stacktrace, so if they've already been marked out of
+    # app, we don't care whether or not they're ignored (or un-ignored), because they weren't going
+    # to count anyway.
+    if frame_type == "system":
+        return in_app_hint
+
+    # If only one hint exists, return that one
+    if in_app_hint and not contributes_hint:
+        return in_app_hint
+    if contributes_hint and not in_app_hint:
+        return contributes_hint
+
+    # If neither hint exists, return None
+    if not in_app_hint and not contributes_hint:
+        return None
+
+    # Combine the hints in such as way that we get "marked in-app by xxx AND un-ignored by yyy" and
+    # "marked in-app by xxx BUT ignored by yyy"
+    conjunction = "and" if frame_component.contributes else "but"
+    return f"{in_app_hint} {conjunction} {contributes_hint}"
+
+
 def is_valid_profiling_matcher(matchers: list[str]) -> bool:
     for matcher in matchers:
         if not matcher.startswith(VALID_PROFILING_MATCHER_PREFIXES):
@@ -683,6 +723,8 @@ class Enhancements:
             else:
                 contributes = rust_frame.contributes
 
+            frame_component.update(contributes=contributes)
+
             hint = get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
             if self.run_split_enhancements:
                 split_in_app_hint = (
@@ -696,7 +738,7 @@ class Enhancements:
                     variant_name, frame, frame_component, contributes_rust_frame, "contributes"
                 )
 
-            frame_component.update(contributes=contributes, hint=hint)
+            frame_component.update(hint=hint)
 
             # Add this frame to our tally
             key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
