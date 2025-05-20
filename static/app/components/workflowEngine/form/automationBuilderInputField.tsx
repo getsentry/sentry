@@ -20,6 +20,7 @@ export default function AutomationBuilderInputField(props: InputFieldProps) {
 const StyledInputField = styled(InputField)`
   padding: 0;
   width: 180px;
+  border: none;
   > div {
     padding-left: 0;
   }
