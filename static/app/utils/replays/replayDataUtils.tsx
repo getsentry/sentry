@@ -43,6 +43,21 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...user,
   };
 
+  // Stringify everything, so we don't try to render objects or something strange
+  // an error boundary will save us, but that's not useful to see
+  const stringifiedTags = Object.fromEntries(
+    Object.entries(unorderedTags).map(([key, value]) => [
+      key,
+      value.map((v: unknown) => {
+        try {
+          return v instanceof Object ? JSON.stringify(v) : v;
+        } catch (e) {
+          return v;
+        }
+      }),
+    ])
+  );
+
   const startedAt = new Date(apiResponse.started_at);
   invariant(isValidDate(startedAt), 'replay.started_at is invalid');
   const finishedAt = new Date(apiResponse.finished_at);
@@ -55,7 +70,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...(apiResponse.duration === undefined
       ? {}
       : {duration: duration(apiResponse.duration * 1000)}),
-    tags: unorderedTags,
+    tags: stringifiedTags,
   };
 }
 
