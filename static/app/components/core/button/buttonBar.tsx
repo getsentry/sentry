@@ -1,4 +1,3 @@
-import React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,87 +13,85 @@ interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'cla
 
 export function ButtonBar({children, merged = false, gap = 0, ...props}: ButtonBarProps) {
   return (
-    <StyledButtonBar
-      merged={merged}
-      gap={gap}
-      {...props}
-      listSize={React.Children.count(children)}
-    >
+    <StyledButtonBar merged={merged} gap={gap} {...props}>
       {children}
     </StyledButtonBar>
   );
 }
 
-const getChildTransforms = (count: number) => {
-  return Array.from(
-    {length: count},
-    (_, index) => css`
-      > *:nth-child(${index + 1}),
-      > *:nth-child(${index + 1}) > button {
-        transform: translateX(-${index}px);
-      }
-    `
-  );
-};
-
-const StyledButtonBar = styled('div')<{
-  gap: ValidSize | 0;
-  listSize: number;
-  merged: boolean;
-}>`
+const StyledButtonBar = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
   display: grid;
   grid-auto-flow: column;
   grid-column-gap: ${p => (p.gap === 0 ? '0' : space(p.gap))};
   align-items: center;
 
-  ${p => getChildTransforms(p.listSize)}
+  ${p => p.merged && MergedButtonBarStyles}
+`;
 
-  ${p =>
-    p.merged &&
-    css`
-      /* Raised buttons show borders on both sides. Useful to create pill bars */
-      & > .active,
-      & > *:focus-within,
-      & > *:focus-within > * {
-        z-index: 2;
+const MergedButtonBarStyles = () => css`
+  /* Raised buttons show borders on both sides. Useful to create pill bars */
+  & > .active {
+    z-index: 2;
+  }
+
+  & > .dropdown,
+  & > button,
+  & > input,
+  & > a {
+    position: relative;
+
+    /* First button is square on the right side */
+    &:first-child:not(:last-child) {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+
+      & > .dropdown-actor > ${StyledButton} {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
       }
+    }
 
-      & > * {
-        position: relative;
+    /* Middle buttons are square */
+    &:not(:last-child):not(:first-child) {
+      border-radius: 0;
 
-        /* First button is square on the right side */
-        &:first-child:not(:last-child),
-        &:first-child:not(:last-child) > button {
-          border-top-right-radius: 0;
-          border-bottom-right-radius: 0;
-
-          & > .dropdown-actor > ${StyledButton} {
-            border-top-right-radius: 0;
-            border-bottom-right-radius: 0;
-          }
-        }
-
-        /* Middle buttons are square */
-        &:not(:last-child):not(:first-child),
-        &:not(:last-child):not(:first-child) > button {
-          border-radius: 0;
-
-          & > .dropdown-actor > ${StyledButton} {
-            border-radius: 0;
-          }
-        }
-
-        /* Last button is square on the left side */
-        &:last-child:not(:first-child) {
-          border-top-left-radius: 0;
-          border-bottom-left-radius: 0;
-
-          & > button,
-          & > .dropdown-actor > ${StyledButton} {
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
-          }
-        }
+      & > .dropdown-actor > ${StyledButton} {
+        border-radius: 0;
       }
-    `}
+    }
+
+    /* Middle buttons only need one border so we don't get a double line */
+    &:first-child {
+      & + .dropdown:not(:last-child),
+      & + a:not(:last-child),
+      & + input:not(:last-child),
+      & + button:not(:last-child) {
+        margin-left: -1px;
+      }
+    }
+
+    /* Middle buttons only need one border so we don't get a double line */
+    /* stylelint-disable-next-line no-duplicate-selectors */
+    &:not(:last-child):not(:first-child) {
+      & + .dropdown,
+      & + button,
+      & + input,
+      & + a {
+        margin-left: -1px;
+      }
+    }
+
+    /* Last button is square on the left side */
+    &:last-child:not(:first-child) {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      margin-left: -1px;
+
+      & > .dropdown-actor > ${StyledButton} {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        margin-left: -1px;
+      }
+    }
+  }
 `;

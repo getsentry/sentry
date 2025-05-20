@@ -269,7 +269,7 @@ function ResolveActions({
         itemsHidden={shouldDisplayCta}
         items={items}
         trigger={(triggerProps, isOpen) => (
-          <Button
+          <DropdownTrigger
             {...triggerProps}
             size={size}
             priority={priority}
@@ -381,6 +381,12 @@ const ResolveButton = withChonk(
     box-shadow: none;
 `
 );
+
+const DropdownTrigger = styled(Button)`
+  box-shadow: none;
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-left: none;
+`;
 
 /**
  * Used to hide the list items when prompting to set up releases
