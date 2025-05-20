@@ -50,6 +50,7 @@ export const HeaderButtonContainer = styled('div')`
 export const Body = styled(
   ({
     children,
+    showVerticalScrollbar: _,
     ...props
   }: React.ComponentProps<typeof Panel> & {
     children?: React.ReactNode;
