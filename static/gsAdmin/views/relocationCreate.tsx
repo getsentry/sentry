@@ -42,7 +42,7 @@ function RelocationForm() {
     try {
       // Verify that the promo code exists, has remaining claims, etc.
       const promoCode = formData.get('promo_code');
-      if (promoCode) {
+      if (typeof promoCode === 'string' && promoCode) {
         await promoCodeApi
           .requestPromise(`/promocodes-external/${promoCode}`, {
             method: 'GET',
