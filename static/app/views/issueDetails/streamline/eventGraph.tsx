@@ -560,6 +560,12 @@ export function EventGraph({
             },
           }}
           xAxis={{
+            axisTick: {
+              show: false,
+            },
+            axisLabel: {
+              margin: 8,
+            },
             ...releaseBubbleXAxis,
           }}
           {...(disableZoomNavigation
