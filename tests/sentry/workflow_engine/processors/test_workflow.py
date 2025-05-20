@@ -310,7 +310,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
             "workflow_engine.process_workflows.fired_actions",
             tags={
                 "detector_type": self.error_detector.type,
-                "organization_id": self.error_detector.project.organization_id,
             },
         )
 
