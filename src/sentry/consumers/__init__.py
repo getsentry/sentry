@@ -436,6 +436,11 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
                 is_flag=True,
                 default=False,
             ),
+            click.Option(
+                ["--max-memory-percentage", "max_memory_percentage"],
+                default=1.0,
+                help="Maximum memory usage of the Redis cluster in % (0.0-1.0) before the consumer backpressures.",
+            ),
             *multiprocessing_options(default_max_batch_size=100),
         ],
     },

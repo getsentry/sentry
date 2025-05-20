@@ -172,6 +172,8 @@ def test_basic(buffer: SpansBuffer, spans):
     buffer.done_flush_segments(rv)
     assert buffer.flush_segments(now=30) == {}
 
+    assert list(buffer.get_memory_info())
+
     assert_clean(buffer.client)
 
 
