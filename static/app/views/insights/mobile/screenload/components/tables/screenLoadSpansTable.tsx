@@ -72,7 +72,7 @@ export function ScreenLoadSpansTable({
 
   const queryStringPrimary = useMemo(() => {
     const searchQuery = new MutableSearch([
-      'transaction.op:ui.load',
+      'transaction.op:[ui.load,navigation]',
       `transaction:${transaction}`,
       'has:span.description',
       ...(spanOp

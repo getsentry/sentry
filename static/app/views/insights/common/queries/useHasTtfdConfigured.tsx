@@ -16,7 +16,7 @@ export function useTTFDConfigured(additionalFilters?: string[]) {
 
   const query = new MutableSearch([
     useEap ? 'is_transaction:true' : 'event.type:transaction',
-    'transaction.op:ui.load',
+    'transaction.op:[ui.load,navigation]',
     ...(additionalFilters ?? []),
   ]);
 
