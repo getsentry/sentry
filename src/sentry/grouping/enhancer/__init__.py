@@ -811,7 +811,12 @@ class Enhancements:
     @cached_property
     def base64_string(self) -> str:
         """A base64 string representation of the enhancements object"""
-        base64_bytes = self._get_base64_bytes_from_rules(self.rules)
+        rulesets = [self.rules]
+
+        # For now, since there's only one item being joined, the join is a no-op
+        base64_bytes = BASE64_ENHANCEMENTS_DELIMITER.join(
+            self._get_base64_bytes_from_rules(ruleset) for ruleset in rulesets
+        )
         base64_str = base64_bytes.decode("ascii")
         return base64_str
 
