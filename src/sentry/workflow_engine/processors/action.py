@@ -49,7 +49,7 @@ def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action
                     "action__dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__config"
                 ),
             ),
-            Value("30"),  # default 30
+            Value("0"),  # default 0
         ),
         output_field=IntegerField(),
     )
