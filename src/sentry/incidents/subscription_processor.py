@@ -467,7 +467,10 @@ class SubscriptionProcessor:
                     ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                         # If the value has breached our threshold (above/below)
                         # And the trigger is not yet active
-                        metrics.incr("incidents.alert_rules.threshold.alert")
+                        metrics.incr(
+                            "incidents.alert_rules.threshold.alert",
+                            tags={"detection_type": self.alert_rule.detection_type},
+                        )
                         if features.has(
                             "organizations:workflow-engine-metric-alert-dual-processing-logs",
                             self.subscription.project.organization,
@@ -495,10 +498,7 @@ class SubscriptionProcessor:
                             "organizations:workflow-engine-metric-alert-dual-processing-logs",
                             self.subscription.project.organization,
                         ):
-                            metrics.incr(
-                                "dual_processing.alert_rules.fire",
-                                tags={"detection_type": self.alert_rule.detection_type},
-                            )
+                            metrics.incr("dual_processing.alert_rules.fire")
                         incident_trigger = self.trigger_resolve_threshold(
                             trigger, aggregation_value
                         )
