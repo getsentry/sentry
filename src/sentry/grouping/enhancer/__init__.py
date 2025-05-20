@@ -845,13 +845,16 @@ class Enhancements:
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
             metrics_timer_tags.update({"source": "base64_string", "referrer": referrer})
 
-            bytes_str = (
+            raw_bytes_str = (
                 base64_string.encode("ascii", "ignore")
                 if isinstance(base64_string, str)
                 else base64_string
             )
 
-            unsplit_config = cls._get_config_from_base64_bytes(bytes_str)
+            bytes_strs = [raw_bytes_str]
+            configs = [cls._get_config_from_base64_bytes(bytes_str) for bytes_str in bytes_strs]
+
+            unsplit_config = configs[0]
 
             version = unsplit_config.version
             bases = unsplit_config.bases
