@@ -1,14 +1,14 @@
 import {useCallback} from 'react';
 
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
-import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 function prefixWithTransaction(query: string) {
-  return `transaction:"${query}"`;
+  return `transaction:"${escapeDoubleQuotes(query)}"`;
 }
 
 export function useTransactionNameQuery() {
@@ -21,19 +21,11 @@ export function useTransactionNameQuery() {
 
   const handleSearch = useCallback(
     (searchQuery: string) => {
-      let newQuery = searchQuery.trim();
-
-      // The search input submits raw text if the user does not select a transaction
-      // from the dropdown.
-      if (newQuery && !newQuery.startsWith('transaction:"')) {
-        newQuery = prefixWithTransaction(searchQuery);
-      }
-
       navigate({
         pathname: location.pathname,
         query: {
           ...location.query,
-          query: newQuery || undefined,
+          query: searchQuery.trim() || undefined,
         },
       });
     },
@@ -47,7 +39,7 @@ export function useTransactionNameQuery() {
     [handleSearch]
   );
 
-  const derivedQuery = getTransactionSearchQuery(location, eventView.query);
+  const derivedQuery = eventView.query;
 
   return {
     query: derivedQuery,
