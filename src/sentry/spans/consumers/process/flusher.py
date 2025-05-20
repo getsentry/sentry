@@ -91,12 +91,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         max_flush_segments: int,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
+        if initializer:
+            initializer()
+
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
 
         try:
-            if initializer:
-                initializer()
-
             producer_futures = []
 
             if produce_to_pipe is not None:
@@ -154,6 +154,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 producer.close()
         except KeyboardInterrupt:
             pass
+        except Exception:
+            sentry_sdk.capture_exception()
+            raise
 
     def poll(self) -> None:
         self.next_step.poll()
