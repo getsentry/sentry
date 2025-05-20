@@ -96,9 +96,9 @@ def build_query_params_from_request(
     query = request.GET.get("query", None)
     if query is None:
         query = (
-            DEFAULT_QUERY
-            if not features.has("organizations:issue-taxonomy", organization)
-            else TAXONOMY_DEFAULT_QUERY
+            TAXONOMY_DEFAULT_QUERY
+            if features.has("organizations:issue-taxonomy", organization)
+            else DEFAULT_QUERY
         )
 
     query = query.strip()
