@@ -860,13 +860,19 @@ class Enhancements:
                 else base64_string
             )
 
-            # For now, only one encoded config structure is included in the base64 string, and since
-            # the delimiter consists of characters which can't appear in a base64 string, splitting
-            # like this has the same effect as just putting `raw_bytes_str` into a one-item list
+            # Split the string to get encoded data for each set of rules: unsplit rules (i.e., rules
+            # the way they're stored in project config), classifier rules, and contributes rules.
+            # Older base64 strings - such as those stored in events created before rule-splitting was
+            # introduced - will only have one part and thus will end up unchanged. (The delimiter is
+            # chosen specifically to be a character which can't appear in base64.)
             bytes_strs = raw_bytes_str.split(BASE64_ENHANCEMENTS_DELIMITER)
             configs = [cls._get_config_from_base64_bytes(bytes_str) for bytes_str in bytes_strs]
 
             unsplit_config = configs[0]
+            split_configs = None
+
+            if len(configs) == 3:
+                split_configs = (configs[1], configs[2])
 
             version = unsplit_config.version
             bases = unsplit_config.bases
@@ -876,6 +882,7 @@ class Enhancements:
             return cls(
                 rules=unsplit_config.rules,
                 rust_enhancements=unsplit_config.rust_enhancements,
+                split_enhancement_configs=split_configs,
                 version=version,
                 bases=bases,
             )
