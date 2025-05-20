@@ -65,12 +65,7 @@ export function SubfiltersList() {
           );
         })}
       </div>
-      <PurpleTextButton
-        borderless
-        icon={<IconAdd />}
-        size="xs"
-        onClick={() => addSubfilter()}
-      >
+      <PurpleTextButton borderless icon={<IconAdd />} size="xs" onClick={addSubfilter}>
         {t('Sub-filter')}
       </PurpleTextButton>
     </div>
@@ -139,7 +134,7 @@ function SubfilterRow({
           size="sm"
           icon={<IconDelete />}
           borderless
-          onClick={() => onRemove()}
+          onClick={onRemove}
         />
       </StyledRowLine>
     </RowWrapper>
