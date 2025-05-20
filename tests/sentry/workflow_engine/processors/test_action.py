@@ -4,7 +4,6 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.integrations.base import IntegrationFeatures
-from sentry.models.organization import Organization
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
@@ -105,7 +104,7 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
 class TestIsActionPermitted(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.action._get_integration_features")
     def test_basic(self, mock_get_features):
-        org = Organization(slug="test-org")
+        org = self.create_organization()
 
         # Test non-integration actions (should always be permitted)
         assert is_action_permitted(Action.Type.EMAIL, org)
