@@ -11,7 +11,7 @@ const defaultValues = {
   has_viewed: false,
 };
 
-function mapUser(user: any): Record<string, string[]> {
+function mapUser(user: any): ReplayRecord['tags'] {
   return Object.fromEntries(
     Object.entries(user)
       .filter(([key, value]) => key !== 'display_name' && value)
