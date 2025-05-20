@@ -1,6 +1,7 @@
 import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
-import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
+// @ts-expect-error need to update tsconfig module setting to "bundler" etc
+import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import browserslist from 'browserslist';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
