@@ -5,6 +5,7 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import {TextBadge} from 'sentry/components/workflowEngine/ui/textBadge';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -38,7 +39,7 @@ export default function AutomationBuilder() {
         <StepLead>
           {/* TODO: Only make this a selector of "all" is originally selected */}
           {tct('[when:When] [selector] of the following occur', {
-            when: <Badge />,
+            when: <TextBadge />,
             selector: (
               <EmbeddedWrapper>
                 <EmbeddedSelectField
@@ -107,13 +108,13 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
   const actionFilterBlock = state.actionFilters[groupIndex];
 
   return (
-    <IfThenWrapper key={`actionFilter.${groupIndex}`}>
+    <IfThenWrapper key={`actionFilters.${groupIndex}`}>
       <Step>
         <Flex column gap={space(0.75)}>
           <Flex justify="space-between">
             <StepLead>
               {tct('[if: If] [selector] of these filters match', {
-                if: <Badge />,
+                if: <TextBadge />,
                 selector: (
                   <EmbeddedWrapper>
                     <EmbeddedSelectField
@@ -167,7 +168,7 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
       <Step>
         <StepLead>
           {tct('[then:Then] perform these actions', {
-            then: <Badge />,
+            then: <TextBadge />,
           })}
         </StepLead>
         {/* TODO: add actions dropdown here */}
@@ -200,19 +201,6 @@ const Step = styled(Flex)`
 const StepLead = styled(Flex)`
   align-items: center;
   gap: ${space(0.5)};
-`;
-
-const Badge = styled('span')`
-  display: inline-block;
-  background-color: ${p => p.theme.purple300};
-  padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.white};
-  text-transform: uppercase;
-  text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: 1.5;
 `;
 
 const EmbeddedSelectField = styled(SelectField)`
