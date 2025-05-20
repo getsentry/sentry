@@ -357,7 +357,7 @@ class MonitorConsumerTest(TestCase):
         self.send_checkin(monitor.slug, ts=ts, item_ts=item_ts)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.date_added == ts.replace(tzinfo=UTC)
-        assert checkin.date_clock == item_ts.replace(tzinfo=UTC)
+        assert checkin.date_clock == item_ts.replace(second=0, microsecond=0, tzinfo=UTC)
 
     def test_check_in_date_in_progress(self):
         monitor = self._create_monitor(slug="my-monitor")

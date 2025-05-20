@@ -1,6 +1,6 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
-import type {ButtonProps} from 'sentry/components/core/button';
+import type {DO_NOT_USE_ButtonProps as ButtonProps} from 'sentry/components/core/button/types';
 import type {StrictCSSObject} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
