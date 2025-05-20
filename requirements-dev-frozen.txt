@@ -155,7 +155,7 @@ pytest-rerunfailures==15.0
 pytest-sentry==0.3.0
 pytest-workaround-12888==1.0.0
 pytest-xdist==3.0.2
-python-dateutil==2.9.0
+python-dateutil==2.9.0.post0
 python-rapidjson==1.8
 python-u2flib-server==5.0.0
 python-utils==3.3.3
