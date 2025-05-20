@@ -5,7 +5,8 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import {TextBadge} from 'sentry/components/workflowEngine/ui/textBadge';
+import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
+import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -39,7 +40,7 @@ export default function AutomationBuilder() {
         <StepLead>
           {/* TODO: Only make this a selector of "all" is originally selected */}
           {tct('[when:When] [selector] of the following occur', {
-            when: <TextBadge />,
+            when: <ConditionBadge />,
             selector: (
               <EmbeddedWrapper>
                 <EmbeddedSelectField
@@ -114,7 +115,7 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
           <Flex justify="space-between">
             <StepLead>
               {tct('[if: If] [selector] of these filters match', {
-                if: <TextBadge />,
+                if: <ConditionBadge />,
                 selector: (
                   <EmbeddedWrapper>
                     <EmbeddedSelectField
@@ -140,12 +141,13 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
                 ),
               })}
             </StepLead>
-            <DeleteButton
+            <Button
               aria-label={t('Delete If/Then Block')}
               size="sm"
               icon={<IconDelete />}
               borderless
               onClick={() => actions.removeIf(groupIndex)}
+              className="delete-condition-group"
             />
           </Flex>
           <DataConditionNodeList
@@ -168,7 +170,7 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
       <Step>
         <StepLead>
           {tct('[then:Then] perform these actions', {
-            then: <TextBadge />,
+            then: <ConditionBadge />,
           })}
         </StepLead>
         {/* TODO: add actions dropdown here */}
@@ -186,12 +188,6 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
     </IfThenWrapper>
   );
 }
-
-const PurpleTextButton = styled(Button)`
-  color: ${p => p.theme.purple300};
-  font-weight: normal;
-  padding: 0;
-`;
 
 const Step = styled(Flex)`
   flex-direction: column;
@@ -221,13 +217,11 @@ const IfThenWrapper = styled(Flex)`
   padding: ${space(1.5)};
   padding-top: ${space(1)};
   margin-top: ${space(1)};
-`;
 
-const DeleteButton = styled(Button)`
-  flex-shrink: 0;
-  opacity: 0;
-
-  ${IfThenWrapper}:hover & {
+  .delete-condition-group {
+    opacity: 0;
+  }
+  :hover .delete-condition-group {
     opacity: 1;
   }
 `;

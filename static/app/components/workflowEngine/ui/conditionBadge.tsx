@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-export const TextBadge = styled('span')`
+export const ConditionBadge = styled('span')`
   display: inline-block;
   background-color: ${p => p.theme.purple300};
   padding: 0 ${space(0.75)};

@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
@@ -51,8 +50,8 @@ export function SubfiltersList() {
   }
 
   return (
-    <Flex column>
-      <Flex column>
+    <div>
+      <div>
         {subfilters.map((subfilter: Record<string, any>, i: number) => {
           return (
             <SubfilterRow
@@ -65,7 +64,7 @@ export function SubfiltersList() {
             />
           );
         })}
-      </Flex>
+      </div>
       <PurpleTextButton
         borderless
         icon={<IconAdd />}
@@ -74,7 +73,7 @@ export function SubfiltersList() {
       >
         {t('Sub-filter')}
       </PurpleTextButton>
-    </Flex>
+    </div>
   );
 }
 
@@ -134,8 +133,8 @@ function SubfilterRow({
             });
           }}
         />
-        {t('and')}
-        <DeleteButton
+        {!isLastRow && t('and')}
+        <Button
           aria-label={t('Delete Subfilter')}
           size="sm"
           icon={<IconDelete />}
@@ -159,15 +158,15 @@ const RowWrapper = styled('div')`
 
 const StyledRowLine = styled(RowLine)`
   padding: 3px 0;
-`;
 
-const DeleteButton = styled(Button)`
-  opacity: 0;
+  Button {
+    opacity: 0;
+  }
 
-  ${StyledRowLine}:hover &,
-  ${StyledRowLine}:focus-within &,
-  &:focus {
-    opacity: 1;
+  :hover {
+    Button {
+      opacity: 1;
+    }
   }
 `;
 

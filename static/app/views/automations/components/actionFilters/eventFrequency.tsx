@@ -1,7 +1,6 @@
-import {Flex} from 'sentry/components/container/flex';
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
-import {TextBadge} from 'sentry/components/workflowEngine/ui/textBadge';
+import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -16,15 +15,15 @@ export default function EventFrequencyNode() {
   const hasSubfilters = condition.comparison.filters?.length > 0;
 
   return (
-    <Flex column>
+    <div>
       <RowLine>
         {tct('Number of events in an issue is [select] [where]', {
           select: <ComparisonTypeField />,
-          where: hasSubfilters && <TextBadge>{t('Where')}</TextBadge>,
+          where: hasSubfilters && <ConditionBadge>{t('Where')}</ConditionBadge>,
         })}
       </RowLine>
       <SubfiltersList />
-    </Flex>
+    </div>
   );
 }
 
