@@ -156,7 +156,7 @@ class GitHubEnterpriseIntegration(
 
     @property
     def integration_name(self) -> str:
-        return IntegrationProviderSlug.GITHUB_ENTERPRISE
+        return IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
     def get_client(self):
         if not self.org_integration:
@@ -372,7 +372,7 @@ class InstallationConfigView(PipelineView):
 
 
 class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
-    key = IntegrationProviderSlug.GITHUB_ENTERPRISE
+    key = IntegrationProviderSlug.GITHUB_ENTERPRISE.value
     name = "GitHub Enterprise"
     metadata = metadata
     integration_cls = GitHubEnterpriseIntegration

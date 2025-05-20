@@ -168,7 +168,7 @@ class PagerDutyIntegration(IntegrationInstallation):
 
 
 class PagerDutyIntegrationProvider(IntegrationProvider):
-    key = IntegrationProviderSlug.PAGERDUTY
+    key = IntegrationProviderSlug.PAGERDUTY.value
     name = "PagerDuty"
     metadata = metadata
     features = frozenset([IntegrationFeatures.ALERT_RULE, IntegrationFeatures.INCIDENT_MANAGEMENT])

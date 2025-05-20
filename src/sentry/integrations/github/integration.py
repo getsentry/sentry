@@ -639,7 +639,7 @@ class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
 
 
 class GitHubIntegrationProvider(IntegrationProvider):
-    key = IntegrationProviderSlug.GITHUB
+    key = IntegrationProviderSlug.GITHUB.value
     name = "GitHub"
     metadata = metadata
     integration_cls: type[IntegrationInstallation] = GitHubIntegration

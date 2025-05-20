@@ -118,7 +118,7 @@ class DiscordIntegration(IntegrationInstallation):
 
 
 class DiscordIntegrationProvider(IntegrationProvider):
-    key = IntegrationProviderSlug.DISCORD
+    key = IntegrationProviderSlug.DISCORD.value
     name = "Discord"
     metadata = metadata
     integration_cls = DiscordIntegration

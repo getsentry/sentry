@@ -101,7 +101,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation):
 
 
 class SlackIntegrationProvider(IntegrationProvider):
-    key = IntegrationProviderSlug.SLACK
+    key = IntegrationProviderSlug.SLACK.value
     name = "Slack"
     metadata = metadata
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])

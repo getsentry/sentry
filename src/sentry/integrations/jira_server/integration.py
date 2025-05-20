@@ -1372,7 +1372,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):
-    key = IntegrationProviderSlug.JIRA_SERVER
+    key = IntegrationProviderSlug.JIRA_SERVER.value
     name = "Jira Server"
     metadata = metadata
     integration_cls = JiraServerIntegration

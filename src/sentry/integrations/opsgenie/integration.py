@@ -232,7 +232,7 @@ class OpsgenieIntegration(IntegrationInstallation):
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
-    key = IntegrationProviderSlug.OPSGENIE
+    key = IntegrationProviderSlug.OPSGENIE.value
     name = "Opsgenie"
     metadata = metadata
     integration_cls = OpsgenieIntegration

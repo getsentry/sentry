@@ -399,7 +399,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
 
 class VstsIntegrationProvider(IntegrationProvider):
-    key = IntegrationProviderSlug.AZURE_DEVOPS
+    key = IntegrationProviderSlug.AZURE_DEVOPS.value
     name = "Azure DevOps"
     metadata = metadata
     api_version = "4.1"

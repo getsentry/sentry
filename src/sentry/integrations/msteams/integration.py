@@ -80,7 +80,7 @@ class MsTeamsIntegration(IntegrationInstallation):
 
 
 class MsTeamsIntegrationProvider(IntegrationProvider):
-    key = IntegrationProviderSlug.MSTEAMS
+    key = IntegrationProviderSlug.MSTEAMS.value
     name = "Microsoft Teams"
     can_add = False
     metadata = metadata
