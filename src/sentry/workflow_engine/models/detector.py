@@ -12,6 +12,7 @@ from django.dispatch import receiver
 from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.issues import grouptype
@@ -40,6 +41,9 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # If the detector is not enabled, it will not be evaluated. This is how we "snooze" a detector
     enabled = models.BooleanField(db_default=True)
+
+    # The detector's status - used for tracking deletion state
+    status = models.SmallIntegerField(db_default=ObjectStatus.ACTIVE)
 
     # Optionally set a description of the detector, this will be used in notifications
     description = models.TextField(null=True)
