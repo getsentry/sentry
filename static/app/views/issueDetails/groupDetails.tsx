@@ -60,7 +60,7 @@ import {
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
 } from 'sentry/views/issueDetails/issueDetailsTour';
-import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
+import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
