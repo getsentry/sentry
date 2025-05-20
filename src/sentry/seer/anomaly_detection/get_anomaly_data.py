@@ -5,8 +5,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.utils.types import MetricDetectorUpdate
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
@@ -163,20 +162,17 @@ def get_anomaly_data_from_seer(
     seasonality,
     threshold_type,
     subscription: QuerySubscription,
-    subscription_update: QuerySubscriptionUpdate,
+    subscription_update: MetricDetectorUpdate,
+    source_id,
 ) -> list[TimeSeriesPoint] | None:
-    # TODO: figure out which ID we're using—detector? data condition?
-    idk = 1
     snuba_query: SnubaQuery = subscription.snuba_query
-    # TODO: this needs to be changed to support all types of aggregation value
-    # right now, it's only supporting the most basic aggregation value
-    aggregation_value = get_aggregation_value_helper(subscription_update)
+    aggregation_value = subscription_update["values"]["value"]
 
     extra_data = {
         "subscription_id": subscription.id,
         "organization_id": subscription.project.organization.id,
         "project_id": subscription.project_id,
-        "detector_id": idk,  # some id here
+        "source_id": source_id,
     }
 
     anomaly_detection_config = AnomalyDetectionConfig(
@@ -186,9 +182,9 @@ def get_anomaly_data_from_seer(
         expected_seasonality=seasonality,
     )
     context = AlertInSeer(
-        id=idk,  # some id here
+        id=source_id,
         cur_window=TimeSeriesPoint(
-            timestamp=subscription_update["timestamp"], value=aggregation_value
+            timestamp=subscription_update["timestamp"].timestamp(), value=aggregation_value
         ),
     )
     detect_anomalies_request = DetectAnomaliesRequest(
