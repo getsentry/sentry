@@ -23,11 +23,11 @@ SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 
-SEER_EVALUATION_TO_DETECTOR_PRIORITY = {
-    AnomalyType.HIGH_CONFIDENCE.value: DetectorPriorityLevel.HIGH,
-    AnomalyType.LOW_CONFIDENCE.value: DetectorPriorityLevel.MEDIUM,
-    AnomalyType.NONE.value: DetectorPriorityLevel.OK,
-}
+# SEER_EVALUATION_TO_DETECTOR_PRIORITY = {
+#     AnomalyType.HIGH_CONFIDENCE.value: DetectorPriorityLevel.HIGH,
+#     AnomalyType.LOW_CONFIDENCE.value: DetectorPriorityLevel.MEDIUM,
+#     AnomalyType.NONE.value: DetectorPriorityLevel.OK,
+# }
 
 
 # placeholder until we create this in the workflow engine model
@@ -53,8 +53,12 @@ class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
                 "type": "integer",
                 "enum": [threshold_type.value for threshold_type in AnomalyDetectionThresholdType],
             },
+            "confidence": {
+                "type": "string",
+                "enum": [AnomalyType.HIGH_CONFIDENCE.value, AnomalyType.LOW_CONFIDENCE.value],
+            },
         },
-        "required": ["sensitivity", "seasonality", "threshold_type"],
+        "required": ["sensitivity", "seasonality", "threshold_type", "confidence"],
         "additionalProperties": False,
     }
 
@@ -63,6 +67,7 @@ class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
         sensitivity = comparison["sensitivity"]
         seasonality = comparison["seasonality"]
         threshold_type = comparison["threshold_type"]
+        confidence = comparison["confidence"]
 
         subscription: QuerySubscription = QuerySubscription.objects.get(id=update.source_id)
         data_source = DataSource.objects.filter(
@@ -92,4 +97,4 @@ class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
         elif anomaly_type is None:
             raise DetectorError("Seer response contained no evaluation data")
 
-        return SEER_EVALUATION_TO_DETECTOR_PRIORITY[anomaly_type]
+        return anomaly_type == confidence

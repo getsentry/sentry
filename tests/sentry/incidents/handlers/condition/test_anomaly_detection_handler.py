@@ -54,6 +54,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
                 "sensitivity": AnomalyDetectionSensitivity.MEDIUM.value,
                 "seasonality": AnomalyDetectionSeasonality.AUTO.value,
                 "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW.value,
+                "confidence": AnomalyType.HIGH_CONFIDENCE.value,
             },
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=self.workflow_triggers,
@@ -97,4 +98,4 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             ],
         }
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        self.assert_passes(self.dc, self.data_packet)
+        self.assert_does_not_pass(self.dc, self.data_packet)
