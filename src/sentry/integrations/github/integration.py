@@ -886,6 +886,15 @@ class OAuthLoginView(PipelineView):
 class GithubOrganizationSelection(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         self.active_user_organization = determine_active_organization(request)
+        has_business_plan = (
+            features.has(
+                "organizations:integrations-scm-multi-org",
+                organization=self.active_user_organization.organization,
+                actor=request.user,
+            )
+            if self.active_user_organization is not None
+            else False
+        )
 
         if self.active_user_organization is None or not features.has(
             "organizations:github-multi-org",
@@ -911,7 +920,7 @@ class GithubOrganizationSelection(PipelineView):
             )
 
             if chosen_installation_id := request.GET.get("chosen_installation_id"):
-                if chosen_installation_id == "-1":
+                if chosen_installation_id == "-1" or not has_business_plan:
                     return pipeline.next_step()
 
                 # Verify that the given GH installation belongs to the person installing the pipeline
@@ -935,7 +944,10 @@ class GithubOrganizationSelection(PipelineView):
             return self.render_react_view(
                 request=request,
                 pipeline_name="githubInstallationSelect",
-                props={"installation_info": installation_info},
+                props={
+                    "installation_info": installation_info,
+                    "has_business_plan": has_business_plan,
+                },
             )
 
 
