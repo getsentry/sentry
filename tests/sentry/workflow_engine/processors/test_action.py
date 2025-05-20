@@ -6,7 +6,6 @@ from django.utils import timezone
 from sentry.integrations.base import IntegrationFeatures
 from sentry.models.organization import Organization
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import Feature
 from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 from sentry.workflow_engine.processors.action import (
@@ -103,40 +102,41 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
         )
 
 
-@patch("sentry.workflow_engine.processors.action._get_integration_features")
-def test_is_action_permitted(mock_get_features):
-    org = Organization(slug="test-org")
+class TestIsActionPermitted(BaseWorkflowTest):
+    @patch("sentry.workflow_engine.processors.action._get_integration_features")
+    def test_basic(self, mock_get_features):
+        org = Organization(slug="test-org")
 
-    # Test non-integration actions (should always be permitted)
-    assert is_action_permitted(Action.Type.EMAIL, org)
-    assert is_action_permitted(Action.Type.SENTRY_APP, org)
+        # Test non-integration actions (should always be permitted)
+        assert is_action_permitted(Action.Type.EMAIL, org)
+        assert is_action_permitted(Action.Type.SENTRY_APP, org)
 
-    # Single rule.
-    mock_get_features.return_value = {IntegrationFeatures.ALERT_RULE}
-    with Feature({"organizations:integrations-alert-rule": False}):
-        assert not is_action_permitted(Action.Type.SLACK, org)
+        # Single rule.
+        mock_get_features.return_value = {IntegrationFeatures.ALERT_RULE}
+        with self.feature({"organizations:integrations-alert-rule": False}):
+            assert not is_action_permitted(Action.Type.SLACK, org)
 
-    with Feature({"organizations:integrations-alert-rule": True}):
-        assert is_action_permitted(Action.Type.SLACK, org)
+        with self.feature("organizations:integrations-alert-rule"):
+            assert is_action_permitted(Action.Type.SLACK, org)
 
-    # Multiple required features.
-    mock_get_features.return_value = {
-        IntegrationFeatures.ALERT_RULE,
-        IntegrationFeatures.ISSUE_BASIC,
-    }
-    with Feature(
-        {
-            "organizations:integrations-alert-rule": True,
-            "organizations:integrations-issue-basic": False,
+        # Multiple required features.
+        mock_get_features.return_value = {
+            IntegrationFeatures.ALERT_RULE,
+            IntegrationFeatures.ISSUE_BASIC,
         }
-    ):
-        assert not is_action_permitted(Action.Type.JIRA, org)
+        with self.feature(
+            {
+                "organizations:integrations-alert-rule": True,
+                "organizations:integrations-issue-basic": False,
+            }
+        ):
+            assert not is_action_permitted(Action.Type.JIRA, org)
 
-    # Both need to be enabled for permission.
-    with Feature(
-        {
-            "organizations:integrations-alert-rule": True,
-            "organizations:integrations-issue-basic": True,
-        }
-    ):
-        assert is_action_permitted(Action.Type.JIRA, org)
+        # Both need to be enabled for permission.
+        with self.feature(
+            {
+                "organizations:integrations-alert-rule": True,
+                "organizations:integrations-issue-basic": True,
+            }
+        ):
+            assert is_action_permitted(Action.Type.JIRA, org)
