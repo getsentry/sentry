@@ -59,5 +59,5 @@ export function StorySourceLinks(props: {story: StoryDescriptor}) {
 
 const LastEdited = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.muted};
 `;
