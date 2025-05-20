@@ -51,7 +51,7 @@ export function CachesWidget() {
   const search = new MutableSearch('');
   search.addDisjunctionFilterValues(
     'transaction',
-    cachesRequest.data.map(item => item.transaction)
+    cachesRequest.data.map(item => `"${item.transaction}"`)
   );
 
   const timeSeriesRequest = useTopNSpanEAPSeries(
