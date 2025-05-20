@@ -813,7 +813,9 @@ class Enhancements:
         """A base64 string representation of the enhancements object"""
         rulesets = [self.rules]
 
-        # For now, since there's only one item being joined, the join is a no-op
+        if self.run_split_enhancements:
+            rulesets.extend([self.classifier_rules, self.contributes_rules])
+
         base64_bytes = BASE64_ENHANCEMENTS_DELIMITER.join(
             self._get_base64_bytes_from_rules(ruleset) for ruleset in rulesets
         )
