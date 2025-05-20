@@ -144,32 +144,45 @@ const supportedLocales = localeCatalog.supported_locales;
 const supportedLanguages = supportedLocales.map(localeToLanguage);
 
 // A mapping of chunk groups used for locale code splitting
-const localeChunkGroups: Record<string, OptimizationSplitChunksCacheGroup> = {};
+const cacheGroups: Record<string, OptimizationSplitChunksCacheGroup> = {};
 
-for (const locale of supportedLocales) {
+supportedLocales
   // No need to split the english locale out as it will be completely empty and
   // is not included in the django layout.html.
-  if (locale === 'en') {
-    continue;
-  }
+  .filter(l => l !== 'en')
+  .forEach(locale => {
+    const language = localeToLanguage(locale);
+    const group = `locale/${language}`;
 
-  const language = localeToLanguage(locale);
-  const group = `locale/${language}`;
+    // List of module path tests to group into locale chunks
+    const localeGroupTests = [
+      new RegExp(`locale\\/${locale}\\/.*\\.po$`),
+      new RegExp(`moment\\/locale\\/${language}\\.js$`),
+    ];
 
-  // We are defining a chunk that combines the django language files with
-  // moment's locales as if you want one, you will want the other.
-  //
-  // In the application code you will still need to import via their module
-  // paths and not the chunk name
-  localeChunkGroups[group] = {
-    chunks: 'async',
-    name: group,
-    test: new RegExp(
-      `(locale\\/${locale}\\/.*\\.po$)|(moment\\/locale\\/${language}\\.js$)`
-    ),
-    enforce: true,
-  };
-}
+    // module test taken from [0] and modified to support testing against
+    // multiple expressions.
+    //
+    // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
+    const groupTest: OptimizationSplitChunksCacheGroup['test'] = (module, {chunkGraph}) =>
+      localeGroupTests.some(pattern =>
+        pattern.test(module?.nameForCondition?.() ?? '')
+          ? true
+          : chunkGraph.getModuleChunks(module).some(c => c.name && pattern.test(c.name))
+      );
+
+    // We are defining a chunk that combines the django language files with
+    // moment's locales as if you want one, you will want the other.
+    //
+    // In the application code you will still need to import via their module
+    // paths and not the chunk name
+    cacheGroups[group] = {
+      chunks: 'async',
+      name: group,
+      test: groupTest,
+      enforce: true,
+    };
+  });
 
 const swcReactLoaderConfig: RuleSetRule['options'] = {
   jsc: {
@@ -448,7 +461,7 @@ const appConfig: Configuration = {
       chunks: 'async',
       maxInitialRequests: 10, // (default: 30)
       maxAsyncRequests: 10, // (default: 30)
-      cacheGroups: localeChunkGroups,
+      cacheGroups,
     },
 
     // This only runs in production mode
