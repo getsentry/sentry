@@ -32,7 +32,8 @@ export function DeadRageClicksWidget() {
     sort: '-count_dead_clicks',
     cursor: undefined,
     query: fullQuery,
-    isWidgetData: true,
+    // Setting this to true just strips rage clicks from the data
+    isWidgetData: false,
   });
 
   const isEmpty = !isLoading && data.length === 0;
