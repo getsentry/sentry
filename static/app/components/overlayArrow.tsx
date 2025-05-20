@@ -1,5 +1,6 @@
 import {useId} from 'react';
 import type {PopperProps} from 'react-popper';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -22,37 +23,24 @@ export function OverlayArrow({
   ref,
   ...props
 }: OverlayArrowProps) {
-  /**
-   * SVG height
-   */
+  const theme = useTheme();
+
   const h = Math.round(size * 0.4);
-  /**
-   * SVG width
-   */
   const w = size;
-  /**
-   * SVG stroke width
-   */
   const s = strokeWidth;
-  const arrowPath = [
-    `M 0 ${h - s / 2}`,
-    `C ${w * 0.25} ${h - s / 2} ${w * 0.45} ${s / 2} ${w / 2} ${s / 2}`,
-    `C ${w * 0.55} ${s / 2} ${w * 0.75} ${h - s / 2} ${w} ${h - s / 2}`,
-  ].join('');
+
+  const arrowPath = `
+    M 0 ${h - s / 2},
+    C ${w * 0.25} ${h - s / 2} ${w * 0.45} ${s / 2} ${w / 2} ${s / 2},
+    C ${w * 0.55} ${s / 2} ${w * 0.75} ${h - s / 2} ${w} ${h - s / 2},
+  `;
 
   const strokeMaskId = useId();
   const fillMaskId = useId();
 
   return (
     <Wrap ref={ref} placement={placement} size={size} {...props}>
-      <SVG
-        overflow="visible"
-        width={w}
-        height={h}
-        viewBox={`0 0 ${w} ${h}`}
-        background={background}
-        border={border}
-      >
+      <SVG width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
         <defs>
           <mask id={strokeMaskId}>
             <rect x="0" y={-strokeWidth} width="100%" height="100%" fill="white" />
@@ -64,11 +52,15 @@ export function OverlayArrow({
         </defs>
 
         <path
-          d={`${arrowPath} V ${h} H 0 Z`}
+          d={`${arrowPath} V ${h + 1} H 0 Z`}
           mask={`url(#${fillMaskId})`}
-          className="fill"
+          fill={theme[background] as string}
         />
-        <path d={arrowPath} mask={`url(#${strokeMaskId})`} className="stroke" />
+        <path
+          d={arrowPath}
+          mask={`url(#${strokeMaskId})`}
+          stroke={theme[border] as string}
+        />
       </SVG>
     </Wrap>
   );
@@ -92,16 +84,10 @@ const Wrap = styled('div')<{size: number; placement?: PopperProps<any>['placemen
     `left: 0; transform: translateX(-50%) rotate(-90deg);`}
 `;
 
-const SVG = styled('svg')<{background: ColorOrAlias; border: ColorOrAlias}>`
+const SVG = styled('svg')`
+  overflow: visible;
   position: absolute;
   bottom: 50%;
   fill: none;
   stroke: none;
-
-  path.stroke {
-    stroke: ${p => p.theme[p.border]};
-  }
-  path.fill {
-    fill: ${p => p.theme[p.background]};
-  }
 `;
