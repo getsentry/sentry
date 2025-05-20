@@ -285,6 +285,7 @@ class Dsns(NamedTuple):
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["send_client_reports"] = True
+    sdk_options["add_full_stack"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["before_send"] = before_send
@@ -296,8 +297,6 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
         before_send_log=before_send_log,
         enable_logs=True,
     )
-    # Captured errors will include the full stack trace.
-    sdk_options["add_full_stack"] = True
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
     dsns = Dsns(
