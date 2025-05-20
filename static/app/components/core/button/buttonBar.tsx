@@ -29,7 +29,8 @@ const StyledButtonBar = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
     p.merged &&
     css`
       /* Raised buttons show borders on both sides. Useful to create pill bars */
-      & > .active {
+      & > .active,
+      & > *:focus-within {
         z-index: 2;
       }
 
@@ -60,26 +61,26 @@ const StyledButtonBar = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
 
         /* Middle buttons only need one border so we don't get a double line */
         &:first-child + *:not(:last-child) {
-          margin-left: -1px;
+          transform: translateX(-1px);
         }
 
         /* Middle buttons only need one border so we don't get a double line */
         /* stylelint-disable-next-line no-duplicate-selectors */
         &:not(:last-child):not(:first-child) + * {
-          margin-left: -1px;
+          transform: translateX(-1px);
         }
 
         /* Last button is square on the left side */
         &:last-child:not(:first-child) {
           border-top-left-radius: 0;
           border-bottom-left-radius: 0;
-          margin-left: -1px;
+          transform: translateX(-1px);
 
           & > button,
           & > .dropdown-actor > ${StyledButton} {
             border-top-left-radius: 0;
             border-bottom-left-radius: 0;
-            margin-left: -1px;
+            transform: translateX(-1px);
           }
         }
       }
