@@ -31,7 +31,7 @@ const getChildTransforms = (count: number) => {
     (_, index) => css`
       > *:nth-child(${index + 1}),
       > *:nth-child(${index + 1}) > button {
-        transform: translateX(-${index}px);
+        margin-left: -${index}px;
       }
     `
   );
@@ -54,8 +54,7 @@ const StyledButtonBar = styled('div')<{
     css`
       /* Raised buttons show borders on both sides. Useful to create pill bars */
       & > .active,
-      & > *:focus-within,
-      & > *:focus-within > * {
+      & > *:focus-within {
         z-index: 2;
       }
 
