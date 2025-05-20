@@ -69,7 +69,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles}>
+      <Table ref={tableRef} style={initialTableStyles}>
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {

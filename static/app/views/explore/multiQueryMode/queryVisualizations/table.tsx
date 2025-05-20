@@ -110,7 +110,7 @@ function AggregatesTable({
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles} scrollable height={TABLE_HEIGHT}>
+      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
@@ -241,7 +241,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles} scrollable height={TABLE_HEIGHT}>
+      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {
