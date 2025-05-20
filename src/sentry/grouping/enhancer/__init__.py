@@ -44,6 +44,10 @@ VERSIONS = [
 ]
 LATEST_VERSION = VERSIONS[-1]
 
+# A delimiter to insert between rulesets in the base64 represenation of enhancements (by spec,
+# base64 strings never contain '#')
+BASE64_ENHANCEMENTS_DELIMITER = b"#"
+
 VALID_PROFILING_MATCHER_PREFIXES = (
     "stack.abs_path",
     "path",  # stack.abs_path alias
@@ -851,7 +855,10 @@ class Enhancements:
                 else base64_string
             )
 
-            bytes_strs = [raw_bytes_str]
+            # For now, only one encoded config structure is included in the base64 string, and since
+            # the delimiter consists of characters which can't appear in a base64 string, splitting
+            # like this has the same effect as just putting `raw_bytes_str` into a one-item list
+            bytes_strs = raw_bytes_str.split(BASE64_ENHANCEMENTS_DELIMITER)
             configs = [cls._get_config_from_base64_bytes(bytes_str) for bytes_str in bytes_strs]
 
             unsplit_config = configs[0]
