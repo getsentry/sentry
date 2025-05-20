@@ -20,6 +20,7 @@ import {Actions} from 'sentry/views/discover/table/cellAction';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {
   ref?: React.Ref<HTMLTableElement>;
+  showVerticalScrollbar?: boolean;
 }
 
 export function Table({ref, children, styles, ...props}: TableProps) {

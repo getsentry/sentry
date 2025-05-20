@@ -85,6 +85,7 @@ export function LogsTable({
         styles={initialTableStyles}
         data-test-id="logs-table"
         hideBorder={isTableFrozen}
+        showVerticalScrollbar={isTableFrozen}
       >
         {showHeader ? (
           <TableHead>

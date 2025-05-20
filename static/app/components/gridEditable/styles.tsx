@@ -53,7 +53,7 @@ export const Body = styled(({children, ...props}: any) => (
   </Panel>
 ))`
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: ${props => (props?.showVerticalScrollbar ? 'auto' : 'hidden')};
   z-index: ${Z_INDEX_PANEL};
 `;
 
