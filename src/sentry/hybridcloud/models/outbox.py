@@ -48,6 +48,10 @@ class OutboxFlushError(Exception):
         self.outbox = outbox
 
 
+class OutboxDatabaseError(DatabaseError):
+    pass
+
+
 class InvalidOutboxError(Exception):
     pass
 
@@ -195,15 +199,7 @@ class OutboxBase(Model):
             )
 
         if _outbox_context.flushing_enabled:
-            try:
-                transaction.on_commit(
-                    lambda: self.drain_shard(), using=router.db_for_write(type(self))
-                )
-            except DatabaseError as e:
-                raise OutboxFlushError(
-                    f"Failed to process Outbox, {OutboxCategory(self.category).name} due to database error",
-                    self,
-                ) from e
+            transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
 
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
@@ -333,32 +329,38 @@ class OutboxBase(Model):
         in_test_assert_no_transaction(
             "drain_shard should only be called outside of any active transaction!"
         )
-        # When we are flushing in a local context, we don't care about outboxes created concurrently --
-        # at best our logic depends on previously created outboxes.
-        latest_shard_row: OutboxBase | None = None
-        if not flush_all:
-            latest_shard_row = self.selected_messages_in_shard().last()
-            # If we're not flushing all possible shards, and we don't see any immediate values,
-            # drop.
-            if latest_shard_row is None:
-                return
 
-        shard_row: OutboxBase | None
-        while True:
-            with self.process_shard(latest_shard_row) as shard_row:
-                if shard_row is None:
-                    break
+        try:
+            # When we are flushing in a local context, we don't care about outboxes created concurrently --
+            # at best our logic depends on previously created outboxes.
+            latest_shard_row: OutboxBase | None = None
+            if not flush_all:
+                latest_shard_row = self.selected_messages_in_shard().last()
+                # If we're not flushing all possible shards, and we don't see any immediate values,
+                # drop.
+                if latest_shard_row is None:
+                    return
 
-                if _test_processing_barrier:
-                    _test_processing_barrier.wait()
+            shard_row: OutboxBase | None
+            while True:
+                with self.process_shard(latest_shard_row) as shard_row:
+                    if shard_row is None:
+                        break
 
-                processed = shard_row.process(is_synchronous_flush=not flush_all)
+                    if _test_processing_barrier:
+                        _test_processing_barrier.wait()
 
-                if _test_processing_barrier:
-                    _test_processing_barrier.wait()
+                    processed = shard_row.process(is_synchronous_flush=not flush_all)
 
-                if not processed:
-                    break
+                    if _test_processing_barrier:
+                        _test_processing_barrier.wait()
+
+                    if not processed:
+                        break
+        except DatabaseError as e:
+            raise OutboxDatabaseError(
+                f"Failed to process Outbox, {OutboxCategory(self.category).name} due to database error",
+            ) from e
 
     @classmethod
     def get_shard_depths_descending(cls, limit: int | None = 10) -> list[dict[str, int | str]]:

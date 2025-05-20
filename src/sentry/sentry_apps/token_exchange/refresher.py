@@ -5,7 +5,7 @@ from django.db import router, transaction
 from django.utils.functional import cached_property
 
 from sentry import analytics
-from sentry.hybridcloud.models.outbox import OutboxFlushError
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -40,7 +40,7 @@ class Refresher:
                 self._record_analytics()
                 token = self._create_new_token()
                 return token
-        except OutboxFlushError as e:
+        except OutboxDatabaseError as e:
             context = {
                 "installation_uuid": self.install.uuid,
                 "client_id": self.application.client_id[:SENSITIVE_CHARACTER_LIMIT],
