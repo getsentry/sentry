@@ -11,6 +11,8 @@ def set_project_flag_and_signal(
     project: "Project", flag_name: str, signal: Signal, **kwargs
 ) -> int:
     """Helper function to set a project flag and send a signal."""
+    from sentry.models.project import Project
+
     flag = getattr(Project.flags, flag_name)
 
     # if the flag is already set, we don't need to do anything

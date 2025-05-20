@@ -19,7 +19,8 @@ from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.receivers.features import record_generic_event_processed
-from sentry.receivers.onboarding import first_transaction_received, record_release_received
+from sentry.receivers.onboarding import record_release_received
+from sentry.signals import first_insight_span_received, first_transaction_received
 from sentry.spans.consumers.process_segments.enrichment import (
     match_schemas,
     set_exclusive_time,
@@ -270,5 +271,8 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
     for module, is_module in INSIGHT_MODULE_FILTERS.items():
         if is_module(spans):
             set_project_flag_and_signal(
-                project, INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module], module=module
+                project,
+                INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
+                first_insight_span_received,
+                module=module,
             )
