@@ -813,7 +813,14 @@ class Enhancements:
         """A base64 string representation of the enhancements object"""
         rulesets = [self.rules]
 
-        # For now, since there's only one item being joined, the join is a no-op
+        if self.run_split_enhancements:
+            rulesets.extend([self.classifier_rules, self.contributes_rules])
+
+        # Create a base64 bytestring for each set of rules, and join them with a character we know
+        # can never appear in base64. We do it this way rather than combining all three sets of
+        # rules into a single bytestring because the rust enhancer only knows how to deal with
+        # bytestrings encoding data of the form `[version, bases, rules]` (not
+        # `[version, bases, rules, rules, rules]`).
         base64_bytes = BASE64_ENHANCEMENTS_DELIMITER.join(
             self._get_base64_bytes_from_rules(ruleset) for ruleset in rulesets
         )
