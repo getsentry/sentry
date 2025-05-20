@@ -140,6 +140,11 @@ describe('messageSpanSamplesPanel', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });

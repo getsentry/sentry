@@ -54,6 +54,11 @@ describe('HTTPSamplesPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
     eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
