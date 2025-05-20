@@ -10,7 +10,6 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -103,12 +102,6 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
 
         For example, you might ask 'give me all the details about the span/log with id 01234567'
         """
-
-        if not features.has(
-            "organizations:discover-basic", project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
         serializer = ProjectTraceItemDetailsEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
