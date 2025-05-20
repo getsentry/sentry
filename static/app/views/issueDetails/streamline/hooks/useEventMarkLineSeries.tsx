@@ -32,14 +32,17 @@ export function useCurrentEventMarklineSeries({
     }
 
     const eventDateCreated = new Date(event.dateCreated!).getTime();
-    const closestEventSeries =
-      eventSeries.length > 0
-        ? eventSeries.reduce((prev, curr) => {
-            const prevDiff = Math.abs(prev.name - eventDateCreated);
-            const currDiff = Math.abs(curr.name - eventDateCreated);
-            return currDiff < prevDiff ? curr : prev;
-          })
-        : undefined;
+    const closestEventSeries = eventSeries.reduce<
+      {name: number; value: number} | undefined
+    >((acc, curr) => {
+      // Find the first bar that would contain the current event
+      if (curr.value && curr.name <= eventDateCreated) {
+        if (!acc || curr.name > acc.name) {
+          return curr;
+        }
+      }
+      return acc;
+    }, undefined);
 
     if (!closestEventSeries) {
       return undefined;
