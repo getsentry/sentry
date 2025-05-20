@@ -204,7 +204,7 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
         />
         <ProfilingDetailsListItem margin="none">
           <ExportProfileButton
-            variant="zero"
+            size="zero"
             eventId={params.eventId}
             projectId={params.projectId}
             orgId={orgSlug}

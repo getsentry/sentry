@@ -205,7 +205,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         />
         <ProfilingDetailsListItem margin="none">
           <ExportProfileButton
-            variant="zero"
+            size="zero"
             eventId={params.eventId}
             projectId={params.projectId}
             orgId={orgSlug}
