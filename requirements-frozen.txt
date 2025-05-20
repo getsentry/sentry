@@ -101,7 +101,7 @@ pycparser==2.21
 pydantic==1.10.20
 pyjwt==2.4.0
 pymemcache==4.0.0
-python-dateutil==2.9.0
+python-dateutil==2.9.0.post0
 python-rapidjson==1.8
 python-u2flib-server==5.0.0
 python-utils==3.3.3
