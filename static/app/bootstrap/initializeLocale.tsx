@@ -20,7 +20,10 @@ async function getTranslations(language: string) {
   }
 
   try {
-    return await import(`sentry-locale/${language}/LC_MESSAGES/django.po`);
+    return await import(
+      /* webpackMode: "lazy" */
+      `sentry-locale/${language}/LC_MESSAGES/django.po`
+    );
   } catch (e) {
     Sentry.withScope(scope => {
       scope.setLevel('warning');
@@ -71,7 +74,10 @@ export async function initializeLocale(config: Config) {
 
     // No need to import english
     if (languageCode !== 'en') {
-      await import(`moment/locale/${languageCode}`);
+      await import(
+        /* webpackMode: "lazy" */
+        `moment/locale/${languageCode}`
+      );
       moment.locale(languageCode);
     }
   } catch (err) {
