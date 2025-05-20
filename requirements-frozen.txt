@@ -148,7 +148,7 @@ tldextract==5.1.2
 toronado==0.1.0
 tqdm==4.66.4
 typing-extensions==4.12.0
-tzdata==2023.3
+tzdata==2025.2
 ua-parser==0.10.0
 unidiff==0.7.4
 uritemplate==4.1.1
