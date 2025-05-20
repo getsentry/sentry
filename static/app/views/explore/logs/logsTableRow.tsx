@@ -284,7 +284,7 @@ function LogRowDetails({
     typeof severityText === 'string' ? severityText : null
   );
   const missingLogId = !dataRow[OurLogKnownFieldKey.ID];
-  const {data, isPending} = useExploreLogsTableRow({
+  const {data, isPending, isError} = useExploreLogsTableRow({
     logId: String(dataRow[OurLogKnownFieldKey.ID] ?? ''),
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID] ?? ''),
@@ -298,7 +298,7 @@ function LogRowDetails({
       [OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP],
     }) ?? {};
 
-  if (missingLogId) {
+  if (missingLogId || isError) {
     return (
       <DetailsWrapper>
         <EmptyStreamWrapper>
@@ -307,6 +307,7 @@ function LogRowDetails({
       </DetailsWrapper>
     );
   }
+
   return (
     <DetailsWrapper>
       <LogDetailTableBodyCell colSpan={fields.length}>
