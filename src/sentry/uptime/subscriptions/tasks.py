@@ -4,6 +4,7 @@ import logging
 from datetime import timedelta
 from uuid import uuid4
 
+from django.db import router
 from django.utils import timezone
 
 from sentry.tasks.base import instrumented_task
@@ -12,6 +13,7 @@ from sentry.taskworker.namespaces import uptime_tasks
 from sentry.taskworker.retry import Retry
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
+    ProjectUptimeSubscription,
     UptimeRegionScheduleMode,
     UptimeStatus,
     UptimeSubscription,
@@ -20,7 +22,9 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.types import CheckConfig, ProjectUptimeSubscriptionMode
 from sentry.utils import metrics
+from sentry.utils.db import atomic_transaction
 from sentry.utils.query import RangeQuerySetWrapper
+from sentry.workflow_engine.models.detector import Detector
 
 logger = logging.getLogger(__name__)
 
@@ -232,7 +236,14 @@ def broken_monitor_checker(**kwargs):
         detector = get_detector(uptime_subscription)
         assert detector
         if detector.config["mode"] == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE:
-            disable_uptime_detector(detector)
-            count += 1
+            with atomic_transaction(
+                using=(
+                    router.db_for_write(UptimeSubscription),
+                    router.db_for_write(ProjectUptimeSubscription),
+                    router.db_for_write(Detector),
+                )
+            ):
+                disable_uptime_detector(detector)
+                count += 1
 
     metrics.incr("uptime.subscriptions.disable_broken", amount=count, sample_rate=1.0)
