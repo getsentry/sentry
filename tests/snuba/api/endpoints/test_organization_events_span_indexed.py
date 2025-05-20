@@ -4618,3 +4618,31 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert len(data) == 1
         assert data[0]["count_if(release,foo)"] == 1
         assert meta["dataset"] == self.dataset
+
+    def test_span_ops_breakdown(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {"span_ops.ops.http": {"value": 100}},
+                    },
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["spans.http"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["spans.http"] == 100
+        assert meta["dataset"] == self.dataset
