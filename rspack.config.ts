@@ -493,7 +493,7 @@ if (
     appConfig.plugins?.push(new ReactRefreshRspackPlugin());
 
     // TODO: figure out why defining output breaks hot reloading
-    if (IS_UI_DEV_ONLY && !IS_PRODUCTION) {
+    if (IS_UI_DEV_ONLY) {
       appConfig.output = {};
     }
   }
