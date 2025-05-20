@@ -520,7 +520,7 @@ class RegionOutboxTest(TestCase):
             assert RegionOutbox.objects.count() == 0
 
     @patch("sentry.hybridcloud.models.outbox.OutboxBase.process_coalesced")
-    def test_catches_random_database_errors(self, mock_process) -> None:
+    def test_catches_random_database_errors(self, mock_process: Mock) -> None:
         mock_process.side_effect = OperationalError("ruh roh")
 
         with pytest.raises(OutboxDatabaseError) as e:

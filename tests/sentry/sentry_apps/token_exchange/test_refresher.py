@@ -138,10 +138,8 @@ class TestRefresher(TestCase):
 
     def test_returns_token_on_outbox_error(self):
         # Mock the transaction to raise OperationalError after token creation
-        with patch(
-            "sentry.hybridcloud.models.outbox.OutboxBase.process_coalesced"
-        ) as mock_transaction:
-            mock_transaction.atomic.side_effect = OperationalError("Outbox issue")
+        with patch("sentry.hybridcloud.models.outbox.OutboxBase.process_coalesced") as mock_process:
+            mock_process.side_effect = OperationalError("Outbox issue")
 
             # The refresher should return the token even though there was an error
             token = self.refresher.run()
