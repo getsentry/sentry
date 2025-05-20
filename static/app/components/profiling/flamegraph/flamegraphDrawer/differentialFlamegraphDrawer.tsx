@@ -216,30 +216,39 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
           <LayoutSelectionContainer>
             <Tooltip title={t('Table left')} skipWrapper>
               <StyledButton
+                // @ts-expect-error transparent is not a valid priority in legacy UI
+                priority={theme.isChonk ? 'transparent' : undefined}
                 active={flamegraphPreferences.layout === 'table left'}
                 onClick={onTableLeftClick}
                 title={t('Table left')}
-              >
-                <IconPanel size="xs" direction="left" />
-              </StyledButton>
+                aria-label={t('Table left')}
+                size="xs"
+                icon={<IconPanel direction="left" />}
+              />
             </Tooltip>
             <Tooltip title={t('Table bottom')} skipWrapper>
               <StyledButton
+                // @ts-expect-error transparent is not a valid priority in legacy UI
+                priority={theme.isChonk ? 'transparent' : undefined}
                 active={flamegraphPreferences.layout === 'table bottom'}
                 onClick={onTableBottomClick}
                 title={t('Table bottom')}
-              >
-                <IconPanel size="xs" direction="down" />
-              </StyledButton>
+                aria-label={t('Table bottom')}
+                size="xs"
+                icon={<IconPanel direction="down" />}
+              />
             </Tooltip>
             <Tooltip title={t('Table right')} skipWrapper>
               <StyledButton
+                // @ts-expect-error transparent is not a valid priority in legacy UI
+                priority={theme.isChonk ? 'transparent' : undefined}
                 active={flamegraphPreferences.layout === 'table right'}
                 onClick={onTableRightClick}
                 title={t('Table right')}
-              >
-                <IconPanel size="xs" direction="right" />
-              </StyledButton>
+                aria-label={t('Table right')}
+                size="xs"
+                icon={<IconPanel direction="right" />}
+              />
             </Tooltip>
           </LayoutSelectionContainer>
         </ProfilingDetailsListItem>
@@ -358,6 +367,7 @@ const ProfilingDetailsListItem = styled('li')<{
   margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
 
   button {
+    height: 100%;
     border: none;
     border-top: 2px solid transparent;
     border-bottom: 2px solid transparent;

@@ -15,7 +15,6 @@ interface ExportProfileButtonProps
   orgId: string;
   projectId: string | undefined;
   children?: React.ReactNode;
-  variant?: 'zero';
 }
 
 export function ExportProfileButton(props: ExportProfileButtonProps) {
@@ -33,7 +32,7 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
 
   const title = t('Export Profile');
 
-  return props.variant === 'zero' ? (
+  return props.size === 'zero' ? (
     <DownloadButton href={href} download={download} {...props}>
       {props.children}
       <IconDownload size="xs" />
@@ -44,7 +43,7 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
       title={title}
       href={href}
       download={download}
-      size="zero"
+      size="xs"
       {...props}
     >
       {props.children}
