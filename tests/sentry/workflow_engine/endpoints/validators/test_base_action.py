@@ -1,7 +1,6 @@
-from unittest import TestCase, mock
+from unittest import mock
 
-from sentry.models.organization import Organization
-from sentry.testutils.helpers.features import Feature
+from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
 from tests.sentry.workflow_engine.test_base import MockActionHandler
@@ -88,7 +87,7 @@ class TestBaseActionValidator(TestCase):
         assert result is False
 
     def test_validate_type__action_gated(self, mock_action_handler_get):
-        organization = Organization(slug="test-org")
+        organization = self.create_organization()
 
         def make_validator():
             return BaseActionValidator(
@@ -100,10 +99,10 @@ class TestBaseActionValidator(TestCase):
             )
 
         validator = make_validator()
-        with Feature({"organizations:integrations-alert-rule": False}):
+        with self.feature({"organizations:integrations-alert-rule": False}):
             assert not validator.is_valid()
 
         # Exact same one, but new, because validation is cached.
         validator2 = make_validator()
-        with Feature({"organizations:integrations-alert-rule": True}):
+        with self.feature("organizations:integrations-alert-rule"):
             assert validator2.is_valid()
