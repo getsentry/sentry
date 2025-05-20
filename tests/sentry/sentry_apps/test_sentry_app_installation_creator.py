@@ -148,4 +148,4 @@ class TestCreator(TestCase):
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
         proxy_user = User.objects.get(id=install.sentry_app.proxy_user.id)
-        assert proxy_user.email == f"{proxy_user.id}@proxy-user.sentry.io"
+        assert proxy_user.email == f"{proxy_user.username}@proxy-user.sentry.io"
