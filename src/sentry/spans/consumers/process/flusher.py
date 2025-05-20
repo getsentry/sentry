@@ -5,6 +5,7 @@ import time
 from collections.abc import Callable
 
 import rapidjson
+import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
@@ -48,6 +49,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.next_step = next_step
 
         self.stopped = multiprocessing.Value("i", 0)
+        self.redis_was_full = False
         self.current_drift = multiprocessing.Value("i", 0)
         self.should_backpressure = multiprocessing.Value("i", 0)
 
@@ -89,6 +91,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         max_flush_segments: int,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
+        sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
+
         try:
             if initializer:
                 initializer()
@@ -165,31 +169,49 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 self.process.start()
                 self.process_restarts += 1
             else:
-                raise RuntimeError("flusher process is dead")
+                raise RuntimeError("flusher process has crashed")
 
-        # Execute this to record metrics.
-        self.buffer.get_stored_segments()
+        self.buffer.record_stored_segments()
 
+        # We pause insertion into Redis if the flusher is not making progress
+        # fast enough. We could backlog into Redis, but we assume, despite best
+        # efforts, it is still always going to be less durable than Kafka.
+        # Minimizing our Redis memory usage also makes COGS easier to reason
+        # about.
+        #
+        # should_backpressure is true if there are many segments to flush, but
+        # the flusher can't get all of them out.
         if self.should_backpressure.value:
             metrics.incr("sentry.spans.buffer.flusher.backpressure")
             raise MessageRejected()
 
+        # We set the drift. The backpressure based on redis memory comes after.
+        # If Redis is full for a long time, the drift will grow into a large
+        # negative value, effectively pausing flushing as well.
         if isinstance(message.payload, int):
-            self.current_drift.value = message.payload - int(time.time())
+            self.current_drift.value = drift = message.payload - int(time.time())
+            metrics.timing("sentry.spans.buffer.flusher.drift", drift)
 
+        # We also pause insertion into Redis if Redis is too full. In this case
+        # we cannot allow the flusher to progress either, as it would write
+        # partial/fragmented segments to buffered-segments topic. We have to
+        # wait until the situation is improved manually.
         if self.max_memory_percentage < 1.0:
             memory_infos = list(self.buffer.get_memory_info())
             used = sum(x.used for x in memory_infos)
             available = sum(x.available for x in memory_infos)
             if available > 0 and used / available > self.max_memory_percentage:
-                logger.fatal("Pausing consumer due to Redis being full")
+                if not self.redis_was_full:
+                    logger.fatal("Pausing consumer due to Redis being full")
                 metrics.incr("sentry.spans.buffer.flusher.hard_backpressure")
+                self.redis_was_full = True
                 # Pause consumer if Redis memory is full. Because the drift is
                 # set before we emit backpressure, the flusher effectively
                 # stops as well. Alternatively we may simply crash the consumer
                 # but this would also trigger a lot of rebalancing.
                 raise MessageRejected()
 
+        self.redis_was_full = False
         self.next_step.submit(message)
 
     def terminate(self) -> None:

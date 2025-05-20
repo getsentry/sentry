@@ -307,7 +307,7 @@ class SpansBuffer:
 
         return trees
 
-    def get_stored_segments(self) -> int:
+    def record_stored_segments(self):
         with metrics.timer("spans.buffer.get_stored_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
@@ -324,8 +324,6 @@ class SpansBuffer:
                 queue_size,
                 tags={"shard_i": shard_i},
             )
-
-        return sum(result)
 
     def get_memory_info(self) -> Generator[ServiceMemory]:
         return iter_cluster_memory_usage(self.client)
