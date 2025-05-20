@@ -9,6 +9,7 @@ from typing import IO, Any
 import click
 from django.conf import settings
 
+from sentry.options.rollout import in_random_rollout
 from sentry.silo.patches.silo_aware_transaction_patch import patch_silo_aware_atomic
 from sentry.utils import warnings
 from sentry.utils.sdk import configure_sdk
@@ -373,6 +374,8 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     bind_cache_to_option_store()
 
+    redirect_imports_for_sentry_sdk_alpha()
+
     register_plugins(settings)
 
     initialize_receivers()
@@ -701,3 +704,45 @@ def import_grouptype() -> None:
     from sentry.issues.grouptype import import_grouptype
 
     import_grouptype()
+
+
+def redirect_imports_for_sentry_sdk_alpha():
+    """
+    Patch the Python import system to redirect imports of sentry_sdk to sentry_sdk_alpha based on a Sentry option.
+    This allows us to gradually roll out the alpha version of the SDK to a subset of users.
+    """
+
+    class ImportRedirector(importlib.abc.MetaPathFinder, importlib.abc.Loader):
+        def __init__(self, original_module, target_module):
+            self.original_module = original_module
+            self.target_module = target_module
+
+        def find_spec(self, fullname, path, target=None):
+            if fullname == self.original_module:
+                # Create a spec for the target module
+                spec = importlib.machinery.ModuleSpec(
+                    fullname,
+                    self,
+                    origin=f"redirected from {self.original_module} to {self.target_module}",
+                )
+                return spec
+            return None
+
+        def create_module(self, spec):
+            return importlib.import_module(self.target_module)
+
+        def exec_module(self, module):
+            pass
+
+    def redirect_import(original_module, target_module):
+        redirector = ImportRedirector(original_module, target_module)
+        sys.meta_path.insert(0, redirector)
+        # TODO: Not sure the original module should be deleted....
+        # iterating over a copy to be able to delete from the original
+        for cached_module in sys.modules.copy():
+            if cached_module.startswith(original_module):
+                # cleaning up cache if the module is already imported
+                del sys.modules[cached_module]
+
+    if in_random_rollout("sentry-sdk.use-python-sdk-alpha"):
+        redirect_import("sentry_sdk", "sentry_sdk_alpha")

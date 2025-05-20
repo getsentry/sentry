@@ -7,7 +7,6 @@ from collections.abc import MutableSequence, Sequence
 from typing import NoReturn
 
 import click
-import sentry_sdk
 
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
@@ -174,6 +173,8 @@ def devserver(
     taskworker_scheduler: bool,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
+    import sentry_sdk
+
     sentry_sdk.init(
         dsn=os.environ.get("SENTRY_DEVSERVICES_DSN", ""),
         traces_sample_rate=1.0,

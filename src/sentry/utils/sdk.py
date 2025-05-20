@@ -311,6 +311,8 @@ def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
     """
+    import sentry_sdk
+
     sdk_options, dsns = _get_sdk_options()
     if settings.SPOTLIGHT:
         sdk_options["spotlight"] = (
@@ -486,7 +488,7 @@ def configure_sdk():
             LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
             RustInfoIntegration(),
             RedisIntegration(),
-            ThreadingIntegration(propagate_hub=True),
+            ThreadingIntegration(),
         ],
         **sdk_options,
     )

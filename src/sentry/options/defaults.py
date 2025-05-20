@@ -2373,6 +2373,11 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Gradually roll out Python SDK alpha version for dogfooding
+# TODO-anton: set to a sane value
+register(
+    "sentry-sdk.use-python-sdk-alpha", default=1.0, type=Float, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 
 register(
     # Lists the shared resource ids we want to account usage for.
