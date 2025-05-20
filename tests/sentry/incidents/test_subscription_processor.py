@@ -1075,7 +1075,11 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             [
                 call(
                     "incidents.alert_rules.threshold.alert",
-                    tags={"detection_type": "static", "organization_id": rule.organization_id},
+                    tags={"detection_type": "static"},
+                ),
+                call(
+                    "dual_processing.alert_rules.fire",
+                    tags={"detection_type": "static"},
                 ),
                 call("incidents.alert_rules.trigger", tags={"type": "fire"}),
             ],
@@ -1271,12 +1275,20 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             [
                 call(
                     "incidents.alert_rules.threshold.alert",
-                    tags={"detection_type": "static", "organization_id": rule.organization_id},
+                    tags={"detection_type": "static"},
+                ),
+                call(
+                    "dual_processing.alert_rules.fire",
+                    tags={"detection_type": "static"},
                 ),
                 call("incidents.alert_rules.trigger", tags={"type": "fire"}),
                 call(
                     "incidents.alert_rules.threshold.resolve",
-                    tags={"detection_type": "static", "organization_id": rule.organization_id},
+                    tags={"detection_type": "static"},
+                ),
+                call(
+                    "dual_processing.alert_rules.fire",
+                    tags={"detection_type": "static"},
                 ),
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ]
