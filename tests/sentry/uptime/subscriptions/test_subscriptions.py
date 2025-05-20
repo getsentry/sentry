@@ -398,6 +398,30 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
         assert detector
         assert not detector.enabled
 
+    def test_create_manual_removes_onboarding(self):
+        assert self.organization.update_option("sentry:uptime_autodetection", True)
+        onboarding_monitor = create_project_uptime_subscription(
+            self.project,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+        )
+        assert self.organization.get_option("sentry:uptime_autodetection")
+
+        create_project_uptime_subscription(
+            self.project,
+            self.environment,
+            url="https://sentry.io/manual",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=ProjectUptimeSubscriptionMode.MANUAL,
+        )
+        assert not self.organization.get_option("sentry:uptime_autodetection")
+        with pytest.raises(ProjectUptimeSubscription.DoesNotExist):
+            onboarding_monitor.refresh_from_db()
+
 
 class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
     def test(self):
