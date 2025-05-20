@@ -1079,7 +1079,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 ),
                 call(
                     "dual_processing.alert_rules.fire",
-                    tags={"detection_type": "static"},
                 ),
                 call("incidents.alert_rules.trigger", tags={"type": "fire"}),
             ],
@@ -1279,7 +1278,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 ),
                 call(
                     "dual_processing.alert_rules.fire",
-                    tags={"detection_type": "static"},
                 ),
                 call("incidents.alert_rules.trigger", tags={"type": "fire"}),
                 call(
@@ -1288,7 +1286,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 ),
                 call(
                     "dual_processing.alert_rules.fire",
-                    tags={"detection_type": "static"},
                 ),
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ]
