@@ -10,7 +10,7 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export interface UseDetectorsQueryOptions {
+interface UseDetectorsQueryOptions {
   query?: string;
   sortBy?: string;
 }
@@ -22,7 +22,7 @@ export function useDetectorsQuery(_options: UseDetectorsQueryOptions = {}) {
   });
 }
 
-export const makeDetectorQueryKey = (orgSlug: string, detectorId = ''): [url: string] => [
+const makeDetectorQueryKey = (orgSlug: string, detectorId = ''): [url: string] => [
   `/organizations/${orgSlug}/detectors/${detectorId ? `${detectorId}/` : ''}`,
 ];
 

@@ -1,12 +1,5 @@
 import type {ReactNode} from 'react';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {createContext, useCallback, useMemo, useState} from 'react';
 import type {Location} from 'history';
 import sortBy from 'lodash/sortBy';
 
@@ -291,19 +284,3 @@ function internalToExternalState({
 }
 
 export default ReplayTransactionContext;
-
-export const useFetchTransactions = () => {
-  const {fetchTransactionData, state} = useContext(TxnContext);
-
-  useEffect(() => {
-    if (!state.isFetching && state.traces === undefined) {
-      fetchTransactionData();
-    }
-  }, [fetchTransactionData, state]);
-};
-
-export const useTransactionData = () => {
-  const {eventView, state} = useContext(TxnContext);
-  const data = useMemo(() => ({eventView, state}), [eventView, state]);
-  return data;
-};

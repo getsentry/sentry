@@ -217,6 +217,7 @@ function buildRequestUrl(baseUrl: string, path: string, options: RequestOptions)
 /**
  * Check if the API response says project has been renamed.  If so, redirect
  * user to new project slug
+ * @public used in __mocks__/api.tsx with jest.requireActual
  */
 // TODO(ts): refine this type later
 export function hasProjectBeenRenamed(response: ResponseMeta) {
