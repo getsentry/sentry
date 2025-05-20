@@ -320,7 +320,11 @@ const HeaderContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.header};
 `;
 
-export function IssuesWidget() {
+type IssuesWidgetProps = {
+  search?: MutableSearch;
+};
+
+export function IssuesWidget({search}: IssuesWidgetProps) {
   const location = useLocation();
   const {query} = useTransactionNameQuery();
   const queryWithDefault = new MutableSearch(['is:unresolved', 'event.type:error']);
@@ -333,7 +337,7 @@ export function IssuesWidget() {
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
-    query: queryWithDefault.formatString(),
+    query: search?.formatString() ?? queryWithDefault.formatString(),
     sort: 'freq',
   };
 
