@@ -695,12 +695,7 @@ if (IS_UI_DEV_ONLY) {
       rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
     },
   };
-  // Use named chunks if building for vercel previews
-  if (!IS_PRODUCTION) {
-    appConfig.optimization = {
-      runtimeChunk: 'single',
-    };
-  }
+  appConfig.optimization!.runtimeChunk = 'single';
 }
 
 if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
