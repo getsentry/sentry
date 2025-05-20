@@ -867,6 +867,10 @@ class Enhancements:
             configs = [cls._get_config_from_base64_bytes(bytes_str) for bytes_str in bytes_strs]
 
             unsplit_config = configs[0]
+            split_configs = None
+
+            if len(configs) == 3:
+                split_configs = (configs[1], configs[2])
 
             version = unsplit_config.version
             bases = unsplit_config.bases
@@ -876,6 +880,7 @@ class Enhancements:
             return cls(
                 rules=unsplit_config.rules,
                 rust_enhancements=unsplit_config.rust_enhancements,
+                split_enhancement_configs=split_configs,
                 version=version,
                 bases=bases,
             )
