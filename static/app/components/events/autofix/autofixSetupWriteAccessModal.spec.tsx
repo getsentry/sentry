@@ -54,7 +54,7 @@ describe('AutofixSetupWriteAccessModal', function () {
 
     expect(
       screen.getByRole('button', {name: 'Install the Seer GitHub App'})
-    ).toHaveAttribute('href', 'https://github.com/apps/sentry-autofix/installations/new');
+    ).toHaveAttribute('href', 'https://github.com/apps/seer-by-sentry/installations/new');
   });
 
   it('displays success text when installed repos for github app text', async function () {
