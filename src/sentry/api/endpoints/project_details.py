@@ -569,6 +569,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked`.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_elevated_scopes = request.access and (

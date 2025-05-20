@@ -302,6 +302,9 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         Retrieve a list of saved queries that are associated with the given organization.
         """
 
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
@@ -464,6 +467,9 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         """
         Create a new trace explorersaved query for the given organization.
         """
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 

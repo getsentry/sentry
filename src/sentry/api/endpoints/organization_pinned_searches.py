@@ -40,6 +40,9 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPinnedSearchPermission,)
 
     def put(self, request: Request, organization) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         serializer = OrganizationSearchSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -91,6 +94,9 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
         return Response(serialize(pinned_search, request.user), status=201)
 
     def delete(self, request: Request, organization) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         try:
             search_type = SearchType(int(request.data.get("type", 0)))
         except ValueError as e:

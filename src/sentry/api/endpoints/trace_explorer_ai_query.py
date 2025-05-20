@@ -65,6 +65,9 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
         """
         Checks if we are able to run Autofix on the given group.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         project_ids = [int(x) for x in request.data.get("project_ids", [])]
         natural_language_query = request.data.get("natural_language_query")
 
