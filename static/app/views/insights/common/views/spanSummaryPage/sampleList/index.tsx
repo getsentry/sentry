@@ -25,9 +25,11 @@ import type {
   NonDefaultSpanSampleFields,
   SpanSample,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
+import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
@@ -48,6 +50,7 @@ type Props = {
 export function SampleList({groupId, moduleName, transactionRoute, referrer}: Props) {
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
+  const useEap = useInsightsEap();
 
   const {
     transaction: transactionName,
@@ -149,62 +152,65 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   return (
     <PageAlertProvider>
-      <EventDrawerHeader>
-        <SampleDrawerHeaderTransaction
-          project={project}
-          transaction={transactionName}
-          transactionMethod={transactionMethod}
-        />
-      </EventDrawerHeader>
-
-      <SampleDrawerBody>
-        <PageAlert />
-
-        <SampleInfo
-          groupId={groupId}
-          transactionName={transactionName}
-          transactionMethod={transactionMethod}
-          subregions={subregions}
-        />
-
-        <DurationChart
-          groupId={groupId}
-          transactionName={transactionName}
-          transactionMethod={transactionMethod}
-          subregions={subregions}
-          additionalFields={additionalFields}
-          onClickSample={handleClickSample}
-          onMouseOverSample={handleMouseOverSample}
-          onMouseLeaveSample={handleMouseLeaveSample}
-          spanSearch={spanSearch}
-          highlightedSpanId={highlightedSpanId}
-        />
-
-        <StyledSearchBar>
-          <SpanSearchQueryBuilder
-            projects={selection.projects}
-            initialQuery={spanSearchQuery ?? ''}
-            onSearch={handleSearch}
-            placeholder={t('Search for span attributes')}
-            searchSource={`${moduleName}-sample-panel`}
+      <InsightsSpanTagProvider>
+        <EventDrawerHeader>
+          <SampleDrawerHeaderTransaction
+            project={project}
+            transaction={transactionName}
+            transactionMethod={transactionMethod}
           />
-        </StyledSearchBar>
+        </EventDrawerHeader>
 
-        <SampleTable
-          highlightedSpanId={highlightedSpanId}
-          transactionMethod={transactionMethod}
-          onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
-          onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
-          groupId={groupId}
-          moduleName={moduleName}
-          transactionName={transactionName}
-          subregions={subregions}
-          spanSearch={spanSearch}
-          columnOrder={columnOrder}
-          additionalFields={additionalFields}
-          referrer={referrer}
-        />
-      </SampleDrawerBody>
+        <SampleDrawerBody>
+          <PageAlert />
+
+          <SampleInfo
+            groupId={groupId}
+            transactionName={transactionName}
+            transactionMethod={transactionMethod}
+            subregions={subregions}
+          />
+
+          <DurationChart
+            groupId={groupId}
+            transactionName={transactionName}
+            transactionMethod={transactionMethod}
+            subregions={subregions}
+            additionalFields={additionalFields}
+            onClickSample={handleClickSample}
+            onMouseOverSample={handleMouseOverSample}
+            onMouseLeaveSample={handleMouseLeaveSample}
+            spanSearch={spanSearch}
+            highlightedSpanId={highlightedSpanId}
+          />
+
+          <StyledSearchBar>
+            <SpanSearchQueryBuilder
+              projects={selection.projects}
+              initialQuery={spanSearchQuery ?? ''}
+              onSearch={handleSearch}
+              placeholder={t('Search for span attributes')}
+              searchSource={`${moduleName}-sample-panel`}
+              useEap={useEap}
+            />
+          </StyledSearchBar>
+
+          <SampleTable
+            highlightedSpanId={highlightedSpanId}
+            transactionMethod={transactionMethod}
+            onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
+            onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
+            groupId={groupId}
+            moduleName={moduleName}
+            transactionName={transactionName}
+            subregions={subregions}
+            spanSearch={spanSearch}
+            columnOrder={columnOrder}
+            additionalFields={additionalFields}
+            referrer={referrer}
+          />
+        </SampleDrawerBody>
+      </InsightsSpanTagProvider>
     </PageAlertProvider>
   );
 }
