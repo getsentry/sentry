@@ -68,6 +68,7 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
         project_ids = [int(x) for x in request.data.get("project_ids", [])]
         natural_language_query = request.data.get("natural_language_query")
         limit = request.data.get("limit", 1)
+        use_flyout = request.data.get("use_flyout", True)
 
         if len(project_ids) == 0 or not natural_language_query:
             return Response(
@@ -101,6 +102,8 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
         data = send_translate_request(organization.id, project_ids, natural_language_query)
 
         # XXX: This is a fallback to support the old response format until we fully support using multiple queries on the frontend
+        if "responses" in data and use_flyout:
+            data = data["responses"][0]
         if "responses" not in data:
             return Response(
                 {
