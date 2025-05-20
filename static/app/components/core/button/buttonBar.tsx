@@ -28,6 +28,8 @@ export function ButtonBar({children, merged = false, gap = 0, ...props}: ButtonB
 const getChildTransforms = (count: number) => {
   return Array.from(
     {length: count},
+    // Do not use translate, as it will create a new stacking context which might break
+    // focus styles for dropdowns, causing them to fall under other elements positioned on the page.
     (_, index) => css`
       > *:nth-child(${index + 1}),
       > *:nth-child(${index + 1}) > button {
@@ -54,7 +56,7 @@ const StyledButtonBar = styled('div')<{
     css`
       /* Raised buttons show borders on both sides. Useful to create pill bars */
       & > .active,
-      & > *:focus-within {
+      & *:focus-visible {
         z-index: 2;
       }
 
