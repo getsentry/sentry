@@ -11,8 +11,6 @@ import type {
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
-// @ts-expect-error need to update tsconfig module setting to "bundler" etc
-import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
@@ -762,38 +760,16 @@ if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
 }
 
 // Cache rspack builds
-// if (env.WEBPACK_CACHE_PATH) {
-//   appConfig.cache = true;
-//   appConfig.experiments!.cache = {
-//     type: 'persistent',
-//     // https://rspack.dev/config/experiments#cachestorage
-//     storage: {
-//       type: 'filesystem',
-//       directory: path.join(__dirname, env.WEBPACK_CACHE_PATH),
-//     },
-//   };
-// }
-
-appConfig.plugins?.push(
-  sentryWebpackPlugin({
-    applicationKey: 'sentry-spa',
-    telemetry: false,
-    sourcemaps: {
-      disable: true,
+if (env.WEBPACK_CACHE_PATH) {
+  appConfig.cache = true;
+  appConfig.experiments!.cache = {
+    type: 'persistent',
+    // https://rspack.dev/config/experiments#cachestorage
+    storage: {
+      type: 'filesystem',
+      directory: path.join(__dirname, env.WEBPACK_CACHE_PATH),
     },
-    release: {
-      create: false,
-    },
-    reactComponentAnnotation: {
-      enabled: true,
-    },
-    bundleSizeOptimizations: {
-      // This is enabled so that our SDKs send exceptions to Sentry
-      excludeDebugStatements: false,
-      excludeReplayIframe: true,
-      excludeReplayShadowDom: true,
-    },
-  })
-);
+  };
+}
 
 export default appConfig;
