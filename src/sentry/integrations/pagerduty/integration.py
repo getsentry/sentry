@@ -24,6 +24,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.pagerduty.metrics import record_event
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -167,7 +168,7 @@ class PagerDutyIntegration(IntegrationInstallation):
 
 
 class PagerDutyIntegrationProvider(IntegrationProvider):
-    key = "pagerduty"
+    key = IntegrationProviderSlug.PAGERDUTY.value
     name = "PagerDuty"
     metadata = metadata
     features = frozenset([IntegrationFeatures.ALERT_RULE, IntegrationFeatures.INCIDENT_MANAGEMENT])

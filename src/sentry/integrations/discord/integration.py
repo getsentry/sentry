@@ -22,6 +22,7 @@ from sentry.integrations.base import (
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.views.base import PipelineView
@@ -117,7 +118,7 @@ class DiscordIntegration(IntegrationInstallation):
 
 
 class DiscordIntegrationProvider(IntegrationProvider):
-    key = "discord"
+    key = IntegrationProviderSlug.DISCORD.value
     name = "Discord"
     metadata = metadata
     integration_cls = DiscordIntegration

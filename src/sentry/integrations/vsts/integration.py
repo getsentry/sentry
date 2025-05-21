@@ -33,6 +33,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineHaltReason,
     IntegrationPipelineViewEvent,
@@ -398,7 +399,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
 
 class VstsIntegrationProvider(IntegrationProvider):
-    key = "vsts"
+    key = IntegrationProviderSlug.AZURE_DEVOPS.value
     name = "Azure DevOps"
     metadata = metadata
     api_version = "4.1"
