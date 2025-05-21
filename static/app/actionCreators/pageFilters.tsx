@@ -64,6 +64,7 @@ type Options = {
 type PageFiltersUpdate = {
   end?: DateString;
   environment?: string[] | null;
+  integratedOrg?: string | null;
   period?: string | null;
   project?: number[] | null;
   start?: DateString;
@@ -206,6 +207,8 @@ export function initializeUrlState({
   const hasDatetimeInUrl = Object.keys(pick(queryParams, DATE_TIME_KEYS)).length > 0;
   const hasProjectOrEnvironmentInUrl =
     Object.keys(pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])).length > 0;
+  const hasIntegratedOrgInUrl =
+    Object.keys(pick(queryParams, [URL_PARAM.INTEGRATED_ORG])).length > 0;
 
   // We should only check and update the desync state if the site has just been loaded
   // (not counting route changes). To check this, we can use the `isReady` state: if it's
@@ -252,6 +255,10 @@ export function initializeUrlState({
       // the URL query
       shouldCheckDesyncedURLState = false;
     }
+  }
+
+  if (hasIntegratedOrgInUrl) {
+    pageFilters.integratedOrg = parsed.integratedOrg;
   }
 
   const storedPageFilters = skipLoadLastUsed
@@ -716,4 +723,21 @@ export function revertToPinnedFilters(orgSlug: string, router: InjectedRouter) {
     keepCursor: true,
   });
   PageFiltersStore.updateDesyncedFilters(new Set());
+}
+
+/**
+ * Updates store and selection URL param if `router` is supplied
+ * @param {string} integratedOrg Integrated Organization
+ * @param {Object} [router] Router object
+ * @param {Object} [options] Options object
+ *
+ */
+export function updateIntegratedOrg(
+  integratedOrg: string | null,
+  router?: Router,
+  options?: Options
+) {
+  PageFiltersStore.updateIntegratedOrg(integratedOrg);
+  updateParams({integratedOrg}, router, options);
+  persistPageFilters('integratedOrg', options);
 }
