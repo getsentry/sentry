@@ -506,7 +506,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
 /tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
-/src/sentry/demo_mode/
+/src/sentry/demo_mode/                                                           @getsentry/telemetry-experience
+/tests/sentry/demo_mode/                                                         @getsentry/telemetry-experience
 
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
