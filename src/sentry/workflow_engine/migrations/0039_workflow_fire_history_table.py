@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0854_add_project_sdk_model"),
+        # ("sentry", "0854_add_project_sdk_model"),
         ("workflow_engine", "0038_add_detector_workflow_unique_together"),
     ]
 

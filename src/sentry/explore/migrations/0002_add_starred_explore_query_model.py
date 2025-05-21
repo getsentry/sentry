@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("explore", "0001_add_explore_saved_query_model"),
-        ("sentry", "0850_crons_drop_location"),
+        # ("sentry", "0850_crons_drop_location"),
     ]
 
     operations = [

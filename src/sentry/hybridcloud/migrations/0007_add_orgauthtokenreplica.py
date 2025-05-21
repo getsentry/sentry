@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0579_index_incident_trigger"),
+        # ("sentry", "0579_index_incident_trigger"),
         ("hybridcloud", "0006_add_apitokenreplica"),
     ]
 

@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0882_projectoptions_idx_on_key"),
+        # ("sentry", "0882_projectoptions_idx_on_key"),
         ("workflow_engine", "0057_workflowengine_rename_column"),
     ]
 

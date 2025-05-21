@@ -65,7 +65,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("uptime", "0039_uptime_drop_project_subscription_uptime_status_db"),
-        ("workflow_engine", "0056_workflow_fire_history_passed_filters_column"),
+        # ("workflow_engine", "0056_workflow_fire_history_passed_filters_column"),
     ]
 
     operations = [

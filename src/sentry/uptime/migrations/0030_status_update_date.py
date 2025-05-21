@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0840_savedsearch_type_non_null"),
+        # ("sentry", "0840_savedsearch_type_non_null"),
         ("uptime", "0029_uptime_subscription_index_domain_cols"),
     ]
 

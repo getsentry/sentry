@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("explore", "0002_add_starred_explore_query_model"),
-        ("sentry", "0873_update_groupsearchview_visibility_default"),
+        # ("sentry", "0873_update_groupsearchview_visibility_default"),
     ]
 
     operations = [

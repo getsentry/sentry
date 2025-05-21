@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "0814_drop_alertactivations"),
-        ("workflow_engine", "0022_add_action_group_status_model"),
+        # ("workflow_engine", "0022_add_action_group_status_model"),
     ]
 
     operations = [

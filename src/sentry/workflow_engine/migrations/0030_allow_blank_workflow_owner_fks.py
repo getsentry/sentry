@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0828_add_platform_to_grouphash_metadata"),
+        # ("sentry", "0828_add_platform_to_grouphash_metadata"),
         ("workflow_engine", "0029_ds_query_id_to_pending"),
     ]
 

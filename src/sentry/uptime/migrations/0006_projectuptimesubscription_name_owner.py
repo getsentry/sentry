@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0742_backfill_alertrule_detection_type"),
+        # ("sentry", "0742_backfill_alertrule_detection_type"),
         ("uptime", "0005_uptime_status"),
     ]
 

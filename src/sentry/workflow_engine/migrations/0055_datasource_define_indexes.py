@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0882_projectoptions_idx_on_key"),
+        # ("sentry", "0882_projectoptions_idx_on_key"),
         ("workflow_engine", "0054_clean_up_orphaned_metric_alert_objects"),
     ]
 

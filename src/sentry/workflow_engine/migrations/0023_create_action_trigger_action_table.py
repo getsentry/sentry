@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0813_rm_alertruleactivation_models"),
+        # ("sentry", "0813_rm_alertruleactivation_models"),
         ("workflow_engine", "0022_add_action_group_status_model"),
     ]
 

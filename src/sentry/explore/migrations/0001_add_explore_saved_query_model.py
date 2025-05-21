@@ -29,7 +29,7 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        ("sentry", "0840_savedsearch_type_non_null"),
+        # ("sentry", "0840_savedsearch_type_non_null"),
     ]
 
     operations = [

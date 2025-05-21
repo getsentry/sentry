@@ -22,9 +22,7 @@ class Migration(CheckedMigration):
 
     is_post_deployment = True
 
-    dependencies = [
-        ("sentry", "0817_update_notificationmessage_constraints_for_action_group_open_period"),
-    ]
+    dependencies = []
 
     operations = [
         migrations.AlterField(

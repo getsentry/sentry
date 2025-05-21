@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        ("sentry", "0865_file_offsets"),
+        # ("sentry", "0865_file_offsets"),
     ]
 
     operations = [
