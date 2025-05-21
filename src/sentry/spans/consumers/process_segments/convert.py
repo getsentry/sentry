@@ -81,20 +81,15 @@ def convert_span_to_item(span: Span) -> TraceItem:
 def _anyvalue(value: Any) -> AnyValue | None:
     if value is None:
         return None
-
-    if isinstance(value, str):
+    elif isinstance(value, str):
         return AnyValue(string_value=value)
-
-    if isinstance(value, int):
+    elif isinstance(value, int):
         return AnyValue(int_value=value)
-
-    if isinstance(value, float):
+    elif isinstance(value, float):
         return AnyValue(double_value=value)
-
-    if isinstance(value, bool):
+    elif isinstance(value, bool):
         return AnyValue(bool_value=value)
-
-    if isinstance(value, (list, dict)):
+    elif isinstance(value, (list, dict)):
         return AnyValue(string_value=orjson.dumps(value).decode())
 
     raise ValueError(f"Unknown value type: {type(value)}")
