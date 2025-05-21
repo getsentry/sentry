@@ -18,7 +18,6 @@ export function DetectorFixture(params: Partial<Detector> = {}): Detector {
     disabled: false,
     conditionGroup: params.conditionGroup ?? DataConditionGroupFixture(),
     dataSources: params.dataSources ?? [DetectorDataSourceFixture()],
-    connectedWorkflows: [],
     ...params,
   };
 }
