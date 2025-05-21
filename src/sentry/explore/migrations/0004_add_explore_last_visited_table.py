@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("explore", "0003_add_prebuilt_column_to_explore_saved_queries"),
-        ("sentry", "0882_projectoptions_idx_on_key"),
+        # ("sentry", "0882_projectoptions_idx_on_key"),
     ]
 
     operations = [

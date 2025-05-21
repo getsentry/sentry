@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("flags", "0001_add_flag_audit_log"),
-        ("sentry", "0787_make_dashboard_perms_col_nullable"),
+        # ("sentry", "0787_make_dashboard_perms_col_nullable"),
     ]
 
     operations = [

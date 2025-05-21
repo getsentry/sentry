@@ -1,33 +1,4 @@
-import type {NewAction} from './actions';
-
-interface SnubaQuery {
-  aggregate: string;
-  dataset: string;
-  id: string;
-  query: string;
-  /**
-   * Time window in seconds
-   */
-  timeWindow: number;
-  environment?: string;
-}
-
-interface QueryObject {
-  id: string;
-  snubaQuery: SnubaQuery;
-  status: number;
-  subscription: string;
-}
-
-export interface SnubaQueryDataSource {
-  id: string;
-  organizationId: string;
-  queryObj: QueryObject;
-  sourceId: string;
-  type: 'snuba_query_subscription';
-}
-
-export type DataSource = SnubaQueryDataSource;
+import type {Action} from './actions';
 
 export enum DataConditionType {
   // operators
@@ -87,20 +58,16 @@ export const enum DetectorPriorityLevel {
   LOW = 25,
 }
 
-export interface NewDataCondition {
+export interface DataCondition {
   comparison: any;
   comparison_type: DataConditionType;
-  condition_group?: DataConditionGroup;
-  condition_result?: DetectorPriorityLevel;
-}
-
-export interface DataCondition extends Readonly<NewDataCondition> {
-  readonly id: string;
+  id: string;
+  condition_result?: any;
 }
 
 export interface DataConditionGroup {
-  conditions: NewDataCondition[];
+  conditions: DataCondition[];
   id: string;
   logicType: DataConditionGroupLogicType;
-  actions?: NewAction[];
+  actions?: Action[];
 }

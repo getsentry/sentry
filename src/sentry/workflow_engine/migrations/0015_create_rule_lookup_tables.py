@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0802_remove_grouping_auto_update_option"),
+        # ("sentry", "0802_remove_grouping_auto_update_option"),
         ("workflow_engine", "0014_model_additions_for_milestones"),
     ]
 

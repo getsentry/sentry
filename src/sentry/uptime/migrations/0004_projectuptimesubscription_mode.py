@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0731_add_insight_project_flags"),
+        # ("sentry", "0731_add_insight_project_flags"),
         ("uptime", "0003_drop_remote_subscription"),
     ]
 

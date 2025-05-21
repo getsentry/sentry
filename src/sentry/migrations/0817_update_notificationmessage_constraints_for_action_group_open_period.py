@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "0816_add_timestamp_to_group_tombstone"),
-        ("workflow_engine", "0022_add_action_group_status_model"),
+        # ("workflow_engine", "0022_add_action_group_status_model"),
     ]
 
     operations = [
