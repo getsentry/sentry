@@ -8412,7 +8412,7 @@ class Migration(CheckedMigration):
         SafeRunSQL(
             sql="CREATE EXTENSION btree_gist;",
             reverse_sql="",
-            hints={"tables": ["accounts_spend_allocations"]},
+            hints={"tables": ["sentry_groupopenperiod"]},
         ),
         migrations.AddConstraint(
             model_name="groupopenperiod",
