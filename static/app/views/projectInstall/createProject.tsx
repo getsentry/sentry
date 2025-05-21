@@ -197,7 +197,7 @@ export function CreateProject() {
   const api = useApi();
   const navigate = useNavigate();
   const [errors, setErrors] = useState();
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const organization = useOrganization();
   const location = useLocation();
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
@@ -299,7 +299,10 @@ export function CreateProject() {
   ].filter(value => value).length;
 
   const canSubmitForm =
-    !loading && !createProject.isPending && canUserCreateProject && formErrorCount === 0;
+    !submitting &&
+    !createProject.isPending &&
+    canUserCreateProject &&
+    formErrorCount === 0;
 
   const submitTooltipText = getSubmitTooltipText({
     ...missingValues,
@@ -349,7 +352,7 @@ export function CreateProject() {
       let notificationRuleId: string | undefined = undefined;
 
       try {
-        setLoading(true);
+        setSubmitting(true);
         project = await createProject.mutateAsync({
           name: projectName,
           platform: selectedPlatform,
@@ -427,7 +430,7 @@ export function CreateProject() {
           notificationRuleId,
         });
       } finally {
-        setLoading(false);
+        setSubmitting(false);
       }
     },
     [organization, createProject, setCreatedProject, navigate, api, createRules]
