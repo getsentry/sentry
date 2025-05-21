@@ -18,11 +18,11 @@ FIELD_TO_ATTRIBUTE = {
     "exclusive_time_ms": "sentry.exclusive_time_ms",
     "start_timestamp_precise": "sentry.start_timestamp_precise",
     "end_timestamp_precise": "sentry.end_timestamp_precise",
-    "start_timestamp_ms": "sentry.start_timestamp_ms",
     "is_remote": "sentry.is_remote",
     "parent_span_id": "sentry.parent_span_id",
     "profile_id": "sentry.profile_id",
     "segment_id": "sentry.segment_id",
+    "received": "sentry.received",
     "origin": "sentry.origin",
     "kind": "sentry.kind",
     "hash": "sentry.hash",
@@ -31,11 +31,12 @@ FIELD_TO_ATTRIBUTE = {
 
 def convert_span_to_item(span: Span) -> TraceItem:
     attributes: MutableMapping[str, AnyValue] = {}  # TODO
-    for k, v in (span.get("data") or {}).items():
-        attributes[k] = v
 
     client_sample_rate = 1.0
     server_sample_rate = 1.0
+
+    for k, v in (span.get("data") or {}).items():
+        attributes[k] = _anyvalue(v)
 
     for k, v in (span.get("measurements") or {}).items():
         if k is not None and v is not None:
@@ -44,7 +45,7 @@ def convert_span_to_item(span: Span) -> TraceItem:
             elif k == "server_sample_rate":
                 server_sample_rate = v["value"]
             else:
-                attributes[k] = _anyvalue(v)
+                attributes[k] = AnyValue(double_value=float(v["value"]))
 
     for k, v in (span.get("sentry_tags") or {}).items():
         if v is not None:
@@ -53,11 +54,11 @@ def convert_span_to_item(span: Span) -> TraceItem:
             else:
                 k = f"sentry.{k}"
 
-            attributes[k] = _anyvalue(v)
+            attributes[k] = AnyValue(string_value=str(v))
 
     for k, v in (span.get("tags") or {}).items():
         if v is not None:
-            attributes[k] = _anyvalue(v)
+            attributes[k] = AnyValue(string_value=str(v))
 
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
         if span.get(field_name) is not None:
@@ -83,12 +84,12 @@ def _anyvalue(value: Any) -> AnyValue | None:
         return None
     elif isinstance(value, str):
         return AnyValue(string_value=value)
+    elif isinstance(value, bool):
+        return AnyValue(bool_value=value)
     elif isinstance(value, int):
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)
-    elif isinstance(value, bool):
-        return AnyValue(bool_value=value)
     elif isinstance(value, (list, dict)):
         return AnyValue(string_value=orjson.dumps(value).decode())
 
@@ -98,5 +99,5 @@ def _anyvalue(value: Any) -> AnyValue | None:
 def _timestamp(value: float) -> Timestamp:
     return Timestamp(
         seconds=int(value),
-        nanos=round((value % 1) * 1_000_000_000),
+        nanos=round((value % 1) * 1_000_000) * 1000,
     )
