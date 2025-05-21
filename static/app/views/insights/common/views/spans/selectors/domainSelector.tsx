@@ -92,6 +92,7 @@ export function DomainSelector({
     ...uniq(
       domainData?.flatMap(row => {
         const spanDomain: string | string[] = row[SpanMetricsField.SPAN_DOMAIN];
+        // `useInsightsEap` returns a string, but `metrics` returns an array
         if (typeof spanDomain === 'string') {
           return spanDomain.split(',').map(domain => ({
             label: domain,
