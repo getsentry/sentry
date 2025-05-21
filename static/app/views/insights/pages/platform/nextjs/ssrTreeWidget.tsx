@@ -68,12 +68,16 @@ interface TreeContainer {
   type: 'folder' | 'file';
   // Aggregated metrics
   'avg(span.duration)'?: number;
+  // Page-level aggregated metrics from pageloads
+  avgPageloadDuration?: number;
+  avgPageloadPerfScore?: number;
   'count()'?: number;
   'failure_rate()'?: number;
   hasPageloadDescendant?: boolean;
   'p95(span.duration)'?: number;
   'performance_score(measurements.score.total)'?: number;
   'sum(span.duration)'?: number;
+  totalPageloadCount?: number;
 }
 
 interface TreeLeaf {
@@ -252,9 +256,26 @@ export function mapResponseToTree(
         if (!targetFileNode.children) {
           targetFileNode.children = [];
         }
+
+        // Find or create the "pages" subfolder
+        let pagesFolder = targetFileNode.children.find(
+          (child): child is TreeContainer =>
+            child.type === 'folder' && child.name === 'transactions'
+        );
+
+        if (!pagesFolder) {
+          pagesFolder = {
+            name: 'transactions',
+            type: 'folder',
+            children: [],
+            hasPageloadDescendant: true, // This folder is specifically for pageloads
+          };
+          targetFileNode.children.push(pagesFolder);
+        }
+
         const transactionName = item.transaction!; // We know transaction is defined
 
-        const existingLeaf = targetFileNode.children.find(
+        const existingLeaf = pagesFolder.children.find(
           (child): child is TreeLeaf =>
             child.type === 'pageload' && child.transaction === transactionName
         );
@@ -312,7 +333,7 @@ export function mapResponseToTree(
             existingLeaf['project.id'] = item['project.id'];
           }
         } else {
-          targetFileNode.children.push({
+          pagesFolder.children.push({
             name: transactionName,
             type: 'pageload',
             'avg(span.duration)': item['avg(span.duration)'],
@@ -335,18 +356,28 @@ export function mapResponseToTree(
 }
 
 // Helper function to recursively aggregate metrics up the tree
-function aggregateTreeMetricsRecursive(node: TreeNode): {
+interface AggregationResult {
   count: number;
+  // Sum of (failure_rate() * count()) for all descendants
   foundPageload: boolean;
+  // For pageload-specific aggregations needed at file level
+  pageloadCount: number;
+  pageloadSumAvgDuration: number;
+
+  // Sum of (avg(span.duration) * count()) for pageloads
+  pageloadSumPerfScore: number;
+  // Sum of count() for all descendants (components + pageloads)
   sumDuration: number;
-  weightedFailureRateSum: number;
-} {
+  // Sum of (avg(span.duration) * count()) for all descendants
+  weightedFailureRateSum: number; // Sum of (performance_score * count()) for pageloads
+}
+
+function aggregateTreeMetricsRecursive(node: TreeNode): AggregationResult {
   if (node.type === 'component' || node.type === 'pageload') {
-    const leaf = node; // User removed type assertion
+    const leaf = node;
     const count = leaf['count()'] ?? 0;
     let sumDuration = leaf['sum(span.duration)'];
 
-    // Ensure sumDuration is calculated for components if not already present
     if (
       typeof sumDuration !== 'number' &&
       leaf.type === 'component' &&
@@ -354,7 +385,6 @@ function aggregateTreeMetricsRecursive(node: TreeNode): {
       count > 0
     ) {
       sumDuration = leaf['avg(span.duration)'] * count;
-      // Assign back to the leaf node if it was missing for components
       (leaf as any)['sum(span.duration)'] = sumDuration;
     }
     sumDuration = sumDuration ?? 0;
@@ -362,11 +392,30 @@ function aggregateTreeMetricsRecursive(node: TreeNode): {
     const failureRate = leaf['failure_rate()'];
     const weightedFR =
       typeof failureRate === 'number' && count > 0 ? failureRate * count : 0;
+
+    if (leaf.type === 'pageload') {
+      const pageloadPerfScore = leaf['performance_score(measurements.score.total)'];
+      return {
+        count,
+        sumDuration,
+        weightedFailureRateSum: weightedFR,
+        foundPageload: true,
+        pageloadCount: count,
+        pageloadSumAvgDuration: (leaf['avg(span.duration)'] ?? 0) * count,
+        pageloadSumPerfScore:
+          (typeof pageloadPerfScore === 'number' ? pageloadPerfScore : 0) * count,
+      };
+    }
+
+    // It's a component
     return {
       count,
       sumDuration,
       weightedFailureRateSum: weightedFR,
-      foundPageload: leaf.type === 'pageload', // Check if this leaf is a pageload
+      foundPageload: false,
+      pageloadCount: 0,
+      pageloadSumAvgDuration: 0,
+      pageloadSumPerfScore: 0,
     };
   }
 
@@ -375,7 +424,11 @@ function aggregateTreeMetricsRecursive(node: TreeNode): {
   let currentAggCount = 0;
   let currentAggSumDuration = 0;
   let currentAggWeightedFailureRateSum = 0;
-  let subtreeHasPageload = false; // Track if any child path has a pageload
+  let subtreeHasPageload = false;
+
+  let currentTotalPageloadCount = 0;
+  let currentSumPageloadAvgDuration = 0;
+  let currentSumPageloadPerfScore = 0;
 
   if (container.children) {
     for (const child of container.children) {
@@ -383,6 +436,11 @@ function aggregateTreeMetricsRecursive(node: TreeNode): {
       currentAggCount += childAggregates.count;
       currentAggSumDuration += childAggregates.sumDuration;
       currentAggWeightedFailureRateSum += childAggregates.weightedFailureRateSum;
+
+      currentTotalPageloadCount += childAggregates.pageloadCount;
+      currentSumPageloadAvgDuration += childAggregates.pageloadSumAvgDuration;
+      currentSumPageloadPerfScore += childAggregates.pageloadSumPerfScore;
+
       if (childAggregates.foundPageload) {
         subtreeHasPageload = true;
       }
@@ -391,9 +449,10 @@ function aggregateTreeMetricsRecursive(node: TreeNode): {
 
   container.hasPageloadDescendant = subtreeHasPageload;
 
+  // Clear generic aggregates for all containers first, or set if pageload descendant
+  // These were previously hidden by '—' in renderer, this logic is for data integrity.
   if (subtreeHasPageload) {
-    // Only set aggregated metrics if a pageload was found in descendants
-    container['count()'] = currentAggCount;
+    container['count()'] = currentAggCount; // Overall count
     container['sum(span.duration)'] = currentAggSumDuration;
     if (currentAggCount > 0) {
       container['avg(span.duration)'] = currentAggSumDuration / currentAggCount;
@@ -402,10 +461,10 @@ function aggregateTreeMetricsRecursive(node: TreeNode): {
       container['avg(span.duration)'] = 0;
       container['failure_rate()'] = 0;
     }
+    // P95 and Perf Score remain undefined at generic container level as they are not aggregated this way.
     container['p95(span.duration)'] = undefined;
     container['performance_score(measurements.score.total)'] = undefined;
   } else {
-    // If no pageload descendant, clear potentially misleading aggregated metrics
     container['count()'] = undefined;
     container['sum(span.duration)'] = undefined;
     container['avg(span.duration)'] = undefined;
@@ -414,11 +473,28 @@ function aggregateTreeMetricsRecursive(node: TreeNode): {
     container['performance_score(measurements.score.total)'] = undefined;
   }
 
+  // Specifically for 'file' type containers, calculate and set pageload aggregates
+  if (container.type === 'file' && subtreeHasPageload && currentTotalPageloadCount > 0) {
+    container.avgPageloadDuration =
+      currentSumPageloadAvgDuration / currentTotalPageloadCount;
+    container.avgPageloadPerfScore =
+      currentSumPageloadPerfScore / currentTotalPageloadCount;
+    container.totalPageloadCount = currentTotalPageloadCount;
+  } else if (container.type === 'file') {
+    // Clear them if no pageloads or count is zero
+    container.avgPageloadDuration = undefined;
+    container.avgPageloadPerfScore = undefined;
+    container.totalPageloadCount = undefined;
+  }
+
   return {
-    count: currentAggCount, // Still return sums for parent calculations
+    count: currentAggCount,
     sumDuration: currentAggSumDuration,
     weightedFailureRateSum: currentAggWeightedFailureRateSum,
-    foundPageload: subtreeHasPageload, // Propagate pageload presence upwards
+    foundPageload: subtreeHasPageload,
+    pageloadCount: currentTotalPageloadCount,
+    pageloadSumAvgDuration: currentSumPageloadAvgDuration,
+    pageloadSumPerfScore: currentSumPageloadPerfScore,
   };
 }
 
@@ -503,7 +579,6 @@ export default function SSRTreeWidget() {
             'p95(span.duration)',
             'performance_score(measurements.score.total)',
             'project.id',
-            'span.op',
           ],
         },
       },
@@ -614,10 +689,33 @@ function SSRTreeDrawer({tree}: {tree: TreeContainer}) {
 }
 
 function sortTreeChildren(a: TreeNode, b: TreeNode): number {
-  if (a.type === 'folder' && b.type === 'component') {
-    return -1;
+  const aCount = a['count()'];
+  const bCount = b['count()'];
+
+  // Primary sort: by count descending
+  if (typeof aCount === 'number' && typeof bCount === 'number') {
+    if (aCount !== bCount) {
+      return bCount - aCount; // Higher count comes first
+    }
+  } else if (typeof aCount === 'number') {
+    return -1; // 'a' has count, 'b' doesn't, so 'a' comes first
+  } else if (typeof bCount === 'number') {
+    return 1; // 'b' has count, 'a' doesn't, so 'b' comes first
+  }
+  // If counts are equal or both are undefined, proceed to secondary sorting criteria
+
+  const isAContainer = a.type === 'folder' || a.type === 'file';
+  const isBContainer = b.type === 'folder' || b.type === 'file';
+
+  // Secondary sort: containers (folders/files) before leafs (components/pageloads)
+  if (isAContainer && !isBContainer) {
+    return -1; // 'a' is container, 'b' is leaf, so 'a' comes first
+  }
+  if (!isAContainer && isBContainer) {
+    return 1; // 'b' is container, 'a' is leaf, so 'b' comes first
   }
 
+  // Tertiary sort: if both are containers or both are leafs (or same specific type), sort by name
   return a.name.localeCompare(b.name);
 }
 
@@ -663,12 +761,7 @@ function TreeNodeRenderer({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const theme = useTheme();
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (item.type === 'folder' || item.type === 'file') {
-      return !!item.hasPageloadDescendant; // Collapse only if it has a pageload descendant
-    }
-    return false;
-  });
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const itemPath = [...path, item.name];
 
   let exploreLink: string | null = null;
@@ -847,41 +940,34 @@ function TreeNodeRenderer({
         </PathWrapper>
       </div>
       {/* Metrics for folder/file rows */}
-      {typeof item['avg(span.duration)'] === 'number' ? (
+      {item.type === 'file' && typeof item.avgPageloadDuration === 'number' ? (
+        <Value>{getDuration(item.avgPageloadDuration / 1000, 2, true, true)}</Value>
+      ) : (
+        <Value>{/* Default for folders or if file has no pageload avg */ '—'}</Value>
+      )}
+
+      {/* P95 Duration for containers - always '—' for files/folders based on current req */}
+      <Value>{'—'}</Value>
+
+      {/* Failure Rate for containers - always '—' for files/folders based on current req */}
+      <Value>{'—'}</Value>
+
+      {item.type === 'file' && typeof item.avgPageloadPerfScore === 'number' ? (
         <Value>
-          {getDuration((item['avg(span.duration)'] ?? 0) / 1000, 2, true, true)}
+          <PerformanceBadge score={Math.round(item.avgPageloadPerfScore * 100)} />
         </Value>
       ) : (
-        <Value>{'—'}</Value>
-      )}
-      {typeof item['p95(span.duration)'] === 'number' ? (
         <Value>
-          {getDuration((item['p95(span.duration)'] ?? 0) / 1000, 2, true, true)}
+          {/* Default for folders or if file has no pageload perf score */ '—'}
         </Value>
-      ) : (
-        <Value>{'—'}</Value> // P95 for containers
       )}
-      {typeof item['failure_rate()'] === 'number' ? (
-        <Value>{formatPercentage(item['failure_rate()'] ?? 0)}</Value>
+
+      {item.type === 'file' && typeof item.totalPageloadCount === 'number' ? (
+        <Value>{formatAbbreviatedNumber(item.totalPageloadCount)}</Value>
       ) : (
-        <Value>{'—'}</Value>
+        <Value>{/* Default for folders or if file has no pageload count */ '—'}</Value>
       )}
-      {typeof item['performance_score(measurements.score.total)'] === 'number' ? (
-        <Value>
-          <PerformanceBadge
-            score={Math.round(
-              (item['performance_score(measurements.score.total)'] ?? 0) * 100
-            )}
-          />
-        </Value>
-      ) : (
-        <Value>{'—'}</Value> // Perf Score for containers
-      )}
-      {typeof item['count()'] === 'number' ? (
-        <Value>{formatAbbreviatedNumber(item['count()'] ?? 0)}</Value>
-      ) : (
-        <Value>{'—'}</Value>
-      )}
+
       {!isCollapsed &&
         'children' in item && // Type guard for item.children
         item.children.toSorted(sortTreeChildren).map((child: TreeNode) => {
