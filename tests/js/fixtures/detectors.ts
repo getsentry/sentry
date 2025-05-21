@@ -18,13 +18,13 @@ export function DetectorFixture(params: Partial<Detector> = {}): Detector {
     type: 'metric',
     disabled: false,
     conditionGroup: params.conditionGroup ?? DataConditionGroupFixture(),
-    dataSources: params.dataSources ?? [DetectorDataSource()],
+    dataSources: params.dataSources ?? [DetectorDataSourceFixture()],
     connectedWorkflows: [],
     ...params,
   };
 }
 
-export function DetectorDataSource(params: Partial<DataSource> = {}): DataSource {
+export function DetectorDataSourceFixture(params: Partial<DataSource> = {}): DataSource {
   return {
     id: '1',
     organizationId: '1',
@@ -40,8 +40,8 @@ export function DetectorDataSource(params: Partial<DataSource> = {}): DataSource
         id: '',
         query: '',
         timeWindow: 60,
-        ...params,
       },
     },
+    ...params,
   };
 }

@@ -47,7 +47,7 @@ function getDetectorEnvironment(detector: Detector) {
     .snubaQuery.environment;
 }
 
-export default function DetectorDetail() {
+export default function DetectorDetails() {
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
   const params = useParams<{detectorId: string}>();
