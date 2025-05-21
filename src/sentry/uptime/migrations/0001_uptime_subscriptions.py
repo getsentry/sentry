@@ -27,7 +27,6 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        ("remote_subscriptions", "0001_remote_subscription"),
         ("sentry", "0731_add_insight_project_flags"),
     ]
 
@@ -39,14 +38,6 @@ class Migration(CheckedMigration):
                     "id",
                     sentry.db.models.fields.bounded.BoundedBigAutoField(
                         primary_key=True, serialize=False
-                    ),
-                ),
-                (
-                    "remote_subscription",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="remote_subscriptions.remotesubscription",
-                        unique=True,
                     ),
                 ),
                 ("url", models.CharField(max_length=255)),
