@@ -486,7 +486,7 @@ def configure_sdk():
             LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
             RustInfoIntegration(),
             RedisIntegration(),
-            ThreadingIntegration(propagate_hub=True),
+            ThreadingIntegration(),
         ],
         **sdk_options,
     )
