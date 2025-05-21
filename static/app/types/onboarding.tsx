@@ -16,7 +16,6 @@ export enum OnboardingTaskKey {
   INVITE_MEMBER = 'invite_member',
   SECOND_PLATFORM = 'setup_second_platform',
   RELEASE_TRACKING = 'setup_release_tracking',
-  SOURCEMAPS = 'setup_sourcemaps',
   ALERT_RULE = 'setup_alert_rules',
   FIRST_TRANSACTION = 'setup_transactions',
   REAL_TIME_NOTIFICATIONS = 'setup_real_time_notifications',

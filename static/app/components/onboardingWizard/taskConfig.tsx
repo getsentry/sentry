@@ -3,7 +3,6 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import type {OnboardingTask, OnboardingTaskDescriptor} from 'sentry/types/onboarding';
@@ -17,12 +16,6 @@ import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-
-function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
-  return projects === undefined
-    ? false
-    : projects.some(({platform}) => platform && sourceMaps.includes(platform));
-}
 
 type Options = {
   /**
@@ -302,17 +295,6 @@ export function getOnboardingTasks({
       }),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
-    },
-    {
-      task: OnboardingTaskKey.SOURCEMAPS,
-      title: t('Unminify your code'),
-      description: t(
-        'Enable readable stack traces in Sentry errors by uploading your source maps.'
-      ),
-      skippable: true,
-      actionType: 'external',
-      location: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
-      display: hasPlatformWithSourceMaps(projects),
     },
     {
       task: OnboardingTaskKey.ALERT_RULE,
