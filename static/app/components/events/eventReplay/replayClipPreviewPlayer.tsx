@@ -8,10 +8,12 @@ import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticRe
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
-import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {t} from 'sentry/locale';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useLogEventReplayStatus from 'sentry/utils/replays/hooks/useLogEventReplayStatus';
+import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
+import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
+import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
@@ -59,17 +61,19 @@ export default function ReplayClipPreviewPlayer({
 
         return (
           <PlayerContainer data-test-id="player-container">
-            {replay.hasProcessingErrors() ? (
-              <ReplayProcessingError processingErrors={replay.processingErrors()} />
-            ) : (
-              <ReplayPreviewPlayer
-                errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
-                fullReplayButtonProps={fullReplayButtonProps}
-                overlayContent={overlayContent}
-                replayId={replayReaderResult.replayId}
-                replayRecord={replayReaderResult.replayRecord!}
-              />
-            )}
+            <ReplayPlayerPluginsContextProvider>
+              <ReplayReaderProvider replay={replay}>
+                <ReplayPlayerStateContextProvider>
+                  <ReplayPreviewPlayer
+                    errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
+                    fullReplayButtonProps={fullReplayButtonProps}
+                    overlayContent={overlayContent}
+                    replayId={replayReaderResult.replayId}
+                    replayRecord={replayReaderResult.replayRecord!}
+                  />
+                </ReplayPlayerStateContextProvider>
+              </ReplayReaderProvider>
+            </ReplayPlayerPluginsContextProvider>
           </PlayerContainer>
         );
       }}
