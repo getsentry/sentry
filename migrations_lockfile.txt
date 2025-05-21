@@ -9,6 +9,8 @@ explore: 0004_add_explore_last_visited_table
 
 feedback: 0004_index_together
 
+flags: 0004_add_flag_audit_log_provider_column
+
 hybridcloud: 0021_django_arrayfield_scope_list
 
 insights: 0001_add_starred_transactions_model
