@@ -195,8 +195,11 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
             self._metrics_for_extra_matching_spans()
 
             offender_span_ids = [span.get("span_id", None) for span in self.n_spans]
+            first_span_description = get_valid_db_span_description(self.n_spans[0])
+            if not first_span_description:
+                metrics.incr("performance.performance_issue.invalid_description")
+                return
 
-            first_span_description = get_db_span_description(self.n_spans[0])
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
@@ -268,18 +271,19 @@ def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
         return query and not query.endswith("...")
 
 
-def get_db_span_description(span: Span) -> str:
+def get_valid_db_span_description(span: Span) -> str | None:
     """
     For MongoDB spans, we use the `description` provided by Relay since it re-includes the collection name.
     See https://github.com/getsentry/relay/blob/25.3.0/relay-event-normalization/src/normalize/span/description/mod.rs#L68-L82
+    Explicitly require a '{' in MongoDB spans to only trigger on queries rather than client calls.
     """
     default_description = span.get("description", "")
-    db_system = span.get("sentry_tags", {}).get("system")
-    return (
-        span.get("sentry_tags", {}).get("description", default_description)
-        if db_system == "mongodb"
-        else default_description
-    )
+    db_system = span.get("sentry_tags", {}).get("system", "")
+    # Trigger pathway on `mongodb`, `mongoose`, etc...
+    if "mongo" in db_system:
+        description = span.get("sentry_tags", {}).get("description")
+        return description if "{" in description else None
+    return default_description
 
 
 def are_spans_equivalent(a: Span, b: Span) -> bool:
