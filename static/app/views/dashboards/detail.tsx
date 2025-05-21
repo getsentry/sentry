@@ -1122,8 +1122,7 @@ class DashboardDetail extends Component<Props, State> {
                   locationChange.nextLocation.pathname
                 ));
             const hasUnsavedChanges =
-              (defined(modifiedDashboard) && !isEqual(modifiedDashboard, dashboard)) ||
-              hasUnsavedFilters;
+              defined(modifiedDashboard) && !isEqual(modifiedDashboard, dashboard);
             return (
               locationChange.currentLocation.pathname !==
                 locationChange.nextLocation.pathname &&
