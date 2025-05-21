@@ -11,11 +11,11 @@ import {IconSearch} from 'sentry/icons/iconSearch';
 import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 
-interface StoryTypesProps {
+interface APIReferenceProps {
   types: TypeLoader.ComponentDocWithFilename | undefined;
 }
 
-export function StoryTypes(props: StoryTypesProps) {
+export function APIReference(props: APIReferenceProps) {
   const [query, setQuery] = useState('');
   const nodes = usePropTree(props.types?.props ?? {}, query);
 

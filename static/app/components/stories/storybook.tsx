@@ -3,8 +3,8 @@ import {Children, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {StoryTypes} from 'sentry/views/stories/storyTypes';
 
+import {APIReference} from './apiRef';
 import * as StorybookLayout from './layout';
 
 type StoryRenderFunction = () => ReactNode | ReactNode[];
@@ -41,7 +41,7 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
           <Story key={i} name={name} render={render} />
         ))}
         {APIDocumentation.map((documentation, i) => (
-          <StoryTypes key={i} types={documentation} />
+          <APIReference key={i} types={documentation} />
         ))}
       </Fragment>
     );
