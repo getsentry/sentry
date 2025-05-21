@@ -128,7 +128,10 @@ def test_capture_payload_metrics(mock_distribution):
     region_task.apply_async(args=("bruh",))
 
     mock_distribution.assert_called_once_with(
-        "celery.task.parameter_bytes", 71, tags={"taskname": "test.tasks.test_base.region_task"}
+        "celery.task.parameter_bytes",
+        71,
+        tags={"taskname": "test.tasks.test_base.region_task"},
+        sample_rate=1.0,
     )
 
 
