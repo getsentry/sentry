@@ -27,12 +27,10 @@ class PreprodArtifact(DefaultFieldsModel):
         """The user has initiated the upload, but it is not yet complete."""
         UPLOADED = 1
         """The upload is complete, but the artifact is not yet processed."""
-        PROCESSING = 2
-        """The artifact is being processed."""
         PROCESSED = 3
         """The artifact has been processed and is ready to be used."""
         FAILED = 4
-        """The artifact failed to process."""
+        """The artifact failed to upload or process. Read the error_code and error_message for more details."""
 
         @classmethod
         def as_choices(cls):
@@ -121,6 +119,8 @@ class PreprodArtifact(DefaultFieldsModel):
 
 
 class PreprodBuildConfiguration(DefaultFieldsModel):
+    """The build configuration used to build the artifact, e.g. "Debug" or "Release"."""
+
     organization_id = BoundedBigIntegerField(db_index=True)
     project = FlexibleForeignKey("sentry.Project")
     name = models.CharField(max_length=255)
@@ -132,18 +132,87 @@ class PreprodBuildConfiguration(DefaultFieldsModel):
 
 
 class PreprodArtifactSizeMetrics(DefaultFieldsModel):
+    """
+    Metrics about the size analysis of a pre-production artifact. Each PreprodArtifact can have 0 or many
+    size metrics.
+    """
+
+    class MetricsArtifactType:
+        MAIN_ARTIFACT = 0
+        """The main artifact."""
+        WATCH_ARTIFACT = 1
+        """An embedded watch artifact."""
+        ANDROID_DYNAMIC_FEATURE = 2
+        """An embedded Android dynamic feature artifact."""
+
+        @classmethod
+        def as_choices(cls):
+            return (
+                (cls.MAIN_ARTIFACT, "main_artifact"),
+                (cls.WATCH_ARTIFACT, "watch_artifact"),
+                (cls.ANDROID_DYNAMIC_FEATURE, "android_dynamic_feature_artifact"),
+            )
+
+    class SizeAnalysisState:
+        PENDING = 0
+        """Size analysis has not started yet."""
+        PROCESSING = 1
+        """Size analysis is in progress."""
+        COMPLETED = 2
+        """Size analysis completed successfully."""
+        FAILED = 3
+        """Size analysis failed. See error_code and error_message for details."""
+
+        @classmethod
+        def as_choices(cls):
+            return (
+                (cls.PENDING, "pending"),
+                (cls.PROCESSING, "processing"),
+                (cls.COMPLETED, "completed"),
+                (cls.FAILED, "failed"),
+            )
+
+    class ErrorCode:
+        UNKNOWN = 0
+        """The error code is unknown. Try to use a descriptive error code if possible."""
+        TIMEOUT = 1
+        """The size analysis processing timed out."""
+        UNSUPPORTED_ARTIFACT = 2
+        """The artifact type is not supported for size analysis."""
+        PROCESSING_ERROR = 3
+        """An error occurred during size analysis processing."""
+
+        @classmethod
+        def as_choices(cls):
+            return (
+                (cls.UNKNOWN, "unknown"),
+                (cls.TIMEOUT, "timeout"),
+                (cls.UNSUPPORTED_ARTIFACT, "unsupported_artifact"),
+                (cls.PROCESSING_ERROR, "processing_error"),
+            )
+
     preprod_artifact = FlexibleForeignKey("sentry.PreprodArtifact")
+    metrics_artifact_type = BoundedPositiveIntegerField(
+        choices=MetricsArtifactType.as_choices(), null=True
+    )
+
+    # Size analysis processing state
+    state = BoundedPositiveIntegerField(
+        default=SizeAnalysisState.PENDING, choices=SizeAnalysisState.as_choices()
+    )
+    error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
+    error_message = models.TextField(null=True)
 
     # Track which version of size processing determined these values
-    processing_version = models.CharField(max_length=255)
+    processing_version = models.CharField(max_length=255, null=True)
 
-    min_install_size = BoundedPositiveBigIntegerField()
-    max_install_size = BoundedPositiveBigIntegerField()
-
-    min_download_size = BoundedPositiveBigIntegerField()
-    max_download_size = BoundedPositiveBigIntegerField()
+    # Size fields are nullable since they won't be available until processing completes
+    min_install_size = BoundedPositiveBigIntegerField(null=True)
+    max_install_size = BoundedPositiveBigIntegerField(null=True)
+    min_download_size = BoundedPositiveBigIntegerField(null=True)
+    max_download_size = BoundedPositiveBigIntegerField(null=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_preprodartifactsizemetrics"
-        unique_together = "preprod_artifact"
+        unique_together = ("preprod_artifact", "metrics_artifact_type")
