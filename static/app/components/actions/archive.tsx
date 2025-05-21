@@ -320,7 +320,7 @@ function ArchiveActions({
         className={className}
         minMenuWidth={270}
         trigger={(triggerProps, isOpen) => (
-          <DropdownTrigger
+          <Button
             {...triggerProps}
             aria-label={t('Archive options')}
             size={size}
@@ -350,12 +350,6 @@ export default ArchiveActions;
 const ArchiveButton = styled(Button)`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
-`;
-
-const DropdownTrigger = styled(Button)`
-  box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-  border-left: none;
 `;
 
 const MenuWrapper = styled('div')`
