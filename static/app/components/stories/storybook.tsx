@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-import {APIReference} from './apiRef';
+import {APIReference} from './apiReference';
 import * as StorybookLayout from './layout';
 
 type StoryRenderFunction = () => ReactNode | ReactNode[];
