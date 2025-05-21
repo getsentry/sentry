@@ -50,7 +50,6 @@ interface NewDetector {
 }
 
 export interface Detector extends Readonly<NewDetector> {
-  readonly connectedWorkflows: string[];
   readonly createdBy: string;
   readonly dateCreated: string;
   readonly dateUpdated: string;
