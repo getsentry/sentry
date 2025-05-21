@@ -43,6 +43,7 @@ import {
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';
+import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
@@ -263,6 +264,8 @@ export default function IssueViewsList() {
     useCreateGroupSearchView();
   const defaultProject = useDefaultProject();
 
+  const hasIssueViews = useHasIssueViews();
+
   if (!organization.features.includes('enforce-stacked-navigation')) {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
   }
@@ -300,7 +303,12 @@ export default function IssueViewsList() {
                 priority="primary"
                 icon={<IconAdd />}
                 size="sm"
-                disabled={isCreatingView}
+                disabled={!hasIssueViews || isCreatingView}
+                title={
+                  hasIssueViews
+                    ? undefined
+                    : t('Issue views are not enabled for your organization')
+                }
                 busy={isCreatingView}
                 onClick={() => {
                   trackAnalytics('issue_views.table.create_view_clicked', {
