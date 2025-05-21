@@ -30,7 +30,14 @@ def process_message(message: Message[KafkaPayload]) -> None:
             start_time = time.perf_counter()
             metrics.distribution(
                 "profiling.profile_metrics.compressed_bytes",
-                len(b64encode(zlib.compress(message.payload.value))),
+                len(
+                    b64encode(
+                        zlib.compress(
+                            message.payload.value,
+                            level=options.get("taskworker.try_compress.profile_metrics.level"),
+                        )
+                    )
+                ),
             )
             end_time = time.perf_counter()
             metrics.distribution(

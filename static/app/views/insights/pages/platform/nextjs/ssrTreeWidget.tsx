@@ -25,8 +25,8 @@ import {space} from 'sentry/styles/space';
 import type {EventsStats} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -34,6 +34,7 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TreeResponseItem {
   'avg(span.duration)': number;
@@ -109,14 +110,13 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
 
     // Iterate over the path segments and create folders if they don't exist yet
     for (const segment of fullPath) {
-      const decodedSegment = decodeURIComponent(segment);
-      const child = currentFolder.children.find(c => c.name === decodedSegment);
+      const child = currentFolder.children.find(c => c.name === segment);
       if (child) {
         currentFolder = child as TreeContainer;
       } else {
         const newFolder: TreeContainer = {
           children: [],
-          name: decodedSegment,
+          name: segment,
           type: file === segment ? 'file' : 'folder',
         };
         currentFolder.children.push(newFolder);
@@ -162,14 +162,14 @@ function filterTree(
 }
 
 export default function SSRTreeWidget() {
-  const location = useLocation();
   const organization = useOrganization();
+  const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans',
   });
   const {openDrawer} = useDrawer();
 
-  const fullQuery = `span.op:function.nextjs ${location.query.query ?? ''}`;
+  const fullQuery = `span.op:function.nextjs ${query}`;
 
   const treeRequest = useApiQuery<TreeResponse>(
     [
@@ -321,8 +321,9 @@ function TreeNodeRenderer({
   indent?: number;
   path?: string[];
 }) {
-  const theme = useTheme();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const theme = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const itemPath = [...path, item.name];
 
@@ -330,6 +331,7 @@ function TreeNodeRenderer({
   if (item.type !== 'folder') {
     exploreLink = getExploreUrl({
       organization,
+      selection,
       mode: Mode.SAMPLES,
       visualize: [
         {

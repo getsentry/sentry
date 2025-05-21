@@ -37,6 +37,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         input_block_size: int | None,
         output_block_size: int | None,
         produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
+        max_memory_percentage: float = 1.0,
     ):
         super().__init__()
 
@@ -44,6 +45,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.max_flush_segments = max_flush_segments
+        self.max_memory_percentage = max_memory_percentage
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.num_processes = num_processes
@@ -66,8 +68,9 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         flusher = self._flusher = SpanFlusher(
             buffer,
-            self.max_flush_segments,
-            self.produce_to_pipe,
+            max_flush_segments=self.max_flush_segments,
+            max_memory_percentage=self.max_memory_percentage,
+            produce_to_pipe=self.produce_to_pipe,
             next_step=committer,
         )
 
@@ -93,19 +96,19 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             next_step=run_task,
         )
 
-        # We use the produce timestamp to drive the clock for flushing, so that
-        # consumer backlogs do not cause segments to be flushed prematurely.
-        # The received timestamp in the span is too old for this purpose if
-        # Relay starts buffering, and we don't want that effect to propagate
-        # into this system.
-        def add_produce_timestamp_cb(message: Message[KafkaPayload]) -> tuple[int, KafkaPayload]:
+        def prepare_message(message: Message[KafkaPayload]) -> tuple[int, KafkaPayload]:
+            # We use the produce timestamp to drive the clock for flushing, so that
+            # consumer backlogs do not cause segments to be flushed prematurely.
+            # The received timestamp in the span is too old for this purpose if
+            # Relay starts buffering, and we don't want that effect to propagate
+            # into this system.
             return (
                 int(message.timestamp.timestamp() if message.timestamp else time.time()),
                 message.payload,
             )
 
         add_timestamp = RunTask(
-            function=add_produce_timestamp_cb,
+            function=prepare_message,
             next_step=batch,
         )
 
@@ -133,7 +136,7 @@ def process_batch(
             parent_span_id=val.get("parent_span_id"),
             project_id=val["project_id"],
             payload=payload.value,
-            is_segment_span=(val.get("parent_span_id") is None or val.get("is_remote")),
+            is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_remote")),
         )
         spans.append(span)
 

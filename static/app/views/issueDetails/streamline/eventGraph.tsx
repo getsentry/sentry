@@ -22,7 +22,7 @@ import {Button, type ButtonProps} from 'sentry/components/core/button';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
@@ -86,7 +86,10 @@ interface EventGraphProps {
 }
 
 function createSeriesAndCount(stats: EventsStats) {
-  return stats?.data?.reduce(
+  return stats?.data?.reduce<{
+    count: number;
+    series: Array<{name: number; value: number}>;
+  }>(
     (result, [timestamp, countData]) => {
       const count = countData?.[0]?.count ?? 0;
       return {
@@ -100,7 +103,7 @@ function createSeriesAndCount(stats: EventsStats) {
         count: result.count + count,
       };
     },
-    {series: [] as SeriesDataUnit[], count: 0}
+    {series: [], count: 0}
   );
 }
 
@@ -240,6 +243,7 @@ export function EventGraph({
   const currentEventSeries = useCurrentEventMarklineSeries({
     event,
     group,
+    eventSeries,
   });
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
@@ -287,9 +291,8 @@ export function EventGraph({
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
   const lastEventSeries = eventSeries.at(-1);
   const penultEventSeries = eventSeries.at(-2);
-  const lastEventSeriesTimestamp = lastEventSeries && (lastEventSeries.name as number);
-  const penultEventSeriesTimestamp =
-    penultEventSeries && (penultEventSeries.name as number);
+  const lastEventSeriesTimestamp = lastEventSeries?.name;
+  const penultEventSeriesTimestamp = penultEventSeries?.name;
   const eventSeriesInterval =
     lastEventSeriesTimestamp &&
     penultEventSeriesTimestamp &&
@@ -396,7 +399,7 @@ export function EventGraph({
     }
 
     // Only display the current event mark line if on the issue details tab
-    if (currentEventSeries.markLine && currentTab === Tab.DETAILS) {
+    if (currentEventSeries?.markLine && currentTab === Tab.DETAILS) {
       seriesData.push(currentEventSeries as BarChartSeries);
     }
 
@@ -560,6 +563,12 @@ export function EventGraph({
             },
           }}
           xAxis={{
+            axisTick: {
+              show: false,
+            },
+            axisLabel: {
+              margin: 8,
+            },
             ...releaseBubbleXAxis,
           }}
           {...(disableZoomNavigation

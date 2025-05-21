@@ -53,7 +53,7 @@ from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.sdk import set_measurement
+from sentry.utils.sdk import set_span_data
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
 
@@ -223,10 +223,9 @@ def process_profile_task(
     if "version" in profile:
         version = profile["version"]
         sentry_sdk.set_tag("format", f"sample_v{version}")
-
-        set_measurement("profile.samples", len(profile["profile"]["samples"]))
-        set_measurement("profile.stacks", len(profile["profile"]["stacks"]))
-        set_measurement("profile.frames", len(profile["profile"]["frames"]))
+        set_span_data("profile.samples", len(profile["profile"]["samples"]))
+        set_span_data("profile.stacks", len(profile["profile"]["stacks"]))
+        set_span_data("profile.frames", len(profile["profile"]["frames"]))
     elif "profiler_id" in profile and profile["platform"] == "android":
         sentry_sdk.set_tag("format", "android_chunk")
     else:
@@ -252,9 +251,9 @@ def process_profile_task(
     _set_frames_platform(profile)
 
     if "version" in profile:
-        set_measurement("profile.samples.processed", len(profile["profile"]["samples"]))
-        set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
-        set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
+        set_span_data("profile.samples.processed", len(profile["profile"]["samples"]))
+        set_span_data("profile.stacks.processed", len(profile["profile"]["stacks"]))
+        set_span_data("profile.frames.processed", len(profile["profile"]["frames"]))
 
     if options.get("profiling.stack_trace_rules.enabled"):
         try:
@@ -372,8 +371,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(
                     profile, platform
                 )
-
-                set_measurement(
+                set_span_data(
                     f"profile.frames.sent.{platform}",
                     len(frames_sent),
                 )
