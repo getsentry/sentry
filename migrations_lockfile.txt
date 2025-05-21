@@ -21,7 +21,7 @@ nodestore: 0002_nodestore_no_dictfield
 
 replays: 0005_drop_replay_index
 
-sentry: 0904_onboarding_task_project_id_idx
+sentry: 0905_increase_email_field_length
 
 social_auth: 0002_default_auto_field
 
