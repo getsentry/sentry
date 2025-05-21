@@ -13,7 +13,10 @@ from sentry.db.models.fields.jsonfield import JSONField
 
 class PreprodArtifact(DefaultFieldsModel):
     """
-    A pre-production artifact is an artifact that is built in a pre-production environment such as the user's CI/CD pipeline.
+    A pre-production artifact provided by the user, presumably from their CI/CD pipeline.
+    With this, we can analyze their artifact and provide them with insights to fix _before_
+    it's released to production.
+
     Examples:
     - iOS app builds
     - Android app builds
