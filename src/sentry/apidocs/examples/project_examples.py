@@ -226,7 +226,7 @@ DETAILED_PROJECT = {
             "features": ["issue-basic"],
             "featureDescriptions": [
                 {
-                    "description": "Create and link Sentry issue groups directly to an Asana ticket in any of your\n            projects, providing a quick way to jump from a Sentry bug to tracked ticket!",
+                    "description": "Create and link Sentry issue groups directly to an Asana ticket in any of your\n            projects, providing a quick way to jump from a Sentry bug to tracked ticket.",
                     "featureGate": "issue-basic",
                 },
                 {

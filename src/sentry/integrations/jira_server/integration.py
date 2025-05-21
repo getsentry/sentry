@@ -70,7 +70,7 @@ FEATURE_DESCRIPTIONS = [
     FeatureDescription(
         """
         Create and link Sentry issue groups directly to a Jira ticket in any of your
-        projects, providing a quick way to jump from Sentry bug to tracked ticket!
+        projects, providing a quick way to jump from Sentry bug to tracked ticket.
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),

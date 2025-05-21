@@ -76,7 +76,7 @@ FEATURES = [
         """
         Create and link Sentry issue groups directly to a Azure DevOps work item in any of
         your projects, providing a quick way to jump from Sentry bug to tracked
-        work item!
+        work item.
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
