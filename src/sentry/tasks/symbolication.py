@@ -185,7 +185,7 @@ def _do_symbolicate_event(
     ):
         try:
             symbolicated_data = symbolication_function(symbolicator, data)
-            span.set_data("symbolicated_data", bool(symbolicated_data))
+            span.set_attribute("symbolicated_data", bool(symbolicated_data))
 
             if symbolicated_data:
                 data = symbolicated_data

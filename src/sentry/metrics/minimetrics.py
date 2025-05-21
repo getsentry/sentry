@@ -10,7 +10,7 @@ from sentry.metrics.base import MetricsBackend, Tags
 def _attach_tags(span: Span, tags: Tags | None) -> None:
     if tags:
         for tag_key, tag_value in tags.items():
-            span.set_data(tag_key, tag_value)
+            span.set_attribute(tag_key, tag_value)
 
 
 def _set_metric_on_span(key: str, value: float | int, op: str, tags: Tags | None = None) -> None:
@@ -18,7 +18,7 @@ def _set_metric_on_span(key: str, value: float | int, op: str, tags: Tags | None
     if span_or_tx is None:
         return
 
-    span_or_tx.set_data(key, value)
+    span_or_tx.set_attribute(key, value)
     _attach_tags(span_or_tx, tags)
 
 
