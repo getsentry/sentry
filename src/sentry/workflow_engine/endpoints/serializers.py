@@ -278,9 +278,12 @@ class DetectorSerializer(Serializer):
             for group, serialized in zip(condition_groups, serialize(condition_groups, user=user))
         }
 
-        workflows_map = defaultdict[int, list[str]](list)
-        for dw in DetectorWorkflow.objects.filter(detector__in=item_list):
-            workflows_map[dw.detector_id].append(str(dw.workflow_id))
+        workflows_map = defaultdict(list)
+        detector_workflows = DetectorWorkflow.objects.filter(detector__in=item_list).values_list(
+            "detector_id", "workflow_id"
+        )
+        for detector_id, workflow_id in detector_workflows:
+            workflows_map[detector_id].append(str(workflow_id))
 
         filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
         project_ids = [item.project_id for item in filtered_item_list]
@@ -352,9 +355,12 @@ class WorkflowSerializer(Serializer):
         for wdcg in wdcg_list:
             dcg_map[wdcg.workflow_id].append(serialized_condition_groups[wdcg.condition_group_id])
 
-        detectors_map = defaultdict[int, list[str]](list)
-        for dw in DetectorWorkflow.objects.filter(workflow__in=item_list):
-            detectors_map[dw.workflow_id].append(str(dw.detector_id))
+        detectors_map = defaultdict(list)
+        detector_workflows = DetectorWorkflow.objects.filter(workflow__in=item_list).values_list(
+            "detector_id", "workflow_id"
+        )
+        for detector_id, workflow_id in detector_workflows:
+            detectors_map[workflow_id].append(str(detector_id))
 
         for item in item_list:
             attrs[item]["triggers"] = trigger_condition_map.get(
