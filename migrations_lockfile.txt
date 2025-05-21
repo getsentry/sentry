@@ -9,6 +9,8 @@ explore: 0004_add_explore_last_visited_table
 
 feedback: 0004_index_together
 
+flags: 0004_add_flag_audit_log_provider_column
+
 hybridcloud: 0021_django_arrayfield_scope_list
 
 insights: 0001_add_starred_transactions_model
@@ -16,8 +18,6 @@ insights: 0001_add_starred_transactions_model
 monitors: 0005_record_date_in_progress_state
 
 nodestore: 0002_nodestore_no_dictfield
-
-remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0005_drop_replay_index
 
