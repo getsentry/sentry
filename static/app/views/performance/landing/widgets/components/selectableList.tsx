@@ -83,6 +83,15 @@ export const GrowLink = styled(Link)`
   display: inherit;
 `;
 
+export function GenericWidgetEmptyStateWarning({message}: {message: React.ReactNode}) {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>{message}</SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
 export function WidgetEmptyStateWarning() {
   return (
     <StyledEmptyStateWarning>

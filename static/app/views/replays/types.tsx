@@ -220,7 +220,6 @@ export interface DeadRageSelectorQueryParams {
   cursor?: string | string[] | undefined | null;
   per_page?: number;
   prefix?: string;
-  query?: string;
   sort?:
     | 'count_dead_clicks'
     | '-count_dead_clicks'
