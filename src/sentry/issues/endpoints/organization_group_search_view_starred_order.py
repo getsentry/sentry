@@ -38,9 +38,7 @@ class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        if not features.has(
-            "organizations:issue-stream-custom-views", organization, actor=request.user
-        ):
+        if not features.has("organizations:issue-views", organization):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = GroupSearchViewStarredOrderSerializer(
