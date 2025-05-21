@@ -6,38 +6,33 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type CodecovProviderProps = {
+type CodecovQueryParamsProviderProps = {
   children?: NonNullable<React.ReactNode>;
 };
 
-export default function CodecovQueryParamsProvider({children}: CodecovProviderProps) {
+export default function CodecovQueryParamsProvider({
+  children,
+}: CodecovQueryParamsProviderProps) {
   const organization = useOrganization();
-  const orgSlug = organization.slug;
 
   const location = useLocation();
   const [localStorageState, setLocalStorageState] = useLocalStorageState(
-    `codecov-selection:${orgSlug}`,
-    {} as Partial<CodecovContextData>
+    `codecov-selection:${organization.slug}`,
+    {}
   );
 
   useEffect(() => {
-    const queryRepository = location.query.repository;
-    const queryIntegratedOrg = location.query.integratedOrg;
-    const queryBranch = location.query.branch;
-    const queryCodecovPeriod = location.query.codecovPeriod;
-    const validEntries = {} as Partial<CodecovContextData>;
+    const validEntries = {
+      repository: location.query.repository,
+      integratedOrg: location.query.integratedOrg,
+      branch: location.query.branch,
+      codecovPeriod: location.query.codecovPeriod,
+    };
 
-    if (typeof queryRepository === 'string' && queryRepository !== '') {
-      validEntries.repository = queryRepository;
-    }
-    if (typeof queryIntegratedOrg === 'string' && queryIntegratedOrg !== '') {
-      validEntries.integratedOrg = queryIntegratedOrg;
-    }
-    if (typeof queryBranch === 'string' && queryBranch !== '') {
-      validEntries.branch = queryBranch;
-    }
-    if (typeof queryCodecovPeriod === 'string' && queryCodecovPeriod !== '') {
-      validEntries.codecovPeriod = queryCodecovPeriod;
+    for (const [key, value] of Object.entries(validEntries)) {
+      if (!value || typeof value !== 'string') {
+        delete validEntries[key as keyof CodecovContextData];
+      }
     }
 
     setLocalStorageState(prev => ({
@@ -50,25 +45,29 @@ export default function CodecovQueryParamsProvider({children}: CodecovProviderPr
   // These only represent the unselected values and shouldn't be used when fetching backend data.
   const params: CodecovContextData = {
     repository:
-      ((typeof location.query.repository === 'string' &&
-        decodeURIComponent(location.query.repository)) ||
-        localStorageState.repository) ??
-      null,
+      typeof location.query.repository === 'string'
+        ? decodeURIComponent(location.query.repository)
+        : 'repository' in localStorageState
+          ? (localStorageState.repository as string)
+          : null,
     integratedOrg:
-      (typeof location.query.integratedOrg === 'string' &&
-        decodeURIComponent(location.query.integratedOrg)) ||
-      localStorageState.integratedOrg ||
-      null,
+      typeof location.query.integratedOrg === 'string'
+        ? decodeURIComponent(location.query.integratedOrg)
+        : 'integratedOrg' in localStorageState
+          ? (localStorageState.integratedOrg as string)
+          : null,
     branch:
-      (typeof location.query.branch === 'string' &&
-        decodeURIComponent(location.query.branch)) ||
-      localStorageState.branch ||
-      null,
+      typeof location.query.branch === 'string'
+        ? decodeURIComponent(location.query.branch)
+        : 'branch' in localStorageState
+          ? (localStorageState.branch as string)
+          : null,
     codecovPeriod:
-      (typeof location.query.codecovPeriod === 'string' &&
-        decodeURIComponent(location.query.codecovPeriod)) ||
-      localStorageState.codecovPeriod ||
-      '24h',
+      typeof location.query.codecovPeriod === 'string'
+        ? decodeURIComponent(location.query.codecovPeriod)
+        : 'codecovPeriod' in localStorageState
+          ? (localStorageState.codecovPeriod as string)
+          : '24h',
   };
 
   return <CodecovContext.Provider value={params}>{children}</CodecovContext.Provider>;
