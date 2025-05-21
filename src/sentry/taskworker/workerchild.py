@@ -281,41 +281,41 @@ def child_process(
         kwargs = parameters.get("kwargs", {})
         headers = {k: v for k, v in activation.headers.items()}
 
-        transaction = sentry_sdk.continue_trace(
-            environ_or_headers=headers,
-            op="queue.task.taskworker",
-            name=f"{activation.namespace}:{activation.taskname}",
-            origin="taskworker",
-        )
-        with (
-            track_memory_usage("taskworker.worker.memory_change"),
-            sentry_sdk.start_span(transaction),
-        ):
-            transaction.set_attribute(
-                "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
-            )
-            task_added_time = activation.received_at.ToDatetime().timestamp()
-            latency = time.time() - task_added_time
-
-            with sentry_sdk.start_span(
-                op=OP.QUEUE_PROCESS,
-                name=activation.taskname,
-                origin="taskworker",
-            ) as span:
-                span.set_attribute(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
-                span.set_attribute(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
-                span.set_attribute(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
-                span.set_attribute(
-                    SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, activation.retry_state.attempts
+        with sentry_sdk.continue_trace(headers):
+            with (
+                track_memory_usage("taskworker.worker.memory_change"),
+                sentry_sdk.start_span(
+                    environ_or_headers=headers,
+                    op="queue.task.taskworker",
+                    name=f"{activation.namespace}:{activation.taskname}",
+                    origin="taskworker",
+                ) as root_span,
+            ):
+                root_span.set_attribute(
+                    "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
                 )
-                span.set_attribute(SPANDATA.MESSAGING_SYSTEM, "taskworker")
+                task_added_time = activation.received_at.ToDatetime().timestamp()
+                latency = time.time() - task_added_time
 
-            try:
-                task_func(*args, **kwargs)
-                transaction.set_status(SPANSTATUS.OK)
-            except Exception:
-                transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
-                raise
+                with sentry_sdk.start_span(
+                    op=OP.QUEUE_PROCESS,
+                    name=activation.taskname,
+                    origin="taskworker",
+                ) as span:
+                    span.set_attribute(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
+                    span.set_attribute(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
+                    span.set_attribute(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
+                    span.set_attribute(
+                        SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, activation.retry_state.attempts
+                    )
+                    span.set_attribute(SPANDATA.MESSAGING_SYSTEM, "taskworker")
+
+                try:
+                    task_func(*args, **kwargs)
+                    root_span.set_status(SPANSTATUS.OK)
+                except Exception:
+                    root_span.set_status(SPANSTATUS.INTERNAL_ERROR)
+                    raise
 
     def record_task_execution(
         activation: TaskActivation,
