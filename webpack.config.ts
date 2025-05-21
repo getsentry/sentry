@@ -1,4 +1,3 @@
-import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
 import browserslist from 'browserslist';
@@ -408,11 +407,6 @@ const appConfig: webpack.Configuration = {
             ]
           : []),
       ],
-    }),
-
-    WebpackReactSourcemapsPlugin({
-      mode: IS_PRODUCTION ? 'strict' : undefined,
-      debug: false,
     }),
   ],
 

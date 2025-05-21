@@ -228,16 +228,17 @@ class Strategy(Generic[ConcreteInterface]):
         self, event: Event, context: GroupingContext, variant: str | None = None
     ) -> None | BaseGroupingComponent[Any] | ReturnedVariants:
         """Given a specific variant this calculates the grouping component."""
-        args = []
         iface = event.interfaces.get(self.interface_name)
+
         if iface is None:
             return None
-        args.append(iface)
+
         with context:
             # If a variant is passed put it into the context
             if variant is not None:
                 context["variant"] = variant
-            return self(event=event, context=context, *args)
+
+            return self(iface, event=event, context=context)
 
     def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
         """This returns a dictionary of all components by variant that this
@@ -325,7 +326,7 @@ class StrategyConfiguration:
 
     def iter_strategies(self) -> Iterator[Strategy[Any]]:
         """Iterates over all strategies by highest score to lowest."""
-        return iter(sorted(self.strategies.values(), key=lambda x: x.score and -x.score or 0))
+        return iter(sorted(self.strategies.values(), key=lambda x: -x.score if x.score else 0))
 
     @classmethod
     def as_dict(cls) -> dict[str, Any]:
