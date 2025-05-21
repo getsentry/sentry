@@ -82,6 +82,11 @@ export interface SearchQueryBuilderProps {
    */
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   /**
+   * A function that maps user input to a suggested column. This is used
+   * to autocomplete user input if it's definitive what they're looking for.
+   */
+  getSuggestedFilterKey?: (key: string) => string | null;
+  /**
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
