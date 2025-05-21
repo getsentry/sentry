@@ -19,8 +19,6 @@ monitors: 0005_record_date_in_progress_state
 
 nodestore: 0002_nodestore_no_dictfield
 
-remote_subscriptions: 0003_drop_remote_subscription
-
 replays: 0005_drop_replay_index
 
 sentry: 0904_onboarding_task_project_id_idx

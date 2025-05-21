@@ -350,7 +350,6 @@ module = [
     "sentry.release_health.release_monitor.*",
     "sentry.relocation.api.endpoints.artifacts.*",
     "sentry.relocation.services.relocation_export.*",
-    "sentry.remote_subscriptions.migrations.*",
     "sentry.replays.consumers.*",
     "sentry.replays.lib.new_query.*",
     "sentry.replays.migrations.*",
