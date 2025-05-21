@@ -80,7 +80,7 @@ export enum IssueCategory {
   CRON = 'cron',
   /**
    * @deprecated
-   * Rage click and hyrdation issues will move to the "frontend" category
+   * Rage click and hydration issues will move to the "frontend" category
    */
   REPLAY = 'replay',
   /**
