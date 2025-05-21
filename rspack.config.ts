@@ -768,7 +768,7 @@ if (env.WEBPACK_CACHE_PATH) {
     // https://rspack.dev/config/experiments#cachestorage
     storage: {
       type: 'filesystem',
-      directory: env.WEBPACK_CACHE_PATH,
+      directory: path.join(__dirname, env.WEBPACK_CACHE_PATH),
     },
   };
 }

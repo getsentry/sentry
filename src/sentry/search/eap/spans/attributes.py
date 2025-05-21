@@ -285,27 +285,27 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias="spans.browser",
-            internal_name="sentry.span_ops.ops.browser",
+            internal_name="span_ops.ops.browser",
             search_type="millisecond",
         ),
         ResolvedAttribute(
             public_alias="spans.db",
-            internal_name="sentry.span_ops.ops.db",
+            internal_name="span_ops.ops.db",
             search_type="millisecond",
         ),
         ResolvedAttribute(
             public_alias="spans.http",
-            internal_name="sentry.span_ops.ops.http",
+            internal_name="span_ops.ops.http",
             search_type="millisecond",
         ),
         ResolvedAttribute(
             public_alias="spans.resource",
-            internal_name="sentry.span_ops.ops.resource",
+            internal_name="span_ops.ops.resource",
             search_type="millisecond",
         ),
         ResolvedAttribute(
             public_alias="spans.ui",
-            internal_name="sentry.span_ops.ops.ui",
+            internal_name="span_ops.ops.ui",
             search_type="millisecond",
         ),
         ResolvedAttribute(
