@@ -147,6 +147,7 @@ repos:
         name: knip
         language: system
         files: \.(ts|js|tsx|jsx|mjs)$
+        pass_filenames: false
         stages: [pre-push]
         entry: bash -c 'if [ -n "${SENTRY_KNIP_PRE_PUSH:-}" ]; then exec ./node_modules/.bin/knip; fi' --
 
