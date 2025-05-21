@@ -120,6 +120,7 @@ class SentryTask(Task):
                     "celery.task.parameter_bytes",
                     len(param_size.encode("utf8")),
                     tags={"taskname": self.name},
+                    sample_rate=1.0,
                 )
             except Exception as e:
                 logger.warning(
