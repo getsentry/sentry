@@ -37,30 +37,21 @@ class PreprodArtifact(DefaultFieldsModel):
             return (
                 (cls.UPLOADING, "uploading"),
                 (cls.UPLOADED, "uploaded"),
-                (cls.PROCESSING, "processing"),
                 (cls.PROCESSED, "processed"),
                 (cls.FAILED, "failed"),
             )
 
     class ArtifactType:
         XCARCHIVE = 0
-        XCFRAMEWORK = 1
-        IPA = 2
-        AAB = 3
-        AAB_ZIPPED = 4
-        APK = 5
-        APK_ZIPPED = 6
+        AAB = 1
+        APK = 2
 
         @classmethod
         def as_choices(cls):
             return (
                 (cls.XCARCHIVE, "xcarchive"),
-                (cls.XCFRAMEWORK, "xcframework"),
-                (cls.IPA, "ipa"),
                 (cls.AAB, "aab"),
-                (cls.AAB_ZIPPED, "aab_zipped"),
                 (cls.APK, "apk"),
-                (cls.APK_ZIPPED, "apk_zipped"),
             )
 
     class ErrorCode:
