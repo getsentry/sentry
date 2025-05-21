@@ -345,34 +345,28 @@ class SubscriptionProcessor:
                 data_packet = DataPacket[MetricDetectorUpdate](
                     source_id=str(self.subscription.id), packet=packet
                 )
-                results = process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
-                if features.has(
-                    "organizations:workflow-engine-metric-alert-dual-processing-logs",
-                    self.alert_rule.organization,
-                ):
-                    logger.info(
-                        "dual processing results for alert rule",
-                        extra={
-                            "results": results,
-                            "num_results": len(results),
-                            "value": aggregation_value,
-                            "rule_id": self.alert_rule.id,
-                        },
+                # temporarily skip processing any anomaly detection alerts
+                if self.alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC:
+                    results = process_data_packets(
+                        [data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
                     )
+                    if features.has(
+                        "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                        self.alert_rule.organization,
+                    ):
+                        logger.info(
+                            "dual processing results for alert rule",
+                            extra={
+                                "results": results,
+                                "num_results": len(results),
+                                "value": aggregation_value,
+                                "rule_id": self.alert_rule.id,
+                            },
+                        )
 
         has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", organization
         ) and features.has("organizations:anomaly-detection-rollout", organization)
-
-        alert_triggered_tags = {
-            "detection_type": self.alert_rule.detection_type,
-            "organization_id": None,
-        }
-        if features.has(
-            "organizations:workflow-engine-metric-alert-dual-processing-logs",
-            self.subscription.project.organization,
-        ):
-            alert_triggered_tags["organization_id"] = self.alert_rule.organization_id
 
         potential_anomalies = None
         if (
@@ -436,7 +430,7 @@ class SubscriptionProcessor:
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.alert",
-                                tags=alert_triggered_tags,
+                                tags={"detection_type": self.alert_rule.detection_type},
                             )
                             incident_trigger = self.trigger_alert_threshold(
                                 trigger, aggregation_value
@@ -453,7 +447,7 @@ class SubscriptionProcessor:
                         ):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.resolve",
-                                tags=alert_triggered_tags,
+                                tags={"detection_type": self.alert_rule.detection_type},
                             )
                             incident_trigger = self.trigger_resolve_threshold(
                                 trigger, aggregation_value
@@ -475,8 +469,13 @@ class SubscriptionProcessor:
                         # And the trigger is not yet active
                         metrics.incr(
                             "incidents.alert_rules.threshold.alert",
-                            tags=alert_triggered_tags,
+                            tags={"detection_type": self.alert_rule.detection_type},
                         )
+                        if features.has(
+                            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                            self.subscription.project.organization,
+                        ):
+                            metrics.incr("dual_processing.alert_rules.fire")
                         # triggering a threshold will create an incident and set the status to active
                         incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
                         if incident_trigger is not None:
@@ -493,8 +492,13 @@ class SubscriptionProcessor:
                     ):
                         metrics.incr(
                             "incidents.alert_rules.threshold.resolve",
-                            tags=alert_triggered_tags,
+                            tags={"detection_type": self.alert_rule.detection_type},
                         )
+                        if features.has(
+                            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+                            self.subscription.project.organization,
+                        ):
+                            metrics.incr("dual_processing.alert_rules.fire")
                         incident_trigger = self.trigger_resolve_threshold(
                             trigger, aggregation_value
                         )
