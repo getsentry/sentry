@@ -32,7 +32,7 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        ("sentry", "0864_move_monitors"),
+        # ("sentry", "0864_move_monitors"),
     ]
 
     operations = [

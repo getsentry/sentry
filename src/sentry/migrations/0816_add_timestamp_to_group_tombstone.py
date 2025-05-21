@@ -21,9 +21,7 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    dependencies = [
-        ("sentry", "0815_add_action_cols_to_threads_model"),
-    ]
+    dependencies = []
 
     operations = [
         migrations.AddField(
