@@ -88,31 +88,30 @@ export function DomainSelector({
     pageLinks,
   });
 
-  const incomingDomains: Array<{label: string; value: string}> = [
+  const incomingDomains = [
     ...uniq(
       domainData?.flatMap(row => {
         const spanDomain: string | string[] = row[SpanMetricsField.SPAN_DOMAIN];
         // `useInsightsEap` returns a string, but `metrics` returns an array
         if (typeof spanDomain === 'string') {
-          return spanDomain.split(',').map(domain => ({
-            label: domain,
-            value: `*${domain}*`,
-          }));
+          return spanDomain.split(',');
         }
-        return spanDomain.map(domain => ({
-          label: domain,
-          value: domain,
-        }));
+        return spanDomain;
       })
-    ),
+    ).filter(Boolean),
   ];
+
+  const domainList = incomingDomains.map(domain => ({
+    label: domain,
+    value: useEap ? `*${domain}*` : domain,
+  }));
 
   if (value) {
     const scrubbedValue = useEap
       ? value.replace(/^\*(.*)\*$/, '$1') // removes wildcards, only if they are at the beginning and end of the string
       : value;
 
-    incomingDomains.push({
+    domainList.push({
       label: scrubbedValue,
       value,
     });
@@ -120,7 +119,7 @@ export function DomainSelector({
 
   const {options: domainOptions, clear: clearDomainOptionsCache} =
     useCompactSelectOptionsCache(
-      incomingDomains
+      domainList
         .filter(domain => Boolean(domain?.label))
         .filter(domain => domain.value !== EMPTY_OPTION_VALUE)
     );
