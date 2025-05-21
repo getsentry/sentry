@@ -18,6 +18,7 @@ type ParamKeys =
   | 'codeId'
   | 'dataExportId'
   | 'dashboardId'
+  | 'detectorId'
   | 'docIntegrationSlug'
   | 'eventId'
   | 'fineTuneType'
