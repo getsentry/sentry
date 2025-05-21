@@ -110,14 +110,13 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
 
     // Iterate over the path segments and create folders if they don't exist yet
     for (const segment of fullPath) {
-      const decodedSegment = decodeURIComponent(segment);
-      const child = currentFolder.children.find(c => c.name === decodedSegment);
+      const child = currentFolder.children.find(c => c.name === segment);
       if (child) {
         currentFolder = child as TreeContainer;
       } else {
         const newFolder: TreeContainer = {
           children: [],
-          name: decodedSegment,
+          name: segment,
           type: file === segment ? 'file' : 'folder',
         };
         currentFolder.children.push(newFolder);
