@@ -58,7 +58,7 @@ class VertexProvider(LlmModelBase):
         response = requests.post(vertex_url, headers=headers, json=payload)
 
         if response.status_code != 200:
-            sentry_sdk.set_tag("vertex_response_status_code", response.status_code)
+            sentry_sdk.set_tag("vertex.response_status_code", response.status_code)
             raise VertexRequestFailed(f"Response {response.status_code}: {response.text}")
 
         return response.json()["candidates"][0]["content"]["parts"][0]["text"]
