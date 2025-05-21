@@ -22,7 +22,6 @@ export function OnboardingTasksFixture(
     },
     {status: 'skipped', task: OnboardingTaskKey.FIRST_PROJECT},
     {status: 'skipped', task: OnboardingTaskKey.PERFORMANCE_GUIDE},
-    {status: 'skipped', task: OnboardingTaskKey.SOURCEMAPS},
     ...params,
   ];
 }
