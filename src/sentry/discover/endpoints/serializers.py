@@ -175,14 +175,9 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 },
             )
             sentry_sdk.capture_message("Created or updated saved query with discover dataset.")
-            if features.has(
-                "organizations:deprecate-discover-widget-type",
-                self.context["organization"],
-                actor=self.context["user"],
-            ):
-                raise serializers.ValidationError(
-                    "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
-                )
+            raise serializers.ValidationError(
+                "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+            )
         return dataset
 
     def validate(self, data):

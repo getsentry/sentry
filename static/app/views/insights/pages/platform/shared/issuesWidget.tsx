@@ -7,7 +7,7 @@ import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import type {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
@@ -247,7 +247,7 @@ class IssuesGroupList extends Component<Props, State> {
             <SuperHeader disablePadding>
               <SuperHeaderLabel hideDivider>{t('Recommended Issues')}</SuperHeaderLabel>
               <LinkButton to={this.getIssuesUrl(queryParams)} size="xs">
-                All Issues
+                {t('View All')}
               </LinkButton>
             </SuperHeader>
             <GroupListHeader withChart={!!withChart} withColumns={columns} />
@@ -320,7 +320,11 @@ const HeaderContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.header};
 `;
 
-export function IssuesWidget() {
+type IssuesWidgetProps = {
+  search?: MutableSearch;
+};
+
+export function IssuesWidget({search}: IssuesWidgetProps) {
   const location = useLocation();
   const {query} = useTransactionNameQuery();
   const queryWithDefault = new MutableSearch(['is:unresolved', 'event.type:error']);
@@ -333,7 +337,7 @@ export function IssuesWidget() {
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
-    query: queryWithDefault.formatString(),
+    query: search?.formatString() ?? queryWithDefault.formatString(),
     sort: 'freq',
   };
 

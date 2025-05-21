@@ -1,6 +1,5 @@
-import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useResizeObserver} from '@react-aria/utils';
 
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {space} from 'sentry/styles/space';
@@ -40,22 +39,46 @@ export function TraceTabsAndVitals({
 }: TraceTabsAndVitalsProps) {
   const {tabOptions, currentTab, onTabChange} = tabsConfig;
   const containerRef = useRef<HTMLDivElement>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>();
 
   const onResize = useCallback(() => {
-    if (!containerRef.current) {
-      return;
+    if (containerRef.current) {
+      setContainerWidth(containerRef.current.clientWidth);
     }
-    setContainerWidth(containerRef.current.clientWidth);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [containerRef.current]);
+  }, []);
 
-  useResizeObserver({ref: containerRef, onResize});
+  const setRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      // Clean up old observer if it exists
+      if (resizeObserverRef.current && containerRef.current) {
+        resizeObserverRef.current.unobserve(containerRef.current);
+      }
 
-  // Set initial width
-  useLayoutEffect(() => {
-    onResize();
-  }, [onResize]);
+      containerRef.current = node;
+
+      if (node) {
+        resizeObserverRef.current = new ResizeObserver(() => {
+          onResize();
+        });
+        resizeObserverRef.current.observe(node);
+
+        // Trigger on load
+        onResize();
+      }
+    },
+    [onResize]
+  );
+
+  useEffect(() => {
+    return () => {
+      // Clean up resize observer on unmount
+      if (resizeObserverRef.current && containerRef.current) {
+        resizeObserverRef.current.unobserve(containerRef.current);
+        resizeObserverRef.current.disconnect();
+      }
+    };
+  }, []);
 
   if (rootEventResults.isLoading || tree.type === 'loading') {
     return <Placeholder />;
@@ -66,7 +89,7 @@ export function TraceTabsAndVitals({
   }
 
   return (
-    <Container ref={containerRef}>
+    <Container ref={setRef}>
       <Tabs value={currentTab} onChange={onTabChange}>
         <StyledTabsList hideBorder variant="floating">
           {tabOptions.map(tab => (

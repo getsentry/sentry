@@ -141,7 +141,7 @@ type TeamActor = {
   type: 'team';
 };
 
-type TeamOption = GeneralSelectValue & {
+export type TeamOption = GeneralSelectValue & {
   actor: TeamActor | null;
   searchKey: string;
 };
@@ -413,6 +413,4 @@ const AddToProjectButton = styled(Button)`
 export {TeamSelector};
 
 // TODO(davidenwang): this is broken due to incorrect types on react-select
-export default withOrganization(TeamSelector) as unknown as (
-  p: Omit<Props, 'organization'>
-) => React.JSX.Element;
+export default withOrganization(TeamSelector);

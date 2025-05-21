@@ -60,9 +60,7 @@ type SpanSampleRow = {
   [SpanIndexedField.CLS_SOURCE]?: string;
 };
 
-export type SpanSampleRowWithScore = SpanSampleRow & {
-  totalScore: number;
-};
+export type SpanSampleRowWithScore = SpanSampleRow & Score;
 
 export type Opportunity = {
   opportunity: number;

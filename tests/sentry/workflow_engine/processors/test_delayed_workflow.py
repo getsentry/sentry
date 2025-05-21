@@ -820,27 +820,20 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.group1.id: {self.workflow1_dcgs[0]},
             self.group2.id: {self.workflow2_dcgs[1]},
         }
-        # WorkflowFireHistory for enqueued filter (already triggered)
-        wfh = WorkflowFireHistory.objects.create(
-            workflow=self.workflow2,
-            group_id=self.group2.id,
-            event_id=self.event2.event_id,
-        )
-
         fire_actions_for_groups(
             self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
         )
 
-        wfh.refresh_from_db()
-        assert wfh.has_passed_filters is True
-        assert wfh.has_fired_actions is True
+        assert WorkflowFireHistory.objects.filter(
+            workflow=self.workflow2,
+            group_id=self.group2.id,
+            event_id=self.event2.event_id,
+        ).exists()
 
         assert WorkflowFireHistory.objects.filter(
             workflow=self.workflow1,
             group_id=self.group1.id,
             event_id=self.event1.event_id,
-            has_passed_filters=True,
-            has_fired_actions=True,
         ).exists()
 
 

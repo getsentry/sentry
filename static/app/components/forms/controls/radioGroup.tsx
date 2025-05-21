@@ -88,12 +88,10 @@ function RadioGroup<C extends string>({
             <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
               <Radio
                 name={groupName}
-                aria-label={name?.toString()}
+                aria-label={name?.toString()} // eslint-disable-line @typescript-eslint/no-base-to-string
                 disabled={disabled}
                 checked={value === id}
-                onChange={(e: React.FormEvent<HTMLInputElement>) =>
-                  !disabled && onChange(id, e)
-                }
+                onChange={e => !disabled && onChange(id, e)}
               />
               <RadioLineText disabled={disabled}>{name}</RadioLineText>
               {description && (

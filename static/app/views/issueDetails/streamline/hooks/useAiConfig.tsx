@@ -13,6 +13,7 @@ interface AiConfigResult {
   hasSummary: boolean;
   isAutofixSetupLoading: boolean;
   needsGenAiAcknowledgement: boolean;
+  orgNeedsGenAiAcknowledgement: boolean;
 }
 
 export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
@@ -41,10 +42,16 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
     (isSummaryEnabled || isAutofixEnabled) &&
     areAiFeaturesAllowed;
 
+  const orgNeedsGenAiAcknowledgement =
+    !autofixSetupData?.setupAcknowledgement.orgHasAcknowledged &&
+    (isSummaryEnabled || isAutofixEnabled) &&
+    areAiFeaturesAllowed;
+
   return {
     hasSummary,
     hasAutofix,
     needsGenAiAcknowledgement,
+    orgNeedsGenAiAcknowledgement,
     hasResources,
     isAutofixSetupLoading,
     areAiFeaturesAllowed,

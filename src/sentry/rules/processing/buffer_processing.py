@@ -104,6 +104,7 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
     metrics.incr(
         f"{processing_type}.num_groups", tags={"num_groups": bucket_num_groups(event_count)}
     )
+    metrics.distribution(f"{processing_type}.event_count", event_count)
 
     if event_count < batch_size:
         return task.delay(project_id)

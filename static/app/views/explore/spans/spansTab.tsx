@@ -291,7 +291,7 @@ function SpanTabContentSection({
         ? 'traces'
         : 'samples';
 
-  const limit = 25;
+  const limit = 50;
 
   const isAllowedSelection = useMemo(
     () => checkIsAllowedSelection(selection, maxPickableDays),

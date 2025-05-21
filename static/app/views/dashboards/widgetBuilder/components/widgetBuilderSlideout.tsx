@@ -2,22 +2,19 @@ import {Fragment, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
@@ -46,6 +43,8 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 
 type WidgetBuilderSlideoutProps = {
   dashboard: DashboardDetails;
@@ -77,15 +76,13 @@ function WidgetBuilderSlideout({
   thresholdMetaState,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
-  const {state} = useWidgetBuilderContext();
+  const {state, dispatch} = useWidgetBuilderContext();
   const [initialState] = useState(state);
   const [customizeFromLibrary, setCustomizeFromLibrary] = useState(false);
   const [error, setError] = useState<Record<string, any>>({});
   const theme = useTheme();
   const isEditing = useIsEditingWidget();
   const source = useDashboardWidgetSource();
-  const navigate = useNavigate();
-  const location = useLocation();
   const validatedWidgetResponse = useValidateWidgetQuery(
     convertBuilderStateToWidget(state)
   );
@@ -143,17 +140,19 @@ function WidgetBuilderSlideout({
     return () => observer.disconnect();
   }, [setIsPreviewDraggable, openWidgetTemplates]);
 
+  const widgetLibraryWidgets = getTopNConvertedDefaultWidgets(organization);
+
   const widgetLibraryElement = (
     <SlideoutBreadcrumb
       onClick={() => {
         setCustomizeFromLibrary(false);
         setOpenWidgetTemplates(true);
         // clears the widget to start fresh on the library page
-        navigate({
-          pathname: location.pathname,
-          query: {
-            ...pick(location.query, [...Object.values(URL_PARAM)]),
-          },
+        dispatch({
+          type: 'SET_STATE',
+          payload: convertWidgetToBuilderStateParams(
+            widgetLibraryWidgets[0] ?? ({} as Widget)
+          ),
         });
       }}
     >
@@ -222,6 +221,11 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
             </div>
+            {isSmallScreen && (
+              <Section>
+                <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+              </Section>
+            )}
             <WidgetTemplatesList
               onSave={onSave}
               setOpenWidgetTemplates={setOpenWidgetTemplates}
@@ -232,7 +236,7 @@ function WidgetBuilderSlideout({
         ) : (
           <Fragment>
             <Section>
-              <WidgetBuilderFilterBar />
+              <WidgetBuilderNameAndDescription error={error} setError={setError} />
             </Section>
             <Section>
               <WidgetBuilderDatasetSelector />
@@ -253,6 +257,11 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
             </div>
+            {isSmallScreen && (
+              <Section>
+                <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+              </Section>
+            )}
             <Section>
               <Visualize error={error} setError={setError} />
             </Section>
@@ -284,9 +293,6 @@ function WidgetBuilderSlideout({
                 <WidgetBuilderSortBySelector />
               </Section>
             )}
-            <Section>
-              <WidgetBuilderNameAndDescription error={error} setError={setError} />
-            </Section>
             <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
           </Fragment>
         )}
@@ -296,6 +302,14 @@ function WidgetBuilderSlideout({
 }
 
 export default WidgetBuilderSlideout;
+
+function Section({children}: {children: React.ReactNode}) {
+  return (
+    <SectionWrapper>
+      <ErrorBoundary mini>{children}</ErrorBoundary>
+    </SectionWrapper>
+  );
+}
 
 const CloseButton = styled(Button)`
   color: ${p => p.theme.subText};
@@ -322,6 +336,6 @@ const SlideoutBodyWrapper = styled('div')`
   padding: ${space(4)};
 `;
 
-const Section = styled('div')`
+const SectionWrapper = styled('div')`
   margin-bottom: 24px;
 `;
