@@ -685,7 +685,7 @@ def filter_exceptions_for_exception_groups(
             children: list[SingleException] | None = None,
         ):
             self.exception = exception
-            self.children = children if children else []
+            self.children = children or []
 
     exception_tree: dict[int, ExceptionTreeNode] = {}
     for exception in reversed(exceptions):
