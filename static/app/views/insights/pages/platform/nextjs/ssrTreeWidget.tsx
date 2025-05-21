@@ -38,7 +38,7 @@ import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shar
 
 interface TreeResponseItem {
   'avg(span.duration)': number;
-  'function.nextjs.component_type': string;
+  'function.nextjs.component_type': string | null;
   'function.nextjs.path': string[];
   'span.description': string;
 }
@@ -99,9 +99,13 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
     const path = item['function.nextjs.path'];
     let currentFolder: TreeContainer = root;
 
-    const {file, functionName} = getFileAndFunctionName(
-      item['function.nextjs.component_type']
-    );
+    // Custom spans with span.op:function.nextjs will not have a component type and cannot be added to the tree
+    const componentType = item['function.nextjs.component_type'];
+    if (!componentType) {
+      continue;
+    }
+
+    const {file, functionName} = getFileAndFunctionName(componentType);
 
     const fullPath = [...path];
     if (file) {
