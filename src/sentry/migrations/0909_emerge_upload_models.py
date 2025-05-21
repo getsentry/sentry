@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0908_increase_email_field_length.py"),
+        ("sentry", "0908_increase_email_field_length"),
     ]
 
     operations = [
