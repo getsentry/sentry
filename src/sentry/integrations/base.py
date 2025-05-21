@@ -122,6 +122,7 @@ class IntegrationFeatures(StrEnum):
     STACKTRACE_LINK = "stacktrace-link"
     CODEOWNERS = "codeowners"
     USER_MAPPING = "user-mapping"
+    SCM_MULTI_ORG = "scm-multi-org"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"

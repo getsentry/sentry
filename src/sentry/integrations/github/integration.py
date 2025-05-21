@@ -120,6 +120,12 @@ FEATURES = [
         """,
         IntegrationFeatures.TICKET_RULES,
     ),
+    FeatureDescription(
+        """
+        Connect multiple Sentry organizations to a single GitHub account.
+        """,
+        IntegrationFeatures.SCM_MULTI_ORG,
+    ),
 ]
 
 metadata = IntegrationMetadata(
@@ -887,7 +893,7 @@ class OAuthLoginView(PipelineView):
 class GithubOrganizationSelection(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         self.active_user_organization = determine_active_organization(request)
-        has_business_plan = (
+        has_scm_multi_org = (
             features.has(
                 "organizations:integrations-scm-multi-org",
                 organization=self.active_user_organization.organization,
@@ -921,7 +927,7 @@ class GithubOrganizationSelection(PipelineView):
             )
 
             if chosen_installation_id := request.GET.get("chosen_installation_id"):
-                if chosen_installation_id == "-1" or not has_business_plan:
+                if chosen_installation_id == "-1" or not has_scm_multi_org:
                     return pipeline.next_step()
 
                 # Verify that the given GH installation belongs to the person installing the pipeline
@@ -947,7 +953,7 @@ class GithubOrganizationSelection(PipelineView):
                 pipeline_name="githubInstallationSelect",
                 props={
                     "installation_info": installation_info,
-                    "has_business_plan": has_business_plan,
+                    "has_multi_org": has_scm_multi_org,
                 },
             )
 
