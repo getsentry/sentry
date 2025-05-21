@@ -23,8 +23,6 @@ function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType
     // forward it so that we can write the stories for it
     case 'warning':
       return 'warning';
-    // @ts-expect-error the previous button did not have this variant, but we still want to
-    // forward it so that we can write the stories for it
     case 'transparent':
       return 'transparent';
     case 'link':
