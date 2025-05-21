@@ -12,11 +12,12 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -156,12 +157,19 @@ export default function StreamlinedGroupHeader({
                 </StatLink>
               ))}
           </StatTitle>
-          <EventMessage
-            data={group}
-            level={group.level}
-            message={secondaryTitle}
-            type={group.type}
-          />
+          <Tooltip
+            title={t(
+              'The main message summarizing the event. Typically the error message or log string that triggered this issue.'
+            )}
+            isHoverable
+          >
+            <EventMessage
+              data={group}
+              level={group.level}
+              message={secondaryTitle}
+              type={group.type}
+            />
+          </Tooltip>
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
               <StatCount value={eventCount} aria-label={t('Event count')} />
@@ -178,7 +186,18 @@ export default function StreamlinedGroupHeader({
             {statusProps?.status ? (
               <Fragment>
                 <Tooltip title={statusProps?.tooltip}>
-                  <Subtext>{statusProps?.status}</Subtext>
+                  <Subtext>
+                    <Tooltip
+                      isHoverable
+                      title={tct('The status of the issue. [link:Learn more]', {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/" />
+                        ),
+                      })}
+                    >
+                      {statusProps?.status}
+                    </Tooltip>
+                  </Subtext>
                 </Tooltip>
               </Fragment>
             ) : null}
@@ -186,7 +205,15 @@ export default function StreamlinedGroupHeader({
               <Fragment>
                 <Divider />
                 <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={1000}>
-                  <Subtext>{subtitle}</Subtext>
+                  <Subtext>
+                    <Tooltip
+                      title={
+                        'Some extra context (function, route, query, etc.) to help you spot where the error happened.'
+                      }
+                    >
+                      {subtitle}
+                    </Tooltip>
+                  </Subtext>
                 </Subtitle>
               </Fragment>
             )}
