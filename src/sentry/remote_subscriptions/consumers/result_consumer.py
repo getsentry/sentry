@@ -272,7 +272,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         partitioned_values = self.partition_message_batch(message)
 
         # Submit groups for processing
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.start_span(
             op="process_batch", name=f"monitors.{self.identifier}.result_consumer"
         ):
             futures = [

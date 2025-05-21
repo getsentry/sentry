@@ -178,7 +178,7 @@ def cleanup(
         transaction = None
         # Making sure we're not running in local dev to prevent a local error
         if not os.environ.get("SENTRY_DEVENV_HOME"):
-            transaction = sentry_sdk.start_transaction(op="cleanup", name="cleanup")
+            transaction = sentry_sdk.start_span(op="cleanup", name="cleanup")
             transaction.__enter__()
             transaction.set_tag("router", router)
             transaction.set_tag("model", model)

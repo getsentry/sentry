@@ -95,10 +95,10 @@ def ingest_recording(message_bytes: bytes) -> None:
     isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
 
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.start_span(
             name="replays.consumer.process_recording",
             op="replays.consumer",
-            custom_sampling_context={
+            attributes={
                 "sample_rate": getattr(
                     settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
                 )

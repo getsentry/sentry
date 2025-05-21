@@ -67,7 +67,7 @@ def backend():
 
 
 def test_incr(backend, scope):
-    with scope.start_transaction():
+    with scope.start_span():
         with scope.start_span(op="test"):
             backend.incr(key="foo")
 
@@ -79,7 +79,7 @@ def test_incr(backend, scope):
 
 
 def test_incr_with_tag(backend, scope):
-    with scope.start_transaction():
+    with scope.start_span():
         with scope.start_span(op="test"):
             backend.incr(key="foo", tags={"x": "y"})
 
@@ -92,7 +92,7 @@ def test_incr_with_tag(backend, scope):
 
 
 def test_incr_multi(backend, scope):
-    with scope.start_transaction():
+    with scope.start_span():
         with scope.start_span(op="test"):
             backend.incr(key="foo", tags={"x": "y"})
             backend.incr(key="foo", tags={"x": "z"})
@@ -106,7 +106,7 @@ def test_incr_multi(backend, scope):
 
 
 def test_gauge(backend, scope):
-    with scope.start_transaction():
+    with scope.start_span():
         with scope.start_span(op="test"):
             backend.gauge(key="foo", value=0)
             backend.gauge(key="foo", value=42.0)
@@ -119,7 +119,7 @@ def test_gauge(backend, scope):
 
 
 def test_distribution(backend, scope):
-    with scope.start_transaction():
+    with scope.start_span():
         with scope.start_span(op="test"):
             backend.distribution(key="foo", value=0)
             backend.distribution(key="foo", value=42.0)
@@ -132,7 +132,7 @@ def test_distribution(backend, scope):
 
 
 def test_timing(backend, scope):
-    with scope.start_transaction():
+    with scope.start_span():
         with scope.start_span(op="test"):
             backend.timing(key="foo", value=42.1, tags={"x": "y"})
 
@@ -150,7 +150,7 @@ def test_timing(backend, scope):
 
 
 def test_timing_duplicate(backend, scope):
-    with scope.start_transaction():
+    with scope.start_span():
         # We often manually track a span + a timer with same name. In this case
         # we want no additional span.
         with scope.start_span(op="test"):
@@ -188,7 +188,7 @@ def test_composite_backend_does_not_recurse(scope):
 
     # make sure the backend feeds back to itself
     with mock.patch("sentry.utils.metrics.backend", new=TrackingCompositeBackend()) as backend:
-        with scope.start_transaction():
+        with scope.start_span():
             with scope.start_span(op="test"):
                 backend.incr(key="sentrytest.composite", tags={"x": "bar"})
         full_flush(scope)

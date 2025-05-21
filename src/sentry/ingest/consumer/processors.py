@@ -59,7 +59,7 @@ def trace_func(**span_kwargs):
                 "custom_sampling_context",
                 {"sample_rate": sample_rate},
             )
-            with sentry_sdk.start_transaction(**span_kwargs):
+            with sentry_sdk.start_span(**span_kwargs):
                 return f(*args, **kwargs)
 
         return inner
