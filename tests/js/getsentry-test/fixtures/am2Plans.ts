@@ -17,13 +17,11 @@ const AM2_ONDEMAND_CATEGORIES = [
   ...AM2_CHECKOUT_CATEGORIES,
   'profileDuration',
   'profileDurationUI',
-] as DataCategory[];
-
-const AM2_CATEGORIES = [
-  ...AM2_ONDEMAND_CATEGORIES,
-  'seerAutoFix',
+  'seerAutofix',
   'seerScanner',
 ] as DataCategory[];
+
+const AM2_CATEGORIES = [...AM2_ONDEMAND_CATEGORIES] as DataCategory[];
 
 const AM2_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
