@@ -56,7 +56,9 @@ class TraceItemAttributesNamesPaginator:
         self.data_fn = data_fn
 
     def get_result(self, limit, cursor=None):
-        assert limit > 0
+        if limit <= 0:
+            raise ValueError(f"invalid limit for paginator, expected >0, got {limit}")
+
         offset = cursor.offset if cursor is not None else 0
         # Request 1 more than limit so we can tell if there is another page
         data = self.data_fn(offset=offset, limit=limit + 1)
