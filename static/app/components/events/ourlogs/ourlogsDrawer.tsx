@@ -18,6 +18,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
@@ -38,6 +39,7 @@ interface LogIssueDrawerProps {
 }
 
 export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
+  const organization = useOrganization();
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
   const {attributes: stringAttributes} = useTraceItemAttributes('string');
@@ -54,7 +56,9 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
   const searchQueryBuilderProps = useSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps
   );
-  const tableData = useLogsQuery({disabled: false});
+  const tableData = useLogsQuery({
+    disabled: !organization.features.includes('ourlogs-enabled'),
+  });
 
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
