@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0905_fix_workflow_engine_cycle"),
+        ("sentry", "0906_django_arrayfield_users"),
     ]
 
     operations = [
