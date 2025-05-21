@@ -1198,7 +1198,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             )
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
-    def test_user_does_not_see_deleted_team_data(self, message_builder, record):
+    def test_user_does_not_see_deleted_team_data(self, message_builder):
         user = self.create_user(email="test@example.com")
         self.create_member(teams=[self.team], user=user, organization=self.organization)
 
