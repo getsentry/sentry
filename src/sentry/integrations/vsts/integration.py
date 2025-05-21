@@ -532,10 +532,6 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "secret": subscription_secret,
                 }
 
-                integration["metadata"][
-                    "integration_migration_version"
-                ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
-
                 logger.info(
                     "vsts.build_integration.migrated",
                     extra={
@@ -573,13 +569,6 @@ class VstsIntegrationProvider(IntegrationProvider):
         # Assertion error happens when org_integration does not exist
         # KeyError happens when subscription is not found
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
-            if features.has(
-                "organizations:migrate-azure-devops-integration", self.pipeline.organization
-            ):
-                # If there is a new integration, we need to set the migration version to 1
-                integration["metadata"][
-                    "integration_migration_version"
-                ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
 
             logger.warning(
                 "vsts.build_integration.error",
@@ -600,6 +589,17 @@ class VstsIntegrationProvider(IntegrationProvider):
                 "id": subscription_id,
                 "secret": subscription_secret,
             }
+
+        # Ensure integration_migration_version is set if the feature flag is active.
+        # This guarantees that if the new scopes are in use (due to the flag),
+        # the metadata correctly reflects the current migration version, even if
+        # the integration was already considered "up-to-date" based on DB records.
+        if features.has(
+            "organizations:migrate-azure-devops-integration", self.pipeline.organization
+        ):
+            integration["metadata"][
+                "integration_migration_version"
+            ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
 
         return integration
 
