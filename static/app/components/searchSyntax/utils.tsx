@@ -233,7 +233,9 @@ type GetKeyNameOpts = {
 };
 
 /**
- * Utility to get the string name of any type of key.
+ * Utility to get the internal string name of any type of key.
+ * Used to do lookups and is the underlying value that should
+ * be passed through to the API.
  */
 export const getKeyName = (
   key: TokenResult<
@@ -273,6 +275,12 @@ export const getKeyName = (
   }
 };
 
+/**
+ * Utility to get the public facing label of any type of key.
+ * Used to format a key in a user friendly way. This value
+ * should only be used for display, and not passed to the API.
+ * For the value to use in the API, see `getKeyName`.
+ */
 export const getKeyLabel = (
   key: TokenResult<
     | Token.KEY_SIMPLE
