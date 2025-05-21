@@ -455,37 +455,6 @@ def record_sourcemaps_received(project, event, **kwargs):
     if not has_sourcemap(event):
         return
 
-    success = OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
-        task=OnboardingTask.SOURCEMAPS,
-        status=OnboardingTaskStatus.COMPLETE,
-        project_id=project.id,
-    )
-    if success:
-        if (owner_id := get_owner_id(project)) is None:
-            logger.warning(
-                "Cannot record sourcemaps received for organization (%s) due to missing owners",
-                project.organization_id,
-            )
-            return
-        analytics.record(
-            "first_sourcemaps.sent",
-            user_id=owner_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
-            url=dict(event.tags).get("url", None),
-        )
-
-
-@event_processed.connect(
-    weak=False, dispatch_uid="onboarding.record_sourcemaps_received_for_project"
-)
-def record_sourcemaps_received_for_project(project, event, **kwargs):
-    if not has_sourcemap(event):
-        return
-
     if (owner_id := get_owner_id(project)) is None:
         logger.warning(
             "Cannot record sourcemaps received for organization (%s) due to missing owners",
@@ -493,7 +462,7 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
         )
         return
 
-    # First, only enter this logic if we've never seen a minified stack trace before
+    # First, only enter this logic if the project has never seen a minified stack trace before
     if not project.flags.has_sourcemaps:
         # Next, attempt to update the flag, but ONLY if the flag is currently not set.
         # The number of affected rows tells us whether we succeeded or not. If we didn't, then skip sending the event.
@@ -502,16 +471,37 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
             id=project.id, flags=F("flags").bitand(~Project.flags.has_sourcemaps)
         ).update(flags=F("flags").bitor(Project.flags.has_sourcemaps))
 
-        if project.date_added > START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ and affected > 0:
-            analytics.record(
-                "first_sourcemaps_for_project.sent",
-                user_id=owner_id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                platform=event.platform,
-                project_platform=project.platform,
-                url=dict(event.tags).get("url", None),
+        if affected > 0:
+            other_projects_with_sourcemaps = (
+                Project.objects.filter(
+                    organization_id=project.organization_id,
+                    flags=F("flags").bitand(Project.flags.has_sourcemaps),
+                )
+                .exclude(id=project.id)
+                .exists()
             )
+
+            if not other_projects_with_sourcemaps:
+                analytics.record(
+                    "first_sourcemaps.sent",
+                    user_id=owner_id,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    platform=event.platform,
+                    project_platform=project.platform,
+                    url=dict(event.tags).get("url", None),
+                )
+
+            if project.date_added > START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ:
+                analytics.record(
+                    "first_sourcemaps_for_project.sent",
+                    user_id=owner_id,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    platform=event.platform,
+                    project_platform=project.platform,
+                    url=dict(event.tags).get("url", None),
+                )
 
 
 @alert_rule_created.connect(weak=False, dispatch_uid="onboarding.record_alert_rule_created")

@@ -10,10 +10,8 @@ from sentry.models.organizationonboardingtask import (
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
 )
-from sentry.models.project import Project
 from sentry.onboarding_tasks.base import OnboardingTaskBackend
 from sentry.utils import json
-from sentry.utils.platform_categories import SOURCE_MAPS
 
 
 class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboardingTask]):
@@ -52,19 +50,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
 
         organization = Organization.objects.get_from_cache(id=organization_id)
 
-        projects = Project.objects.filter(organization=organization)
-        project_with_source_maps = next((p for p in projects if p.platform in SOURCE_MAPS), None)
-
-        # If a project supports source maps, we require them to complete the quick start.
-        # It's possible that the first project doesn't have source maps,
-        # but the second project (which users are guided to create in the "Add Sentry to other parts of the app" step) may have source maps.
-        required_tasks = (
-            OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS
-            if project_with_source_maps
-            else OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS
-        )
-
-        if completed >= required_tasks:
+        if completed >= OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS:
             try:
                 with transaction.atomic(router.db_for_write(OrganizationOption)):
                     OrganizationOption.objects.create(

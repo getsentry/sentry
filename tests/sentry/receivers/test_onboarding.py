@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
 from django.utils import timezone
@@ -23,7 +23,6 @@ from sentry.signals import (
     first_transaction_received,
     integration_added,
     member_invited,
-    member_joined,
     project_created,
     project_transferred,
     transaction_processed,
@@ -1123,96 +1122,10 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
     @patch("sentry.analytics.record", wraps=record)
-    def test_source_maps_as_required_task(self, record_analytics):
+    def test_source_maps_sent(self, record_analytics):
         """
-        Test the new quick start happy path (with source maps)
+        Tests sourcemap flag updates and related analytics events
         """
-        # Create a project that can have source maps + create an issue alert
-        project = self.create_project(platform="javascript")
-        project_created.send(project=project, user=self.user, sender=None)
-
-        # Capture first transaction + release
-        transaction_event = load_data("transaction")
-        transaction_event.update({"release": "my-first-release", "tags": []})
-        event = self.store_event(data=transaction_event, project_id=project.id)
-        transaction_processed.send(project=project, event=event, sender=None)
-
-        #  Capture first error
-        error_event = self.store_event(
-            data={
-                "event_id": "c" * 32,
-                "message": "this is bad.",
-                "timestamp": timezone.now().isoformat(),
-                "type": "error",
-                "release": "my-first-release",
-            },
-            project_id=project.id,
-        )
-        event_processed.send(project=project, event=error_event, sender=None)
-
-        # Invite your team
-        user = self.create_user(email="test@example.org")
-        member = self.create_member(
-            organization=self.organization, teams=[self.team], email=user.email
-        )
-        member_invited.send(member=member, user=user, sender=None)
-
-        # Member accepted the invite
-        member_joined.send(
-            organization_member_id=member.id,
-            organization_id=self.organization.id,
-            user_id=user.id,
-            sender=None,
-        )
-
-        # Link Sentry to source code
-        github_integration = self.create_integration("github", 1234)
-        integration_added.send(
-            integration_id=github_integration.id,
-            organization_id=self.organization.id,
-            user_id=self.user.id,
-            sender=None,
-        )
-
-        # Set up session replay
-        first_replay_received.send(project=project, sender=None)
-
-        # Get real time notifications
-        slack_integration = self.create_integration("slack", 4321)
-        integration_added.send(
-            integration_id=slack_integration.id,
-            organization_id=self.organization.id,
-            user_id=self.user.id,
-            sender=None,
-        )
-
-        # Add Sentry to other parts app
-        second_project = self.create_project(
-            first_event=timezone.now(), organization=self.organization
-        )
-        project_created.send(
-            project=second_project,
-            user=self.user,
-            sender=None,
-            default_rules=False,
-        )
-
-        # Manually update the completionSeen column of existing tasks
-        OrganizationOnboardingTask.objects.filter(organization=self.organization).update(
-            completion_seen=timezone.now()
-        )
-        onboarding_tasks.try_mark_onboarding_complete(self.organization.id)
-
-        # Onboarding is NOT yet complete
-        assert (
-            OrganizationOption.objects.filter(
-                organization=self.organization, key="onboarding:complete"
-            ).count()
-            == 0
-        )
-
-        # Unminify your code
-        # Send event with source map
         data = load_data("javascript")
         data["exception"] = {
             "values": [
@@ -1230,53 +1143,65 @@ class OrganizationOnboardingTaskTest(TestCase):
                 }
             ]
         }
-
-        event_with_sourcemap = self.store_event(
-            project_id=project.id,
+        project1 = self.create_project(
+            first_event=timezone.now(), platform="javascript", organization=self.organization
+        )
+        project_created.send(
+            project=project1,
+            user=self.user,
+            sender=None,
+            default_rules=False,
+        )
+        event1 = self.store_event(
+            project_id=project1.id,
             data=data,
         )
-        event_processed.send(project=project, event=event_with_sourcemap, sender=None)
-        assert (
-            OrganizationOnboardingTask.objects.get(
-                organization=self.organization,
-                task=OnboardingTask.SOURCEMAPS,
-                status=OnboardingTaskStatus.COMPLETE,
-            )
-            is not None
-        )
-        record_analytics.call_args_list[
-            len(record_analytics.call_args_list) - 2
-        ].assert_called_with(
+        event_processed.send(project=project1, event=event1, sender=None)
+        project1.refresh_from_db()
+        assert project1.flags.has_sourcemaps
+        assert record_analytics.call_args_list[len(record_analytics.call_args_list) - 2] == call(
             "first_sourcemaps.sent",
             user_id=self.user.id,
             organization_id=self.organization.id,
-            project_id=project.id,
-            platform=event_with_sourcemap.platform,
-            project_platform=project.platform,
-            url=dict(event_with_sourcemap.tags).get("url", None),
+            project_id=project1.id,
+            platform=event1.platform,
+            project_platform=project1.platform,
+            url=dict(event1.tags).get("url", None),
         )
-        record_analytics.assert_called_with(
+        assert record_analytics.call_args_list[len(record_analytics.call_args_list) - 1] == call(
             "first_sourcemaps_for_project.sent",
             user_id=self.user.id,
             organization_id=self.organization.id,
-            project_id=project.id,
-            platform=event_with_sourcemap.platform,
-            project_platform=project.platform,
-            url=dict(event_with_sourcemap.tags).get("url", None),
+            project_id=project1.id,
+            platform=event1.platform,
+            project_platform=project1.platform,
+            url=dict(event1.tags).get("url", None),
+        )
+        project2 = self.create_project(
+            first_event=timezone.now(), platform="javascript-react", organization=self.organization
+        )
+        project_created.send(
+            project=project2,
+            user=self.user,
+            sender=None,
+            default_rules=False,
         )
 
-        # Manually update the completionSeen column of existing tasks
-        OrganizationOnboardingTask.objects.filter(organization=self.organization).update(
-            completion_seen=timezone.now()
+        event2 = self.store_event(
+            project_id=project2.id,
+            data=data,
         )
-        onboarding_tasks.try_mark_onboarding_complete(self.organization.id)
-
-        # Onboarding is NOW complete
-        assert (
-            OrganizationOption.objects.filter(
-                organization=self.organization, key="onboarding:complete"
-            ).count()
-            == 1
+        event_processed.send(project=project2, event=event2, sender=None)
+        project2.refresh_from_db()
+        assert project2.flags.has_sourcemaps
+        assert record_analytics.call_args_list[len(record_analytics.call_args_list) - 1] == call(
+            "first_sourcemaps_for_project.sent",
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            project_id=project2.id,
+            platform=event2.platform,
+            project_platform=project2.platform,
+            url=dict(event2.tags).get("url", None),
         )
 
     @patch("sentry.analytics.record", wraps=record)

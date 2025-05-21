@@ -30,7 +30,8 @@ class OnboardingTask(enum.IntEnum):
     INVITE_MEMBER = 3
     SECOND_PLATFORM = 4
     RELEASE_TRACKING = 6
-    SOURCEMAPS = 7
+    # deprecated - no longer used
+    # SOURCEMAPS = 7
     ALERT_RULE = 10
     FIRST_TRANSACTION = 11
     SESSION_REPLAY = 14
@@ -118,7 +119,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.INVITE_MEMBER, "invite_member"),
         (OnboardingTask.SECOND_PLATFORM, "setup_second_platform"),
         (OnboardingTask.RELEASE_TRACKING, "setup_release_tracking"),
-        (OnboardingTask.SOURCEMAPS, "setup_sourcemaps"),
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
         (OnboardingTask.SESSION_REPLAY, "setup_session_replay"),
@@ -150,19 +150,11 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         ]
     )
 
-    REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS = frozenset(
-        [
-            *REQUIRED_ONBOARDING_TASKS,
-            OnboardingTask.SOURCEMAPS,
-        ]
-    )
-
     SKIPPABLE_TASKS = frozenset(
         [
             OnboardingTask.INVITE_MEMBER,
             OnboardingTask.SECOND_PLATFORM,
             OnboardingTask.RELEASE_TRACKING,
-            OnboardingTask.SOURCEMAPS,
             OnboardingTask.ALERT_RULE,
             OnboardingTask.FIRST_TRANSACTION,
             OnboardingTask.SESSION_REPLAY,
@@ -181,7 +173,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.ALERT_RULE,
             OnboardingTask.FIRST_TRANSACTION,
             OnboardingTask.SESSION_REPLAY,
-            OnboardingTask.SOURCEMAPS,
         ]
     )
 

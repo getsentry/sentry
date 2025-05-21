@@ -169,12 +169,3 @@ CATEGORY_LIST = [
     {id: "serverless", "name": _("Serverless"), "platforms": SERVERLESS},
     {id: "temporary", "name": _("Temporary"), "platforms": TEMPORARY},
 ]
-
-# Mirrors `const sourceMaps` in sentry/static/app/data/platformCategories.tsx
-# When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
-SOURCE_MAPS = {
-    *FRONTEND,
-    "react-native",
-    "cordova",
-    "electron",
-}
