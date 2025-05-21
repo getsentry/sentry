@@ -14,6 +14,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
@@ -40,6 +41,7 @@ export function DomainSelector({
   const location = useLocation();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
+  const useEap = useInsightsEap();
 
   const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
 
@@ -86,25 +88,40 @@ export function DomainSelector({
     pageLinks,
   });
 
-  const incomingDomains = [
-    ...uniq(domainData?.flatMap(row => row[SpanMetricsField.SPAN_DOMAIN])),
+  const incomingDomains: Array<{label: string; value: string}> = [
+    ...uniq(
+      domainData?.flatMap(row => {
+        const spanDomain = row[SpanMetricsField.SPAN_DOMAIN];
+        if (useEap) {
+          return spanDomain?.split(',').map(domain => ({
+            label: domain,
+            value: `*${domain}*`,
+          }));
+        }
+        return spanDomain?.map(domain => ({
+          label: domain,
+          value: domain,
+        }));
+      })
+    ),
   ];
 
   if (value) {
-    incomingDomains.push(value);
+    const scrubbedValue = useEap
+      ? value.replace(/^\*(.*)\*$/, '$1') // removes wildcards, only if they are at the beginning and end of the string
+      : value;
+
+    incomingDomains.push({
+      label: scrubbedValue,
+      value,
+    });
   }
 
   const {options: domainOptions, clear: clearDomainOptionsCache} =
     useCompactSelectOptionsCache(
       incomingDomains
-        .filter(Boolean)
-        .filter(domain => domain !== EMPTY_OPTION_VALUE)
-        .map(datum => {
-          return {
-            value: datum,
-            label: datum,
-          };
-        })
+        .filter(domain => Boolean(domain?.label))
+        .filter(domain => domain.value !== EMPTY_OPTION_VALUE)
     );
 
   useEffect(() => {
