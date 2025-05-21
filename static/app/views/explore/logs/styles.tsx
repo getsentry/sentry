@@ -4,9 +4,12 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/gridEditable/styles';
 import {HighlightComponent} from 'sentry/components/highlight';
+import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import {unreachable} from 'sentry/utils/unreachable';
+import {SchemaHintsSection} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {
   TableBody,
   TableBodyCell,
@@ -15,7 +18,9 @@ import {
 } from 'sentry/views/explore/components/table';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
-const StyledPanel = styled(Panel)`
+export const LOGS_GRID_BODY_ROW_HEIGHT = GRID_BODY_ROW_HEIGHT - 16;
+
+export const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
@@ -43,7 +48,7 @@ export const LogAttributeTreeWrapper = styled('div')`
 `;
 
 export const LogTableBodyCell = styled(TableBodyCell)`
-  min-height: ${GRID_BODY_ROW_HEIGHT - 16}px;
+  min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${space(2)};
 
@@ -59,7 +64,9 @@ export const LogTableBodyCell = styled(TableBodyCell)`
     padding: 2px ${space(2)};
   }
 `;
-
+// height: calc(100vh - 400px - 200px);
+// overflow-y: scroll;
+// height: 525px;
 export const LogTableBody = styled(TableBody)<{showHeader?: boolean}>`
   ${p =>
     p.showHeader
@@ -118,6 +125,11 @@ export const DetailsBody = styled('div')`
 
 export const StyledChevronButton = styled(Button)`
   margin-right: ${space(0.5)};
+`;
+
+export const FloatingTableContainer = styled('div')`
+  position: absolute;
+  justify-self: center;
 `;
 
 const DEFAULT_SIZE = '8px';
@@ -184,6 +196,61 @@ export const FirstTableHeadCell = styled(TableHeadCell)`
 export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-right: 0;
   padding-left: ${space(1)};
+`;
+
+export const FilterBarContainer = styled('div')`
+  display: flex;
+  gap: ${space(2)};
+  margin-bottom: ${space(1)};
+`;
+
+export const LogsTableContainer = styled(Layout.Main)`
+  margin-top: ${space(1)};
+`;
+
+export const TableActionsContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  justify-content: flex-end;
+  align-items: center;
+`;
+
+export const LogsSchemaHintsSection = styled(SchemaHintsSection)`
+  display: grid;
+  /* This is to ensure the hints section spans all the columns */
+  grid-column: 1/-1;
+  margin-bottom: ${space(1)};
+  height: fit-content;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: 1fr;
+    margin-bottom: ${space(1)};
+  }
+`;
+
+export const LogsItemContainer = styled('div')`
+  flex: 1 1 auto;
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+export const LogsTableActionsContainer = styled(LogsItemContainer)`
+  margin-bottom: 0;
+`;
+
+export const LogsGraphContainer = styled(LogsItemContainer)`
+  height: 200px;
+`;
+
+export const StyledPageFilterBar = styled(PageFilterBar)`
+  width: auto;
+`;
+
+export const AutoRefreshLabel = styled('label')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  margin-bottom: 0;
 `;
 
 export function getLogColors(level: SeverityLevel, theme: Theme) {

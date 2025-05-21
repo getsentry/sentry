@@ -18,8 +18,8 @@ import {
   useLogsSearch,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LogsTable} from 'sentry/views/explore/logs/logsTable';
-import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
+import type {UseLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
@@ -53,14 +53,14 @@ export function TraceViewLogsSection() {
   if (hasTraceTabsUi) {
     return (
       <StyledPanel>
-        <LogsSectionContent tableData={tableData.logsData} />
+        <LogsSectionContent tableData={tableData.logsQueryResult} />
       </StyledPanel>
     );
   }
 
   if (
-    !tableData?.logsData ||
-    (tableData.logsData.data.length === 0 && logsSearch.isEmpty())
+    !tableData?.logsQueryResult ||
+    (tableData.logsQueryResult?.data?.length === 0 && logsSearch.isEmpty())
   ) {
     return null;
   }
@@ -73,12 +73,12 @@ export function TraceViewLogsSection() {
       initialCollapse={false}
       disableCollapsePersistence
     >
-      <LogsSectionContent tableData={tableData.logsData} />
+      <LogsSectionContent tableData={tableData.logsQueryResult} />
     </FoldSection>
   );
 }
 
-function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult}) {
+function LogsSectionContent({tableData}: {tableData: UseLogsQueryResult}) {
   const organization = useOrganization();
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();

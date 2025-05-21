@@ -264,15 +264,6 @@ function useWrappedDiscoverQueryBase<T>({
     queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
   }
 
-  const usesRelativeDateRange =
-    !defined(eventView.start) &&
-    !defined(eventView.end) &&
-    defined(eventView.statsPeriod);
-
-  const staleTimeForRelativePeriod = getStaleTimeForRelativePeriodTable(
-    eventView.statsPeriod
-  );
-
   const result = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
@@ -285,7 +276,7 @@ function useWrappedDiscoverQueryBase<T>({
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
-      staleTime: usesRelativeDateRange ? staleTimeForRelativePeriod : Infinity,
+      staleTime: getStaleTimeForEventView(eventView),
       additionalQueryKey,
       placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
     },
@@ -453,4 +444,15 @@ function getStaleTimeForRelativePeriodTable(statsPeriod: string | undefined) {
   }
 
   return 5 * 60 * 1000;
+}
+
+export function getStaleTimeForEventView(eventView: EventView) {
+  const usesRelativeDateRange =
+    !defined(eventView.start) &&
+    !defined(eventView.end) &&
+    defined(eventView.statsPeriod);
+  if (usesRelativeDateRange) {
+    return getStaleTimeForRelativePeriodTable(eventView.statsPeriod);
+  }
+  return Infinity;
 }

@@ -1,10 +1,14 @@
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
-import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+import type {
+  UseInfiniteLogsQueryResult,
+  UseLogsQueryResult,
+} from 'sentry/views/explore/logs/useLogsQuery';
+import {useInfiniteLogsQuery, useLogsQuery} from 'sentry/views/explore/logs/useLogsQuery';
 
 interface LogsPageData {
-  logsData: UseExploreLogsTableResult;
+  infiniteLogsQueryResult: UseInfiniteLogsQueryResult;
+  logsQueryResult: UseLogsQueryResult;
 }
 
 const [_LogsPageDataProvider, _useLogsPageData, _ctx] =
@@ -16,8 +20,14 @@ export const useLogsPageData = _useLogsPageData;
 export function LogsPageDataProvider({children}: {children: React.ReactNode}) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
-  const data = useExploreLogsTable({enabled: feature && undefined}); // left as exercise to reader
+  const liveRefresh = organization.features.includes('ourlogs-live-refresh');
+  const logsQueryResult = useLogsQuery({disabled: liveRefresh || !feature});
+  const infiniteLogsQueryResult = useInfiniteLogsQuery({
+    disabled: !liveRefresh || !feature,
+  });
   return (
-    <_LogsPageDataProvider value={{logsData: data}}>{children}</_LogsPageDataProvider>
+    <_LogsPageDataProvider value={{logsQueryResult, infiniteLogsQueryResult}}>
+      {children}
+    </_LogsPageDataProvider>
   );
 }

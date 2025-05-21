@@ -18,8 +18,8 @@ import {
   useLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {LogsTable} from 'sentry/views/explore/logs/logsTable';
-import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
+import {useLogsQuery} from 'sentry/views/explore/logs/useLogsQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -56,7 +56,7 @@ function OurlogsSectionContent({
 }) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
-  const tableData = useExploreLogsTable({enabled: feature, limit: 10});
+  const tableData = useLogsQuery({disabled: feature, limit: 10, referrer: ''});
   const logsSearch = useLogsSearch();
   const abbreviatedTableData = {...tableData, data: (tableData.data ?? []).slice(0, 5)};
   const {openDrawer} = useDrawer();
@@ -109,7 +109,7 @@ function OurlogsSectionContent({
           allowPagination={false}
           tableData={abbreviatedTableData}
         />
-        {tableData.data?.length > 5 ? (
+        {tableData.data && tableData.data.length > 5 ? (
           <div>
             <Button
               icon={<IconChevron direction="right" />}

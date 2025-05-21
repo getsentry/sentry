@@ -5,18 +5,22 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   type ColumnValueType,
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
+  type Sort,
 } from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogAttributesHumanLabel} from 'sentry/views/explore/logs/constants';
 import {
+  type LogAttributeItem,
   type LogAttributeUnits,
   type LogRowItem,
   type OurLogFieldKey,
@@ -185,6 +189,43 @@ export function getLogRowItem(
       ? (meta?.units?.[field] as LogAttributeUnits)
       : null,
     value: dataRow[field] ?? '',
+  };
+}
+
+export function getLogAttributeItem(
+  field: OurLogFieldKey,
+  value: OurLogsResponseItem[OurLogFieldKey] | null
+): LogAttributeItem {
+  return {
+    fieldKey: field,
+    value,
+  };
+}
+
+export function checkSortIsTimeBased(sortBys: Sort[]) {
+  return getTimeBasedSortBy(sortBys) !== undefined;
+}
+
+export function getTimeBasedSortBy(sortBys: Sort[]) {
+  return sortBys.find(
+    sortBy =>
+      sortBy.field === OurLogKnownFieldKey.TIMESTAMP ||
+      sortBy.field === OurLogKnownFieldKey.TIMESTAMP_PRECISE
+  );
+}
+
+export function logRowItemToTableColumn(
+  item: LogRowItem
+): TableColumn<keyof TableDataRow> {
+  return {
+    key: item.fieldKey,
+    name: item.fieldKey,
+    column: {
+      field: item.fieldKey,
+      kind: 'field',
+    },
+    isSortable: false,
+    type: item.metaFieldType,
   };
 }
 

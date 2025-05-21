@@ -27,8 +27,8 @@ import {
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {LogsTable} from 'sentry/views/explore/logs/logsTable';
-import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
+import {useLogsQuery} from 'sentry/views/explore/logs/useLogsQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface LogIssueDrawerProps {
@@ -40,7 +40,6 @@ interface LogIssueDrawerProps {
 export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
-  const tableData = useExploreLogsTable({});
   const {attributes: stringAttributes} = useTraceItemAttributes('string');
   const {attributes: numberAttributes} = useTraceItemAttributes('number');
 
@@ -55,6 +54,7 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
   const searchQueryBuilderProps = useSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps
   );
+  const tableData = useLogsQuery({disabled: false});
 
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>

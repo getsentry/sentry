@@ -3,7 +3,6 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
-import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 export const LOGS_SORT_BYS_KEY = 'logsSortBys';
@@ -45,13 +44,11 @@ export function updateLocationWithLogSortBys(
   sortBys: Sort[] | null | undefined
 ) {
   if (defined(sortBys)) {
-    location.query[LOGS_SORT_BYS_KEY] = sortBys.map(sortBy =>
+    const newSortBys = sortBys.map(sortBy =>
       sortBy.kind === 'desc' ? `-${sortBy.field}` : sortBy.field
     );
-
-    // make sure to clear the cursor every time the query is updated
-    delete location.query[LOGS_CURSOR_KEY];
-  } else if (sortBys === null) {
+    location.query[LOGS_SORT_BYS_KEY] = newSortBys;
+  } else {
     delete location.query[LOGS_SORT_BYS_KEY];
   }
 }

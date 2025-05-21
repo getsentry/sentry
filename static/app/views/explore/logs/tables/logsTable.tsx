@@ -26,23 +26,24 @@ import {
   useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
+import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
 import {
   FirstTableHeadCell,
   LogTableBody,
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
+import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import type {UseLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
+import {
+  getLogBodySearchTerms,
+  getTableHeaderLabel,
+  logsFieldAlignment,
+} from 'sentry/views/explore/logs/utils';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
-import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
-
-export const LOGS_INSTRUCTIONS_URL =
-  'https://docs.sentry.io/product/explore/logs/getting-started/';
-
 type LogsTableProps = {
-  tableData: UseExploreLogsTableResult;
+  tableData: UseLogsQueryResult;
   allowPagination?: boolean;
   numberAttributes?: TagCollection;
   showHeader?: boolean;

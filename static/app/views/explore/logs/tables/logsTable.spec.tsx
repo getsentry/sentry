@@ -12,9 +12,9 @@ import {
   LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {LogsTable} from 'sentry/views/explore/logs/logsTable';
+import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import type {UseLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
@@ -116,7 +116,7 @@ describe('LogsTable', function () {
     isError: false,
     error: null,
     pageLinks: undefined,
-  } as unknown as UseExploreLogsTableResult;
+  } as unknown as UseLogsQueryResult;
 
   const visibleColumnFields = [
     'message',

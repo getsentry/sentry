@@ -1,5 +1,5 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, memo, useCallback, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
@@ -35,16 +35,6 @@ import {
   SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
-import {
-  useExploreLogsTableRow,
-  usePrefetchLogTableRowOnHover,
-} from 'sentry/views/explore/logs/useLogsQuery';
-
-import {
   DetailsBody,
   DetailsContent,
   DetailsWrapper,
@@ -56,8 +46,21 @@ import {
   LogTableBodyCell,
   LogTableRow,
   StyledChevronButton,
-} from './styles';
-import {adjustAliases, getLogRowItem, getLogSeverityLevel} from './utils';
+} from 'sentry/views/explore/logs/styles';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
+import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
+import {
+  useExploreLogsTableRow,
+  usePrefetchLogTableRowOnHover,
+} from 'sentry/views/explore/logs/useLogsQuery';
+import {
+  adjustAliases,
+  getLogRowItem,
+  getLogSeverityLevel,
+} from 'sentry/views/explore/logs/utils';
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;
@@ -83,7 +86,7 @@ function isInsideButton(element: Element | null): boolean {
   return false;
 }
 
-export function LogRowContent({
+export const LogRowContent = memo(function LogRowContent({
   dataRow,
   highlightTerms,
   meta,
@@ -257,7 +260,7 @@ export function LogRowContent({
       )}
     </Fragment>
   );
-}
+});
 
 function LogRowDetails({
   dataRow,
