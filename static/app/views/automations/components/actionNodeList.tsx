@@ -2,11 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Select} from 'sentry/components/core/select';
-import type {
-  ActionType,
-  Integration,
-  NewAction,
-} from 'sentry/types/workflowEngine/actions';
+import type {Action, ActionType, Integration} from 'sentry/types/workflowEngine/actions';
 import {
   ActionNodeContext,
   actionNodesMap,
@@ -15,13 +11,13 @@ import {
 import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
 
 interface ActionNodeListProps {
-  actions: NewAction[];
+  actions: Action[];
   availableActions: Array<{type: ActionType; integrations?: Integration[]}>;
   group: string;
   onAddRow: (type: ActionType) => void;
-  onDeleteRow: (id: number) => void;
+  onDeleteRow: (id: string) => void;
   placeholder: string;
-  updateAction: (index: number, data: Record<string, any>) => void;
+  updateAction: (id: string, data: Record<string, any>) => void;
 }
 
 export default function ActionNodeList({
@@ -39,18 +35,18 @@ export default function ActionNodeList({
 
   return (
     <Fragment>
-      {actions.map((action, i) => (
+      {actions.map(action => (
         <AutomationBuilderRow
-          key={`${group}.action.${i}`}
+          key={`${group}.action.${action.id}`}
           onDelete={() => {
-            onDeleteRow(i);
+            onDeleteRow(action.id);
           }}
         >
           <ActionNodeContext.Provider
             value={{
               action,
-              actionId: `${group}.action.${i}`,
-              onUpdate: newAction => updateAction(i, newAction),
+              actionId: `${group}.action.${action.id}`,
+              onUpdate: newAction => updateAction(action.id, newAction),
               integrations: availableActions.find(a => a.type === action.type)
                 ?.integrations,
             }}
