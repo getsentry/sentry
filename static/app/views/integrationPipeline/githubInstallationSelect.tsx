@@ -19,13 +19,13 @@ type Installation = {
 };
 
 type GithubInstallationProps = {
-  has_business_plan: boolean;
+  has_scm_multi_org: boolean;
   installation_info: Installation[];
 };
 
 export function GithubInstallationSelect({
   installation_info,
-  has_business_plan,
+  has_scm_multi_org,
 }: GithubInstallationProps) {
   const [installationID, setInstallationID] = useState<SelectKey>(-1);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -89,10 +89,10 @@ export function GithubInstallationSelect({
         </p>
         <StyledTooltip
           title={t('Multi-org is only available to business+ plans')}
-          disabled={has_business_plan}
+          disabled={has_scm_multi_org}
         >
           <StyledSelect
-            disabled={!has_business_plan}
+            disabled={!has_scm_multi_org}
             onChange={handleSelect}
             options={selectOptions}
             value={installationID}

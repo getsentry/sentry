@@ -11,7 +11,7 @@ describe('GithubInstallationSelect', () => {
 
   it('renders installation options', async () => {
     render(
-      <GithubInstallationSelect installation_info={installation_info} has_business_plan />
+      <GithubInstallationSelect installation_info={installation_info} has_scm_multi_org />
     );
 
     expect(
@@ -37,7 +37,7 @@ describe('GithubInstallationSelect', () => {
 
   it('redirects to setup page when clicking Install', async () => {
     render(
-      <GithubInstallationSelect installation_info={installation_info} has_business_plan />
+      <GithubInstallationSelect installation_info={installation_info} has_scm_multi_org />
     );
     // Click the select dropdown
     await userEvent.click(
@@ -64,7 +64,7 @@ describe('GithubInstallationSelect', () => {
 
   it('redirects to setup page when selecting "skip"(integrate with a new GH org) option', async () => {
     render(
-      <GithubInstallationSelect installation_info={installation_info} has_business_plan />
+      <GithubInstallationSelect installation_info={installation_info} has_scm_multi_org />
     );
 
     // Initial selection is None as no installation has been selected
@@ -86,7 +86,7 @@ describe('GithubInstallationSelect', () => {
     render(
       <GithubInstallationSelect
         installation_info={installation_info}
-        has_business_plan={false}
+        has_scm_multi_org={false}
       />
     );
 
