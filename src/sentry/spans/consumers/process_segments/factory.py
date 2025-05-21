@@ -1,6 +1,5 @@
 import logging
-from collections.abc import Mapping, MutableMapping
-from typing import Any
+from collections.abc import Mapping
 
 import orjson
 import sentry_sdk
@@ -12,12 +11,13 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
-from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
+from sentry.spans.consumers.process_segments.convert import (
+    SPAN_ITEM_TYPE_HEADER,
+    convert_span_to_item,
+)
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.spans.consumers.process_segments.types import Span
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -112,123 +112,20 @@ def _process_message(message: Message[KafkaPayload]) -> list[KafkaPayload]:
         value = message.payload.value
         segment = orjson.loads(value)
         processed = process_segment(segment["spans"])
-        return [_convert_to_trace_item(span) for span in processed]
+        return [_serialize_payload(span) for span in processed]
     except Exception:
         # TODO: revise error handling
         sentry_sdk.capture_exception()
         return []
 
 
-def _convert_to_trace_item(span: Span) -> KafkaPayload:
-    attributes: MutableMapping[str, AnyValue] = {}  # TODO
-    for k, v in (span.get("data") or {}).items():
-        attributes[k] = v
-
-    client_sample_rate = 1.0
-    server_sample_rate = 1.0
-
-    def infer_anyvalue(value: Any) -> AnyValue:
-        if isinstance(value, str):
-            return AnyValue(string_value=value)
-
-        if isinstance(value, int):
-            return AnyValue(int_value=value)
-
-        if isinstance(value, float):
-            return AnyValue(double_value=value)
-
-        raise ValueError(f"Unknown value type: {type(value)}")
-
-    for k, v in (span.get("measurements") or {}).items():
-        if k is None or v is None:
-            continue
-
-        if k == "client_sample_rate":
-            client_sample_rate = v["value"]
-            continue
-
-        if k == "server_sample_rate":
-            server_sample_rate = v["value"]
-            continue
-
-        attributes[k] = infer_anyvalue(v)
-
-    for k, v in (span.get("sentry_tags") or {}).items():
-        if v is None:
-            continue
-
-        if k == "description":
-            k = "sentry.normalized_description"
-        else:
-            k = f"sentry.{k}"
-
-        attributes[k] = infer_anyvalue(v)
-
-    for k, v in (span.get("tags") or {}).items():
-        if v is None:
-            continue
-
-        attributes[k] = infer_anyvalue(v)
-
-    description = span.get("description")
-    if description is not None:
-        attributes["sentry.raw_description"] = infer_anyvalue(description)
-
-    attributes["sentry.duration_ms"] = infer_anyvalue(span["duration_ms"])
-
-    event_id = span.get("event_id")
-    if event_id is not None:
-        attributes["sentry.event_id"] = infer_anyvalue(event_id)
-
-    attributes["sentry.is_segment"] = infer_anyvalue(span["is_segment"])
-    exclusive_time_ms = span.get("exclusive_time_ms")
-    if exclusive_time_ms is not None:
-        attributes["sentry.exclusive_time_ms"] = infer_anyvalue(exclusive_time_ms)
-    attributes["sentry.start_timestamp_precise"] = infer_anyvalue(span["start_timestamp_precise"])
-    attributes["sentry.end_timestamp_precise"] = infer_anyvalue(span["end_timestamp_precise"])
-    attributes["sentry.start_timestamp_ms"] = infer_anyvalue(span["start_timestamp_ms"])
-    attributes["sentry.is_remote"] = infer_anyvalue(span["is_remote"])
-
-    parent_span_id = span.get("parent_span_id")
-    if parent_span_id is not None:
-        attributes["sentry.parent_span_id"] = infer_anyvalue(parent_span_id)
-
-    profile_id = span.get("profile_id")
-    if profile_id is not None:
-        attributes["sentry.profile_id"] = infer_anyvalue(profile_id)
-
-    segment_id = span.get("segment_id")
-    if segment_id is not None:
-        attributes["sentry.segment_id"] = infer_anyvalue(segment_id)
-
-    origin = span.get("origin")
-    if origin is not None:
-        attributes["sentry.origin"] = infer_anyvalue(origin)
-
-    kind = span.get("kind")
-    if kind is not None:
-        attributes["sentry.kind"] = infer_anyvalue(kind)
-
-    trace_item = TraceItem(
-        item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-        organization_id=span["organization_id"],
-        project_id=span["project_id"],
-        received=Timestamp(seconds=int(span["received"])),  # TODO: more precision?
-        retention_days=span["retention_days"],
-        timestamp=Timestamp(seconds=int(span["start_timestamp_precise"])),
-        trace_id=span["trace_id"],
-        item_id=int(span["span_id"], 16).to_bytes(16, "little"),
-        attributes=attributes,
-        client_sample_rate=client_sample_rate,
-        server_sample_rate=server_sample_rate,
-    )
-
-    trace_item_bytes = trace_item.SerializeToString()
+def _serialize_payload(span: Span) -> KafkaPayload:
+    item = convert_span_to_item(span)
     return KafkaPayload(
         key=None,
-        value=trace_item_bytes,
+        value=item.SerializeToString(),
         headers=[
-            ("item_type", b"span"),
+            ("item_type", SPAN_ITEM_TYPE_HEADER),
             ("project_id", str(span["project_id"]).encode("ascii")),
         ],
     )
