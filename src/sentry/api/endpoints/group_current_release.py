@@ -66,6 +66,7 @@ class GroupCurrentReleaseEndpoint(GroupEndpoint):
 
         with sentry_sdk.start_span(op="CurrentReleaseEndpoint.get.current_release") as span:
             span.set_attribute("Environment Count", len(environments))
+            # TODO-anton: split dict into multiple attributes
             span.set_attribute(
                 "Raw Parameters",
                 {
