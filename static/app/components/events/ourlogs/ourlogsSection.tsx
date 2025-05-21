@@ -56,7 +56,7 @@ function OurlogsSectionContent({
 }) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
-  const tableData = useLogsQuery({disabled: feature, limit: 10, referrer: ''});
+  const tableData = useLogsQuery({disabled: feature, limit: 10});
   const logsSearch = useLogsSearch();
   const abbreviatedTableData = {...tableData, data: (tableData.data ?? []).slice(0, 5)};
   const {openDrawer} = useDrawer();
