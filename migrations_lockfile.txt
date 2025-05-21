@@ -29,4 +29,4 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 
 uptime: 0001_squashed_0042_extra_uptime_indexes
 
-workflow_engine: 0066_workflow_action_group_status_table
+workflow_engine: 0001_squashed_0065_add_status_to_detector_and_workflow
