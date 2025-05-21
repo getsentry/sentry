@@ -91,10 +91,10 @@ def _anyvalue(value: Any) -> AnyValue:
     elif isinstance(value, float):
         return AnyValue(double_value=value)
     elif isinstance(value, list):
-        values = [_anyvalue(v) for v in value]
+        values = [_anyvalue(v) for v in value if v is not None]
         return AnyValue(array_value=ArrayValue(values=values))
     elif isinstance(value, dict):
-        values = [KeyValue(key=k, value=_anyvalue(v)) for k, v in value.items()]
+        values = [KeyValue(key=k, value=_anyvalue(v)) for k, v in value.items() if v is not None]
         return AnyValue(kvlist_value=KeyValueList(values=values))
 
     raise ValueError(f"Unknown value type: {type(value)}")
