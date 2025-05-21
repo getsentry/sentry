@@ -1,6 +1,9 @@
 import {useMemo} from 'react';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {
+  SelectOption,
+  SelectOptionOrSection,
+} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import useProjects from 'sentry/utils/useProjects';
@@ -13,40 +16,31 @@ interface EnvironmentSelectorProps {
 export function EnvironmentSelector({value, onChange}: EnvironmentSelectorProps) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
-  const userProjectEnvironments = useMemo<Set<string>>(() => {
-    return new Set(
-      projects.flatMap(project => {
-        if (project.isMember) {
-          return project.environments;
-        }
-        return [];
-      })
-    );
+  const options = useMemo<Array<SelectOptionOrSection<string>>>(() => {
+    const userEnvs = new Set<string>();
+    const otherEnvs = new Set<string>();
+
+    projects.forEach(project => {
+      if (project.isMember) {
+        project.environments.forEach(env => userEnvs.add(env));
+      } else {
+        project.environments.forEach(env => otherEnvs.add(env));
+      }
+    });
+
+    return [
+      {
+        key: 'my-projects',
+        label: t('Environments in My Projects'),
+        options: setToOptions(userEnvs),
+      },
+      {
+        key: 'other-projects',
+        label: t('Other Environments'),
+        options: setToOptions(otherEnvs.difference(userEnvs)),
+      },
+    ];
   }, [projects]);
-
-  const otherEnvironments = useMemo<Set<string>>(() => {
-    return new Set(
-      projects.flatMap(project => {
-        if (!project.isMember) {
-          return project.environments;
-        }
-        return [];
-      })
-    );
-  }, [projects]).difference(userProjectEnvironments);
-
-  const options = [
-    {
-      key: 'my-projects',
-      label: t('Environments in My Projects'),
-      options: setToOptions(userProjectEnvironments),
-    },
-    {
-      key: 'other-projects',
-      label: t('Other Environments'),
-      options: setToOptions(otherEnvironments),
-    },
-  ];
 
   return (
     <CompactSelect<string>
