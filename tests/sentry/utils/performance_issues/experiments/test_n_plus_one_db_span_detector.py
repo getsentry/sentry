@@ -358,6 +358,14 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
         event["spans"] = override_spans
         assert self.find_problems(event) == []
 
+    def test_detects_n_plus_one_with_mongoose(self):
+        # This event has 3 problems, but ensure none contain mongoose client spans
+        event = get_event("n-plus-one-db/n-plus-one-db-mongoose")
+        problems = self.find_problems(event)
+        assert len(problems) == 3
+        for problem in problems:
+            assert "mongoose" not in problem.desc
+
 
 @pytest.mark.django_db
 class NPlusOneDbSettingTest(TestCase):
