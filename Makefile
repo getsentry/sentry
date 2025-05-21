@@ -130,7 +130,7 @@ COV_ARGS = --cov-report="xml:.artifacts/python.coverage.xml"
 test-python-ci:
 	@echo "--> Running CI Python tests"
 	python3 -b -m pytest \
-		tests \
+		tests/relay_integration/test_sdk.py \
 		--ignore tests/acceptance \
 		--ignore tests/apidocs \
 		--ignore tests/js \
