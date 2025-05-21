@@ -953,7 +953,7 @@ class GithubOrganizationSelection(PipelineView):
                 pipeline_name="githubInstallationSelect",
                 props={
                     "installation_info": installation_info,
-                    "has_multi_org": has_scm_multi_org,
+                    "has_scm_multi_org": has_scm_multi_org,
                 },
             )
 
