@@ -9,24 +9,24 @@ explore: 0004_add_explore_last_visited_table
 
 feedback: 0004_index_together
 
+flags: 0004_add_flag_audit_log_provider_column
+
 hybridcloud: 0021_django_arrayfield_scope_list
 
 insights: 0001_add_starred_transactions_model
 
-monitors: 0002_fix_drift_default_to_db_default
+monitors: 0005_record_date_in_progress_state
 
 nodestore: 0002_nodestore_no_dictfield
 
-remote_subscriptions: 0003_drop_remote_subscription
+replays: 0005_drop_replay_index
 
-replays: 0004_index_together
-
-sentry: 0888_groupopenperiod_gist_index_in_code
+sentry: 0904_onboarding_task_project_id_idx
 
 social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0041_uptime_backfill_detector_grouphash
+uptime: 0042_extra_uptime_indexes
 
-workflow_engine: 0060_rename_azure_devops_action_to_vsts
+workflow_engine: 0065_add_status_to_detector_and_workflow

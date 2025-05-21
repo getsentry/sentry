@@ -1,7 +1,7 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {css} from '@emotion/react';
 
-import {getChonkButtonStyles} from 'sentry/components/core/button/index.chonk';
+import {DO_NOT_USE_getChonkButtonStyles} from 'sentry/components/core/button/styles.chonk';
 import type {FormSize} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
@@ -65,7 +65,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   ${p => p.theme.buttonPadding[p.size]}
   font-weight: ${p => p.theme.fontWeightNormal};
 
-  ${p => ({...getChonkButtonStyles({...p, disabled: p.isDisabled, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
+  ${p => ({...DO_NOT_USE_getChonkButtonStyles({...p, disabled: p.isDisabled, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
 
   &:has(input:focus-visible) {
     ${p => p.theme.focusRing};
@@ -90,7 +90,6 @@ export const ChonkStyledVisibleLabel = chonkStyled('span')<{
   ${p => p.theme.overflowEllipsis}
   user-select: none;
   font-weight: ${p => p.theme.fontWeightBold};
-  ${p => p.size !== 'md' && `transform: translateY(-1px)`};
   text-align: center;
   color: ${p => getTextColor(p)};
 `;

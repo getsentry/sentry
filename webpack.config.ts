@@ -1,4 +1,3 @@
-import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
 import browserslist from 'browserslist';
@@ -244,8 +243,17 @@ const appConfig: webpack.Configuration = {
       {
         test: /\.[tj]sx?$/,
         include: [staticPrefix],
-        exclude: /(vendor|node_modules|dist)/,
+        exclude: [/(vendor|node_modules|dist)/],
         use: babelLoaderConfig,
+      },
+      {
+        test: /\.mdx?$/,
+        use: [
+          babelLoaderConfig,
+          {
+            loader: '@mdx-js/loader',
+          },
+        ],
       },
       {
         test: /\.po$/,
@@ -399,11 +407,6 @@ const appConfig: webpack.Configuration = {
             ]
           : []),
       ],
-    }),
-
-    WebpackReactSourcemapsPlugin({
-      mode: IS_PRODUCTION ? 'strict' : undefined,
-      debug: false,
     }),
   ],
 

@@ -1,12 +1,17 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
+import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ActionType} from 'sentry/types/workflowEngine/actions';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   FILTER_DATA_CONDITION_TYPES,
   FILTER_MATCH_OPTIONS,
@@ -21,6 +26,13 @@ import {
 
 export default function AutomationBuilder() {
   const {state, actions} = useAutomationBuilderContext();
+  const organization = useOrganization();
+  const api = useApi();
+
+  // fetch org members for SelectMembers dropdowns
+  useEffect(() => {
+    fetchOrgMembers(api, organization.slug);
+  }, [api, organization]);
 
   return (
     <Flex column gap={space(1)}>
@@ -28,7 +40,7 @@ export default function AutomationBuilder() {
         <StepLead>
           {/* TODO: Only make this a selector of "all" is originally selected */}
           {tct('[when:When] [selector] of the following occur', {
-            when: <Badge />,
+            when: <ConditionBadge />,
             selector: (
               <EmbeddedWrapper>
                 <EmbeddedSelectField
@@ -97,13 +109,13 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
   const actionFilterBlock = state.actionFilters[groupIndex];
 
   return (
-    <IfThenWrapper key={`actionFilter.${groupIndex}`}>
+    <IfThenWrapper key={`actionFilters.${groupIndex}`}>
       <Step>
         <Flex column gap={space(0.75)}>
           <Flex justify="space-between">
             <StepLead>
               {tct('[if: If] [selector] of these filters match', {
-                if: <Badge />,
+                if: <ConditionBadge />,
                 selector: (
                   <EmbeddedWrapper>
                     <EmbeddedSelectField
@@ -129,12 +141,13 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
                 ),
               })}
             </StepLead>
-            <DeleteButton
+            <Button
               aria-label={t('Delete If/Then Block')}
               size="sm"
               icon={<IconDelete />}
               borderless
               onClick={() => actions.removeIf(groupIndex)}
+              className="delete-condition-group"
             />
           </Flex>
           <DataConditionNodeList
@@ -148,34 +161,22 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
             updateCondition={(index, comparison) =>
               actions.updateIfCondition(groupIndex, index, comparison)
             }
+            updateConditionType={(index, type) =>
+              actions.updateIfConditionType(groupIndex, index, type)
+            }
           />
         </Flex>
       </Step>
       <Step>
         <StepLead>
           {tct('[then:Then] perform these actions', {
-            then: <Badge />,
+            then: <ConditionBadge />,
           })}
         </StepLead>
         {/* TODO: add actions dropdown here */}
         <ActionNodeList
           // TODO: replace constant availableActions with API response
-          availableActions={[
-            {
-              type: ActionType.MSTEAMS,
-              integrations: [
-                {id: '123', name: 'Test'},
-                {id: '456', name: 'Test2'},
-              ],
-            },
-            {
-              type: ActionType.DISCORD,
-              integrations: [
-                {id: 'serv3', name: 'server 1'},
-                {id: 'serv6', name: 'server 2'},
-              ],
-            },
-          ]}
+          availableActions={[]}
           placeholder={t('Select an action')}
           group={`actionFilters.${groupIndex}`}
           actions={actionFilterBlock?.actions || []}
@@ -188,12 +189,6 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
   );
 }
 
-const PurpleTextButton = styled(Button)`
-  color: ${p => p.theme.purple300};
-  font-weight: normal;
-  padding: 0;
-`;
-
 const Step = styled(Flex)`
   flex-direction: column;
   gap: ${space(0.75)};
@@ -202,19 +197,6 @@ const Step = styled(Flex)`
 const StepLead = styled(Flex)`
   align-items: center;
   gap: ${space(0.5)};
-`;
-
-const Badge = styled('span')`
-  display: inline-block;
-  background-color: ${p => p.theme.purple300};
-  padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.white};
-  text-transform: uppercase;
-  text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: 1.5;
 `;
 
 const EmbeddedSelectField = styled(SelectField)`
@@ -235,13 +217,11 @@ const IfThenWrapper = styled(Flex)`
   padding: ${space(1.5)};
   padding-top: ${space(1)};
   margin-top: ${space(1)};
-`;
 
-const DeleteButton = styled(Button)`
-  flex-shrink: 0;
-  opacity: 0;
-
-  ${IfThenWrapper}:hover & {
+  .delete-condition-group {
+    opacity: 0;
+  }
+  :hover .delete-condition-group {
     opacity: 1;
   }
 `;

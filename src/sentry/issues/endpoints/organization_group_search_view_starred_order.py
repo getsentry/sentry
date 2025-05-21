@@ -35,6 +35,9 @@ class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
     def put(self, request: Request, organization: Organization) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         if not features.has(
             "organizations:issue-stream-custom-views", organization, actor=request.user
         ):

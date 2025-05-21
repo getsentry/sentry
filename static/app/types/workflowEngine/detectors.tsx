@@ -4,11 +4,12 @@ import type {
 } from 'sentry/types/workflowEngine/dataConditions';
 
 export type DetectorType =
-  | 'metric'
+  | 'crons'
   | 'errors'
+  | 'metric'
   | 'performance'
-  | 'trace'
   | 'replay'
+  | 'trace'
   | 'uptime';
 
 interface NewDetector {
@@ -24,8 +25,8 @@ interface NewDetector {
 
 export interface Detector extends Readonly<NewDetector> {
   readonly createdBy: string;
-  readonly dateCreated: Date;
-  readonly dateUpdated: Date;
+  readonly dateCreated: string;
+  readonly dateUpdated: string;
   readonly id: string;
-  readonly lastTriggered: Date;
+  readonly lastTriggered: string;
 }

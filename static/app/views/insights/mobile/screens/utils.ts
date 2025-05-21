@@ -6,7 +6,7 @@ import type {MetricsProperty, SpanMetricsProperty} from 'sentry/views/insights/t
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
 const formatMetricValue = (metric: MetricValue, field?: string | undefined): string => {
-  if (metric.value === undefined) {
+  if (metric.value === undefined || metric.value === null) {
     return '-';
   }
   if (typeof metric.value === 'number' && metric.type === 'duration' && metric.unit) {

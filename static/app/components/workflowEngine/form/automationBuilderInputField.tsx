@@ -11,7 +11,7 @@ export default function AutomationBuilderInputField(props: InputFieldProps) {
       flexibleControlStateSize
       hideLabel
       inline
-      style={{height: '28px', minHeight: '28px'}}
+      style={{height: '32px', minHeight: '32px'}}
       {...props}
     />
   );
@@ -20,6 +20,7 @@ export default function AutomationBuilderInputField(props: InputFieldProps) {
 const StyledInputField = styled(InputField)`
   padding: 0;
   width: 180px;
+  border: none;
   > div {
     padding-left: 0;
   }

@@ -118,7 +118,7 @@ export interface MenuProps
   /**
    * Message to display when there are no items initially
    */
-  emptyMessage?: React.ReactNode;
+  emptyMessage?: string;
 
   /**
    * If this is undefined, autocomplete filter will use this value instead of the
