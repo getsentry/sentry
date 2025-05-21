@@ -85,10 +85,31 @@ class ResolvedAttribute(ResolvedColumn):
     is_aggregate: bool = field(default=False, init=False)
     # There are columns in RPC that are available but we don't want rendered to the user
     private: bool = False
+    is_sentry_convention: bool = False
+    pre_convention_names: set[str] = field(default_factory=set)
+    sentry_convention_cutover_date: datetime | None = None
 
     @property
     def proto_definition(self) -> AttributeKey:
         """The definition of this function as needed by the RPC"""
+        if (
+            self.pre_convention_names
+            and self.is_sentry_convention
+            and self.sentry_convention_cutover_date is not None
+            and self.sentry_convention_cutover_date < datetime.now().date()
+        ):
+            return AttributeKey(
+                name=self.public_alias,
+                type=self.proto_type,
+            )
+
+        if self.pre_convention_names and self.is_sentry_convention:
+            # Here is where we'd return coalesced new key, old key(s) instead
+            return AttributeKey(
+                name=list(self.pre_convention_names)[0],
+                type=self.proto_type,
+            )
+
         return AttributeKey(
             name=self.internal_name,
             type=self.proto_type,

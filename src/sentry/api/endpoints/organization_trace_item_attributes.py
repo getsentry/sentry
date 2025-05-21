@@ -30,7 +30,12 @@ from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
+from sentry.search.eap.utils import (
+    can_expose_attribute,
+    is_pre_convention_attribute,
+    is_sentry_convention_attribute,
+    translate_internal_to_public_alias,
+)
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
@@ -122,6 +127,10 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         if not self.has_feature(organization, request):
             return Response(status=404)
 
+        use_sentry_conventions = features.has(
+            "organizations:performance-sentry-conventions-fields", organization, actor=request.user
+        )
+
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -178,16 +187,37 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         with handle_query_errors():
             rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
-        paginator = ChainPaginator(
-            [
+        if use_sentry_conventions:
+            paginator = ChainPaginator(
                 [
-                    as_attribute_key(attribute.name, serialized["attribute_type"], trace_item_type)
-                    for attribute in rpc_response.attributes
-                    if attribute.name and can_expose_attribute(attribute.name, trace_item_type)
+                    [
+                        as_attribute_key(
+                            attribute.name, serialized["attribute_type"], trace_item_type
+                        )
+                        for attribute in rpc_response.attributes
+                        if attribute.name
+                        and not is_pre_convention_attribute(attribute.name, trace_item_type)
+                        and (
+                            can_expose_attribute(attribute.name, trace_item_type)
+                            or is_sentry_convention_attribute(attribute.name, trace_item_type)
+                        )
+                    ],
                 ],
-            ],
-            max_limit=max_attributes,
-        )
+                max_limit=max_attributes,
+            )
+        else:
+            paginator = ChainPaginator(
+                [
+                    [
+                        as_attribute_key(
+                            attribute.name, serialized["attribute_type"], trace_item_type
+                        )
+                        for attribute in rpc_response.attributes
+                        if attribute.name and can_expose_attribute(attribute.name, trace_item_type)
+                    ],
+                ],
+                max_limit=max_attributes,
+            )
 
         return self.paginate(
             request=request,

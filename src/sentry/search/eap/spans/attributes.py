@@ -425,6 +425,23 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_measurements_field("score.weight.inp"),
         simple_measurements_field("score.weight.lcp"),
         simple_measurements_field("score.weight.ttfb"),
+        # sentry-conventions fields begin
+        ResolvedAttribute(
+            public_alias="http.response.body.size",
+            internal_name="http.response_content_length",
+            search_type="byte",
+            private=True,
+            is_sentry_convention=True,
+            pre_convention_names={"http.response_content_length"},
+        ),
+        ResolvedAttribute(
+            public_alias="http.response.size",
+            internal_name="http.response_transfer_size",
+            search_type="byte",
+            private=True,
+            is_sentry_convention=True,
+            pre_convention_names={"http.response_transfer_size"},
+        ),
     ]
 }
 
@@ -471,6 +488,8 @@ def is_starred_segment_context_constructor(params: SnubaParams) -> VirtualColumn
     )
 
 
+# [word for sentence in text for word in sentence]
+
 SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[str, str]] = {
     "string": {
         definition.internal_name: definition.public_alias
@@ -486,6 +505,38 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[
         for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
         if not definition.secondary_alias and definition.search_type != "string"
     },
+}
+
+SPANS_PRE_CONVENTION_TO_SENTRY_CONVENTIONS_ALIAS_MAPPINGS: dict[
+    Literal["string", "number"], dict[str, str]
+] = {
+    "string": {},
+    "number": {},
+}
+
+for definition in SPAN_ATTRIBUTE_DEFINITIONS.values():
+    type_key = "string" if definition.search_type == "string" else "number"
+
+    if not definition.is_sentry_convention:
+        continue
+
+    SPANS_PRE_CONVENTION_TO_SENTRY_CONVENTIONS_ALIAS_MAPPINGS[type_key][
+        definition.internal_name
+    ] = definition.public_alias
+
+    for deprecated_field in definition.pre_convention_names:
+        SPANS_PRE_CONVENTION_TO_SENTRY_CONVENTIONS_ALIAS_MAPPINGS[type_key][
+            deprecated_field
+        ] = definition.public_alias
+
+SPANS_PRE_CONVENTION_ATTRIBUTES = {
+    attr
+    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    for attr in definition.pre_convention_names
+}
+
+SPANS_SENTRY_CONVENTIONS_DEFINITIONS: dict[str, ResolvedAttribute] = {
+    k: v for k, v in SPAN_ATTRIBUTE_DEFINITIONS.items() if v.is_sentry_convention
 }
 
 SPANS_PRIVATE_ATTRIBUTES: set[str] = {

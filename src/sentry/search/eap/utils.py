@@ -19,7 +19,10 @@ from sentry.search.eap.ourlogs.attributes import (
 )
 from sentry.search.eap.spans.attributes import (
     SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    SPANS_PRE_CONVENTION_ATTRIBUTES,
+    SPANS_PRE_CONVENTION_TO_SENTRY_CONVENTIONS_ALIAS_MAPPINGS,
     SPANS_PRIVATE_ATTRIBUTES,
+    SPANS_SENTRY_CONVENTIONS_DEFINITIONS,
 )
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.events.types import SAMPLING_MODES
@@ -123,6 +126,25 @@ PRIVATE_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
     SupportedTraceItemType.LOGS: LOGS_PRIVATE_ATTRIBUTES,
 }
 
+# These are attributes that have been deprecated in favour of sentry-conventions
+# attributes
+PRE_CONVENTION_TO_SENTRY_CONVENTIONS_ALIAS_MAPPINGS: dict[
+    SupportedTraceItemType, dict[Literal["string", "number"], dict[str, str]]
+] = {
+    SupportedTraceItemType.SPANS: SPANS_PRE_CONVENTION_TO_SENTRY_CONVENTIONS_ALIAS_MAPPINGS,
+    SupportedTraceItemType.LOGS: {"string": {}, "number": {}},
+}
+
+PRE_CONVENTION_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
+    SupportedTraceItemType.SPANS: SPANS_PRE_CONVENTION_ATTRIBUTES,
+    SupportedTraceItemType.LOGS: set(),
+}
+
+SENTRY_CONVENTION_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
+    SupportedTraceItemType.SPANS: SPANS_SENTRY_CONVENTIONS_DEFINITIONS,
+    SupportedTraceItemType.LOGS: set(),
+}
+
 
 def translate_internal_to_public_alias(
     internal_alias: str,
@@ -135,6 +157,14 @@ def translate_internal_to_public_alias(
 
 def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> bool:
     return attribute not in PRIVATE_ATTRIBUTES.get(item_type, {})
+
+
+def is_pre_convention_attribute(attribute: str, item_type: SupportedTraceItemType) -> bool:
+    return attribute in PRE_CONVENTION_ATTRIBUTES.get(item_type, {})
+
+
+def is_sentry_convention_attribute(attribute: str, item_type: SupportedTraceItemType) -> bool:
+    return attribute in SENTRY_CONVENTION_ATTRIBUTES.get(item_type, {})
 
 
 def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
