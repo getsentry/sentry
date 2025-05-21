@@ -15,6 +15,8 @@ import pluginQuery from '@tanstack/eslint-plugin-query';
 import {globalIgnores} from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 // @ts-expect-error TS(7016): Could not find a declaration file
+import boundaries from 'eslint-plugin-boundaries';
+// @ts-expect-error TS(7016): Could not find a declaration file
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
@@ -959,10 +961,10 @@ export default typescript.config([
               message:
                 "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
             },
-            {
-              group: ['sentry/locale'],
-              message: 'Do not import locale into gsAdmin. No translations required.',
-            },
+            // {
+            //   group: ['sentry/locale'],
+            //   message: 'Do not import locale into gsAdmin. No translations required.',
+            // },
           ],
           paths: restrictedImportPaths,
         },
@@ -975,6 +977,145 @@ export default typescript.config([
     rules: {
       // Allow imports from gsApp into getsentry-test fixtures
       'no-restricted-imports': 'off',
+    },
+  },
+  {
+    name: 'plugin/boundaries',
+    plugins: {
+      boundaries,
+    },
+    settings: {
+      // order matters here in case of nested directories
+      'boundaries/elements': [
+        // --- specifics ---
+        {
+          type: 'devtoolbar',
+          pattern: 'sentry/components/devtoolbar',
+        },
+        {
+          type: 'core-button',
+          pattern: 'static/app/components/core/button',
+        },
+        {
+          type: 'core',
+          pattern: 'static/app/components/core',
+        },
+        // --- sentry ---
+        {
+          type: 'sentry-images',
+          pattern: 'static/images',
+        },
+        {
+          type: 'sentry-locale',
+          pattern: '(static/app/locale.tsx|src/sentry/locale/**/*.*)',
+          mode: 'full',
+        },
+        {
+          type: 'sentry-logos',
+          pattern: 'src/sentry/static/sentry/images/logos',
+        },
+        {
+          type: 'sentry-fonts',
+          pattern: 'static/fonts',
+        },
+        {
+          type: 'sentry-fixture',
+          pattern: 'tests/js/fixtures',
+        },
+        {
+          type: 'sentry',
+          pattern: 'static/app',
+        },
+        // --- getsentry ---
+        {
+          type: 'getsentry',
+          pattern: 'static/gsApp',
+        },
+        // --- admin ---
+        {
+          type: 'gsAdmin',
+          pattern: 'static/gsAdmin',
+        },
+        // --- tests ---
+        {
+          type: 'sentry-test',
+          pattern: 'tests/js/sentry-test',
+        },
+        {
+          type: 'getsentry-test',
+          pattern: 'tests/js/getsentry-test',
+        },
+        {
+          type: 'tests',
+          pattern: 'tests/js',
+        },
+        // --- configs ---
+        {
+          type: 'configs',
+          pattern: '(package.json|config/**/*.*|*.config.{mjs,js,ts})',
+          mode: 'full',
+        },
+        {
+          type: 'build-utils',
+          pattern: 'build-utils',
+        },
+        {
+          type: 'scripts',
+          pattern: 'scripts',
+        },
+      ],
+    },
+    rules: {
+      ...boundaries.configs.strict.rules,
+      'boundaries/no-ignored': 'off',
+      'boundaries/no-private': 'off',
+      'boundaries/element-types': [
+        'warn',
+        {
+          default: 'disallow',
+          message: '${file.type} is not allowed to import ${dependency.type}',
+          rules: [
+            {
+              from: ['sentry*'],
+              allow: ['core*', 'sentry*'],
+            },
+            {
+              from: ['sentry-test'],
+              allow: ['tests'],
+            },
+            {
+              from: ['getsentry*'],
+              allow: ['core*', 'getsentry*', 'sentry*'],
+            },
+            {
+              from: ['gsAdmin*'],
+              disallow: ['sentry-locale'],
+              allow: ['core*', 'gsAdmin*', 'sentry*', 'getsentry*'],
+            },
+            {
+              from: ['devtoolbar'],
+              allow: ['devtoolbar', 'sentry*'],
+            },
+            {
+              from: ['core-button'],
+              allow: ['core*'],
+            },
+            {
+              from: ['tests'],
+              allow: ['sentry*'],
+            },
+            {
+              from: ['configs'],
+              allow: ['configs', 'build-utils'],
+            },
+            // todo: sentry* shouldn't be allowed
+            {
+              from: ['core'],
+              allow: ['core*', 'sentry*'],
+            },
+          ],
+        },
+      ],
     },
   },
 ]);
