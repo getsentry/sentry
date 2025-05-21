@@ -15,7 +15,7 @@ export default storyBook('Button', (story, APIReference) => {
     const theme = useTheme();
     const variants = theme.isChonk
       ? ['default', 'transparent', 'primary', 'warning', 'danger', 'link']
-      : ['default', 'primary', 'link', 'danger'];
+      : ['default', 'transparent', 'primary', 'link', 'danger'];
 
     const propMatrix: PropMatrix<ButtonProps> = {
       children: ['Delete', undefined],
