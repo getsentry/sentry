@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("sentry", "0583_add_early_adopter_to_organization_mapping"),
+        # ("sentry", "0583_add_early_adopter_to_organization_mapping"),
         ("hybridcloud", "0007_add_orgauthtokenreplica"),
     ]
 

@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0759_remove_spanattributeextraction_tables"),
+        # ("sentry", "0759_remove_spanattributeextraction_tables"),
         ("workflow_engine", "0002_data_source"),
     ]
 

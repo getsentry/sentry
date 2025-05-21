@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0768_fix_old_group_first_seen_dates"),
+        # ("sentry", "0768_fix_old_group_first_seen_dates"),
         ("uptime", "0013_uptime_subscription_new_unique"),
     ]
 
