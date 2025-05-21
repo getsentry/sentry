@@ -5,6 +5,9 @@ import RequestError from 'sentry/utils/requestError/requestError';
 
 const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 
+export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
+export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
+
 const respond = (
   asyncDelay: AsyncDelay,
   fn: FunctionCallback | undefined,
