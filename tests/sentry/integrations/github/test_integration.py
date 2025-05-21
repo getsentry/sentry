@@ -1316,7 +1316,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         mock_render.assert_called_with(
             request=ANY,
             pipeline_name="githubInstallationSelect",
-            props={"installation_info": installations, "has_business_plan": True},
+            props={"installation_info": installations, "has_scm_multi_org": True},
         )
 
         # SLO assertions
@@ -1524,7 +1524,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         mock_render.assert_called_with(
             request=ANY,
             pipeline_name="githubInstallationSelect",
-            props={"installation_info": installations, "has_business_plan": False},
+            props={"installation_info": installations, "has_scm_multi_org": False},
         )
 
         # SLO assertions
