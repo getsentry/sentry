@@ -4,8 +4,7 @@ import {Flex} from 'sentry/components/container/flex';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SnubaQueryDataSource} from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {Detector, SnubaQueryDataSource} from 'sentry/types/workflowEngine/detectors';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 
 interface DetailsPanelProps {
