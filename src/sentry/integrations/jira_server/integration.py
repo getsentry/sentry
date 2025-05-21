@@ -34,7 +34,7 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline import Pipeline, PipelineView
@@ -1372,7 +1372,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):
-    key = "jira_server"
+    key = IntegrationProviderSlug.JIRA_SERVER.value
     name = "Jira Server"
     metadata = metadata
     integration_cls = JiraServerIntegration
