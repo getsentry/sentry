@@ -71,7 +71,6 @@ export enum DataConditionGroupLogicType {
 export interface NewDataCondition {
   comparison: any;
   comparison_type: DataConditionType;
-  condition_group?: DataConditionGroup;
   condition_result?: any;
 }
 
