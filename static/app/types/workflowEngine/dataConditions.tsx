@@ -1,4 +1,4 @@
-import type {NewAction} from './actions';
+import type {Action} from './actions';
 
 interface SnubaQuery {
   aggregate: string;
@@ -68,19 +68,15 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
-export interface NewDataCondition {
+export interface DataCondition {
   comparison: any;
   comparison_type: DataConditionType;
+  id: string;
   condition_result?: any;
 }
-
-export interface DataCondition extends Readonly<NewDataCondition> {
-  readonly id: string;
-}
-
 export interface DataConditionGroup {
-  conditions: NewDataCondition[];
+  conditions: DataCondition[];
   id: string;
   logicType: DataConditionGroupLogicType;
-  actions?: NewAction[];
+  actions?: Action[];
 }
