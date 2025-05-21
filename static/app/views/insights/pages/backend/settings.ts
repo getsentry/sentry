@@ -26,6 +26,4 @@ export const DEFAULT_SORT: ValidSort = {
 
 export const BACKEND_PLATFORMS: PlatformKey[] = [...backend];
 
-export const BACKEND_ISSUES_WIDGET_DEFAULT_SEARCH = ['is:unresolved', 'event.type:error'];
-
 export const USE_NEW_BACKEND_EXPERIENCE = 'insights-backend-use-new-backend-experience';

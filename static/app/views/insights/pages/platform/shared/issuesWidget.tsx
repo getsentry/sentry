@@ -320,24 +320,16 @@ const HeaderContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.header};
 `;
 
-type IssuesWidgetProps = {
-  search?: MutableSearch;
-};
-
-export function IssuesWidget({search}: IssuesWidgetProps) {
+export function IssuesWidget() {
   const location = useLocation();
   const {query} = useTransactionNameQuery();
-  const queryWithDefault = new MutableSearch(['is:unresolved', 'event.type:error']);
-  if (query) {
-    queryWithDefault.setFilterValues('transaction', [query]);
-  }
 
   const queryParams = {
     limit: '5',
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
-    query: search?.formatString() ?? queryWithDefault.formatString(),
+    query,
     sort: 'freq',
   };
 
