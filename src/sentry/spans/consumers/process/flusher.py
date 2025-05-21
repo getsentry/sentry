@@ -52,11 +52,15 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.redis_was_full = False
         self.current_drift = multiprocessing.Value("i", 0)
         self.should_backpressure = multiprocessing.Value("i", 0)
+        self.produce_to_pipe = produce_to_pipe
 
+        self._create_process()
+
+    def _create_process(self):
         from sentry.utils.arroyo import _get_arroyo_subprocess_initializer
 
         make_process: Callable[..., multiprocessing.Process | threading.Thread]
-        if produce_to_pipe is None:
+        if self.produce_to_pipe is None:
             initializer = _get_arroyo_subprocess_initializer(None)
             make_process = multiprocessing.Process
         else:
@@ -72,13 +76,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 self.should_backpressure,
                 self.buffer,
                 self.max_flush_segments,
-                produce_to_pipe,
+                self.produce_to_pipe,
             ),
             daemon=True,
         )
 
         self.process_restarts = 0
-
         self.process.start()
 
     @staticmethod
@@ -91,12 +94,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         max_flush_segments: int,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
+        if initializer:
+            initializer()
+
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
 
         try:
-            if initializer:
-                initializer()
-
             producer_futures = []
 
             if produce_to_pipe is not None:
@@ -154,6 +157,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 producer.close()
         except KeyboardInterrupt:
             pass
+        except Exception:
+            sentry_sdk.capture_exception()
+            raise
 
     def poll(self) -> None:
         self.next_step.poll()
@@ -166,7 +172,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         if not self.process.is_alive():
             metrics.incr("sentry.spans.buffer.flusher_dead")
             if self.process_restarts < MAX_PROCESS_RESTARTS:
-                self.process.start()
+                self._create_process()
                 self.process_restarts += 1
             else:
                 raise RuntimeError(
