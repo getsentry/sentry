@@ -706,7 +706,6 @@ function TabPinButton(props: {
       data-test-id="trace-drawer-tab-pin-button"
       size="zero"
       onClick={props.onClick}
-      // @ts-expect-error transparent is not supported in legacy button
       priority={theme.isChonk ? 'transparent' : 'default'}
       aria-label={props.pinned ? t('Unpin Tab') : t('Pin Tab')}
       icon={<StyledIconPin size="xs" isSolid={props.pinned} />}
