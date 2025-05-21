@@ -325,7 +325,7 @@ class StrategyConfiguration:
 
     def iter_strategies(self) -> Iterator[Strategy[Any]]:
         """Iterates over all strategies by highest score to lowest."""
-        return iter(sorted(self.strategies.values(), key=lambda x: x.score and -x.score or 0))
+        return iter(sorted(self.strategies.values(), key=lambda x: -x.score if x.score else 0))
 
     @classmethod
     def as_dict(cls) -> dict[str, Any]:
