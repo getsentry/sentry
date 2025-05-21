@@ -1118,7 +1118,7 @@ class DashboardDetail extends Component<Props, State> {
             const navigatingWithinDashboards =
               this.isWidgetBuilder(locationChange.nextLocation.pathname) ||
               (this.isWidgetBuilder(locationChange.currentLocation.pathname) &&
-                [`/dashboard/${dashboard.id}`, `/dashboards/new/`].includes(
+                [`/dashboard/${dashboard.id}/`, `/dashboards/new/`].includes(
                   locationChange.nextLocation.pathname
                 ));
             const hasUnsavedChanges =
