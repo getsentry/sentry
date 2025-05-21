@@ -257,6 +257,7 @@ const Header = styled('div')`
 
 const Body = styled('div')<{layout: NavLayout}>`
   overflow-y: auto;
+  overscroll-behavior: contain;
 
   ${p =>
     p.layout === NavLayout.MOBILE &&
