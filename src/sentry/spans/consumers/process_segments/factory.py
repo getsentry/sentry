@@ -11,13 +11,11 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
-from sentry.spans.consumers.process_segments.convert import (
-    SPAN_ITEM_TYPE_HEADER,
-    convert_span_to_item,
-)
+from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.spans.consumers.process_segments.types import Span
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -125,7 +123,7 @@ def _serialize_payload(span: Span) -> KafkaPayload:
         key=None,
         value=item.SerializeToString(),
         headers=[
-            ("item_type", SPAN_ITEM_TYPE_HEADER),
+            ("item_type", TraceItemType.Name(item.item_type).encode("ascii")),
             ("project_id", str(span["project_id"]).encode("ascii")),
         ],
     )

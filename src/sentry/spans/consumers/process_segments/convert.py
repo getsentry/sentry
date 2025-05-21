@@ -8,9 +8,6 @@ from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry.spans.consumers.process_segments.types import Span
 
-SPAN_ITEM_TYPE_HEADER = b"span"
-
-
 FIELD_TO_ATTRIBUTE = {
     "description": "sentry.raw_description",
     "duration_ms": "sentry.duration_ms",
