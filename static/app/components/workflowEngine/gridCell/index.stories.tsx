@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
+import * as Storybook from 'sentry/components/stories';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {
   ConnectionCell,
@@ -21,7 +22,6 @@ import {
   UserCell,
   type UserCellProps,
 } from 'sentry/components/workflowEngine/gridCell/userCell';
-import storyBook from 'sentry/stories/storyBook';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 type ExampleAutomation = {
@@ -34,7 +34,7 @@ type ExampleAutomation = {
   type: TypeCellProps['type'];
 };
 
-export default storyBook('Grid Cell Components', story => {
+export default Storybook.story('Grid Cell Components', story => {
   const data: ExampleAutomation[] = [
     {
       title: {

@@ -2,9 +2,10 @@ import type {ReactNode} from 'react';
 import {Children, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import SideBySide from 'sentry/components/stories/sideBySide';
 import {space} from 'sentry/styles/space';
 import {StoryTypes} from 'sentry/views/stories/storyTypes';
+
+import * as StorybookLayout from './layout';
 
 type StoryRenderFunction = () => ReactNode | ReactNode[];
 type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
@@ -13,10 +14,7 @@ type SetupFunction = (
   apiReference: (documentation: TypeLoader.ComponentDocWithFilename | undefined) => void
 ) => void;
 
-export default function storyBook(
-  title: string,
-  setup: SetupFunction
-): StoryRenderFunction {
+export function story(title: string, setup: SetupFunction): StoryRenderFunction {
   const stories: Array<{
     name: string;
     render: StoryRenderFunction;
@@ -57,7 +55,11 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
   return (
     <StorySection>
       <StoryTitle>{props.name}</StoryTitle>
-      {isOneChild ? children : <SideBySide>{children}</SideBySide>}
+      {isOneChild ? (
+        children
+      ) : (
+        <StorybookLayout.SideBySide>{children}</StorybookLayout.SideBySide>
+      )}
     </StorySection>
   );
 }

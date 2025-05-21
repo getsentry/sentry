@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import * as Storybook from 'sentry/components/stories';
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import {StorySection, StoryTitle} from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 
@@ -20,8 +20,8 @@ export function StoryTypes(props: StoryTypesProps) {
   const nodes = usePropTree(props.types?.props ?? {}, query);
 
   return (
-    <StorySection>
-      <StoryTitle>API Reference</StoryTitle>
+    <Storybook.Section>
+      <Storybook.Title>API Reference</Storybook.Title>
       <p>{props.types?.description}</p>
       <StoryTypesSearchContainer>
         <InputGroup>
@@ -87,7 +87,7 @@ export function StoryTypes(props: StoryTypesProps) {
           </tbody>
         </StoryTypesTable>
       </StoryTableContainer>
-    </StorySection>
+    </Storybook.Section>
   );
 }
 

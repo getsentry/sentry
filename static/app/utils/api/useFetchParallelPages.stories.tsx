@@ -1,11 +1,11 @@
 import {Fragment, useCallback} from 'react';
 
+import * as Storybook from 'sentry/components/stories';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import storyBook from 'sentry/stories/storyBook';
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default storyBook('useFetchParallelPages', story => {
+export default Storybook.story('useFetchParallelPages', story => {
   story('WARNING!', () => (
     <Fragment>
       <p>

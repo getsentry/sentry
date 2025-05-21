@@ -1,15 +1,15 @@
 import {Fragment, useCallback, useEffect} from 'react';
 
 import type {ApiResult} from 'sentry/api';
+import * as Storybook from 'sentry/components/stories';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import storyBook from 'sentry/stories/storyBook';
 import type {Team} from 'sentry/types/organization';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
-export default storyBook('useAggregatedQueryKeys', story => {
+export default Storybook.story('useAggregatedQueryKeys', story => {
   story('useAggregatedQueryKeys', () => {
     const organization = useOrganization();
 
