@@ -1,8 +1,7 @@
 import {DataConditionGroupFixture} from 'sentry-fixture/dataConditions';
 import {UserFixture} from 'sentry-fixture/user';
 
-import type {DataSource} from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {DataSource, Detector} from 'sentry/types/workflowEngine/detectors';
 
 export function DetectorFixture(params: Partial<Detector> = {}): Detector {
   return {
