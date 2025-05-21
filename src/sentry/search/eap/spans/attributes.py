@@ -515,7 +515,9 @@ SPANS_PRE_CONVENTION_TO_SENTRY_CONVENTIONS_ALIAS_MAPPINGS: dict[
 }
 
 for definition in SPAN_ATTRIBUTE_DEFINITIONS.values():
-    type_key = "string" if definition.search_type == "string" else "number"
+    type_key: Literal["string", "number"] = (
+        "string" if definition.search_type == "string" else "number"
+    )
 
     if not definition.is_sentry_convention:
         continue
@@ -537,6 +539,12 @@ SPANS_PRE_CONVENTION_ATTRIBUTES = {
 
 SPANS_SENTRY_CONVENTIONS_DEFINITIONS: dict[str, ResolvedAttribute] = {
     k: v for k, v in SPAN_ATTRIBUTE_DEFINITIONS.items() if v.is_sentry_convention
+}
+
+SPANS_SENTRY_CONVENTIONS_ATTRIBUTES: set[str] = {
+    definition.public_alias
+    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    if definition.is_sentry_convention
 }
 
 SPANS_PRIVATE_ATTRIBUTES: set[str] = {

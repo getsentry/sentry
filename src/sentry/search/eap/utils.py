@@ -22,7 +22,7 @@ from sentry.search.eap.spans.attributes import (
     SPANS_PRE_CONVENTION_ATTRIBUTES,
     SPANS_PRE_CONVENTION_TO_SENTRY_CONVENTIONS_ALIAS_MAPPINGS,
     SPANS_PRIVATE_ATTRIBUTES,
-    SPANS_SENTRY_CONVENTIONS_DEFINITIONS,
+    SPANS_SENTRY_CONVENTIONS_ATTRIBUTES,
 )
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.events.types import SAMPLING_MODES
@@ -141,7 +141,7 @@ PRE_CONVENTION_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
 }
 
 SENTRY_CONVENTION_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
-    SupportedTraceItemType.SPANS: SPANS_SENTRY_CONVENTIONS_DEFINITIONS,
+    SupportedTraceItemType.SPANS: SPANS_SENTRY_CONVENTIONS_ATTRIBUTES,
     SupportedTraceItemType.LOGS: set(),
 }
 
