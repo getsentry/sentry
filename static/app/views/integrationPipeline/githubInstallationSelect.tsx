@@ -10,6 +10,7 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 
 type Installation = {
@@ -29,6 +30,7 @@ export function GithubInstallationSelect({
 }: GithubInstallationProps) {
   const [installationID, setInstallationID] = useState<SelectKey>(-1);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
     e.preventDefault();
@@ -88,7 +90,11 @@ export function GithubInstallationSelect({
           )}
         </p>
         <StyledTooltip
-          title={t('Multi-org is only available to business+ plans')}
+          title={
+            isSelfHosted
+              ? t('This feature is not available')
+              : t('Multi-org is only available to business+ plans')
+          }
           disabled={has_scm_multi_org}
         >
           <StyledSelect
