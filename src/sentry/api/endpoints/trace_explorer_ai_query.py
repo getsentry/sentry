@@ -103,6 +103,12 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
 
         # XXX: This is a fallback to support the old response format until we fully support using multiple queries on the frontend
         if "responses" in data and use_flyout:
+            if not data["responses"]:
+                logger.info("No results found for query")
+                return Response(
+                    {"detail": "No results found for query"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             data = data["responses"][0]
         if "responses" not in data:
             return Response(
@@ -119,6 +125,13 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
             )
 
         data = data["responses"][:limit]
+
+        if len(data) == 0:
+            logger.info("No results found for query")
+            return Response(
+                {"detail": "No results found for query"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         return Response(
             {
