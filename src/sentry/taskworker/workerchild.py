@@ -291,6 +291,7 @@ def child_process(
                     origin="taskworker",
                 ) as root_span,
             ):
+                # TODO-anton: split dict into multiple attributes
                 root_span.set_attribute(
                     "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
                 )
