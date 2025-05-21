@@ -1,9 +1,11 @@
-from sentry.spans.consumers.process_segments.convert import (
-    AnyValue,
-    Timestamp,
-    TraceItemType,
-    convert_span_to_item,
-)
+from typing import cast
+
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue
+
+from sentry.spans.consumers.process_segments.convert import convert_span_to_item
+from sentry.spans.consumers.process_segments.types import Span
 
 ###############################################
 # Test ported from Snuba's `eap_items_span`. #
@@ -80,7 +82,9 @@ SPAN_KAFKA_MESSAGE = {
 
 
 def test_convert_span_to_item():
-    item = convert_span_to_item(SPAN_KAFKA_MESSAGE)
+    # Cast since the above payload does not conform to the strict schema
+    item = convert_span_to_item(cast(Span, SPAN_KAFKA_MESSAGE))
+
     assert item.organization_id == 1
     assert item.project_id == 1
     assert item.trace_id == "d099bf9ad5a143cf8f83a98081d0ed3b"

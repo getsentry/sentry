@@ -61,8 +61,8 @@ def convert_span_to_item(span: Span) -> TraceItem:
             attributes[k] = AnyValue(string_value=str(v))
 
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
-        if span.get(field_name) is not None:
-            attributes[attribute_name] = _anyvalue(span[field_name])
+        if value := span.get(field_name):
+            attributes[attribute_name] = _anyvalue(value)
 
     return TraceItem(
         organization_id=span["organization_id"],
@@ -79,10 +79,8 @@ def convert_span_to_item(span: Span) -> TraceItem:
     )
 
 
-def _anyvalue(value: Any) -> AnyValue | None:
-    if value is None:
-        return None
-    elif isinstance(value, str):
+def _anyvalue(value: Any) -> AnyValue:
+    if isinstance(value, str):
         return AnyValue(string_value=value)
     elif isinstance(value, bool):
         return AnyValue(bool_value=value)

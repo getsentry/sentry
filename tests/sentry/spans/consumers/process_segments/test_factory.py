@@ -4,9 +4,10 @@ from unittest import mock
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.spans.consumers.process_segments.convert import TraceItem, convert_span_to_item
+from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.factory import DetectPerformanceIssuesStrategyFactory
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
