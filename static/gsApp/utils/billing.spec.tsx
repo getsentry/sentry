@@ -1,6 +1,7 @@
 import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 
 import {DataCategory} from 'sentry/types/core';
@@ -11,6 +12,7 @@ import {
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
+  getOnDemandCategories,
   getProductTrial,
   getSlot,
   hasPerformance,
@@ -857,5 +859,13 @@ describe('isNewPayingCustomer', function () {
       isFree: false,
     });
     expect(isNewPayingCustomer(subscription, organization)).toBe(false);
+  });
+});
+
+describe('getOnDemandCategories', function () {
+  it('filters out seer categories', function () {
+    const categories = getOnDemandCategories(PlanDetailsLookupFixture('am1_business')!);
+    expect(categories).not.toContain(DataCategory.SEER_SCANNER);
+    expect(categories).not.toContain(DataCategory.SEER_AUTOFIX);
   });
 });
