@@ -11,7 +11,7 @@ describe('DetectorDetails', function () {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
   const project = ProjectFixture();
   const defaultDataSource = DetectorDataSourceFixture();
-  const subaQueryDetector = DetectorFixture({
+  const snubaQueryDetector = DetectorFixture({
     projectId: project.id,
     dataSources: [
       DetectorDataSourceFixture({
@@ -28,7 +28,7 @@ describe('DetectorDetails', function () {
   });
   const initialRouterConfig = {
     location: {
-      pathname: `/organizations/${organization.slug}/issues/detectors/${subaQueryDetector.id}/`,
+      pathname: `/organizations/${organization.slug}/issues/detectors/${snubaQueryDetector.id}/`,
     },
     route: '/organizations/:orgId/issues/detectors/:detectorId/',
   };
@@ -36,8 +36,8 @@ describe('DetectorDetails', function () {
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/detectors/${subaQueryDetector.id}/`,
-      body: subaQueryDetector,
+      url: `/organizations/${organization.slug}/detectors/${snubaQueryDetector.id}/`,
+      body: snubaQueryDetector,
     });
   });
 
@@ -48,15 +48,17 @@ describe('DetectorDetails', function () {
     });
 
     expect(
-      await screen.findByRole('heading', {name: subaQueryDetector.name})
+      await screen.findByRole('heading', {name: snubaQueryDetector.name})
     ).toBeInTheDocument();
     // Displays the snuba query
     expect(
-      screen.getByText(subaQueryDetector.dataSources[0]!.queryObj.snubaQuery.query)
+      screen.getByText(snubaQueryDetector.dataSources[0]!.queryObj.snubaQuery.query)
     ).toBeInTheDocument();
     // Displays the environment
     expect(
-      screen.getByText(subaQueryDetector.dataSources[0]!.queryObj.snubaQuery.environment!)
+      screen.getByText(
+        snubaQueryDetector.dataSources[0]!.queryObj.snubaQuery.environment!
+      )
     ).toBeInTheDocument();
   });
 });
