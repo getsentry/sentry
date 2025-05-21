@@ -107,7 +107,9 @@ def categorize_aggregate(
         )
 
 
-def update_timestamps(params: SnubaParams, resolver: SearchResolver):
+def update_timestamps(
+    params: SnubaParams, resolver: SearchResolver
+) -> tuple[TraceItemFilter | None, SnubaParams]:
     """We need to update snuba params to query a wider period than requested so that we get aligned granularities while
     still querying the requested period
 
@@ -117,7 +119,11 @@ def update_timestamps(params: SnubaParams, resolver: SearchResolver):
     behavior is up to you. Creating two separate almost identical endpoints to allow for both behaviors is also not
     going to happen."
     """
-    if params.start is not None and params.end is not None and params.granularity_secs is not None:
+    if resolver.config.ignore_timeseries_hack:
+        return None, params
+    elif (
+        params.start is not None and params.end is not None and params.granularity_secs is not None
+    ):
         # Doing this via timestamps as its the most direct and matches how its stored under the hood
         start = int(params.start.replace(tzinfo=None).timestamp())
         end = int(params.end.replace(tzinfo=None).timestamp())
@@ -194,10 +200,11 @@ def get_timeseries_query(
         else:
             query = extra_conditions
 
-    if query is not None:
-        query = TraceItemFilter(and_filter=AndFilter(filters=[query, timeseries_filter]))
-    else:
-        query = timeseries_filter
+    if timeseries_filter is not None:
+        if query is not None:
+            query = TraceItemFilter(and_filter=AndFilter(filters=[query, timeseries_filter]))
+        else:
+            query = timeseries_filter
 
     return (
         TimeSeriesRequest(

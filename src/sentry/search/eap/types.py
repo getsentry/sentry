@@ -24,6 +24,8 @@ class SearchResolverConfig:
     process_results: bool = True
     # If a field is private, it will only be available if it is in the `fields_acl`
     fields_acl: FieldsACL = field(default_factory=lambda: FieldsACL())
+    # Do not apply the timeseries hack to this query
+    ignore_timeseries_hack: bool = False
 
 
 CONFIDENCES: dict[Reliability.ValueType, Literal["low", "high"]] = {
