@@ -13,7 +13,7 @@
           "type": "valueText",
           "value": "a\trelease",
           "quoted": true,
-          "contains": false
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
