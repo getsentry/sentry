@@ -11,7 +11,6 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
@@ -123,7 +122,7 @@ def _serialize_payload(span: Span) -> KafkaPayload:
         key=None,
         value=item.SerializeToString(),
         headers=[
-            ("item_type", TraceItemType.Name(item.item_type).encode("ascii")),
+            ("item_type", str(item.item_type).encode("ascii")),
             ("project_id", str(span["project_id"]).encode("ascii")),
         ],
     )

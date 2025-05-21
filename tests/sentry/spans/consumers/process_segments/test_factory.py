@@ -88,6 +88,10 @@ def test_segment_deserialized_correctly(mock_process_segment):
         assert mock_producer.produce.call_count == 2
         assert mock_producer.produce.call_args.args[0] == ArroyoTopic("snuba-items")
 
-        value = mock_producer.produce.call_args.args[1].value
-        span_item = TraceItem.FromString(value)
+        payload = mock_producer.produce.call_args.args[1]
+        span_item = TraceItem.FromString(payload.value)
         assert span_item == convert_span_to_item(span_data)
+
+        headers = {k: v for k, v in payload.headers}
+        assert headers["item_type"] == b"1"
+        assert headers["project_id"] == b"1"
