@@ -27,6 +27,8 @@ import {
   MailActionTargetType,
 } from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
+import type {IssueCategory} from 'sentry/types/group';
+import {VALID_ISSUE_CATEGORIES_V2} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
@@ -139,6 +141,41 @@ function MailActionFields({
   );
 }
 
+function getSelectedCategoryLabel({data, node}: Pick<Props, 'data' | 'node'>) {
+  const fieldConfig =
+    node?.formFields && 'value' in node.formFields
+      ? (node.formFields.value as FormField)
+      : undefined;
+
+  return fieldConfig?.choices.find(
+    ([value]: [string | number, string]) => value === data.value
+  )?.[1];
+}
+
+function getChoices({
+  data,
+  fieldConfig,
+  name,
+  organization,
+  selectedValue,
+}: Pick<FieldProps, 'data' | 'fieldConfig' | 'name' | 'organization'> & {
+  selectedValue?: string;
+}) {
+  if (
+    data.id === IssueAlertFilterType.ISSUE_CATEGORY &&
+    name === 'value' &&
+    organization.features.includes('issue-taxonomy')
+  ) {
+    return fieldConfig.choices.filter(
+      ([value, label]: [string | number, string]) =>
+        VALID_ISSUE_CATEGORIES_V2.includes(label as IssueCategory) ||
+        value === selectedValue
+    );
+  }
+
+  return fieldConfig.choices;
+}
+
 function ChoiceField({
   data,
   disabled,
@@ -147,6 +184,7 @@ function ChoiceField({
   onReset,
   name,
   fieldConfig,
+  organization,
 }: FieldProps) {
   // Select the first item on this list
   // If it's not yet defined, call onPropertyChange to make sure the value is set on state
@@ -162,8 +200,13 @@ function ChoiceField({
   // All `value`s are cast to string
   // There are integrations that give the form field choices with the value as number, but
   // when the integration configuration gets saved, it gets saved and returned as a string
-  // @ts-expect-error TS(7031): Binding element 'value' implicitly has an 'any' ty... Remove this comment to see the full error message
-  const options = fieldConfig.choices.map(([value, label]) => ({
+  const options = getChoices({
+    data,
+    fieldConfig,
+    name,
+    organization,
+    selectedValue: initialVal,
+  }).map(([value, label]: [string | number, string]) => ({
     value: `${value}`,
     label,
   }));
@@ -480,6 +523,24 @@ function RuleNode({
           }
         >
           {t('Note that you must enter a Discord channel ID, not a channel name.')}
+        </FooterAlert>
+      );
+    }
+
+    // While `issue-taxonomy` is being rolled out, both the old and new categories are supported.
+    // This will display a banner to nudge users towards selecting a new category.
+    if (
+      data.id === IssueAlertFilterType.ISSUE_CATEGORY &&
+      organization.features.includes('issue-taxonomy') &&
+      !VALID_ISSUE_CATEGORIES_V2.includes(
+        getSelectedCategoryLabel({data, node}) as IssueCategory
+      )
+    ) {
+      return (
+        <FooterAlert type="warning">
+          {t(
+            'Issue categories have been recently updated. Make a new selection to save changes.'
+          )}
         </FooterAlert>
       );
     }
