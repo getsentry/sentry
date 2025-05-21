@@ -43,8 +43,11 @@ class PreprodArtifact(DefaultFieldsModel):
 
     class ArtifactType:
         XCARCHIVE = 0
+        """Apple Xcode archive."""
         AAB = 1
+        """Android App Bundle."""
         APK = 2
+        """Android APK."""
 
         @classmethod
         def as_choices(cls):
