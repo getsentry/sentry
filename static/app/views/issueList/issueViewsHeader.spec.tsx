@@ -11,9 +11,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import LeftNavViewsHeader from 'sentry/views/issueList/leftNavViewsHeader';
+import IssueViewsHeader from 'sentry/views/issueList/issueViewsHeader';
 
-describe('LeftNavViewsHeader', function () {
+describe('IssueViewsHeader', function () {
   const view = GroupSearchViewFixture();
 
   beforeEach(function () {
@@ -51,7 +51,7 @@ describe('LeftNavViewsHeader', function () {
 
   describe('edit menu', function () {
     it('does not render if not on a view', async function () {
-      render(<LeftNavViewsHeader {...defaultProps} />, {
+      render(<IssueViewsHeader {...defaultProps} />, {
         organization,
 
         initialRouterConfig: onIssueFeedRouterConfig,
@@ -67,7 +67,7 @@ describe('LeftNavViewsHeader', function () {
         method: 'DELETE',
       });
 
-      const {router} = render(<LeftNavViewsHeader {...defaultProps} />, {
+      const {router} = render(<IssueViewsHeader {...defaultProps} />, {
         organization,
 
         initialRouterConfig: onIssueViewRouterConfig,
@@ -114,7 +114,7 @@ describe('LeftNavViewsHeader', function () {
         }),
       });
 
-      render(<LeftNavViewsHeader {...defaultProps} />, {
+      render(<IssueViewsHeader {...defaultProps} />, {
         organization,
 
         initialRouterConfig: onIssueViewRouterConfig,
