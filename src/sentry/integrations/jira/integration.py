@@ -28,6 +28,7 @@ from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncIntegration, Re
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -1106,7 +1107,7 @@ class JiraIntegration(IssueSyncIntegration):
 
 
 class JiraIntegrationProvider(IntegrationProvider):
-    key = "jira"
+    key = IntegrationProviderSlug.JIRA.value
     name = "Jira"
     metadata = metadata
     integration_cls = JiraIntegration
