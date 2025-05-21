@@ -6,10 +6,8 @@ from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.spans.consumers.process_segments.factory import (
-    DetectPerformanceIssuesStrategyFactory,
-    _convert_to_trace_item,
-)
+from sentry.spans.consumers.process_segments.convert import TraceItem, convert_span_to_item
+from sentry.spans.consumers.process_segments.factory import DetectPerformanceIssuesStrategyFactory
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
@@ -89,5 +87,6 @@ def test_segment_deserialized_correctly(mock_process_segment):
         assert mock_producer.produce.call_count == 2
         assert mock_producer.produce.call_args.args[0] == ArroyoTopic("snuba-items")
 
-        value = mock_producer.produce.call_args.args[1]
-        assert value == _convert_to_trace_item(span_data)
+        value = mock_producer.produce.call_args.args[1].value
+        span_item = TraceItem.FromString(value)
+        assert span_item == convert_span_to_item(span_data)
