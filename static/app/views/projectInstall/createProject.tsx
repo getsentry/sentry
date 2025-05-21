@@ -7,6 +7,8 @@ import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import {removeProject} from 'sentry/actionCreators/projects';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -26,6 +28,7 @@ import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -130,10 +133,70 @@ const keyToErrorText: Record<string, string> = {
   detail: t('Project details'),
 };
 
+async function rollbackRulesAndProject({
+  api,
+  orgSlug,
+  projSlug,
+  customRuleId,
+  notificationRuleId,
+}: {
+  api: Client;
+  orgSlug: string;
+  customRuleId?: string;
+  notificationRuleId?: string;
+  projSlug?: string;
+}) {
+  if (!projSlug) {
+    return;
+  }
+
+  if (notificationRuleId) {
+    try {
+      await api.requestPromise(
+        `/projects/${orgSlug}/${projSlug}/rules/${notificationRuleId}/`,
+        {method: 'DELETE'}
+      );
+    } catch (error) {
+      Sentry.withScope(scope => {
+        scope.setExtra('error', error);
+        Sentry.captureMessage('Failed to rollback notification rule');
+      });
+    }
+  }
+
+  if (customRuleId) {
+    try {
+      await api.requestPromise(
+        `/projects/${orgSlug}/${projSlug}/rules/${customRuleId}/`,
+        {method: 'DELETE'}
+      );
+    } catch (error) {
+      Sentry.withScope(scope => {
+        scope.setExtra('error', error);
+        Sentry.captureMessage('Failed to rollback custom rule');
+      });
+    }
+  }
+
+  try {
+    await removeProject({
+      api,
+      orgSlug,
+      projectSlug: projSlug,
+      origin: 'getting_started',
+    });
+  } catch (error) {
+    Sentry.withScope(scope => {
+      scope.setExtra('error', error);
+      Sentry.captureMessage('Failed to rollback project');
+    });
+  }
+}
+
 export function CreateProject() {
   const api = useApi();
   const navigate = useNavigate();
-  const [errors, setErrors] = useState(false);
+  const [errors, setErrors] = useState();
   const organization = useOrganization();
   const location = useLocation();
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
@@ -153,10 +216,10 @@ export function CreateProject() {
       project,
       alertRuleConfig,
     }: {project: Project} & Pick<FormData, 'alertRuleConfig'>) => {
-      const ruleIds = [];
+      let ruleData: undefined | {id: string};
 
       if (alertRuleConfig?.shouldCreateCustomRule) {
-        const ruleData = await api.requestPromise(
+        ruleData = await api.requestPromise(
           `/projects/${organization.slug}/${project.slug}/rules/`,
           {
             method: 'POST',
@@ -169,8 +232,6 @@ export function CreateProject() {
             },
           }
         );
-
-        ruleIds.push(ruleData.id);
       }
 
       const notificationRule = await createNotificationAction({
@@ -182,11 +243,10 @@ export function CreateProject() {
         frequency: alertRuleConfig?.frequency,
       });
 
-      if (notificationRule) {
-        ruleIds.push(notificationRule.id);
-      }
-
-      return ruleIds;
+      return {
+        customRuleId: ruleData?.id,
+        notificationRuleId: notificationRule?.id,
+      };
     },
     [organization, api, createNotificationAction]
   );
@@ -283,15 +343,21 @@ export function CreateProject() {
         return;
       }
 
+      let project: Project | undefined = undefined;
+      let customRuleId: string | undefined = undefined;
+      let notificationRuleId: string | undefined = undefined;
+
       try {
-        const project = await createProject.mutateAsync({
+        project = await createProject.mutateAsync({
           name: projectName,
           platform: selectedPlatform,
           default_rules: alertRuleConfig?.defaultRules ?? true,
           firstTeamSlug: team,
         });
 
-        const ruleIds = await createRules({project, alertRuleConfig});
+        const rules = await createRules({alertRuleConfig, project});
+        customRuleId = rules.customRuleId;
+        notificationRuleId = rules.notificationRuleId;
 
         trackAnalytics('project_creation_page.created', {
           organization,
@@ -302,7 +368,7 @@ export function CreateProject() {
               : 'No Rule',
           project_id: project.id,
           platform: selectedPlatform.key,
-          rule_ids: ruleIds,
+          rule_ids: [customRuleId, notificationRuleId].filter(defined),
         });
 
         addSuccessMessage(
@@ -339,9 +405,6 @@ export function CreateProject() {
           )
         );
       } catch (error) {
-        setErrors(!!error.responseJSON);
-        addErrorMessage(t('Failed to create project %s', `${projectName}`));
-
         // Only log this if the error is something other than:
         // * The user not having access to create a project, or,
         // * A project with that slug already exists
@@ -351,9 +414,19 @@ export function CreateProject() {
             Sentry.captureMessage('Project creation failed');
           });
         }
+        setErrors(error.responseJSON);
+        addErrorMessage(t('Failed to create project %s', `${projectName}`));
+
+        rollbackRulesAndProject({
+          projSlug: project?.slug,
+          orgSlug: organization.slug,
+          api,
+          customRuleId,
+          notificationRuleId,
+        });
       }
     },
-    [createRules, organization, createProject, setCreatedProject, navigate]
+    [organization, createProject, setCreatedProject, navigate, api, createRules]
   );
 
   const handleProjectCreation = useCallback(
