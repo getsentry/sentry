@@ -3202,7 +3202,6 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "social_auth",
     "feedback",
     "hybridcloud",
-    "remote_subscriptions",
     "uptime",
     "workflow_engine",
     "tempest",
