@@ -23,7 +23,6 @@ export type Row = Pick<
   | 'lastRun'
   | 'isBrokenTest'
 >;
-
 export type Column = GridColumnHeader<
   'testName' | 'averageDurationMs' | 'flakeRate' | 'commitsFailed' | 'lastRun'
 >;

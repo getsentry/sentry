@@ -21,42 +21,42 @@ const DEFAULT_CODECOV_DATETIME_SELECTION = {
   period: '24h',
 };
 
+// TODO: Sorting will only work once this is connected to the API
+const fakeApiResponse = {
+  data: [
+    {
+      testName:
+        'tests.symbolicator.test_unreal_full.SymbolicatorUnrealIntegrationTest::test_unreal_crash_with_attachments',
+      averageDurationMs: 4,
+      flakeRate: 0.4,
+      commitsFailed: 1,
+      lastRun: '2025-04-17T22:26:19.486793+00:00',
+      isBrokenTest: false,
+    },
+    {
+      testName:
+        'graphql_api/tests/test_owner.py::TestOwnerType::test_fetch_current_user_is_not_okta_authenticated',
+      averageDurationMs: 4370,
+      flakeRate: 0,
+      commitsFailed: 5,
+      lastRun: '2025-04-16T22:26:19.486793+00:00',
+      isBrokenTest: true,
+    },
+    {
+      testName: 'graphql_api/tests/test_owner.py',
+      averageDurationMs: 10032,
+      flakeRate: 1,
+      commitsFailed: 3,
+      lastRun: '2025-02-16T22:26:19.486793+00:00',
+      isBrokenTest: false,
+    },
+  ],
+  isLoading: false,
+  isError: false,
+};
+
 export default function TestsPage() {
   const location = useLocation();
-
-  // TODO: Sorting will only work once this is connected to the API
-  const fakeApiResponse = {
-    data: [
-      {
-        testName:
-          'tests.symbolicator.test_unreal_full.SymbolicatorUnrealIntegrationTest::test_unreal_crash_with_attachments',
-        averageDurationMs: 4,
-        flakeRate: 0.4,
-        commitsFailed: 1,
-        lastRun: '2025-04-17T22:26:19.486793+00:00',
-        isBrokenTest: false,
-      },
-      {
-        testName:
-          'graphql_api/tests/test_owner.py::TestOwnerType::test_fetch_current_user_is_not_okta_authenticated',
-        averageDurationMs: 4370,
-        flakeRate: 0,
-        commitsFailed: 5,
-        lastRun: '2025-04-16T22:26:19.486793+00:00',
-        isBrokenTest: true,
-      },
-      {
-        testName: 'graphql_api/tests/test_owner.py',
-        averageDurationMs: 10032,
-        flakeRate: 1,
-        commitsFailed: 3,
-        lastRun: '2025-02-16T22:26:19.486793+00:00',
-        isBrokenTest: false,
-      },
-    ],
-    isLoading: false,
-    isError: false,
-  };
 
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,

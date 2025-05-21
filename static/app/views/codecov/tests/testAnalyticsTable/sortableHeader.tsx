@@ -23,8 +23,8 @@ function SortableHeader({fieldName, label, sort, tooltip, alignment}: HeaderPara
   const sortArrow = <IconArrow size="xs" direction={arrowDirection} />;
 
   return (
-    <Header alignment={alignment}>
-      <SortLink
+    <HeaderCell alignment={alignment}>
+      <StyledLink
         role="columnheader"
         aria-sort={
           sort?.field.endsWith(fieldName)
@@ -46,21 +46,21 @@ function SortableHeader({fieldName, label, sort, tooltip, alignment}: HeaderPara
         }}
       >
         {label} {sort?.field === fieldName && sortArrow}
-      </SortLink>
+      </StyledLink>
       {tooltip ? (
         <StyledQuestionTooltip size="xs" position="top" title={tooltip} isHoverable />
       ) : null}
-    </Header>
+    </HeaderCell>
   );
 }
 
-const Header = styled('div')<{alignment: string}>`
+const HeaderCell = styled('div')<{alignment: string}>`
   display: block;
   width: 100%;
   text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};
 `;
 
-const SortLink = styled(Link)`
+const StyledLink = styled(Link)`
   color: inherit;
 
   :hover {
