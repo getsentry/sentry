@@ -41,6 +41,7 @@ from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
+from sentry.utils.security.orgauthtoken_token import hash_token
 
 
 class MockSuperUser:
@@ -182,6 +183,27 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
 
         request = drf_request_from_request(
             self.make_request(user=internal_sentry_app.proxy_user, auth=token, method="GET")
+        )
+        permission = self.permission_cls()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            permission.determine_access(request=request, organization=self.org)
+
+    def test_org_auth_token_passes_2fa(self):
+        self.org_require_2fa()
+
+        self.token = "sntrys_abc123_xyz"
+        self.org_auth_token = self.create_org_auth_token(
+            name="Test Token 1",
+            token_hashed=hash_token(self.token),
+            organization_id=self.org.id,
+            token_last_characters="xyz",
+            scope_list=[],
+            date_last_used=None,
+        )
+
+        request = drf_request_from_request(
+            self.make_request(auth=self.org_auth_token, method="GET")
         )
         permission = self.permission_cls()
 
