@@ -18,6 +18,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 
@@ -79,7 +80,7 @@ class MsTeamsIntegration(IntegrationInstallation):
 
 
 class MsTeamsIntegrationProvider(IntegrationProvider):
-    key = "msteams"
+    key = IntegrationProviderSlug.MSTEAMS.value
     name = "Microsoft Teams"
     can_add = False
     metadata = metadata
