@@ -3383,6 +3383,8 @@ SENTRY_TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
+# Codecov is disabled by default
+SENTRY_CODECOV_URL = None
 
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS: dict[str, Any] = {}

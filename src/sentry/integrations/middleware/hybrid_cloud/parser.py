@@ -14,7 +14,7 @@ from rest_framework import status
 
 from sentry.api.base import ONE_DAY
 from sentry.constants import ObjectStatus
-from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.integrations.middleware.metrics import (
@@ -178,6 +178,7 @@ class BaseRequestParser(ABC):
         shard_identifier = identifier or self.webhook_identifier.value
         for region in regions:
             WebhookPayload.create_from_request(
+                destination_type=DestinationType.SENTRY_REGION,
                 region=region.name,
                 provider=self.provider,
                 identifier=shard_identifier,
@@ -337,3 +338,24 @@ class BaseRequestParser(ABC):
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
+
+    # Forwarding Helpers
+
+    def forward_to_codecov(
+        self,
+        identifier: int | str | None = None,
+        integration_id: int | None = None,
+    ):
+        shard_identifier = f"codecov:{identifier or self.webhook_identifier.value}"
+
+        # create webhookpayloads for each service
+        WebhookPayload.create_from_request(
+            destination_type=DestinationType.CODECOV,
+            region=None,
+            provider=self.provider,
+            identifier=shard_identifier,
+            integration_id=integration_id,
+            request=self.request,
+        )
+
+        return HttpResponse(status=status.HTTP_202_ACCEPTED)

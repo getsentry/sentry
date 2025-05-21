@@ -103,3 +103,27 @@ class TestCodecovApiClient(TestCase):
                 },
                 timeout=10,
             )
+
+    @patch("requests.post")
+    def test_sends_post_request_with_jwt_auth_header_empty_git_provider_user(self, mock_post):
+        with self.options(
+            {
+                "codecov.base-url": self.test_base_url,
+                "codecov.api-bridge-signing-secret": self.test_secret,
+            }
+        ):
+            self.codecov_client = CodecovApiClient(None)
+
+        with patch.object(self.codecov_client, "_create_jwt", return_value="test"):
+            self.codecov_client.post(
+                "/example/endpoint", {"example-param": "foo"}, {"X_TEST_HEADER": "bar"}
+            )
+            mock_post.assert_called_once_with(
+                "http://example.com/example/endpoint",
+                data={"example-param": "foo"},
+                headers={
+                    "Authorization": "Bearer test",
+                    "X_TEST_HEADER": "bar",
+                },
+                timeout=10,
+            )

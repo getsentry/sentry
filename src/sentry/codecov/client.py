@@ -58,7 +58,7 @@ class CodecovApiClient:
 
     def __init__(
         self,
-        git_provider_user: GitProviderId,
+        git_provider_user: GitProviderId | None,
         git_provider: GitProvider = GitProvider.GitHub,
     ):
         """

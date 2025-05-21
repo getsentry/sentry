@@ -11,8 +11,14 @@ from requests.models import HTTPError
 from rest_framework import status
 
 from sentry import options
+from sentry.codecov.client import CodecovApiClient, ConfigurationError
 from sentry.exceptions import RestrictedIPAddress
-from sentry.hybridcloud.models.webhookpayload import BACKOFF_INTERVAL, MAX_ATTEMPTS, WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import (
+    BACKOFF_INTERVAL,
+    MAX_ATTEMPTS,
+    DestinationType,
+    WebhookPayload,
+)
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
     ApiConnectionResetError,
@@ -25,7 +31,7 @@ from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
-from sentry.types.region import get_region_by_name
+from sentry.types.region import Region, get_region_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -403,12 +409,24 @@ def deliver_message(payload: WebhookPayload) -> None:
 
 
 def perform_request(payload: WebhookPayload) -> None:
+    destination_type = payload.destination_type
+
+    match destination_type:
+        case DestinationType.SENTRY_REGION:
+            region = get_region_by_name(name=payload.region_name)
+            perform_region_request(region, payload)
+        case DestinationType.CODECOV:
+            perform_codecov_request(payload)
+        case _:
+            raise ValueError(f"Unknown destination type: {destination_type!r}")
+
+
+def perform_region_request(region: Region, payload: WebhookPayload) -> None:
     logging_context: dict[str, str | int] = {
         "payload_id": payload.id,
         "mailbox_name": payload.mailbox_name,
         "attempt": payload.attempts,
     }
-    region = get_region_by_name(name=payload.region_name)
 
     try:
         client = RegionSiloClient(region=region)
@@ -521,3 +539,47 @@ def perform_request(payload: WebhookPayload) -> None:
             extra={"error": str(err), "response_code": response_code, **logging_context},
         )
         raise DeliveryFailed() from err
+
+
+def perform_codecov_request(payload: WebhookPayload) -> None:
+    logging_context: dict[str, str | int] = {
+        "payload_id": payload.id,
+        "mailbox_name": payload.mailbox_name,
+        "attempt": payload.attempts,
+        "request_method": payload.request_method,
+        "request_path": payload.request_path,
+    }
+
+    with metrics.timer(
+        "hybridcloud.deliver_webhooks.send_request_to_codecov",
+    ):
+        try:
+            client = CodecovApiClient(None)
+            response = client.post(
+                endpoint=payload.request_path,
+                data=payload.request_body.encode("utf-8"),
+                headers=orjson.loads(payload.request_headers),
+            )
+        except ConfigurationError as err:
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.send_request_to_codecov.codecov_configuration_error",
+            )
+            logger.warning(
+                "deliver_webhooks.send_request_to_codecov.codecov_configuration_error",
+                extra={"error": str(err), **logging_context},
+            )
+            return
+
+    if response is None:
+        metrics.incr(
+            "hybridcloud.deliver_webhooks.send_request_to_codecov.failure",
+        )
+        return
+
+    logger.debug(
+        "deliver_webhooks.send_request_to_codecov.success",
+        extra={
+            "status": response.status_code,
+            **logging_context,
+        },
+    )

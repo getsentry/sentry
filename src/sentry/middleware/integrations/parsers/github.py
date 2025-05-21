@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import orjson
+from django.conf import settings
 from django.http import HttpResponse
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
@@ -53,6 +54,11 @@ class GithubRequestParser(BaseRequestParser):
             return HttpResponse(status=400)
 
         if event.get("installation") and event.get("action") in {"created", "deleted"}:
+            if settings.SENTRY_CODECOV_URL:  # check if codecov is enabled
+                self.forward_to_codecov(
+                    identifier="installation",
+                    integration_id=None,
+                )
             return self.get_response_from_control_silo()
 
         try:
@@ -66,6 +72,12 @@ class GithubRequestParser(BaseRequestParser):
 
         if len(regions) == 0:
             return self.get_default_missing_integration_response()
+
+        if settings.SENTRY_CODECOV_URL:  # check if codecov is enabled
+            self.forward_to_codecov(
+                identifier=integration.id,
+                integration_id=integration.id,
+            )
 
         return self.get_response_from_webhookpayload(
             regions=regions, identifier=integration.id, integration_id=integration.id
