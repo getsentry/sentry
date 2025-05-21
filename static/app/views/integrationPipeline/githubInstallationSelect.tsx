@@ -7,6 +7,7 @@ import {BaseAvatar} from 'sentry/components/core/avatar/baseAvatar';
 import {Button} from 'sentry/components/core/button';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,10 +19,14 @@ type Installation = {
 };
 
 type GithubInstallationProps = {
+  has_business_plan: boolean;
   installation_info: Installation[];
 };
 
-export function GithubInstallationSelect({installation_info}: GithubInstallationProps) {
+export function GithubInstallationSelect({
+  installation_info,
+  has_business_plan,
+}: GithubInstallationProps) {
   const [installationID, setInstallationID] = useState<SelectKey>(-1);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -82,12 +87,18 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
             'We noticed you already integrated with Github! Do you want to connect an existing Github organization to this Sentry organization or connect a new one?'
           )}
         </p>
-        <StyledSelect
-          onChange={handleSelect}
-          options={selectOptions}
-          value={installationID}
-          triggerLabel={installationID ? undefined : 'Choose Installation'}
-        />
+        <StyledTooltip
+          title={t('Multi-org is only available to business+ plans')}
+          disabled={has_business_plan}
+        >
+          <StyledSelect
+            disabled={!has_business_plan}
+            onChange={handleSelect}
+            options={selectOptions}
+            value={installationID}
+            triggerLabel={installationID ? undefined : 'Choose Installation'}
+          />
+        </StyledTooltip>
 
         <ButtonContainer>
           <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
@@ -104,7 +115,7 @@ const StyledContainer = styled('div')`
   flex-direction: column;
   align-items: flex-start;
   padding: ${space(2)};
-  max-width: 25%;
+  max-width: 33%;
   margin: 0 auto;
   margin-top: 10%;
 `;
@@ -143,4 +154,7 @@ const StyledSelect = styled(CompactSelect)`
   > button {
     width: 100%;
   }
+`;
+const StyledTooltip = styled(Tooltip)`
+  width: 100%;
 `;
