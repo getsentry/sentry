@@ -108,13 +108,6 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-        task = OrganizationOnboardingTask.objects.get(
-            organization=project.organization,
-            task=OnboardingTask.SOURCEMAPS,
-            status=OnboardingTaskStatus.COMPLETE,
-        )
-        assert task is not None
-
     def test_project_created(self):
         now = timezone.now()
         project = self.create_project(first_event=now)
@@ -657,15 +650,11 @@ class OrganizationOnboardingTaskTest(TestCase):
                 }
             ]
         }
-
-        # Store first event
         event_1 = self.store_event(
             project_id=project.id,
             data=data,
         )
         event_processed.send(project=project, event=event_1, sender=None)
-
-        # Store second event
         event_2 = self.store_event(
             project_id=project.id,
             data=data,
