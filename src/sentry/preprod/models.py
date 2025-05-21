@@ -1,7 +1,9 @@
 from typing import Any
 
-from sentry import models
-from sentry.db.models.base import DefaultFieldsModel
+from django.db import models
+
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models.base import DefaultFieldsModel, region_silo_model
 from sentry.db.models.fields.bounded import (
     BoundedBigIntegerField,
     BoundedPositiveBigIntegerField,
@@ -11,6 +13,7 @@ from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 
 
+@region_silo_model
 class PreprodArtifact(DefaultFieldsModel):
     """
     A pre-production artifact provided by the user, presumably from their CI/CD pipeline.
@@ -76,6 +79,8 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.ARTIFACT_PROCESSING_ERROR, "artifact_processing_error"),
             )
 
+    __relocation_scope__ = RelocationScope.Excluded
+
     # Having a FK to both Org/Project is unnecessary
     organization_id = BoundedBigIntegerField(db_index=True)
     project = FlexibleForeignKey("sentry.Project")
@@ -87,7 +92,9 @@ class PreprodArtifact(DefaultFieldsModel):
     # but the user uploaded it on 05/22/2025.
     date_built = models.DateTimeField(null=True)
 
-    build_configuration = models.ForeignKey("sentry.PreprodBuildConfiguration", null=True)
+    build_configuration = FlexibleForeignKey(
+        "sentry.PreprodBuildConfiguration", null=True, on_delete=models.SET_NULL
+    )
 
     state = BoundedPositiveIntegerField(
         default=ArtifactState.UPLOADING, choices=ArtifactState.as_choices()
@@ -101,19 +108,22 @@ class PreprodArtifact(DefaultFieldsModel):
     # E.g. 1.2.300
     build_version = models.CharField(max_length=255, null=True)
     # E.g. 9999
-    build_number = models.IntegerField(null=True)
+    build_number = BoundedBigIntegerField(null=True)
     # Some artifacts are embedded with a UUID, e.g. iOS Mach-O binaries
     build_uuid = models.UUIDField(null=True)
 
-    misc = models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+    misc: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_preprodartifact"
 
 
+@region_silo_model
 class PreprodBuildConfiguration(DefaultFieldsModel):
     """The build configuration used to build the artifact, e.g. "Debug" or "Release"."""
+
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     project = FlexibleForeignKey("sentry.Project")
@@ -125,6 +135,7 @@ class PreprodBuildConfiguration(DefaultFieldsModel):
         unique_together = ("project", "name")
 
 
+@region_silo_model
 class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     """
     Metrics about the size analysis of a pre-production artifact. Each PreprodArtifact can have 0 or many
@@ -184,6 +195,8 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
                 (cls.UNSUPPORTED_ARTIFACT, "unsupported_artifact"),
                 (cls.PROCESSING_ERROR, "processing_error"),
             )
+
+    __relocation_scope__ = RelocationScope.Excluded
 
     preprod_artifact = FlexibleForeignKey("sentry.PreprodArtifact")
     metrics_artifact_type = BoundedPositiveIntegerField(
