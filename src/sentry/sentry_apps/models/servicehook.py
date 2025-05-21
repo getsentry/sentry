@@ -5,6 +5,7 @@ from hashlib import sha256
 from typing import Any, ClassVar, Self
 from uuid import uuid4
 
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 from django.utils import timezone
 
@@ -13,7 +14,6 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
-    ArrayField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -68,7 +68,7 @@ class ServiceHook(Model):
     organization_id = BoundedBigIntegerField(db_index=True, null=True)
     url = models.URLField(max_length=512)
     secret = models.TextField(default=generate_secret)
-    events = ArrayField(of=models.TextField)
+    events = ArrayField(models.TextField(), default=list)
     status = BoundedPositiveIntegerField(
         default=0, choices=ObjectStatus.as_choices(), db_index=True
     )

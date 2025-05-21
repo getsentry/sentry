@@ -21,7 +21,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0906_django_arrayfield_users
+sentry: 0907_sentry_apps_array
 
 social_auth: 0001_squashed_0002_default_auto_field
 
