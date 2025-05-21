@@ -91,14 +91,14 @@ export function DomainSelector({
   const incomingDomains: Array<{label: string; value: string}> = [
     ...uniq(
       domainData?.flatMap(row => {
-        const spanDomain = row[SpanMetricsField.SPAN_DOMAIN];
-        if (useEap) {
-          return spanDomain?.split(',').map(domain => ({
+        const spanDomain: string | string[] = row[SpanMetricsField.SPAN_DOMAIN];
+        if (typeof spanDomain === 'string') {
+          return spanDomain.split(',').map(domain => ({
             label: domain,
             value: `*${domain}*`,
           }));
         }
-        return spanDomain?.map(domain => ({
+        return spanDomain.map(domain => ({
           label: domain,
           value: domain,
         }));
