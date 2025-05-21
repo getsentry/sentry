@@ -26,6 +26,7 @@ import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDele
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type IssueViewsHeaderProps = {
@@ -38,8 +39,13 @@ function PageTitle({title, description}: {title: ReactNode; description?: ReactN
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
+  const hasIssueViews = useHasIssueViews();
 
-  if (groupSearchView && canEditIssueView({groupSearchView, user, organization})) {
+  if (
+    groupSearchView &&
+    hasIssueViews &&
+    canEditIssueView({groupSearchView, user, organization})
+  ) {
     return <EditableIssueViewHeader view={groupSearchView} />;
   }
 
