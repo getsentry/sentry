@@ -110,7 +110,7 @@ jobs:
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
-    name: eslint
+    name: knip
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
