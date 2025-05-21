@@ -15,6 +15,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.models.team import TeamStatus
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -1195,3 +1196,30 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             mock_prepare_organization_report.delay.assert_any_call(
                 timestamp, ONE_DAY * 7, org.id, mock.ANY, dry_run=False
             )
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_user_does_not_see_deleted_team_data(self, message_builder):
+        user = self.create_user(email="test@example.com")
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        self.team.status = TeamStatus.PENDING_DELETION
+        self.team.save()
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+
+        prepare_organization_report(
+            self.timestamp,
+            ONE_DAY * 7,
+            self.organization.id,
+            self._dummy_batch_id,
+            dry_run=False,
+            target_user=user.id,
+        )
+
+        # Verify the report is empty as the user's team is pending deletion
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+            assert len(context["trends"]["legend"]) == 0
