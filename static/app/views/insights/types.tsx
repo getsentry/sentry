@@ -11,6 +11,7 @@ export enum ModuleName {
   APP_START = 'app_start',
   RESOURCE = 'resource',
   AI = 'ai',
+  AGENTS = 'agents',
   MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
