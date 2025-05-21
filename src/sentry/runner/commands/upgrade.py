@@ -35,9 +35,8 @@ def _check_history() -> None:
 
     # Either of these migrations need to have been run for us to proceed.
     migration_heads = (
-        # not a squash, but migration history was "rebased" before this to eliminate
-        # `index_together` for django 5.1 upgrade
-        "0642_index_together_release",
+        "0904_onboarding_task_project_id_idx",  # pre-squash
+        "0001_squashed_0904_onboarding_task_project_id_idx",  # post-squash
     )
 
     # If we haven't run all the migration up to the latest squash abort.

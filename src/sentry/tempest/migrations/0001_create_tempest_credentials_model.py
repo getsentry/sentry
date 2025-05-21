@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        ("sentry", "0802_remove_grouping_auto_update_option"),
+        # ("sentry", "0802_remove_grouping_auto_update_option"),
     ]
 
     operations = [

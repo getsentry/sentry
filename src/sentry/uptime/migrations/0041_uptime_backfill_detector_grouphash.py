@@ -93,7 +93,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("uptime", "0040_uptime_backfill_detector_conditions"),
-        ("workflow_engine", "0055_datasource_define_indexes"),
+        # ("workflow_engine", "0055_datasource_define_indexes"),
     ]
 
     operations = [

@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0571_add_hybrid_cloud_foreign_key_to_slug_reservation"),
+        # ("sentry", "0571_add_hybrid_cloud_foreign_key_to_slug_reservation"),
         ("feedback", "0002_feedback_add_org_id_and_rename_event_id"),
     ]
 

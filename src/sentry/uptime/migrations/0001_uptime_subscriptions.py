@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        ("sentry", "0731_add_insight_project_flags"),
+        # ("sentry", "0731_add_insight_project_flags"),
     ]
 
     operations = [

@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("hybridcloud", "0012_apitoken_increase_token_length"),
-        ("sentry", "0658_projectkey_usecase"),
+        # ("sentry", "0658_projectkey_usecase"),
     ]
 
     operations = [

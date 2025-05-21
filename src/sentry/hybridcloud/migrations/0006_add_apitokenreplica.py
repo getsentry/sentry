@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0577_drop_latest_incident_index"),
+        # ("sentry", "0577_drop_latest_incident_index"),
         ("hybridcloud", "0005_add_missing_org_integration_scope"),
     ]
 

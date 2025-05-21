@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0832_make_grouphash_metadata_date_added_nullable"),
+        # ("sentry", "0832_make_grouphash_metadata_date_added_nullable"),
         ("workflow_engine", "0030_allow_blank_workflow_owner_fks"),
     ]
 

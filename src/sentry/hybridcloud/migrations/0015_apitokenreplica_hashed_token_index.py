@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("hybridcloud", "0014_apitokenreplica_add_hashed_token"),
-        ("sentry", "0675_dashboard_widget_query_rename_priority_sort_to_trends"),
+        # ("sentry", "0675_dashboard_widget_query_rename_priority_sort_to_trends"),
     ]
 
     operations = [

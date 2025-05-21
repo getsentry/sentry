@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0862_monitors_remove_location_db"),
+        # ("sentry", "0862_monitors_remove_location_db"),
         ("workflow_engine", "0042_workflow_fire_history_add_fired_actions_bool"),
     ]
 

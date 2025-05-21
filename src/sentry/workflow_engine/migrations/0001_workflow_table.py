@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        ("sentry", "0758_remove_spanattributeextraction_models"),
+        # ("sentry", "0758_remove_spanattributeextraction_models"),
     ]
 
     operations = [
