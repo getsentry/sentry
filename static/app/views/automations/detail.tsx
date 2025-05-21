@@ -38,7 +38,7 @@ function HistoryAndConnectedMonitors() {
 
 function Details() {
   return (
-    <div>
+    <Flex column gap={space(3)}>
       <Flex column gap={space(1)}>
         <SectionHeading>{t('Last Triggered')}</SectionHeading>
         <span>
@@ -78,7 +78,7 @@ function Details() {
           <KeyValueTableRow keyName={t('Team')} value="Platform" />
         </KeyValueTable>
       </Flex>
-    </div>
+    </Flex>
   );
 }
 

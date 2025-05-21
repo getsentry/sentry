@@ -32,20 +32,23 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     ),
 )
 def find_channel_id_for_rule(
-    project: Project,
+    project: Project | None,
     actions: Sequence[dict[str, Any]],
     uuid: str,
     rule_id: int | None = None,
     user_id: int | None = None,
+    project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
     redis_rule_status = RedisRuleStatus(uuid)
 
-    try:
-        project = Project.objects.get(id=project.id)
-    except Project.DoesNotExist:
-        redis_rule_status.set_value("failed")
-        return
+    if not project and project_id:
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            redis_rule_status.set_value("failed")
+            return
+    assert project, "find_channel_id_for_rule requires a project or project_id"
 
     organization = project.organization
     integration_id: int | None = None

@@ -14,6 +14,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
+import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
@@ -252,23 +253,25 @@ function App({children, params}: Props) {
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
-      <LastKnownRouteContextProvider>
-        <RouteAnalyticsContextProvider>
-          {renderOrganizationContextProvider(
-            <AsyncSDKIntegrationContextProvider>
-              <GlobalFeedbackForm>
-                <MainContainer tabIndex={-1} ref={mainContainerRef}>
-                  <DemoToursProvider>
-                    <GlobalModal onClose={handleModalClose} />
-                    <Indicators className="indicators-container" />
-                    <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                  </DemoToursProvider>
-                </MainContainer>
-              </GlobalFeedbackForm>
-            </AsyncSDKIntegrationContextProvider>
-          )}
-        </RouteAnalyticsContextProvider>
-      </LastKnownRouteContextProvider>
+      <UserTimezoneProvider>
+        <LastKnownRouteContextProvider>
+          <RouteAnalyticsContextProvider>
+            {renderOrganizationContextProvider(
+              <AsyncSDKIntegrationContextProvider>
+                <GlobalFeedbackForm>
+                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                    <DemoToursProvider>
+                      <GlobalModal onClose={handleModalClose} />
+                      <Indicators className="indicators-container" />
+                      <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                    </DemoToursProvider>
+                  </MainContainer>
+                </GlobalFeedbackForm>
+              </AsyncSDKIntegrationContextProvider>
+            )}
+          </RouteAnalyticsContextProvider>
+        </LastKnownRouteContextProvider>
+      </UserTimezoneProvider>
     </Profiler>
   );
 }

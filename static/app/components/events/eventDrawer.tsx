@@ -67,6 +67,7 @@ export const EventNavigator = styled('div')`
 export const EventStickyControls = styled('div')`
   display: flex;
   justify-content: space-between;
+  gap: ${space(1)};
   position: sticky;
   top: -${space(2)};
   margin-block: -${space(2)};

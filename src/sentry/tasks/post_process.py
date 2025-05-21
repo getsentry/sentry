@@ -1564,7 +1564,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     group = event.group
 
     if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
-        "projects:trigger-issue-summary-on-alerts", group.project
+        "organizations:trigger-autofix-on-issue-summary", group.organization
     ):
         return
 

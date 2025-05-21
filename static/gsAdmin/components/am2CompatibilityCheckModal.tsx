@@ -305,7 +305,7 @@ function SDKPanel({sdks}: {sdks: AM2CompatibilityReport['sdks']}) {
       <StyledExternalLink href={sdks.url}>View in Discover</StyledExternalLink>
       <TabPanelTable headers={['SDK', 'Version', 'Required version']}>
         {sdks.projects.map(project => (
-          <Fragment key={`project-${project.project}`}>
+          <Fragment key={project.project}>
             <GroupHeader>Project {project.project}</GroupHeader>
             {project.unsupported.map(sdk => {
               const foundSdkVersions = sdk.sdk_versions
@@ -319,7 +319,7 @@ function SDKPanel({sdks}: {sdks: AM2CompatibilityReport['sdks']}) {
                   : '';
 
               return (
-                <Fragment key={`sdk-${project}`}>
+                <Fragment key={sdk.sdk_name}>
                   <div>{sdk.sdk_name}</div>
                   <div>
                     {foundSdkVersions[0]} {foundSdkVersionsSuffix}

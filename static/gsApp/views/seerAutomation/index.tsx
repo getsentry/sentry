@@ -20,7 +20,12 @@ function SeerAutomationRoot() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
-      <SettingsPageHeader title={t('Seer Automation')} />
+      <SettingsPageHeader
+        title={t('Seer Automation')}
+        subtitle={t(
+          'Seer can automatically find a root cause and solution for incoming issues.'
+        )}
+      />
       <ProjectPermissionAlert />
 
       <NoProjectMessage organization={organization}>

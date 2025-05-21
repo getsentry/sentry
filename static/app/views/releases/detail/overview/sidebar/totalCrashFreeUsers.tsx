@@ -89,7 +89,7 @@ function TotalCrashFreeUsers({location, organization, projectSlug, version}: Pro
       <SidebarSection.Content>
         <Timeline>
           {timeline.map(row => (
-            <Row key={row.date.toString()}>
+            <Row key={row.date.toISOString()}>
               <InnerRow>
                 <Text bold>{row.date.format('MMMM D')}</Text>
                 <Text bold right>

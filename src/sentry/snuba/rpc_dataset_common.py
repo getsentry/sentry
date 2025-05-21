@@ -280,7 +280,7 @@ def run_table_query(
     rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
     sentry_sdk.set_tag("query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier)
 
-    return process_table_response(rpc_response, table_request)
+    return process_table_response(rpc_response, table_request, debug=debug)
 
 
 def process_table_response(

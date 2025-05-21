@@ -42,6 +42,7 @@ const AM1_AVAILABLE_RESERVED_BUDGET_TYPES = {
     productName: 'seer',
     canProductTrial: true,
     apiName: ReservedBudgetCategoryType.SEER,
+    billingFlag: 'seer-billing',
   },
 };
 

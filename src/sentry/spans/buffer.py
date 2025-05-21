@@ -64,7 +64,7 @@ Glossary for types of keys:
 from __future__ import annotations
 
 import itertools
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
 import rapidjson
@@ -72,6 +72,7 @@ from django.conf import settings
 from django.utils.functional import cached_property
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
+from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.utils import metrics, redis
 
 # SegmentKey is an internal identifier used by the redis buffer that is also
@@ -306,6 +307,27 @@ class SpansBuffer:
 
         return trees
 
+    def record_stored_segments(self):
+        with metrics.timer("spans.buffer.get_stored_segments"):
+            with self.client.pipeline(transaction=False) as p:
+                for shard in self.assigned_shards:
+                    key = self._get_queue_key(shard)
+                    p.zcard(key)
+
+                result = p.execute()
+
+        assert len(result) == len(self.assigned_shards)
+
+        for shard_i, queue_size in zip(self.assigned_shards, result):
+            metrics.timing(
+                "spans.buffer.flush_segments.queue_size",
+                queue_size,
+                tags={"shard_i": shard_i},
+            )
+
+    def get_memory_info(self) -> Generator[ServiceMemory]:
+        return iter_cluster_memory_usage(self.client)
+
     def flush_segments(self, now: int, max_segments: int = 0) -> dict[SegmentKey, FlushedSegment]:
         cutoff = now
 
@@ -318,13 +340,11 @@ class SpansBuffer:
                     p.zrangebyscore(
                         key, 0, cutoff, start=0 if max_segments else None, num=max_segments or None
                     )
-                    p.zcard(key)
                     queue_keys.append(key)
 
-                result = iter(p.execute())
+                result = p.execute()
 
         segment_keys: list[tuple[QueueKey, SegmentKey]] = []
-        queue_sizes = []
 
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
             with self.client.pipeline(transaction=False) as p:
@@ -335,17 +355,7 @@ class SpansBuffer:
                         segment_keys.append((queue_key, segment_key))
                         p.smembers(segment_key)
 
-                    # ZCARD output
-                    queue_sizes.append(next(result))
-
                 segments = p.execute()
-
-        for shard_i, queue_size in zip(self.assigned_shards, queue_sizes):
-            metrics.timing(
-                "spans.buffer.flush_segments.queue_size",
-                queue_size,
-                tags={"shard_i": shard_i},
-            )
 
         return_segments = {}
 

@@ -2,9 +2,9 @@ import moment from 'moment-timezone';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 
 interface AutomationHistoryData {
   dateSent: Date;
@@ -37,10 +37,7 @@ const getColumns = (timezone: string) =>
   });
 
 export default function AutomationHistoryList({history}: Props) {
-  const {
-    options: {timezone},
-  } = ConfigStore.get('user');
-
+  const timezone = useTimezone();
   const columns = getColumns(timezone);
 
   return <SimpleTable columns={columns} data={history} />;

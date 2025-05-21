@@ -135,7 +135,7 @@ export function YAxisSelector({
   return (
     <FieldGroup inline={false} flexibleControlStateSize error={fieldError} stacked>
       {aggregates.map((fieldValue, i) => (
-        <QueryFieldWrapper key={`${fieldValue}:${i}`}>
+        <QueryFieldWrapper key={`${i}`}>
           {aggregates.length > 1 && displayType === DisplayType.BIG_NUMBER && (
             <RadioLineItem index={i} role="radio" aria-label="aggregate-selector">
               <Radio

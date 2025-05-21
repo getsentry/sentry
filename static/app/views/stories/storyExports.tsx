@@ -23,19 +23,21 @@ export function StoryExports(props: {story: StoryDescriptor}) {
           <DefaultExport />
         </Story>
       ) : null}
-      {Object.entries(namedExports).map(([name, MaybeComponent]) => {
-        if (typeof MaybeComponent === 'function') {
-          return (
-            <Story key={name}>
-              <MaybeComponent />
-            </Story>
-          );
-        }
+      {props.story.filename.endsWith('.mdx')
+        ? null
+        : Object.entries(namedExports).map(([name, MaybeComponent]) => {
+            if (typeof MaybeComponent === 'function') {
+              return (
+                <Story key={name}>
+                  <MaybeComponent />
+                </Story>
+              );
+            }
 
-        throw new Error(
-          `Story exported an unsupported key ${name} with value: ${typeof MaybeComponent}`
-        );
-      })}
+            throw new Error(
+              `Story exported an unsupported key ${name} with value: ${typeof MaybeComponent}`
+            );
+          })}
     </Fragment>
   );
 }

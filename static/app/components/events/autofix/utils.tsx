@@ -183,3 +183,7 @@ export function getAutofixRunExists(group: Group) {
 
   return autofixRanWithinTtl;
 }
+
+export function isIssueQuickFixable(group: Group) {
+  return group.seerFixabilityScore && group.seerFixabilityScore > 0.72;
+}

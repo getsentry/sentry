@@ -40,10 +40,7 @@ class BulkCreateGroupingRecordsResponse(TypedDict):
     reason: NotRequired[str | None]
 
 
-seer_grouping_connection_pool = connection_from_url(
-    settings.SEER_GROUPING_BACKFILL_URL,
-    timeout=settings.SEER_GROUPING_TIMEOUT,
-)
+seer_grouping_connection_pool = connection_from_url(settings.SEER_GROUPING_BACKFILL_URL)
 
 
 def post_bulk_grouping_records(

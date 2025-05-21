@@ -32,8 +32,8 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
 
 @pytest.mark.snuba_ci
-class ProjectDetectorDetailsBaseTest(APITestCase):
-    endpoint = "sentry-api-0-project-detector-details"
+class OrganizationDetectorDetailsBaseTest(APITestCase):
+    endpoint = "sentry-api-0-organization-detector-details"
 
     def setUp(self):
         super().setUp()
@@ -83,19 +83,17 @@ class ProjectDetectorDetailsBaseTest(APITestCase):
 
 
 @region_silo_test
-class ProjectDetectorDetailsGetTest(ProjectDetectorDetailsBaseTest):
+class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
     def test_simple(self):
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.detector.id
-        )
+        response = self.get_success_response(self.organization.slug, self.detector.id)
         assert response.data == serialize(self.detector)
 
     def test_does_not_exist(self):
-        self.get_error_response(self.organization.slug, self.project.slug, 3, status_code=404)
+        self.get_error_response(self.organization.slug, 3, status_code=404)
 
 
 @region_silo_test
-class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
+class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     method = "PUT"
 
     def setUp(self):
@@ -157,7 +155,6 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
-                self.project.slug,
                 self.detector.id,
                 **self.valid_data,
                 status_code=200,
@@ -196,7 +193,6 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
-                self.project.slug,
                 self.detector.id,
                 **data,
                 status_code=200,
@@ -223,7 +219,6 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
         with self.tasks():
             self.get_error_response(
                 self.organization.slug,
-                self.project.slug,
                 self.detector.id,
                 **data,
                 status_code=400,
@@ -231,12 +226,12 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
 
 
 @region_silo_test
-class ProjectDetectorIndexDeleteTest(ProjectDetectorDetailsBaseTest):
+class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
     method = "DELETE"
 
     def test_simple(self):
         with outbox_runner():
-            self.get_success_response(self.organization.slug, self.project.slug, self.detector.id)
+            self.get_success_response(self.organization.slug, self.detector.id)
 
         assert RegionScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.detector.id
@@ -260,9 +255,7 @@ class ProjectDetectorIndexDeleteTest(ProjectDetectorDetailsBaseTest):
             workflow_condition_group=data_condition_group,
         )
         with outbox_runner():
-            self.get_error_response(
-                self.organization.slug, self.project.slug, error_detector.id, status_code=403
-            )
+            self.get_error_response(self.organization.slug, error_detector.id, status_code=403)
 
         assert not RegionScheduledDeletion.objects.filter(
             model_name="Detector", object_id=error_detector.id

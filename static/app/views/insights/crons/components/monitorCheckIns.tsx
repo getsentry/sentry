@@ -11,6 +11,7 @@ import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import ShortId from 'sentry/components/shortId';
 import {
   StatusIndicator,
@@ -22,7 +23,6 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/types';
@@ -52,7 +52,6 @@ const checkStatusToIndicatorStatus: Record<
 const PER_PAGE = 10;
 
 export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
-  const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -81,15 +80,18 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
 
   const headers = [
     t('Status'),
-    t('Started'),
+    <RecordedHeader key="recorded-header">
+      {t('Recorded')}
+      <QuestionTooltip
+        size="sm"
+        title={t('The time when Sentry received the first check-in for this job.')}
+      />
+    </RecordedHeader>,
     t('Duration'),
     t('Issues'),
     ...(hasMultiEnv ? [t('Environment')] : []),
     t('Expected At'),
   ];
-
-  const customTimezone =
-    monitor.config.timezone && monitor.config.timezone !== user.options.timezone;
 
   return (
     <Fragment>
@@ -120,19 +122,7 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                   emptyCell
                 ) : (
                   <div>
-                    <Tooltip
-                      disabled={!customTimezone}
-                      title={
-                        <DateTime
-                          date={checkIn.dateAdded}
-                          forcedTimezone={monitor.config.timezone ?? 'UTC'}
-                          timeZone
-                          seconds
-                        />
-                      }
-                    >
-                      <DateTime date={checkIn.dateAdded} timeZone seconds />
-                    </Tooltip>
+                    <DateTime date={checkIn.dateAdded} timeZone seconds />
                   </div>
                 )}
                 {defined(checkIn.duration) ? (
@@ -189,19 +179,7 @@ export function MonitorCheckIns({monitor, monitorEnvs}: Props) {
                 {hasMultiEnv ? <div>{checkIn.environment}</div> : null}
                 <div>
                   {checkIn.expectedTime ? (
-                    <Tooltip
-                      disabled={!customTimezone}
-                      title={
-                        <DateTime
-                          date={checkIn.expectedTime}
-                          forcedTimezone={monitor.config.timezone ?? 'UTC'}
-                          timeZone
-                          seconds
-                        />
-                      }
-                    >
-                      <Timestamp date={checkIn.expectedTime} timeZone seconds />
-                    </Tooltip>
+                    <Timestamp date={checkIn.expectedTime} timeZone seconds />
                   ) : (
                     emptyCell
                   )}
@@ -248,6 +226,12 @@ function TimeoutLateBy({monitor, duration}: TimeoutLateByProps) {
     </Tooltip>
   );
 }
+
+const RecordedHeader = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
 
 const Status = styled('div')`
   line-height: 1.1;

@@ -498,30 +498,40 @@ def fire_rules(
         timedelta(seconds=40),
         extra={"project_id": project_id},
     ) as tracker:
+        groups_to_fire = set().union(*rules_to_fire.values())
+        group_to_groupevent = get_group_to_groupevent(
+            log_config, parsed_rulegroup_to_event_data, project_id, groups_to_fire
+        )
+        if log_config.num_events_issue_debugging or log_config.workflow_engine_process_workflows:
+            serialized_groups = {
+                group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
+            }
+            logger.info(
+                "delayed_processing.group_to_groupevent",
+                extra={
+                    "group_to_groupevent": serialized_groups,
+                    "project_id": project_id,
+                },
+            )
+        group_id_to_group = {group.id: group for group in group_to_groupevent.keys()}
         for rule, group_ids in rules_to_fire.items():
             with tracker.track(f"rule_{rule.id}"):
                 frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
                 freq_offset = now - timedelta(minutes=frequency)
-                group_to_groupevent = get_group_to_groupevent(
-                    log_config, parsed_rulegroup_to_event_data, project.id, group_ids
-                )
-                if (
-                    log_config.num_events_issue_debugging
-                    or log_config.workflow_engine_process_workflows
-                ):
-                    serialized_groups = {
-                        group.id: group_event.event_id
-                        for group, group_event in group_to_groupevent.items()
-                    }
-                    logger.info(
-                        "delayed_processing.group_to_groupevent",
-                        extra={
-                            "group_to_groupevent": serialized_groups,
-                            "project_id": project_id,
-                            "rule_id": rule.id,
-                        },
-                    )
-                for group, groupevent in group_to_groupevent.items():
+                for group_id in group_ids:
+                    group = group_id_to_group.get(group_id)
+                    if not group:
+                        # we need to fire the rule for this group, but we don't have the group
+                        logger.error(
+                            "delayed_processing.missing_group_to_fire",
+                            extra={
+                                "rule_id": rule.id,
+                                "group_id": group_id,
+                                "project_id": project_id,
+                            },
+                        )
+                        continue
+
                     rule_statuses = bulk_get_rule_status(alert_rules, group, project)
                     status = rule_statuses[rule.id]
                     if status.last_active and status.last_active > freq_offset:

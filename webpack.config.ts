@@ -244,8 +244,17 @@ const appConfig: webpack.Configuration = {
       {
         test: /\.[tj]sx?$/,
         include: [staticPrefix],
-        exclude: /(vendor|node_modules|dist)/,
+        exclude: [/(vendor|node_modules|dist)/],
         use: babelLoaderConfig,
+      },
+      {
+        test: /\.mdx?$/,
+        use: [
+          babelLoaderConfig,
+          {
+            loader: '@mdx-js/loader',
+          },
+        ],
       },
       {
         test: /\.po$/,

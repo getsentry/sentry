@@ -244,7 +244,7 @@ function parseComponentTemplate(template: string): ParsedTemplate {
 function renderTemplate(
   template: ParsedTemplate,
   components: ComponentMap
-): React.ReactNode {
+): React.JSX.Element {
   let idx = 0;
 
   function renderGroup(name: string, id: string) {
@@ -304,6 +304,7 @@ function mark<T extends React.ReactNode>(node: T): T {
     _store: {},
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   proxy.toString = () => '✅' + node + '✅';
   // TODO(TS): Should proxy be created using `React.createElement`?
   return proxy as any as T;
@@ -406,7 +407,7 @@ function gettextComponentTemplate(
   components: ComponentMap
 ): React.JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components) as React.JSX.Element);
+  return mark(renderTemplate(parsedTemplate, components));
 }
 
 /**

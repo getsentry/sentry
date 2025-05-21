@@ -64,7 +64,7 @@ export type Project = {
   team: Team;
   teams: Team[];
   verifySSL: boolean;
-  autofixAutomationTuning?: 'off' | 'low' | 'medium' | 'high';
+  autofixAutomationTuning?: 'off' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   eventProcessing?: {

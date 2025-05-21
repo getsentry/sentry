@@ -17,6 +17,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import AMCheckout from 'getsentry/views/amCheckout/';
+import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
 import ReviewAndConfirm from './reviewAndConfirm';
@@ -264,6 +265,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     const updatedData = {
       ...formData,
       reserved: {...formData.reserved, errors: reservedErrors},
+      selectedProducts: {
+        [SelectableProduct.SEER]: {
+          enabled: true,
+        },
+      },
     };
     render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
       deprecatedRouterMocks: true,
@@ -287,6 +293,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       )
     );
 
+    // TODO(seer): Add seer analytics
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.upgrade', {
       organization,
       subscription,

@@ -212,9 +212,12 @@ function EventNavigationLink({
         }
 
         setIsCollapsed(false);
-        document
-          .getElementById(config.key)
-          ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+        // Animation frame avoids conflicting with react-router ScrollRestoration
+        requestAnimationFrame(() => {
+          document
+            .getElementById(config.key)
+            ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+        });
       }}
       borderless
       size="xs"

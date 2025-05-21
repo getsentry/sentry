@@ -40,7 +40,7 @@ function DetectorListTable({detectors}: DetectorListTableProps) {
           <HeaderDivider />
           <Heading>{t('Type')}</Heading>
         </Flex>
-        <Flex className="last-issue">
+        <Flex className="issue">
           <HeaderDivider />
           <Heading>{t('Last Issue')}</Heading>
         </Flex>
@@ -86,9 +86,10 @@ const StyledPanelHeader = styled(PanelHeader)`
   min-height: 40px;
   align-items: center;
   display: grid;
+  text-transform: none;
 
   .type,
-  .owner,
+  .creator,
   .last-issue,
   .connected-automations {
     display: none;
@@ -113,7 +114,7 @@ const StyledPanelHeader = styled(PanelHeader)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
-    .owner {
+    .creator {
       display: flex;
     }
   }

@@ -43,6 +43,7 @@ export const typeAwareLintRules = {
   rules: {
     '@typescript-eslint/await-thenable': 'error',
     '@typescript-eslint/no-array-delete': 'error',
+    '@typescript-eslint/no-base-to-string': 'error',
     '@typescript-eslint/no-for-in-array': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
     '@typescript-eslint/prefer-optional-chain': 'error',
