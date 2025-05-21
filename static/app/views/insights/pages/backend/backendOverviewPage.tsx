@@ -38,7 +38,6 @@ import {
 import {EAPExperimentButton} from 'sentry/views/insights/pages/backend/eapExperimentButton';
 import {OldBackendOverviewPage} from 'sentry/views/insights/pages/backend/oldBackendOverviewPage';
 import {
-  BACKEND_ISSUES_WIDGET_DEFAULT_SEARCH,
   BACKEND_LANDING_TITLE,
   DEFAULT_SORT,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -196,11 +195,6 @@ function EAPBackendOverviewPage() {
     project => project.id
   );
 
-  const issuesWidgetSearch = new MutableSearch([
-    ...BACKEND_ISSUES_WIDGET_DEFAULT_SEARCH,
-    searchBarQuery,
-  ]);
-
   return (
     <Feature
       features="performance-view"
@@ -253,7 +247,7 @@ function EAPBackendOverviewPage() {
                   </StackedWidgetWrapper>
                 </ModuleLayout.Third>
                 <ModuleLayout.TwoThirds>
-                  <IssuesWidget search={issuesWidgetSearch} />
+                  <IssuesWidget />
                 </ModuleLayout.TwoThirds>
                 <ModuleLayout.Full>
                   <TripleRowWidgetWrapper>

@@ -25,7 +25,6 @@ import {space} from 'sentry/styles/space';
 import type {EventsStats} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -35,6 +34,7 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TreeResponseItem {
   'avg(span.duration)': number;
@@ -162,14 +162,14 @@ function filterTree(
 }
 
 export default function SSRTreeWidget() {
-  const location = useLocation();
   const organization = useOrganization();
+  const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans',
   });
   const {openDrawer} = useDrawer();
 
-  const fullQuery = `span.op:function.nextjs ${location.query.query ?? ''}`;
+  const fullQuery = `span.op:function.nextjs ${query}`;
 
   const treeRequest = useApiQuery<TreeResponse>(
     [
