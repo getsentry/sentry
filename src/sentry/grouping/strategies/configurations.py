@@ -11,15 +11,19 @@ CONFIGURATIONS: dict[str, type[StrategyConfiguration]] = {}
 # base is defined.
 BASE_STRATEGY = create_strategy_configuration(
     None,
+    # Strategy priority is enforced programaticaly via the `score` argument to the `@strategy`
+    # decorator (rather than by the order they're listed here), but they are nonetheless listed here
+    # from highest to lowest priority for documentation purposes. The first strategy to produce a
+    # result will become the winner.
     strategies=[
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "csp:v1",
+        "chained-exception:v1",  # This handles single exceptions, too
         "threads:v1",
         "stacktrace:v1",
-        "chained-exception:v1",
         "template:v1",
+        "csp:v1",
+        "hpkp:v1",
+        "expect-staple:v1",
+        "expect-ct:v1",
         "message:v1",
     ],
     delegates=["frame:v1", "stacktrace:v1", "single-exception:v1"],
