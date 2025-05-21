@@ -359,12 +359,14 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
         assert self.find_problems(event) == []
 
     def test_detects_n_plus_one_with_mongoose(self):
-        # This event has 3 problems, but ensure none contain mongoose client spans
+        """
+        Without the check for "{" in the description, this event would have 2 problems, due to
+        the mongoose.findOne spans.
+        """
         event = get_event("n-plus-one-db/n-plus-one-db-mongoose")
         problems = self.find_problems(event)
-        assert len(problems) == 3
-        for problem in problems:
-            assert "mongoose" not in problem.desc
+        assert len(problems) == 1
+        assert "mongoose" not in problems[0].desc
 
 
 @pytest.mark.django_db
