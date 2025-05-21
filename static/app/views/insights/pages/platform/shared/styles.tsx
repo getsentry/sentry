@@ -86,7 +86,8 @@ const StyledGrid = styled('div')`
     grid-template-areas:
       'pos1 pos3 pos3'
       'pos2 pos3 pos3'
-      'pos4 pos5 pos6';
+      'pos4 pos5 pos0'
+      'pos6 pos6 pos6';
   }
 `;
 

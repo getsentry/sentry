@@ -24,6 +24,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventsStats} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -31,16 +33,27 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TreeResponseItem {
+  // Required fields (sorted alphabetically)
   'avg(span.duration)': number;
+  'count()': number;
   'function.nextjs.component_type': string;
   'function.nextjs.path': string[];
   'span.description': string;
+  // Optional fields (sorted alphabetically)
+  'failure_rate()'?: number;
+  'p95(span.duration)'?: number;
+  'performance_score(measurements.score.total)'?: number;
+  'project.id'?: number;
+  'span.op'?: string;
+  'sum(span.duration)'?: number;
+  transaction?: string;
 }
 
 interface TreeResponse extends Omit<EventsStats, 'data'> {
@@ -53,13 +66,28 @@ interface TreeContainer {
   children: TreeNode[];
   name: string;
   type: 'folder' | 'file';
+  // Aggregated metrics
+  'avg(span.duration)'?: number;
+  'count()'?: number;
+  'failure_rate()'?: number;
+  hasPageloadDescendant?: boolean;
+  'p95(span.duration)'?: number;
+  'performance_score(measurements.score.total)'?: number;
+  'sum(span.duration)'?: number;
 }
 
 interface TreeLeaf {
   'avg(span.duration)': number;
+  'count()': number;
   name: string;
   'span.description': string;
-  type: 'component';
+  type: 'component' | 'pageload';
+  'failure_rate()'?: number;
+  'p95(span.duration)'?: number;
+  'performance_score(measurements.score.total)'?: number;
+  'project.id'?: number;
+  'sum(span.duration)'?: number;
+  transaction?: string;
 }
 
 const WIDGET_TITLE = t('Server Side Rendering');
@@ -87,7 +115,10 @@ export function getFileAndFunctionName(componentType: string) {
   return {file: null, functionName: componentType};
 }
 
-export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
+export function mapResponseToTree(
+  treeResponse: TreeResponseItem[],
+  pageloadResponse?: TreeResponseItem[]
+): TreeContainer {
   const root: TreeContainer = {
     children: [],
     name: 'root',
@@ -95,7 +126,7 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
   };
 
   // Each item of the response is a component in the tree with a path
-  for (const item of response) {
+  for (const item of treeResponse) {
     const path = item['function.nextjs.path'];
     let currentFolder: TreeContainer = root;
 
@@ -129,11 +160,271 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
       name: functionName,
       type: 'component',
       'avg(span.duration)': item['avg(span.duration)'],
+      'count()': item['count()'],
+      'sum(span.duration)': item['avg(span.duration)'] * item['count()'], // Calculate sum
       'span.description': item['span.description'],
     });
   }
 
+  if (pageloadResponse) {
+    for (const item of pageloadResponse) {
+      const transaction = item.transaction;
+      if (!transaction) {
+        continue;
+      }
+
+      const pathSegments = transaction
+        .replace(/^\/|\/$/g, '') // Remove leading/trailing slashes
+        .split('/');
+
+      let currentFolder: TreeContainer | undefined = root;
+      for (const segment of pathSegments) {
+        const segmentName = segment.toLowerCase();
+        let foundChild: TreeNode | undefined = undefined;
+
+        // 1. Attempt exact match first
+        if (currentFolder?.children) {
+          for (const c of currentFolder.children) {
+            const decodedNodeName = decodeURIComponent(c.name);
+            const normalizedNodeName = decodedNodeName
+              .replace(/\.(js|jsx|ts|tsx)$/, '')
+              .toLowerCase();
+            if (
+              normalizedNodeName === segmentName &&
+              (c.type === 'file' || c.type === 'folder') // Ensure it's a container type
+            ) {
+              foundChild = c;
+              break;
+            }
+          }
+        }
+
+        // 2. If no exact match, attempt wildcard match
+        if (!foundChild && currentFolder?.children) {
+          for (const c of currentFolder.children) {
+            const decodedNodeName = decodeURIComponent(c.name);
+            const normalizedNodeName = decodedNodeName
+              .replace(/\.(js|jsx|ts|tsx)$/, '')
+              .toLowerCase();
+            if (
+              normalizedNodeName.startsWith('[') &&
+              normalizedNodeName.endsWith(']') &&
+              (c.type === 'file' || c.type === 'folder') // Ensure it's a container type
+            ) {
+              foundChild = c;
+              break;
+            }
+          }
+        }
+
+        if (foundChild && (foundChild.type === 'file' || foundChild.type === 'folder')) {
+          // We need to assign to currentFolder, which is TreeContainer | undefined.
+          // foundChild is TreeNode. A TreeNode can be TreeLeaf or TreeContainer.
+          // If foundChild is a TreeLeaf, this assignment is problematic for the next iteration's currentFolder.children access.
+          // However, our (c.type === 'file' || c.type === 'folder') check above should ensure foundChild is a TreeContainer.
+          currentFolder = foundChild;
+        } else {
+          currentFolder = undefined; // Path broken or found child is not a suitable container
+          break;
+        }
+      }
+
+      let targetFileNode: TreeContainer | undefined = undefined;
+      if (currentFolder) {
+        if (currentFolder.type === 'file') {
+          targetFileNode = currentFolder;
+        } else if (currentFolder.type === 'folder') {
+          const pageFile = currentFolder.children.find(c => {
+            if (c.type !== 'file') return false;
+            const decodedNodeName = decodeURIComponent(c.name);
+            const normalizedChildName = decodedNodeName
+              .replace(/\.(js|jsx|ts|tsx)$/, '')
+              .toLowerCase();
+            return normalizedChildName === 'page';
+          });
+          if (pageFile && pageFile.type === 'file') {
+            targetFileNode = pageFile;
+          }
+        }
+      }
+
+      if (targetFileNode) {
+        if (!targetFileNode.children) {
+          targetFileNode.children = [];
+        }
+        const transactionName = item.transaction!; // We know transaction is defined
+
+        const existingLeaf = targetFileNode.children.find(
+          (child): child is TreeLeaf =>
+            child.type === 'pageload' && child.transaction === transactionName
+        );
+
+        if (existingLeaf) {
+          // Aggregate data
+          const newItemCount = item['count()'];
+          const newItemSumDuration = item['sum(span.duration)'];
+
+          const originalExistingLeafCount = existingLeaf['count()'];
+
+          // Sum counts
+          existingLeaf['count()'] = originalExistingLeafCount + newItemCount;
+
+          // Sum durations
+          existingLeaf['sum(span.duration)'] =
+            (existingLeaf['sum(span.duration)'] ?? 0) + (newItemSumDuration ?? 0);
+
+          // Recalculate average duration
+          if (existingLeaf['count()'] > 0) {
+            existingLeaf['avg(span.duration)'] =
+              (existingLeaf['sum(span.duration)'] ?? 0) / existingLeaf['count()'];
+          } else {
+            existingLeaf['avg(span.duration)'] = 0;
+          }
+
+          // Weighted average for failure rate
+          const newItemFR = item['failure_rate()'];
+          if (typeof newItemFR === 'number' && newItemCount >= 0) {
+            const oldAggregatedFR = existingLeaf['failure_rate()'];
+            if (typeof oldAggregatedFR === 'number' && originalExistingLeafCount > 0) {
+              const totalCombinedCount = originalExistingLeafCount + newItemCount;
+              if (totalCombinedCount > 0) {
+                existingLeaf['failure_rate()'] =
+                  (oldAggregatedFR * originalExistingLeafCount +
+                    newItemFR * newItemCount) /
+                  totalCombinedCount;
+              } else {
+                existingLeaf['failure_rate()'] = newItemFR;
+              }
+            } else {
+              existingLeaf['failure_rate()'] = newItemFR;
+            }
+          }
+
+          // For P95 and Perf Score, overwrite if new item provides value
+          if (item['p95(span.duration)'] !== undefined) {
+            existingLeaf['p95(span.duration)'] = item['p95(span.duration)'];
+          }
+          if (item['performance_score(measurements.score.total)'] !== undefined) {
+            existingLeaf['performance_score(measurements.score.total)'] =
+              item['performance_score(measurements.score.total)'];
+          }
+          if (item['project.id'] !== undefined) {
+            existingLeaf['project.id'] = item['project.id'];
+          }
+        } else {
+          targetFileNode.children.push({
+            name: transactionName,
+            type: 'pageload',
+            'avg(span.duration)': item['avg(span.duration)'],
+            'count()': item['count()'],
+            'span.description': transactionName,
+            transaction: item.transaction,
+            'failure_rate()': item['failure_rate()'],
+            'p95(span.duration)': item['p95(span.duration)'],
+            'performance_score(measurements.score.total)':
+              item['performance_score(measurements.score.total)'],
+            'project.id': item['project.id'],
+            'sum(span.duration)': item['sum(span.duration)'],
+          });
+        }
+      }
+    }
+  }
+
   return root;
+}
+
+// Helper function to recursively aggregate metrics up the tree
+function aggregateTreeMetricsRecursive(node: TreeNode): {
+  count: number;
+  foundPageload: boolean;
+  sumDuration: number;
+  weightedFailureRateSum: number;
+} {
+  if (node.type === 'component' || node.type === 'pageload') {
+    const leaf = node; // User removed type assertion
+    const count = leaf['count()'] ?? 0;
+    let sumDuration = leaf['sum(span.duration)'];
+
+    // Ensure sumDuration is calculated for components if not already present
+    if (
+      typeof sumDuration !== 'number' &&
+      leaf.type === 'component' &&
+      typeof leaf['avg(span.duration)'] === 'number' &&
+      count > 0
+    ) {
+      sumDuration = leaf['avg(span.duration)'] * count;
+      // Assign back to the leaf node if it was missing for components
+      (leaf as any)['sum(span.duration)'] = sumDuration;
+    }
+    sumDuration = sumDuration ?? 0;
+
+    const failureRate = leaf['failure_rate()'];
+    const weightedFR =
+      typeof failureRate === 'number' && count > 0 ? failureRate * count : 0;
+    return {
+      count,
+      sumDuration,
+      weightedFailureRateSum: weightedFR,
+      foundPageload: leaf.type === 'pageload', // Check if this leaf is a pageload
+    };
+  }
+
+  // It's a TreeContainer
+  const container = node as TreeContainer;
+  let currentAggCount = 0;
+  let currentAggSumDuration = 0;
+  let currentAggWeightedFailureRateSum = 0;
+  let subtreeHasPageload = false; // Track if any child path has a pageload
+
+  if (container.children) {
+    for (const child of container.children) {
+      const childAggregates = aggregateTreeMetricsRecursive(child);
+      currentAggCount += childAggregates.count;
+      currentAggSumDuration += childAggregates.sumDuration;
+      currentAggWeightedFailureRateSum += childAggregates.weightedFailureRateSum;
+      if (childAggregates.foundPageload) {
+        subtreeHasPageload = true;
+      }
+    }
+  }
+
+  container.hasPageloadDescendant = subtreeHasPageload;
+
+  if (subtreeHasPageload) {
+    // Only set aggregated metrics if a pageload was found in descendants
+    container['count()'] = currentAggCount;
+    container['sum(span.duration)'] = currentAggSumDuration;
+    if (currentAggCount > 0) {
+      container['avg(span.duration)'] = currentAggSumDuration / currentAggCount;
+      container['failure_rate()'] = currentAggWeightedFailureRateSum / currentAggCount;
+    } else {
+      container['avg(span.duration)'] = 0;
+      container['failure_rate()'] = 0;
+    }
+    container['p95(span.duration)'] = undefined;
+    container['performance_score(measurements.score.total)'] = undefined;
+  } else {
+    // If no pageload descendant, clear potentially misleading aggregated metrics
+    container['count()'] = undefined;
+    container['sum(span.duration)'] = undefined;
+    container['avg(span.duration)'] = undefined;
+    container['failure_rate()'] = undefined;
+    container['p95(span.duration)'] = undefined;
+    container['performance_score(measurements.score.total)'] = undefined;
+  }
+
+  return {
+    count: currentAggCount, // Still return sums for parent calculations
+    sumDuration: currentAggSumDuration,
+    weightedFailureRateSum: currentAggWeightedFailureRateSum,
+    foundPageload: subtreeHasPageload, // Propagate pageload presence upwards
+  };
+}
+
+// Wrapper function to start the aggregation
+function aggregateTreeMetrics(rootNode: TreeContainer): void {
+  aggregateTreeMetricsRecursive(rootNode);
 }
 
 function filterTree(
@@ -182,7 +473,38 @@ export default function SSRTreeWidget() {
           useRpc: true,
           dataset: 'spans',
           query: fullQuery,
-          field: ['span.description', 'avg(span.duration)'],
+          field: ['span.description', 'avg(span.duration)', 'count()'],
+        },
+      },
+    ],
+    {staleTime: 0}
+  );
+
+  const pageloadRequest = useApiQuery<EventsStats>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...pageFilterChartParams,
+          statsPeriod:
+            pageFilterChartParams.statsPeriod ??
+            (pageFilterChartParams.start && pageFilterChartParams.end
+              ? `${pageFilterChartParams.start}:${pageFilterChartParams.end}`
+              : undefined),
+          interval: undefined,
+          dataset: 'spans',
+          query: `span.op:[pageload,navigation] ${query}`,
+          field: [
+            'transaction',
+            'count()',
+            'failure_rate()',
+            'sum(span.duration)',
+            'avg(span.duration)',
+            'p95(span.duration)',
+            'performance_score(measurements.score.total)',
+            'project.id',
+            'span.op',
+          ],
         },
       },
     ],
@@ -190,9 +512,14 @@ export default function SSRTreeWidget() {
   );
 
   const treeData = treeRequest.data?.data ?? [];
-  const hasData = treeData.length > 0;
+  const pageloadRawData =
+    (pageloadRequest.data?.data as unknown as TreeResponseItem[]) ?? [];
+  const hasData = treeData.length > 0 || pageloadRawData.length > 0;
 
-  const tree = mapResponseToTree(treeData);
+  const tree = mapResponseToTree(treeData, pageloadRawData);
+  if (hasData) {
+    aggregateTreeMetrics(tree); // Aggregate metrics after tree is built
+  }
 
   const visualization = (
     <WidgetVisualizationStates
@@ -305,8 +632,20 @@ function TreeWidgetVisualization({
     <TreeGrid size={size}>
       <HeaderCell>{t('Path')}</HeaderCell>
       <HeaderCell>{t('Avg Duration')}</HeaderCell>
-      {tree.children.toSorted(sortTreeChildren).map((item, index) => {
-        return <TreeNodeRenderer key={index} item={item} />;
+      <HeaderCell>{t('P95 Duration')}</HeaderCell>
+      <HeaderCell>{t('Failure Rate')}</HeaderCell>
+      <HeaderCell>{t('Perf Score')}</HeaderCell>
+      <HeaderCell>{t('Count')}</HeaderCell>
+      {tree.children.toSorted(sortTreeChildren).map(item => {
+        // Path for top-level items, assuming tree.name is 'root' or similar unique identifier for the base path
+        const itemFullPath = [tree.name, item.name].join('/');
+        return (
+          <TreeNodeRenderer
+            key={itemFullPath}
+            item={item}
+            path={[tree.name]} // Pass the path of the parent (the root tree itself)
+          />
+        );
       })}
     </TreeGrid>
   );
@@ -324,11 +663,16 @@ function TreeNodeRenderer({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const theme = useTheme();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (item.type === 'folder' || item.type === 'file') {
+      return !!item.hasPageloadDescendant; // Collapse only if it has a pageload descendant
+    }
+    return false;
+  });
   const itemPath = [...path, item.name];
 
   let exploreLink: string | null = null;
-  if (item.type !== 'folder') {
+  if (item.type === 'component' || item.type === 'pageload') {
     exploreLink = getExploreUrl({
       organization,
       selection,
@@ -342,7 +686,9 @@ function TreeNodeRenderer({
       query:
         item.type === 'component'
           ? `span.description:"${item['span.description']}"`
-          : `transaction:"GET /${path.join('/')}" span.op:function.nextjs`,
+          : item.type === 'pageload' && item.transaction
+            ? `transaction:"${item.transaction}"`
+            : `transaction:"GET /${path.join('/')}" span.op:function.nextjs`,
     });
   }
 
@@ -366,9 +712,86 @@ function TreeNodeRenderer({
             </TextOverflow>
           </PathWrapper>
         </div>
-        <div style={{color: valueColor}}>
+        <Value style={{color: valueColor}}>
           {getDuration(durationMs / 1000, 2, true, true)}
+        </Value>
+        <Value>{/* P95 placeholder */ ''}</Value>
+        <Value>{/* Failure Rate placeholder */ ''}</Value>
+        <Value>{/* Perf Score placeholder */ ''}</Value>
+        <Value>{formatAbbreviatedNumber(item['count()'])}</Value>
+      </Fragment>
+    );
+  }
+
+  if (item.type === 'pageload') {
+    const durationMs = item['avg(span.duration)'];
+    const p95Ms = item['p95(span.duration)'];
+    const apiFailureRate = item['failure_rate()'];
+    const perfScore = item['performance_score(measurements.score.total)'];
+
+    const durationColor =
+      durationMs && durationMs > 500
+        ? theme.errorText
+        : durationMs && durationMs > 200
+          ? theme.warningText
+          : undefined;
+    const p95Color =
+      p95Ms && p95Ms > 1000
+        ? theme.errorText
+        : p95Ms && p95Ms > 400
+          ? theme.warningText
+          : undefined;
+    const failureRateForDisplay = apiFailureRate === null ? 0 : apiFailureRate;
+    const failureRateColor =
+      apiFailureRate && apiFailureRate > 0.1
+        ? theme.errorText
+        : apiFailureRate && apiFailureRate > 0.05
+          ? theme.warningText
+          : undefined;
+
+    // Path cell (transaction name)
+    // Avg Duration, P95, Failure Rate, Perf Score cells
+    // Count cell
+    return (
+      <Fragment>
+        <div>
+          <PathWrapper style={{paddingLeft: indent * 18}}>
+            {/* Using IconFile for pageloads, could be different if needed */}
+            <IconFile color="subText" size="xs" />
+            <TextOverflow>
+              {exploreLink ? <Link to={exploreLink}>{item.name}</Link> : item.name}
+            </TextOverflow>
+          </PathWrapper>
         </div>
+        {typeof durationMs === 'number' ? (
+          <Value style={{color: durationColor}}>
+            {getDuration(durationMs / 1000, 2, true, true)}
+          </Value>
+        ) : (
+          <Value>{'—'}</Value>
+        )}
+        {typeof p95Ms === 'number' ? (
+          <Value style={{color: p95Color}}>
+            {getDuration(p95Ms / 1000, 2, true, true)}
+          </Value>
+        ) : (
+          <Value>{'—'}</Value>
+        )}
+        {typeof apiFailureRate === 'number' || apiFailureRate === null ? (
+          <Value style={{color: failureRateColor}}>
+            {formatPercentage(failureRateForDisplay as number)}
+          </Value>
+        ) : (
+          <Value>{'—'}</Value>
+        )}
+        {typeof perfScore === 'number' ? (
+          <Value>
+            <PerformanceBadge score={Math.round(perfScore * 100)} />
+          </Value>
+        ) : (
+          <Value>{'—'}</Value>
+        )}
+        <Value>{formatAbbreviatedNumber(item['count()'])}</Value>
       </Fragment>
     );
   }
@@ -423,18 +846,55 @@ function TreeNodeRenderer({
           </ClassNames>
         </PathWrapper>
       </div>
-      <div />
+      {/* Metrics for folder/file rows */}
+      {typeof item['avg(span.duration)'] === 'number' ? (
+        <Value>
+          {getDuration((item['avg(span.duration)'] ?? 0) / 1000, 2, true, true)}
+        </Value>
+      ) : (
+        <Value>{'—'}</Value>
+      )}
+      {typeof item['p95(span.duration)'] === 'number' ? (
+        <Value>
+          {getDuration((item['p95(span.duration)'] ?? 0) / 1000, 2, true, true)}
+        </Value>
+      ) : (
+        <Value>{'—'}</Value> // P95 for containers
+      )}
+      {typeof item['failure_rate()'] === 'number' ? (
+        <Value>{formatPercentage(item['failure_rate()'] ?? 0)}</Value>
+      ) : (
+        <Value>{'—'}</Value>
+      )}
+      {typeof item['performance_score(measurements.score.total)'] === 'number' ? (
+        <Value>
+          <PerformanceBadge
+            score={Math.round(
+              (item['performance_score(measurements.score.total)'] ?? 0) * 100
+            )}
+          />
+        </Value>
+      ) : (
+        <Value>{'—'}</Value> // Perf Score for containers
+      )}
+      {typeof item['count()'] === 'number' ? (
+        <Value>{formatAbbreviatedNumber(item['count()'] ?? 0)}</Value>
+      ) : (
+        <Value>{'—'}</Value>
+      )}
       {!isCollapsed &&
-        item.children
-          .toSorted(sortTreeChildren)
-          .map((child, index) => (
+        'children' in item && // Type guard for item.children
+        item.children.toSorted(sortTreeChildren).map((child: TreeNode) => {
+          const childFullPath = [...itemPath, child.name].join('/');
+          return (
             <TreeNodeRenderer
-              key={index}
+              key={childFullPath}
               item={child}
               indent={indent + 1}
               path={itemPath}
             />
-          ))}
+          );
+        })}
     </Fragment>
   );
 }
@@ -500,7 +960,7 @@ const OneLineCodeBlock = styled('pre')`
 
 const TreeGrid = styled('div')<{size: 'xs' | 'sm'}>`
   display: grid;
-  grid-template-columns: 1fr min-content;
+  grid-template-columns: 1fr repeat(5, min-content);
   font-size: ${p => (p.size === 'xs' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium)};
 
   & > * {
@@ -508,21 +968,33 @@ const TreeGrid = styled('div')<{size: 'xs' | 'sm'}>`
     background-color: ${p => p.theme.background};
   }
 
-  & > *:nth-child(2n + 1) {
+  & > *:nth-child(6n + 1) {
     text-align: left;
     padding-left: ${space(2)};
     min-width: 0;
   }
 
-  & > *:nth-child(2n) {
+  & > *:nth-child(6n + 2),
+  & > *:nth-child(6n + 3),
+  & > *:nth-child(6n + 4),
+  & > *:nth-child(6n + 5),
+  & > *:nth-child(6n + 6) {
     text-align: right;
     padding-right: ${space(2)};
   }
 
-  & > *:nth-child(4n + 1),
-  & > *:nth-child(4n + 2) {
+  & > *:nth-child(12n + 1),
+  & > *:nth-child(12n + 2),
+  & > *:nth-child(12n + 3),
+  & > *:nth-child(12n + 4),
+  & > *:nth-child(12n + 5),
+  & > *:nth-child(12n + 6) {
     background-color: ${p => p.theme.backgroundSecondary};
   }
+`;
+
+const Value = styled('div')`
+  text-align: right;
 `;
 
 const StyledDrawerBody = styled(DrawerBody)`
