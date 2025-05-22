@@ -46,6 +46,9 @@ class PromptsActivityEndpoint(Endpoint):
     def get(self, request: Request, **kwargs) -> Response:
         """Return feature prompt status if dismissed or in snoozed period"""
 
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         features = request.GET.getlist("feature")
         if len(features) == 0:
             return Response({"details": "No feature specified"}, status=400)

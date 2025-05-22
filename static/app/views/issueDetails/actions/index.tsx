@@ -3,7 +3,11 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
@@ -170,6 +174,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         complete: () => {
           clearIndicators();
 
+          addSuccessMessage(t('Issue deleted'));
           navigate({
             pathname: `/organizations/${organization.slug}/issues/`,
             query: {project: project.id},
@@ -182,9 +187,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     IssueListCacheStore.reset();
   };
 
-  const onUpdate = (data: UpdateData) => {
-    addLoadingMessage(t('Saving changes\u2026'));
-
+  const onUpdate = (data: UpdateData, onComplete?: () => void) => {
     bulkUpdate(
       api,
       {
@@ -194,7 +197,10 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         data,
       },
       {
-        complete: clearIndicators,
+        complete: () => {
+          clearIndicators();
+          onComplete?.();
+        },
       }
     );
 
@@ -226,13 +232,21 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   };
 
   const onToggleBookmark = () => {
-    onUpdate({isBookmarked: !group.isBookmarked});
-    trackIssueAction('bookmarked');
+    onUpdate({isBookmarked: !group.isBookmarked}, () => {
+      trackIssueAction('bookmarked');
+      addSuccessMessage(
+        group.isBookmarked ? t('Issue bookmark removed') : t('Issue bookmarked')
+      );
+    });
   };
 
   const onToggleSubscribe = () => {
-    onUpdate({isSubscribed: !group.isSubscribed});
-    trackIssueAction('subscribed');
+    onUpdate({isSubscribed: !group.isSubscribed}, () => {
+      trackIssueAction('subscribed');
+      addSuccessMessage(
+        group.isSubscribed ? t('Unsubscribed from issue') : t('Subscribed to issue')
+      );
+    });
   };
 
   const onDiscard = () => {

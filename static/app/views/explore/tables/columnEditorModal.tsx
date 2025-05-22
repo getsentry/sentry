@@ -17,8 +17,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {classifyTagKey, prettifyTagKey} from 'sentry/utils/discover/fields';
-import {FieldKind} from 'sentry/utils/fields';
+import {classifyTagKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
@@ -54,12 +54,18 @@ export function ColumnEditorModal({
             !stringTags.hasOwnProperty(column) && !numberTags.hasOwnProperty(column)
         )
         .map(column => {
+          const kind = classifyTagKey(column);
+          const label = prettifyTagKey(column);
           return {
-            label: prettifyTagKey(column),
+            label,
             value: column,
             textValue: column,
-            trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
+            trailingItems: <TypeBadge kind={kind} />,
             key: `${column}-${classifyTagKey(column)}`,
+            showDetailsInOverlay: true,
+            details: (
+              <AttributeDetails column={column} kind={kind} label={label} type="span" />
+            ),
           };
         }),
       ...Object.values(stringTags).map(tag => {
@@ -69,6 +75,15 @@ export function ColumnEditorModal({
           textValue: tag.name,
           trailingItems: <TypeBadge kind={FieldKind.TAG} />,
           key: `${tag.key}-${FieldKind.TAG}`,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails
+              column={tag.key}
+              kind={FieldKind.TAG}
+              label={tag.name}
+              type="span"
+            />
+          ),
         };
       }),
       ...Object.values(numberTags).map(tag => {
@@ -78,6 +93,15 @@ export function ColumnEditorModal({
           textValue: tag.name,
           trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
           key: `${tag.key}-${FieldKind.MEASUREMENT}`,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails
+              column={tag.key}
+              kind={FieldKind.TAG}
+              label={tag.name}
+              type="span"
+            />
+          ),
         };
       }),
     ];
@@ -107,7 +131,11 @@ export function ColumnEditorModal({
   }
 
   return (
-    <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
+    <DragNDropContext
+      columns={tempColumns}
+      setColumns={setTempColumns}
+      defaultColumn={() => ''}
+    >
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">
@@ -170,7 +198,7 @@ export function ColumnEditorModal({
 
 interface ColumnEditorRowProps {
   canDelete: boolean;
-  column: Column;
+  column: Column<string>;
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;

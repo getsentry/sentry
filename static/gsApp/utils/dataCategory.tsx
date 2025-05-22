@@ -193,7 +193,7 @@ export function listDisplayNames({
 }) {
   const categoryNames = categories
     .filter(
-      category => category !== DataCategory.SPANS_INDEXED || hadCustomDynamicSampling // filter out stored spans if no DS
+      category => category !== DataCategory.SPANS_INDEXED || hadCustomDynamicSampling
     )
     .map(category =>
       getPlanCategoryName({

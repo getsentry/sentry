@@ -1,4 +1,4 @@
-from typing import NotRequired
+from typing import Any, NotRequired
 
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan as UnprocessedSpan
 
@@ -17,6 +17,7 @@ class Span(UnprocessedSpan, total=True):
     # Missing in schema
     start_timestamp_precise: float
     end_timestamp_precise: float
+    data: NotRequired[dict[str, Any]]  # currently unused
 
     # Added in enrichment
     exclusive_time: float

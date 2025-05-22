@@ -2,9 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import SideBySide from 'sentry/components/stories/sideBySide';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {sampleDurationTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleThroughputTimeSeries';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -23,15 +21,15 @@ const sampleDurationTimeSeries2 = {
   }),
 };
 
-export default storyBook('WidgetSyncContext', story => {
+export default Storybook.story('WidgetSyncContext', story => {
   story('Getting Started', () => {
     const [visible, setVisible] = useState<boolean>(false);
 
     return (
       <Fragment>
         <p>
-          <JSXNode name="WidgetSyncContext" /> is a Widget Context. All time series widget
-          visualizations within this context will be synchronized via{' '}
+          <Storybook.JSXNode name="WidgetSyncContext" /> is a Widget Context. All time
+          series widget visualizations within this context will be synchronized via{' '}
           <code>echarts.connect</code>. This connects their axis pointers (horizontal and
           vertical) and their series. Turning off a series on one chart will turn off the
           matching series name on all visualizations within the context. If you wish to
@@ -45,7 +43,7 @@ export default storyBook('WidgetSyncContext', story => {
         </p>
 
         <WidgetSyncContextProvider>
-          <SideBySide>
+          <Storybook.SideBySide>
             <MediumWidget>
               <TimeSeriesWidgetVisualization
                 plottables={[
@@ -64,7 +62,7 @@ export default storyBook('WidgetSyncContext', story => {
                 />
               </MediumWidget>
             )}
-          </SideBySide>
+          </Storybook.SideBySide>
         </WidgetSyncContextProvider>
       </Fragment>
     );

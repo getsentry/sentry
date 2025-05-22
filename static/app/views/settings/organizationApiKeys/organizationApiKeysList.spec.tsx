@@ -25,7 +25,7 @@ describe('OrganizationApiKeysList', function () {
     renderGlobalModal();
 
     // Click remove button
-    await userEvent.click(await screen.findByTitle('Remove API Key?'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Remove API Key'}));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });

@@ -12,11 +12,12 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -177,7 +178,15 @@ export default function StreamlinedGroupHeader({
             )}
             {statusProps?.status ? (
               <Fragment>
-                <Tooltip title={statusProps?.tooltip}>
+                <Tooltip
+                  isHoverable
+                  title={tct('[tooltip] [link:Learn more]', {
+                    tooltip: statusProps?.tooltip ?? '',
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/" />
+                    ),
+                  })}
+                >
                   <Subtext>{statusProps?.status}</Subtext>
                 </Tooltip>
               </Fragment>
@@ -333,7 +342,7 @@ const WorkflowActions = styled('div')`
 
 const Workflow = styled('div')`
   display: flex;
+  align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
-  align-items: center;
 `;

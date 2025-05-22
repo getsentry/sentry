@@ -11,6 +11,7 @@ const excludedModuleNames = [
   ModuleName.CRONS,
   ModuleName.UPTIME,
   ModuleName.SESSIONS,
+  ModuleName.AGENTS,
 ] as const;
 
 type ExcludedModuleNames = (typeof excludedModuleNames)[number];

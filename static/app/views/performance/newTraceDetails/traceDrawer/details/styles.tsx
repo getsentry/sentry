@@ -1156,7 +1156,7 @@ const ActionWrapper = styled('div')`
   overflow: visible;
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${space(0.5)};
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
