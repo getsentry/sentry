@@ -15,11 +15,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
-import {StoryExports} from 'sentry/views/stories/storyExports';
-import {StoryHeader} from 'sentry/views/stories/storyHeader';
-import {StoryTableOfContents} from 'sentry/views/stories/storyTableOfContents';
-import {StoryTree, useStoryTree} from 'sentry/views/stories/storyTree';
-import {useStoriesLoader, useStoryBookFiles} from 'sentry/views/stories/useStoriesLoader';
+
+import {StoryExports} from './storyExports';
+import {StoryHeader} from './storyHeader';
+import {StoryTableOfContents} from './storyTableOfContents';
+import {StoryTree, useStoryTree} from './storyTree';
+import {useStoriesLoader, useStoryBookFiles} from './useStoriesLoader';
 
 function isCoreFile(file: string) {
   return (

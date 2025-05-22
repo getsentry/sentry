@@ -2,9 +2,8 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
 import TextOverflow from 'sentry/components/textOverflow';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 const toCamelCase = function camalize(str: any) {
@@ -36,13 +35,13 @@ function LazyImage({file, module}: {file: string; module: Promise<string>}) {
   }, [module]);
 
   return (
-    <SizingWindow>
+    <Storybook.SizingWindow>
       <img alt={file} src={imgSrc ?? ''} />
-    </SizingWindow>
+    </Storybook.SizingWindow>
   );
 }
 
-export default storyBook('sentry-image/*', story => {
+export default Storybook.story('sentry-image/*', story => {
   const context = imagesContext();
 
   const allFiles = context.files();
