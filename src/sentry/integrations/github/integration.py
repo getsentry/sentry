@@ -120,12 +120,6 @@ FEATURES = [
         """,
         IntegrationFeatures.TICKET_RULES,
     ),
-    FeatureDescription(
-        """
-        Connect multiple Sentry organizations to a single GitHub account.
-        """,
-        IntegrationFeatures.SCM_MULTI_ORG,
-    ),
 ]
 
 metadata = IntegrationMetadata(
@@ -761,7 +755,8 @@ class GitHubInstallationError(StrEnum):
     INSTALLATION_EXISTS = "Github installed on another Sentry organization."
     USER_MISMATCH = "Authenticated user is not the same as who installed the app."
     MISSING_INTEGRATION = "Integration does not exist."
-    INVALID_INSTALLATION = "User does not have access to given installation"
+    INVALID_INSTALLATION = "User does not have access to given installation."
+    FEATURE_NOT_AVAILABLE = "Your organization does not have access to this feature."
 
 
 def record_event(event: IntegrationPipelineViewType):
@@ -927,8 +922,16 @@ class GithubOrganizationSelection(PipelineView):
             )
 
             if chosen_installation_id := request.GET.get("chosen_installation_id"):
-                if chosen_installation_id == "-1" or not has_scm_multi_org:
+                if chosen_installation_id == "-1":
                     return pipeline.next_step()
+
+                if not has_scm_multi_org:
+                    lifecycle.record_failure(GitHubInstallationError.FEATURE_NOT_AVAILABLE)
+                    return error(
+                        request,
+                        self.active_user_organization,
+                        error_short=GitHubInstallationError.FEATURE_NOT_AVAILABLE,
+                    )
 
                 # Verify that the given GH installation belongs to the person installing the pipeline
                 installation_ids = [

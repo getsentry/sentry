@@ -1452,7 +1452,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
         assert (
-            b'{"success":false,"data":{"error":"User does not have access to given installation"}'
+            b'{"success":false,"data":{"error":"User does not have access to given installation."}'
             in resp.content
         )
         assert (
@@ -1529,6 +1529,76 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         # SLO assertions
         assert_success_metric(mock_record)
+
+    @with_feature(
+        {"organizations:github-multi-org": True, "organizations:integrations-scm-multi-org": False}
+    )
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    def test_errors_when_invalid_access_to_multi_org(self, mock_render, mock_record):
+        self._setup_with_existing_installations()
+        installations = [
+            {
+                "installation_id": "1",
+                "github_account": "santry",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+            },
+            {
+                "installation_id": "2",
+                "github_account": "bufo-bot",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+            },
+            {
+                "installation_id": "-1",
+                "github_account": "Integrate with a new GitHub organization",
+                "avatar_url": "",
+            },
+        ]
+
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+        mock_render.assert_called_with(
+            request=ANY,
+            pipeline_name="githubInstallationSelect",
+            props={"installation_info": installations, "has_scm_multi_org": False},
+        )
+
+        # We rendered the GithubOrganizationSelection UI and the user chose to skip
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {
+                        "code": "12345678901234567890",
+                        "state": self.pipeline.signature,
+                        "chosen_installation_id": "12345",
+                    }
+                ),
+            )
+        )
+
+        self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
+        assert (
+            b'{"success":false,"data":{"error":"Your organization does not have access to this feature."}}'
+            in resp.content
+        )
+        assert b'window.opener.postMessage({"success":false' in resp.content
+        assert_failure_metric(mock_record, GitHubInstallationError.FEATURE_NOT_AVAILABLE)
 
     @with_feature("organizations:integrations-scm-multi-org")
     @with_feature("organizations:github-multi-org")
