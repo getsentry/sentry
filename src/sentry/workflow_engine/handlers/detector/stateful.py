@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 from datetime import UTC, datetime, timedelta
-from typing import Generic, cast
+from typing import Generic
 from uuid import uuid4
 
 from django.conf import settings
@@ -40,6 +40,12 @@ def get_redis_client() -> RetryingRedisCluster:
 
 DetectorCounter = str | DetectorPriorityLevel
 DetectorCounters = dict[DetectorCounter, int | None]
+
+
+@dataclasses.dataclass()
+class DetectionResult:
+    condition_results: ProcessedDataConditionGroup | None
+    priority: DetectorPriorityLevel | None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -323,12 +329,13 @@ class StatefulDetectorHandler(
     def _create_decorated_issue_occurrence(
         self,
         detector_occurrence: DetectorOccurrence,
-        evaluation_result: ProcessedDataConditionGroup,
-        new_priority: DetectorPriorityLevel,
+        detection_result: DetectionResult,
     ) -> IssueOccurrence:
         """
         Decorate the issue occurrence with the data from the detector's evaluation result.
         """
+        evaluation_result = detection_result.condition_results
+        new_priority = detection_result.priority
         evidence_data = {
             **detector_occurrence.evidence_data,
             "detector_id": self.detector.id,
@@ -347,9 +354,7 @@ class StatefulDetectorHandler(
             fingerprint=[self.state_manager.build_key()],
         )
 
-    def _evaluation_detector_conditions(
-        self, value: DataPacketEvaluationType
-    ) -> tuple[ProcessedDataConditionGroup | None, DetectorPriorityLevel]:
+    def _evaluate_detector_triggers(self, value: DataPacketEvaluationType) -> DetectionResult:
         """
         Evaluate the detector.workflow_condition_group against the value in the data packet.
 
@@ -358,7 +363,7 @@ class StatefulDetectorHandler(
         new_priority = DetectorPriorityLevel.OK
         if not self.condition_group:
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
-            return None, new_priority
+            return DetectionResult(condition_results=None, priority=None)
 
         condition_evaluation, _ = process_data_condition_group(self.condition_group.id, value)
 
@@ -372,7 +377,7 @@ class StatefulDetectorHandler(
 
             new_priority = max(new_priority, *validated_condition_results)
 
-        return condition_evaluation, new_priority
+        return DetectionResult(condition_evaluation, new_priority)
 
     def _increment_detector_thresholds(
         self,
@@ -440,64 +445,75 @@ class StatefulDetectorHandler(
         return dedupe_value >= stored_dedupe_value
 
     def _evaluate_value(
-        self, value: DataPacketEvaluationType, group_key: DetectorGroupKey = None
-    ) -> DetectorPriorityLevel | None:
+        self,
+        value: DataPacketEvaluationType,
+        group_key: DetectorGroupKey,
+        state: DetectorStateData,
+    ) -> DetectionResult:
         """
         Evaluate a single data packets value against the detector conditions.
         It returns the highest breached threshold level, or None if no thresholds are breached.
         """
-        detection_result: DetectorEvaluationResult | None = None
+        detection_result = self._evaluate_detector_triggers(value)
+        has_status_change = state.status != detection_result.priority
+        has_condition_results = detection_result.condition_results is not None
+        has_breached_threshold = detection_result.priority is not None
 
-        is_condition_group_met, new_priority = self._evaluation_detector_conditions(value)
-        state = self.state_manager.get_state_data([group_key])[group_key]
-
-        is_status_changed = state.status != new_priority
-
-        if not is_condition_group_met or not is_status_changed:
+        if not has_condition_results or not has_status_change or not has_breached_threshold:
             return detection_result
 
-        updated_threshold_counts = self._increment_detector_thresholds(state, new_priority, None)
-        return self._has_breached_threshold(updated_threshold_counts)
+        updated_threshold_counts = self._increment_detector_thresholds(
+            state, detection_result.priority, group_key
+        )
+        detection_result.priority = self._has_breached_threshold(updated_threshold_counts)
+        return detection_result
 
-    def _evaluate_group_values(
-        self, data_packet_values: dict[DetectorGroupKey, DataPacketEvaluationType]
+    def _evaluate_values(
+        self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult] | None:
         """
         Evaluates a group of values against the detector conditions.
         """
         results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
-        # extract value here
-        # -- see if they're a dict of values or not
-        # evaluate the value(s)
 
-        # is_condition_group_met = new_priority is not None
+        data_packet_values = self.extract_value(data_packet)
+        if not isinstance(data_packet_values, dict):
+            data_packet_values = {None: data_packet_values}
+
+        state = self.state_manager.get_state_data(list(data_packet_values.keys()))
 
         for group_key, value in data_packet_values.items():
-            breached_threshold = self._evaluate_value(value)
+            detection_result = self._evaluate_value(value, group_key, state[group_key])
 
-            if breached_threshold is None:
+            if detection_result.condition_results is None or detection_result.priority is None:
+                # No conditions were met, so skip this packet
                 continue
-            elif breached_threshold == DetectorPriorityLevel.OK:
+            if detection_result.priority == DetectorPriorityLevel.OK:
+                # The detector is now resolved
                 detector_result = self._create_resolve_message()
                 self.state_manager.enqueue_counter_reset()
             else:
+                # The detector has escalated it's status
                 detector_occurrence, event_data = self.create_occurrence(
-                    is_condition_group_met, data_packet, breached_threshold
+                    detection_result.condition_results, data_packet, detection_result.priority
                 )
                 detector_result = self._create_decorated_issue_occurrence(
-                    detector_occurrence, is_condition_group_met, breached_threshold
+                    detector_occurrence, detection_result
                 )
 
-        # return {
-        #     None: DetectorEvaluationResult(
-        #         group_key=None,
-        #         is_triggered=new_priority != DetectorPriorityLevel.OK,
-        #         priority=new_priority,
-        #         result=detector_result,
-        #         event_data=event_data,
-        #     )
-        # }
-        return None
+            results[group_key] = DetectorEvaluationResult(
+                group_key=group_key,
+                is_triggered=detection_result.priority != DetectorPriorityLevel.OK,
+                priority=detection_result.priority,
+                result=detector_result,
+                event_data=event_data,
+            )
+
+        if len(results) == 1 and results.get(None):
+            # this isn't using grouping, so only return a single result
+            results = results[None]
+
+        return results
 
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
@@ -511,16 +527,8 @@ class StatefulDetectorHandler(
         if self._is_duplicate_packet(data_packet):
             return None
 
-        value = self.extract_value(data_packet)
-
-        if value is None:
-            return None
-        elif isinstance(value, dict):
-            result = self._evaluate_group_values(
-                cast(dict[DetectorGroupKey, DataPacketEvaluationType], value)
-            )
-        else:
-            result = self._evaluate_value(value)
+        result = self._evaluate_values(self, data_packet)
+        # Should this be where the detector occurrence is created?
 
         return result
 
