@@ -90,8 +90,8 @@ const FILTER_KEYS: TagCollection = {
     key: 'tags[foo,string]',
     name: 'foo',
   },
-  'tags[bar,string]': {
-    key: 'tags[bar,string]',
+  'tags[bar,number]': {
+    key: 'tags[bar,number]',
     name: 'bar',
   },
 };
@@ -3456,6 +3456,92 @@ describe('SearchQueryBuilder', function () {
       const option = screen.getByRole('option', {name: 'bar'});
       expect(option).toBeInTheDocument();
       expect(option).toHaveTextContent('bar');
+    });
+  });
+
+  describe('autocomplete using suggestions', function () {
+    function getSuggestedFilterKey(key: string) {
+      if (key === 'foo') {
+        return 'tags[foo,string]';
+      }
+
+      if (key === 'bar') {
+        return 'tags[bar,number]';
+      }
+
+      return key;
+    }
+
+    it('replace string key with suggestion when autocompleting', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo:');
+      await userEvent.keyboard('{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
+      ).toHaveTextContent('foo');
+    });
+
+    it('replace number key with suggestion when autocompleting', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('bar:');
+      await userEvent.keyboard('{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
+      ).toHaveTextContent('bar');
+    });
+
+    it('replaces string key with suggestion on enter', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+      );
+      await userEvent.keyboard('foo{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
+      ).toHaveTextContent('foo');
+    });
+
+    it('replaces number key with suggestion on enter', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          getSuggestedFilterKey={getSuggestedFilterKey}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+      );
+      await userEvent.keyboard('bar{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
+      ).toHaveTextContent('bar');
     });
   });
 });

@@ -23,6 +23,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {
@@ -99,6 +100,7 @@ type WidgetCardChartProps = Pick<
   sampleCount?: number;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
+  showLoadingText?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
@@ -285,6 +287,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       sampleCount,
       isSampled,
       disableZoom,
+      showLoadingText,
     } = this.props;
 
     if (errorMessage) {
@@ -299,7 +302,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       return getDynamicText({
         value: (
           <TransitionChart loading={loading} reloading={loading}>
-            <LoadingScreen loading={loading} />
+            <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
             {this.tableResultComponent({tableResults, loading})}
           </TransitionChart>
         ),
@@ -310,7 +313,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     if (widget.displayType === 'big_number') {
       return (
         <TransitionChart loading={loading} reloading={loading}>
-          <LoadingScreen loading={loading} />
+          <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
           <BigNumberResizeWrapper noPadding={noPadding}>
             {this.bigNumberComponent({tableResults, loading})}
           </BigNumberResizeWrapper>
@@ -528,9 +531,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                     widget,
                     releaseSeries
                   );
+
                 return (
                   <TransitionChart loading={loading} reloading={loading}>
-                    <LoadingScreen loading={loading} />
+                    <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
                     <ChartWrapper
                       autoHeightResize={shouldResize ?? true}
                       noPadding={noPadding}
@@ -583,17 +587,29 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
   justify-content: center;
   align-items: center;
 `;
 
-function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({
+  loading,
+  showLoadingText,
+}: {
+  loading: boolean;
+  showLoadingText?: boolean;
+}) {
   if (!loading) {
     return null;
   }
+
   return (
     <StyledTransparentLoadingMask visible={loading}>
       <LoadingIndicator mini />
+      {showLoadingText && (
+        <p id="loading-text">{t('Turning data into pixels - almost ready')}</p>
+      )}
     </StyledTransparentLoadingMask>
   );
 }

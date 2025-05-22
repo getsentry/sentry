@@ -206,7 +206,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const NEW_ISSUE_TYPES = [IssueType.REPLAY_HYDRATION_ERROR]; // adds a "new" banner next to the title
+  const NEW_ISSUE_TYPES: IssueType[] = []; // adds a "new" banner next to the title
 
   return (
     <Layout.Header>

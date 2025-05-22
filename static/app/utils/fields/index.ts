@@ -2185,6 +2185,7 @@ export enum ReplayFieldKey {
   COUNT_URLS = 'count_urls',
   DURATION = 'duration',
   ERROR_IDS = 'error_ids',
+  IS_ARCHIVED = 'is_archived',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   REPLAY_TYPE = 'replay_type',
@@ -2243,6 +2244,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.DURATION,
   ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
+  ReplayFieldKey.IS_ARCHIVED,
   ReplayFieldKey.OS_NAME,
   ReplayFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
@@ -2330,6 +2332,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Error instance'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.IS_ARCHIVED]: {
+    desc: t('Whether the replay has been archived'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
   [ReplayFieldKey.OS_NAME]: {
     desc: t('Name of the Operating System'),
