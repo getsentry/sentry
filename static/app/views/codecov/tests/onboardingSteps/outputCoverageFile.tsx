@@ -45,7 +45,7 @@ export function OutputCoverageFile({stepString}: OutputCoverageFileProps) {
               supported: (
                 // TODO: the new version of this link is still TBD
                 <Link to="https://docs.codecov.com/docs/test-analytics#:~:text=Only%20JUnit%20XML%20test%20result%20files%20are%20supported%20at%20the%20moment">
-                  supported languages
+                  {t('supported languages')}
                 </Link>
               ),
             }
@@ -62,17 +62,19 @@ export function OutputCoverageFile({stepString}: OutputCoverageFileProps) {
           value={selectedFramework}
           onChange={(option: {value: Frameworks}) => setSelectedFramework(option.value)}
         />
-        <StyledP>{t('Install requirements in your terminal:')}</StyledP>
+        <StyledInstruction>
+          {t('Install requirements in your terminal:')}
+        </StyledInstruction>
         <CodeSnippet dark language="bash">
           {INSTALL_REQUIREMENTS_SNIPPETS[selectedFramework]}
         </CodeSnippet>
-        {GENERATE_FILE_SNIPPETS[selectedFramework] ? (
+        {selectedFramework === 'pytest' ? (
           <Fragment>
-            <StyledP>
+            <StyledInstruction>
               {t('Generate a JUnit XML file that contains the results of your test run.')}
-            </StyledP>
+            </StyledInstruction>
             <CodeSnippet dark language="bash">
-              {GENERATE_FILE_SNIPPETS[selectedFramework]}
+              {GENERATE_FILE_SNIPPETS.pytest}
             </CodeSnippet>
           </Fragment>
         ) : null}
@@ -86,6 +88,6 @@ const StyledSelectControl = styled(Select)`
   margin-bottom: ${space(1.5)};
 `;
 
-const StyledP = styled('p')`
+const StyledInstruction = styled('p')`
   margin: ${space(1.5)} 0;
 `;
