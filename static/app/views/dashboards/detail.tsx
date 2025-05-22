@@ -1118,12 +1118,12 @@ class DashboardDetail extends Component<Props, State> {
             const checkDashboardRoute = (path: string) => {
               const dashboardRoutes = [
                 // Legacy routes
-                /^\/organizations\/.+\/dashboards\//,
-                /^\/organizations\/.+\/dashboard\//,
+                new RegExp('^\/organizations\/.+\/dashboards\/new\/'),
+                new RegExp(`^\/organizations\/.+\/dashboard\/${dashboard.id}\/`),
 
                 // Customer domain routes
-                /^\/dashboards\//,
-                /^\/dashboard\//,
+                new RegExp('^\/dashboards\/new\/'),
+                new RegExp(`^\/dashboard\/${dashboard.id}\/`),
               ];
 
               return dashboardRoutes.some(route => route.test(path ?? location.pathname));
