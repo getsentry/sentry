@@ -9,9 +9,10 @@ from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, O
 from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.replays.query import execute_query, replay_url_parser_config
+from sentry.replays.query import replay_url_parser_config
 from sentry.replays.tasks import archive_replay, delete_replays_script_async
-from sentry.replays.usecases.query import handle_search_filters, scalar_search_config
+from sentry.replays.usecases.query import execute_query, handle_search_filters
+from sentry.replays.usecases.query.configs.scalar import scalar_search_config
 
 logger = logging.getLogger()
 
