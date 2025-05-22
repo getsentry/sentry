@@ -299,6 +299,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             extra={
                 "organization_id": org_id,
                 "repository_id": repo.id,
+                "file_name": file.filename,
                 "extension": file_extension,
             },
         )
@@ -307,15 +308,27 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         if not language_parser:
             logger.info(
                 _open_pr_comment_log(integration_name=integration_name, suffix="missing_parser"),
-                extra={"extension": file_extension},
+                extra={"file_name": file.filename, "extension": file_extension},
             )
             metrics.incr(
                 OPEN_PR_METRICS_BASE.format(integration=integration_name, key="missing_parser"),
-                tags={"extension": file_extension},
+                tags={"file_name": file.filename, "extension": file_extension},
             )
             continue
 
         function_names = language_parser.extract_functions_from_patch(file.patch)
+
+        if file_extension == "py":
+            logger.info(
+                _open_pr_comment_log(integration_name=integration_name, suffix="python"),
+                extra={
+                    "organization_id": org_id,
+                    "repository_id": repo.id,
+                    "file_name": file.filename,
+                    "extension": file_extension,
+                    "has_function_names": bool(function_names),
+                },
+            )
 
         if file_extension in ["js", "jsx"]:
             logger.info(
@@ -323,6 +336,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 extra={
                     "organization_id": org_id,
                     "repository_id": repo.id,
+                    "file_name": file.filename,
                     "extension": file_extension,
                     "has_function_names": bool(function_names),
                 },
@@ -334,6 +348,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 extra={
                     "organization_id": org_id,
                     "repository_id": repo.id,
+                    "file_name": file.filename,
                     "extension": file_extension,
                     "has_function_names": bool(function_names),
                 },
@@ -345,6 +360,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 extra={
                     "organization_id": org_id,
                     "repository_id": repo.id,
+                    "file_name": file.filename,
                     "extension": file_extension,
                     "has_function_names": bool(function_names),
                 },
