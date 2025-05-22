@@ -285,6 +285,7 @@ class Dsns(NamedTuple):
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["send_client_reports"] = True
+    sdk_options["add_full_stack"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["before_send"] = before_send
@@ -296,7 +297,6 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
         before_send_log=before_send_log,
         enable_logs=True,
     )
-    sdk_options["add_full_stack"] = options.get("sentry_sdk.add_full_stack", False)
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
     dsns = Dsns(
@@ -702,6 +702,12 @@ def set_measurement(measurement_name, value, unit=None):
             transaction.set_measurement(measurement_name, value, unit)
     except Exception:
         pass
+
+
+def set_span_data(data_name, value):
+    span = sentry_sdk.get_current_span()
+    if span is not None:
+        span.set_data(data_name, value)
 
 
 def merge_context_into_scope(

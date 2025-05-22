@@ -19,6 +19,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.signals import project_transferred
+from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 
@@ -36,7 +37,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (SentryIsAuthenticated,)
 
-    def get_validated_data(self, data, user):
+    def get_validated_data(self, data, user: User):
         try:
             data = unsign(force_str(data), salt=SALT)
         except SignatureExpired:
@@ -64,6 +65,9 @@ class AcceptProjectTransferEndpoint(Endpoint):
 
     @sudo_required
     def get(self, request: Request) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         try:
             data = request.GET["data"]
         except KeyError:
@@ -92,6 +96,9 @@ class AcceptProjectTransferEndpoint(Endpoint):
 
     @sudo_required
     def post(self, request: Request) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         try:
             data = request.data["data"]
         except KeyError:

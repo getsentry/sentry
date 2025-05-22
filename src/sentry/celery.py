@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.safestring import SafeString
 
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger("celery.pickle")
 
@@ -114,6 +114,19 @@ class SentryTask(Task):
         )
         should_sample = random.random() <= settings.CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE
         if should_complain or should_sample:
+            try:
+                param_size = json.dumps({"args": args, "kwargs": kwargs})
+                metrics.distribution(
+                    "celery.task.parameter_bytes",
+                    len(param_size.encode("utf8")),
+                    tags={"taskname": self.name},
+                    sample_rate=1.0,
+                )
+            except Exception as e:
+                logger.warning(
+                    "task.payload.measure.failure", extra={"error": str(e), "task": self.name}
+                )
+
             try:
                 good_use_of_pickle_or_bad_use_of_pickle(self, args, kwargs)
             except TypeError:

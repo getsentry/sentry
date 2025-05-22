@@ -44,6 +44,20 @@ def test_get_multi(ns):
 
 
 @override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
+def test_get_multi_with_duplicates(ns):
+    key = "a" * 32
+    value = {"foo": "a"}
+
+    ns.set(key, value)
+    ns.set("unrelated", {"notfoo": "nota"})
+
+    assert ns.get_multi([key, key]) == {key: value}
+    # When the result is cached, improper duplicate handling can result in a full
+    # bigtable scan. Check that we only get the intended result.
+    assert ns.get_multi([key, key]) == {key: value}
+
+
+@override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
 def test_set(ns):
     node_id = "d2502ebbd7df41ceba8d3275595cac33"
     data = {"foo": "bar"}

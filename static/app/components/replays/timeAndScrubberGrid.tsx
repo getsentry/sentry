@@ -7,6 +7,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import {useScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -63,7 +64,7 @@ export default function TimeAndScrubberGrid({
   showZoom = false,
   isLoading,
 }: TimeAndScrubberGridProps) {
-  const {currentTime, replay} = useReplayContext();
+  const {replay} = useReplayContext();
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
@@ -75,11 +76,7 @@ export default function TimeAndScrubberGrid({
     <TimelineScaleContextProvider>
       <Grid id="replay-timeline-player" isCompact={isCompact}>
         <Numeric style={{gridArea: 'currentTime'}}>
-          {timestampType === 'absolute' ? (
-            <DateTime timeOnly seconds date={startTimestamp + currentTime} />
-          ) : (
-            <Duration duration={[currentTime, 'ms']} precision="sec" />
-          )}
+          <ReplayCurrentTime />
         </Numeric>
 
         <div style={{gridArea: 'timeline'}}>

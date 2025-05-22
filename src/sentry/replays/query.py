@@ -354,6 +354,7 @@ replay_url_parser_config = SearchConfig(
         "count_screens",
     },
     duration_keys={"duration"},
+    boolean_keys={"is_archived"},
 )
 
 

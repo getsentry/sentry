@@ -16,13 +16,11 @@ const AM3_ONDEMAND_CATEGORIES = [
   ...AM3_CHECKOUT_CATEGORIES,
   'profileDuration',
   'profileDurationUI',
-] as DataCategory[];
-
-const AM3_CATEGORIES = [
-  ...AM3_ONDEMAND_CATEGORIES,
   'seerAutofix',
   'seerScanner',
 ] as DataCategory[];
+
+const AM3_CATEGORIES = [...AM3_ONDEMAND_CATEGORIES] as DataCategory[];
 
 const AM3_DS_CHECKOUT_CATEGORIES = [
   ...AM3_CHECKOUT_CATEGORIES,
@@ -47,6 +45,7 @@ const AM3_AVAILABLE_RESERVED_BUDGET_TYPES = {
     productName: 'seer',
     canProductTrial: true,
     apiName: ReservedBudgetCategoryType.SEER,
+    billingFlag: 'seer-billing',
   },
 };
 
@@ -62,6 +61,7 @@ const AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES = {
     productName: 'dynamic sampling',
     canProductTrial: false,
     apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
+    billingFlag: null,
   },
 };
 
@@ -153,6 +153,68 @@ const AM3_DS_FEATURES = [
   'dynamic-sampling',
   'dynamic-sampling-custom',
 ];
+
+const SEER_TIERS = {
+  seerAutofix: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 20_00,
+      onDemandPrice: 125,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 125,
+    },
+  ],
+  seerScanner: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+  ],
+};
+
+const SEER_TIERS_ANNUAL = {
+  seerAutofix: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 216_00,
+      onDemandPrice: 125,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 125,
+    },
+  ],
+  seerScanner: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+  ],
+};
 
 const BUDGET_TERM = 'pay-as-you-go';
 
@@ -866,6 +928,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0004,
         },
       ],
+      ...SEER_TIERS,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1363,6 +1426,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      ...SEER_TIERS_ANNUAL,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -1458,6 +1522,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0.0,
         },
       ],
+      ...SEER_TIERS,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -2549,6 +2614,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      ...SEER_TIERS,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
@@ -3046,6 +3112,7 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 31.25,
         },
       ],
+      ...SEER_TIERS_ANNUAL,
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,

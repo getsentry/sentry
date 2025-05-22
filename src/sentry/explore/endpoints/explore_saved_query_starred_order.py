@@ -41,6 +41,9 @@ class ExploreSavedQueryStarredOrderEndpoint(OrganizationEndpoint):
         )
 
     def put(self, request: Request, organization: Organization) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
