@@ -424,10 +424,6 @@ export function ProductSelection({
 
 const ProductButton = withChonk(
   styled(Button)`
-    border: 1px solid ${p => p.theme.purple300};
-    color: ${p => p.theme.purple300};
-    background: ${p => p.theme.purple100};
-
     :hover,
     :focus-visible {
       border: 1px solid ${p => p.theme.purple300};
