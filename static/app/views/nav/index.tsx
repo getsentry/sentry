@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {useNavContext} from 'sentry/views/nav/context';
 import MobileTopbar from 'sentry/views/nav/mobileTopbar';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {SecondaryNavContent} from 'sentry/views/nav/secondary/secondaryNavContent';
 import {Sidebar} from 'sentry/views/nav/sidebar';
 import {
@@ -11,11 +12,13 @@ import {
   useStackedNavigationTour,
 } from 'sentry/views/nav/tour/tour';
 import {NavLayout} from 'sentry/views/nav/types';
+import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 
 function NavContent() {
   const {layout, navParentRef} = useNavContext();
   const {currentStepId, endTour} = useStackedNavigationTour();
   const tourIsActive = currentStepId !== null;
+  const activeNavGroup = useActiveNavGroup();
 
   // The tour only works with the sidebar layout, so if we change to the mobile
   // layout in the middle of the tour, it needs to end.
@@ -32,7 +35,9 @@ function NavContent() {
       isMobile={layout === NavLayout.MOBILE}
     >
       {layout === NavLayout.SIDEBAR ? <Sidebar /> : <MobileTopbar />}
-      <SecondaryNavContent />
+      <SecondaryNav>
+        <SecondaryNavContent group={activeNavGroup} />
+      </SecondaryNav>
     </NavContainer>
   );
 }
