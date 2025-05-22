@@ -288,9 +288,6 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert task is not None
 
-        # TODO: this is now set in the `set_project_flag_and signal`, which is not called here
-        # assert project.flags.has_transactions
-
     def test_member_invited(self):
         user = self.create_user(email="test@example.org")
         member = self.create_member(

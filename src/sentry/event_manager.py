@@ -2490,7 +2490,6 @@ def _record_transaction_info(
                     first_transaction_received,
                     event=event,
                 )
-                # record_first_transaction(project, event.datetime)
 
             spans = job["data"]["spans"]
             for module, is_module in INSIGHT_MODULE_FILTERS.items():
