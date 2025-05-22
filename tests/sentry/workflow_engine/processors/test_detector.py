@@ -269,7 +269,11 @@ class TestGetStateData(BaseDetectorHandlerTest):
         key = "test_key"
         assert handler.state_manager.get_state_data([key]) == {
             key: DetectorStateData(
-                key, False, DetectorPriorityLevel.OK, 0, {"test1": None, "test2": None}
+                group_key=key,
+                is_triggered=False,
+                status=DetectorPriorityLevel.OK,
+                dedupe_value=0,
+                counter_updates={level: None for level in handler._thresholds},
             )
         }
 
@@ -277,7 +281,14 @@ class TestGetStateData(BaseDetectorHandlerTest):
         handler = self.build_handler()
         key = "test_key"
         state_data = DetectorStateData(
-            key, True, DetectorPriorityLevel.OK, 10, {"test1": 5, "test2": 200}
+            group_key=key,
+            is_triggered=True,
+            status=DetectorPriorityLevel.OK,
+            dedupe_value=10,
+            counter_updates={
+                **{level: None for level in handler._thresholds},
+                DetectorPriorityLevel.HIGH: 1,
+            },
         )
         handler.state_manager.enqueue_dedupe_update(state_data.group_key, state_data.dedupe_value)
         handler.state_manager.enqueue_counter_update(
@@ -293,7 +304,14 @@ class TestGetStateData(BaseDetectorHandlerTest):
         handler = self.build_handler()
         key_1 = "test_key_1"
         state_data_1 = DetectorStateData(
-            key_1, True, DetectorPriorityLevel.OK, 100, {"test1": 50, "test2": 300}
+            group_key=key_1,
+            is_triggered=True,
+            status=DetectorPriorityLevel.OK,
+            dedupe_value=100,
+            counter_updates={
+                **{level: None for level in handler._thresholds},
+                DetectorPriorityLevel.OK: 5,
+            },
         )
         handler.state_manager.enqueue_dedupe_update(key_1, state_data_1.dedupe_value)
         handler.state_manager.enqueue_counter_update(key_1, state_data_1.counter_updates)
@@ -303,7 +321,14 @@ class TestGetStateData(BaseDetectorHandlerTest):
 
         key_2 = "test_key_2"
         state_data_2 = DetectorStateData(
-            key_2, True, DetectorPriorityLevel.OK, 10, {"test1": 55, "test2": 12}
+            group_key=key_2,
+            is_triggered=True,
+            status=DetectorPriorityLevel.OK,
+            dedupe_value=10,
+            counter_updates={
+                **{level: None for level in handler._thresholds},
+                DetectorPriorityLevel.HIGH: 5,
+            },
         )
         handler.state_manager.enqueue_dedupe_update(key_2, state_data_2.dedupe_value)
         handler.state_manager.enqueue_counter_update(key_2, state_data_2.counter_updates)
@@ -313,7 +338,11 @@ class TestGetStateData(BaseDetectorHandlerTest):
 
         key_uncommitted = "test_key_uncommitted"
         state_data_uncommitted = DetectorStateData(
-            key_uncommitted, False, DetectorPriorityLevel.OK, 0, {"test1": None, "test2": None}
+            group_key=key_uncommitted,
+            is_triggered=False,
+            status=DetectorPriorityLevel.OK,
+            dedupe_value=0,
+            counter_updates={level: None for level in handler._thresholds},
         )
         handler.state_manager.commit_state_updates()
         assert handler.state_manager.get_state_data([key_1, key_2, key_uncommitted]) == {
@@ -406,7 +435,10 @@ class TestEvaluate(BaseDetectorHandlerTest):
             handler,
             "val1",
             2,
-            handler.test_get_empty_counter_state(),
+            {
+                **handler.test_get_empty_counter_state(),
+                DetectorPriorityLevel.HIGH: 1,
+            },
             True,
             DetectorPriorityLevel.HIGH,
         )
@@ -502,7 +534,10 @@ class TestEvaluate(BaseDetectorHandlerTest):
             handler,
             "val1",
             2,
-            handler.test_get_empty_counter_state(),
+            {
+                **handler.test_get_empty_counter_state(),
+                DetectorPriorityLevel.HIGH: 1,
+            },
             True,
             DetectorPriorityLevel.HIGH,
         )
@@ -542,7 +577,10 @@ class TestEvaluate(BaseDetectorHandlerTest):
             handler,
             "val1",
             2,
-            handler.test_get_empty_counter_state(),
+            {
+                **handler.test_get_empty_counter_state(),
+                DetectorPriorityLevel.HIGH: 1,
+            },
             True,
             DetectorPriorityLevel.HIGH,
         )
@@ -554,7 +592,15 @@ class TestEvaluate(BaseDetectorHandlerTest):
                 "workflow_engine.detector.skipping_already_processed_update"
             )
         self.assert_updates(
-            handler, "val1", None, handler.test_get_empty_counter_state(), None, None
+            handler,
+            "val1",
+            None,
+            {
+                **handler.test_get_empty_counter_state(),
+                DetectorPriorityLevel.HIGH: 1,
+            },
+            None,
+            None,
         )
 
 
