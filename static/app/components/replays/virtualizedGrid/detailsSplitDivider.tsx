@@ -12,7 +12,9 @@ import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
 interface Props {
   onClose: () => void;
   onDoubleClick: () => void;
-  resizeProps: UseResizableDrawerResult;
+  resizeHandleProps: UseResizableDrawerResult['resizeHandleProps'];
+  resizedElementProps: UseResizableDrawerResult['resizedElementProps'];
+  resizing: boolean;
   children?: ReactNode;
 }
 
@@ -20,16 +22,18 @@ export default function DetailsSplitDivider({
   children,
   onClose,
   onDoubleClick,
-  resizeProps,
+  resizing,
+  resizeHandleProps,
 }: Props) {
   return (
     <StyledStacked>
       {children}
       <StyledSplitDivider
-        data-is-held={resizeProps.resizing}
+        ref={resizeHandleProps.ref}
+        data-is-held={resizing}
         data-slide-direction="updown"
         onDoubleClick={onDoubleClick}
-        onPointerDown={resizeProps.resizeHandleProps.onPointerDown}
+        onMouseDown={resizeHandleProps.onMouseDown}
       />
       <CloseButtonWrapper>
         <Button

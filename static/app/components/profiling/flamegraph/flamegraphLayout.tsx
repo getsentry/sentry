@@ -1,6 +1,5 @@
-import {cloneElement, useCallback, useRef} from 'react';
+import {cloneElement, useCallback} from 'react';
 import styled from '@emotion/styled';
-import {mergeRefs} from '@react-aria/utils';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,7 +23,7 @@ interface FlamegraphLayoutProps {
   batteryChart: React.ReactElement | null;
   cpuChart: React.ReactElement | null;
   flamegraph: React.ReactElement;
-  flamegraphDrawer: React.ReactElement;
+  flamegraphDrawer: React.ReactElement<any>;
   memoryChart: React.ReactElement | null;
   minimap: React.ReactElement;
   spans: React.ReactElement | null;
@@ -36,7 +35,6 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
   const flamegraphTheme = useFlamegraphTheme();
   const {layout, timelines} = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
-  const flamegraphDrawerRef = useRef<HTMLDivElement>(null);
 
   const isSidebarLayout = layout === 'table left' || layout === 'table right';
 
@@ -49,7 +47,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
               MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]
             ),
           },
-          direction: 'left',
+          direction: layout === 'table left' ? 'right' : 'left',
           min: {width: MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]},
           max: {width: window.innerWidth - 300},
         }
@@ -287,14 +285,12 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
           <ProfileLabel>{t('Profile')}</ProfileLabel>
           {props.flamegraph}
         </ZoomViewContainer>
-        <FlamegraphDrawerContainer
-          ref={mergeRefs(flamegraphDrawerRef, resizedElementProps.ref)}
-          layout={layout}
-        >
+        <FlamegraphDrawerContainer ref={resizedElementProps.ref} layout={layout}>
           {cloneElement(props.flamegraphDrawer, {
-            onResize: resizeHandleProps.onPointerDown,
+            ref: resizeHandleProps.ref,
+            onResize: resizeHandleProps.onMouseDown,
             onResizeReset: onDoubleClick,
-          } as any)}
+          })}
         </FlamegraphDrawerContainer>
       </FlamegraphGrid>
     </FlamegraphLayoutContainer>

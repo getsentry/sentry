@@ -40,7 +40,7 @@ export function DifferentialFlamegraphLayout(props: DifferentialFlamegraphLayout
               MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]
             ),
           },
-          direction: 'left',
+          direction: layout === 'table left' ? 'right' : 'left',
           min: {width: MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]},
           max: {width: window.innerWidth - 300},
         }
@@ -104,7 +104,7 @@ export function DifferentialFlamegraphLayout(props: DifferentialFlamegraphLayout
           layout={layout}
         >
           {cloneElement(props.flamegraphDrawer, {
-            onResize: resizeHandleProps.onPointerDown,
+            onResize: resizeHandleProps.onMouseDown,
             onResizeReset: onDoubleClick,
           } as any)}
         </DifferentialFlamegraphDrawerContainer>

@@ -63,10 +63,6 @@ def trim_response(text):
 
 
 def spam_detection_enabled(project: Project) -> bool:
-    return (
-        features.has("organizations:user-feedback-spam-filter-ingest", project.organization)
-        and project.get_option("sentry:feedback_ai_spam_detection")
-        and not features.has(
-            "organizations:user-feedback-spam-ingest-blocklist", project.organization
-        )
-    )
+    return features.has(
+        "organizations:user-feedback-spam-ingest", project.organization
+    ) and project.get_option("sentry:feedback_ai_spam_detection")

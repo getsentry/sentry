@@ -498,7 +498,7 @@ class SubscriptionProcessor:
                             "organizations:workflow-engine-metric-alert-dual-processing-logs",
                             self.subscription.project.organization,
                         ):
-                            metrics.incr("dual_processing.alert_rules.fire")
+                            metrics.incr("dual_processing.alert_rules.resolve")
                         incident_trigger = self.trigger_resolve_threshold(
                             trigger, aggregation_value
                         )

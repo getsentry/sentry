@@ -17,7 +17,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
@@ -73,21 +72,6 @@ class SearchResolverQueryTest(TestCase):
             )
         )
         assert having is None
-
-    def test_hex_id_validation(self):
-        where, having, _ = self.resolver.resolve_query(f"span_id:{'f'*16}")
-        assert where == TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.span_id", type=AttributeKey.Type.TYPE_STRING),
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str="f" * 16),
-            )
-        )
-        assert having is None
-
-    def test_invalid_span_id_validation(self):
-        with pytest.raises(InvalidSearchQuery):
-            self.resolver.resolve_query("span_id:hello")
 
     def test_not_in_filter(self):
         where, having, _ = self.resolver.resolve_query("!message:[foo,bar,baz]")

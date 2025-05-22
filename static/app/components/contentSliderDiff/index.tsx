@@ -1,5 +1,6 @@
-import {type CSSProperties, Fragment, useRef} from 'react';
+import {type CSSProperties, Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {IconGrabbable} from 'sentry/icons';
@@ -66,12 +67,13 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
   const {resizeHandleProps, resizedElementProps} = useResizableDrawer({
     direction: 'right',
     initialSize: {width: viewDimensions.width / 2},
-    min: {width: 100},
+    min: {width: 0},
+    max: {width: viewDimensions.width - BORDER_WIDTH},
     onResize: options => {
-      const maxWidth = viewDimensions.width - BORDER_WIDTH;
-      const clampedSize = Math.max(BORDER_WIDTH, Math.min(maxWidth, options.size));
-
+      // Updates the divider position to be a the edge of the newly resized element
       if (dividerElem.current) {
+        const maxWidth = viewDimensions.width - BORDER_WIDTH;
+        const clampedSize = Math.max(BORDER_WIDTH, Math.min(maxWidth, options.size));
         dividerElem.current.style.left = `${clampedSize - 6}px`;
         dividerElem.current.setAttribute(
           'data-at-min-width',
@@ -83,11 +85,14 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
         );
       }
 
-      return viewDimensions.width === 0
-        ? '100%'
-        : (toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, options.size))) ?? '0px');
+      return options.size;
     },
   });
+
+  const dividerRef = useMemo(
+    () => mergeRefs(dividerElem, resizeHandleProps.ref),
+    [dividerElem, resizeHandleProps.ref]
+  );
 
   return (
     <Fragment>
@@ -103,10 +108,10 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
       </Cover>
       <DragHandle
         data-test-id="drag-handle"
-        ref={dividerElem}
-        onPointerDown={event => {
+        ref={dividerRef}
+        onMouseDown={event => {
           onDragHandleMouseDown?.(event);
-          resizeHandleProps.onPointerDown(event);
+          resizeHandleProps.onMouseDown(event);
         }}
       >
         <DragIndicator>

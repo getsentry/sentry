@@ -77,7 +77,9 @@ export default function NetworkList() {
     onClickCell,
     onCloseDetailsSplit,
     onDoubleClick,
-    resizableDrawerProps,
+    resizing,
+    resizeHandleProps,
+    resizedElementProps,
     selectedIndex,
     splitSize,
   } = useDetailsSplit({
@@ -232,7 +234,9 @@ export default function NetworkList() {
           )}
           <NetworkDetails
             onDoubleClick={onDoubleClick}
-            resizeProps={resizableDrawerProps}
+            resizing={resizing}
+            resizeHandleProps={resizeHandleProps}
+            resizedElementProps={resizedElementProps}
             isSetup={isNetworkDetailsSetup}
             isCaptureBodySetup={isCaptureBodySetup}
             // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message

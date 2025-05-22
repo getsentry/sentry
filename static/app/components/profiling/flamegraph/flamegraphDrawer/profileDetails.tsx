@@ -1,6 +1,5 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {mergeRefs} from '@react-aria/utils';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -82,7 +81,6 @@ export function ProfileDetails(props: ProfileDetailsProps) {
     flamegraphPreferences.layout === 'table left' ||
     flamegraphPreferences.layout === 'table right';
 
-  const detailsBarRef = useRef<HTMLDivElement>(null);
   const isSidebarLayout =
     flamegraphPreferences.layout === 'table left' ||
     flamegraphPreferences.layout === 'table right';
@@ -107,7 +105,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
 
   return (
     <ProfileDetailsBar
-      ref={mergeRefs(detailsBarRef, resizedElementProps.ref)}
+      ref={resizedElementProps.ref}
       layout={flamegraphPreferences.layout}
     >
       <ProfilingDetailsFrameTabs>
@@ -138,13 +136,12 @@ export function ProfileDetails(props: ProfileDetailsProps) {
           </Button>
         </ProfilingDetailsListItem>
         <Flex
+          ref={resizeHandleProps.ref}
           style={{
             flex: '1 1 100%',
             cursor: isResizableDetailsBar ? 'ns-resize' : undefined,
           }}
-          onPointerDown={
-            isResizableDetailsBar ? resizeHandleProps.onPointerDown : undefined
-          }
+          onMouseDown={isResizableDetailsBar ? resizeHandleProps.onMouseDown : undefined}
           onDoubleClick={isResizableDetailsBar ? onDoubleClick : undefined}
         />
       </ProfilingDetailsFrameTabs>

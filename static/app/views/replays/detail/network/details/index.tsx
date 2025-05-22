@@ -15,7 +15,9 @@ type Props = {
   onClose: () => void;
   onDoubleClick: () => void;
   projectId: undefined | string;
-  resizeProps: UseResizableDrawerResult;
+  resizeHandleProps: UseResizableDrawerResult['resizeHandleProps'];
+  resizedElementProps: UseResizableDrawerResult['resizedElementProps'];
+  resizing: boolean;
   startTimestampMs: number;
 };
 
@@ -25,8 +27,10 @@ function NetworkDetails({
   item,
   onClose,
   onDoubleClick,
-  resizeProps,
+  resizeHandleProps,
+  resizedElementProps,
   projectId,
+  resizing,
   startTimestampMs,
 }: Props) {
   const {getParamValue: getDetailTab} = useUrlParams('n_detail_tab', 'details');
@@ -42,12 +46,15 @@ function NetworkDetails({
       <DetailsSplitDivider
         onClose={onClose}
         onDoubleClick={onDoubleClick}
-        resizeProps={resizeProps}
+        resizeHandleProps={resizeHandleProps}
+        resizedElementProps={resizedElementProps}
+        resizing={resizing}
       >
         <NetworkDetailsTabs />
       </DetailsSplitDivider>
 
       <NetworkDetailsContent
+        ref={resizedElementProps.ref}
         isSetup={isSetup}
         isCaptureBodySetup={isCaptureBodySetup}
         item={item}

@@ -6,6 +6,7 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {UseResizableDrawerResult} from 'sentry/utils/useResizableDrawer';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import getOutputType, {
   Output,
@@ -24,10 +25,12 @@ import {
   ResponsePayloadSection,
 } from 'sentry/views/replays/detail/network/details/sections';
 
-type Props = Parameters<typeof getOutputType>[0] & SectionProps;
+type Props = Parameters<typeof getOutputType>[0] &
+  SectionProps &
+  UseResizableDrawerResult['resizedElementProps'];
 
 export default function NetworkDetailsContent(props: Props) {
-  const {item, isSetup, visibleTab} = props;
+  const {item, isSetup, visibleTab, ref} = props;
 
   const output = getOutputType(props);
 
@@ -47,7 +50,7 @@ export default function NetworkDetailsContent(props: Props) {
   switch (visibleTab) {
     case 'request':
       return (
-        <OverflowFluidHeight>
+        <OverflowFluidHeight ref={ref}>
           <SectionList>
             <QueryParamsSection {...props} />
             {output === Output.DATA && <RequestPayloadSection {...props} />}
@@ -60,7 +63,7 @@ export default function NetworkDetailsContent(props: Props) {
       );
     case 'response':
       return (
-        <OverflowFluidHeight>
+        <OverflowFluidHeight ref={ref}>
           {output === Output.DATA && (
             <SectionList>
               <ResponsePayloadSection {...props} />
@@ -92,7 +95,7 @@ export default function NetworkDetailsContent(props: Props) {
     case 'details':
     default:
       return (
-        <OverflowFluidHeight>
+        <OverflowFluidHeight ref={ref}>
           <SectionList>
             <GeneralSection {...props} />
             {output === Output.DATA && <RequestHeadersSection {...props} />}
