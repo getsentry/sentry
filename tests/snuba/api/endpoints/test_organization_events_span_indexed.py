@@ -2826,7 +2826,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"trace.status": status}},
+                    {"sentry_tags": {"status": status}},
                     start_ts=self.ten_mins_ago,
                 )
                 for status in trace_statuses
@@ -2855,7 +2855,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         spans = [
             self.create_span(
                 {
-                    "sentry_tags": {"trace.status": status},
+                    "sentry_tags": {"status": status},
                     "is_segment": True,
                 },
                 start_ts=self.ten_mins_ago,
@@ -2866,7 +2866,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         spans.append(
             self.create_span(
                 {
-                    "sentry_tags": {"trace.status": "ok"},
+                    "sentry_tags": {"status": "ok"},
                     "is_segment": False,
                 },
                 start_ts=self.ten_mins_ago,
