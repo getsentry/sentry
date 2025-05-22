@@ -784,7 +784,8 @@ appConfig.plugins?.push(
       create: false,
     },
     reactComponentAnnotation: {
-      enabled: true,
+      // Enabled only in production because annotating is slow
+      enabled: IS_PRODUCTION,
     },
     bundleSizeOptimizations: {
       // This is enabled so that our SDKs send exceptions to Sentry
