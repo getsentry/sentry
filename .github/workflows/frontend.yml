@@ -141,8 +141,8 @@ jobs:
         id: knip
         run: yarn run knip
 
-      - name: knip:prod
-        id: knip:prod
+      - name: knip-prod
+        id: knip-prod
         run: yarn run knip:prod
 
   frontend-jest-tests:
