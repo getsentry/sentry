@@ -21,7 +21,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0909_django_array_field_not_release
+sentry: 0910_make_organizationmemberteam_is_active_default
 
 social_auth: 0001_squashed_0002_default_auto_field
 
