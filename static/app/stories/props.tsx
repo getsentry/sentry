@@ -1,9 +1,10 @@
 import {isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {JSXProperty} from 'sentry/components/stories/jsx';
-import {SizingWindow} from 'sentry/components/stories/layout';
 import {space} from 'sentry/styles/space';
+
+import {JSXProperty} from './jsx';
+import {SizingWindow} from './layout';
 
 export type PropMatrix<P> = Partial<{
   [Prop in keyof P]: Array<P[Prop]>;
