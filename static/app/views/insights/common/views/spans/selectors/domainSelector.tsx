@@ -5,7 +5,6 @@ import omit from 'lodash/omit';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {uniq} from 'sentry/utils/array/uniq';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -88,29 +87,52 @@ export function DomainSelector({
     pageLinks,
   });
 
-  const incomingDomains = [
-    ...uniq(
-      domainData?.flatMap(row => {
-        const spanDomain: string | string[] = row[SpanMetricsField.SPAN_DOMAIN];
-        // `useInsightsEap` returns a string, but `metrics` returns an array
-        if (typeof spanDomain === 'string') {
-          return spanDomain.split(',');
-        }
-        return spanDomain;
-      })
-    ).filter(Boolean),
-  ];
+  const domainList: Array<{label: string; value: string}> = [];
+  const uniqueDomains = new Set<string>();
 
-  const domainList = incomingDomains.map(domain => ({
-    label: domain,
-    value: useEap ? `*${domain}*` : domain,
-  }));
+  domainData.forEach(row => {
+    const spanDomain: string | string[] = row[SpanMetricsField.SPAN_DOMAIN];
+
+    const domains = typeof spanDomain === 'string' ? spanDomain.split(',') : spanDomain;
+
+    if (!domains || domains.length === 0) {
+      return;
+    }
+
+    // if there is only one domain, this means that the domain is not a comma-separated list
+    if (domains.length === 1 && domains?.[0]) {
+      if (uniqueDomains.has(domains[0])) {
+        return;
+      }
+      uniqueDomains.add(domains[0]);
+      domainList.push({
+        label: domains[0],
+        value: useEap ? `*${domains[0]}*` : domains[0],
+      });
+    } else {
+      domains?.forEach(domain => {
+        if (uniqueDomains.has(domain) || !domain) {
+          return;
+        }
+        uniqueDomains.add(domain);
+        domainList.push({
+          label: domain,
+          value: useEap ? `*,${domain},*` : domain,
+        });
+      });
+    }
+  });
 
   if (value) {
-    const scrubbedValue = useEap
-      ? value.replace(/^\*(.*)\*$/, '$1') // removes wildcards, only if they are at the beginning and end of the string
-      : value;
-
+    let scrubbedValue = value;
+    if (useEap) {
+      if (scrubbedValue.startsWith('*') && scrubbedValue.endsWith('*')) {
+        scrubbedValue = scrubbedValue.slice(1, -1);
+      }
+      if (scrubbedValue.startsWith(',') && scrubbedValue.endsWith(',')) {
+        scrubbedValue = scrubbedValue.slice(1, -1);
+      }
+    }
     domainList.push({
       label: scrubbedValue,
       value,
