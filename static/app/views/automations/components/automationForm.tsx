@@ -9,14 +9,12 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import useDrawer from 'sentry/components/globalDrawer';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import {
@@ -25,11 +23,9 @@ import {
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
-import EditConnectedMonitors from 'sentry/views/automations/components/editConnectedMonitors';
-import {
-  NEW_AUTOMATION_CONNECTED_IDS_KEY,
-  useConnectedIds,
-} from 'sentry/views/automations/hooks/utils';
+import {EditConnectedMonitorsDrawer} from 'sentry/views/automations/components/editConnectedMonitorsDrawer';
+import {NEW_AUTOMATION_CONNECTED_IDS_KEY} from 'sentry/views/automations/hooks/utils';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 const FREQUENCY_OPTIONS = [
@@ -54,26 +50,27 @@ export default function AutomationForm() {
     model.setValue('name', title);
   }, [title, model]);
 
-  const monitors: Detector[] = []; // TODO: Fetch monitors from API
+  const {data: monitors = []} = useDetectorsQuery();
   const storageKey = NEW_AUTOMATION_CONNECTED_IDS_KEY; // TODO: use automation id for storage key when editing an existing automation
-  const {connectedIds, toggleConnected} = useConnectedIds({
-    storageKey,
-  });
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(
+    () => new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'))
+  );
   const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
 
-  const {openDrawer: openEditMonitorsDrawer, isDrawerOpen: isEditMonitorsDrawerOpen} =
-    useDrawer();
+  const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
 
   const showEditMonitorsDrawer = () => {
-    if (!isEditMonitorsDrawerOpen) {
-      openEditMonitorsDrawer(
+    if (!isDrawerOpen) {
+      openDrawer(
         () => (
-          <div>
-            <DrawerHeader />
-            <DrawerBody>
-              <EditConnectedMonitors storageKey={storageKey} />
-            </DrawerBody>
-          </div>
+          <EditConnectedMonitorsDrawer
+            initialIds={connectedIds}
+            onSave={ids => {
+              setConnectedIds(ids);
+              localStorage.setItem(storageKey, JSON.stringify(Array.from(ids)));
+              closeDrawer();
+            }}
+          />
         ),
         {
           ariaLabel: 'Edit Monitors Drawer',
@@ -95,8 +92,8 @@ export default function AutomationForm() {
             <Heading>{t('Connect Monitors')}</Heading>
             <ConnectedMonitorsList
               monitors={connectedMonitors}
-              connectedMonitorIds={connectedIds}
-              toggleConnected={toggleConnected}
+              connectedIds={connectedIds}
+              setConnectedIds={setConnectedIds}
             />
             <ButtonWrapper justify="space-between">
               <LinkButton

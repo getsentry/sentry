@@ -16,6 +16,7 @@ export const StickyFooter = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  z-index: ${p => p.theme.zIndex.initial};
 `;
 
 export const StickyFooterLabel = styled('p')`
