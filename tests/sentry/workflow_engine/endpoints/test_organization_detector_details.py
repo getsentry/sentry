@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -91,6 +92,12 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
 
     def test_does_not_exist(self):
         self.get_error_response(self.organization.slug, 3, status_code=404)
+
+    def test_pending_deletion(self):
+        detector = self.create_detector()
+        detector.status = ObjectStatus.PENDING_DELETION
+        detector.save()
+        self.get_error_response(self.organization.slug, detector.id, status_code=404)
 
     def test_malformed_id(self):
         from django.urls import reverse
@@ -252,6 +259,8 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
                 event=audit_log.get_event_id("DETECTOR_REMOVE"),
                 actor=self.user,
             ).exists()
+        self.detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
 
     def test_error_group_type(self):
         """

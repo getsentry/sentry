@@ -1,5 +1,5 @@
 from dataclasses import replace
-from typing import Any
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.db import models
@@ -10,11 +10,23 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.db.models.manager.types import M
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
 from sentry.workflow_engine.types import WorkflowEventData
 
 from .json_config import JSONConfigBase
+
+
+class WorkflowManager(BaseManager["Workflow"]):
+    def get_queryset(self) -> BaseQuerySet[M]:
+        return (
+            super()
+            .get_queryset()
+            .exclude(status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS))
+        )
 
 
 @region_silo_model
@@ -25,6 +37,10 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     """
 
     __relocation_scope__ = RelocationScope.Organization
+
+    objects: ClassVar[WorkflowManager] = WorkflowManager()
+    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
+
     name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
 
