@@ -1,5 +1,10 @@
 from sentry.hybridcloud.models.outbox import outbox_context
-from sentry.models.dashboard_widget import DashboardWidgetTypes, DatasetSourcesTypes
+from sentry.models.dashboard_widget import (
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetTypes,
+    DatasetSourcesTypes,
+)
+from sentry.models.organization import Organization
 from sentry.testutils.cases import SnubaTestCase, TestMigrations
 
 
@@ -8,7 +13,6 @@ class SplitDiscoverDatasetDashboardsSelfHostedTest(TestMigrations, SnubaTestCase
     migrate_to = "0905_split_discover_dataset_dashboards_self_hosted"
 
     def setup_before_migration(self, apps):
-        Organization = apps.get_model("sentry", "Organization")
         User = apps.get_model("sentry", "User")
         Dashboard = apps.get_model("sentry", "Dashboard")
         DashboardWidget = apps.get_model("sentry", "DashboardWidget")
@@ -20,46 +24,51 @@ class SplitDiscoverDatasetDashboardsSelfHostedTest(TestMigrations, SnubaTestCase
 
             self.dashboard = Dashboard.objects.create(
                 title="test",
-                organization=self.organization,
-                created_by=self.user,
+                organization_id=self.organization.id,
+                created_by_id=self.user.id,
             )
 
             self.discover_widget = DashboardWidget.objects.create(
-                dashboard=self.dashboard,
+                dashboard_id=self.dashboard.id,
                 title="test discover widget",
                 widget_type=DashboardWidgetTypes.DISCOVER,
-                dataset_source=DatasetSourcesTypes.UNKNOWN,
+                dataset_source=DatasetSourcesTypes.UNKNOWN.value,
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                interval="1d",
+                order=0,
             )
+
             self.discover_widget_query = DashboardWidgetQuery.objects.create(
-                widget=self.discover_widget,
+                widget_id=self.discover_widget.id,
                 name="test discover widget query",
                 fields=["count()"],
                 aggregates=["count()"],
                 columns=[],
                 conditions=[],
-                limit=10,
                 orderby=["-count()"],
                 order=0,
             )
 
             self.migrated_discover_widget = DashboardWidget.objects.create(
-                dashboard=self.dashboard,
+                dashboard_id=self.dashboard.id,
                 title="test migrated discover widget",
                 widget_type=DashboardWidgetTypes.DISCOVER,
-                dataset_source=DatasetSourcesTypes.UNKNOWN,
+                dataset_source=DatasetSourcesTypes.UNKNOWN.value,
                 discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+                interval="1d",
+                order=1,
             )
 
             self.migrated_discover_widget_query = DashboardWidgetQuery.objects.create(
-                widget=self.migrated_discover_widget,
+                widget_id=self.migrated_discover_widget.id,
                 name="test migrated discover widget query",
                 fields=["count()"],
                 aggregates=["count()"],
                 columns=[],
                 conditions=[],
-                limit=10,
                 orderby=["-count()"],
-                order=0,
+                order=1,
             )
 
     def test(self):
@@ -67,12 +76,12 @@ class SplitDiscoverDatasetDashboardsSelfHostedTest(TestMigrations, SnubaTestCase
         self.migrated_discover_widget.refresh_from_db()
 
         assert self.discover_widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
-        assert self.discover_widget.widget_type == DashboardWidgetTypes.ERROR_EVENTS
-        assert self.discover_widget.dataset_source == DatasetSourcesTypes.FORCED
+        assert self.discover_widget.widget_type == DashboardWidgetTypes.DISCOVER
+        assert self.discover_widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
         assert (
             self.migrated_discover_widget.discover_widget_split
             == DashboardWidgetTypes.TRANSACTION_LIKE
         )
         assert self.migrated_discover_widget.widget_type == DashboardWidgetTypes.DISCOVER
-        assert self.migrated_discover_widget.dataset_source == DatasetSourcesTypes.UNKNOWN
+        assert self.migrated_discover_widget.dataset_source == DatasetSourcesTypes.UNKNOWN.value
