@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
+from typing import override
 
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -36,6 +37,7 @@ from sentry.snuba.models import (
 )
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.workflow_engine.endpoints.validators.base import BaseDataSourceValidator
+from sentry.workflow_engine.processors.limits import get_organization_limits
 
 logger = logging.getLogger(__name__)
 
@@ -341,7 +343,21 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         return dataset
 
+    @override
     def create_source(self, validated_data) -> QuerySubscription:
+        limits = get_organization_limits(self.context["organization"])
+        active_subscriptions = QuerySubscription.objects.filter(
+            project__organization_id=self.context["organization"].id,
+            status__in=(
+                QuerySubscription.Status.ACTIVE.value,
+                QuerySubscription.Status.CREATING.value,
+                QuerySubscription.Status.UPDATING.value,
+            ),
+        ).count()
+        if active_subscriptions >= limits.max_query_subscriptions:
+            raise serializers.ValidationError(
+                "You've already created the maximum number of detectors of this type."
+            )
         snuba_query = create_snuba_query(
             query_type=validated_data["query_type"],
             dataset=validated_data["dataset"],

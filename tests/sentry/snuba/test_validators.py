@@ -1,3 +1,7 @@
+from unittest import mock
+
+import pytest
+from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.snuba.dataset import Dataset
@@ -5,6 +9,7 @@ from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import DataSourceCreator
+from sentry.workflow_engine.processors.limits import OrganizationLimits
 
 
 class SnubaQueryValidatorTest(TestCase):
@@ -56,3 +61,17 @@ class SnubaQueryValidatorTest(TestCase):
         assert validator.errors.get("queryType") == [
             ErrorDetail(string=f"Invalid query type {invalid_query_type}", code="invalid")
         ]
+
+    def test_create_source_limits(self):
+        with mock.patch(
+            "sentry.snuba.snuba_query_validator.get_organization_limits"
+        ) as mock_get_limits:
+            mock_get_limits.return_value = mock.Mock(
+                spec=OrganizationLimits, max_query_subscriptions=1
+            )
+            validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+            assert validator.is_valid()
+            validator.create_source(validator.validated_data)
+
+            with pytest.raises(serializers.ValidationError):
+                validator.create_source(validator.validated_data)
