@@ -520,7 +520,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
       )}
       {allTasks.length === doneTasks.length && (
         <CompletionCelebrationText>
-          <div>{t('Good job, you’re all done here!!')}</div>
+          <div>{t('Good job, you’re all done here!')}</div>
           {t('Now get out of here and write some broken code.')}
         </CompletionCelebrationText>
       )}
