@@ -16,9 +16,6 @@ import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryC
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
-const POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD = 0.0;
-const POSSIBLE_CAUSE_NOVELTY_THRESHOLD = 0.0;
-
 export interface GroupSummaryData {
   groupId: string;
   headline: string;
@@ -247,12 +244,6 @@ function GroupSummaryFull({
   setForceEvent: (v: boolean) => void;
 }) {
   const config = getConfigForIssueType(group, project);
-  const shouldShowPossibleCause =
-    !data?.scores ||
-    (data.scores?.possibleCauseConfidence &&
-      data.scores.possibleCauseConfidence >= POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD &&
-      data.scores.possibleCauseNovelty &&
-      data.scores.possibleCauseNovelty >= POSSIBLE_CAUSE_NOVELTY_THRESHOLD);
   const shouldShowResources = config.resources && !preview;
 
   const insightCards = [
@@ -270,17 +261,14 @@ function GroupSummaryFull({
       icon: <IconSpan size="sm" />,
       showWhenLoading: false,
     },
-    ...(shouldShowPossibleCause
-      ? [
-          {
-            id: 'possible_cause',
-            title: t('Initial Guess'),
-            insight: data?.possibleCause,
-            icon: <IconFocus size="sm" />,
-            showWhenLoading: true,
-          },
-        ]
-      : []),
+    {
+      id: 'possible_cause',
+      title: t('Initial Guess'),
+      insight: data?.possibleCause,
+      icon: <IconFocus size="sm" />,
+      showWhenLoading: true,
+    },
+
     ...(shouldShowResources
       ? [
           {
