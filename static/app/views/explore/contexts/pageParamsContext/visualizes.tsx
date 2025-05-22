@@ -174,9 +174,9 @@ export function updateVisualizeAggregate({
 
   let newArgument = oldArgument;
   if (functionDefinition) {
-    const hasParameters =
+    const shouldHaveParameters =
       functionDefinition.parameters && functionDefinition.parameters.length > 0;
-    if (!hasParameters) {
+    if (!shouldHaveParameters) {
       newArgument = '';
     }
     // TODO: check if old parameter is valid for new function
