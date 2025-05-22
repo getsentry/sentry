@@ -54,11 +54,18 @@ class OnboardingTaskStatus(enum.IntEnum):
 
 
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
-    def record(self, organization_id, task, **kwargs):
+    def record(
+        self, organization_id: int, task: int, status=OnboardingTaskStatus.COMPLETE, **kwargs
+    ) -> OrganizationOnboardingTask | None:
+        """Record the completion of an onboarding task."""
+        if status != OnboardingTaskStatus.COMPLETE:
+            # TODO: do not use cached version, if status is not COMPLETE
+            raise ValueError("Only COMPLETE status is supported")
+
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
         if cache.get(cache_key) is None:
-            _, created = self.update_or_create(
+            task_model, created = self.update_or_create(
                 organization_id=organization_id,
                 task=task,
                 defaults=kwargs,
@@ -67,8 +74,8 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
             # Store marker to prevent running all the time
             cache.set(cache_key, 1, 3600)
             if created:
-                return True
-        return False
+                return task_model
+        return None
 
 
 class AbstractOnboardingTask(Model):
