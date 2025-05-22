@@ -52,6 +52,7 @@ class SentryAppContext(TypedDict):
     installationId: str
     status: int
     settings: NotRequired[dict[str, Any]]
+    title: NotRequired[str]
 
 
 class ActionHandlerSerializerResponse(TypedDict):
