@@ -56,7 +56,6 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.sdk import set_span_data
 
-
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
 
 # chunks are 1 min max with additional 10% buffer
