@@ -681,7 +681,7 @@ const Wrapper = styled(PanelItem)<{
   padding: ${space(1)} 0;
   min-height: 82px;
 
-  &:not(:has(:hover)):not(:focus-within):not(:has(input:checked)) {
+  &:not(:hover):not(:has(input:checked)) {
     ${CheckboxLabel} {
       ${p => p.theme.visuallyHidden};
     }
