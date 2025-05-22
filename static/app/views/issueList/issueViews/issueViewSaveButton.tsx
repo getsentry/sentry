@@ -25,6 +25,7 @@ import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useS
 import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 
 type IssueViewSaveButtonProps = {
   query: string;
@@ -47,7 +48,7 @@ function SegmentedIssueViewSaveButton({
   const canEdit = view
     ? canEditIssueView({user, groupSearchView: view, organization})
     : false;
-
+  const hasIssueViews = useHasIssueViews();
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
@@ -88,7 +89,12 @@ function SegmentedIssueViewSaveButton({
             openCreateIssueViewModal();
           }
         }}
-        disabled={isSaving}
+        disabled={isSaving || !hasIssueViews}
+        title={
+          hasIssueViews
+            ? undefined
+            : t('Issue views are not enabled for your organization')
+        }
       >
         {canEdit ? t('Save') : t('Save As')}
       </PrimarySaveButton>
@@ -114,7 +120,7 @@ function SegmentedIssueViewSaveButton({
         trigger={props => (
           <DropdownTrigger
             {...props}
-            disabled={isSaving}
+            disabled={!hasIssueViews || isSaving}
             icon={<IconChevron direction="down" />}
             aria-label={t('More save options')}
             priority={buttonPriority}
@@ -131,6 +137,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   const {selection} = usePageFilters();
   const {data: view} = useSelectedGroupSearchView();
   const organization = useOrganization();
+  const hasIssueViews = useHasIssueViews();
 
   const openCreateIssueViewModal = () => {
     trackAnalytics('issue_views.save_as.clicked', {organization});
@@ -150,7 +157,16 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
 
   if (!viewId) {
     return (
-      <Button priority="primary" onClick={openCreateIssueViewModal}>
+      <Button
+        priority="primary"
+        onClick={openCreateIssueViewModal}
+        disabled={!hasIssueViews}
+        title={
+          hasIssueViews
+            ? undefined
+            : t('Issue views are not enabled for your organization')
+        }
+      >
         {t('Save As')}
       </Button>
     );
