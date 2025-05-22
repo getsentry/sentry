@@ -987,6 +987,16 @@ export default typescript.config([
     settings: {
       // order matters here in case of nested directories
       'boundaries/elements': [
+        // --- stories ---
+        {
+          type: 'story-files',
+          pattern: 'static/**/*.stories.{ts,tsx}',
+          mode: 'full',
+        },
+        {
+          type: 'story-book',
+          pattern: 'static/app/stories',
+        },
         // --- specifics ---
         {
           type: 'devtoolbar',
@@ -1107,6 +1117,10 @@ export default typescript.config([
             {
               from: ['configs'],
               allow: ['configs', 'build-utils'],
+            },
+            {
+              from: ['story-files'],
+              allow: ['core*', 'sentry*', 'story-book'],
             },
             // todo: sentry* shouldn't be allowed
             {
