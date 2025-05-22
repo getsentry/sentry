@@ -15,7 +15,7 @@ from cachetools.func import ttl_cache
 from django.conf import settings
 from django.urls import reverse
 from google.auth import impersonated_credentials
-from google.auth.transport import Request
+from google.auth.transport.requests import Request
 from rediscluster import RedisCluster
 
 from sentry import features, options
