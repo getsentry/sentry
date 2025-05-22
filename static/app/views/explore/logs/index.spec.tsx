@@ -144,10 +144,14 @@ describe('LogsPage', function () {
   });
 
   it('enables autorefresh when Switch is clicked', async function () {
-    organization.features = [...BASE_FEATURES, 'ourlogs-live-refresh'];
+    const {organization: newOrganization} = initializeOrg({
+      organization: {
+        features: [...BASE_FEATURES, 'ourlogs-live-refresh'],
+      },
+    });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
+      url: `/organizations/${newOrganization.slug}/events/`,
       method: 'GET',
       body: {
         data: [
@@ -167,12 +171,12 @@ describe('LogsPage', function () {
     });
 
     render(
-      <ProviderWrapper organization={organization}>
+      <ProviderWrapper organization={newOrganization}>
         <LogsPage />
       </ProviderWrapper>,
       {
         initialRouterConfig: {
-          location: `/organizations/${organization.slug}/explore/logs/`,
+          location: `/organizations/${newOrganization.slug}/explore/logs/`,
         },
       }
     );
