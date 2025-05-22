@@ -1116,7 +1116,7 @@ class DashboardDetail extends Component<Props, State> {
             // The widget builder uses its own pathname at the moment, so check if we're navigating
             // between the dashboard and the widget builder
             const checkDashboardRoute = (path: string) => {
-              const widgetBuilderRoutes = [
+              const dashboardRoutes = [
                 // Legacy routes
                 /^\/organizations\/.+\/dashboards\//,
                 /^\/organizations\/.+\/dashboard\//,
@@ -1126,9 +1126,7 @@ class DashboardDetail extends Component<Props, State> {
                 /^\/dashboard\//,
               ];
 
-              return widgetBuilderRoutes.some(route =>
-                route.test(path ?? location.pathname)
-              );
+              return dashboardRoutes.some(route => route.test(path ?? location.pathname));
             };
             const navigatingWithinDashboards =
               checkDashboardRoute(locationChange.nextLocation.pathname) ||
