@@ -91,7 +91,7 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
   }, [groupBys, tags]);
 
   return (
-    <DragNDropContext columns={groupBys} setColumns={setColumns}>
+    <DragNDropContext columns={groupBys} setColumns={setColumns} defaultColumn={() => ''}>
       {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => {
         return (
           <ToolbarSection data-test-id="section-group-by">
@@ -136,7 +136,7 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
 
 interface ColumnEditorRowProps {
   canDelete: boolean;
-  column: Column;
+  column: Column<string>;
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;
