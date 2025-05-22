@@ -41,7 +41,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("span.description:foo")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.name", type=AttributeKey.Type.TYPE_STRING),
+                key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_EQUALS,
                 value=AttributeValue(val_str="foo"),
             )
@@ -52,7 +52,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("!span.description:foo")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.name", type=AttributeKey.Type.TYPE_STRING),
+                key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_NOT_EQUALS,
                 value=AttributeValue(val_str="foo"),
             )
@@ -74,7 +74,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("span.description:[foo,bar,baz]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.name", type=AttributeKey.Type.TYPE_STRING),
+                key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_IN,
                 value=AttributeValue(val_str_array=StrArray(values=["foo", "bar", "baz"])),
             )
@@ -85,7 +85,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query(f"id:{'f'*16}")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.span_id", type=AttributeKey.Type.TYPE_STRING),
+                key=AttributeKey(name="sentry.item_id", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_EQUALS,
                 value=AttributeValue(val_str="f" * 16),
             )
@@ -100,7 +100,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("!span.description:[foo,bar,baz]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.name", type=AttributeKey.Type.TYPE_STRING),
+                key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_NOT_IN,
                 value=AttributeValue(val_str_array=StrArray(values=["foo", "bar", "baz"])),
             )
@@ -149,7 +149,7 @@ class SearchResolverQueryTest(TestCase):
                     TraceItemFilter(
                         comparison_filter=ComparisonFilter(
                             key=AttributeKey(
-                                name="sentry.name", type=AttributeKey.Type.TYPE_STRING
+                                name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING
                             ),
                             op=ComparisonFilter.OP_EQUALS,
                             value=AttributeValue(val_str="foo"),
@@ -175,7 +175,7 @@ class SearchResolverQueryTest(TestCase):
                     TraceItemFilter(
                         comparison_filter=ComparisonFilter(
                             key=AttributeKey(
-                                name="sentry.name", type=AttributeKey.Type.TYPE_STRING
+                                name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING
                             ),
                             op=ComparisonFilter.OP_EQUALS,
                             value=AttributeValue(val_str="foo"),
@@ -206,7 +206,8 @@ class SearchResolverQueryTest(TestCase):
                                 TraceItemFilter(
                                     comparison_filter=ComparisonFilter(
                                         key=AttributeKey(
-                                            name="sentry.name", type=AttributeKey.Type.TYPE_STRING
+                                            name="sentry.raw_description",
+                                            type=AttributeKey.Type.TYPE_STRING,
                                         ),
                                         op=ComparisonFilter.OP_EQUALS,
                                         value=AttributeValue(val_str="123"),
@@ -230,7 +231,8 @@ class SearchResolverQueryTest(TestCase):
                                 TraceItemFilter(
                                     comparison_filter=ComparisonFilter(
                                         key=AttributeKey(
-                                            name="sentry.name", type=AttributeKey.Type.TYPE_STRING
+                                            name="sentry.raw_description",
+                                            type=AttributeKey.Type.TYPE_STRING,
                                         ),
                                         op=ComparisonFilter.OP_EQUALS,
                                         value=AttributeValue(val_str="foo"),

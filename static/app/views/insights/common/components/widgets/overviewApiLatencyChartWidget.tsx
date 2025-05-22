@@ -1,15 +1,14 @@
 import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -20,54 +19,35 @@ import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/s
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
-export function TrafficWidget({
-  title,
-  trafficSeriesName,
-  baseQuery,
-}: {
-  title: string;
-  trafficSeriesName: string;
-  baseQuery?: string;
-}) {
+export default function OverviewApiLatencyChartWidget(props: LoadableChartWidgetProps) {
   const organization = useOrganization();
-  const releaseBubbleProps = useReleaseBubbleProps();
-  const pageFilterChartParams = usePageFilterChartParams({granularity: 'spans-low'});
   const {query} = useTransactionNameQuery();
-  const theme = useTheme();
+  const pageFilterChartParams = usePageFilterChartParams({
+    pageFilters: props.pageFilters,
+  });
+  const releaseBubbleProps = useReleaseBubbleProps(props);
 
-  const fullQuery = `${baseQuery} ${query}`.trim();
+  const fullQuery = `span.op:http.server ${query}`.trim();
 
   const {data, isLoading, error} = useEAPSeries(
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
-      referrer: Referrer.REQUESTS_CHART,
+      yAxis: ['avg(span.duration)', 'p95(span.duration)'],
+      referrer: Referrer.DURATION_CHART,
     },
-    Referrer.REQUESTS_CHART
+    Referrer.DURATION_CHART,
+    props.pageFilters
   );
 
   const plottables = useMemo(() => {
-    return [
-      new Bars(convertSeriesToTimeseries(data['count(span.duration)']), {
-        alias: trafficSeriesName,
-        color: theme.gray200,
-      }),
-      new Line(convertSeriesToTimeseries(data['trace_status_rate(internal_error)']), {
-        alias: t('Error Rate'),
-        color: theme.error,
-      }),
-    ];
-  }, [data, theme.error, theme.gray200, trafficSeriesName]);
+    return Object.keys(data).map(key => {
+      const series = data[key as keyof typeof data];
+      return new Line(convertSeriesToTimeseries(series));
+    });
+  }, [data]);
 
-  const isEmpty = useMemo(
-    () =>
-      plottables.every(
-        plottable =>
-          plottable.isEmpty || plottable.timeSeries.values.every(point => !point.value)
-      ),
-    [plottables]
-  );
+  const isEmpty = plottables.every(plottable => plottable.isEmpty);
 
   const visualization = (
     <WidgetVisualizationStates
@@ -76,7 +56,9 @@ export function TrafficWidget({
       isEmpty={isEmpty}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
+        id: 'overviewApiLatencyChartWidget',
         plottables,
+        ...props,
         ...releaseBubbleProps,
       }}
     />
@@ -84,28 +66,27 @@ export function TrafficWidget({
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={title} />}
+      Title={<Widget.WidgetTitle title={t('API Latency')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
         !isEmpty && (
           <Toolbar
             exploreParams={{
-              mode: Mode.AGGREGATE,
+              mode: Mode.SAMPLES,
               visualize: [
                 {
-                  chartType: ChartType.BAR,
-                  yAxes: ['count(span.duration)'],
+                  chartType: ChartType.LINE,
+                  yAxes: ['avg(span.duration)', 'p95(span.duration)'],
                 },
               ],
-              groupBy: ['trace.status'],
-              sort: '-count(span.duration)',
               query: fullQuery,
               interval: pageFilterChartParams.interval,
             }}
+            loaderSource={props.loaderSource}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title,
+                title: t('API Latency'),
                 children: <ModalChartContainer>{visualization}</ModalChartContainer>,
               });
             }}
