@@ -19,6 +19,11 @@ export default function useDeleteReplay({projectSlug, replayId}: DeleteButtonPro
   const navigate = useNavigate();
   const organization = useOrganization();
 
+  const queryParams = new URLSearchParams(location.search);
+  const referrer = queryParams.get('referrer');
+  const groupId = queryParams.get('groupId');
+  const issueReferrer = !!referrer?.includes('issues');
+
   const handleDelete = useCallback(async () => {
     if (!projectSlug || !replayId) {
       return;
@@ -32,17 +37,19 @@ export default function useDeleteReplay({projectSlug, replayId}: DeleteButtonPro
         }
       );
       navigate(
-        makeReplaysPathname({
-          path: '/',
-          organization,
-        }),
+        issueReferrer
+          ? {pathname: `/organizations/${organization.slug}/issues/${groupId}/replays/`}
+          : makeReplaysPathname({
+              path: '/',
+              organization,
+            }),
         {replace: true}
       );
     } catch (err) {
       addErrorMessage(t('Failed to delete replay'));
       Sentry.captureException(err);
     }
-  }, [api, navigate, organization, projectSlug, replayId]);
+  }, [api, navigate, organization, projectSlug, replayId, issueReferrer, groupId]);
 
   const confirmDelte = useCallback(() => {
     if (!projectSlug || !replayId) {
