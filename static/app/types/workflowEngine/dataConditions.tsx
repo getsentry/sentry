@@ -1,20 +1,4 @@
-import type {NewAction} from './actions';
-
-interface SnubaQuery {
-  aggregate: string;
-  dataset: string;
-  id: string;
-  query: string;
-  timeWindow: number;
-  environment?: string;
-}
-
-export interface DataSource {
-  id: string;
-  snubaQuery: SnubaQuery;
-  status: number;
-  subscription?: string;
-}
+import type {Action} from './actions';
 
 export enum DataConditionType {
   // operators
@@ -68,19 +52,22 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
-export interface NewDataCondition {
+export const enum DetectorPriorityLevel {
+  HIGH = 75,
+  MEDIUM = 50,
+  LOW = 25,
+}
+
+export interface DataCondition {
   comparison: any;
   comparison_type: DataConditionType;
+  id: string;
   condition_result?: any;
 }
 
-export interface DataCondition extends Readonly<NewDataCondition> {
-  readonly id: string;
-}
-
 export interface DataConditionGroup {
-  conditions: NewDataCondition[];
+  conditions: DataCondition[];
   id: string;
   logicType: DataConditionGroupLogicType;
-  actions?: NewAction[];
+  actions?: Action[];
 }

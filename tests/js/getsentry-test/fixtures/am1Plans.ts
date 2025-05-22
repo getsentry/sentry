@@ -12,13 +12,13 @@ const AM1_CHECKOUT_CATEGORIES = [
   'uptime',
 ] as DataCategory[];
 
-const AM1_ONDEMAND_CATEGORIES = [...AM1_CHECKOUT_CATEGORIES] as DataCategory[];
-
-const AM1_CATEGORIES = [
-  ...AM1_ONDEMAND_CATEGORIES,
-  'seerAutoFix',
+const AM1_ONDEMAND_CATEGORIES = [
+  ...AM1_CHECKOUT_CATEGORIES,
+  'seerAutofix',
   'seerScanner',
 ] as DataCategory[];
+
+const AM1_CATEGORIES = [...AM1_ONDEMAND_CATEGORIES] as DataCategory[];
 
 const AM1_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
