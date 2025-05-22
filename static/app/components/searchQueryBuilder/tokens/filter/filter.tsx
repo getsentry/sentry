@@ -32,6 +32,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {prettifyTagKey} from 'sentry/utils/fields';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -46,6 +47,14 @@ interface FilterValueProps extends SearchQueryTokenProps {
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {size} = useSearchQueryBuilder();
+
+  if (token.filter === FilterType.HAS) {
+    return (
+      <FilterValueSingleTruncatedValue>
+        {prettifyTagKey(token.value.text)}
+      </FilterValueSingleTruncatedValue>
+    );
+  }
 
   switch (token.value.type) {
     case Token.VALUE_TEXT_LIST:
