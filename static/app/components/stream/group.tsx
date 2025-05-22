@@ -116,7 +116,7 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper>
-      {group.hasSeen && (
+      {!group.hasSeen && (
         <Tooltip title={t('Unread')} skipWrapper>
           <UnreadIndicator
             data-test-id="unread-issue-indicator"
