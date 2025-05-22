@@ -1,3 +1,5 @@
+import sentry_sdk
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -62,14 +64,114 @@ list_query = """query GetTestResults(
 }
 """
 
-# NOTE: There is no testResult resolver in GQL atm so if we need this, will need to build it.
-get_query = """query GetTestResult(
-  $owner: String!
-  $repo: String!
-  $testResultId: String!
-) {
+
+class TestResultNodeSerializer(serializers.Serializer):
+    """
+    Serializer for individual test result nodes from GraphQL response
+    """
+
+    updatedAt = serializers.CharField()
+    avgDuration = serializers.FloatField()
+    name = serializers.CharField()
+    failureRate = serializers.FloatField()
+    flakeRate = serializers.FloatField()
+    commitsFailed = serializers.IntegerField()
+    totalFailCount = serializers.IntegerField()
+    totalFlakyFailCount = serializers.IntegerField()
+    totalSkipCount = serializers.IntegerField()
+    totalPassCount = serializers.IntegerField()
+
+
+class TestResultSerializer(serializers.Serializer):
+    """
+    Serializer to transform GraphQL response to client format
+    """
+
+    def transform_graphql_response(self, graphql_response):
+        """
+        Transform the GraphQL response format to the expected client format
+        """
+        try:
+            # Extract test result nodes from the nested GraphQL structure
+            test_results = graphql_response["data"]["owner"]["repository"]["testAnalytics"][
+                "testResults"
+            ]["edges"]
+
+            # Transform each node to the expected client format
+            transformed_results = []
+            for edge in test_results:
+                node = edge["node"]
+                # Note: lastDuration is not in the GraphQL response, using avgDuration as fallback
+                transformed_result = {
+                    "updatedAt": node["updatedAt"],
+                    "name": node["name"],
+                    "commitsFailed": node["commitsFailed"],
+                    "failureRate": node["failureRate"],
+                    "flakeRate": node["flakeRate"],
+                    "avgDuration": node["avgDuration"],
+                    "lastDuration": node.get(
+                        "lastDuration", node["avgDuration"]
+                    ),  # fallback to avgDuration
+                    "totalFailCount": node["totalFailCount"],
+                    "totalFlakyFailCount": node["totalFlakyFailCount"],
+                    "totalSkipCount": node["totalSkipCount"],
+                    "totalPassCount": node["totalPassCount"],
+                }
+                transformed_results.append(transformed_result)
+
+            return transformed_results
+
+        except (KeyError, TypeError) as e:
+            # Handle malformed GraphQL response
+            sentry_sdk.capture_exception(e)
+
+            return []
+
+
+# Sample GraphQL response structure for reference
+sample_graphql_response = {
+    "data": {
+        "owner": {
+            "repository": {
+                "__typename": "Repository",
+                "testAnalytics": {
+                    "testResults": {
+                        "edges": [
+                            {
+                                "node": {
+                                    "updatedAt": "2025-05-22T16:21:18.763951+00:00",
+                                    "avgDuration": 0.04066228070175437,
+                                    "name": "../usr/local/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_no_yaml",
+                                    "failureRate": 0.0,
+                                    "flakeRate": 0.0,
+                                    "commitsFailed": 0,
+                                    "totalFailCount": 0,
+                                    "totalFlakyFailCount": 0,
+                                    "totalSkipCount": 0,
+                                    "totalPassCount": 70,
+                                }
+                            },
+                            {
+                                "node": {
+                                    "updatedAt": "2025-05-22T16:21:18.763961+00:00",
+                                    "avgDuration": 0.034125877192982455,
+                                    "name": "../usr/local/lib/python3.13/site-packages/asgiref/sync.py::GetFinalYamlInteractorTest::test_when_commit_has_yaml",
+                                    "failureRate": 0.0,
+                                    "flakeRate": 0.0,
+                                    "commitsFailed": 0,
+                                    "totalFailCount": 0,
+                                    "totalFlakyFailCount": 0,
+                                    "totalSkipCount": 0,
+                                    "totalPassCount": 70,
+                                }
+                            },
+                        ],
+                    }
+                },
+            }
+        }
+    }
 }
-"""
 
 
 @region_silo_endpoint
@@ -79,79 +181,30 @@ class TestResultsEndpoint(CodecovEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
 
-    def get(self, request: Request) -> Response:
+    # Disable pagination requirement for this endpoint
+    def has_pagination(self, response):
+        return True
+
+    def get(self, request: Request, owner: str, repository: str, commit: str) -> Response:
         """Retrieves the list of test results for a given commit. If a test result id is also
         provided, the endpoint will return the test result with that id."""
 
-        test_result_id = request.GET.get("test_result_id")
-        owner = request.GET.get("owner")
-        repo = request.GET.get("repo")
-        commit = request.GET.get("commit")
-
         variables = {
             "owner": owner,
-            "repo": repo,
+            "repo": repository,
             "commit": commit,
         }
 
-        assert variables  # just to get rid of lint error
+        assert variables
 
-        if test_result_id:
-            # TODO: graphQL Query
-            # Passing in query into codecov client means we need the query to be structured by the time we call it.
+        # TODO: Uncomment when CodecovClient is available
+        # graphql_response = CodecovClient.query(list_query, variables)
 
-            # res = CodecovClient.query(get_query, variables)
-            # transformed_res = CodecovClient.transform_response(res, serializer)
+        # For now, use the sample response for demonstration
+        graphql_response = sample_graphql_response
 
-            return Response(
-                {
-                    "updatedAt": "2021-01-01T00:00:00Z",
-                    "name": "test",
-                    "commitsFailed": 1,
-                    "failureRate": 0.01,
-                    "flakeRate": 100,
-                    "avgDuration": 100,
-                    "lastDuration": 100,
-                    "totalFailCount": 1,
-                    "totalFlakyFailCount": 1,
-                    "totalSkipCount": 0,
-                    "totalPassCount": 0,
-                }
-            )
+        # Transform the GraphQL response to client format
+        serializer = TestResultSerializer()
+        test_results = serializer.transform_graphql_response(graphql_response)
 
-        # CodecovClient.query(list_query, variables)
-
-        # TODO: Response filtering
-
-        return Response(
-            {
-                [
-                    {
-                        "updatedAt": "2021-01-01T00:00:00Z",
-                        "name": "test",
-                        "commitsFailed": 1,
-                        "failureRate": 0.01,
-                        "flakeRate": 100,
-                        "avgDuration": 100,
-                        "lastDuration": 100,
-                        "totalFailCount": 1,
-                        "totalFlakyFailCount": 1,
-                        "totalSkipCount": 0,
-                        "totalPassCount": 0,
-                    },
-                    {
-                        "updatedAt": "2021-01-01T00:00:00Z",
-                        "name": "test",
-                        "commitsFailed": 4,
-                        "failureRate": 0.5,
-                        "flakeRate": 0.2,
-                        "avgDuration": 100,
-                        "lastDuration": 100,
-                        "totalFailCount": 4,
-                        "totalFlakyFailCount": 0,
-                        "totalSkipCount": 0,
-                        "totalPassCount": 0,
-                    },
-                ]
-            }
-        )
+        return Response(test_results)

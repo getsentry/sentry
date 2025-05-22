@@ -3189,7 +3189,7 @@ INTERNAL_URLS = [
 
 PREVENT_URLS = [
     re_path(
-        r"^owner/(?P<owner>[^\/]+)/repository/(?P<repository>[^\/]+)/commit/(?P<commit>[^\/]+)/test-results/(?P<test_result_id>[^\/]+)$",
+        r"^owner/(?P<owner>[^\/]+)/repository/(?P<repository>[^\/]+)/commit/(?P<commit>[^\/]+)/test-results/$",
         TestResultsEndpoint.as_view(),
         name="sentry-api-0-test-results",
     ),
