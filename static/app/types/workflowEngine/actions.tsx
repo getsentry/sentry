@@ -15,13 +15,28 @@ export enum ActionType {
   GITHUB_ENTERPRISE = 'github_enterprise',
   JIRA = 'jira',
   JIRA_SERVER = 'jira_server',
-  AZURE_DEVOPS = 'azure_devops',
+  AZURE_DEVOPS = 'vsts',
   EMAIL = 'email',
   SENTRY_APP = 'sentry_app',
   PLUGIN = 'plugin',
   WEBHOOK = 'webhook',
 }
 
+export enum ActionGroup {
+  NOTIFICATION = 'notification',
+  TICKET_CREATION = 'ticket_creation',
+  OTHER = 'other',
+}
+
+export interface ActionHandler {
+  configSchema: Record<string, any>;
+  dataSchema: Record<string, any>;
+  handlerGroup: ActionGroup;
+  type: ActionType;
+  integrations?: Integration[];
+  sentryApp?: SentryAppContext;
+  services?: PluginService[];
+}
 export interface Integration {
   id: string;
   name: string;
@@ -29,4 +44,18 @@ export interface Integration {
     id: string;
     name: string;
   }>;
+}
+
+export interface SentryAppContext {
+  id: string;
+  installationId: string;
+  name: string;
+  status: number;
+  settings?: Record<string, any>;
+  title?: string;
+}
+
+export interface PluginService {
+  name: string;
+  slug: string;
 }
