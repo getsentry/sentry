@@ -288,7 +288,7 @@ class IntegrationExamples:
                                     "featureGate": "integrations-commits",
                                 },
                                 {
-                                    "description": "Create and link Sentry issue groups directly to a GitHub issue or pull\n        request in any of your repositories, providing a quick way to jump from\n        Sentry bug to tracked issue or PR!",
+                                    "description": "Create and link Sentry issue groups directly to a GitHub issue or pull\n        request in any of your repositories, providing a quick way to jump from\n        Sentry bug to tracked issue or PR.",
                                     "featureGate": "integrations-issue-basic",
                                 },
                                 {
@@ -331,7 +331,7 @@ class IntegrationExamples:
                                     "featureGate": "integrations-commits",
                                 },
                                 {
-                                    "description": "Create and link Sentry issue groups directly to a GitHub issue or pull\n        request in any of your repositories, providing a quick way to jump from\n        Sentry bug to tracked issue or PR!",
+                                    "description": "Create and link Sentry issue groups directly to a GitHub issue or pull\n        request in any of your repositories, providing a quick way to jump from\n        Sentry bug to tracked issue or PR.",
                                     "featureGate": "integrations-issue-basic",
                                 },
                                 {
@@ -433,7 +433,7 @@ class IntegrationExamples:
                             "description": "Connect your Sentry organization into one or more of your Jira cloud instances.\nGet started streamlining your bug squashing workflow by unifying your Sentry and\nJira instances together.",
                             "features": [
                                 {
-                                    "description": "Create and link Sentry issue groups directly to a Jira ticket in any of your\n        projects, providing a quick way to jump from a Sentry bug to tracked ticket!",
+                                    "description": "Create and link Sentry issue groups directly to a Jira ticket in any of your\n        projects, providing a quick way to jump from a Sentry bug to tracked ticket.",
                                     "featureGate": "integrations-issue-basic",
                                 },
                                 {
@@ -478,7 +478,7 @@ class IntegrationExamples:
                             "description": "Connect your Sentry organization into one or more of your Jira Server instances.\nGet started streamlining your bug squashing workflow by unifying your Sentry and\nJira instances together.",
                             "features": [
                                 {
-                                    "description": "Create and link Sentry issue groups directly to a Jira ticket in any of your\n        projects, providing a quick way to jump from Sentry bug to tracked ticket!",
+                                    "description": "Create and link Sentry issue groups directly to a Jira ticket in any of your\n        projects, providing a quick way to jump from Sentry bug to tracked ticket.",
                                     "featureGate": "integrations-issue-basic",
                                 },
                                 {
@@ -707,7 +707,7 @@ class IntegrationExamples:
                                     "featureGate": "integrations-commits",
                                 },
                                 {
-                                    "description": "Create and link Sentry issue groups directly to a Azure DevOps work item in any of\n        your projects, providing a quick way to jump from Sentry bug to tracked\n        work item!",
+                                    "description": "Create and link Sentry issue groups directly to a Azure DevOps work item in any of\n        your projects, providing a quick way to jump from Sentry bug to tracked\n        work item.",
                                     "featureGate": "integrations-issue-basic",
                                 },
                                 {

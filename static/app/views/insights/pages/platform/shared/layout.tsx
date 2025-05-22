@@ -10,6 +10,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -22,6 +23,7 @@ import {FRONTEND_LANDING_TITLE} from 'sentry/views/insights/pages/frontend/setti
 import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
+import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 function getFreeTextFromQuery(query: string) {
   const conditions = new MutableSearch(query);
@@ -44,6 +46,7 @@ export function PlatformLandingPageLayout({
   children: React.ReactNode;
   performanceType: 'backend' | 'frontend';
 }) {
+  const location = useLocation();
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const datePageFilterProps = limitMaxPickableDays(organization);
@@ -51,6 +54,7 @@ export function PlatformLandingPageLayout({
   const showOnboarding = onboardingProject !== undefined;
 
   const {query, eventView, handleSearch} = useTransactionNameQuery();
+  const searchBarQuery = getTransactionSearchQuery(location, eventView.query);
 
   return (
     <Feature
@@ -95,7 +99,7 @@ export function PlatformLandingPageLayout({
                     organization={organization}
                     eventView={eventView}
                     onSearch={handleSearch}
-                    query={getFreeTextFromQuery(query)!}
+                    query={getFreeTextFromQuery(searchBarQuery)!}
                   />
                 )}
               </ToolRibbon>
