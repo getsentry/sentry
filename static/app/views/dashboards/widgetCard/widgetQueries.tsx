@@ -37,6 +37,7 @@ type Props = {
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 };
@@ -52,6 +53,7 @@ function WidgetQueries({
   limit,
   onDataFetched,
   onWidgetSplitDecision,
+  onDataFetchStart,
 }: Props) {
   // Discover and Errors datasets are the only datasets processed in this component
   const config = getDatasetConfig(
@@ -168,6 +170,7 @@ function WidgetQueries({
           limit={limit}
           dashboardFilters={dashboardFilters}
           onDataFetched={onDataFetched}
+          onDataFetchStart={onDataFetchStart}
           afterFetchSeriesData={afterFetchSeriesData}
           afterFetchTableData={afterFetchTableData}
           mepSetting={mepSettingContext.metricSettingState}

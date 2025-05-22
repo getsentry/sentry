@@ -1,21 +1,5 @@
 import type {Action} from './actions';
 
-interface SnubaQuery {
-  aggregate: string;
-  dataset: string;
-  id: string;
-  query: string;
-  timeWindow: number;
-  environment?: string;
-}
-
-export interface DataSource {
-  id: string;
-  snubaQuery: SnubaQuery;
-  status: number;
-  subscription?: string;
-}
-
 export enum DataConditionType {
   // operators
   EQUAL = 'eq',
@@ -68,12 +52,19 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
+export const enum DetectorPriorityLevel {
+  HIGH = 75,
+  MEDIUM = 50,
+  LOW = 25,
+}
+
 export interface DataCondition {
   comparison: any;
   comparison_type: DataConditionType;
   id: string;
   condition_result?: any;
 }
+
 export interface DataConditionGroup {
   conditions: DataCondition[];
   id: string;
