@@ -12,7 +12,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose} from 'sentry/icons';
-import {ThemeToggle, SideBySide} from 'sentry/stories'
+import {ThemeToggle, SideBySide} from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export const GRAY_PALETTES = [
@@ -231,7 +231,7 @@ Each hue comes in 4 levels: 400 (dark), 300 (full opacity), 200 (medium opacity)
 
 <ThemeToggle>
   <ColorPalette name="levels" palette={LEVELS_PALETTES} />
-<ThemeToggle>
+</ThemeToggle>
 
 ## Accessibility
 
@@ -264,7 +264,7 @@ Accent colors in the 300 series, except for Yellow 300, satisfy the contrast req
     imgSrc={DontAccentColors}
     text="Use accent colors in the 100 or 200 series for any text"
   />
-<SideBySide>
+</SideBySide>
 
 ### Separation
 
@@ -282,4 +282,4 @@ As such, color is an unreliable way to separate elements. Whenever possible, pro
     imgSrc={DontDifferentiation}
     text="Use color as the only way to differentiate elements"
   />
-<SideBySide>
+</SideBySide>
