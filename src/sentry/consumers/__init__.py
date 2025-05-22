@@ -315,6 +315,15 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {"dataset": "events_analytics_platform"},
     },
+    "eap-items-subscription-results": {
+        "topic": Topic.EAP_ITEMS_SUBSCRIPTIONS_RESULTS,
+        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
+        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "static_args": {
+            "dataset": "events_analytics_platform",
+            "topic_override": "subscription-results-eap-items",
+        },
+    },
     "ingest-events": {
         "topic": Topic.INGEST_EVENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
