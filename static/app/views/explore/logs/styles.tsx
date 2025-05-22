@@ -64,9 +64,7 @@ export const LogTableBodyCell = styled(TableBodyCell)`
     padding: 2px ${space(2)};
   }
 `;
-// height: calc(100vh - 400px - 200px);
-// overflow-y: scroll;
-// height: 525px;
+
 export const LogTableBody = styled(TableBody)<{showHeader?: boolean}>`
   ${p =>
     p.showHeader

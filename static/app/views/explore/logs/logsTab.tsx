@@ -197,7 +197,6 @@ export function LogsTabContent({
               features="organizations:ourlogs-live-refresh"
               renderDisabled={() => (
                 <LogsTable
-                  tableData={tableData}
                   stringAttributes={stringAttributes}
                   numberAttributes={numberAttributes}
                 />

@@ -18,6 +18,7 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
+import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsFields,
   useLogsIsTableFrozen,
@@ -34,7 +35,6 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {UseLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   getLogBodySearchTerms,
   getTableHeaderLabel,
@@ -43,7 +43,6 @@ import {
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
 type LogsTableProps = {
-  tableData: UseLogsQueryResult;
   allowPagination?: boolean;
   numberAttributes?: TagCollection;
   showHeader?: boolean;
@@ -51,7 +50,6 @@ type LogsTableProps = {
 };
 
 export function LogsTable({
-  tableData,
   showHeader = true,
   allowPagination = true,
   stringAttributes,
@@ -62,7 +60,7 @@ export function LogsTable({
   const setCursor = useSetLogsCursor();
   const isTableFrozen = useLogsIsTableFrozen();
 
-  const {data, isError, isPending, pageLinks, meta} = tableData;
+  const {data, isError, isPending, pageLinks, meta} = useLogsPageData().logsQueryResult;
 
   const tableRef = useRef<HTMLTableElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
