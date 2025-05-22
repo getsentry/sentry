@@ -11,7 +11,7 @@ const CODECOV_PLACEHOLDER_REPOS = ['test repo 1', 'test-repo-2', 'Test Repo 3'];
 export interface RepoSelectorProps {
   onChange: (data: string) => void;
   /**
-   * Repository date value
+   * Repository value
    */
   repository: string | null;
   /**
