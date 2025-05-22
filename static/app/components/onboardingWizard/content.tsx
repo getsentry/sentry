@@ -102,20 +102,24 @@ interface TaskStatusIconProps {
 
 function TaskStatusIcon({status, tooltipText}: TaskStatusIconProps) {
   const theme = useTheme();
-  const commonStyle = css`
-    opacity: 50%;
-    color: ${theme.tokens.content.accent};
-  `;
   return (
     <Tooltip title={tooltipText} disabled={!tooltipText} containerDisplayMode="flex">
       {status === 'complete' ? (
         <IconCheckmark
           data-test-id="task-status-icon-complete"
-          css={commonStyle}
+          css={css`
+            color: ${theme.tokens.content.accent};
+          `}
           size="sm"
         />
       ) : (
-        <IconNot data-test-id="task-status-icon-skipped" css={commonStyle} size="sm" />
+        <IconNot
+          data-test-id="task-status-icon-skipped"
+          css={css`
+            color: ${theme.tokens.content.accent};
+          `}
+          size="sm"
+        />
       )}
     </Tooltip>
   );
@@ -256,16 +260,28 @@ function Task({task, hidePanel}: TaskProps) {
     }
   }, [task.status]);
 
-  const isDoneTask = task.status === 'complete' || task.status === 'skipped';
+  if (task.status === 'complete' || task.status === 'skipped') {
+    return (
+      <TaskWrapper
+        css={css`
+          opacity: 50%;
+        `}
+      >
+        <TaskCard
+          icon={<TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />}
+          description={task.description}
+          title={<strong>{<s>{task.title}</s>}</strong>}
+        />
+      </TaskWrapper>
+    );
+  }
 
   return (
     <TaskWrapper>
       <TaskCard
-        onClick={isDoneTask ? undefined : handleClick}
+        onClick={handleClick}
         icon={
-          isDoneTask ? (
-            <TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />
-          ) : task.skippable ? (
+          task.skippable ? (
             <Button
               icon={<IconNot size="sm" color="subText" />}
               aria-label={t('Skip Task')}
@@ -280,13 +296,11 @@ function Task({task, hidePanel}: TaskProps) {
           ) : undefined
         }
         description={task.description}
-        title={<strong>{isDoneTask ? <s>{task.title}</s> : task.title}</strong>}
+        title={<strong>{task.title}</strong>}
         actions={
-          isDoneTask ? undefined : (
-            <ClickIndicator>
-              <IconChevron direction="right" size="xs" color="subText" />
-            </ClickIndicator>
-          )
+          <ClickIndicator>
+            <IconChevron direction="right" size="xs" color="subText" />
+          </ClickIndicator>
         }
       />
       {showSkipConfirmation && (
