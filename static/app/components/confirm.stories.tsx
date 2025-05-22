@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Confirm, {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export default Storybook.story('Confirm', story => {

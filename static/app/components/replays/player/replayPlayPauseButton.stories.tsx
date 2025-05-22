@@ -5,7 +5,7 @@ import ReplaySlugChooser from 'sentry/components/replays/player/__stories__/repl
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import ReplayPlayPauseButton from 'sentry/components/replays/player/replayPlayPauseButton';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('ReplayPlayer', story => {
   story('Default', () => {

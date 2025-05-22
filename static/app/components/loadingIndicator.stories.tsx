@@ -1,5 +1,5 @@
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('LoadingIndicator', story => {
   story('Default', () => (

@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import * as Storybook from 'sentry/components/stories';
 import {t} from 'sentry/locale';
+import * as Storybook from 'sentry/stories';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
 const countryNameToCode = {

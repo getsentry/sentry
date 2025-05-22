@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 import {MarkedText} from './markedText';
 

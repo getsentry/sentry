@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax

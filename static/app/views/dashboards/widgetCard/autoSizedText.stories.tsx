@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 
 export default Storybook.story('AutoSizedText', story => {

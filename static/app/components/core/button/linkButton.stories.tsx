@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/button';

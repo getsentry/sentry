@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {NumberDragInput} from 'sentry/components/core/input/numberDragInput';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/input/numberDragInput';

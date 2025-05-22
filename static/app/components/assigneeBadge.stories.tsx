@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import {uuid4} from '@sentry/core';
 
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
 import {useUser} from 'sentry/utils/useUser';

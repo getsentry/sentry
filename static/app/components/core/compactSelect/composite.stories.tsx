@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
-import * as Storybook from 'sentry/components/stories';
 import {IconSentry, IconStar} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 import {CompositeSelect} from './composite';

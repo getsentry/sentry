@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 import {ScrollCarousel} from './scrollCarousel';

@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import * as Storybook from 'sentry/components/stories';
 import {IconStar} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('CodeSnippet', story => {
   story('Defaults', () => (

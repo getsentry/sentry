@@ -1,5 +1,5 @@
 import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 import type {Deploy} from 'sentry/types/release';
 
 const deploy: Deploy = {

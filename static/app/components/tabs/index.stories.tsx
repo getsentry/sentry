@@ -1,9 +1,9 @@
 import {Fragment, useState} from 'react';
 import range from 'lodash/range';
 
-import * as Storybook from 'sentry/components/stories';
 import type {TabListProps, TabsProps} from 'sentry/components/tabs';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Tabs', story => {
   const TABS = [

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export default Storybook.story('QuestionTooltip', story => {

@@ -7,7 +7,7 @@ import moment from 'moment-timezone';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';

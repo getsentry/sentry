@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 
 import {Flex} from 'sentry/components/container/flex';
 import Form from 'sentry/components/forms/form';
-import * as Storybook from 'sentry/components/stories';
 import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import {FormSection} from 'sentry/components/workflowEngine/form/section';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export default Storybook.story('Form Controls', story => {

@@ -8,8 +8,8 @@ import {
   KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
-import * as Storybook from 'sentry/components/stories';
 import {IconCodecov, IconEdit, IconSentry, IconSettings} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('KeyValueData', story => {
   story('Usage', () => (

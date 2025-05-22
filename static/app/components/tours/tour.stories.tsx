@@ -9,7 +9,6 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import * as Storybook from 'sentry/components/stories';
 import {
   TourContextProvider,
   type TourContextProviderProps,
@@ -17,6 +16,7 @@ import {
 } from 'sentry/components/tours/components';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {IconStar} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import type {Color} from 'sentry/utils/theme';
 

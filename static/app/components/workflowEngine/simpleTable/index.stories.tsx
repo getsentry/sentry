@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import moment from 'moment-timezone';
 
-import * as Storybook from 'sentry/components/stories';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
+import * as Storybook from 'sentry/stories';
 
 interface Data {
   action: string;

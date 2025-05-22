@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
 import {Select} from 'sentry/components/core/select';
-import * as Storybook from 'sentry/components/stories';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
+import * as Storybook from 'sentry/stories';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/select';

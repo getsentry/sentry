@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 
 import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import * as Storybook from 'sentry/components/stories';
 import {IconClose, IconSentry, IconStar} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax

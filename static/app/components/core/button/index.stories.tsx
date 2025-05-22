@@ -1,8 +1,8 @@
 import {useTheme} from '@emotion/react';
 
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import * as Storybook from 'sentry/components/stories';
 import {IconDelete} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/button';

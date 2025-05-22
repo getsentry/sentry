@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import * as Storybook from 'sentry/components/stories';
 import StructuredEventData from 'sentry/components/structuredEventData';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('StructuredEventData', story => {
   story('Default', () => {

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import LoadingError from 'sentry/components/loadingError';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('LoadingError', story => {
   story('Default', () => {

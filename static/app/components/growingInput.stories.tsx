@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Input} from 'sentry/components/core/input';
 import {GrowingInput} from 'sentry/components/growingInput';
 import {Slider} from 'sentry/components/slider';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('GrowingInput', story => {
   story('Uncontrolled', () => {

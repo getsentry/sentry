@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import * as Storybook from 'sentry/components/stories';
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 

@@ -3,7 +3,7 @@ import type {Range} from 'react-date-range';
 
 import {DatePicker, DateRangePicker} from 'sentry/components/calendar';
 import ExternalLink from 'sentry/components/links/externalLink';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Calendar', story => {
   story('DatePicker', () => {

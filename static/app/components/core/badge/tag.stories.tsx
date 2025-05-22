@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import * as Storybook from 'sentry/components/stories';
 import {IconCheckmark, IconFire, IconSentry} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax

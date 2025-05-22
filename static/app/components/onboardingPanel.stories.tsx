@@ -6,7 +6,7 @@ import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('OnboardingPanel', story => {
   story('Basics', () => {

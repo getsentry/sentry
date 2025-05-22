@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import * as Storybook from 'sentry/components/stories';
 import StructuredEventData from 'sentry/components/structuredEventData';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import type {SyntaxHighlightLine} from 'sentry/utils/usePrismTokens';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';

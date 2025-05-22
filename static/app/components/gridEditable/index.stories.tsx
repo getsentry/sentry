@@ -4,8 +4,8 @@ import {Button} from 'sentry/components/core/button';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import useQueryBasedColumnResize from 'sentry/components/gridEditable/useQueryBasedColumnResize';
-import * as Storybook from 'sentry/components/stories';
 import {backend, frontend} from 'sentry/data/platformCategories';
+import * as Storybook from 'sentry/stories';
 import {useLocation} from 'sentry/utils/useLocation';
 
 interface ExampleDataItem {

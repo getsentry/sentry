@@ -2,7 +2,7 @@ import {Fragment, useEffect} from 'react';
 
 import Placeholder from 'sentry/components/placeholder';
 import SeenByList from 'sentry/components/seenByList';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useUser} from 'sentry/utils/useUser';
 

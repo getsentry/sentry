@@ -1,7 +1,7 @@
 import {Fragment, useCallback} from 'react';
 
-import * as Storybook from 'sentry/components/stories';
 import StructuredEventData from 'sentry/components/structuredEventData';
+import * as Storybook from 'sentry/stories';
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
 import useOrganization from 'sentry/utils/useOrganization';
 

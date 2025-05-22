@@ -4,7 +4,7 @@ import {
   FeatureBadge,
   type FeatureBadgeProps,
 } from 'sentry/components/core/badge/featureBadge';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('FeatureBadge', story => {
   story('Types', () => (

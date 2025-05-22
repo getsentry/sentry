@@ -5,9 +5,9 @@ import {PlatformIcon, platforms} from 'platformicons';
 import {Input} from 'sentry/components/core/input';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
-import * as Storybook from 'sentry/components/stories';
 import * as Icons from 'sentry/icons';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import {
   IdentityIcon,

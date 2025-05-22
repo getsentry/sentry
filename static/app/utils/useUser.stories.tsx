@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import * as Storybook from 'sentry/components/stories';
 import StructuredEventData from 'sentry/components/structuredEventData';
+import * as Storybook from 'sentry/stories';
 
 import {useUser} from './useUser';
 

@@ -1,5 +1,5 @@
 import LoadingTriangle from 'sentry/components/loadingTriangle';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('LoadingTriangle', story => {
   story('Default', () => (

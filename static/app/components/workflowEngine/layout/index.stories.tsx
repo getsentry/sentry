@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import * as Storybook from 'sentry/components/stories';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';
 import {IconAdd, IconEdit} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 interface LayoutProps {

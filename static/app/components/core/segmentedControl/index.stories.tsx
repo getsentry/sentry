@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import * as Storybook from 'sentry/components/stories';
 import {IconStats} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('SegmentedControl', story => {
   story('Controlled Value', () => {

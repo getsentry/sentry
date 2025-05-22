@@ -4,7 +4,7 @@ import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceCon
 import ReplaySlugChooser from 'sentry/components/replays/player/__stories__/replaySlugChooser';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('ReplayPlayerMeasurer', story => {
   story('measure=both, the default, container has fixed height', () => {

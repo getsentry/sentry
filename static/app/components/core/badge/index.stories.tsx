@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Badge} from 'sentry/components/core/badge';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/badge';

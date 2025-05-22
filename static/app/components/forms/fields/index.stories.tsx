@@ -1,6 +1,6 @@
 import ChoiceMapperField from 'sentry/components/forms/fields/choiceMapperField';
 import Form from 'sentry/components/forms/form';
-import * as Storybook from 'sentry/components/stories';
+import * as Storybook from 'sentry/stories';
 import useProjects from 'sentry/utils/useProjects';
 
 import BlankField from './blankField';
