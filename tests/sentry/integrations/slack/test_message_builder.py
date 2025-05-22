@@ -8,6 +8,7 @@ import orjson
 from django.urls import reverse
 from urllib3.response import HTTPResponse
 
+from sentry.autofix.utils import SeerAutomationSource
 from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
@@ -995,7 +996,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
             blocks = SlackIssuesMessageBuilder(group).build()
 
-            mock_get_summary.assert_called_once_with(group, source="alert")
+            mock_get_summary.assert_called_once_with(group, source=SeerAutomationSource.ALERT)
 
             # Verify that the original title is \\ present
             assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
