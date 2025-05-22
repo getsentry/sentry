@@ -10,6 +10,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeValuesRequest,
 )
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType as ProtoTraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
@@ -20,7 +21,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_spans_fields import BaseSpanFieldValuesAutocompletionExecutor
 from sentry.api.event_search import translate_escape_sequences
-from sentry.api.paginator import ChainPaginator
+from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -35,6 +36,40 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
+from sentry.utils.cursors import Cursor, CursorResult
+
+
+class TraceItemAttributesNamesPaginator:
+    """
+    This is a bit of a weird paginator.
+
+    The trace item attributes RPC returns a list of attribute names from the
+    database. But depending on the item type, it is possible that there are some
+    hard coded attribute names that gets appended to the end of the results.
+    Because of that, the number of results returned can exceed limit + 1.
+
+    To handle this nicely, here we choose to return the full set of results
+    even if it exceeds limit + 1.
+    """
+
+    def __init__(self, data_fn):
+        self.data_fn = data_fn
+
+    def get_result(self, limit, cursor=None):
+        if limit <= 0:
+            raise ValueError(f"invalid limit for paginator, expected >0, got {limit}")
+
+        offset = cursor.offset if cursor is not None else 0
+        # Request 1 more than limit so we can tell if there is another page
+        data = self.data_fn(offset=offset, limit=limit + 1)
+        assert isinstance(data, list)
+        has_more = len(data) >= limit + 1
+
+        return CursorResult(
+            data,
+            prev=Cursor(0, max(0, offset - limit), True, offset > 0),
+            next=Cursor(0, max(0, offset + limit), False, has_more),
+        )
 
 
 class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBase):
@@ -166,32 +201,28 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             else AttributeKey.Type.TYPE_STRING
         )
 
-        rpc_request = TraceItemAttributeNamesRequest(
-            meta=meta,
-            limit=max_attributes,
-            offset=0,
-            type=attr_type,
-            value_substring_match=value_substring_match,
-            intersecting_attributes_filter=filter,
-        )
+        def data_fn(offset: int, limit: int):
+            rpc_request = TraceItemAttributeNamesRequest(
+                meta=meta,
+                limit=limit,
+                page_token=PageToken(offset=offset),
+                type=attr_type,
+                value_substring_match=value_substring_match,
+                intersecting_attributes_filter=filter,
+            )
 
-        with handle_query_errors():
-            rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+            with handle_query_errors():
+                rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
-        paginator = ChainPaginator(
-            [
-                [
-                    as_attribute_key(attribute.name, serialized["attribute_type"], trace_item_type)
-                    for attribute in rpc_response.attributes
-                    if attribute.name and can_expose_attribute(attribute.name, trace_item_type)
-                ],
-            ],
-            max_limit=max_attributes,
-        )
+            return [
+                as_attribute_key(attribute.name, serialized["attribute_type"], trace_item_type)
+                for attribute in rpc_response.attributes
+                if attribute.name and can_expose_attribute(attribute.name, trace_item_type)
+            ]
 
         return self.paginate(
             request=request,
-            paginator=paginator,
+            paginator=TraceItemAttributesNamesPaginator(data_fn=data_fn),
             on_results=lambda results: serialize(results, request.user),
             default_per_page=max_attributes,
             max_per_page=max_attributes,
@@ -230,24 +261,25 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
             else OURLOG_DEFINITIONS
         )
 
-        executor = TraceItemAttributeValuesAutocompletionExecutor(
-            organization=organization,
-            snuba_params=snuba_params,
-            key=key,
-            query=substring_match,
-            max_span_tag_values=max_attribute_values,
-            definitions=definitions,
-        )
+        def data_fn(offset: int, limit: int):
+            executor = TraceItemAttributeValuesAutocompletionExecutor(
+                organization=organization,
+                snuba_params=snuba_params,
+                key=key,
+                query=substring_match,
+                limit=limit,
+                offset=offset,
+                definitions=definitions,
+            )
 
-        with handle_query_errors():
-            tag_values = executor.execute()
-        tag_values.sort(key=lambda tag: tag.value)
-
-        paginator = ChainPaginator([tag_values], max_limit=max_attribute_values)
+            with handle_query_errors():
+                tag_values = executor.execute()
+            tag_values.sort(key=lambda tag: tag.value)
+            return tag_values
 
         return self.paginate(
             request=request,
-            paginator=paginator,
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
             on_results=lambda results: serialize(results, request.user),
             default_per_page=max_attribute_values,
             max_per_page=max_attribute_values,
@@ -261,10 +293,13 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         snuba_params: SnubaParams,
         key: str,
         query: str | None,
-        max_span_tag_values: int,
+        limit: int,
+        offset: int,
         definitions: ColumnDefinitions,
     ):
-        super().__init__(organization, snuba_params, key, query, max_span_tag_values)
+        super().__init__(organization, snuba_params, key, query, limit)
+        self.limit = limit
+        self.offset = offset
         self.resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=definitions
         )
@@ -326,7 +361,8 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             meta=meta,
             key=self.attribute_key,
             value_substring_match=query,
-            limit=self.max_span_tag_values,
+            limit=self.limit,
+            page_token=PageToken(offset=self.offset),
         )
         rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
 
