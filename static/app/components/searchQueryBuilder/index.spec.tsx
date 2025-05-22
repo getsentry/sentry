@@ -3385,9 +3385,9 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...defaultProps} initialQuery="tags[foo,string]:foo" />
       );
 
-      expect(screen.getByLabelText('tags[foo,string]:foo')).toHaveTextContent(
-        /foo.*is.*foo/
-      );
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
+      ).toHaveTextContent('foo');
 
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
@@ -3405,9 +3405,9 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...defaultProps} initialQuery="tags[bar,number]:<=100" />
       );
 
-      expect(screen.getByLabelText('tags[bar,number]:<=100')).toHaveTextContent(
-        /bar.*is.*<=100/
-      );
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
+      ).toHaveTextContent('bar');
 
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
@@ -3425,9 +3425,9 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...defaultProps} initialQuery="has:tags[foo,string]" />
       );
 
-      expect(await screen.findByLabelText('has:tags[foo,string]')).toHaveTextContent(
-        /^has.*foo$/
-      );
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('foo');
 
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit value for filter: has'})
@@ -3444,9 +3444,9 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...defaultProps} initialQuery="has:tags[bar,number]" />
       );
 
-      expect(await screen.findByLabelText('has:tags[bar,number]')).toHaveTextContent(
-        /^has.*bar$/
-      );
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('bar');
 
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit value for filter: has'})

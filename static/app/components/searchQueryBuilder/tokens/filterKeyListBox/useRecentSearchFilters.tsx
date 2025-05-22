@@ -87,16 +87,14 @@ function getFiltersFromRecentSearches(
     })
     .reduce((acc, token) => {
       const filter = getKeyName(token.key);
-      if (acc.hasOwnProperty(filter)) {
-        acc[filter]!.count += 1;
+      if (acc[filter]) {
+        acc[filter].count += 1;
       } else {
         acc[filter] = {
           token,
           count: 1,
         };
       }
-      // // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      // acc[filter] = (acc[filter] ?? 0) + 1;
       return acc;
     }, {} as FilterCounter);
 
