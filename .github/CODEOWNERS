@@ -689,7 +689,10 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 # End of preprod
 
 ## Frontend Platform (keep last as we want highest specificity)
-/static/app/utils/theme/                              @getsentry/design-engineering
 /static/app/components/core/                          @getsentry/design-engineering
-/static/app/icons/                                    @getsentry/design-engineering
+/static/app/utils/theme/                              @getsentry/design-engineering
+/static/app/icons/
+## Storybook                         @getsentry/design-engineering
+/static/app/components/stories/                       @getsentry/design-engineering
+/static/app/views/stories/                            @getsentry/design-engineering
 ## End of Frontend Platform
