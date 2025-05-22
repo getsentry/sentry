@@ -126,8 +126,6 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   align-items: center;
-  padding-left: ${space(0.75)};
-  width: 100%;
   padding-right: ${space(0.5)};
   position: relative;
   gap: 0;
@@ -151,10 +149,6 @@ const StyledReorderItem = styled(Reorder.Item, {
   position: relative;
   background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
   border-radius: ${p => p.theme.borderRadius};
-  list-style: none;
-  display: flex;
-  align-items: center;
-  margin-bottom: ${space(0.25)};
 `;
 
 const GrabHandleWrapper = styled('div')`
