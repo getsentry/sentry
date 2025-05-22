@@ -355,6 +355,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "installationId": str(self.sentry_app_installation.id),
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
                     "settings": ANY,
+                    "title": ANY,
                 },
             },
             {
@@ -458,6 +459,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "installationId": str(self.sentry_app_installation.id),
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
                     "settings": ANY,
+                    "title": ANY,
                 },
             },
             {
