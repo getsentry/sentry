@@ -146,9 +146,3 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
         return None
 
     return AutofixState.validate(result.get("state", None))
-
-
-class SeerAutomationSource(enum.Enum):
-    ISSUE_DETAILS = "issue_details"
-    ALERT = "alert"
-    POST_PROCESS = "post_process"
