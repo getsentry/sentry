@@ -13,6 +13,7 @@ import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {useIsCreatingProject} from 'sentry/components/onboarding/useCreateProject';
+import {useIsCreatingProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
@@ -134,6 +135,7 @@ export function FrameworkSuggestionModal({
   newOrg,
 }: FrameworkSuggestionModalProps) {
   const isCreatingProject = useIsCreatingProject();
+  const isCreatingProjectRules = useIsCreatingProjectRules();
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
   >(selectedPlatform);
@@ -306,7 +308,11 @@ export function FrameworkSuggestionModal({
         </StyledPanel>
       </Body>
       <Footer>
-        <Button priority="primary" onClick={debounceHandleClick} busy={isCreatingProject}>
+        <Button
+          priority="primary"
+          onClick={debounceHandleClick}
+          busy={isCreatingProject || isCreatingProjectRules}
+        >
           {t('Configure SDK')}
         </Button>
       </Footer>

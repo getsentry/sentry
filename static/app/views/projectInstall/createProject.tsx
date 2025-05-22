@@ -18,6 +18,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
+import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import type {Platform} from 'sentry/components/platformPicker';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
@@ -31,7 +32,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -131,12 +131,12 @@ const keyToErrorText: Record<string, string> = {
 };
 
 export function CreateProject() {
-  const api = useApi();
   const navigate = useNavigate();
   const [errors, setErrors] = useState();
   const organization = useOrganization();
   const location = useLocation();
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
+  const createProjectRules = useCreateProjectRules();
   const canUserCreateProject = useCanCreateProject();
   const createProject = useCreateProject();
   const {teams} = useTeams();
@@ -156,19 +156,14 @@ export function CreateProject() {
       const ruleIds = [];
 
       if (alertRuleConfig?.shouldCreateCustomRule) {
-        const ruleData = await api.requestPromise(
-          `/projects/${organization.slug}/${project.slug}/rules/`,
-          {
-            method: 'POST',
-            data: {
-              name: project.name,
-              conditions: alertRuleConfig?.conditions,
-              actions: alertRuleConfig?.actions,
-              actionMatch: alertRuleConfig?.actionMatch,
-              frequency: alertRuleConfig?.frequency,
-            },
-          }
-        );
+        const ruleData = await createProjectRules.mutateAsync({
+          projectSlug: project.slug,
+          name: project.name,
+          conditions: alertRuleConfig?.conditions,
+          actions: alertRuleConfig?.actions,
+          actionMatch: alertRuleConfig?.actionMatch,
+          frequency: alertRuleConfig?.frequency,
+        });
 
         ruleIds.push(ruleData.id);
       }
@@ -188,7 +183,7 @@ export function CreateProject() {
 
       return ruleIds;
     },
-    [organization, api, createNotificationAction]
+    [createNotificationAction, createProjectRules]
   );
 
   const autoFill = useMemo(() => {
@@ -238,7 +233,12 @@ export function CreateProject() {
   ].filter(value => value).length;
 
   const canSubmitForm =
-    !createProject.isPending && canUserCreateProject && formErrorCount === 0;
+    canUserCreateProject &&
+    formErrorCount === 0 &&
+    !createProject.isPending &&
+    !createProject.isError &&
+    !createProjectRules.isPending &&
+    !createProjectRules.isError;
 
   const submitTooltipText = getSubmitTooltipText({
     ...missingValues,
@@ -530,7 +530,9 @@ export function CreateProject() {
                   data-test-id="create-project"
                   priority="primary"
                   disabled={!canSubmitForm}
-                  onClick={() => handleProjectCreation(formData)}
+                  onClick={() =>
+                    canSubmitForm ? handleProjectCreation(formData) : undefined
+                  }
                 >
                   {t('Create Project')}
                 </Button>
