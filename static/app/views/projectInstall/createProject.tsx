@@ -7,6 +7,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import {removeProject} from 'sentry/actionCreators/projects';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -283,6 +284,8 @@ export function CreateProject() {
         return;
       }
 
+      let projectToRollback: Project | undefined;
+
       try {
         const project = await createProject.mutateAsync({
           name: projectName,
@@ -290,6 +293,8 @@ export function CreateProject() {
           default_rules: alertRuleConfig?.defaultRules ?? true,
           firstTeamSlug: team,
         });
+
+        projectToRollback = project;
 
         const ruleIds = await createRules({project, alertRuleConfig});
 
@@ -351,9 +356,27 @@ export function CreateProject() {
             Sentry.captureMessage('Project creation failed');
           });
         }
+
+        if (projectToRollback) {
+          try {
+            // Rolling back the project also deletes its associated alert rules
+            // due to the cascading delete constraint.
+            await removeProject({
+              api,
+              orgSlug: organization.slug,
+              projectSlug: projectToRollback.slug,
+              origin: 'getting_started',
+            });
+          } catch (err) {
+            Sentry.withScope(scope => {
+              scope.setExtra('error', err);
+              Sentry.captureMessage('Failed to rollback project');
+            });
+          }
+        }
       }
     },
-    [createRules, organization, createProject, setCreatedProject, navigate]
+    [createRules, organization, createProject, setCreatedProject, navigate, api]
   );
 
   const handleProjectCreation = useCallback(
