@@ -167,24 +167,26 @@ class SentryPermission(ScopedPermission):
         organization = org_context.organization
         extra = {"organization_id": organization.id, "user_id": user_id}
 
-        if self.is_not_2fa_compliant(request, organization):
-            logger.info(
-                "access.not-2fa-compliant.dry-run",
-                extra=extra,
-            )
-
+        is_token_access_allowed = False
         if request.auth and request.user and request.user.is_authenticated:
             request.access = access.from_request_org_and_scopes(
                 request=request,
                 rpc_user_org_context=org_context,
                 scopes=request.auth.get_scopes(),
             )
-            return
-
-        if request.auth:
+            is_token_access_allowed = True
+        elif request.auth:
             request.access = access.from_rpc_auth(
                 auth=request.auth, rpc_user_org_context=org_context
             )
+            is_token_access_allowed = True
+
+        if is_token_access_allowed:
+            if self.is_not_2fa_compliant(request, organization):
+                logger.info(
+                    "access.not-2fa-compliant.dry-run",
+                    extra=extra,
+                )
             return
 
         request.access = access.from_request_org_and_scopes(
