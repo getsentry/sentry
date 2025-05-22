@@ -72,6 +72,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     additionalFields = [],
   } = options;
   const location = useLocation();
+  const useEap = useInsightsEap();
 
   const query = spanSearch === undefined ? new MutableSearch([]) : spanSearch.copy();
   query.addFilterValue(SPAN_GROUP, groupId);
@@ -144,8 +145,8 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
             SpanIndexedField.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
             ...additionalFields,
           ],
-          sampling: useInsightsEap() ? SAMPLING_MODE.NORMAL : undefined,
-          dataset: useInsightsEap() ? DiscoverDatasets.SPANS_EAP : undefined,
+          sampling: useEap ? SAMPLING_MODE.NORMAL : undefined,
+          dataset: useEap ? DiscoverDatasets.SPANS_EAP : undefined,
           sort: `-${SPAN_SELF_TIME}`,
         },
       },

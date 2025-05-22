@@ -37,6 +37,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     max = undefined,
   } = options;
 
+  const useEap = useInsightsEap();
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
@@ -70,8 +71,8 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           // TODO: transaction.span_id should be a default from the backend
           additionalFields: [...fields, SpanIndexedField.TRANSACTION_SPAN_ID],
           sort: '-timestamp',
-          sampling: useInsightsEap() ? SAMPLING_MODE.NORMAL : undefined,
-          dataset: useInsightsEap() ? DiscoverDatasets.SPANS_EAP : undefined,
+          sampling: useEap ? SAMPLING_MODE.NORMAL : undefined,
+          dataset: useEap ? DiscoverDatasets.SPANS_EAP : undefined,
           referrer,
         },
       },
