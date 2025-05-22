@@ -71,7 +71,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0904_onboarding_task_project_id_idx"),
+        ("sentry", "0911_increase_email_model_email_field_length"),
     ]
 
     operations = [

@@ -9,8 +9,8 @@ from sentry.testutils.cases import SnubaTestCase, TestMigrations
 
 
 class SplitDiscoverDatasetDashboardsSelfHostedTest(TestMigrations, SnubaTestCase):
-    migrate_from = "0904_onboarding_task_project_id_idx"
-    migrate_to = "0905_split_discover_dataset_dashboards_self_hosted"
+    migrate_from = "0911_increase_email_model_email_field_length"
+    migrate_to = "0912_split_discover_dataset_dashboards_self_hosted"
 
     def setup_before_migration(self, apps):
         User = apps.get_model("sentry", "User")
