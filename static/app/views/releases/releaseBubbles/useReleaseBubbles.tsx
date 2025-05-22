@@ -357,6 +357,11 @@ export function useReleaseBubbles({
       min: 0,
       max: 100,
       show: false,
+      // `axisLabel` causes an unwanted whitespace/width on the y-axis
+      axisLabel: {show: false},
+      // Hides an axis line + tooltip when hovering on chart
+      // This is default `false`, but the main y-axis has
+      // `tooltip.trigger=axis` which will cause this to be enabled.
       axisPointer: {show: false},
     }),
     []
