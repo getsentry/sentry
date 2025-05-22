@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0908_increase_email_field_length"),
+        ("sentry", "0909_django_array_field_not_release"),
     ]
 
     operations = [
