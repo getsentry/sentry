@@ -357,6 +357,7 @@ export function useReleaseBubbles({
       min: 0,
       max: 100,
       show: false,
+      axisPointer: {show: false},
     }),
     []
   );
