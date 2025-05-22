@@ -157,7 +157,10 @@ function useFilterTags(
       ...numberAttributes,
       ...stringAttributes,
     };
-    tags.has = getHasTag({...stringAttributes});
+    tags.has = getHasTag({
+      ...numberAttributes,
+      ...stringAttributes,
+    });
     return tags;
   }, [numberAttributes, stringAttributes, functionTags]);
 }

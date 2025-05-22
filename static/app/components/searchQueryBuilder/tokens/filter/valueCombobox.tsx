@@ -55,7 +55,12 @@ import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {type FieldDefinition, FieldKey, FieldValueType} from 'sentry/utils/fields';
+import {
+  type FieldDefinition,
+  FieldKey,
+  FieldValueType,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -194,7 +199,15 @@ function getPredefinedValues({
   }
 
   if (isStringFilterValues(definedValues)) {
-    return [{sectionText: '', suggestions: definedValues.map(value => ({value}))}];
+    return [
+      {
+        sectionText: '',
+        suggestions: definedValues.map(value => ({
+          label: token.filter === FilterType.HAS ? prettifyTagKey(value) : undefined,
+          value,
+        })),
+      },
+    ];
   }
 
   const valuesWithoutSection = definedValues
@@ -854,6 +867,13 @@ export function SearchQueryBuilderValueCombobox({
       onCommit,
     ]);
 
+  const placeholder =
+    token.filter === FilterType.HAS
+      ? prettifyTagKey(token.value.text)
+      : canSelectMultipleValues
+        ? ''
+        : formatFilterValue(token.value);
+
   return (
     <ValueEditing ref={ref} data-test-id="filter-value-editing">
       <SearchQueryBuilderCombobox
@@ -865,7 +885,7 @@ export function SearchQueryBuilderValueCombobox({
         onExit={onCommit}
         inputValue={inputValue}
         filterValue={filterValue}
-        placeholder={canSelectMultipleValues ? '' : formatFilterValue(token.value)}
+        placeholder={placeholder}
         token={token}
         inputLabel={t('Edit filter value')}
         onInputChange={e => setInputValue(e.target.value)}

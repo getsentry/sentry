@@ -6,8 +6,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
-import {AggregationKey, ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
+import {
+  AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {
   DEFAULT_VISUALIZATION,
   DEFAULT_VISUALIZATION_FIELD,

@@ -12,7 +12,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {classifyTagKey} from 'sentry/utils/discover/fields';
+import {classifyTagKey} from 'sentry/utils/fields';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';

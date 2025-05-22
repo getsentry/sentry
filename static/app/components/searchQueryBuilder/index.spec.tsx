@@ -11,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
@@ -85,9 +86,17 @@ const FILTER_KEYS: TagCollection = {
     key: 'uncategorized_tag',
     name: 'uncategorized_tag',
   },
+  'tags[foo,string]': {
+    key: 'tags[foo,string]',
+    name: 'foo',
+  },
+  'tags[bar,string]': {
+    key: 'tags[bar,string]',
+    name: 'bar',
+  },
 };
 
-const FITLER_KEY_SECTIONS: FilterKeySection[] = [
+const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: FieldKind.FIELD,
     label: 'Category 1',
@@ -132,8 +141,11 @@ describe('SearchQueryBuilder', function () {
   const defaultProps: ComponentProps<typeof SearchQueryBuilder> = {
     getTagValues: jest.fn(() => Promise.resolve([])),
     initialQuery: '',
-    filterKeySections: FITLER_KEY_SECTIONS,
-    filterKeys: FILTER_KEYS,
+    filterKeySections: FILTER_KEY_SECTIONS,
+    filterKeys: {
+      ...FILTER_KEYS,
+      has: getHasTag(FILTER_KEYS),
+    },
     label: 'Query Builder',
     searchSource: '',
   };
@@ -3270,10 +3282,10 @@ describe('SearchQueryBuilder', function () {
   describe('disallowFreeText', function () {
     it('should mark free text invalid', async function () {
       render(
-        <SearchQueryBuilder {...defaultProps} disallowFreeText initialQuery="foo" />
+        <SearchQueryBuilder {...defaultProps} disallowFreeText initialQuery="foobar" />
       );
 
-      expect(screen.getByRole('row', {name: 'foo'})).toHaveAttribute(
+      expect(screen.getByRole('row', {name: 'foobar'})).toHaveAttribute(
         'aria-invalid',
         'true'
       );
@@ -3364,6 +3376,86 @@ describe('SearchQueryBuilder', function () {
       await waitFor(() => {
         expect(getLastInput()).toHaveFocus();
       });
+    });
+  });
+
+  describe('explicitly typed tags', function () {
+    it('renders explicit string tag filter', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="tags[foo,string]:foo" />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
+      ).toHaveTextContent('foo');
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
+      );
+
+      const input = screen.getByPlaceholderText('foo');
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveFocus();
+      await userEvent.keyboard('foo');
+      expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
+    });
+
+    it('renders explicit number tag filter', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="tags[bar,number]:<=100" />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
+      ).toHaveTextContent('bar');
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
+      );
+
+      const input = screen.getByPlaceholderText('bar');
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveFocus();
+      await userEvent.keyboard('bar');
+      expect(screen.getByRole('option', {name: 'bar'})).toBeInTheDocument();
+    });
+
+    it('renders has explicit string tag filter', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="has:tags[foo,string]" />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('foo');
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+
+      expect(screen.getByPlaceholderText('foo')).toHaveFocus();
+      const option = screen.getByRole('option', {name: 'foo'});
+      expect(option).toBeInTheDocument();
+      expect(option).toHaveTextContent('foo');
+    });
+
+    it('renders has explicit number tag filter', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="has:tags[bar,number]" />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      ).toHaveTextContent('bar');
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+
+      expect(screen.getByPlaceholderText('bar')).toHaveFocus();
+      const option = screen.getByRole('option', {name: 'bar'});
+      expect(option).toBeInTheDocument();
+      expect(option).toHaveTextContent('bar');
     });
   });
 });
