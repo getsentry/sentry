@@ -20,7 +20,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
@@ -275,10 +274,6 @@ function ProjectPerformance() {
   }
 
   const requiredScopes: Scope[] = ['project:write'];
-  const hasManageDetectors = organization.features.includes(
-    'performance-manage-detectors'
-  );
-
   const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
   const performanceIssuesEndpoint = `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`;
   const isSuperUser = isActiveSuperuser();
@@ -550,22 +545,8 @@ function ProjectPerformance() {
     },
   ];
 
-  const performanceIssueDetectorAdminFields = hasManageDetectors
-    ? performanceRegressionAdminFields
-    : Object.values(performanceIssueDetectorAdminFieldMapping).concat(
-        performanceRegressionAdminFields
-      );
-
   const project_owner_detector_settings = (hasAccess: boolean): JsonFormObject[] => {
-    const supportMail = ConfigStore.get('supportEmail');
-    const disabledText = hasManageDetectors
-      ? t('Detection of this issue has been disabled.')
-      : t(
-          'Detection of this issue has been disabled. Contact our support team at [link:support@sentry.io].',
-          {
-            link: <ExternalLink href={'mailto:' + supportMail} />,
-          }
-        );
+    const disabledText = t('Detection of this issue has been disabled.');
 
     const disabledReason = hasAccess ? disabledText : null;
 
@@ -895,29 +876,27 @@ function ProjectPerformance() {
     ];
 
     // If the organization can manage detectors, add the admin field to the existing settings
-    return hasManageDetectors
-      ? baseDetectorFields.map(fieldGroup => {
-          const manageField =
-            performanceIssueDetectorAdminFieldMapping[fieldGroup.title as string];
+    return baseDetectorFields.map(fieldGroup => {
+      const manageField =
+        performanceIssueDetectorAdminFieldMapping[fieldGroup.title as string];
 
-          return manageField
-            ? {
-                ...fieldGroup,
-                fields: [
-                  {
-                    ...manageField,
-                    help: t(
-                      'Controls whether or not Sentry should detect this type of issue.'
-                    ),
-                    disabled: !hasAccess,
-                    disabledReason: t('You do not have permission to manage detectors.'),
-                  },
-                  ...fieldGroup.fields,
-                ],
-              }
-            : fieldGroup;
-        })
-      : baseDetectorFields;
+      return manageField
+        ? {
+            ...fieldGroup,
+            fields: [
+              {
+                ...manageField,
+                help: t(
+                  'Controls whether or not Sentry should detect this type of issue.'
+                ),
+                disabled: !hasAccess,
+                disabledReason: t('You do not have permission to manage detectors.'),
+              },
+              ...fieldGroup.fields,
+            ],
+          }
+        : fieldGroup;
+    });
   };
 
   return (
@@ -1062,7 +1041,7 @@ function ProjectPerformance() {
                 title={t(
                   '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
                 )}
-                fields={performanceIssueDetectorAdminFields}
+                fields={performanceRegressionAdminFields}
                 disabled={!isSuperUser}
               />
             </Form>
