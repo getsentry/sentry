@@ -8,6 +8,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -18,11 +19,13 @@ import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/s
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
-export function DurationWidget() {
+export default function OverviewApiLatencyChartWidget(props: LoadableChartWidgetProps) {
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
-  const pageFilterChartParams = usePageFilterChartParams();
-  const releaseBubbleProps = useReleaseBubbleProps();
+  const pageFilterChartParams = usePageFilterChartParams({
+    pageFilters: props.pageFilters,
+  });
+  const releaseBubbleProps = useReleaseBubbleProps(props);
 
   const fullQuery = `span.op:http.server ${query}`.trim();
 
@@ -33,7 +36,8 @@ export function DurationWidget() {
       yAxis: ['avg(span.duration)', 'p95(span.duration)'],
       referrer: Referrer.DURATION_CHART,
     },
-    Referrer.DURATION_CHART
+    Referrer.DURATION_CHART,
+    props.pageFilters
   );
 
   const plottables = useMemo(() => {
@@ -52,6 +56,7 @@ export function DurationWidget() {
       isEmpty={isEmpty}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
+        id: 'overviewApiLatencyChartWidget',
         plottables,
         ...releaseBubbleProps,
       }}
