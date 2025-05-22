@@ -413,8 +413,8 @@ const appConfig: webpack.Configuration = {
   resolveLoader: {
     alias: {
       'type-loader': STORYBOOK_TYPES
-        ? path.resolve(__dirname, 'static/app/views/stories/type-loader.ts')
-        : path.resolve(__dirname, 'static/app/views/stories/noop-type-loader.ts'),
+        ? path.resolve(__dirname, 'static/app/stories/type-loader.ts')
+        : path.resolve(__dirname, 'static/app/stories/noop-type-loader.ts'),
     },
   },
 

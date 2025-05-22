@@ -7,11 +7,10 @@ import PageBanner from 'sentry/components/alerts/pageBanner';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ExternalLink from 'sentry/components/links/externalLink';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {IconBroadcast} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('PageBanner', story => {
+export default Storybook.story('PageBanner', story => {
   const storiesButton = (
     <LinkButton
       external
@@ -80,7 +79,7 @@ export default storyBook('PageBanner', story => {
             flexGrow: <var>{flexGrow ? 1 : 0}</var>
           </Button>
         </p>
-        <SizingWindow>
+        <Storybook.SizingWindow>
           <PageBanner
             style={{flexGrow: flexGrow ? 1 : 0}}
             button={storiesButton}
@@ -90,7 +89,7 @@ export default storyBook('PageBanner', story => {
             image={replaysDeadRageBackground}
             title="UI Library Available"
           />
-        </SizingWindow>
+        </Storybook.SizingWindow>
       </Fragment>
     );
   });
