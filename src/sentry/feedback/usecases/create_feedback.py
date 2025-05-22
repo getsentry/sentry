@@ -390,6 +390,7 @@ def create_feedback_issue(
     if user_email and "user.email" not in event_fixed["tags"]:
         event_fixed["tags"]["user.email"] = user_email
 
+    # add the associated_event_id and has_linked_error to tags
     if associated_event_id:
         event_fixed["tags"]["associated_event_id"] = associated_event_id
         event_fixed["tags"]["has_linked_error"] = "true"
