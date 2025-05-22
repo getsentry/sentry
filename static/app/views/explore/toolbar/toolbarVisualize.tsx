@@ -191,7 +191,7 @@ function VisualizeDropdown({
   });
   const fieldOptions = lockOptions ? countFieldOptions : defaultFieldOptions;
 
-  const aggregateOptions: Array<SelectOption<AggregationKey>> = useMemo(() => {
+  const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return {
         label: aggregate,
