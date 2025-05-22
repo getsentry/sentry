@@ -44,6 +44,10 @@ VERSIONS = [
 ]
 LATEST_VERSION = VERSIONS[-1]
 
+# A delimiter to insert between rulesets in the base64 represenation of enhancements (by spec,
+# base64 strings never contain '#')
+BASE64_ENHANCEMENTS_DELIMITER = b"#"
+
 VALID_PROFILING_MATCHER_PREFIXES = (
     "stack.abs_path",
     "path",  # stack.abs_path alias
@@ -807,7 +811,14 @@ class Enhancements:
     @cached_property
     def base64_string(self) -> str:
         """A base64 string representation of the enhancements object"""
-        base64_bytes = self._get_base64_bytes_from_rules(self.rules)
+        rulesets = [self.rules]
+
+        if self.run_split_enhancements:
+            rulesets.extend([self.classifier_rules, self.contributes_rules])
+
+        base64_bytes = BASE64_ENHANCEMENTS_DELIMITER.join(
+            self._get_base64_bytes_from_rules(ruleset) for ruleset in rulesets
+        )
         base64_str = base64_bytes.decode("ascii")
         return base64_str
 
@@ -845,13 +856,23 @@ class Enhancements:
         with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
             metrics_timer_tags.update({"source": "base64_string", "referrer": referrer})
 
-            bytes_str = (
+            raw_bytes_str = (
                 base64_string.encode("ascii", "ignore")
                 if isinstance(base64_string, str)
                 else base64_string
             )
 
-            unsplit_config = cls._get_config_from_base64_bytes(bytes_str)
+            # For now, only one encoded config structure is included in the base64 string, and since
+            # the delimiter consists of characters which can't appear in a base64 string, splitting
+            # like this has the same effect as just putting `raw_bytes_str` into a one-item list
+            bytes_strs = raw_bytes_str.split(BASE64_ENHANCEMENTS_DELIMITER)
+            configs = [cls._get_config_from_base64_bytes(bytes_str) for bytes_str in bytes_strs]
+
+            unsplit_config = configs[0]
+            split_configs = None
+
+            if len(configs) == 3:
+                split_configs = (configs[1], configs[2])
 
             version = unsplit_config.version
             bases = unsplit_config.bases
@@ -861,6 +882,7 @@ class Enhancements:
             return cls(
                 rules=unsplit_config.rules,
                 rust_enhancements=unsplit_config.rust_enhancements,
+                split_enhancement_configs=split_configs,
                 version=version,
                 bases=bases,
             )
