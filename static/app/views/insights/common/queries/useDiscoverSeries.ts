@@ -66,9 +66,15 @@ export const useEAPSeries = <
     | string[],
 >(
   options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string
+  referrer: string,
+  pageFilters?: PageFilters
 ) => {
-  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_EAP_RPC, referrer);
+  return useDiscoverSeries<Fields>(
+    options,
+    DiscoverDatasets.SPANS_EAP_RPC,
+    referrer,
+    pageFilters
+  );
 };
 
 export const useMetricsSeries = <Fields extends MetricsProperty[]>(
