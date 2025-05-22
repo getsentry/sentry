@@ -12,7 +12,7 @@ from sentry.seer.anomaly_detection.types import (
     AnomalyType,
 )
 from sentry.snuba.models import QuerySubscription
-from sentry.workflow_engine.models import Condition, DataPacket, DataSource
+from sentry.workflow_engine.models import Condition, DataPacket
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel
 
@@ -22,6 +22,12 @@ SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
+
+SEER_EVALUATION_TO_DETECTOR_PRIORITY = {
+    AnomalyType.HIGH_CONFIDENCE.value: DetectorPriorityLevel.HIGH,
+    AnomalyType.LOW_CONFIDENCE.value: DetectorPriorityLevel.MEDIUM,
+    AnomalyType.NONE.value: DetectorPriorityLevel.OK,
+}
 
 
 # placeholder until we create this in the workflow engine model
@@ -37,22 +43,18 @@ class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
         "properties": {
             "sensitivity": {
                 "type": "string",
-                "enum": [sensitivity.value for sensitivity in AnomalyDetectionSensitivity],
+                "enum": [*AnomalyDetectionSensitivity],
             },
             "seasonality": {
                 "type": "string",
-                "enum": [seasonality.value for seasonality in AnomalyDetectionSeasonality],
+                "enum": [*AnomalyDetectionSeasonality],
             },
             "threshold_type": {
                 "type": "integer",
-                "enum": [threshold_type.value for threshold_type in AnomalyDetectionThresholdType],
-            },
-            "confidence": {
-                "type": "string",
-                "enum": [AnomalyType.HIGH_CONFIDENCE.value, AnomalyType.LOW_CONFIDENCE.value],
+                "enum": [*AnomalyDetectionThresholdType],
             },
         },
-        "required": ["sensitivity", "seasonality", "threshold_type", "confidence"],
+        "required": ["sensitivity", "seasonality", "threshold_type"],
         "additionalProperties": False,
     }
 
@@ -61,24 +63,17 @@ class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
         sensitivity = comparison["sensitivity"]
         seasonality = comparison["seasonality"]
         threshold_type = comparison["threshold_type"]
-        confidence = comparison["confidence"]
 
         subscription: QuerySubscription = QuerySubscription.objects.get(id=update.source_id)
-        data_source = DataSource.objects.filter(
-            source_id=update.source_id,
-        ).first()
-        if data_source is None:
-            # this should not happen
-            raise DetectorError("DataSource does not exist.")
 
         subscription_update = update.packet
-        source_id = {
-            "data_packet_source_id": update.source_id,
-            "data_packet_type": data_source.type,
-        }
 
         anomaly_data = get_anomaly_data_from_seer(
-            sensitivity, seasonality, threshold_type, subscription, subscription_update, source_id
+            sensitivity=sensitivity,
+            seasonality=seasonality,
+            threshold_type=threshold_type,
+            subscription=subscription,
+            subscription_update=subscription_update,
         )
         # covers both None and []
         if not anomaly_data:
@@ -91,4 +86,4 @@ class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
         elif anomaly_type is None:
             raise DetectorError("Seer response contained no evaluation data")
 
-        return anomaly_type == confidence
+        return SEER_EVALUATION_TO_DETECTOR_PRIORITY[anomaly_type]

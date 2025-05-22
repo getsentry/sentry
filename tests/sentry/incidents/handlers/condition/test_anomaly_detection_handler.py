@@ -51,10 +51,9 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
-                "sensitivity": AnomalyDetectionSensitivity.MEDIUM.value,
-                "seasonality": AnomalyDetectionSeasonality.AUTO.value,
-                "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW.value,
-                "confidence": AnomalyType.HIGH_CONFIDENCE.value,
+                "sensitivity": AnomalyDetectionSensitivity.MEDIUM,
+                "seasonality": AnomalyDetectionSeasonality.AUTO,
+                "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
             },
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=self.workflow_triggers,
@@ -70,7 +69,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
                 {
                     "anomaly": {
                         "anomaly_score": 0.9,
-                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE,
                     },
                     "timestamp": 1,
                     "value": 10,
@@ -90,7 +89,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
                 {
                     "anomaly": {
                         "anomaly_score": 0.2,
-                        "anomaly_type": AnomalyType.LOW_CONFIDENCE.value,
+                        "anomaly_type": AnomalyType.LOW_CONFIDENCE,
                     },
                     "timestamp": 1,
                     "value": 10,

@@ -10,6 +10,10 @@ from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+    DataSourceType,
     DetectAnomaliesRequest,
     DetectAnomaliesResponse,
     TimeSeriesPoint,
@@ -158,21 +162,28 @@ def get_anomaly_data_from_seer_legacy(
 
 
 def get_anomaly_data_from_seer(
-    sensitivity,
-    seasonality,
-    threshold_type,
+    sensitivity: AnomalyDetectionSensitivity,
+    seasonality: AnomalyDetectionSeasonality,
+    threshold_type: AnomalyDetectionThresholdType,
     subscription: QuerySubscription,
     subscription_update: MetricDetectorUpdate,
-    source_id,
 ) -> list[TimeSeriesPoint] | None:
     snuba_query: SnubaQuery = subscription.snuba_query
-    aggregation_value = subscription_update["values"]["value"]
+    aggregation_value = subscription_update["values"].get("value")
+    source_id = subscription.id
+    source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+    if aggregation_value is None:
+        logger.error(
+            "Invalid aggregation value", extra={"source_id": source_id, "source_type": source_type}
+        )
+        return None
 
     extra_data = {
         "subscription_id": subscription.id,
         "organization_id": subscription.project.organization.id,
         "project_id": subscription.project_id,
         "source_id": source_id,
+        "source_type": source_type,
     }
 
     anomaly_detection_config = AnomalyDetectionConfig(
@@ -182,7 +193,8 @@ def get_anomaly_data_from_seer(
         expected_seasonality=seasonality,
     )
     context = AlertInSeer(
-        id=source_id,
+        source_id=source_id,
+        source_type=source_type,
         cur_window=TimeSeriesPoint(
             timestamp=subscription_update["timestamp"].timestamp(), value=aggregation_value
         ),
