@@ -761,8 +761,8 @@ class GitHubInstallationError(StrEnum):
     INSTALLATION_EXISTS = "Github installed on another Sentry organization."
     USER_MISMATCH = "Authenticated user is not the same as who installed the app."
     MISSING_INTEGRATION = "Integration does not exist."
-    INVALID_INSTALLATION = "User does not have access to given installation"
-    FEATURE_NOT_AVAILABLE = "Organization does not have access to this feature"
+    INVALID_INSTALLATION = "User does not have access to given installation."
+    FEATURE_NOT_AVAILABLE = "Your organization does not have access to this feature."
 
 
 def record_event(event: IntegrationPipelineViewType):
@@ -928,7 +928,6 @@ class GithubOrganizationSelection(PipelineView):
             )
 
             if chosen_installation_id := request.GET.get("chosen_installation_id"):
-
                 if chosen_installation_id == "-1":
                     return pipeline.next_step()
 
