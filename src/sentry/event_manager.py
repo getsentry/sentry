@@ -105,13 +105,14 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
-from sentry.receivers.onboarding import record_first_transaction, record_release_received
+from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_insight_span_received,
+    first_transaction_received,
     issue_unresolved,
 )
 from sentry.tasks.process_buffer import buffer_incr
@@ -2483,7 +2484,13 @@ def _record_transaction_info(
             record_event_processed(project, event)
 
             if not skip_send_first_transaction:
-                record_first_transaction(project, event.datetime)
+                set_project_flag_and_signal(
+                    project,
+                    "has_transactions",
+                    first_transaction_received,
+                    event=event,
+                )
+                # record_first_transaction(project, event.datetime)
 
             spans = job["data"]["spans"]
             for module, is_module in INSIGHT_MODULE_FILTERS.items():
