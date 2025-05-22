@@ -18,6 +18,7 @@ from sentry.models.organizationonboardingtask import (
     OrganizationOnboardingTask,
 )
 from sentry.models.project import Project
+from sentry.onboarding_tasks import complete_onboarding_task, has_completed_onboarding_task
 from sentry.signals import (
     alert_rule_created,
     cron_monitor_created,
@@ -99,25 +100,20 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
         platform=project.platform,
     )
 
-    _, created = OrganizationOnboardingTask.objects.update_or_create(
-        organization_id=project.organization_id,
+    task = complete_onboarding_task(
+        organization=project.organization,
         task=OnboardingTask.FIRST_PROJECT,
-        defaults={
-            "user_id": user_id,
-            "status": OnboardingTaskStatus.COMPLETE,
-            "project_id": project.id,
-        },
+        user_id=user_id,
+        project_id=project.id,
     )
+
     # if we updated the task "first project", it means that it already exists and now we want to create the task "second platform"
-    if not created:
-        OrganizationOnboardingTask.objects.update_or_create(
-            organization_id=project.organization_id,
+    if not task:
+        complete_onboarding_task(
+            organization=project.organization,
             task=OnboardingTask.SECOND_PLATFORM,
-            defaults={
-                "user_id": user_id,
-                "status": OnboardingTaskStatus.COMPLETE,
-                "project_id": project.id,
-            },
+            user_id=user_id,
+            project_id=project.id,
         )
         analytics.record(
             "second_platform.added",
@@ -148,26 +144,17 @@ def record_first_event(project, event, **kwargs):
         sdk_name=get_path(event, "sdk", "name"),
     )
 
-    org_has_first_event_task = OrganizationOnboardingTask.objects.filter(
-        organization_id=project.organization_id, task=OnboardingTask.FIRST_EVENT
-    ).first()
-
-    if org_has_first_event_task:
+    if has_completed_onboarding_task(project.organization, OnboardingTask.FIRST_EVENT):
         # We don't need to record a first event for every project.
         # Once a user sends their first event, we assume they've learned the process
         # and completed the quick start task.
         return
 
-    _, created = OrganizationOnboardingTask.objects.get_or_create(
-        organization_id=project.organization_id,
-        task=OnboardingTask.FIRST_EVENT,
-        defaults={
-            "status": OnboardingTaskStatus.COMPLETE,
-            "project_id": project.id,
-        },
+    task = complete_onboarding_task(
+        project.organization, OnboardingTask.FIRST_EVENT, user_id=owner_id, project_id=project.id
     )
 
-    if created:
+    if task:
         analytics.record(
             "first_event.sent",
             user_id=owner_id,
