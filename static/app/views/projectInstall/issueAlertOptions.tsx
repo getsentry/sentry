@@ -62,14 +62,14 @@ const INTERVAL_CHOICES = [
 ];
 
 export type RequestDataFragment = {
-  actionMatch: string;
   actions: Array<Omit<IssueAlertRuleAction, 'label' | 'name' | 'prompt'>>;
   conditions: Array<{id: string; interval: string; value: string}> | undefined;
   defaultRules: boolean;
-  frequency: number;
-  name: string;
   shouldCreateCustomRule: boolean;
   shouldCreateRule: boolean;
+  actionMatch?: string;
+  frequency?: number;
+  name?: string;
 };
 
 export interface IssueAlertOptionsProps {

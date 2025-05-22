@@ -8,7 +8,6 @@ import {PlatformIcon} from 'platformicons';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {removeProject} from 'sentry/actionCreators/projects';
-import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -20,6 +19,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
+import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import type {Platform} from 'sentry/components/platformPicker';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
@@ -133,76 +133,16 @@ const keyToErrorText: Record<string, string> = {
   detail: t('Project details'),
 };
 
-async function rollbackRulesAndProject({
-  api,
-  orgSlug,
-  projSlug,
-  customRuleId,
-  notificationRuleId,
-}: {
-  api: Client;
-  orgSlug: string;
-  customRuleId?: string;
-  notificationRuleId?: string;
-  projSlug?: string;
-}) {
-  if (!projSlug) {
-    return;
-  }
-
-  if (notificationRuleId) {
-    try {
-      await api.requestPromise(
-        `/projects/${orgSlug}/${projSlug}/rules/${notificationRuleId}/`,
-        {method: 'DELETE'}
-      );
-    } catch (error) {
-      Sentry.withScope(scope => {
-        scope.setExtra('error', error);
-        Sentry.captureMessage('Failed to rollback notification rule');
-      });
-    }
-  }
-
-  if (customRuleId) {
-    try {
-      await api.requestPromise(
-        `/projects/${orgSlug}/${projSlug}/rules/${customRuleId}/`,
-        {method: 'DELETE'}
-      );
-    } catch (error) {
-      Sentry.withScope(scope => {
-        scope.setExtra('error', error);
-        Sentry.captureMessage('Failed to rollback custom rule');
-      });
-    }
-  }
-
-  try {
-    await removeProject({
-      api,
-      orgSlug,
-      projectSlug: projSlug,
-      origin: 'getting_started',
-    });
-  } catch (error) {
-    Sentry.withScope(scope => {
-      scope.setExtra('error', error);
-      Sentry.captureMessage('Failed to rollback project');
-    });
-  }
-}
-
 export function CreateProject() {
   const api = useApi();
   const navigate = useNavigate();
   const [errors, setErrors] = useState();
-  const [submitting, setSubmitting] = useState(false);
   const organization = useOrganization();
   const location = useLocation();
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
   const canUserCreateProject = useCanCreateProject();
   const createProject = useCreateProject();
+  const createProjectRules = useCreateProjectRules();
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const referrer = decodeScalar(location.query.referrer);
@@ -217,22 +157,19 @@ export function CreateProject() {
       project,
       alertRuleConfig,
     }: {project: Project} & Pick<FormData, 'alertRuleConfig'>) => {
-      let ruleData: undefined | {id: string};
+      const ruleIds: Array<string | undefined> = [];
 
       if (alertRuleConfig?.shouldCreateCustomRule) {
-        ruleData = await api.requestPromise(
-          `/projects/${organization.slug}/${project.slug}/rules/`,
-          {
-            method: 'POST',
-            data: {
-              name: project.name,
-              conditions: alertRuleConfig?.conditions,
-              actions: alertRuleConfig?.actions,
-              actionMatch: alertRuleConfig?.actionMatch,
-              frequency: alertRuleConfig?.frequency,
-            },
-          }
-        );
+        const customRule = await createProjectRules.mutateAsync({
+          projectSlug: project.slug,
+          name: project.name,
+          actions: alertRuleConfig?.actions,
+          conditions: alertRuleConfig?.conditions,
+          actionMatch: alertRuleConfig?.actionMatch,
+          frequency: alertRuleConfig?.frequency,
+        });
+
+        ruleIds.push(customRule.id);
       }
 
       const notificationRule = await createNotificationAction({
@@ -244,12 +181,11 @@ export function CreateProject() {
         frequency: alertRuleConfig?.frequency,
       });
 
-      return {
-        customRuleId: ruleData?.id,
-        notificationRuleId: notificationRule?.id,
-      };
+      ruleIds.push(notificationRule?.id);
+
+      return ruleIds.filter(defined);
     },
-    [organization, api, createNotificationAction]
+    [createNotificationAction, createProjectRules]
   );
 
   const autoFill = useMemo(() => {
@@ -299,7 +235,7 @@ export function CreateProject() {
   ].filter(value => value).length;
 
   const canSubmitForm =
-    !submitting &&
+    !createProjectRules.isPending &&
     !createProject.isPending &&
     canUserCreateProject &&
     formErrorCount === 0;
@@ -347,22 +283,19 @@ export function CreateProject() {
         return;
       }
 
-      let project: Project | undefined = undefined;
-      let customRuleId: string | undefined = undefined;
-      let notificationRuleId: string | undefined = undefined;
+      let projectToRollback: Project | undefined;
 
       try {
-        setSubmitting(true);
-        project = await createProject.mutateAsync({
+        const project = await createProject.mutateAsync({
           name: projectName,
           platform: selectedPlatform,
           default_rules: alertRuleConfig?.defaultRules ?? true,
           firstTeamSlug: team,
         });
 
-        const rules = await createRules({alertRuleConfig, project});
-        customRuleId = rules.customRuleId;
-        notificationRuleId = rules.notificationRuleId;
+        projectToRollback = project;
+
+        const ruleIds = await createRules({alertRuleConfig, project});
 
         trackAnalytics('project_creation_page.created', {
           organization,
@@ -373,7 +306,7 @@ export function CreateProject() {
               : 'No Rule',
           project_id: project.id,
           platform: selectedPlatform.key,
-          rule_ids: [customRuleId, notificationRuleId].filter(defined),
+          rule_ids: ruleIds,
         });
 
         addSuccessMessage(
@@ -422,15 +355,23 @@ export function CreateProject() {
         setErrors(error.responseJSON);
         addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
-        rollbackRulesAndProject({
-          projSlug: project?.slug,
-          orgSlug: organization.slug,
-          api,
-          customRuleId,
-          notificationRuleId,
-        });
-      } finally {
-        setSubmitting(false);
+        if (projectToRollback) {
+          try {
+            // Rolling back the project also deletes its associated alert rules
+            // due to the cascading delete constraint.
+            await removeProject({
+              api,
+              orgSlug: organization.slug,
+              projectSlug: projectToRollback.slug,
+              origin: 'getting_started',
+            });
+          } catch (err) {
+            Sentry.withScope(scope => {
+              scope.setExtra('error', err);
+              Sentry.captureMessage('Failed to rollback project');
+            });
+          }
+        }
       }
     },
     [organization, createProject, setCreatedProject, navigate, api, createRules]
