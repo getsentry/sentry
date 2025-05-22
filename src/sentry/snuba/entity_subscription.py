@@ -274,7 +274,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             granularity_secs=self.time_window,
         )
         search_resolver = spans_rpc.get_resolver(
-            snuba_params, SearchResolverConfig(ignore_timeseries_hack=True)
+            snuba_params, SearchResolverConfig(stable_timestamp_quantization=False)
         )
 
         rpc_request, _, _ = rpc_dataset_common.get_timeseries_query(

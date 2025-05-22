@@ -119,7 +119,7 @@ def update_timestamps(
     behavior is up to you. Creating two separate almost identical endpoints to allow for both behaviors is also not
     going to happen."
     """
-    if resolver.config.ignore_timeseries_hack:
+    if not resolver.config.stable_timestamp_quantization:
         return None, params
     elif (
         params.start is not None and params.end is not None and params.granularity_secs is not None
