@@ -141,6 +141,10 @@ jobs:
         id: knip
         run: yarn run knip
 
+      - name: knip:prod
+        id: knip:prod
+        run: yarn run knip:prod
+
   frontend-jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     needs: [files-changed]
