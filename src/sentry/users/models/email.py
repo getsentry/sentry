@@ -22,7 +22,7 @@ class Email(Model):
     __relocation_dependencies__ = {"sentry.User"}
     __relocation_custom_ordinal__ = ["email"]
 
-    email = CIEmailField(_("email address"), unique=True, max_length=75)
+    email = CIEmailField(_("email address"), unique=True, max_length=200)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
