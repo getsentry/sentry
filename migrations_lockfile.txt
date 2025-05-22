@@ -21,7 +21,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0910_increase_email_model_email_field_length
+sentry: 0912_make_organizationmemberteam_replica_is_active_true
 
 social_auth: 0001_squashed_0002_default_auto_field
 

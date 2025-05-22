@@ -52,6 +52,7 @@ class SentryAppContext(TypedDict):
     installationId: str
     status: int
     settings: NotRequired[dict[str, Any]]
+    title: NotRequired[str]
 
 
 class ActionHandlerSerializerResponse(TypedDict):
@@ -102,14 +103,17 @@ class ActionHandlerSerializer(Serializer):
         sentry_app_context = kwargs.get("sentry_app_context")
         if sentry_app_context:
             installation = sentry_app_context.installation
+            component = sentry_app_context.component
             sentry_app: SentryAppContext = {
                 "id": str(installation.sentry_app.id),
                 "name": installation.sentry_app.name,
                 "installationId": str(installation.id),
                 "status": installation.sentry_app.status,
             }
-            if sentry_app_context.component:
-                sentry_app["settings"] = sentry_app_context.component.app_schema.get("settings", {})
+            if component:
+                sentry_app["settings"] = component.app_schema.get("settings", {})
+                if component.app_schema.get("title"):
+                    sentry_app["title"] = component.app_schema.get("title")
             result["sentryApp"] = sentry_app
 
         services = kwargs.get("services")
