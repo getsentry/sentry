@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -20,6 +20,7 @@ import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
 interface WidgetTemplatesListProps {
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  setCustomizeFromLibrary: (customizeFromLibrary: boolean) => void;
   setIsPreviewDraggable: (isPreviewDraggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 }
@@ -28,9 +29,11 @@ function WidgetTemplatesList({
   onSave,
   setOpenWidgetTemplates,
   setIsPreviewDraggable,
+  setCustomizeFromLibrary,
 }: WidgetTemplatesListProps) {
+  const theme = useTheme();
   const organization = useOrganization();
-  const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
+  const [selectedWidget, setSelectedWidget] = useState<number | null>(0);
 
   const {dispatch} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
@@ -62,7 +65,7 @@ function WidgetTemplatesList({
   return (
     <Fragment>
       {widgets.map((widget, index) => {
-        const iconColor = getChartColorPalette(widgets.length - 2)?.[index]!;
+        const iconColor = theme.chart.getColorPalette(widgets.length - 2)?.[index]!;
 
         const Icon = getWidgetIcon(widget.displayType);
         const lastWidget = index === widgets.length - 1;
@@ -96,6 +99,7 @@ function WidgetTemplatesList({
                       onClick={e => {
                         e.stopPropagation();
                         setOpenWidgetTemplates(false);
+                        setCustomizeFromLibrary(true);
                         // reset preview when customizing templates
                         setIsPreviewDraggable(false);
                         trackAnalytics(

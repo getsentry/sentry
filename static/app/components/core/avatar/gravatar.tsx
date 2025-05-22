@@ -9,12 +9,13 @@ import {
 } from 'sentry/components/core/avatar/baseAvatarComponentStyles';
 import ConfigStore from 'sentry/stores/configStore';
 
-export interface GravatarProps extends BaseAvatarComponentProps {
+interface GravatarProps extends BaseAvatarComponentProps {
   remoteSize: number;
   gravatarId?: string;
   onError?: () => void;
   onLoad?: () => void;
   placeholder?: string;
+  ref?: React.Ref<HTMLImageElement>;
 }
 
 export function Gravatar({
@@ -26,9 +27,7 @@ export function Gravatar({
   onError,
   onLoad,
   suggested,
-}: GravatarProps & {
-  ref?: React.Ref<HTMLImageElement>;
-}) {
+}: GravatarProps) {
   const [sha256, setSha256] = useState<string | null>(null);
   useEffect(() => {
     if (!isCryptoSubtleDigestAvailable()) {

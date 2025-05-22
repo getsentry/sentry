@@ -5,14 +5,13 @@ import orderBy from 'lodash/orderBy';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {IconClose, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,6 +24,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
+import {usePrefersOldNavWithEnforcedStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface SavedIssueSearchesProps {
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
@@ -175,14 +175,13 @@ function SavedIssueSearches({
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
   const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
-  const prefersStackedNav = usePrefersStackedNav();
+  const prefersOldNavWithEnforcement = usePrefersOldNavWithEnforcedStackedNav();
 
-  if (
-    !isOpen ||
-    isMobile ||
-    prefersStackedNav ||
-    organization.features.includes('issue-stream-custom-views')
-  ) {
+  const shouldShowSavedSearches =
+    !organization.features.includes('issue-stream-custom-views') ||
+    prefersOldNavWithEnforcement;
+
+  if (!isOpen || isMobile || !shouldShowSavedSearches) {
     return null;
   }
 
@@ -327,10 +326,6 @@ const StyledItemButton = styled(Button)`
   line-height: ${p => p.theme.text.lineHeightBody};
 
   padding: ${space(1)} ${space(2)};
-
-  ${ButtonLabel} {
-    justify-content: start;
-  }
 `;
 
 const OverflowMenu = styled(DropdownMenu)`
@@ -376,9 +371,15 @@ const SearchListItem = styled('li')<{hasMenu?: boolean}>`
 
 const TitleDescriptionWrapper = styled('div')`
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  width: 100%;
 `;
 
 const SavedSearchItemTitle = styled('div')`
+  text-align: left;
   font-size: ${p => p.theme.fontSizeLarge};
   ${p => p.theme.overflowEllipsis}
 `;

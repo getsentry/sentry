@@ -35,8 +35,7 @@ devenv-sync:
 
 build-js-po:
 	mkdir -p build
-	rm -rf node_modules/.cache/babel-loader
-	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
+	yarn build-js-po
 
 build-spectacular-docs:
 	@echo "--> Building drf-spectacular openapi spec (combines with deprecated docs)"

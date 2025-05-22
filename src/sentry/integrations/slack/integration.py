@@ -18,16 +18,21 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.slack.metrics import (
+    SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC,
+    SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
-
-from .notifications import SlackNotifyBasicMixin
 
 _logger = logging.getLogger("sentry.integrations.slack")
 
@@ -73,7 +78,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
+class SlackIntegration(NotifyBasicMixin, IntegrationInstallation):
     def get_client(self) -> SlackSdkClient:
         return SlackSdkClient(integration_id=self.model.id)
 
@@ -85,9 +90,18 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
         )
         return {"installationType": metadata_.get("installation_type", default_installation)}
 
+    def send_message(self, channel_id: str, message: str) -> None:
+        client = self.get_client()
+
+        try:
+            client.chat_postMessage(channel=channel_id, text=message)
+            metrics.incr(SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
+        except SlackApiError:
+            metrics.incr(SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC, sample_rate=1.0)
+
 
 class SlackIntegrationProvider(IntegrationProvider):
-    key = "slack"
+    key = IntegrationProviderSlug.SLACK.value
     name = "Slack"
     metadata = metadata
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])

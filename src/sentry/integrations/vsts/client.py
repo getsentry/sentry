@@ -10,7 +10,6 @@ from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
-from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryClient
@@ -172,12 +171,12 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
 
     def request(self, method: str, *args: Any, **kwargs: Any) -> Any:
         api_preview = kwargs.pop("api_preview", False)
-        new_headers = prepare_headers(
+        base_headers = prepare_headers(
             api_version=self.api_version,
             method=method,
             api_version_preview=self.api_version_preview if api_preview else "",
         )
-        kwargs.setdefault("headers", {}).update(new_headers)
+        kwargs["headers"] = {**base_headers, **(kwargs.get("headers", {}))}
 
         return self._request(method, *args, **kwargs)
 
@@ -450,4 +449,19 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
-        raise IntegrationFeatureNotImplementedError
+        response = self.get_cached(
+            path=VstsApiPath.items.format(
+                instance=repo.config["instance"],
+                project=quote(repo.config["project"]),
+                repo_id=quote(repo.config["name"]),
+            ),
+            params={
+                "path": path,
+                "api-version": "7.0",
+                "versionDescriptor.version": ref,
+                "download": "true",
+            },
+            headers={"Accept": "*/*"},
+            raw_response=True,
+        )
+        return response.text

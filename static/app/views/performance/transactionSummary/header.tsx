@@ -5,13 +5,13 @@ import type {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import {TabList} from 'sentry/components/tabs';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -34,6 +34,10 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import {
+  getCurrentLandingDisplay,
+  LandingDisplayField,
+} from 'sentry/views/performance/landing/utils';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
@@ -42,8 +46,6 @@ import {spansRouteWithQuery} from 'sentry/views/performance/transactionSummary/t
 import {tagsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionTags/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
-
-import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 
 import Tab from './tabs';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
@@ -180,6 +182,7 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
+  // Hard-code 90d for the replay tab to surface more interesting data.
   const {getReplayCountForTransaction} = useReplayCountForTransactions({
     statsPeriod: '90d',
   });

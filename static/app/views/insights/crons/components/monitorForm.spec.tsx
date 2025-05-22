@@ -8,13 +8,12 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useMembers} from 'sentry/utils/useMembers';
-import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import MonitorForm from 'sentry/views/insights/crons/components/monitorForm';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
-jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/useTeams');
 jest.mock('sentry/utils/useMembers');
 
@@ -23,19 +22,10 @@ describe('MonitorForm', function () {
 
   const member = MemberFixture({user: UserFixture({name: 'John Smith'})});
   const team = TeamFixture({slug: 'test-team'});
-  const {project, router} = initializeOrg({organization});
+  const {project} = initializeOrg({organization});
 
   beforeEach(() => {
-    jest.mocked(useProjects).mockReturnValue({
-      fetchError: null,
-      fetching: false,
-      hasMore: false,
-      initiallyLoaded: false,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      projects: [project],
-    });
+    ProjectsStore.loadInitialData([project]);
 
     jest.mocked(useTeams).mockReturnValue({
       fetchError: null,
@@ -65,7 +55,9 @@ describe('MonitorForm', function () {
         apiEndpoint={`/organizations/${organization.slug}/monitors/`}
         onSubmitSuccess={jest.fn()}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
@@ -87,7 +79,9 @@ describe('MonitorForm', function () {
         onSubmitSuccess={mockHandleSubmitSuccess}
         submitLabel="Add Monitor"
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'My Monitor');
@@ -188,7 +182,9 @@ describe('MonitorForm', function () {
         onSubmitSuccess={jest.fn()}
         submitLabel="Edit Monitor"
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     // Name and slug

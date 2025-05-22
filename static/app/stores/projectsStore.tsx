@@ -2,10 +2,10 @@ import {createStore} from 'reflux';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
+import {clearQueryCache} from 'sentry/appQueryClient';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-import LatestContextStore from './latestContextStore';
 import type {StrictStoreDefinition} from './types';
 
 type State = {
@@ -85,6 +85,7 @@ const storeConfig: ProjectsStoreDefinition = {
     this.state = {...this.state, projects: newProjects};
 
     this.trigger(new Set([prevProject.id]));
+    clearQueryCache();
   },
 
   onCreateSuccess(project: Project, orgSlug: string) {
@@ -95,6 +96,7 @@ const storeConfig: ProjectsStoreDefinition = {
 
     // Reload organization details since we've created a new project
     fetchOrganizationDetails(this.api, orgSlug);
+    clearQueryCache();
 
     this.trigger(new Set([project.id]));
   },
@@ -113,8 +115,7 @@ const storeConfig: ProjectsStoreDefinition = {
     this.state = {...this.state, projects: newProjects};
 
     this.trigger(new Set([data.id]));
-
-    LatestContextStore.onUpdateProject(newProject);
+    clearQueryCache();
   },
 
   onStatsLoadSuccess(data) {
@@ -137,6 +138,7 @@ const storeConfig: ProjectsStoreDefinition = {
     const newProjects = this.state.projects.filter(p => p.id !== project.id);
     this.state = {...this.state, projects: newProjects};
     this.trigger(new Set([project.id]));
+    clearQueryCache();
   },
 
   /**
@@ -154,6 +156,7 @@ const storeConfig: ProjectsStoreDefinition = {
 
     const affectedProjectIds = projects.map(project => project.id);
     this.trigger(new Set(affectedProjectIds));
+    clearQueryCache();
   },
 
   onRemoveTeam(teamSlug: string, projectSlug: string) {
@@ -165,6 +168,7 @@ const storeConfig: ProjectsStoreDefinition = {
 
     this.removeTeamFromProject(teamSlug, project);
     this.trigger(new Set([project.id]));
+    clearQueryCache();
   },
 
   onAddTeam(team: Team, projectSlug: string) {
@@ -182,6 +186,7 @@ const storeConfig: ProjectsStoreDefinition = {
     this.state = {...this.state, projects: newProjects};
 
     this.trigger(new Set([project.id]));
+    clearQueryCache();
   },
 
   // Internal method, does not trigger
@@ -192,6 +197,7 @@ const storeConfig: ProjectsStoreDefinition = {
       p.id === project.id ? newProject : p
     );
     this.state = {...this.state, projects: newProjects};
+    clearQueryCache();
   },
 
   isLoading() {

@@ -153,7 +153,7 @@ function Hovercard({
   );
 }
 
-const StyledHovercard = styled(Overlay)<React.HTMLAttributes<HTMLDivElement>>`
+const StyledHovercard = styled(Overlay)`
   width: 295px;
   line-height: 1.2;
   h6 {
@@ -180,26 +180,4 @@ const Body = styled('div')`
   word-wrap: break-word;
 `;
 
-const Divider = styled('div')`
-  position: relative;
-  margin-top: ${space(1.5)};
-  margin-bottom: ${space(1)};
-  &:before {
-    display: block;
-    position: absolute;
-    content: '';
-    height: 1px;
-    top: 50%;
-    left: ${space(2)};
-    right: ${space(2)};
-    background: ${p => p.theme.innerBorder};
-    z-index: -1;
-  }
-  h6 {
-    display: inline;
-    padding-right: ${space(1)};
-    background: ${p => p.theme.background};
-  }
-`;
-
-export {Hovercard, Header, Body, Divider};
+export {Hovercard, Header, Body};

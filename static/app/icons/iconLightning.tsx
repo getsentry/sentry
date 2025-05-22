@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconLightning({ref, ...props}: SVGIconProps) {
+function IconLightning(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <polygon points="11.75 2.5 3.75 7.5 6.25 9.25 4.25 13.5 12.25 8.5 9.75 6.75 11.75 2.5" />
       ) : (

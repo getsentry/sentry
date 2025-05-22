@@ -1,7 +1,7 @@
+import ChoiceMapperField from 'sentry/components/forms/fields/choiceMapperField';
+import Form from 'sentry/components/forms/form';
 import storyBook from 'sentry/stories/storyBook';
 import useProjects from 'sentry/utils/useProjects';
-
-import Form from '../form';
 
 import BlankField from './blankField';
 import BooleanField from './booleanField';
@@ -138,13 +138,31 @@ export default storyBook('Form', story => {
           help="This is a team and membor selector field"
           name="myMemberTeamSelectbox"
         />
+        <ChoiceMapperField
+          label="My Choice Mapper"
+          help="This is a choice mapper field"
+          name="myChoiceMapper"
+          mappedColumnLabel="My Mapped Column"
+          formatMessageValue
+          value={{thing_1: 'mapped_1', thing_2: 'mapped_2'}}
+          columnLabels={{thing_1: 'Thing 1', thing_2: 'Thing 2'}}
+          onChange={() => {}}
+          addDropdown={{
+            emptyMessage: 'All items mapped',
+            noResultsMessage: 'No options found',
+            items: [
+              {value: 'mapped_1', label: 'Mapped 1'},
+              {value: 'mapped_2', label: 'Mapped 2'},
+            ],
+          }}
+          mappedSelectors={{}}
+        />
         <SeparatorField />
       </Form>
     );
 
     // TODO: Missing SelectAsyncField
     // TODO: Missing TableField
-    // TODO: Missing ChoiceMapperField
     // TODO: Missing ProjectMapperField
   });
 });

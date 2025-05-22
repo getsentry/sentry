@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingError from 'sentry/components/loadingError';
@@ -90,10 +90,6 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
     );
   };
 
-  const handleEnablePlugin = (plugin: Plugin) => {
-    updatePlugin(plugin, true);
-  };
-
   const handleDisablePlugin = (plugin: Plugin) => {
     updatePlugin(plugin, false);
   };
@@ -151,13 +147,13 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
             <JsonForm
               disabled={!canEditRule}
               title={t('Email Settings')}
-              fields={[fields.subjectTemplate!]}
+              fields={[fields.subjectTemplate]}
             />
 
             <JsonForm
               title={t('Digests')}
               disabled={!canEditRule}
-              fields={[fields.digestsMinDelay!, fields.digestsMaxDelay!]}
+              fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
               renderHeader={() => (
                 <PanelAlert type="info">
                   {t(
@@ -175,7 +171,6 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
               pluginList={(pluginList ?? []).filter(
                 p => p.type === 'notification' && p.hasConfiguration
               )}
-              onEnablePlugin={handleEnablePlugin}
               onDisablePlugin={handleDisablePlugin}
             />
           )}

@@ -7,6 +7,7 @@ import {
   List as ReactVirtualizedList,
   WindowScroller,
 } from 'react-virtualized';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import type {Location} from 'history';
@@ -58,6 +59,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   quickTrace: QuickTraceContextChildrenProps;
   spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
+  theme: Theme;
   traceHasMultipleRoots: boolean;
   traceInfo: TraceInfo;
   traceViewHeaderRef: React.RefObject<HTMLDivElement | null>;
@@ -589,7 +591,10 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
 
         const isLast = payload.isLastSibling;
         const isRoot = type === 'root_span';
-        const spanBarColor: string = pickBarColor(getSpanOperation(span));
+        const spanBarColor: string = pickBarColor(
+          getSpanOperation(span),
+          this.props.theme
+        );
         const numOfSpanChildren = payload.numOfSpanChildren;
 
         acc.outOfViewSpansAbove = [];

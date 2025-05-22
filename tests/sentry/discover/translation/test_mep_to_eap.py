@@ -27,12 +27,24 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "((tags[foo]:10 OR span.duration:11) AND (p95(span.duration):<10)) AND is_transaction:1",
         ),
         pytest.param(
-            "count(   ):<10",
+            "count():<10",
             "(count(span.duration):<10) AND is_transaction:1",
         ),
         pytest.param(
             "sum(c:spans/ai.total_cost@usd):<10",
             "(sum(ai.total_cost):<10) AND is_transaction:1",
+        ),
+        pytest.param(
+            "event.type:transaction AND has:measurement.lcp",
+            "(is_transaction:1 AND has:measurement.lcp) AND is_transaction:1",
+        ),
+        pytest.param(
+            "title:/api/0/foo AND http.method:POST",
+            "(transaction:/api/0/foo AND transaction.method:POST) AND is_transaction:1",
+        ),
+        pytest.param(
+            "title:tasks.spike_protection.run_spike_projection",
+            "(transaction:tasks.spike_protection.run_spike_projection) AND is_transaction:1",
         ),
     ],
 )

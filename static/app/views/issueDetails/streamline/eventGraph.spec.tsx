@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -68,7 +68,7 @@ describe('EventGraph', () => {
   it('displays allows toggling data sets', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
-      disableRouterMocks: true,
+
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',
@@ -109,7 +109,7 @@ describe('EventGraph', () => {
   it('renders the graph using a discover event stats query', async function () {
     render(<EventGraph {...defaultProps} />, {
       organization,
-      disableRouterMocks: true,
+
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',
@@ -142,7 +142,7 @@ describe('EventGraph', () => {
   it('allows filtering by environment, and shows unfiltered stats', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
-      disableRouterMocks: true,
+
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',
@@ -153,25 +153,30 @@ describe('EventGraph', () => {
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
+    await waitFor(() => {
+      expect(mockEventStats).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: [],
+          }),
+        })
+      );
+    });
+
     await userEvent.click(screen.getByRole('row', {name: 'production'}));
 
-    expect(mockEventStats).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['production'],
-        }),
-      })
-    );
     // Also makes request without environment filter
-    expect(mockEventStats).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: [],
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(mockEventStats).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: ['production'],
+          }),
+        })
+      );
+    });
   });
 
   it('updates query from location param change', async function () {
@@ -180,7 +185,7 @@ describe('EventGraph', () => {
 
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
-      disableRouterMocks: true,
+
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',
@@ -212,7 +217,7 @@ describe('EventGraph', () => {
   it('allows filtering by date', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
-      disableRouterMocks: true,
+
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',
@@ -246,7 +251,7 @@ describe('EventGraph', () => {
 
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
-      disableRouterMocks: true,
+
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',

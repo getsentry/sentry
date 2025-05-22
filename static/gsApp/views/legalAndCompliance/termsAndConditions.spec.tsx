@@ -6,7 +6,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import {TermsAndConditions} from 'getsentry/views/legalAndCompliance/termsAndConditions';
 
 describe('TermsAndConditions', function () {
-  const {organization, router, routerProps} = initializeOrg({});
+  const {organization, routerProps} = initializeOrg({});
   const subscription = SubscriptionFixture({organization});
   const policies = PoliciesFixture();
 
@@ -29,9 +29,7 @@ describe('TermsAndConditions', function () {
   });
 
   it('renders redesign changes', async function () {
-    render(<TermsAndConditions {...routerProps} subscription={subscription} />, {
-      router,
-    });
+    render(<TermsAndConditions {...routerProps} subscription={subscription} />);
     expect(await screen.findByText('Terms of Service')).toBeInTheDocument();
 
     // Expect no text at top of 'Terms & Conditions' section

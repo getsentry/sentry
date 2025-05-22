@@ -1,10 +1,12 @@
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
@@ -13,12 +15,13 @@ import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import type {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {
   TimeSeriesWidgetVisualization,
   type TimeSeriesWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-
+import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
 import {
   AVG_COLOR,
   COUNT_COLOR,
@@ -26,28 +29,38 @@ import {
   HTTP_RESPONSE_4XX_COLOR,
   HTTP_RESPONSE_5XX_COLOR,
   THROUGHPUT_COLOR,
-} from '../../colors';
-import {INGESTION_DELAY} from '../../settings';
-import type {DiscoverSeries} from '../queries/useDiscoverSeries';
-import {convertSeriesToTimeseries} from '../utils/convertSeriesToTimeseries';
+} from 'sentry/views/insights/colors';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
-export interface InsightsTimeSeriesWidgetProps {
+export interface InsightsTimeSeriesWidgetProps
+  extends WidgetTitleProps,
+    LoadableChartWidgetProps {
   error: Error | null;
   isLoading: boolean;
   series: DiscoverSeries[];
-  title: string;
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   description?: React.ReactNode;
+  height?: string | number;
+  interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
+  pageFilters?: PageFilters;
+  samples?: Samples;
+  showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
+  showReleaseAs?: 'line' | 'bubble';
   stacked?: boolean;
 }
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
+  const pageFiltersSelection = props.pageFilters || pageFilters.selection;
+  const {releases: releasesWithDate} = useReleaseStats(pageFiltersSelection);
   const releases =
     releasesWithDate?.map(({date, version}) => ({
       timestamp: date,
@@ -55,6 +68,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     })) ?? [];
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
+    showLegend: props.showLegend,
     plottables: (props.series.filter(Boolean) ?? [])?.map(serie => {
       const timeSeries = convertSeriesToTimeseries(serie);
       const PlottableDataConstructor =
@@ -65,20 +79,28 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             : Bars;
 
       return new PlottableDataConstructor(timeSeries, {
-        color: serie.color ?? COMMON_COLORS[timeSeries.field],
+        color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
         delay: INGESTION_DELAY,
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
-        alias: props.aliases?.[timeSeries.field],
+        alias: props.aliases?.[timeSeries.yAxis],
       });
     }),
   };
 
-  const Title = <Widget.WidgetTitle title={props.title} />;
+  if (props.samples) {
+    visualizationProps.plottables.push(props.samples);
+  }
+
+  const Title = props.interactiveTitle ? (
+    props.interactiveTitle()
+  ) : (
+    <Widget.WidgetTitle title={props.title} />
+  );
 
   // TODO: Instead of using `ChartContainer`, enforce the height from the parent layout
   if (props.isLoading) {
     return (
-      <ChartContainer>
+      <ChartContainer height={props.height}>
         <Widget
           Title={Title}
           Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
@@ -89,7 +111,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
   if (props.error) {
     return (
-      <ChartContainer>
+      <ChartContainer height={props.height}>
         <Widget
           Title={Title}
           Visualization={<Widget.WidgetError error={props.error} />}
@@ -100,7 +122,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
   if (props.series.filter(Boolean).length === 0) {
     return (
-      <ChartContainer>
+      <ChartContainer height={props.height}>
         <Widget
           Title={Title}
           Visualization={<Widget.WidgetError error={MISSING_DATA_MESSAGE} />}
@@ -109,15 +131,23 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     );
   }
 
+  const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
+    ? ({
+        releases,
+        showReleaseAs: props.showReleaseAs || 'bubble',
+        onZoom: props.onZoom,
+      } as const)
+    : {};
+
   return (
-    <ChartContainer>
+    <ChartContainer height={props.height}>
       <Widget
         Title={Title}
         Visualization={
           <TimeSeriesWidgetVisualization
-            {...(organization.features.includes('release-bubbles-ui')
-              ? {releases, showReleaseAs: 'bubble'}
-              : {})}
+            id={props.id}
+            pageFilters={props.pageFilters}
+            {...enableReleaseBubblesProps}
             legendSelection={props.legendSelection}
             onLegendSelectionChange={props.onLegendSelectionChange}
             {...visualizationProps}
@@ -128,27 +158,32 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {props.description && (
               <Widget.WidgetDescription description={props.description} />
             )}
-            <Button
-              size="xs"
-              aria-label={t('Open Full-Screen View')}
-              borderless
-              icon={<IconExpand />}
-              onClick={() => {
-                openInsightChartModal({
-                  title: props.title,
-                  children: (
-                    <ModalChartContainer>
-                      <TimeSeriesWidgetVisualization
-                        {...visualizationProps}
-                        legendSelection={props.legendSelection}
-                        onLegendSelectionChange={props.onLegendSelectionChange}
-                        releases={releases ?? []}
-                      />
-                    </ModalChartContainer>
-                  ),
-                });
-              }}
-            />
+            {props.loaderSource !== 'releases-drawer' && (
+              <Button
+                size="xs"
+                aria-label={t('Open Full-Screen View')}
+                borderless
+                icon={<IconExpand />}
+                onClick={() => {
+                  openInsightChartModal({
+                    title: props.title,
+                    children: (
+                      <ModalChartContainer>
+                        <TimeSeriesWidgetVisualization
+                          id={props.id}
+                          {...visualizationProps}
+                          {...enableReleaseBubblesProps}
+                          onZoom={() => {}}
+                          legendSelection={props.legendSelection}
+                          onLegendSelectionChange={props.onLegendSelectionChange}
+                          releases={releases ?? []}
+                        />
+                      </ModalChartContainer>
+                    ),
+                  });
+                }}
+              />
+            )}
           </Widget.WidgetToolbar>
         }
       />
@@ -156,19 +191,24 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   );
 }
 
-const COMMON_COLORS: Record<string, string> = {
-  'spm()': THROUGHPUT_COLOR,
-  'count()': COUNT_COLOR,
-  'avg(span.self_time)': AVG_COLOR,
-  'http_response_rate(3)': HTTP_RESPONSE_3XX_COLOR,
-  'http_response_rate(4)': HTTP_RESPONSE_4XX_COLOR,
-  'http_response_rate(5)': HTTP_RESPONSE_5XX_COLOR,
-  'avg(messaging.message.receive.latency)': CHART_PALETTE[2][1],
-  'avg(span.duration)': CHART_PALETTE[2][2],
+const COMMON_COLORS = (theme: Theme): Record<string, string> => {
+  const colors = theme.chart.getColorPalette(2);
+  return {
+    'epm()': THROUGHPUT_COLOR(theme),
+    'count()': COUNT_COLOR(theme),
+    'avg(span.self_time)': AVG_COLOR(theme),
+    'http_response_rate(3)': HTTP_RESPONSE_3XX_COLOR,
+    'http_response_rate(4)': HTTP_RESPONSE_4XX_COLOR,
+    'http_response_rate(5)': HTTP_RESPONSE_5XX_COLOR,
+    'avg(messaging.message.receive.latency)': colors[1],
+    'avg(span.duration)': colors[2],
+  };
 };
 
-const ChartContainer = styled('div')`
-  height: 220px;
+const ChartContainer = styled('div')<{height?: string | number}>`
+  min-height: 220px;
+  height: ${p =>
+    p.height ? (typeof p.height === 'string' ? p.height : `${p.height}px`) : '220px'};
 `;
 
 const ModalChartContainer = styled('div')`

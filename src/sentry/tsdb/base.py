@@ -116,6 +116,7 @@ class BaseTSDB(Service):
         [
             "get_range",
             "get_sums",
+            "get_timeseries_sums",
             "get_distinct_counts_series",
             "get_distinct_counts_totals",
             "get_frequency_series",
@@ -422,6 +423,7 @@ class BaseTSDB(Service):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        group_on_time: bool = True,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -435,10 +437,10 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def get_sums(
+    def get_timeseries_sums(
         self,
         model: TSDBModel,
-        keys: list[int],
+        keys: Sequence[TSDBKey],
         start: datetime,
         end: datetime,
         rollup: int | None = None,
@@ -448,7 +450,8 @@ class BaseTSDB(Service):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
-    ) -> dict[int, int]:
+        group_on_time: bool = True,
+    ) -> dict[TSDBKey, int]:
         range_set = self.get_range(
             model,
             keys,
@@ -464,6 +467,55 @@ class BaseTSDB(Service):
         )
         sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
+
+    def get_sums_data(
+        self,
+        model: TSDBModel,
+        keys: Sequence[TSDBKey],
+        start: datetime,
+        end: datetime,
+        rollup: int | None = None,
+        environment_ids: Sequence[int] | None = None,
+        conditions=None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
+        group_on_time: bool = True,
+    ) -> Mapping[TSDBKey, int]:
+
+        raise NotImplementedError
+
+    def get_sums(
+        self,
+        model: TSDBModel,
+        keys: Sequence[TSDBKey],
+        start: datetime,
+        end: datetime,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
+        conditions: list[SnubaCondition] | None = None,
+        group_on_time: bool = False,
+    ) -> Mapping[TSDBKey, int]:
+        result: Mapping[TSDBKey, int] = self.get_sums_data(
+            model,
+            keys,
+            start,
+            end,
+            rollup,
+            [environment_id] if environment_id is not None else None,
+            group_on_time=group_on_time,
+            conditions=conditions,
+            use_cache=use_cache,
+            jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
+            referrer_suffix=referrer_suffix,
+        )
+        return result
 
     def _add_jitter_to_series(
         self, series: list[int], start: datetime, rollup: int, jitter_value: int | None
@@ -538,7 +590,7 @@ class BaseTSDB(Service):
     def get_distinct_counts_totals(
         self,
         model: TSDBModel,
-        keys: Sequence[int],
+        keys: Sequence[TSDBKey],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
@@ -548,7 +600,8 @@ class BaseTSDB(Service):
         tenant_ids: dict[str, int | str] | None = None,
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
-    ) -> dict[int, Any]:
+        group_on_time: bool = False,
+    ) -> Mapping[TSDBKey, int]:
         """
         Count distinct items during a time range with optional conditions
         """

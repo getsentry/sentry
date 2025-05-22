@@ -1,6 +1,9 @@
 import logging
 from typing import Any
 
+from rest_framework import status
+
+from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
@@ -34,6 +37,12 @@ from sentry.workflow_engine.models.data_condition import (
 logger = logging.getLogger(__name__)
 
 SKIPPED_CONDITIONS = [Condition.EVERY_EVENT]
+
+
+class UnableToAcquireLockApiError(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "unable_to_acquire_lock"
+    message = "Unable to acquire lock for issue alert migration."
 
 
 class IssueAlertMigrator:
@@ -75,6 +84,7 @@ class IssueAlertMigrator:
         return workflow
 
     def _create_detector_lookup(self) -> Detector:
+
         if self.is_dry_run:
             created = True
             error_detector = Detector.objects.filter(
@@ -82,7 +92,7 @@ class IssueAlertMigrator:
             ).first()
             if error_detector:
                 created = not AlertRuleDetector.objects.filter(
-                    detector=error_detector, rule=self.rule
+                    detector=error_detector, rule_id=self.rule.id
                 ).exists()
             else:
                 error_detector = Detector(type=ErrorGroupType.slug, project=self.project)
@@ -94,7 +104,7 @@ class IssueAlertMigrator:
                 defaults={"config": {}, "name": "Error Detector"},
             )
             _, created = AlertRuleDetector.objects.get_or_create(
-                detector=error_detector, rule=self.rule
+                detector=error_detector, rule_id=self.rule.id
             )
 
         if not created:
@@ -194,7 +204,10 @@ class IssueAlertMigrator:
         no_conditions = len(conditions) == 0
         no_data_conditions = len(data_conditions) == 0
         only_has_every_event_cond = (
-            len(conditions) == 1 and conditions[0]["id"] == EveryEventCondition.id
+            len(
+                [condition for condition in conditions if condition["id"] == EveryEventCondition.id]
+            )
+            > 0
         )
 
         if not self.is_dry_run:
@@ -232,7 +245,7 @@ class IssueAlertMigrator:
             workflow = Workflow.objects.create(**kwargs)
             workflow.update(date_added=self.rule.date_added)
             DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
-            AlertRuleWorkflow.objects.create(rule=self.rule, workflow=workflow)
+            AlertRuleWorkflow.objects.create(rule_id=self.rule.id, workflow=workflow)
 
         return workflow
 

@@ -14,7 +14,7 @@ function renderReleasesSelect({
   onSearch?: (searchTerm: string) => void;
 }) {
   render(
-    <ReleasesContext.Provider
+    <ReleasesContext
       value={{
         releases: [
           ReleaseFixture({
@@ -41,7 +41,7 @@ function renderReleasesSelect({
         selectedReleases={[]}
         handleChangeFilter={handleChangeFilter}
       />
-    </ReleasesContext.Provider>
+    </ReleasesContext>
   );
 }
 
@@ -124,7 +124,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
 
   it('includes Latest Release(s) even if no matching releases', async function () {
     render(
-      <ReleasesContext.Provider
+      <ReleasesContext
         value={{
           releases: [],
           loading: false,
@@ -132,7 +132,7 @@ describe('Dashboards > ReleasesSelectControl', function () {
         }}
       >
         <ReleasesSelectControl selectedReleases={[]} handleChangeFilter={jest.fn()} />
-      </ReleasesContext.Provider>
+      </ReleasesContext>
     );
 
     expect(screen.getByText('All Releases')).toBeInTheDocument();

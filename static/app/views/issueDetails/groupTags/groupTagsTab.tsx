@@ -76,7 +76,7 @@ export function GroupTagsTab() {
 
   const getTagKeyTarget = (tag: SimpleTag) => {
     return {
-      pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}/${tag.key}/`,
+      pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${tag.key}/`,
       query: extractSelectionParameters(location.query),
     };
   };

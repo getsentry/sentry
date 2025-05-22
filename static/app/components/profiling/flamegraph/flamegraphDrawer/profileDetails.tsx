@@ -127,12 +127,12 @@ export function ProfileDetails(props: ProfileDetailsProps) {
           className={detailsTab === 'transaction' ? 'active' : undefined}
         >
           <Button
-            data-title={t('Transaction')}
+            data-title={t('Trace')}
             priority="link"
             size="zero"
             onClick={onTransactionTabClick}
           >
-            {t('Transaction')}
+            {t('Trace')}
           </Button>
         </ProfilingDetailsListItem>
         <ProfilingDetailsListItem
@@ -396,7 +396,7 @@ function ProfileEventDetails({
             return (
               <DetailsRow key={key}>
                 <strong>{label}:</strong>
-                <Link to={makeProjectsPathname({path: '/', orgSlug: organization.slug})}>
+                <Link to={makeProjectsPathname({path: '/', organization})}>
                   <span>
                     <OrganizationAvatar size={12} organization={organization} />{' '}
                     {organization.name}
@@ -436,7 +436,7 @@ function ProfileEventDetails({
                   to={
                     makeProjectsPathname({
                       path: `/${project.slug}/`,
-                      orgSlug: organization.slug,
+                      organization,
                     }) + `?project=${project.id}`
                   }
                 >

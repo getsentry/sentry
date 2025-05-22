@@ -17,6 +17,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import STATUS_LABELS
 from sentry.api.utils import generate_region_url
 from sentry.cache import default_cache
+from sentry.demo_mode.utils import is_demo_user
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -69,6 +70,11 @@ class SetupWizardView(BaseView):
         This opens a page where with an active session fill stuff into the cache
         Redirects to organization whenever cache has been deleted
         """
+        if is_demo_user(request.user):
+            return HttpResponse(status=403)
+        elif not request.user.is_authenticated:
+            return HttpResponse(status=400)
+
         context = {
             "hash": wizard_hash,
             "enableProjectSelection": False,
@@ -128,6 +134,11 @@ class SetupWizardView(BaseView):
         """
         This updates the cache content for a specific hash
         """
+        if is_demo_user(request.user):
+            return HttpResponse(status=403)
+        elif not request.user.is_authenticated:
+            return HttpResponse(status=400)
+
         json_data = json.loads(request.body)
         organization_id = json_data.get("organizationId", None)
         project_id = json_data.get("projectId", None)

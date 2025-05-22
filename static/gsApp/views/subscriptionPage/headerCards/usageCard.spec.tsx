@@ -4,6 +4,8 @@ import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {DataCategory} from 'sentry/types/core';
+
 import {OnDemandBudgetMode} from 'getsentry/types';
 
 import {UsageCard} from './usageCard';
@@ -18,7 +20,7 @@ describe('UsageCard', () => {
       plan: 'am2_team',
     });
 
-    subscription.planDetails.categories = ['errors'];
+    subscription.planDetails.categories = [DataCategory.ERRORS];
 
     const prepaid = 100_000;
     subscription.planDetails.planCategories = {
@@ -50,7 +52,7 @@ describe('UsageCard', () => {
       onDemandMaxSpend: 1000,
     });
 
-    subscription.planDetails.categories = ['errors'];
+    subscription.planDetails.categories = [DataCategory.ERRORS];
 
     const prepaid = 100_000;
     subscription.planDetails.planCategories = {

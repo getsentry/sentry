@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import OrganizationFeatureFlagsNewSecet from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsNewSecret';
+import OrganizationFeatureFlagsNewSecret from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsNewSecret';
 
 describe('OrganizationFeatureFlagsNewSecret', function () {
   const ENDPOINT = '/organizations/org-slug/flags/signing-secrets/';
@@ -20,7 +20,7 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
   });
 
   it('can create secret', async function () {
-    render(<OrganizationFeatureFlagsNewSecet />);
+    render(<OrganizationFeatureFlagsNewSecret />);
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -53,7 +53,7 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
   it('handles API errors when creating secret', async function () {
     jest.spyOn(indicators, 'addErrorMessage');
 
-    render(<OrganizationFeatureFlagsNewSecet />);
+    render(<OrganizationFeatureFlagsNewSecret />);
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,

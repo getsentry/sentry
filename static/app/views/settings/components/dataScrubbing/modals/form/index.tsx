@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -8,10 +9,17 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import type {EventId, KeysOfUnion, Rule, SourceSuggestion} from '../../types';
-import {MethodType, RuleType} from '../../types';
-import {getMethodLabel, getRuleLabel} from '../../utils';
+import type {
+  EventId,
+  KeysOfUnion,
+  Rule,
+  SourceSuggestion,
+} from 'sentry/views/settings/components/dataScrubbing/types';
+import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
+import {
+  getMethodLabel,
+  getRuleLabel,
+} from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import EventIdField from './eventIdField';
 import SelectField from './selectField';
@@ -196,14 +204,14 @@ const SourceGroup = styled('div')<{isExpanded: boolean}>`
   transition-property: height;
   ${p =>
     p.isExpanded &&
-    `
-    border-radius: ${p.theme.borderRadius};
-    border: 1px solid ${p.theme.border};
-    box-shadow: ${p.theme.dropShadowMedium};
-    margin: ${space(2)} 0 ${space(3)} 0;
-    padding: ${space(2)};
-    height: 180px;
-  `}
+    css`
+      border-radius: ${p.theme.borderRadius};
+      border: 1px solid ${p.theme.border};
+      box-shadow: ${p.theme.dropShadowMedium};
+      margin: ${space(2)} 0 ${space(3)} 0;
+      padding: ${space(2)};
+      height: 180px;
+    `}
 `;
 
 const RegularExpression = styled(Input)`

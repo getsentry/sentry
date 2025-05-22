@@ -26,7 +26,7 @@ class GroupHash(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     class State:
-        UNLOCKED = None
+        UNLOCKED: None = None
         LOCKED_IN_MIGRATION = 1
 
     project = FlexibleForeignKey("sentry.Project", null=True)

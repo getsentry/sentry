@@ -74,8 +74,8 @@ export type GrowthEventParameters = {
     item: string;
   };
   'growth.demo_click_docs': Record<string, unknown>;
-  'growth.demo_click_get_started': {cta?: string};
   'growth.demo_click_request_demo': Record<string, unknown>;
+  'growth.demo_click_sign_up': Record<string, unknown>;
   'growth.demo_email_submitted': Record<string, unknown>;
   'growth.demo_modal_clicked_close': Record<string, unknown>;
   'growth.demo_modal_clicked_continue': Record<string, unknown>;
@@ -167,7 +167,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
     'Growth: Clicked Mobile Prompt Ask Teammate',
   'growth.submitted_mobile_prompt_ask_teammate':
     'Growth: Submitted Mobile Prompt Ask Teammate',
-  'growth.demo_click_get_started': 'Growth: Demo Click Get Started',
+  'growth.demo_click_sign_up': 'Growth: Demo Click Sign Up',
   'growth.demo_click_docs': 'Growth: Demo Click Docs',
   'growth.demo_click_request_demo': 'Growth: Demo Click Request Demo',
   'growth.demo_email_submitted': 'Sandbox: Demo Email Submitted',

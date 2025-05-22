@@ -59,7 +59,10 @@ describe('TableView > CellActions', function () {
         title=""
         queryDataset={SavedQueryDatasets.TRANSACTIONS}
       />,
-      {router: context.router}
+      {
+        router: context.router,
+        deprecatedRouterMocks: true,
+      }
     );
   }
 
@@ -133,7 +136,7 @@ describe('TableView > CellActions', function () {
 
     expect(sortLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
+      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
     );
   });
 
@@ -146,7 +149,7 @@ describe('TableView > CellActions', function () {
 
     expect(sortLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&sort=-transaction&statsPeriod=14d&yAxis=p95'
+      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-transaction&statsPeriod=14d&yAxis=p95'
     );
   });
 
@@ -333,11 +336,7 @@ describe('TableView > CellActions', function () {
 
   it('renders trace view link', function () {
     const org = OrganizationFixture({
-      features: [
-        'discover-basic',
-        'performance-discover-dataset-selector',
-        'trace-view-v1',
-      ],
+      features: ['discover-basic', 'trace-view-v1'],
     });
 
     rows = {
@@ -462,7 +461,10 @@ describe('TableView > CellActions', function () {
         measurementKeys={null}
         showTags={false}
         title=""
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
     expect(screen.getByText('222.3 KiB')).toBeInTheDocument();
     expect(screen.getByText('444.3 KB')).toBeInTheDocument();
@@ -504,7 +506,10 @@ describe('TableView > CellActions', function () {
         showTags={false}
         title=""
       />,
-      {router: initialData.router}
+      {
+        router: initialData.router,
+        deprecatedRouterMocks: true,
+      }
     );
     await userEvent.hover(screen.getByText('444.3 KB'));
     const buttons = screen.getAllByRole('button');

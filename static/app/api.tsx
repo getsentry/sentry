@@ -628,10 +628,9 @@ export class Client {
               });
             }
 
-            const shouldSkipErrorHandler =
-              globalErrorHandlers
-                .map(handler => handler(responseMeta, options))
-                .filter(Boolean).length > 0;
+            const shouldSkipErrorHandler = globalErrorHandlers
+              .map(handler => handler(responseMeta, options))
+              .some(Boolean);
 
             if (!shouldSkipErrorHandler) {
               errorHandler(responseMeta, statusText, errorReason);

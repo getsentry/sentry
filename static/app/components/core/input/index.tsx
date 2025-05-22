@@ -8,7 +8,12 @@ import type {FormSize} from 'sentry/utils/theme';
 
 export interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
-    InputStylesProps {}
+    InputStylesProps {
+  ref?: React.Ref<HTMLInputElement>;
+}
+
+export const inputStyles = (p: InputStylesProps & {theme: Theme}) =>
+  p.theme.isChonk ? chonkInputStyles(p as any) : legacyInputStyles(p);
 
 /**
  * Basic input component.
@@ -31,12 +36,10 @@ export const Input = styled(
     nativeSize,
 
     ...props
-  }: InputProps & {
-    ref?: React.Ref<HTMLInputElement>;
-  }) => <input {...props} ref={ref} size={nativeSize} />,
+  }: InputProps) => <input {...props} ref={ref} size={nativeSize} />,
   {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`
-  ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
+  ${inputStyles};
 `;
 
 export interface InputStylesProps {
@@ -47,10 +50,10 @@ export interface InputStylesProps {
   type?: React.HTMLInputTypeAttribute;
 }
 
-const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
+const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   display: block;
   width: 100%;
-  color: ${p.theme.formText};
+  color: ${p.theme.gray400};
   background: ${p.theme.background};
   border: 1px solid ${p.theme.border};
   border-radius: ${p.theme.borderRadius};

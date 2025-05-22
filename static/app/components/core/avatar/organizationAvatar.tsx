@@ -4,15 +4,14 @@ import {explodeSlug} from 'sentry/utils';
 
 export interface OrganizationAvatarProps extends BaseAvatarProps {
   organization?: OrganizationSummary;
+  ref?: React.Ref<HTMLSpanElement>;
 }
 
 export function OrganizationAvatar({
   ref,
   organization,
   ...props
-}: OrganizationAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement>;
-}) {
+}: OrganizationAvatarProps) {
   if (!organization) {
     // @TODO(jonasbadalic): Do we need a placeholder here?
     return null;

@@ -3,7 +3,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -30,7 +30,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 const PAGE_TITLE = t('User Auth Tokens');
 const API_TOKEN_QUERY_KEY = ['/api-tokens/'] as const;
 
-export function ApiTokens() {
+function ApiTokens() {
   const api = useApi();
   const queryClient = useQueryClient();
 

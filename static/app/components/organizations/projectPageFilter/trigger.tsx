@@ -3,13 +3,12 @@ import styled from '@emotion/styled';
 import {Badge} from 'sentry/components/core/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
+import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {PlatformList} from 'sentry/components/platformList';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
-
-import {DesyncedFilterIndicator} from '../pageFilters/desyncedFilter';
 
 interface ProjectPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value'> {
   desynced: boolean;
@@ -26,7 +25,6 @@ export function ProjectPageFilterTrigger({
   nonMemberProjects,
   ready,
   desynced,
-  ref: forwardedRef,
   ...props
 }: ProjectPageFilterTriggerProps) {
   const isMemberProjectsSelected = memberProjects.every(p =>
@@ -75,7 +73,6 @@ export function ProjectPageFilterTrigger({
   return (
     <DropdownButton
       {...props}
-      ref={forwardedRef}
       data-test-id="page-filter-project-selector"
       icon={
         ready &&

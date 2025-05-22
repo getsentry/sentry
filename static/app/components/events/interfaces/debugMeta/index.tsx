@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
@@ -10,6 +11,7 @@ import {
   DebugImageDetails,
   modalCss,
 } from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
+import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
@@ -26,8 +28,6 @@ import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import SearchBarAction from '../searchBarAction';
 
 import Status from './debugImage/status';
 import DebugImage from './debugImage';
@@ -124,6 +124,7 @@ function applyImageFilters(
 }
 
 export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const listRef = useRef<List>(null);
   const panelTableRef = useRef<HTMLDivElement>(null);
@@ -164,6 +165,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       releventImage => {
         return {
           ...releventImage,
+          // 'debug_status' and 'unwind_status' are only used by native platforms
           status: combineStatus(releventImage.debug_status, releventImage.unwind_status),
         };
       }
@@ -251,7 +253,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         const hasActiveFilter = filterSelections.length > 0;
 
         return {
-          emptyMessage: t('Sorry, no images match your search query'),
+          emptyMessage: t('No images match your search query'),
           emptyAction: hasActiveFilter ? (
             <Button
               onClick={() => setFilterState(fs => ({...fs, filterSelections: []}))}
@@ -289,10 +291,10 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             }
           />
         ),
-        {modalCss}
+        {modalCss: modalCss(theme)}
       );
     },
-    [event, groupId, handleReprocessEvent, organization, projectSlug]
+    [event, groupId, handleReprocessEvent, organization, projectSlug, theme]
   );
 
   // This hook replaces the componentDidMount/WillUnmount calls from its class component
@@ -384,14 +386,12 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     />
   );
 
-  const isJSPlatform = event.platform?.includes('javascript');
-
   return (
     <InterimSection
       type={SectionKey.DEBUGMETA}
-      title={isJSPlatform ? t('Source Maps Loaded') : t('Images Loaded')}
+      title={t('Images Loaded')}
       help={t(
-        'A list of dynamic libraries, shared objects or source maps loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
+        'A list of dynamic libraries, shared objects or source maps loaded into process memory at the time of the crash. Images contribute to the application code that is referenced in stack traces.'
       )}
       actions={actions}
       initialCollapse
@@ -399,7 +399,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       {isOpen || hasStreamlinedUI ? (
         <Fragment>
           <StyledSearchBarAction
-            placeholder={isJSPlatform ? t('Search source maps') : t('Search images')}
+            placeholder={t('Search images')}
             onChange={value => DebugMetaStore.updateFilter(value)}
             query={searchTerm}
             filterOptions={showFilters ? filterOptions : undefined}
@@ -441,7 +441,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
       grid-column: 1/-1;
       ${p =>
         !p.isEmpty &&
-        `
+        css`
           display: grid;
           padding: 0;
         `}

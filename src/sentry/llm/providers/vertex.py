@@ -3,6 +3,7 @@ import logging
 import google.auth
 import google.auth.transport.requests
 import requests
+import sentry_sdk
 
 from sentry.llm.exceptions import VertexRequestFailed
 from sentry.llm.providers.base import LlmModelBase
@@ -33,8 +34,13 @@ class VertexProvider(LlmModelBase):
         content = f"{prompt} {message}" if prompt else message
 
         payload = {
-            "instances": [{"content": content}],
-            "parameters": {
+            "contents": {
+                "role": "user",
+                "parts": [
+                    {"text": content},
+                ],
+            },
+            "generationConfig": {
                 "candidateCount": self.candidate_count,
                 "maxOutputTokens": max_output_tokens,
                 "temperature": temperature,
@@ -47,18 +53,15 @@ class VertexProvider(LlmModelBase):
             "Content-Type": "application/json",
         }
         vertex_url = self.provider_config["options"]["url"]
-        vertex_url += usecase_config["options"]["model"] + ":predict"
+        vertex_url += usecase_config["options"]["model"] + ":generateContent"
 
         response = requests.post(vertex_url, headers=headers, json=payload)
 
         if response.status_code != 200:
-            logger.error(
-                "Request failed with status code and response text.",
-                extra={"status_code": response.status_code, "response_text": response.text},
-            )
+            sentry_sdk.set_tag("vertex.response_status_code", response.status_code)
             raise VertexRequestFailed(f"Response {response.status_code}: {response.text}")
 
-        return response.json()["predictions"][0]["content"]
+        return response.json()["candidates"][0]["content"]["parts"][0]["text"]
 
     def _get_access_token(self) -> str:
         # https://stackoverflow.com/questions/53472429/how-to-get-a-gcp-bearer-token-programmatically-with-python

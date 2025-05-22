@@ -21,9 +21,7 @@ function createWrapper(organization: Organization) {
   return function ({children}: {children?: React.ReactNode}) {
     return (
       <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext.Provider value={organization}>
-          {children}
-        </OrganizationContext.Provider>
+        <OrganizationContext value={organization}>{children}</OrganizationContext>
       </QueryClientProvider>
     );
   };
@@ -72,7 +70,7 @@ describe('useTraceItemAttributeValues', () => {
       match: [
         (_url, options) => {
           const query = options?.query || {};
-          return query.query === 'search-query';
+          return query.substringMatch === 'search-query';
         },
       ],
     });

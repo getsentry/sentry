@@ -15,8 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {CrashFreeTimeBreakdown} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-import {displayCrashFreePercent} from '../../../utils';
+import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 type Props = {
   location: Location;
@@ -90,7 +89,7 @@ function TotalCrashFreeUsers({location, organization, projectSlug, version}: Pro
       <SidebarSection.Content>
         <Timeline>
           {timeline.map(row => (
-            <Row key={row.date.toString()}>
+            <Row key={row.date.toISOString()}>
               <InnerRow>
                 <Text bold>{row.date.format('MMMM D')}</Text>
                 <Text bold right>

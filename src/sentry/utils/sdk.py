@@ -18,7 +18,7 @@ from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
-from sentry_sdk.types import Event, Hint
+from sentry_sdk.types import Event, Hint, Log
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
@@ -257,6 +257,12 @@ def before_send(event: Event, _: Hint) -> Event | None:
     return event
 
 
+def before_send_log(log: Log, _: Hint) -> Log | None:
+    if in_random_rollout("ourlogs.sentry-emit-rollout"):
+        return log
+    return None
+
+
 # Patches transport functions to add metrics to improve resolution around events sent to our ingest.
 # Leaving this in to keep a permanent measurement of sdk requests vs ingest.
 def patch_transport_for_instrumentation(transport, transport_name):
@@ -279,6 +285,7 @@ class Dsns(NamedTuple):
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["send_client_reports"] = True
+    sdk_options["add_full_stack"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["before_send"] = before_send
@@ -287,6 +294,8 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     )
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=True,
+        before_send_log=before_send_log,
+        enable_logs=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
@@ -328,9 +337,8 @@ def configure_sdk():
         sentry_saas_transport = None
 
     if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
-        sdk_options.setdefault("_experiments", {}).update(
-            continuous_profiling_auto_start=True,
-        )
+        sdk_options["profile_session_sample_rate"] = settings.SENTRY_PROFILE_SESSION_SAMPLE_RATE
+        sdk_options["profile_lifecycle"] = settings.SENTRY_PROFILE_LIFECYCLE
     elif settings.SENTRY_PROFILING_ENABLED:
         sdk_options["profiles_sampler"] = profiles_sampler
         sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
@@ -475,7 +483,7 @@ def configure_sdk():
             # but none are captured as events (that's handled by the `internal`
             # logger defined in `server.py`, which ignores the levels set
             # in the integration and goes straight to the underlying handler class).
-            LoggingIntegration(event_level=None),
+            LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
@@ -694,6 +702,12 @@ def set_measurement(measurement_name, value, unit=None):
             transaction.set_measurement(measurement_name, value, unit)
     except Exception:
         pass
+
+
+def set_span_data(data_name, value):
+    span = sentry_sdk.get_current_span()
+    if span is not None:
+        span.set_data(data_name, value)
 
 
 def merge_context_into_scope(

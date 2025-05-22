@@ -1,7 +1,6 @@
 import datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Never
 
 import orjson
 import sentry_sdk
@@ -24,6 +23,8 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import hybridcloud_control_tasks
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
@@ -79,8 +80,11 @@ class DeliveryFailed(Exception):
     name="sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
     queue="webhook.control",
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=hybridcloud_control_tasks,
+    ),
 )
-def schedule_webhook_delivery(**kwargs: Never) -> None:
+def schedule_webhook_delivery() -> None:
     """
     Find mailboxes that contain undelivered webhooks that were scheduled
     to be delivered now or in the past.
@@ -148,6 +152,9 @@ def schedule_webhook_delivery(**kwargs: Never) -> None:
     name="sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox",
     queue="webhook.control",
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=hybridcloud_control_tasks,
+    ),
 )
 def drain_mailbox(payload_id: int) -> None:
     """
@@ -206,7 +213,7 @@ def drain_mailbox(payload_id: int) -> None:
 
         # No more messages to deliver
         if batch_count < 1:
-            logger.info(
+            logger.debug(
                 "deliver_webhook.delivery_complete",
                 extra={
                     "mailbox_name": payload.mailbox_name,
@@ -220,6 +227,9 @@ def drain_mailbox(payload_id: int) -> None:
     name="sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel",
     queue="webhook.control",
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=hybridcloud_control_tasks,
+    ),
 )
 def drain_mailbox_parallel(payload_id: int) -> None:
     """
@@ -419,7 +429,7 @@ def perform_request(payload: WebhookPayload) -> None:
                 data=payload.request_body.encode("utf-8"),
                 json=False,
             )
-        logger.info(
+        logger.debug(
             "deliver_webhooks.success",
             extra={
                 "status": getattr(

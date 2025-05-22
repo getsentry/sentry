@@ -8,12 +8,11 @@ interface Props extends SVGIconProps {
   isCircled?: boolean;
 }
 
-function IconCheckmark({ref, isCircled = false, ...props}: Props) {
+function IconCheckmark({isCircled = false, ...props}: Props) {
   const theme = useTheme();
   return (
     <SvgIcon
       {...props}
-      ref={ref}
       data-test-id="icon-check-mark"
       kind={theme.isChonk ? 'stroke' : 'path'}
     >

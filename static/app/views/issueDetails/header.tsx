@@ -51,7 +51,7 @@ interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'projec
   eventRoute: LocationDescriptor;
 }
 
-export function GroupHeaderTabs({
+function GroupHeaderTabs({
   baseUrl,
   disabledTabs,
   eventRoute,
@@ -251,7 +251,6 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
               data={group}
               message={message}
               level={group.level}
-              levelIndicatorSize={11}
               type={group.type}
               showUnhandled={group.isUnhandled}
             />

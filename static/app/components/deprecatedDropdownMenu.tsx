@@ -44,11 +44,11 @@ export type GetActorPropsFn = <E extends Element = Element>(
   opts?: GetActorArgs<E>
 ) => ActorProps<E>;
 
-export type GetMenuPropsFn = <E extends Element = Element>(
+type GetMenuPropsFn = <E extends Element = Element>(
   opts?: GetMenuArgs<E>
 ) => MenuProps<E>;
 
-export type MenuActions = {
+type MenuActions = {
   close: (event?: React.MouseEvent) => void;
   open: (event?: React.MouseEvent) => void;
 };

@@ -9,8 +9,10 @@ import {
   isAggregateFieldOrEquation,
 } from 'sentry/utils/discover/fields';
 import {decodeBoolean, decodeList, decodeScalar} from 'sentry/utils/queryString';
-import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {
+  applyDashboardFilters,
   eventViewFromWidget,
   getFieldsFromEquations,
   getWidgetInterval,
@@ -21,6 +23,7 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export function getWidgetExploreUrl(
   widget: Widget,
+  dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization
 ) {
@@ -40,11 +43,13 @@ export function getWidgetExploreUrl(
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
   locationQueryParams.yAxes = [
     ...new Set(
-      widget.queries[0]!.aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
+      (widget.displayType === DisplayType.TABLE
+        ? widget.queries[0]!.fields?.filter(isAggregateFieldOrEquation)
+        : widget.queries[0]!.aggregates
+      )?.filter(aggregate => yAxisOptions.includes(aggregate))
     ),
   ].slice(0, 3);
 
-  // Visualization specific transforms
   let exploreMode: Mode | undefined = undefined;
   let chartType: ChartType = ChartType.LINE;
   switch (widget.displayType) {
@@ -62,7 +67,11 @@ export function getWidgetExploreUrl(
       break;
     case DisplayType.TABLE:
     case DisplayType.BIG_NUMBER:
-      exploreMode = Mode.SAMPLES;
+      if (locationQueryParams.yAxes.length > 0) {
+        exploreMode = Mode.AGGREGATE;
+      } else {
+        exploreMode = Mode.SAMPLES;
+      }
       break;
     default:
       break;
@@ -77,8 +86,8 @@ export function getWidgetExploreUrl(
   const query = widget.queries[0]!;
   const queryFields =
     defined(query.fields) && widget.displayType === DisplayType.TABLE
-      ? query.fields
-      : [...query.columns, ...query.aggregates];
+      ? query.fields.filter(field => !isAggregateFieldOrEquation(field))
+      : [...query.columns];
 
   // Updates fields by adding any individual terms from equation fields as a column
   getFieldsFromEquations(queryFields).forEach(term => {
@@ -130,13 +139,16 @@ export function getWidgetExploreUrl(
           ]
         : []),
     ],
-    groupBy,
-    field: decodeList(locationQueryParams.field),
-    query: decodeScalar(locationQueryParams.query),
+    groupBy: exploreMode === Mode.SAMPLES ? undefined : groupBy,
+    field: exploreMode === Mode.SAMPLES ? decodeList(queryFields) : undefined,
+    query: applyDashboardFilters(
+      decodeScalar(locationQueryParams.query),
+      dashboardFilters
+    ),
     sort: locationQueryParams.sort || undefined,
     interval:
       decodeScalar(locationQueryParams.interval) ??
-      getWidgetInterval(widget.displayType, selection.datetime),
+      getWidgetInterval(widget, selection.datetime),
   };
 
   return getExploreUrl(queryParams);

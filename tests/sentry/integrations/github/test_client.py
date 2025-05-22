@@ -24,6 +24,7 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.base import BaseApiResponse
@@ -332,6 +333,54 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_update_pr_comment(self, get_jwt):
+        responses.add(
+            method=responses.POST,
+            url=f"https://api.github.com/repos/{self.repo.name}/issues/1/comments",
+            status=201,
+            json={
+                "id": 1,
+                "node_id": "MDEyOklzc3VlQ29tbWVudDE=",
+                "url": f"https://api.github.com/repos/{self.repo.name}/issues/comments/1",
+                "html_url": f"https://github.com/{self.repo.name}/issues/1#issuecomment-1",
+                "body": "hello",
+                "created_at": "2023-05-23T17:00:00Z",
+                "updated_at": "2023-05-23T17:00:00Z",
+                "issue_url": f"https://api.github.com/repos/{self.repo.name}/issues/1",
+                "author_association": "COLLABORATOR",
+            },
+        )
+        self.github_client.create_pr_comment(
+            repo=self.repo, pr=PullRequest(key="1"), data={"body": "hello"}
+        )
+
+        responses.add(
+            method=responses.PATCH,
+            url=f"https://api.github.com/repos/{self.repo.name}/issues/comments/1",
+            json={
+                "id": 1,
+                "node_id": "MDEyOklzc3VlQ29tbWVudDE=",
+                "url": f"https://api.github.com/repos/{self.repo.name}/issues/comments/1",
+                "html_url": f"https://github.com/{self.repo.name}/issues/1#issuecomment-1",
+                "body": "world",
+                "created_at": "2011-04-14T16:00:49Z",
+                "updated_at": "2011-04-14T16:00:49Z",
+                "issue_url": f"https://api.github.com/repos/{self.repo.name}/issues/1",
+                "author_association": "COLLABORATOR",
+            },
+        )
+
+        self.github_client.update_pr_comment(
+            repo=self.repo,
+            pr=PullRequest(key="1"),
+            pr_comment=PullRequestComment(external_id="1"),
+            data={"body": "world"},
+        )
+        assert responses.calls[1].response.status_code == 200
+        assert responses.calls[1].request.body == b'{"body": "world"}'
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_comment_reactions(self, get_jwt):
         comment_reactions = {
             "reactions": {
@@ -364,9 +413,7 @@ class GitHubApiClientTest(TestCase):
             json=pull_requests,
         )
 
-        sha = self.github_client.get_merge_commit_sha_from_commit(
-            repo=self.repo.name, sha=commit_sha
-        )
+        sha = self.github_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
         assert sha == merge_commit_sha
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -381,9 +428,7 @@ class GitHubApiClientTest(TestCase):
             json=pull_requests,
         )
 
-        sha = self.github_client.get_merge_commit_sha_from_commit(
-            repo=self.repo.name, sha=commit_sha
-        )
+        sha = self.github_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
         assert sha is None
 
     @responses.activate

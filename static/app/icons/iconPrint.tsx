@@ -4,10 +4,10 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconPrint({ref, ...props}: SVGIconProps) {
+function IconPrint(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <path d="m5.25,8.5h5.5v4.5c0,.28-.22.5-.5.5h-4.5c-.28,0-.5-.22-.5-.5v-4.5h0Z" />

@@ -129,17 +129,11 @@ interface MemoryChartSeriesProps {
   durationMs: number;
   memoryFrames: MemoryFrame[];
   startTimestampMs: number;
+  ref?: React.Ref<ReactEchartsRef>;
 }
 
 const MemoryChartSeries = memo(
-  ({
-    ref,
-    durationMs,
-    memoryFrames,
-    startTimestampMs,
-  }: MemoryChartSeriesProps & {
-    ref?: React.Ref<ReactEchartsRef>;
-  }) => {
+  ({ref, durationMs, memoryFrames, startTimestampMs}: MemoryChartSeriesProps) => {
     const theme = useTheme();
     const chartId = useId();
     const chartOptions: Omit<AreaChartProps, 'series'> = useMemo(
@@ -161,7 +155,7 @@ const MemoryChartSeries = memo(
               const seriesTooltips = toArray(values).map(
                 value => `
             <div>
-              <span className="tooltip-label">${value.marker}<strong>${value.seriesName}</strong></span>
+              <span className="tooltip-label">${value.marker as string}<strong>${value.seriesName}</strong></span>
               ${formatBytesBase2((value.data as any)[1])}
             </div>
           `

@@ -51,7 +51,7 @@ from sentry.organizations.services.organization import (
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
 from sentry.signals import sso_enabled, user_signup
-from sentry.tasks.auth import email_missing_links_control
+from sentry.tasks.auth.auth import email_missing_links_control
 from sentry.users.models.user import User
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
@@ -474,7 +474,7 @@ class AuthIdentityHandler:
             initial={"username": self._app_user and self._app_user.username},
         )
 
-    def _build_confirmation_response(self, is_new_account):
+    def _build_confirmation_response(self, is_new_account: bool) -> HttpResponse:
         existing_user, template = self._dispatch_to_confirmation(is_new_account)
         context = {
             "identity": self.identity,

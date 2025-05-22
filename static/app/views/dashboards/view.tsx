@@ -78,6 +78,7 @@ function ViewEditDashboard(props: Props) {
             <ErrorBoundary>
               <DashboardDetail
                 {...props}
+                key={dashboard.id}
                 organization={organization}
                 initialState={dashboardInitialState}
                 dashboard={dashboard}

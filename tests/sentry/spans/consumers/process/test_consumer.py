@@ -1,4 +1,3 @@
-import threading
 from datetime import datetime
 
 import rapidjson
@@ -8,16 +7,7 @@ from arroyo.types import Message, Partition, Topic, Value
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 
 
-class FakeProcess(threading.Thread):
-    """
-    Pretend this is multiprocessing.Process
-    """
-
-    def terminate(self):
-        pass
-
-
-def test_basic(monkeypatch, request):
+def test_basic(monkeypatch):
     # Flush very aggressively to make test pass instantly
     monkeypatch.setattr("time.sleep", lambda _: None)
 
@@ -61,11 +51,6 @@ def test_basic(monkeypatch, request):
         )
     )
 
-    @request.addfinalizer
-    def _():
-        step.join()
-        fac.shutdown()
-
     step.poll()
     fac._flusher.current_drift.value = 9000  # "advance" our "clock"
 
@@ -76,6 +61,9 @@ def test_basic(monkeypatch, request):
     assert rapidjson.loads(msg.value) == {
         "spans": [
             {
+                "data": {
+                    "__sentry_internal_span_buffer_outcome": "different",
+                },
                 "is_segment": True,
                 "project_id": 12,
                 "segment_id": "aaaaaaaaaaaaaaaa",

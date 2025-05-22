@@ -10,9 +10,11 @@ from sentry.models.release import Release
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.performance_issues.experiments import exclude_experimental_detectors
 from tests.sentry.spans.consumers.process import build_mock_span
 
 
+@exclude_experimental_detectors
 class TestSpansTask(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -44,6 +46,7 @@ class TestSpansTask(TestCase):
         segment_span = build_mock_span(
             project_id=self.project.id,
             is_segment=True,
+            _performance_issues_spans=True,
         )
         child_span = build_mock_span(
             project_id=self.project.id,
@@ -122,12 +125,7 @@ class TestSpansTask(TestCase):
         )
         assert release.date_added.timestamp() == spans[0]["end_timestamp_precise"]
 
-    @override_options(
-        {
-            "standalone-spans.detect-performance-problems.enable": True,
-            "standalone-spans.send-occurrence-to-platform.enable": True,
-        }
-    )
+    @override_options({"standalone-spans.detect-performance-problems.enable": True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_n_plus_one_issue_detection(self, mock_eventstream):
         spans = self.generate_n_plus_one_spans()
@@ -147,12 +145,7 @@ class TestSpansTask(TestCase):
         ]
         assert performance_problem.type == PerformanceStreamedSpansGroupTypeExperimental
 
-    @override_options(
-        {
-            "standalone-spans.detect-performance-problems.enable": True,
-            "standalone-spans.send-occurrence-to-platform.enable": True,
-        }
-    )
+    @override_options({"standalone-spans.detect-performance-problems.enable": True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     @pytest.mark.xfail(reason="batches without segment spans are not supported yet")
     def test_n_plus_one_issue_detection_without_segment_span(self, mock_eventstream):

@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import Category from './category';
 import {Data} from './data';
-import Level from './level';
+import {Level} from './level';
 import Time from './time';
 import Type from './type';
 

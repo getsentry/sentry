@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:15.965960+00:00'
+created: '2025-04-25T21:24:20.162094+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,16 +30,16 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               function*
                 "_main"
-            frame*
+            frame* (marked in-app by the client)
               function*
                 "___rust_maybe_catch_panic"
-            frame*
+            frame* (marked in-app by the client)
               function*
                 "log_demo::main"
-            frame*
+            frame* (marked in-app by the client)
               function*
                 "log::__private_api_log"
   system*

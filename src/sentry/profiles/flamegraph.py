@@ -493,18 +493,29 @@ class FlamegraphExecutor:
         # If we still don't have any continuous profile candidates, we'll fall back to
         # directly using the continuous profiling data
         if not continuous_profile_candidates:
-            continuous_profile_candidates = [
-                {
+            total_duration = 0.0
+
+            max_duration = options.get("profiling.continuous-profiling.flamegraph.max-seconds")
+
+            for row in continuous_profile_results["data"]:
+                start = datetime.fromisoformat(row["start_timestamp"]).timestamp()
+                end = datetime.fromisoformat(row["end_timestamp"]).timestamp()
+
+                candidate: ContinuousProfileCandidate = {
                     "project_id": row["project_id"],
                     "profiler_id": row["profiler_id"],
                     "chunk_id": row["chunk_id"],
-                    "start": str(
-                        int(datetime.fromisoformat(row["start_timestamp"]).timestamp() * 1e9)
-                    ),
-                    "end": str(int(datetime.fromisoformat(row["end_timestamp"]).timestamp() * 1e9)),
+                    "start": str(int(start * 1e9)),
+                    "end": str(int(end * 1e9)),
                 }
-                for row in continuous_profile_results["data"][:max_continuous_profile_candidates]
-            ]
+
+                continuous_profile_candidates.append(candidate)
+
+                total_duration += end - start
+
+                # can set max duration to negative to skip this check
+                if max_duration >= 0 and total_duration >= max_duration:
+                    break
 
         return {
             "transaction": transaction_profile_candidates,
@@ -568,6 +579,7 @@ class FlamegraphExecutor:
             offset=0,
             limit=limit,
             referrer=Referrer.API_TRACE_EXPLORER_TRACE_SPANS_CANDIDATES_FLAMEGRAPH.value,
+            sampling_mode=None,
             config=SearchResolverConfig(
                 auto_fields=True,
             ),

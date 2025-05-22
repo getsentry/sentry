@@ -7,14 +7,14 @@ import sortBy from 'lodash/sortBy';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AvatarList, {CollapsedAvatars} from 'sentry/components/core/avatar/avatarList';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {Badge} from 'sentry/components/core/badge';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {CheckWrap} from 'sentry/components/core/compactSelect/styles';
 import {InnerWrap, LeadingItems} from 'sentry/components/core/menuListItem';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import UserBadge from 'sentry/components/idBadge/userBadge';
-import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -219,7 +219,7 @@ function EditAccessSelector({
   // Avatars/Badges in the Edit Access Selector Button
   const triggerAvatars =
     selectedOptions.includes('_allUsers') || !dashboardCreator ? (
-      <StyledBadge key="_all" size={listOnly ? 26 : 20} type="default">
+      <StyledBadge key="_all" size={listOnly ? 26 : 20} type="info">
         {t('All')}
       </StyledBadge>
     ) : selectedOptions.length === 2 ? (
@@ -411,9 +411,7 @@ const LabelContainer = styled('div')`
   margin-right: ${space(1)};
 `;
 
-const StyledBadge = styled(Badge)<{size: number}>`
-  color: ${p => p.theme.white};
-  background: ${p => p.theme.purple300};
+const StyledBadge = styled(Tag)<{size: number}>`
   padding: 0;
   height: ${p => p.size}px;
   width: ${p => p.size}px;

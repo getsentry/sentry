@@ -46,7 +46,7 @@ const defaultFeedbackTypes = [
   t('Other reason'),
 ];
 
-export type ChildrenProps<T> = {
+type ChildrenProps<T> = {
   Body: (props: {
     children: React.ReactNode;
     showSelfHostedMessage?: boolean;

@@ -48,7 +48,7 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
 
       // TODO: Use replace until we can sync the state of the widget
       // when the user navigates back
-      {replace: true}
+      {replace: true, preventScrollReset: true}
     );
     setPendingUpdates({});
   }, [location, navigate, pendingUpdates]);
@@ -69,9 +69,7 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
   }, [updateURL]);
 
   return (
-    <BatchContext.Provider value={{batchUrlParamUpdates, flushUpdates}}>
-      {children}
-    </BatchContext.Provider>
+    <BatchContext value={{batchUrlParamUpdates, flushUpdates}}>{children}</BatchContext>
   );
 }
 

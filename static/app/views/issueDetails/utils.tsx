@@ -271,15 +271,9 @@ export function getGroupEventQueryKey({
 }
 
 export function useHasStreamlinedUI() {
-  const location = useLocation();
   const user = useUser();
   const organization = useOrganization();
   const userStreamlinedUIOption = user?.options?.prefersIssueDetailsStreamlinedUI;
-
-  // Allow query param to override all other settings to set the UI.
-  if (defined(location.query.streamline)) {
-    return location.query.streamline === '1';
-  }
 
   // If the organzation option is set to true, the new UI is used.
   if (organization.streamlineOnly) {

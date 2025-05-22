@@ -33,7 +33,7 @@ import {
   subTimingMarkToTime,
 } from './utils';
 
-export const MIN_SIBLING_GROUP_SIZE = 5;
+const MIN_SIBLING_GROUP_SIZE = 5;
 
 class SpanTreeModel {
   api: Client;

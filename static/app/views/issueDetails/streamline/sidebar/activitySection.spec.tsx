@@ -46,6 +46,7 @@ describe('StreamlinedActivitySection', function () {
   beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
+    localStorage.clear();
   });
 
   it('renders the input with a comment button', async function () {

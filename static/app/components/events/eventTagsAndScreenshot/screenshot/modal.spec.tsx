@@ -49,12 +49,11 @@ describe('ScreenshotModal', function () {
         onDownload={jest.fn()}
         projectSlug={project.slug}
         eventAttachment={eventAttachment}
-        downloadUrl=""
+        downloadUrl="/testing/download-href"
         groupId="group-id"
         attachments={attachments}
       />,
       {
-        router: initialData.router,
         organization: initialData.organization,
       }
     );
@@ -81,11 +80,10 @@ describe('ScreenshotModal', function () {
         projectSlug={project.slug}
         eventAttachment={eventAttachment}
         attachments={attachments}
-        downloadUrl=""
+        downloadUrl="/testing/download-href"
         groupId="group-id"
       />,
       {
-        router: initialData.router,
         organization: initialData.organization,
       }
     );
@@ -111,11 +109,10 @@ describe('ScreenshotModal', function () {
         onDownload={jest.fn()}
         projectSlug={project.slug}
         eventAttachment={eventAttachment}
-        downloadUrl=""
+        downloadUrl="/testing/download-href"
         groupId="group-id"
       />,
       {
-        router: initialData.router,
         organization: initialData.organization,
       }
     );

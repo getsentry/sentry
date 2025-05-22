@@ -2,11 +2,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {DataCategory} from 'sentry/types/core';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
@@ -45,6 +48,7 @@ describe('Subscription > PendingChanges', function () {
         planDetails: PlanFixture({
           name: 'Team',
           contractInterval: MONTHLY,
+          budgetTerm: 'on-demand',
         }),
       }),
     });
@@ -59,7 +63,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('Billing period')).not.toBeInTheDocument();
     expect(getItemWithText('Contract period change to monthly')).toBeInTheDocument();
     expect(getItemWithText('Reserved errors change to 100,000')).toBeInTheDocument();
-    expect(getItemWithText('On-demand spend change from $100 to $0')).toBeInTheDocument();
+    expect(getItemWithText('On-Demand spend change from $100 to $0')).toBeInTheDocument();
 
     expect(screen.getAllByRole('listitem')).toHaveLength(4);
   });
@@ -82,7 +86,12 @@ describe('Subscription > PendingChanges', function () {
           name: 'Team',
           billingInterval: MONTHLY,
           contractInterval: MONTHLY,
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
+          budgetTerm: 'on-demand',
         }),
       }),
     });
@@ -100,7 +109,7 @@ describe('Subscription > PendingChanges', function () {
     ).toBeInTheDocument();
     expect(getItemWithText('Reserved attachments change to 50 GB')).toBeInTheDocument();
     expect(
-      getItemWithText('On-demand spend change from $100 to $50')
+      getItemWithText('On-Demand spend change from $100 to $50')
     ).toBeInTheDocument();
 
     expect(screen.getAllByRole('listitem')).toHaveLength(7);
@@ -124,7 +133,12 @@ describe('Subscription > PendingChanges', function () {
           name: 'Team',
           billingInterval: MONTHLY,
           contractInterval: MONTHLY,
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
+          budgetTerm: 'on-demand',
         }),
       }),
     });
@@ -142,7 +156,7 @@ describe('Subscription > PendingChanges', function () {
     ).toBeInTheDocument();
     expect(getItemWithText('Reserved attachments change to 50 GB')).toBeInTheDocument();
     expect(
-      getItemWithText('On-demand spend change from $100 to $50')
+      getItemWithText('On-Demand spend change from $100 to $50')
     ).toBeInTheDocument();
 
     expect(screen.getAllByRole('listitem')).toHaveLength(7);
@@ -173,7 +187,12 @@ describe('Subscription > PendingChanges', function () {
           name: 'Business',
           billingInterval: MONTHLY,
           contractInterval: MONTHLY,
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
+          budgetTerm: 'on-demand',
         }),
       }),
     });
@@ -190,7 +209,7 @@ describe('Subscription > PendingChanges', function () {
     ).toBeInTheDocument();
     expect(getItemWithText('Reserved attachments change to 50 GB')).toBeInTheDocument();
     expect(
-      getItemWithText('On-demand spend change from $100 to $50')
+      getItemWithText('On-Demand spend change from $100 to $50')
     ).toBeInTheDocument();
 
     expect(screen.getAllByRole('listitem')).toHaveLength(6);
@@ -232,7 +251,12 @@ describe('Subscription > PendingChanges', function () {
           name: 'Team',
           billingInterval: MONTHLY,
           contractInterval: MONTHLY,
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
+          budgetTerm: 'on-demand',
         }),
       }),
     });
@@ -241,7 +265,7 @@ describe('Subscription > PendingChanges', function () {
 
     expect(
       getItemWithText(
-        'On-demand budget change from shared on-demand of $50 to shared on-demand of $10'
+        'On-Demand budget change from shared on-demand budget of $50 to shared on-demand budget of $10'
       )
     ).toBeInTheDocument();
   });
@@ -283,8 +307,17 @@ describe('Subscription > PendingChanges', function () {
           name: 'Team',
           billingInterval: MONTHLY,
           contractInterval: MONTHLY,
-          categories: ['errors', 'transactions', 'attachments'],
-          onDemandCategories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
+          onDemandCategories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
+          budgetTerm: 'on-demand',
         }),
       }),
     });
@@ -293,7 +326,7 @@ describe('Subscription > PendingChanges', function () {
 
     expect(
       getItemWithText(
-        'On-demand budget change from shared on-demand of $50 to per-category on-demand (errors at $10, transactions at $20, and attachments at $30)'
+        'On-Demand budget change from shared on-demand budget of $50 to per-category on-demand budget (errors at $10, transactions at $20, and attachments at $30)'
       )
     ).toBeInTheDocument();
   });
@@ -313,9 +346,14 @@ describe('Subscription > PendingChanges', function () {
         effectiveDate: '2021-02-01',
         planDetails: PlanFixture({
           name: 'Team',
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           billingInterval: ANNUAL,
           contractInterval: ANNUAL,
+          budgetTerm: 'on-demand',
         }),
       }),
     });
@@ -341,9 +379,14 @@ describe('Subscription > PendingChanges', function () {
         onDemandEffectiveDate: '2021-03-01',
         planDetails: PlanFixture({
           name: 'Team',
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           billingInterval: ANNUAL,
           contractInterval: ANNUAL,
+          budgetTerm: 'on-demand',
         }),
       }),
     });
@@ -352,7 +395,7 @@ describe('Subscription > PendingChanges', function () {
 
     expect(screen.getByText('Mar 1, 2021')).toBeInTheDocument();
     expect(
-      getItemWithText('On-demand spend change from $100 to $50')
+      getItemWithText('On-Demand spend change from $100 to $50')
     ).toBeInTheDocument();
 
     expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
@@ -390,7 +433,13 @@ describe('Subscription > PendingChanges', function () {
         },
         planDetails: PlanFixture({
           name: 'Business',
-          categories: ['errors', 'replays', 'spans', 'monitorSeats', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.REPLAYS,
+            DataCategory.SPANS,
+            DataCategory.MONITOR_SEATS,
+            DataCategory.ATTACHMENTS,
+          ],
           billingInterval: ANNUAL,
           contractInterval: ANNUAL,
         }),
@@ -400,7 +449,7 @@ describe('Subscription > PendingChanges', function () {
     render(<PendingChanges organization={organization} subscription={sub} />);
     expect(
       screen.getByText(
-        'Pay-as-you-go budget change from per-category on-demand (errors at $10, performance units at $0, replays at $0, attachments at $0, cron monitors at $0, continuous profile hours at $0, UI profile hours at $0, and uptime monitors at $0) to shared pay-as-you-go of $50'
+        'Pay-as-you-go budget change from per-category on-demand budget (errors at $10, performance units at $0, replays at $0, attachments at $0, cron monitors at $0, uptime monitors at $0, continuous profile hours at $0, and UI profile hours at $0) to shared pay-as-you-go budget of $50'
       )
     ).toBeInTheDocument();
   });
@@ -420,13 +469,44 @@ describe('Subscription > PendingChanges', function () {
         planDetails: PlanFixture({
           name: 'Team',
           contractInterval: ANNUAL,
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
+          budgetTerm: 'on-demand',
         }),
       }),
     });
 
     render(<PendingChanges organization={organization} subscription={sub} />);
     expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
+  });
+
+  it('does not render reserved budget changes', function () {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      reservedBudgets: [SeerReservedBudgetFixture({})],
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_business'),
+        plan: 'am3_business',
+        planName: 'Business',
+        reserved: {
+          errors: 100_000,
+        },
+      }),
+    });
+    sub.categories = {
+      ...sub.categories,
+      seerAutofix: MetricHistoryFixture({...sub.categories.seerAutofix, reserved: 0}),
+      seerScanner: MetricHistoryFixture({...sub.categories.seerScanner, reserved: 0}),
+    };
+
+    render(<PendingChanges organization={organization} subscription={sub} />);
+    expect(screen.getByText('Reserved errors change to 100,000')).toBeInTheDocument();
+    expect(screen.queryByText(/product access/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/budget change/)).not.toBeInTheDocument();
   });
 
   it('renders reserved budgets with existing budgets without dynamic sampling', function () {
@@ -459,8 +539,9 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
     expect(
-      screen.getByText('Reserved budget updated to $50,000 for spans')
+      screen.getByText('Spans budget change from $100,000 to $50,000')
     ).toBeInTheDocument();
+    expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
   });
 
   it('renders reserved budgets with existing budgets and dynamic sampling', function () {
@@ -492,10 +573,45 @@ describe('Subscription > PendingChanges', function () {
 
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Reserved budget updated to $50,000 for accepted spans and stored spans'
-      )
+      screen.getByText('Spans budget change from $100,000 to $50,000')
     ).toBeInTheDocument();
+    expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
+  });
+
+  it('renders fixed budget changes', function () {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      hasReservedBudgets: true,
+      reservedBudgets: [SeerReservedBudgetFixture({})],
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_team'),
+        plan: 'am3_team',
+        planName: 'Team',
+        reserved: {
+          seerAutofix: 0,
+          seerScanner: 0,
+        },
+      }),
+    });
+    sub.categories = {
+      ...sub.categories,
+      seerAutofix: MetricHistoryFixture({
+        ...sub.categories.seerAutofix,
+        reserved: RESERVED_BUDGET_QUOTA,
+      }),
+      seerScanner: MetricHistoryFixture({
+        ...sub.categories.seerScanner,
+        reserved: RESERVED_BUDGET_QUOTA,
+      }),
+    };
+
+    render(<PendingChanges organization={organization} subscription={sub} />);
+
+    expect(screen.getByText('Seer product access will be disabled')).toBeInTheDocument();
+    expect(screen.queryByText('Seer budget')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reserved issue fixes/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reserved issue scans/)).not.toBeInTheDocument();
   });
 
   it('renders multiple reserved budgets', function () {
@@ -533,10 +649,11 @@ describe('Subscription > PendingChanges', function () {
 
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Reserved budgets updated to $50,000 for accepted spans and stored spans and $10,000 for errors'
-      )
+      screen.getByText('Spans budget change from $100,000 to $50,000')
     ).toBeInTheDocument();
+    expect(screen.getByText('Errors budget change to $10,000')).toBeInTheDocument();
+    expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reserved errors/)).not.toBeInTheDocument();
   });
 
   it('renders reserved budgets without existing budgets', function () {
@@ -568,9 +685,8 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
     expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Reserved budget updated to $50,000 for spans')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Spans budget change to $50,000')).toBeInTheDocument();
+    expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
     expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
   });
 
@@ -592,7 +708,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
     expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(screen.queryByText('Reserved budget')).not.toBeInTheDocument();
+    expect(screen.queryByText('Spans budget')).not.toBeInTheDocument();
     expect(screen.getByText('Reserved spans change to 10,000,000')).toBeInTheDocument();
     expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
   });

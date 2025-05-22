@@ -2,24 +2,26 @@ from __future__ import annotations
 
 import logging
 
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils import metrics
-from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.types import DetectorGroupKey, WorkflowEventData
+from sentry.workflow_engine.types import (
+    DetectorEvaluationResult,
+    DetectorGroupKey,
+    WorkflowEventData,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def get_detector_by_event(job: WorkflowEventData) -> Detector:
-    evt = job.event
+def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
+    evt = event_data.event
     issue_occurrence = evt.occurrence
 
     if issue_occurrence is None:
         # TODO - @saponifi3d - check to see if there's a way to confirm these are for the error detector
-        detector = Detector.objects.get(project_id=evt.project_id, type=ErrorGroupType.slug)
+        detector = Detector.objects.get(project_id=evt.project_id, type=evt.group.issue_type.slug)
     else:
         detector = Detector.objects.get(id=issue_occurrence.evidence_data.get("detector_id", None))
 
@@ -47,7 +49,7 @@ def create_issue_occurrence_from_result(result: DetectorEvaluationResult):
 def process_detectors(
     data_packet: DataPacket, detectors: list[Detector]
 ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
-    results = []
+    results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] = []
 
     for detector in detectors:
         handler = detector.detector_handler
@@ -62,18 +64,28 @@ def process_detectors(
 
         detector_results = handler.evaluate(data_packet)
 
+        if detector_results is None:
+            return results
+
         for result in detector_results.values():
             if result.result is not None:
+                create_issue_occurrence_from_result(result)
                 metrics.incr(
                     "workflow_engine.process_detector.triggered",
                     tags={"detector_type": detector.type},
                 )
-                create_issue_occurrence_from_result(result)
+
+                logger.info(
+                    "detector_triggered",
+                    extra={
+                        "detector": detector.id,
+                        "detector_type": detector.type,
+                        "evaluation_data": data_packet.packet,
+                        "result": result,
+                    },
+                )
 
         if detector_results:
             results.append((detector, detector_results))
-
-        # Now that we've processed all results for this detector, commit any state changes
-        handler.commit_state_updates()
 
     return results

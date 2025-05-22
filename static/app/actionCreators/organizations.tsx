@@ -6,7 +6,6 @@ import type {Client} from 'sentry/api';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
-import LatestContextStore from 'sentry/stores/latestContextStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -94,7 +93,7 @@ type RemoveParams = {
   successMessage?: string;
 };
 
-export function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams) {
+function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams) {
   const endpoint = `/organizations/${orgId}/`;
   return api
     .requestPromise(endpoint, {
@@ -130,7 +129,6 @@ export function removeAndRedirectToRemainingOrganization(
  */
 export function setActiveOrganization(org: Organization) {
   GuideStore.setActiveOrganization(org);
-  LatestContextStore.onSetActiveOrganization(org);
 }
 
 export function changeOrganizationSlug(

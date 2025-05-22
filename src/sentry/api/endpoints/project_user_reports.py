@@ -9,8 +9,9 @@ from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.helpers.environments import get_environment, get_environment_func
 from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import UserReportWithGroupSerializer, serialize
@@ -32,7 +33,7 @@ class _PaginateKwargs(TypedDict):
 
 
 @region_silo_endpoint
-class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
+class ProjectUserReportsEndpoint(ProjectEndpoint):
     owner = ApiOwner.FEEDBACK
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,  # TODO: deprecate
@@ -59,7 +60,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         paginate_kwargs: _PaginateKwargs = {}
         try:
-            environment = self._get_environment_from_request(request, project.organization_id)
+            environment = get_environment(request, project.organization_id)
         except Environment.DoesNotExist:
             queryset = UserReport.objects.none()
         else:
@@ -85,7 +86,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 x,
                 request.user,
                 UserReportWithGroupSerializer(
-                    environment_func=self._get_environment_func(request, project.organization_id)
+                    environment_func=get_environment_func(request, project.organization_id)
                 ),
             ),
             paginator_cls=DateTimePaginator,
@@ -97,7 +98,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         Submit User Feedback
         ````````````````````
 
-        *This endpoint is DEPRECATED. We document it here for older SDKs and users who are still migrating to the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget) or [API](https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-api)(multi-platform). If you are a new user, do not use this endpoint - unless you don't have a JS frontend, and your platform's SDK does not offer a feedback API.*
+        *We only recommend this endpoint if your Sentry SDK does not support the User Feedback API. See the [list of supported platforms](https://docs.sentry.io/product/user-feedback/setup/#supported-sdks-for-user-feedback-api).*
 
         Submit and associate user feedback with an issue.
 
@@ -145,7 +146,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 report_instance,
                 request.user,
                 UserReportWithGroupSerializer(
-                    environment_func=self._get_environment_func(request, project.organization_id)
+                    environment_func=get_environment_func(request, project.organization_id)
                 ),
             )
         )

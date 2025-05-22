@@ -16,6 +16,7 @@ import {
   type LogsAnalyticsEventParameters,
 } from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
+import {nextJsInsightsEventMap} from 'sentry/utils/analytics/nextJsInsightsAnalyticsEvents';
 import {
   quickStartEventMap,
   type QuickStartEventParameters,
@@ -71,6 +72,8 @@ import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
 import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
 import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
+import type {TempestEventParameters} from './analytics/tempestAnalyticsEvents';
+import {tempestEventMap} from './analytics/tempestAnalyticsEvents';
 import {tracingEventMap, type TracingEventParameters} from './analytics/tracingEventMap';
 import type {TeamInsightsEventParameters} from './analytics/workflowAnalyticsEvents';
 import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
@@ -105,6 +108,7 @@ interface EventParameters
     TracingEventParameters,
     StatsEventParameters,
     QuickStartEventParameters,
+    TempestEventParameters,
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
@@ -119,6 +123,7 @@ const allEventMap: Record<string, string | null> = {
   ...issueEventMap,
   ...laravelInsightsEventMap,
   ...monitorsEventMap,
+  ...nextJsInsightsEventMap,
   ...performanceEventMap,
   ...tracingEventMap,
   ...profilingEventMap,
@@ -139,6 +144,7 @@ const allEventMap: Record<string, string | null> = {
   ...statsEventMap,
   ...quickStartEventMap,
   ...navigationAnalyticsEventMap,
+  ...tempestEventMap,
 };
 
 /**
@@ -177,16 +183,6 @@ export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
   data,
   options
 ) => HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
-
-/**
- * This should be used to log when a `organization.experiments` experiment
- * variant is checked in the application.
- *
- * Refer for the backend implementation provided through HookStore for more
- * details.
- */
-export const logExperiment: Hooks['analytics:log-experiment'] = options =>
-  HookStore.get('analytics:log-experiment').forEach(cb => cb(options));
 
 type RecordMetric = Hooks['metrics:event'] & {
   endSpan: (opts: {

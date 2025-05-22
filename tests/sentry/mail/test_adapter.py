@@ -19,6 +19,8 @@ from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.ownership import grammar
+from sentry.issues.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
@@ -36,13 +38,12 @@ from sentry.notifications.models.notificationsettingprovider import Notification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.digest import get_digest_subject
-from sentry.ownership import grammar
-from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.replays.testutils import mock_replay
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -515,10 +516,10 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             value="never",
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
+        rule = self.create_project_rule(project=self.project)
         with self.tasks():
             AlertRuleNotification(
-                Notification(event=event),
+                Notification(event=event, rules=[rule]),
                 ActionTargetType.ISSUE_OWNERS,
                 fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
             ).send()
@@ -534,6 +535,72 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assertEqual(notification.project, self.project)
         self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
+
+        assert notification.get_context()["snooze_alert"] is True
+
+        assert group
+        mock_logger.info.assert_called_with(
+            "mail.adapter.notify",
+            extra={
+                "target_type": "IssueOwners",
+                "target_identifier": None,
+                "group": group.id,
+                "project_id": group.project.id,
+                "organization": group.organization.id,
+                "fallthrough_choice": "ActiveMembers",
+                "notification_uuid": mock.ANY,
+            },
+        )
+
+    @mock_notify
+    @mock.patch("sentry.notifications.notifications.rules.logger")
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_notify_users_does_email_workflow_engine_ui_links(self, mock_logger, mock_func):
+        self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
+        event_manager = EventManager({"message": "hello world", "level": "error"})
+        event_manager.normalize()
+        event_data = event_manager.get_data()
+        event_type = get_event_type(event_data)
+        event_data["type"] = event_type.key
+        event_data["metadata"] = event_type.get_metadata(event_data)
+
+        event = event_manager.save(self.project.id)
+        group = event.group
+
+        self.create_notification_settings_provider(
+            user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            provider="slack",
+            type="alerts",
+            value="never",
+        )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        rule = self.create_project_rule(
+            project=self.project, action_data=[{"workflow_id": "1234567890"}]
+        )
+        with self.tasks():
+            AlertRuleNotification(
+                Notification(event=event, rules=[rule]),
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            ).send()
+
+        assert mock_func.call_count == 1
+
+        args, kwargs = mock_func.call_args
+        notification = args[1]
+
+        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
+        assert recipient_context["timezone"] == zoneinfo.ZoneInfo("Europe/Vienna")
+
+        self.assertEqual(notification.project, self.project)
+        self.assertEqual(notification.reference, group)
+        assert notification.get_subject() == "BAR-1 - hello world"
+
+        # Because we are using the workflow engine, the snooze_alert context should be False
+        # This is because a user cannot snooze a workflow for themselves
+        assert notification.get_context()["snooze_alert"] is False
 
         assert group
         mock_logger.info.assert_called_with(

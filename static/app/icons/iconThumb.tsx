@@ -8,13 +8,12 @@ interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
 }
 
-function IconThumb({ref, direction = 'up', ...props}: Props) {
+function IconThumb({direction = 'up', ...props}: Props) {
   const theme = useTheme();
 
   return (
     <SvgIcon
       {...props}
-      ref={ref}
       kind={theme.isChonk ? 'stroke' : 'path'}
       css={
         direction

@@ -2,27 +2,34 @@ import {useState} from 'react';
 
 import type {Client} from 'sentry/api';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {t} from 'sentry/locale';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import type {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 
 import {sendAddEventsRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import StartTrialButton from 'getsentry/components/startTrialButton';
-import {PlanTier, type Subscription} from 'getsentry/types';
-import {getBestActionToIncreaseEventLimits} from 'getsentry/utils/billing';
+import type {Subscription} from 'getsentry/types';
+import {
+  displayBudgetName,
+  getBestActionToIncreaseEventLimits,
+} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
-export type EventType =
-  | 'error'
-  | 'transaction'
-  | 'attachment'
-  | 'replay'
-  | 'monitorSeat'
-  | 'span'
-  | 'profileDuration'
-  | 'profileDurationUI'
-  | 'uptime';
+/**
+ * Event types for quota CTAs and notifications.
+ * When a new billed category is added, all records keying on EventType
+ * will error to alert the author that they need to be updated.
+ *
+ * TODO(data categories): move this to dataCategory.tsx
+ */
+export type EventType = {
+  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+    ? (typeof DATA_CATEGORY_INFO)[K]['name']
+    : never;
+}[keyof typeof DATA_CATEGORY_INFO];
 
 type Props = {
   api: Client;
@@ -30,7 +37,7 @@ type Props = {
   referrer: string;
   source: string;
   subscription: Subscription;
-  buttonProps?: Partial<ButtonProps>;
+  buttonProps?: Partial<ButtonProps | LinkButtonProps>;
   eventTypes?: EventType[];
   handleRequestSent?: () => void;
   notificationType?: 'overage_warning' | 'overage_critical';
@@ -65,7 +72,7 @@ function AddEventsCTA(props: Props) {
   };
 
   const action = getBestActionToIncreaseEventLimits(organization, subscription);
-  const commonProps: Partial<ButtonProps> & {
+  const commonProps: Partial<ButtonProps | LinkButtonProps> & {
     'data-test-id'?: string;
   } = {
     size: 'xs',
@@ -101,22 +108,19 @@ function AddEventsCTA(props: Props) {
   const checkoutUrl = `/settings/${organization.slug}/billing/checkout/?referrer=${referrer}`;
   const subscriptionUrl = `/settings/${organization.slug}/billing/overview/`;
 
-  // Make an exception for when only crons has an overage to change the language to be more fitting
-  const strictlyCronsOverage =
-    eventTypes?.length === 1 && eventTypes[0] === 'monitorSeat';
-
   switch (action) {
     case 'add_events':
       return (
-        <Button to={subscriptionUrl} onClick={() => manageOnDemand()} {...commonProps}>
-          {subscription.planTier === PlanTier.AM3
-            ? subscription?.onDemandBudgets?.enabled
-              ? t('Increase Pay-as-you-go')
-              : t('Setup Pay-as-you-go')
-            : strictlyCronsOverage
-              ? t('Update Plan')
-              : t('Increase Reserved Limits')}
-        </Button>
+        <LinkButton
+          to={subscriptionUrl}
+          onClick={() => manageOnDemand()}
+          {...(commonProps as LinkButtonProps)}
+        >
+          {tct('[action] [budgetTerm]', {
+            action: subscription.onDemandBudgets?.enabled ? 'Increase' : 'Setup',
+            budgetTerm: displayBudgetName(subscription.planDetails, {title: true}),
+          })}
+        </LinkButton>
       );
     case 'request_add_events':
       return (
@@ -132,7 +136,7 @@ function AddEventsCTA(props: Props) {
             );
             handleRequestSent?.();
           }}
-          {...commonProps}
+          {...(commonProps as ButtonProps)}
         >
           {t('Request Additional Quota')}
         </Button>
@@ -151,7 +155,7 @@ function AddEventsCTA(props: Props) {
             setBusy(true);
             handleAnalytics();
           }}
-          {...commonProps}
+          {...(commonProps as LinkButtonProps)}
         >
           {t('Start Trial')}
         </StartTrialButton>
@@ -164,7 +168,7 @@ function AddEventsCTA(props: Props) {
             await wrapRequest(sendUpgradeRequest(requestArgs));
             handleRequestSent?.();
           }}
-          {...commonProps}
+          {...(commonProps as ButtonProps)}
         >
           {t('Request Upgrade')}
         </Button>
@@ -172,9 +176,13 @@ function AddEventsCTA(props: Props) {
     case 'send_to_checkout':
     default:
       return (
-        <Button to={checkoutUrl} onClick={() => handleAnalytics()} {...commonProps}>
+        <LinkButton
+          to={checkoutUrl}
+          onClick={handleAnalytics}
+          {...(commonProps as LinkButtonProps)}
+        >
           {t('Upgrade Plan')}
-        </Button>
+        </LinkButton>
       );
   }
 }

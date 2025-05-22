@@ -1,4 +1,3 @@
-import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
 import browserslist from 'browserslist';
@@ -109,25 +108,6 @@ const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true';
 const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(__dirname, 'static');
-
-// Locale file extraction build step
-if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
-  babelConfig.plugins?.push([
-    'module:babel-gettext-extractor',
-    {
-      fileName: 'build/javascript.po',
-      baseDirectory: path.join(__dirname),
-      functionNames: {
-        gettext: ['msgid'],
-        ngettext: ['msgid', 'msgid_plural', 'count'],
-        gettextComponentTemplate: ['msgid'],
-        t: ['msgid'],
-        tn: ['msgid', 'msgid_plural', 'count'],
-        tct: ['msgid'],
-      },
-    },
-  ]);
-}
 
 // Locale compilation and optimizations.
 //
@@ -263,8 +243,17 @@ const appConfig: webpack.Configuration = {
       {
         test: /\.[tj]sx?$/,
         include: [staticPrefix],
-        exclude: /(vendor|node_modules|dist)/,
+        exclude: [/(vendor|node_modules|dist)/],
         use: babelLoaderConfig,
+      },
+      {
+        test: /\.mdx?$/,
+        use: [
+          babelLoaderConfig,
+          {
+            loader: '@mdx-js/loader',
+          },
+        ],
       },
       {
         test: /\.po$/,
@@ -418,11 +407,6 @@ const appConfig: webpack.Configuration = {
             ]
           : []),
       ],
-    }),
-
-    WebpackReactSourcemapsPlugin({
-      mode: IS_PRODUCTION ? 'strict' : undefined,
-      debug: false,
     }),
   ],
 

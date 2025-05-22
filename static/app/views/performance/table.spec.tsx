@@ -33,7 +33,7 @@ const initializeData = (settings = {}, features: string[] = []) => {
 
 function WrappedComponent({data, ...rest}: any) {
   return (
-    <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext value={data.organization}>
       <MEPSettingProvider>
         <Table
           organization={data.organization}
@@ -44,7 +44,7 @@ function WrappedComponent({data, ...rest}: any) {
           {...rest}
         />
       </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 
@@ -209,7 +209,10 @@ describe('Performance > Table', function () {
           summaryConditions=""
           projects={data.projects}
         />,
-        {router: data.router}
+        {
+          router: data.router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       const rows = await screen.findAllByTestId('grid-body-row');
@@ -265,7 +268,10 @@ describe('Performance > Table', function () {
           summaryConditions=""
           projects={data.projects}
           withStaticFilters
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
@@ -293,7 +299,10 @@ describe('Performance > Table', function () {
           setError={jest.fn()}
           summaryConditions=""
           projects={data.projects}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       const indicatorContainer = await screen.findByTestId('unparameterized-indicator');
@@ -324,7 +333,10 @@ describe('Performance > Table', function () {
           setError={jest.fn()}
           summaryConditions=""
           projects={data.projects}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
@@ -348,7 +360,10 @@ describe('Performance > Table', function () {
           summaryConditions=""
           projects={data.projects}
           isMEPEnabled
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();

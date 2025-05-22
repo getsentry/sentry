@@ -39,8 +39,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         projectSlug={project.slug}
         location={router.location}
         isProjectStabilized
-      />,
-      {router}
+      />
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(2); // one for closed, one for open
@@ -116,8 +115,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         projectSlug={project.slug}
         location={router.location}
         isProjectStabilized
-      />,
-      {router}
+      />
     );
 
     expect(await screen.findByRole('button', {name: 'Create Alert'})).toHaveAttribute(

@@ -80,13 +80,10 @@ class ProjectEnvironments extends Component<Props, State> {
     const {projectId} = this.props.params;
 
     this.props.api.request(
-      `/projects/${organization.slug}/${projectId}/environments/${getUrlRoutingName(
-        env
-      )}/`,
+      `/projects/${organization.slug}/${projectId}/environments/${getUrlRoutingName(env)}/`,
       {
         method: 'PUT',
         data: {
-          name: env.name,
           isHidden: shouldHide,
         },
         success: () => {
@@ -281,5 +278,4 @@ const EnvironmentButton = styled(Button)`
   margin-left: ${space(0.5)};
 `;
 
-export {ProjectEnvironments};
 export default withApi(ProjectEnvironments);

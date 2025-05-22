@@ -708,7 +708,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug=illegal_slug, status_code=400)
 
     def test_valid_slugs(self):
-        valid_slugs = ["santry", "downtown-canada", "1234-foo", "SaNtRy"]
+        valid_slugs = ["santry", "downtown-canada", "1234-foo"]
         for slug in valid_slugs:
             self.organization.refresh_from_db()
             self.get_success_response(self.organization.slug, slug=slug)
@@ -722,6 +722,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="-canada", status_code=400)
         self.get_error_response(self.organization.slug, slug="----", status_code=400)
         self.get_error_response(self.organization.slug, slug="1234", status_code=400)
+        self.get_error_response(self.organization.slug, slug="I-contain-UPPERCASE", status_code=400)
 
     def test_upload_avatar(self):
         data = {
@@ -780,7 +781,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowJoinRequests": False,
             "issueAlertsThreadFlag": False,
             "metricAlertsThreadFlag": False,
-            "uptimeAutodetection": False,
             "targetSampleRate": 0.1,
             "samplingMode": "organization",
             "rollbackEnabled": True,
@@ -821,7 +821,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
 
-        assert options.get("sentry:uptime_autodetection") is False
         assert options.get("sentry:target_sample_rate") == 0.1
         assert options.get("sentry:sampling_mode") == "organization"
         assert options.get("sentry:rollback_enabled") is True
@@ -860,7 +859,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
-        assert "to {}".format(data["uptimeAutodetection"]) in log.data["uptimeAutodetection"]
         assert "to Default Mode" in log.data["samplingMode"]
 
     @responses.activate
@@ -1315,6 +1313,21 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         # invalid
         data = {"samplingMode": "invalid"}
         self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
+    def test_default_autofix_automation_tuning_feature_enabled(self):
+        data = {"defaultAutofixAutomationTuning": "high"}
+        self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:default_autofix_automation_tuning") == "high"
+
+    @with_feature({"organizations:trigger-autofix-on-issue-summary": False})
+    def test_default_autofix_automation_tuning_feature_disabled(self):
+        data = {"defaultAutofixAutomationTuning": "high"}
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert response.data["defaultAutofixAutomationTuning"] == [
+            "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+        ]
+        assert self.organization.get_option("sentry:default_autofix_automation_tuning") is None
 
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):

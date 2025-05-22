@@ -2,16 +2,15 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,6 +19,7 @@ import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
@@ -35,6 +35,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const theme = useTheme();
   const activeUser = useUser();
   const organization = useOrganization();
+  const {isSidebarOpen} = useIssueDetails();
 
   const {userParticipants, teamParticipants, viewers} = useMemo(() => {
     return {
@@ -51,11 +52,17 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.large})`);
+  const shouldDisplaySidebar = isSidebarOpen || isBottomSidebar;
+
+  if (!shouldDisplaySidebar) {
+    return null;
+  }
 
   return (
-    <TourElement<IssueDetailsTour>
+    <SharedTourElement<IssueDetailsTour>
       tourContext={IssueDetailsTourContext}
       id={IssueDetailsTour.SIDEBAR}
+      demoTourId={DemoTourStep.ISSUES_DETAIL_SIDEBAR}
       title={t('Share updates')}
       description={t(
         'Leave a comment for a teammate or link your favorite ticketing system - this area helps you collaborate and track progress on the issue.'
@@ -63,15 +70,15 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       position={isBottomSidebar ? 'top' : 'left-start'}
     >
       <Side>
-        <GuideAnchor target="issue_sidebar_releases" position="left">
-          <FirstLastSeenSection group={group} />
-        </GuideAnchor>
+        <FirstLastSeenSection group={group} />
         <StyledBreak />
         {((organization.features.includes('gen-ai-features') &&
           issueTypeConfig.issueSummary.enabled &&
           !organization.hideAiFeatures) ||
           issueTypeConfig.resources) && (
-          <SeerSection group={group} project={project} event={event} />
+          <ErrorBoundary mini>
+            <SeerSection group={group} project={project} event={event} />
+          </ErrorBoundary>
         )}
         {event && (
           <ErrorBoundary mini>
@@ -108,7 +115,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           </Fragment>
         )}
       </Side>
-    </TourElement>
+    </SharedTourElement>
   );
 }
 

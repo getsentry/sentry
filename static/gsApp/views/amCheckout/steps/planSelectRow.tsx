@@ -20,7 +20,11 @@ import {
 import {isBizPlanFamily} from 'getsentry/utils/billing';
 import MoreFeaturesLink from 'getsentry/views/amCheckout/moreFeaturesLink';
 import type {PlanContent} from 'getsentry/views/amCheckout/steps/planSelect';
-import {formatPrice, getShortInterval} from 'getsentry/views/amCheckout/utils';
+import {
+  displayUnitPrice,
+  formatPrice,
+  getShortInterval,
+} from 'getsentry/views/amCheckout/utils';
 
 type UpdateData = {
   plan: string;
@@ -49,8 +53,14 @@ type Props = {
    * Optional warning at the bottom of the row
    */
   planWarning?: React.ReactNode;
-
+  /**
+   * Optional flag to show default pay as you go values
+   */
   shouldShowDefaultPayAsYouGo?: boolean;
+  /**
+   * Optional flag to show event price tags
+   */
+  shouldShowEventPrice?: boolean;
 };
 
 function PlanSelectRow({
@@ -68,6 +78,7 @@ function PlanSelectRow({
   discountInfo,
   badge,
   shouldShowDefaultPayAsYouGo = false,
+  shouldShowEventPrice = false,
 }: Props) {
   const billingInterval = getShortInterval(plan.billingInterval);
   const {features, description, hasMoreLink} = planContent;
@@ -80,6 +91,16 @@ function PlanSelectRow({
 
   const describeId = `plan-details-${plan.id}`;
   const hasFeatures = !!Object.keys(features || {}).length;
+  const errorsStartingPrice = shouldShowEventPrice
+    ? plan.planCategories.errors
+      ? plan.planCategories.errors[1]?.onDemandPrice
+      : null
+    : null;
+  const spansStartingPrice = shouldShowEventPrice
+    ? plan.planCategories.spans
+      ? plan.planCategories.spans[1]?.onDemandPrice
+      : null
+    : null;
 
   return (
     <PlanOption isSelected={isSelected} data-test-id={plan.id}>
@@ -170,6 +191,12 @@ function PlanSelectRow({
               <Amount>{price}</Amount>
               <BillingInterval>{`/${billingInterval}`}</BillingInterval>
             </Price>
+            {errorsStartingPrice && (
+              <EventPriceTag>{`${displayUnitPrice({cents: errorsStartingPrice})} / error`}</EventPriceTag>
+            )}
+            {spansStartingPrice && (
+              <EventPriceTag>{`${displayUnitPrice({cents: spansStartingPrice})} / span`}</EventPriceTag>
+            )}
             {discountInfo && (
               <DiscountWrapper>
                 <OriginalTotal>{`$${formatPrice({
@@ -341,4 +368,10 @@ const DiscountWrapper = styled('div')`
 const PercentOff = styled('span')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const EventPriceTag = styled(Tag)`
+  display: flex;
+  align-items: center;
+  line-height: normal;
 `;

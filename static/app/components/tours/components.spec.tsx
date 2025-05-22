@@ -32,7 +32,7 @@ describe('Tour Components', () => {
         <TourContextProvider<TestTour>
           isCompleted
           orderedStepIds={ORDERED_TEST_TOUR}
-          tourContext={TestTourContext}
+          TourContext={TestTourContext}
         >
           <div>Child Content</div>
         </TourContextProvider>
@@ -50,7 +50,7 @@ describe('Tour Components', () => {
         <TourContextProvider<TestTour>
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
-          tourContext={TestTourContext}
+          TourContext={TestTourContext}
         >
           <div>Child Content</div>
         </TourContextProvider>
@@ -61,7 +61,7 @@ describe('Tour Components', () => {
         <TourContextProvider<TestTour>
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
-          tourContext={TestTourContext}
+          TourContext={TestTourContext}
           omitBlur
         >
           <div>Child Content</div>
@@ -89,7 +89,7 @@ describe('Tour Components', () => {
           tourKey={tourKey}
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
-          tourContext={TestTourContext}
+          TourContext={TestTourContext}
         >
           <div>Child Content</div>
         </TourContextProvider>
@@ -110,7 +110,7 @@ describe('Tour Components', () => {
         <TourContextProvider<TestTour>
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
-          tourContext={TestTourContext}
+          TourContext={TestTourContext}
         >
           <TourElement<TestTour>
             id={TestTour.NAME}
@@ -135,7 +135,7 @@ describe('Tour Components', () => {
         <TourContextProvider<TestTour>
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
-          tourContext={TestTourContext}
+          TourContext={TestTourContext}
         >
           <TourElement<TestTour>
             id={TestTour.NAME}
@@ -162,7 +162,7 @@ describe('Tour Components', () => {
         <TourContextProvider<TestTour>
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
-          tourContext={TestTourContext}
+          TourContext={TestTourContext}
         >
           <TourElement<TestTour>
             id={TestTour.NAME}
@@ -196,7 +196,7 @@ describe('Tour Components', () => {
         <TourContextProvider<TestTour>
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
-          tourContext={TestTourContext}
+          TourContext={TestTourContext}
         >
           <TourElement<TestTour>
             id={TestTour.EMAIL}
@@ -226,7 +226,7 @@ describe('Tour Components', () => {
         <TourContextProvider<TestTour>
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
-          tourContext={TestTourContext}
+          TourContext={TestTourContext}
         >
           <TourElement<TestTour>
             id={TestTour.PASSWORD}
@@ -255,7 +255,7 @@ describe('Tour Components', () => {
         <TourContextProvider<TestTour>
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
-          tourContext={TestTourContext}
+          TourContext={TestTourContext}
         >
           <TourElement<TestTour>
             tourContext={TestTourContext}
@@ -306,7 +306,7 @@ describe('Tour Components', () => {
           tourKey={tourKey}
           isCompleted={false}
           orderedStepIds={ORDERED_TEST_TOUR}
-          tourContext={TestTourContext}
+          TourContext={TestTourContext}
         >
           <TourElement<TestTour>
             tourContext={TestTourContext}

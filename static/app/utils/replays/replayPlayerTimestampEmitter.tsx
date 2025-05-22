@@ -5,7 +5,7 @@ type ReplayPlayerTimestampChangeEvent = {
 type ReplayPlayerListener = (arg: ReplayPlayerTimestampChangeEvent) => void;
 
 class ReplayPlayerTimestampEmitter {
-  private listeners: {[key: string]: Set<ReplayPlayerListener>} = {};
+  private listeners: Record<string, Set<ReplayPlayerListener>> = {};
 
   on(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
     if (!this.listeners[event]) {

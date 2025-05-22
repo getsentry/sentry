@@ -332,7 +332,7 @@ function TourProvider({
         <TourContextProvider<MyTour>
           isCompleted={false}
           orderedStepIds={ORDERED_MY_TOUR}
-          tourContext={MyTourContext}
+          TourContext={MyTourContext}
           {...tourProviderProps}
         >
           <Flex gap={space(2)} align="center">

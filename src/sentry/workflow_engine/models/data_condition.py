@@ -47,6 +47,8 @@ class Condition(StrEnum):
     REAPPEARED_EVENT = "reappeared_event"
     TAGGED_EVENT = "tagged_event"
     ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
+    ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
+    ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
     ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
 
     # Event frequency conditions
@@ -123,6 +125,14 @@ class DataCondition(DefaultFieldsModel):
         on_delete=models.CASCADE,
     )
 
+    def get_snapshot(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "type": self.type,
+            "comparison": self.comparison,
+            "condition_result": self.condition_result,
+        }
+
     def get_condition_result(self) -> DataConditionResult:
         match self.condition_result:
             case float() | bool():
@@ -153,7 +163,20 @@ class DataCondition(DefaultFieldsModel):
         if condition_type in CONDITION_OPS:
             # If the condition is a base type, handle it directly
             op = CONDITION_OPS[Condition(self.type)]
-            result = op(cast(Any, value), self.comparison)
+            result = None
+            try:
+                result = op(cast(Any, value), self.comparison)
+            except TypeError:
+                logger.exception(
+                    "Invalid comparison for data condition",
+                    extra={
+                        "comparison": self.comparison,
+                        "value": value,
+                        "type": self.type,
+                        "condition_id": self.id,
+                    },
+                )
+
             return self.get_condition_result() if result else None
 
         # Otherwise, we need to get the handler and evaluate the value

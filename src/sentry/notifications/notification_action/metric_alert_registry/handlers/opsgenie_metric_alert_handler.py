@@ -1,10 +1,13 @@
+from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
     NotificationContext,
+    OpenPeriodContext,
 )
 from sentry.integrations.opsgenie.utils import send_incident_alert_notification
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.notifications.notification_action.registry import metric_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.workflow_engine.models import Action
@@ -18,8 +21,11 @@ class OpsgenieMetricAlertHandler(BaseMetricAlertHandler):
         notification_context: NotificationContext,
         alert_context: AlertContext,
         metric_issue_context: MetricIssueContext,
-        organization: Organization,
+        open_period_context: OpenPeriodContext,
+        trigger_status: TriggerStatus,
         notification_uuid: str,
+        organization: Organization,
+        project: Project,
     ) -> None:
 
         send_incident_alert_notification(

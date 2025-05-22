@@ -2,29 +2,45 @@ import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {
   GroupSearchView,
-  GroupSearchViewVisibility,
+  GroupSearchViewCreatedBy,
 } from 'sentry/views/issueList/types';
+
+export type GroupSearchViewBackendSortOption =
+  | 'visited'
+  | '-visited'
+  | 'popularity'
+  | '-popularity'
+  | 'name'
+  | '-name'
+  | 'created'
+  | '-created';
 
 type FetchGroupSearchViewsParameters = {
   orgSlug: string;
+  createdBy?: GroupSearchViewCreatedBy;
   cursor?: string;
   limit?: number;
-  visibility?: GroupSearchViewVisibility;
+  query?: string;
+  sort?: GroupSearchViewBackendSortOption[];
 };
 
 export const makeFetchGroupSearchViewsKey = ({
   orgSlug,
-  visibility,
+  createdBy,
   limit,
   cursor,
+  sort,
+  query,
 }: FetchGroupSearchViewsParameters): ApiQueryKey =>
   [
     `/organizations/${orgSlug}/group-search-views/`,
     {
       query: {
         per_page: limit,
-        visibility,
+        createdBy,
         cursor,
+        sort,
+        query,
       },
     },
   ] as const;

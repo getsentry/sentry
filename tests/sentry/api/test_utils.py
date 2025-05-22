@@ -2,7 +2,6 @@ import datetime
 import unittest
 from unittest.mock import MagicMock, patch
 
-import psycopg2
 import pytest
 from django.db import OperationalError
 from django.utils import timezone
@@ -19,7 +18,6 @@ from sentry.api.utils import (
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.utils.snuba import (
     DatasetSelectionError,
     QueryConnectionFailed,
@@ -202,31 +200,32 @@ class HandleQueryErrorsTest(APITestCase):
 
     def test_handle_postgres_timeout(self):
         class TimeoutError(OperationalError):
-            pgcode = psycopg2.errorcodes.QUERY_CANCELED
+            def __str__(self):
+                return "canceling statement due to statement timeout"
 
-        # Test when option is disabled (default)
         try:
             with handle_query_errors():
                 raise TimeoutError()
         except Exception as e:
-            assert isinstance(e, TimeoutError)  # Should propagate original error
+            assert isinstance(e, Throttled)
+            assert (
+                str(e) == "Query timeout. Please try with a smaller date range or fewer conditions."
+            )
 
-        # Test when option is enabled
-        with override_options({"api.postgres-query-timeout-error-handling.enabled": True}):
-            try:
-                with handle_query_errors():
-                    raise TimeoutError()
-            except Exception as e:
-                assert isinstance(e, Throttled)
-                assert (
-                    str(e)
-                    == "Query timeout. Please try with a smaller date range or fewer conditions."
-                )
+    def test_handle_postgres_user_cancel(self):
+        class UserCancelError(OperationalError):
+            def __str__(self):
+                return "canceling statement due to user request"
+
+        try:
+            with handle_query_errors():
+                raise UserCancelError()
+        except Exception as e:
+            assert isinstance(e, UserCancelError)  # Should propagate original error
 
     @patch("sentry.api.utils.ParseError")
     def test_handle_other_operational_error(self, mock_parse_error):
         class OtherError(OperationalError):
-            # No pgcode attribute
             pass
 
         try:

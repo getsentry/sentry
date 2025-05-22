@@ -9,7 +9,7 @@ interface Props extends SVGIconProps {
   isSolid?: boolean;
 }
 
-function IconBookmark({ref, isSolid = false, ...props}: Props) {
+function IconBookmark({isSolid = false, ...props}: Props) {
   const theme = useTheme();
 
   const {color: providedColor = 'currentColor'} = useIconDefaults(props);
@@ -18,7 +18,7 @@ function IconBookmark({ref, isSolid = false, ...props}: Props) {
   const color = theme[providedColor] ?? providedColor;
 
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <path
           fill={isSolid ? color : 'none'}

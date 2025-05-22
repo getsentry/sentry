@@ -5,24 +5,28 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-explore: 0001_add_explore_saved_query_model
+explore: 0001_squashed_0004_add_explore_last_visited_table
 
-feedback: 0004_index_together
+feedback: 0001_squashed_0004_index_together
 
-hybridcloud: 0019_add_provider_webhook_payload
+flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-nodestore: 0002_nodestore_no_dictfield
+hybridcloud: 0001_squashed_0021_django_arrayfield_scope_list
 
-remote_subscriptions: 0003_drop_remote_subscription
+insights: 0001_squashed_0001_add_starred_transactions_model
 
-replays: 0004_index_together
+monitors: 0001_squashed_0005_record_date_in_progress_state
 
-sentry: 0852_delete_new_groups_column
+nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-social_auth: 0002_default_auto_field
+replays: 0001_squashed_0005_drop_replay_index
 
-tempest: 0002_make_message_type_nullable
+sentry: 0908_increase_email_field_length
 
-uptime: 0031_translate_uptime_object_headers_to_lists_take_three
+social_auth: 0001_squashed_0002_default_auto_field
 
-workflow_engine: 0038_add_detector_workflow_unique_together
+tempest: 0001_squashed_0002_make_message_type_nullable
+
+uptime: 0001_squashed_0042_extra_uptime_indexes
+
+workflow_engine: 0001_squashed_0065_add_status_to_detector_and_workflow

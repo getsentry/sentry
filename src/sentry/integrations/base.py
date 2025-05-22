@@ -4,7 +4,7 @@ import abc
 import logging
 import sys
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from enum import Enum, StrEnum
+from enum import StrEnum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
 
@@ -16,10 +16,12 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.team import Team
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -96,7 +98,7 @@ class IntegrationMetadata(NamedTuple):
         return metadata
 
 
-class IntegrationFeatures(Enum):
+class IntegrationFeatures(StrEnum):
     """
     IntegrationFeatures are used for marking supported features on an
     integration. Features are marked on the IntegrationProvider itself, as well
@@ -119,6 +121,7 @@ class IntegrationFeatures(Enum):
     TICKET_RULES = "ticket-rules"
     STACKTRACE_LINK = "stacktrace-link"
     CODEOWNERS = "codeowners"
+    USER_MAPPING = "user-mapping"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -133,22 +136,6 @@ class IntegrationDomain(StrEnum):
     SOURCE_CODE_MANAGEMENT = "source_code_management"
     ON_CALL_SCHEDULING = "on_call_scheduling"
     IDENTITY = "identity"  # for identity pipelines
-
-
-class IntegrationProviderSlug(StrEnum):
-    SLACK = "slack"
-    DISCORD = "discord"
-    MSTEAMS = "msteams"
-    JIRA = "jira"
-    JIRA_SERVER = "jira_server"
-    AZURE_DEVOPS = "vsts"
-    GITHUB = "github"
-    GITHUB_ENTERPRISE = "github_enterprise"
-    GITLAB = "gitlab"
-    BITBUCKET = "bitbucket"
-    BITBUCKET_SERVER = "bitbucket_server"
-    PAGERDUTY = "pagerduty"
-    OPSGENIE = "opsgenie"
 
 
 INTEGRATION_TYPE_TO_PROVIDER = {
@@ -386,7 +373,7 @@ class IntegrationInstallation(abc.ABC):
             organization_id=self.organization_id,
         )
         if integration is None:
-            raise NotFound("missing org_integration")
+            raise OrganizationIntegrationNotFound("missing org_integration")
         return integration
 
     @cached_property
@@ -451,11 +438,12 @@ class IntegrationInstallation(abc.ABC):
         """
         raise NotImplementedError
 
-    def get_default_identity(self) -> RpcIdentity:
+    @cached_property
+    def default_identity(self) -> RpcIdentity:
         """For Integrations that rely solely on user auth for authentication."""
         try:
             org_integration = self.org_integration
-        except NotFound:
+        except OrganizationIntegrationNotFound:
             raise Identity.DoesNotExist
         else:
             if org_integration.default_auth_id is None:
@@ -516,7 +504,7 @@ class IntegrationInstallation(abc.ABC):
             self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
-    def is_rate_limited_error(self, exc: Exception) -> bool:
+    def is_rate_limited_error(self, exc: ApiError) -> bool:
         raise NotImplementedError
 
     @property

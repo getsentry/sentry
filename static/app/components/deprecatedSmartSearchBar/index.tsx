@@ -9,6 +9,8 @@ import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/saved
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {
   BooleanOperator,
@@ -53,9 +55,6 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-
-import type {MenuItemProps} from '../dropdownMenu';
-import {DropdownMenu} from '../dropdownMenu';
 
 import SearchBarDatePicker from './searchBarDatePicker';
 import SearchDropdown from './searchDropdown';
@@ -166,7 +165,7 @@ const pickParserOptions = (props: Props) => {
   } satisfies Partial<SearchConfig>;
 };
 
-export type ActionProps = {
+type ActionProps = {
   api: Client;
   /**
    * The organization
@@ -182,7 +181,7 @@ export type ActionProps = {
   savedSearchType?: SavedSearchType;
 };
 
-export type ActionBarItem = {
+type ActionBarItem = {
   /**
    * Name of the action
    */
@@ -658,7 +657,8 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
       let offset = filterTokens[0]!.location.end.offset;
       if (token) {
-        const tokenIndex = filterTokens.findIndex(tok => tok === token);
+        // @ts-expect-error: Mismatched types
+        const tokenIndex = filterTokens.indexOf(token);
         if (tokenIndex !== -1 && tokenIndex + 1 < filterTokens.length) {
           offset = filterTokens[tokenIndex + 1]!.location.end.offset;
         }
@@ -677,7 +677,8 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     const hasExecCommand = typeof document.execCommand === 'function';
 
     if (token && filterTokens.length > 0) {
-      const index = filterTokens.findIndex(tok => tok === token) ?? -1;
+      // @ts-expect-error: Mismatched types
+      const index = filterTokens.indexOf(token) ?? -1;
       const newQuery =
         // We trim to remove any remaining spaces
         query.slice(0, token.location.start.offset).trim() +
@@ -1463,7 +1464,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     const project = location?.query ? location.query.projectId : undefined;
 
     const url = `/organizations/${organization.slug}/releases/`;
-    const fetchQuery: {[key: string]: string | number} = {
+    const fetchQuery: Record<string, string | number> = {
       per_page: MAX_AUTOCOMPLETE_RELEASES,
     };
 

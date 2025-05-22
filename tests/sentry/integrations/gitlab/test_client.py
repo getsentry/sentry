@@ -23,7 +23,13 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiRateLimitedError
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiHostError,
+    ApiRateLimitedError,
+    ApiRetryError,
+)
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
@@ -172,7 +178,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
 
         resp = self.gitlab_client.check_file(self.repo, path, ref)
         assert responses.calls[0].response.status_code == 200
-        assert resp.status_code == 200
+        assert resp  # this is None on error
 
     @responses.activate
     def test_check_no_file(self):
@@ -188,7 +194,8 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert responses.calls[0].response.status_code == 404
 
     @responses.activate
-    def test_get_stacktrace_link(self):
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_stacktrace_link(self, mock_record):
         path = "/src/file.py"
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
@@ -202,13 +209,48 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             source_url
             == "https://example.gitlab.com/example-repo/blob/537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3/src/file.py"
         )
+        assert (
+            len(mock_record.mock_calls) == 4
+        )  # get_stacktrace_link calls check_file, which also has metrics
+        start1, start2, halt1, halt2 = mock_record.mock_calls
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
+        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS  # check_file
+        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.gitlab.client.GitLabApiClient.check_file",
+        side_effect=ApiRetryError(text="retry error"),
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_stacktrace_link_retry_error(self, mock_record, mock_check_file):
+        path = "/src/file.py"
+        ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
+        responses.add(
+            responses.HEAD,
+            f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
+            json={"text": 200},
+        )
+
+        source_url = self.installation.get_stacktrace_link(self.repo, path, "master", None)
+        assert source_url is None
+        assert (
+            len(mock_record.mock_calls) == 4
+        )  # get_stacktrace_link calls check_file, which also has metrics
+        start1, start2, halt1, halt2 = mock_record.mock_calls
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
+        assert halt1.args[0] == EventLifecycleOutcome.HALTED  # check_file
+        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @mock.patch(
         "sentry.integrations.gitlab.integration.GitlabIntegration.check_file",
         return_value=GITLAB_CODEOWNERS["html_url"],
     )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_get_codeowner_file(self, mock_check_file):
+    def test_get_codeowner_file(self, mock_record, mock_check_file):
         self.config = self.create_code_mapping(
             repo=self.repo,
             project=self.project,
@@ -223,6 +265,12 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         )
 
         assert result == GITLAB_CODEOWNERS
+
+        assert (
+            len(mock_record.mock_calls) == 2
+        )  # check_file is mocked in this test, so there will be no metrics logged for it
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     def test_get_commit(self):
@@ -607,6 +655,91 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
         assert resp == []
+
+
+@control_silo_test
+class GitLabGetMergeCommitShaFromCommitTest(GitLabClientTest):
+    @responses.activate
+    def test_merge_commit_sha(self):
+        merge_commit_sha = "123"
+        commit_sha = "123"
+        responses.add(
+            responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit_sha}/merge_requests",
+            json=[
+                {
+                    "state": "merged",
+                    "merge_commit_sha": merge_commit_sha,
+                    "squash_commit_sha": None,
+                }
+            ],
+            status=200,
+        )
+
+        sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
+        assert sha == merge_commit_sha
+
+    @responses.activate
+    def test_squash_commit_sha(self):
+        squash_commit_sha = "123"
+        commit_sha = "123"
+        responses.add(
+            responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit_sha}/merge_requests",
+            json=[
+                {
+                    "state": "merged",
+                    "merge_commit_sha": None,
+                    "squash_commit_sha": squash_commit_sha,
+                }
+            ],
+            status=200,
+        )
+
+        sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
+        assert sha == squash_commit_sha
+
+    @responses.activate
+    def test_no_merge_requests(self):
+        commit_sha = "123"
+        responses.add(
+            responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit_sha}/merge_requests",
+            json=[],
+            status=200,
+        )
+
+        sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
+        assert sha is None
+
+    @responses.activate
+    def test_open_merge_request(self):
+        commit_sha = "123"
+        responses.add(
+            responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit_sha}/merge_requests",
+            json=[{"state": "opened"}],
+            status=200,
+        )
+
+        sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
+        assert sha is None
+
+    @responses.activate
+    def test_multiple_merged_requests(self):
+        commit_sha = "123"
+        responses.add(
+            responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit_sha}/merge_requests",
+            json=[
+                {"state": "merged"},
+                {"state": "merged"},
+            ],
+            status=200,
+        )
+
+        sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
+        assert sha is None
 
 
 @control_silo_test

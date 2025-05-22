@@ -4,19 +4,20 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat, IconCircleFill, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
+import feedbackHasLinkedError from 'sentry/utils/feedback/hasLinkedError';
+import {type FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -47,8 +48,7 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Prop
   const hasReplayId = feedbackHasReplay(feedbackItem.id);
   const location = useLocation();
 
-  const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
-  const isUserReportWithError = feedbackItem.metadata.source === 'user_report_envelope';
+  const hasLinkedError = feedbackHasLinkedError(feedbackItem);
   const hasAttachments = feedbackItem.latestEventHasAttachments;
   const hasComments = feedbackItem.numComments > 0;
 
@@ -135,7 +135,7 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Prop
               </Tooltip>
             )}
 
-            {(isCrashReport || isUserReportWithError) && (
+            {hasLinkedError && (
               <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
                 <IconFatal color="red400" size="xs" />
               </Tooltip>

@@ -13,8 +13,7 @@ import localStorage from 'sentry/utils/localStorage';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-
-import Header from '../header';
+import Header from 'sentry/views/organizationStats/header';
 
 import TeamStatsControls from './controls';
 import DescriptionCard from './descriptionCard';
@@ -37,7 +36,7 @@ function TeamStatsIssues({location, router}: Props) {
 
   let localTeamId: string | null | undefined =
     query.team ?? localStorage.getItem(localStorageKey);
-  if (localTeamId && !teams.find(team => team.id === localTeamId)) {
+  if (localTeamId && !teams.some(team => team.id === localTeamId)) {
     localTeamId = null;
   }
   const currentTeamId = localTeamId ?? teams[0]?.id;

@@ -8,6 +8,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {MaybeBrowserProfilingBetaWarning} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {t, tct} from 'sentry/locale';
+import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -160,6 +161,10 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,`
       : ''
   }
+
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });
 
 hydrateRoot(document, <StartClient router={router} />);`,
@@ -192,6 +197,10 @@ Sentry.init({
   tracesSampleRate: 1.0,`
       : ''
   }
+
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });`,
             },
           ],
@@ -433,8 +442,17 @@ export const APIRoute = createAPIFileRoute("/api/sentry-example-api")({
   ],
 };
 
+const profilingOnboarding = getJavascriptFullStackOnboarding({
+  basePackage: '@sentry/tanstackstart-react',
+  browserProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/profiling/browser-profiling/',
+  nodeProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/profiling/node-profiling/',
+});
+
 const docs: Docs = {
   onboarding,
+  profilingOnboarding,
 };
 
 export default docs;

@@ -13,7 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
@@ -44,7 +44,7 @@ import IntegrationButton from 'sentry/views/settings/organizationIntegrations/in
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 // Show the features tab if the org has features for the integration
-const integrationFeatures = ['github', 'slack'];
+const integrationFeatures = ['github', 'gitlab', 'slack'];
 
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
@@ -281,7 +281,7 @@ export default function IntegrationDetailedView() {
       }
 
       return (
-        <IntegrationContext.Provider
+        <IntegrationContext
           value={{
             provider,
             type: integrationType,
@@ -307,7 +307,7 @@ export default function IntegrationDetailedView() {
             }}
             buttonProps={buttonProps}
           />
-        </IntegrationContext.Provider>
+        </IntegrationContext>
       );
     },
     [
@@ -484,6 +484,35 @@ export default function IntegrationDetailedView() {
     return [forms, initialData];
   }, [organization, configurations]);
 
+  const getGitlabFeatures = useCallback((): [JsonFormObject[], Data] => {
+    const hasIntegration = configurations ? configurations.length > 0 : false;
+
+    const forms: JsonFormObject[] = [
+      {
+        fields: [
+          {
+            name: 'gitlabPRBot',
+            type: 'boolean',
+            label: t('Enable Comments on Suspect Pull Requests'),
+            help: t(
+              'Allow Sentry to comment on recent pull requests suspected of causing issues.'
+            ),
+            disabled: !hasIntegration,
+            disabledReason: t(
+              'You must have a GitLab integration to enable this feature.'
+            ),
+          },
+        ],
+      },
+    ];
+
+    const initialData = {
+      gitlabPRBot: organization.gitlabPRBot,
+    };
+
+    return [forms, initialData];
+  }, [organization, configurations]);
+
   const renderFeatures = useCallback(() => {
     const endpoint = `/organizations/${organization.slug}/`;
     const hasOrgWrite = organization.access.includes('org:write');
@@ -492,6 +521,10 @@ export default function IntegrationDetailedView() {
     switch (provider?.key) {
       case 'github': {
         [forms, initialData] = getGithubFeatures();
+        break;
+      }
+      case 'gitlab': {
+        [forms, initialData] = getGitlabFeatures();
         break;
       }
       case 'slack': {
@@ -518,7 +551,7 @@ export default function IntegrationDetailedView() {
         />
       </Form>
     );
-  }, [organization, provider, getGithubFeatures, getSlackFeatures]);
+  }, [organization, provider, getGithubFeatures, getGitlabFeatures, getSlackFeatures]);
 
   if (isInformationPending || isConfigurationsPending) {
     return <LoadingIndicator />;

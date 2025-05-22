@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 
-import {smallCss} from '../styles/typography';
+import {smallCss} from 'sentry/components/devtoolbar/styles/typography';
 
 const variants = {
   red: css`

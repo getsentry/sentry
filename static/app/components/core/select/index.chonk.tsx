@@ -1,11 +1,10 @@
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import omit from 'lodash/omit';
 
-import {Chevron} from 'sentry/components/chevron';
 import {Button} from 'sentry/components/core/button';
 import type {StylesConfig as ReactSelectStylesConfig} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {IconClose} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
@@ -67,8 +66,8 @@ export const getChonkStylesConfig = ({
       color: state.isDisabled ? theme.disabled : theme.textColor,
       background: theme.background,
       border: `1px solid ${theme.border}`,
-      boxShadow: theme.dropShadowMedium,
-      borderRadius: theme.borderRadius,
+      boxShadow: 'none',
+      borderRadius: theme.formRadius[size].borderRadius,
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
       ...(state.isFocused && theme.focusRing),
@@ -76,6 +75,7 @@ export const getChonkStylesConfig = ({
         background: theme.background,
         color: theme.disabled,
         cursor: 'not-allowed',
+        opacity: '60%',
       }),
       ...omit(theme.form[size], 'height'),
       ...(state.isMulti && {
@@ -89,7 +89,8 @@ export const getChonkStylesConfig = ({
       zIndex: theme.zIndex.dropdown,
       background: theme.backgroundElevated,
       borderRadius: theme.borderRadius,
-      boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
+      border: `1px solid ${theme.border}`,
+      boxShadow: 'none',
       width: 'auto',
       minWidth: '100%',
       maxWidth: maxMenuWidth ?? 'auto',
@@ -256,7 +257,7 @@ export function ChonkDropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <Chevron direction="down" size="medium" />
+      <IconChevron direction="down" size="xs" />
     </selectComponents.DropdownIndicator>
   );
 }
@@ -270,32 +271,27 @@ export const ChonkCheckWrap = chonkStyled('div')<{
   justify-content: center;
   align-items: center;
   width: 1em;
-  height: 1.2em;
+  height: 1.4em;
 
   ${p =>
     p.isMultiple
-      ? `
-      padding: 1px;
-      border: solid 1px ${p.theme.border};
-      background: ${p.theme.backgroundElevated};
-      border-radius: 2px;
-      box-shadow: inset ${p.theme.dropShadowMedium};
-      height: 1em;
-      margin-top: 2px;
-      ${
-        p.isSelected &&
+      ? css`
+          padding: 1px;
+          border: solid 1px ${p.theme.border};
+          background: ${p.theme.backgroundElevated};
+          border-radius: 2px;
+          height: 1em;
+          margin-top: 2px;
+          ${p.isSelected &&
+          css`
+            background: ${p.theme.purple300};
+            border-color: ${p.theme.purple300};
+          `}
         `
-        background: ${p.theme.purple300};
-        border-color: ${p.theme.purple300};
-       `
-      }
-    `
-      : `
-      ${
-        p.isSelected &&
-        `
-        color: ${p.theme.colors.content.accent};
-       `
-      }
-    `}
+      : css`
+          ${p.isSelected &&
+          css`
+            color: ${p.theme.colors.content.accent};
+          `}
+        `}
 `;

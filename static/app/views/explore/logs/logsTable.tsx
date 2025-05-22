@@ -1,13 +1,14 @@
 import {Fragment, useRef} from 'react';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
   Table,
@@ -19,37 +20,57 @@ import {
 } from 'sentry/views/explore/components/table';
 import {
   useLogsFields,
-  useLogsIsTableEditingFrozen,
+  useLogsIsTableFrozen,
   useLogsSearch,
   useLogsSortBys,
   useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
-import {LogTableBody, LogTableRow} from 'sentry/views/explore/logs/styles';
+import {
+  FirstTableHeadCell,
+  LogTableBody,
+  LogTableRow,
+} from 'sentry/views/explore/logs/styles';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
 import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
 
-const LOGS_INSTRUCTIONS_URL = 'https://github.com/getsentry/sentry/discussions/86804';
+export const LOGS_INSTRUCTIONS_URL =
+  'https://docs.sentry.io/product/explore/logs/getting-started/';
 
-export type LogsTableProps = {
+type LogsTableProps = {
   tableData: UseExploreLogsTableResult;
+  allowPagination?: boolean;
+  numberAttributes?: TagCollection;
   showHeader?: boolean;
+  stringAttributes?: TagCollection;
 };
 
-export function LogsTable({tableData, showHeader}: LogsTableProps) {
+export function LogsTable({
+  tableData,
+  showHeader = true,
+  allowPagination = true,
+  stringAttributes,
+  numberAttributes,
+}: LogsTableProps) {
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
-  const isTableEditingFrozen = useLogsIsTableEditingFrozen();
+  const isTableFrozen = useLogsIsTableFrozen();
+
   const {data, isError, isPending, pageLinks, meta} = tableData;
 
   const tableRef = useRef<HTMLTableElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
     minimumColumnWidth: 50,
+    prefixColumnWidth: 'min-content',
+    staticColumnWidths: {
+      [OurLogKnownFieldKey.MESSAGE]: '1fr',
+    },
   });
 
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0;
@@ -59,16 +80,29 @@ export function LogsTable({tableData, showHeader}: LogsTableProps) {
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles}>
-        {showHeader === false ? null : (
+      <Table
+        ref={tableRef}
+        style={initialTableStyles}
+        data-test-id="logs-table"
+        hideBorder={isTableFrozen}
+        showVerticalScrollbar={isTableFrozen}
+      >
+        {showHeader ? (
           <TableHead>
             <LogTableRow>
+              <FirstTableHeadCell isFirst align="left">
+                <TableHeadCellContent isFrozen />
+              </FirstTableHeadCell>
               {fields.map((field, index) => {
                 const direction = sortBys.find(s => s.field === field)?.kind;
 
                 const fieldType = meta?.fields?.[field];
                 const align = logsFieldAlignment(field, fieldType);
-                const headerLabel = getTableHeaderLabel(field);
+                const headerLabel = getTableHeaderLabel(
+                  field,
+                  stringAttributes,
+                  numberAttributes
+                );
 
                 if (isPending) {
                   return <TableHeadCell key={index} isFirst={index === 0} />;
@@ -80,10 +114,8 @@ export function LogsTable({tableData, showHeader}: LogsTableProps) {
                     isFirst={index === 0}
                   >
                     <TableHeadCellContent
-                      onClick={
-                        isTableEditingFrozen ? undefined : () => setSortBys([{field}])
-                      }
-                      isFrozen={isTableEditingFrozen}
+                      onClick={isTableFrozen ? undefined : () => setSortBys([{field}])}
+                      isFrozen={isTableFrozen}
                     >
                       <Tooltip showOnlyOnOverflow title={headerLabel}>
                         {headerLabel}
@@ -112,8 +144,8 @@ export function LogsTable({tableData, showHeader}: LogsTableProps) {
               })}
             </LogTableRow>
           </TableHead>
-        )}
-        <LogTableBody>
+        ) : null}
+        <LogTableBody showHeader={showHeader}>
           {isPending && (
             <TableStatus>
               <LoadingIndicator />
@@ -156,7 +188,7 @@ export function LogsTable({tableData, showHeader}: LogsTableProps) {
           ))}
         </LogTableBody>
       </Table>
-      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
+      {allowPagination ? <Pagination pageLinks={pageLinks} onCursor={setCursor} /> : null}
     </Fragment>
   );
 }

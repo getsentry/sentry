@@ -1,9 +1,9 @@
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 
-function IconSentryPrideLogo({ref, ...props}: Omit<SVGIconProps, 'fill'>) {
+function IconSentryPrideLogo(props: Omit<SVGIconProps, 'fill'>) {
   return (
-    <SvgIcon {...props} ref={ref} kind="path">
+    <SvgIcon {...props} kind="path">
       <defs>
         <linearGradient id="pride" x1="0%" y1="75%" x2="100%" y2="130%">
           <stop offset="0" style={{stopColor: '#DA6B9D', stopOpacity: 1}} />

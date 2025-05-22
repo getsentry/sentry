@@ -1,4 +1,4 @@
-import {type ReactElement, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -6,13 +6,14 @@ import type {
   CustomSeriesRenderItemAPI,
   CustomSeriesRenderItemParams,
   CustomSeriesRenderItemReturn,
+  ElementEvent,
 } from 'echarts';
 import type {EChartsInstance} from 'echarts-for-react';
+import debounce from 'lodash/debounce';
 import moment from 'moment-timezone';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
-import useDrawer, {type DrawerConfig} from 'sentry/components/globalDrawer';
 import type {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tn} from 'sentry/locale';
 import type {
@@ -20,136 +21,45 @@ import type {
   EChartMouseOutHandler,
   EChartMouseOverHandler,
   ReactEchartsRef,
+  Series,
 } from 'sentry/types/echarts';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat} from 'sentry/utils/dates';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
-import {ReleasesDrawer} from 'sentry/views/releases/drawer/releasesDrawer';
+import {
+  cleanReleaseCursors,
+  ReleasesDrawerFields,
+} from 'sentry/views/releases/drawer/utils';
 import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
 } from 'sentry/views/releases/releaseBubbles/constants';
-import {createReleaseBubbleHighlighter} from 'sentry/views/releases/releaseBubbles/createReleaseBubbleHighlighter';
-import type {
-  Bucket,
-  ChartRendererProps,
-} from 'sentry/views/releases/releaseBubbles/types';
+import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/releases/releaseBubbles/utils/createReleaseBuckets';
 
-interface CreateReleaseBubbleMouseListenersParams {
-  buckets: Bucket[];
-  color: string;
-  environments: readonly string[];
-  openDrawer: (
-    renderer: DrawerConfig['renderer'],
-    options: DrawerConfig['options']
-  ) => void;
-  projects: readonly number[];
-  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
+interface LegendSelectChangedParams {
+  name: string;
+  selected: Record<string, boolean>;
 }
 
-/**
- * MouseListeners for echarts. This includes drawing a highlighted area on the
- * main chart when a release bubble is hovered over.
- */
-function createReleaseBubbleMouseListeners({
-  chartRenderer,
-  color,
-  openDrawer,
-  buckets,
-  projects,
-  environments,
-}: CreateReleaseBubbleMouseListenersParams) {
-  return {
-    onClick: (params: Parameters<EChartClickHandler>[0]) => {
-      if (params.seriesId !== BUBBLE_SERIES_ID) {
-        return;
-      }
-
-      // `data` is typed as Record<string, any> by ECharts, with no generics
-      // to override
-      const data = params.data as unknown as Bucket;
-
-      // "Full Screen View" for Insights opens in a modal, close before opening
-      // drawer.
-      closeModal();
-
-      openDrawer(
-        () => (
-          <ReleasesDrawer
-            startTs={data.start}
-            endTs={data.final ?? data.end}
-            releases={data.releases}
-            buckets={buckets}
-            projects={projects}
-            environments={environments}
-            chartRenderer={chartRenderer}
-          />
-        ),
-        {
-          shouldCloseOnLocationChange: () => false,
-          ariaLabel: t('Releases drawer'),
-          transitionProps: {stiffness: 1000},
-        }
-      );
-    },
-    onMouseOut: (
-      params: Parameters<EChartMouseOutHandler>[0],
-      instance: EChartsInstance
-    ) => {
-      if (params.seriesId !== BUBBLE_SERIES_ID) {
-        return;
-      }
-
-      // Clear the `markArea` that was drawn during mouse over
-      instance.setOption({
-        series: [{id: BUBBLE_AREA_SERIES_ID, markArea: {data: []}}],
-      });
-    },
-    onMouseOver: (
-      params: Parameters<EChartMouseOverHandler>[0],
-      instance: EChartsInstance
-    ) => {
-      if (params.seriesId !== BUBBLE_SERIES_ID) {
-        return;
-      }
-
-      const data = params.data as unknown as Bucket;
-
-      // Create an empty series that has a `markArea` which is then
-      // rectangular area of the "release bucket" that was hovered over (in
-      // the release bubbles). This is drawn on the main chart so that users
-      // can visualize the time block of the set of relases.
-      instance.setOption({
-        series: [
-          {
-            id: BUBBLE_AREA_SERIES_ID,
-            type: 'custom',
-            renderItem: () => {},
-            markArea: {
-              itemStyle: {color, opacity: 0.1},
-              data: [
-                [
-                  {
-                    xAxis: data.start,
-                  },
-                  {
-                    xAxis: data.end,
-                  },
-                ],
-              ],
-            },
-          },
-        ],
-      });
-    },
-  };
-}
+// This needs to be debounced because some charts (e.g. in TimeseriesWidgets)
+// are in a group and share events. Thus on a page with 4 widgets, clicking on
+// a legend item would result in 4 events.
+const trackLegend = debounce((params: LegendSelectChangedParams) => {
+  trackAnalytics('releases.bubbles_legend', {
+    organization: null,
+    selected: Boolean(params.selected.Releases),
+  });
+});
 
 interface ReleaseBubbleSeriesProps {
+  alignInMiddle: boolean;
   bubblePadding: number;
   bubbleSize: number;
   buckets: Bucket[];
@@ -159,6 +69,7 @@ interface ReleaseBubbleSeriesProps {
   };
   releases: ReleaseMetaBasic[];
   theme: Theme;
+  yAxisIndex?: number;
 }
 
 /**
@@ -171,6 +82,8 @@ function ReleaseBubbleSeries({
   bubbleSize,
   bubblePadding,
   dateFormatOptions,
+  alignInMiddle,
+  yAxisIndex,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
   const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
   const avgReleases = totalReleases / buckets.length;
@@ -210,14 +123,9 @@ function ReleaseBubbleSeries({
     // bubble. The 2nd tuple passed to `api.coord()` is always 0 because we
     // don't care about the y-coordinate as the bubbles have a static height.
     const [bubbleStartX, bubbleStartY] = api.coord([dataItem.start, 0]);
-    const [bubbleEndX, bubbleEndY] = api.coord([dataItem.end, 0]);
+    const [bubbleEndX] = api.coord([dataItem.end, 0]);
 
-    if (
-      !defined(bubbleStartX) ||
-      !defined(bubbleStartY) ||
-      !defined(bubbleEndX) ||
-      !defined(bubbleEndY)
-    ) {
+    if (!defined(bubbleStartX) || !defined(bubbleStartY) || !defined(bubbleEndX)) {
       return null;
     }
 
@@ -239,8 +147,12 @@ function ReleaseBubbleSeries({
       //                 |--|
       //                 bubblePadding
 
-      x: bubbleStartX + bubblePadding / 2,
+      // If `alignInMiddle` is true, we shift the starting x positon back by
+      // 50% of width so that the middle of the bubble aligns with starting
+      // timestamp. This matches the behavior of EChart's bar charts.
+      x: bubbleStartX + bubblePadding / 2 - (alignInMiddle ? width / 2 : 0),
       width: width - bubblePadding,
+
       // We configure base chart's grid and xAxis to create a gap size of
       // `bubbleSize`. We then have to configure `y` and `height` to fit within this
       //
@@ -280,6 +192,7 @@ function ReleaseBubbleSeries({
   return {
     id: BUBBLE_SERIES_ID,
     type: 'custom',
+    yAxisIndex,
     renderItem: renderReleaseBubble,
     name: t('Releases'),
     data,
@@ -337,6 +250,13 @@ ${t('Click to expand')}
 
 interface UseReleaseBubblesParams {
   /**
+   * Align the starting timestamp to the middle of the release bubble (e.g. if
+   * we want to match ECharts' bar charts), otherwise we draw starting at
+   * starting timestamp
+   */
+  alignInMiddle?: boolean;
+
+  /**
    * The whitespace around the bubbles.
    */
   bubblePadding?: number;
@@ -345,10 +265,9 @@ interface UseReleaseBubblesParams {
    */
   bubbleSize?: number;
   /**
-   * This is a callback function that is used in ReleasesDrawer when rendering
-   * the chart inside of the drawer.
+   * Unique ID for chart, used to load and render chart
    */
-  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
+  chartId?: string;
   datetime?: Parameters<typeof normalizeDateTimeParams>[0];
   /**
    * Number of desired bubbles/buckets to create
@@ -370,10 +289,14 @@ interface UseReleaseBubblesParams {
    * List of releases that will be grouped
    */
   releases?: ReleaseMetaBasic[];
+  /**
+   * The index of the y-axis to use for the release bubbles
+   */
+  yAxisIndex?: number;
 }
 
 export function useReleaseBubbles({
-  chartRenderer,
+  chartId,
   releases,
   minTime,
   maxTime,
@@ -381,12 +304,15 @@ export function useReleaseBubbles({
   environments,
   projects,
   legendSelected,
+  yAxisIndex,
+  alignInMiddle = false,
   bubbleSize = 4,
   bubblePadding = 2,
   desiredBuckets = 10,
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
-  const {openDrawer} = useDrawer();
+  const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const {options} = useUser();
   const {selection} = usePageFilters();
@@ -424,6 +350,17 @@ export function useReleaseBubbles({
     }),
     [bubbleSize, totalBubblePaddingY]
   );
+
+  const releaseBubbleYAxis = useMemo(
+    () => ({
+      type: 'value' as const,
+      min: 0,
+      max: 100,
+      show: false,
+    }),
+    []
+  );
+
   const releaseBubbleGrid = useMemo(
     () => ({
       // Moves bottom of grid "up" `bubbleSize` pixels so that bubbles are
@@ -433,53 +370,256 @@ export function useReleaseBubbles({
     [bubbleSize, totalBubblePaddingY]
   );
 
-  const handleChartRef = (e: ReactEchartsRef | null) => {
-    chartRef.current = e;
+  const buckets = useMemo(
+    () =>
+      (hasReleaseBubbles &&
+        releases?.length &&
+        minTime &&
+        maxTime &&
+        createReleaseBuckets({
+          minTime,
+          maxTime,
+          finalTime: releasesMaxTime,
+          releases,
+          desiredBuckets,
+        })) ||
+      [],
+    [desiredBuckets, hasReleaseBubbles, maxTime, minTime, releases, releasesMaxTime]
+  );
 
-    if (e?.getEchartsInstance) {
-      const echartsInstance = e.getEchartsInstance();
-      createReleaseBubbleHighlighter(echartsInstance, {
-        onLegendChange: (selected: boolean) => {
-          // If `legendSelected` is defined, this hook will assume that the
-          // selected state is "controlled" by the calling component (e.g. it
-          // implements its own event handler and keeps its own legend-selected
-          // state). The hook will return the updated chart options accordingly.
-          if (legendSelected !== undefined) {
-            return;
-          }
-          // Callback for when Releases legend status changes -- we want to
-          // adjust the xAxis/grid accordingly when Releases are visible or
-          // not
-          echartsInstance.setOption({
-            xAxis: selected ? releaseBubbleXAxis : defaultBubbleXAxis,
-            grid: selected ? releaseBubbleGrid : defaultBubbleGrid,
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef | null) => {
+      chartRef.current = e;
+
+      const echartsInstance: EChartsInstance = e?.getEchartsInstance?.();
+      const highlightedBuckets = new Set();
+
+      const handleMouseMove = (params: ElementEvent) => {
+        // Tracks movement across the chart and highlights the corresponding release bubble
+        const pointInPixel = [params.offsetX, params.offsetY];
+        const pointInGrid = echartsInstance.convertFromPixel('grid', pointInPixel);
+        const series = echartsInstance.getOption().series;
+        const seriesIndex = series.findIndex((s: Series) => s.id === BUBBLE_SERIES_ID);
+
+        // No release bubble series found (shouldn't happen)
+        if (seriesIndex === -1) {
+          return;
+        }
+        const bubbleSeries = series[seriesIndex];
+        const bucketsFromSeries = bubbleSeries?.data;
+
+        if (!bucketsFromSeries) {
+          return;
+        }
+
+        // Try to find the bucket that the mouse is hovered over
+        const bucketIndex = buckets.findIndex(({start, end}: Bucket) => {
+          const ts = pointInGrid[0] ?? -1;
+          return ts >= start && ts < end;
+        });
+
+        // Already highlighted, no need to do anything
+        if (highlightedBuckets.has(bucketIndex)) {
+          return;
+        }
+
+        // If next bucket is not already highlighted, clear all existing
+        // highlights. We also want to clear if bucket was *not* found.
+        if (!highlightedBuckets.has(bucketIndex)) {
+          highlightedBuckets.forEach(dataIndex => {
+            echartsInstance.dispatchAction({
+              type: 'downplay',
+              seriesIndex,
+              dataIndex,
+            });
           });
-        },
-      });
-    }
-  };
+          highlightedBuckets.clear();
+        }
 
-  const buckets =
-    (hasReleaseBubbles &&
-      releases?.length &&
-      minTime &&
-      maxTime &&
-      createReleaseBuckets({
-        minTime,
-        maxTime,
-        finalTime: releasesMaxTime,
-        releases,
-        desiredBuckets,
-      })) ||
-    [];
+        // A bucket was found, dispatch "highlight" action --
+        // this is styled via `renderReleaseBubble` -> `emphasis`
+        if (bucketIndex > -1) {
+          highlightedBuckets.add(bucketIndex);
+          echartsInstance.dispatchAction({
+            type: 'highlight',
+            seriesIndex,
+            dataIndex: bucketIndex,
+          });
+        }
+      };
+      const handleSeriesClick = (params: Parameters<EChartClickHandler>[0]) => {
+        if (params.seriesId !== BUBBLE_SERIES_ID) {
+          return;
+        }
+
+        // `data` is typed as Record<string, any> by ECharts, with no generics
+        // to override
+        const data = params.data as unknown as Bucket;
+
+        // "Full Screen View" for Insights opens in a modal, close before opening
+        // drawer.
+        closeModal();
+
+        navigate({
+          query: {
+            ...cleanReleaseCursors(location.query),
+            [ReleasesDrawerFields.DRAWER]: 'show',
+            [ReleasesDrawerFields.CHART]: chartId,
+            [ReleasesDrawerFields.START]: new Date(data.start).toISOString(),
+            [ReleasesDrawerFields.END]: new Date(data.end).toISOString(),
+            [ReleasesDrawerFields.PROJECT]: projects ?? selection.projects,
+            [ReleasesDrawerFields.ENVIRONMENT]: environments ?? selection.environments,
+          },
+        });
+      };
+
+      const handleMouseOver = (params: Parameters<EChartMouseOverHandler>[0]) => {
+        if (params.seriesId !== BUBBLE_SERIES_ID) {
+          return;
+        }
+
+        const data = params.data as unknown as Bucket;
+
+        // Match behavior of ReleaseBubblSeries
+        const xAxisShift = alignInMiddle ? (data.end - data.start) / 2 : 0;
+
+        // Create an empty series that has a `markArea` which is then
+        // rectangular area of the "release bucket" that was hovered over (in
+        // the release bubbles). This is drawn on the main chart so that users
+        // can visualize the time block of the set of relases.
+        const customSeries: CustomSeriesOption = {
+          id: BUBBLE_AREA_SERIES_ID,
+          type: 'custom',
+          renderItem: () => null,
+          markArea: {
+            itemStyle: {color: theme.blue400, opacity: 0.1},
+            data: [
+              [
+                {
+                  xAxis: data.start - xAxisShift,
+                },
+                {
+                  xAxis: data.end - xAxisShift,
+                },
+              ],
+            ],
+          },
+        };
+        echartsInstance.setOption({series: [customSeries]}, {lazyUpdate: true});
+      };
+
+      const handleMouseOut = (params: Parameters<EChartMouseOutHandler>[0]) => {
+        if (params.seriesId !== BUBBLE_SERIES_ID) {
+          return;
+        }
+
+        // Clear the `markArea` that was drawn during mouse over
+        echartsInstance.setOption(
+          {
+            series: [{id: BUBBLE_AREA_SERIES_ID, markArea: {data: []}}],
+          },
+          {
+            lazyUpdate: true,
+          }
+        );
+      };
+
+      // This fixes a bug where if you hover over a bubble and mouseout via xaxis
+      // (i.e. bottom of chart), the bubble will remain highlighted. This makes it
+      // look buggy and can be misleading especially for bubbles w/ 0 releases.
+      const handleGlobalOut = () => {
+        if (!echartsInstance) {
+          return;
+        }
+
+        const series = echartsInstance.getOption().series;
+        const seriesIndex = series.findIndex((s: Series) => s.id === BUBBLE_SERIES_ID);
+        // We could find and include a `dataIndex` to be specific about which
+        // bubble to "downplay", but I think it's ok to downplay everything
+        echartsInstance.dispatchAction({
+          type: 'downplay',
+          seriesIndex,
+        });
+      };
+
+      const handleLegendSelectChanged = (params: LegendSelectChangedParams) => {
+        if (params.name !== 'Releases' || !('Releases' in params.selected)) {
+          return;
+        }
+        const selected = params.selected.Releases;
+
+        // If `legendSelected` is defined, this hook will assume that the
+        // selected state is "controlled" by the calling component (e.g. it
+        // implements its own event handler and keeps its own legend-selected
+        // state). The hook will return the updated chart options accordingly.
+        if (legendSelected !== undefined) {
+          return;
+        }
+        // Callback for when Releases legend status changes -- we want to
+        // adjust the xAxis/grid accordingly when Releases are visible or
+        // not
+        echartsInstance.setOption({
+          xAxis: selected ? releaseBubbleXAxis : defaultBubbleXAxis,
+          grid: selected ? releaseBubbleGrid : defaultBubbleGrid,
+        });
+
+        trackLegend(params);
+      };
+
+      if (echartsInstance) {
+        /**
+         * MouseListeners for echarts. This includes drawing a highlighted area on the
+         * main chart when a release bubble is hovered over.
+         *
+         * Attach directly to instance to avoid collisions with React props
+         */
+        echartsInstance.on('click', handleSeriesClick);
+        echartsInstance.on('mouseover', handleMouseOver);
+        echartsInstance.on('mouseout', handleMouseOut);
+        echartsInstance.on('globalout', handleGlobalOut);
+        echartsInstance.on('legendselectchanged', handleLegendSelectChanged);
+        echartsInstance.getZr().on('mousemove', handleMouseMove);
+      }
+
+      return () => {
+        if (!echartsInstance) {
+          return;
+        }
+
+        echartsInstance.off('click', handleSeriesClick);
+        echartsInstance.off('mouseover', handleMouseOver);
+        echartsInstance.off('mouseout', handleMouseOut);
+        echartsInstance.off('globalout', handleGlobalOut);
+        echartsInstance.off('legendselectchanged', handleLegendSelectChanged);
+        echartsInstance.getZr().off('mousemove', handleMouseMove);
+      };
+    },
+    [
+      location.query,
+      chartId,
+      navigate,
+      alignInMiddle,
+      buckets,
+      environments,
+      projects,
+      selection.environments,
+      selection.projects,
+      defaultBubbleGrid,
+      defaultBubbleXAxis,
+      legendSelected,
+      releaseBubbleGrid,
+      releaseBubbleXAxis,
+      theme.blue400,
+    ]
+  );
 
   if (!releases || !buckets.length) {
     return {
       connectReleaseBubbleChartRef: () => {},
-      releaseBubbleEventHandlers: {},
       ReleaseBubbleSeries: null,
       releaseBubbleXAxis: {},
       releaseBubbleGrid: {},
+      releaseBubbleYAxis: null,
     };
   }
 
@@ -487,21 +627,11 @@ export function useReleaseBubbles({
     connectReleaseBubbleChartRef: handleChartRef,
 
     /**
-     * An object map of ECharts event handlers. These should be spread onto a Chart component
-     */
-    releaseBubbleEventHandlers: createReleaseBubbleMouseListeners({
-      buckets,
-      chartRenderer,
-      color: theme.blue400,
-      openDrawer,
-      projects: projects ?? selection.projects,
-      environments: environments ?? selection.environments,
-    }),
-
-    /**
      * Series to append to a chart's existing `series`
      */
     releaseBubbleSeries: ReleaseBubbleSeries({
+      yAxisIndex,
+      alignInMiddle,
       buckets,
       bubbleSize,
       bubblePadding,
@@ -512,6 +642,8 @@ export function useReleaseBubbles({
         timezone: options.timezone,
       },
     }),
+
+    releaseBubbleYAxis,
 
     /**
      * ECharts xAxis configuration. Spread/override charts `xAxis` prop.

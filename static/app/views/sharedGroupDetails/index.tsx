@@ -13,8 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-import {OrganizationContext} from '../organizationContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import SharedGroupHeader from './sharedGroupHeader';
 
@@ -74,7 +73,7 @@ function SharedGroupDetails({params}: Props) {
 
   return (
     <SentryDocumentTitle noSuffix title={group?.title ?? 'Sentry'}>
-      <OrganizationContext.Provider value={org}>
+      <OrganizationContext value={org}>
         <div className="app">
           <div className="pattern-bg" />
           <div className="container">
@@ -105,7 +104,7 @@ function SharedGroupDetails({params}: Props) {
             </div>
           </div>
         </div>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     </SentryDocumentTitle>
   );
 }

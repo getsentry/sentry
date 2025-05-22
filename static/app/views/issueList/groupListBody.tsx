@@ -55,7 +55,7 @@ function GroupListBody({
   const organization = useOrganization();
 
   if (loading) {
-    return <LoadingIndicator hideMessage />;
+    return <LoadingIndicator />;
   }
 
   if (error) {
@@ -94,7 +94,6 @@ function GroupList({
   groupStatsPeriod,
   onActionTaken,
 }: GroupListProps) {
-  const organization = useOrganization();
   const theme = useTheme();
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
@@ -109,9 +108,8 @@ function GroupList({
 
   const columns: GroupListColumn[] = [
     'graph',
-    ...(organization.features.includes('issue-stream-table-layout')
-      ? ['firstSeen' as const, 'lastSeen' as const]
-      : []),
+    'firstSeen',
+    'lastSeen',
     'event',
     'users',
     'priority',
@@ -137,7 +135,6 @@ function GroupList({
             displayReprocessingLayout={displayReprocessingLayout}
             useFilteredStats
             canSelect={canSelect}
-            narrowGroups={isSavedSearchesOpen}
             onPriorityChange={priority => onActionTaken([id], {priority})}
             withColumns={columns}
           />

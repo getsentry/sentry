@@ -1,5 +1,4 @@
-import type EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   useLogsBaseSearch,
   useLogsCursor,
@@ -13,12 +12,8 @@ import {
   useTraceItemDetails,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOurlogs} from 'sentry/views/insights/common/queries/useDiscover';
-
-export interface OurLogsTableResult {
-  eventView: EventView;
-  result: ReturnType<typeof useOurlogs>;
-}
 
 export type UseExploreLogsTableResult = ReturnType<typeof useExploreLogsTable>;
 
@@ -56,12 +51,14 @@ export function useExploreLogsTableRow(props: {
   traceId: string;
   enabled?: boolean;
 }) {
+  const {isReady: pageFiltersReady} = usePageFilters();
   return useTraceItemDetails({
     traceItemId: String(props.logId),
     projectId: props.projectId,
     traceId: props.traceId,
-    dataset: DiscoverDatasets.OURLOGS,
+    traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
+    enabled: props.enabled && pageFiltersReady,
   });
 }
 
@@ -82,7 +79,7 @@ export function usePrefetchLogTableRowOnHover({
     traceItemId: String(logId),
     projectId,
     traceId,
-    dataset: DiscoverDatasets.OURLOGS,
+    traceItemType: TraceItemDataset.LOGS,
     hoverPrefetchDisabled,
     sharedHoverTimeoutRef,
     referrer: 'api.explore.log-item-details',

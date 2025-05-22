@@ -7,15 +7,15 @@ from collections.abc import Callable, Iterable
 from datetime import datetime
 from typing import Any, ParamSpec, TypeVar
 
-from celery import Task, current_task
+from celery import Task
 from django.conf import settings
 from django.db.models import Model
-from kombu import Producer
 
 from sentry import options
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.retry import retry_task
 from sentry.taskworker.task import Task as TaskworkerTask
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
@@ -73,17 +73,21 @@ def taskworker_override(
     task_name: str,
 ) -> Callable[P, R]:
     def override(*args: P.args, **kwargs: P.kwargs) -> R:
-        rollout = 0
+        rollout_rate = 0
         option_flag = f"taskworker.{namespace}.rollout"
-        if options.isset(option_flag):
-            rollout_map = options.get(option_flag)
-            rollout = rollout_map.get(task_name, 0)
+        check_option = True
+        if namespace in settings.TASKWORKER_HIGH_THROUGHPUT_NAMESPACES:
+            check_option = settings.TASKWORKER_ENABLE_HIGH_THROUGHPUT_NAMESPACES
 
-        random.seed(datetime.now().timestamp())
-        if rollout > random.random():
-            producer = kwargs.get("producer")
-            if isinstance(producer, Producer):
-                del kwargs["producer"]
+        if check_option:
+            rollout_map = options.get(option_flag)
+            if rollout_map:
+                if task_name in rollout_map:
+                    rollout_rate = rollout_map.get(task_name, 0)
+                elif "*" in rollout_map:
+                    rollout_rate = rollout_map.get("*", 0)
+
+        if rollout_rate > random.random():
             return taskworker_attr(*args, **kwargs)
 
         return celery_task_attr(*args, **kwargs)
@@ -211,6 +215,10 @@ def instrumented_task(
             )(func)
 
             task = override_task(task, taskworker_task, taskworker_config, name)
+        else:
+            raise Exception(
+                f"taskworker_config must be defined, please add TaskworkerConfig to instrumented_task call for {name}"
+            )
 
         if silo_mode:
             silo_limiter = TaskSiloLimit(silo_mode)
@@ -250,7 +258,7 @@ def retry(
                 raise
             except on as exc:
                 capture_exception()
-                current_task.retry(exc=exc)
+                retry_task(exc)
 
         return wrapped
 

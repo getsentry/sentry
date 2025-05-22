@@ -119,6 +119,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "scrubIPAddresses",
         "groupingConfig",
         "groupingEnhancements",
+        "derivedGroupingEnhancements",
         "fingerprintingRules",
         "secondaryGroupingConfig",
         "secondaryGroupingExpiry",
@@ -130,9 +131,9 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueCreationRate",
         "performanceIssueCreationThroughPlatform",
         "performanceIssueSendToPlatform",
-        "uptimeAutodetection",
         "tempestFetchScreenshots",
         "tempestFetchDumps",
+        "autofixAutomationTuning",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -225,9 +226,11 @@ E.g. `['release', 'environment']`""",
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
-    uptimeAutodetection = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
+    autofixAutomationTuning = serializers.ChoiceField(
+        choices=["off", "low", "medium", "high", "always"], required=False
+    )
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -350,7 +353,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            Enhancements.from_config_string(value)
+            Enhancements.from_rules_text(value)
         except InvalidEnhancerConfig as e:
             raise serializers.ValidationError(str(e))
 
@@ -455,6 +458,17 @@ E.g. `['release', 'environment']`""",
             )
         return value
 
+    def validate_autofixAutomationTuning(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
@@ -555,6 +569,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked`.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_elevated_scopes = request.access and (
@@ -761,9 +777,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "dynamicSamplingBiases"
                 ]
 
-        if result.get("uptimeAutodetection") is not None:
-            if project.update_option("sentry:uptime_autodetection", result["uptimeAutodetection"]):
-                changed_proj_settings["sentry:uptime_autodetection"] = result["uptimeAutodetection"]
+        if result.get("autofixAutomationTuning") is not None:
+            if project.update_option(
+                "sentry:autofix_automation_tuning", result["autofixAutomationTuning"]
+            ):
+                changed_proj_settings["sentry:autofix_automation_tuning"] = result[
+                    "autofixAutomationTuning"
+                ]
 
         if has_elevated_scopes:
             options = result.get("options", {})

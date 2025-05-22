@@ -47,6 +47,12 @@ const getInstallConfig = () => [
         language: 'bash',
         code: 'yarn add @sentry/electron',
       },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: 'pnpm add @sentry/electron',
+      },
     ],
   },
 ];

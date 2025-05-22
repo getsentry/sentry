@@ -22,10 +22,9 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
-
-import {CronServiceIncidents} from '../serviceIncidents';
 
 import {OverviewRow} from './overviewRow';
 import {SortSelector} from './sortSelector';

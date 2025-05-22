@@ -1,5 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -11,13 +12,18 @@ import {
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import * as useProjects from 'sentry/utils/useProjects';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', function () {
+  beforeAll(function () {
+    TeamStore.loadInitialData([TeamFixture()]);
+  });
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    ProjectsStore.reset();
   });
 
   it('renders the welcome page', function () {
@@ -25,7 +31,7 @@ describe('Onboarding', function () {
       step: 'welcome',
     };
 
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -36,7 +42,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );
@@ -49,7 +54,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -60,7 +65,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );
@@ -81,7 +85,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -138,7 +142,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );
@@ -157,7 +160,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -209,7 +212,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );
@@ -233,7 +235,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -244,7 +246,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );
@@ -269,7 +270,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -321,7 +322,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );
@@ -347,16 +347,7 @@ describe('Onboarding', function () {
       slug: 'javascript-nextjs',
     });
 
-    jest.spyOn(useProjects, 'default').mockReturnValue({
-      projects: [nextJsProject],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData([nextJsProject]);
 
     const routeParams = {
       step: 'select-platform',
@@ -384,7 +375,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );

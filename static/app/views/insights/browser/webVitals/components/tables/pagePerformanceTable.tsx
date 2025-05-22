@@ -1,7 +1,9 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -9,7 +11,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -65,6 +66,7 @@ const DEFAULT_SORT: Sort = {
 };
 
 export function PagePerformanceTable() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -94,7 +96,7 @@ export function PagePerformanceTable() {
     subregions,
   });
 
-  const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
+  const tableData = data.map(row => ({
     ...row,
     opportunity: (row.opportunity ?? 0) * 100,
   }));
@@ -281,6 +283,7 @@ export function PagePerformanceTable() {
       location,
       organization,
       unit: meta.units?.[col.key],
+      theme,
     });
   }
 
