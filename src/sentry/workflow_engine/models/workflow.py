@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import replace
 from typing import Any, ClassVar
 
@@ -12,7 +14,6 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.db.models.manager.types import M
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
 from sentry.workflow_engine.types import WorkflowEventData
@@ -21,7 +22,7 @@ from .json_config import JSONConfigBase
 
 
 class WorkflowManager(BaseManager["Workflow"]):
-    def get_queryset(self) -> BaseQuerySet[M]:
+    def get_queryset(self) -> BaseQuerySet[Workflow]:
         return (
             super()
             .get_queryset()

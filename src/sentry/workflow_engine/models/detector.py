@@ -17,7 +17,6 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.db.models.manager.types import M
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
@@ -31,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class DetectorManager(BaseManager["Detector"]):
-    def get_queryset(self) -> BaseQuerySet[M]:
+    def get_queryset(self) -> BaseQuerySet[Detector]:
         return (
             super()
             .get_queryset()
