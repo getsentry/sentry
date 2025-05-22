@@ -841,6 +841,7 @@ def test_create_feedback_excludes_invalid_associated_event_id(
 
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
     assert produced_event["tags"]["has_linked_error"] == "false"
+    assert not produced_event["tags"].get("associated_event_id")
     assert not produced_event["contexts"]["feedback"].get("associated_event_id")
 
 

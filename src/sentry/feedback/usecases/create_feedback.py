@@ -349,7 +349,7 @@ def create_feedback_issue(
             UUID(str(associated_event_id))
         except ValueError:
             associated_event_id = None
-            event["contexts"]["feedback"]["associated_event_id"] = None
+            event["contexts"]["feedback"].pop("associated_event_id", "")
 
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
