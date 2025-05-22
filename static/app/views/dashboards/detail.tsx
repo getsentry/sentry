@@ -440,21 +440,28 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   isWidgetBuilder = (path?: string) => {
-    const {location} = this.props;
+    const {organization, location, params} = this.props;
+    const {dashboardId, widgetIndex} = params;
 
     const widgetBuilderRoutes = [
-      /^\/organizations\/.+\/dashboards\/new\/widget-builder\/widget\//,
-      /^\/organizations\/.+\/dashboard\/\d+\/widget-builder\/widget\//,
+      `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`,
+      `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
+      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`,
+      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,
     ];
 
     if (USING_CUSTOMER_DOMAIN) {
       widgetBuilderRoutes.push(
-        /^\/dashboards\/new\/widget-builder\/widget\//,
-        /^\/dashboard\/\d+\/widget-builder\/widget\//
+        ...[
+          `/dashboards/new/widget-builder/widget/new/`,
+          `/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
+          `/dashboard/${dashboardId}/widget-builder/widget/new/`,
+          `/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,
+        ]
       );
     }
 
-    return widgetBuilderRoutes.some(route => route.test(path ?? location.pathname));
+    return widgetBuilderRoutes.includes(path ?? location.pathname);
   };
 
   onEdit = () => {
@@ -1108,9 +1115,24 @@ class DashboardDetail extends Component<Props, State> {
           when={locationChange => {
             // The widget builder uses its own pathname at the moment, so check if we're navigating
             // between the dashboard and the widget builder
+            const checkDashboardRoute = (path: string) => {
+              const widgetBuilderRoutes = [
+                // Legacy routes
+                /^\/organizations\/.+\/dashboards\/new\/widget-builder\/widget\//,
+                /^\/organizations\/.+\/dashboard\/\d+\/widget-builder\/widget\//,
+
+                // Customer domain routes
+                /^\/dashboards\/new\/widget-builder\/widget\//,
+                /^\/dashboard\/\d+\/widget-builder\/widget\//,
+              ];
+
+              return widgetBuilderRoutes.some(route =>
+                route.test(path ?? location.pathname)
+              );
+            };
             const navigatingWithinDashboards =
-              this.isWidgetBuilder(locationChange.nextLocation.pathname) ||
-              (this.isWidgetBuilder(locationChange.currentLocation.pathname) &&
+              checkDashboardRoute(locationChange.nextLocation.pathname) ||
+              (checkDashboardRoute(locationChange.currentLocation.pathname) &&
                 [`/dashboard/${dashboard.id}/`, `/dashboards/new/`].includes(
                   locationChange.nextLocation.pathname
                 ));
