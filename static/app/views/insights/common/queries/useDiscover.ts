@@ -49,7 +49,6 @@ interface UseDiscoverOptions<Fields> {
 export const DEFAULT_SAMPLING_MODE: SamplingMode = 'NORMAL';
 
 export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
-  // biome-ignore lint/style/useDefaultParameterLast: <explanation>
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
@@ -63,7 +62,6 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
 };
 
 export const useOurlogs = <Fields extends OurLogFieldKey[]>(
-  // biome-ignore lint/style/useDefaultParameterLast: <explanation>
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
@@ -77,7 +75,6 @@ export const useOurlogs = <Fields extends OurLogFieldKey[]>(
 };
 
 export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
-  // biome-ignore lint/style/useDefaultParameterLast: <explanation>
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
@@ -89,7 +86,6 @@ export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
 };
 
 export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
-  // biome-ignore lint/style/useDefaultParameterLast: <explanation>
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
@@ -102,7 +98,6 @@ export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
 };
 
 export const useMetrics = <Fields extends MetricsProperty[]>(
-  // biome-ignore lint/style/useDefaultParameterLast: <explanation>
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
@@ -115,7 +110,6 @@ export const useMetrics = <Fields extends MetricsProperty[]>(
 };
 
 export const useDiscoverOrEap = <Fields extends DiscoverProperty[]>(
-  // biome-ignore lint/style/useDefaultParameterLast: <explanation>
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
@@ -131,7 +125,6 @@ export const useDiscover = <
   T extends Array<Extract<keyof ResponseType, string>>,
   ResponseType,
 >(
-  // biome-ignore lint/style/useDefaultParameterLast: <explanation>
   options: UseDiscoverOptions<T> = {},
   dataset: DiscoverDatasets,
   referrer: string
@@ -189,11 +182,8 @@ export const useDiscover = <
 };
 
 export function getEventView(
-  // biome-ignore lint/style/useDefaultParameterLast: <explanation>
   search: MutableSearch | string | undefined,
-  // biome-ignore lint/style/useDefaultParameterLast: <explanation>
   fields: string[] = [],
-  // biome-ignore lint/style/useDefaultParameterLast: <explanation>
   sorts: Sort[] = [],
   pageFilters: PageFilters,
   dataset: DiscoverDatasets,
