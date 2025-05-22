@@ -1344,7 +1344,7 @@ def build_chunk_functions_kafka_message(
         "functions": [
             {
                 "fingerprint": f.get_fingerprint(),
-                "functions": f.get_function(),
+                "function": f.get_function(),
                 "package": f.get_package(),
                 "in_app": f.get_in_app(),
                 "self_times_ns": f.get_self_times_ns(),
