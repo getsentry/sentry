@@ -296,14 +296,14 @@ class StatefulDetectorHandler(
         return {}
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
-        # TODO - Is this something that should be provided by the detector itself rather
-        # than having to query the db for each level?
         priority_levels: list[DetectorPriorityLevel] = [level for level in DetectorPriorityLevel]
 
         if self.detector.workflow_condition_group is None:
-            # TODO - Should this default to _all_ levels or no levels?
-            return priority_levels
+            return []
 
+        # TODO - Is this something that should be provided by the detector itself rather
+        # than having to query the db for each level? Maybe we can cache this on the detector
+        # so we reduce the number of queries throughout the system.
         condition_result_levels = self.detector.workflow_condition_group.conditions.filter(
             condition_result__in=priority_levels
         ).values_list("condition_result", flat=True)
