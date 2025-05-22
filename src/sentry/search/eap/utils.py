@@ -155,6 +155,15 @@ def translate_internal_to_public_alias(
     return mapping.get(internal_alias)
 
 
+def translate_internal_to_sentry_conventions_alias(
+    internal_alias: str,
+    type: Literal["string", "number"],
+    item_type: SupportedTraceItemType,
+) -> str | None:
+    mapping = PRE_CONVENTION_TO_SENTRY_CONVENTIONS_ALIAS_MAPPINGS.get(item_type, {}).get(type, {})
+    return mapping.get(internal_alias)
+
+
 def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> bool:
     return attribute not in PRIVATE_ATTRIBUTES.get(item_type, {})
 

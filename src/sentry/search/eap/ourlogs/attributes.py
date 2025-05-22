@@ -114,7 +114,7 @@ LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[s
 }
 
 LOGS_PRIVATE_ATTRIBUTES: set[str] = {
-    definition.internal_name
+    definition.public_alias
     for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
     if definition.private
 }

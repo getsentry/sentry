@@ -488,13 +488,13 @@ def is_starred_segment_context_constructor(params: SnubaParams) -> VirtualColumn
     )
 
 
-# [word for sentence in text for word in sentence]
-
 SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[str, str]] = {
     "string": {
         definition.internal_name: definition.public_alias
         for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
-        if not definition.secondary_alias and definition.search_type == "string"
+        if not definition.secondary_alias
+        and definition.search_type == "string"
+        and not definition.pre_convention_names  # Filtering out duplicated sentry convention keys
     }
     | {
         # sentry.service is the project id as a string, but map to project for convenience
@@ -503,7 +503,9 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[
     "number": {
         definition.internal_name: definition.public_alias
         for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
-        if not definition.secondary_alias and definition.search_type != "string"
+        if not definition.secondary_alias
+        and definition.search_type != "string"
+        and not definition.pre_convention_names  # Filtering out duplicated sentry convention keys
     },
 }
 
@@ -548,7 +550,7 @@ SPANS_SENTRY_CONVENTIONS_ATTRIBUTES: set[str] = {
 }
 
 SPANS_PRIVATE_ATTRIBUTES: set[str] = {
-    definition.internal_name
+    definition.public_alias
     for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
     if definition.private
 }

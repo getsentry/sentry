@@ -35,6 +35,7 @@ from sentry.search.eap.utils import (
     is_pre_convention_attribute,
     is_sentry_convention_attribute,
     translate_internal_to_public_alias,
+    translate_internal_to_sentry_conventions_alias,
 )
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
@@ -102,9 +103,17 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
 
 
 def as_attribute_key(
-    name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
+    name: str,
+    type: Literal["string", "number"],
+    item_type: SupportedTraceItemType,
+    use_sentry_conventions=False,
 ):
-    key = translate_internal_to_public_alias(name, type, item_type)
+    key = None
+    if use_sentry_conventions:
+        key = translate_internal_to_sentry_conventions_alias(name, type, item_type)
+
+    if key is None:
+        key = translate_internal_to_public_alias(name, type, item_type)
 
     if key is not None:
         name = key
@@ -157,7 +166,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=column_definitions
         )
-        filter, _, _ = resolver.resolve_query(query_string)
+        query_filter, _, _ = resolver.resolve_query(query_string)
         meta = resolver.resolve_meta(referrer=referrer.value)
         meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
             trace_item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
@@ -181,40 +190,54 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             offset=0,
             type=attr_type,
             value_substring_match=value_substring_match,
-            intersecting_attributes_filter=filter,
+            intersecting_attributes_filter=query_filter,
         )
 
         with handle_query_errors():
             rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
         if use_sentry_conventions:
+            attrs = list(
+                filter(
+                    lambda x: (
+                        can_expose_attribute(x["name"], trace_item_type)
+                        or is_sentry_convention_attribute(x["name"], trace_item_type)
+                    )
+                    and not is_pre_convention_attribute(x["name"], trace_item_type),
+                    [
+                        as_attribute_key(
+                            attribute.name,
+                            serialized["attribute_type"],
+                            trace_item_type,
+                            use_sentry_conventions=True,
+                        )
+                        for attribute in rpc_response.attributes
+                        if attribute.name
+                    ],
+                )
+            )
             paginator = ChainPaginator(
                 [
+                    attrs,
+                ],
+                max_limit=max_attributes,
+            )
+        else:
+            attrs = list(
+                filter(
+                    lambda x: can_expose_attribute(x["name"], trace_item_type),
                     [
                         as_attribute_key(
                             attribute.name, serialized["attribute_type"], trace_item_type
                         )
                         for attribute in rpc_response.attributes
                         if attribute.name
-                        and not is_pre_convention_attribute(attribute.name, trace_item_type)
-                        and (
-                            can_expose_attribute(attribute.name, trace_item_type)
-                            or is_sentry_convention_attribute(attribute.name, trace_item_type)
-                        )
                     ],
-                ],
-                max_limit=max_attributes,
+                )
             )
-        else:
             paginator = ChainPaginator(
                 [
-                    [
-                        as_attribute_key(
-                            attribute.name, serialized["attribute_type"], trace_item_type
-                        )
-                        for attribute in rpc_response.attributes
-                        if attribute.name and can_expose_attribute(attribute.name, trace_item_type)
-                    ],
+                    attrs,
                 ],
                 max_limit=max_attributes,
             )
