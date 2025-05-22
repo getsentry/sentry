@@ -3113,6 +3113,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "taskworker.try_compress.profile_metrics.rollout",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Taskbroker flags
 register(
     "taskworker.try_compress.profile_metrics.level",
