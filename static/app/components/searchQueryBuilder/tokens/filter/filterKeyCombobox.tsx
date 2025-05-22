@@ -14,7 +14,7 @@ import type {
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {FieldKey} from 'sentry/utils/fields';
@@ -101,7 +101,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={sortedFilterKeys}
-        placeholder={getKeyName(token.key)}
+        placeholder={getKeyLabel(token.key)}
         onOptionSelected={onOptionSelected}
         onCustomValueCommitted={handleSelectKey}
         onCustomValueBlurred={onCustomValueBlurred}
