@@ -310,6 +310,44 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
+    def test_check_in_no_in_progress(self):
+        now = datetime.now()
+
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug, ts=now, status="ok", duration=10)
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.date_added == now.replace(tzinfo=UTC)
+
+    def test_check_date_updated(self):
+        now = datetime.now()
+        guid = uuid.uuid4().hex
+
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug, guid=guid, ts=now, status="in_progress")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.date_added == now.replace(tzinfo=UTC)
+        assert checkin.date_updated == now.replace(tzinfo=UTC)
+
+        # Another in_progress moves the date_updated forward
+        self.send_checkin(
+            monitor.slug, guid=guid, ts=now + timedelta(seconds=10), status="in_progress"
+        )
+        checkin.refresh_from_db()
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.date_added == now.replace(tzinfo=UTC)
+        assert checkin.date_updated == now.replace(tzinfo=UTC) + timedelta(seconds=10)
+
+        # Closing check in moves the date_updated forward
+        self.send_checkin(monitor.slug, guid=guid, ts=now + timedelta(seconds=20), status="ok")
+        checkin.refresh_from_db()
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.date_added == now.replace(tzinfo=UTC)
+        assert checkin.date_updated == now.replace(tzinfo=UTC) + timedelta(seconds=20)
+
     def test_check_in_date_clock(self):
         monitor = self._create_monitor(slug="my-monitor")
         now = datetime.now()
@@ -319,7 +357,7 @@ class MonitorConsumerTest(TestCase):
         self.send_checkin(monitor.slug, ts=ts, item_ts=item_ts)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.date_added == ts.replace(tzinfo=UTC)
-        assert checkin.date_clock == item_ts.replace(tzinfo=UTC)
+        assert checkin.date_clock == item_ts.replace(second=0, microsecond=0, tzinfo=UTC)
 
     def test_check_in_date_in_progress(self):
         monitor = self._create_monitor(slug="my-monitor")

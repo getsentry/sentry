@@ -1,8 +1,8 @@
-import {type DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
-import {CheckoutType} from 'getsentry/types';
+import {CheckoutType, ReservedBudgetCategoryType} from 'getsentry/types';
 
 const AM2_CHECKOUT_CATEGORIES = [
   'errors',
@@ -13,11 +13,15 @@ const AM2_CHECKOUT_CATEGORIES = [
   'uptime',
 ] as DataCategory[];
 
-const AM2_CATEGORIES = [
+const AM2_ONDEMAND_CATEGORIES = [
   ...AM2_CHECKOUT_CATEGORIES,
   'profileDuration',
   'profileDurationUI',
+  'seerAutofix',
+  'seerScanner',
 ] as DataCategory[];
+
+const AM2_CATEGORIES = [...AM2_ONDEMAND_CATEGORIES] as DataCategory[];
 
 const AM2_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
@@ -31,6 +35,23 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
+  seerAutoFix: {singular: 'issue fix', plural: 'issue fixes'},
+  seerScanner: {singular: 'issue scan', plural: 'issue scans'},
+};
+
+const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {
+  [ReservedBudgetCategoryType.SEER]: {
+    budgetCategoryType: 'SEER',
+    name: 'seer budget',
+    docLink: '',
+    isFixed: true,
+    defaultBudget: 20_00,
+    dataCategories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
+    productName: 'seer',
+    canProductTrial: true,
+    apiName: ReservedBudgetCategoryType.SEER,
+    billingFlag: 'seer-billing',
+  },
 };
 
 const AM2_FREE_FEATURES = [
@@ -92,6 +113,68 @@ const AM2_TRIAL_FEATURES = AM2_BUSINESS_FEATURES.filter(
 
 const BUDGET_TERM = 'on-demand';
 
+const SEER_TIERS = {
+  seerAutofix: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 20_00,
+      onDemandPrice: 125,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 125,
+    },
+  ],
+  seerScanner: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+  ],
+};
+
+const SEER_TIERS_ANNUAL = {
+  seerAutofix: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 216_00,
+      onDemandPrice: 125,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 125,
+    },
+  ],
+  seerScanner: [
+    {
+      events: -2,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+    {
+      events: 0,
+      unitPrice: 0,
+      price: 0,
+      onDemandPrice: 1.25,
+    },
+  ],
+};
+
 // TODO: Update with correct pricing and structure
 const AM2_PLANS: Record<string, Plan> = {
   am2_business: {
@@ -118,7 +201,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -809,8 +892,10 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS,
     },
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_f: {
     id: 'am2_f',
@@ -836,7 +921,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -897,6 +982,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
     },
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_team: {
     id: 'am2_team',
@@ -922,7 +1008,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -1613,8 +1699,11 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+
+      ...SEER_TIERS,
     },
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_t: {
     id: 'am2_t',
@@ -1640,7 +1729,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -1701,6 +1790,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
     },
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_team_auf: {
     id: 'am2_team_auf',
@@ -1726,9 +1816,10 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
     planCategories: {
       errors: [
         {
@@ -2381,6 +2472,7 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS_ANNUAL,
     },
   },
   am2_business_auf: {
@@ -2407,7 +2499,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -3062,7 +3154,9 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      ...SEER_TIERS_ANNUAL,
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_sponsored: {
     // NOTE: being deprecated
@@ -3088,7 +3182,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [{events: 5000000, unitPrice: 0.015, price: 0}],
@@ -3102,6 +3196,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_sponsored_team_auf: {
     id: 'am2_sponsored_team_auf',
@@ -3126,7 +3221,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [{events: 50_000, unitPrice: 0.015, price: 0}],
@@ -3140,6 +3235,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_business_bundle: {
     id: 'am2_business_bundle',
@@ -3166,7 +3262,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
       errors: [
@@ -3631,6 +3727,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_business_249_bundle: {
     id: 'am2_business_249_bundle',
@@ -3656,7 +3753,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -4172,6 +4269,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_team_bundle: {
     id: 'am2_team_bundle',
@@ -4197,7 +4295,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: true,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -4728,6 +4826,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_business_ent_auf: {
     id: 'am2_business_ent_auf',
@@ -4753,7 +4852,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -4814,6 +4913,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
   am2_business_ent: {
     id: 'am2_business_ent',
@@ -4839,7 +4939,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CHECKOUT_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
-    onDemandCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_ONDEMAND_CATEGORIES,
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     planCategories: {
@@ -4900,6 +5000,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
   },
 };
 

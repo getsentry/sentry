@@ -2920,7 +2920,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectSeerPreferencesEndpoint.as_view(),
         name="sentry-api-0-project-seer-preferences",
     ),
-    *workflow_urls.project_urlpatterns,
 ]
 
 TEAM_URLS = [

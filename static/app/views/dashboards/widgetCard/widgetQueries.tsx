@@ -113,20 +113,18 @@ function WidgetQueries({
     );
 
     const resultValues = Object.values(rawResults);
-    if (organization.features.includes('performance-discover-dataset-selector')) {
-      let splitDecision: WidgetType | undefined = undefined;
-      if (rawResults.meta) {
-        splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
-      } else if (Object.values(rawResults).length > 0) {
-        // Multi-series queries will have a meta key on each series
-        // We can just read the decision from one.
-        splitDecision = resultValues[0]?.meta?.discoverSplitDecision;
-      }
+    let splitDecision: WidgetType | undefined = undefined;
+    if (rawResults.meta) {
+      splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
+    } else if (Object.values(rawResults).length > 0) {
+      // Multi-series queries will have a meta key on each series
+      // We can just read the decision from one.
+      splitDecision = resultValues[0]?.meta?.discoverSplitDecision;
+    }
 
-      if (splitDecision) {
-        // Update the dashboard state with the split decision
-        onWidgetSplitDecision?.(splitDecision);
-      }
+    if (splitDecision) {
+      // Update the dashboard state with the split decision
+      onWidgetSplitDecision?.(splitDecision);
     }
   };
 
@@ -148,7 +146,6 @@ function WidgetQueries({
     );
 
     if (
-      organization.features.includes('performance-discover-dataset-selector') &&
       [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
         rawResults?.meta?.discoverSplitDecision
       )

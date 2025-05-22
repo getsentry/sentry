@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
@@ -14,10 +14,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
+  const {data: detectors} = useDetectorsQuery();
 
   return (
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
@@ -25,7 +27,7 @@ export default function DetectorsList() {
         <ActionsProvider actions={<Actions />}>
           <ListLayout>
             <TableHeader />
-            <DetectorListTable detectors={[]} />
+            <DetectorListTable detectors={detectors ?? []} />
           </ListLayout>
         </ActionsProvider>
       </PageFiltersContainer>
@@ -51,7 +53,7 @@ function Actions() {
       <LinkButton
         to={`${makeMonitorBasePathname(organization.slug)}new/`}
         priority="primary"
-        icon={<IconAdd isCircled />}
+        icon={<IconAdd />}
       >
         {t('Create Monitor')}
       </LinkButton>

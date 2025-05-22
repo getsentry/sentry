@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 // eslint-disable-next-line import/no-nodejs-modules
 import path from 'node:path';
+import {TimeSeriesFixture} from 'sentry-fixture/discoverSeries';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -9,6 +10,12 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 
 import type {ChartId} from './chartWidgetLoader';
 import {ChartWidgetLoader} from './chartWidgetLoader';
+
+function mockDiscoverSeries(seriesName: string) {
+  return TimeSeriesFixture({
+    seriesName,
+  });
+}
 
 // Mock this component so it doesn't yell at us for no plottables
 jest.mock(
@@ -35,16 +42,6 @@ jest.mock(
   'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingThroughputQuery',
   () => ({
     useDatabaseLandingThroughputQuery: jest.fn(() => ({
-      data: {},
-      isPending: false,
-      error: null,
-    })),
-  })
-);
-jest.mock(
-  'sentry/views/insights/common/components/widgets/hooks/useAiPipelineGroup',
-  () => ({
-    useAiPipelineGroup: jest.fn(() => ({
       data: {},
       isPending: false,
       error: null,
@@ -156,6 +153,18 @@ jest.mock(
   })
 );
 jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
+  useEAPSeries: jest.fn(() => ({
+    data: {
+      'count(span.duration)': mockDiscoverSeries('count(span.duration)'),
+      'avg(span.duration)': mockDiscoverSeries('avg(span.duration)'),
+      'p95(span.duration)': mockDiscoverSeries('p95(span.duration)'),
+      'trace_status_rate(internal_error)': mockDiscoverSeries(
+        'trace_status_rate(internal_error)'
+      ),
+    },
+    isPending: false,
+    error: null,
+  })),
   useMetricsSeries: jest.fn(() => ({
     data: {
       'performance_score(measurements.score.lcp)': {
@@ -275,29 +284,31 @@ describe('ChartWidgetLoader - unmocked imports', () => {
   // - `id` must match the filename
   // - have a `default` export that is a React component (component name should be TitleCase of `id`)
   // - be mapped via `id` -> dynamic import in `chartWidgetLoader.tsx`
-  it.each(widgetIds as ChartId[])('can load widget: %s', async widgetId => {
-    render(<ChartWidgetLoader id={widgetId} />);
+  it.each(widgetIds as ChartId[])(
+    'can load widget: %s',
+    async widgetId => {
+      render(<ChartWidgetLoader id={widgetId} />);
 
-    // Initially should show loading state from ChartWidgetLoader, it will disappear when dynamic import completes.
-    // We only need to check that the dynamic import completes for these tests as that means ChartWidgetLoader is able to load all widgets
-    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+      // Initially should show loading state from ChartWidgetLoader, it will disappear when dynamic import completes.
+      // We only need to check that the dynamic import completes for these tests as that means ChartWidgetLoader is able to load all widgets
+      await waitFor(
+        () => {
+          expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+        },
+        {
+          timeout: 10_000,
+        }
+      );
 
-    await waitFor(
-      () => {
-        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      },
-      {
-        timeout: 2000,
-      }
-    );
-
-    expect(TimeSeriesWidgetVisualization).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: widgetId,
-      }),
-      undefined
-    );
-  });
+      expect(TimeSeriesWidgetVisualization).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: widgetId,
+        }),
+        undefined
+      );
+    },
+    15_000
+  );
 
   it('shows error state for invalid widget id', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});

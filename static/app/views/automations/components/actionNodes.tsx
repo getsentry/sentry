@@ -1,13 +1,22 @@
 import {createContext, useContext} from 'react';
 
 import {t} from 'sentry/locale';
-import type {Integration, NewAction} from 'sentry/types/workflowEngine/actions';
+import type {Action, Integration} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
-import DiscordNode from 'sentry/views/automations/components/actions/discord';
-import MSTeamsNode from 'sentry/views/automations/components/actions/msTeams';
+import {AzureDevOpsNode} from 'sentry/views/automations/components/actions/azureDevOps';
+import {DiscordNode} from 'sentry/views/automations/components/actions/discord';
+import {EmailNode} from 'sentry/views/automations/components/actions/email';
+import {GithubNode} from 'sentry/views/automations/components/actions/github';
+import {GithubEnterpriseNode} from 'sentry/views/automations/components/actions/githubEnterprise';
+import {JiraNode} from 'sentry/views/automations/components/actions/jira';
+import {JiraServerNode} from 'sentry/views/automations/components/actions/jiraServer';
+import {MSTeamsNode} from 'sentry/views/automations/components/actions/msTeams';
+import {OpsgenieNode} from 'sentry/views/automations/components/actions/opsgenie';
+import {PagerdutyNode} from 'sentry/views/automations/components/actions/pagerduty';
+import {SlackNode} from 'sentry/views/automations/components/actions/slack';
 
 interface ActionNodeProps {
-  action: NewAction;
+  action: Action;
   actionId: string;
   onUpdate: (condition: Record<string, any>) => void;
   integrations?: Integration[];
@@ -29,6 +38,22 @@ type ActionNode = {
 };
 
 export const actionNodesMap = new Map<ActionType, ActionNode>([
+  [ActionType.AZURE_DEVOPS, {label: t('Azure DevOps'), action: <AzureDevOpsNode />}],
+  [ActionType.EMAIL, {label: t('Email'), action: <EmailNode />}],
+  [
+    ActionType.DISCORD,
+    {
+      label: t('Discord'),
+      action: <DiscordNode />,
+    },
+  ],
+  [ActionType.GITHUB, {label: t('Github'), action: <GithubNode />}],
+  [
+    ActionType.GITHUB_ENTERPRISE,
+    {label: t('Github Enterprise'), action: <GithubEnterpriseNode />},
+  ],
+  [ActionType.JIRA, {label: t('Jira'), action: <JiraNode />}],
+  [ActionType.JIRA_SERVER, {label: t('Jira Server'), action: <JiraServerNode />}],
   [
     ActionType.MSTEAMS,
     {
@@ -36,11 +61,19 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       action: <MSTeamsNode />,
     },
   ],
+  [ActionType.OPSGENIE, {label: t('Opsgenie'), action: <OpsgenieNode />}],
   [
-    ActionType.DISCORD,
+    ActionType.PAGERDUTY,
     {
-      label: t('Discord'),
-      action: <DiscordNode />,
+      label: t('Pagerduty'),
+      action: <PagerdutyNode />,
+    },
+  ],
+  [
+    ActionType.SLACK,
+    {
+      label: t('Slack'),
+      action: <SlackNode />,
     },
   ],
 ]);

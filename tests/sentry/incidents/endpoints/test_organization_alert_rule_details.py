@@ -63,6 +63,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
+from sentry.workflow_engine.models import Detector
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_dual_written_resolution_threshold_equals,
@@ -235,7 +236,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             alert_rule_trigger=critical_trigger
         )
         _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
-        self.critical_detector_trigger, _ = migrate_metric_data_conditions(critical_trigger)
+        self.critical_detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
 
         self.critical_action, _, _ = migrate_metric_action(critical_trigger_action)
         self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
@@ -706,6 +707,46 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    def test_workflow_engine_serializer(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        critical_trigger = AlertRuleTrigger.objects.get(
+            alert_rule_id=self.alert_rule.id, label="critical"
+        )
+        critical_trigger_action = AlertRuleTriggerAction.objects.get(
+            alert_rule_trigger=critical_trigger
+        )
+        _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
+        self.critical_detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
+
+        self.critical_action, _, _ = migrate_metric_action(critical_trigger_action)
+        self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
+            self.alert_rule
+        )
+
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["name"] = "what"
+
+        with (
+            self.feature("organizations:incidents"),
+            self.feature("organizations:workflow-engine-metric-alert-dual-write"),
+            self.feature("organizations:workflow-engine-rule-serializers"),
+            outbox_runner(),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        alert_rule.name = "what"
+        alert_rule.date_modified = resp.data["dateModified"]
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
+        assert resp.data == serialize(detector, serializer=WorkflowEngineDetectorSerializer())
+        assert resp.data["name"] == "what"
+        assert resp.data["dateModified"] > serialized_alert_rule["dateModified"]
 
     def test_not_updated_fields(self):
         self.create_member(

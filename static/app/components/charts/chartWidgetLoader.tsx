@@ -85,17 +85,9 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/llmGroupTotalTokensUsedChartWidget'
     ),
-  llmEventTotalTokensUsedChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmEventTotalTokensUsedChartWidget'
-    ),
   llmGroupNumberOfPipelinesChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/llmGroupNumberOfPipelinesChartWidget'
-    ),
-  llmEventNumberOfPipelinesChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmEventNumberOfPipelinesChartWidget'
     ),
   queuesSummaryThroughputChartWidget: () =>
     import(
@@ -163,6 +155,16 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget'
     ),
+  overviewApiLatencyChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'
+    ),
+  overviewPageloadsChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget'
+    ),
+  overviewRequestsChartWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewRequestsChartWidget'),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;
 
 /**

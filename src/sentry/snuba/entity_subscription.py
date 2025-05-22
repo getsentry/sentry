@@ -48,7 +48,7 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.GenericMetricsGauges: "timestamp",
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
-    EntityKey.EAPSpans: "timestamp",
+    EntityKey.EAPItemsSpan: "timestamp",
 }
 CRASH_RATE_ALERT_AGGREGATE_RE = (
     r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
@@ -273,7 +273,9 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             end=now,
             granularity_secs=self.time_window,
         )
-        search_resolver = spans_rpc.get_resolver(snuba_params, SearchResolverConfig())
+        search_resolver = spans_rpc.get_resolver(
+            snuba_params, SearchResolverConfig(stable_timestamp_quantization=False)
+        )
 
         rpc_request, _, _ = rpc_dataset_common.get_timeseries_query(
             search_resolver=search_resolver,
@@ -621,7 +623,7 @@ def get_entity_key_from_snuba_query(
 ) -> EntityKey:
     query_dataset = Dataset(snuba_query.dataset)
     if query_dataset == Dataset.EventsAnalyticsPlatform:
-        return EntityKey.EAPSpans
+        return EntityKey.EAPItemsSpan
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,
         organization_id,

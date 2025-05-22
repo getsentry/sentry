@@ -1,20 +1,47 @@
-import type {
-  DataConditionGroup,
-  DataSource,
-} from 'sentry/types/workflowEngine/dataConditions';
+import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
+
+interface SnubaQuery {
+  aggregate: string;
+  dataset: string;
+  id: string;
+  query: string;
+  /**
+   * Time window in seconds
+   */
+  timeWindow: number;
+  environment?: string;
+}
+
+interface QueryObject {
+  id: string;
+  snubaQuery: SnubaQuery;
+  status: number;
+  subscription: string;
+}
+
+export interface SnubaQueryDataSource {
+  id: string;
+  organizationId: string;
+  queryObj: QueryObject;
+  sourceId: string;
+  type: 'snuba_query_subscription';
+}
+
+export type DataSource = SnubaQueryDataSource;
 
 export type DetectorType =
-  | 'metric'
+  | 'crons'
   | 'errors'
+  | 'metric'
   | 'performance'
-  | 'trace'
   | 'replay'
+  | 'trace'
   | 'uptime';
 
 interface NewDetector {
+  conditionGroup: DataConditionGroup;
   config: Record<string, unknown>;
-  dataCondition: DataConditionGroup;
-  dataSource: DataSource;
+  dataSources: DataSource[];
   disabled: boolean;
   name: string;
   projectId: string;
@@ -24,8 +51,8 @@ interface NewDetector {
 
 export interface Detector extends Readonly<NewDetector> {
   readonly createdBy: string;
-  readonly dateCreated: Date;
-  readonly dateUpdated: Date;
+  readonly dateCreated: string;
+  readonly dateUpdated: string;
   readonly id: string;
-  readonly lastTriggered: Date;
+  readonly lastTriggered: string;
 }

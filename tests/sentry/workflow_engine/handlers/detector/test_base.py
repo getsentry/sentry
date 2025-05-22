@@ -9,14 +9,20 @@ from sentry.testutils.abstract import Abstract
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import (
     DataPacketEvaluationType,
-    DetectorEvaluationResult,
     DetectorHandler,
     DetectorOccurrence,
     StatefulGroupingDetectorHandler,
 )
+from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorSettings
+from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.types import (
+    DetectorEvaluationResult,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+    DetectorSettings,
+)
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
@@ -49,10 +55,8 @@ def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessa
 
 
 class MockDetectorStateHandler(StatefulGroupingDetectorHandler[dict, int | None]):
-    counter_names = ["test1", "test2"]
-
     def test_get_empty_counter_state(self):
-        return {name: None for name in self.counter_names}
+        return {name: None for name in self.state_manager.counter_names}
 
     def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
         return data_packet.packet.get("dedupe", 0)
@@ -64,8 +68,12 @@ class MockDetectorStateHandler(StatefulGroupingDetectorHandler[dict, int | None]
         return data_packet.packet.get("group_vals", {})
 
     def create_occurrence(
-        self, value: DataPacketEvaluationType, priority: DetectorPriorityLevel
+        self,
+        evaluation_result: ProcessedDataConditionGroup,
+        data_packet: DataPacket[dict],
+        priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
+        value = self.extract_value(data_packet)
         return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
 
 
@@ -101,8 +109,12 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 return data_packet.packet.get("value", 0)
 
             def create_occurrence(
-                self, value: DataPacketEvaluationType, priority: DetectorPriorityLevel
+                self,
+                evaluation_result: ProcessedDataConditionGroup,
+                data_packet: DataPacket[dict],
+                priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, dict[str, Any]]:
+                value = self.extract_value(data_packet)
                 return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
 
             def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
@@ -126,8 +138,12 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 }
 
             def create_occurrence(
-                self, value: DataPacketEvaluationType, priority: DetectorPriorityLevel
+                self,
+                evaluation_result: ProcessedDataConditionGroup,
+                data_packet: DataPacket[dict],
+                priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, dict[str, Any]]:
+                value = self.extract_value(data_packet)
                 return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
 
             def extract_value(self, data_packet: DataPacket[dict]) -> int:
@@ -199,7 +215,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         handler: StatefulGroupingDetectorHandler,
         group_key: DetectorGroupKey | None,
         dedupe_value: int | None,
-        counter_updates: dict[str, Any] | None,
+        counter_updates: DetectorCounters | None,
         is_triggered: bool | None,
         priority: DetectorPriorityLevel | None,
     ):

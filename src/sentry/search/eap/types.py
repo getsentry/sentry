@@ -26,6 +26,8 @@ class SearchResolverConfig:
     fields_acl: FieldsACL = field(default_factory=lambda: FieldsACL())
     # If set to True, do not extrapolate any values regardless of individual aggregate settings
     disable_aggregate_extrapolation: bool = False
+    # Whether to set the timestamp granularities to stable buckets
+    stable_timestamp_quantization: bool = True
 
 
 CONFIDENCES: dict[Reliability.ValueType, Literal["low", "high"]] = {

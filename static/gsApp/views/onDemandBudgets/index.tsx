@@ -1,7 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -15,7 +16,7 @@ import {openEditCreditCard} from 'getsentry/actionCreators/modal';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {displayBudgetName, getOnDemandCategories} from 'getsentry/utils/billing';
 import {getPlanCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -202,7 +203,7 @@ class OnDemandBudgets extends Component<Props> {
 
     const oxfordCategories = listDisplayNames({
       plan: subscription.planDetails,
-      categories: subscription.planDetails.onDemandCategories,
+      categories: getOnDemandCategories(subscription.planDetails),
     });
     let description = t('Applies to %s.', oxfordCategories);
 
