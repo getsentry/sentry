@@ -178,18 +178,16 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response({})
 
-        # TODO: remove useRpc param
-        use_eap = (
-            request.GET.get("useRpc", "0") == "1" or request.GET.get("dataset", None) == "spans"
-        )
+        use_eap = request.GET.get("dataset", None) == "spans"
         orderby = self.get_orderby(request) or ["timestamp"]
 
-        if use_eap:
-            result = get_eap_span_samples(request, snuba_params, orderby)
-            dataset = spans_rpc
-        else:
-            result = get_span_samples(request, snuba_params, orderby)
-            dataset = spans_indexed
+        with handle_query_errors():
+            if use_eap:
+                result = get_eap_span_samples(request, snuba_params, orderby)
+                dataset = spans_rpc
+            else:
+                result = get_span_samples(request, snuba_params, orderby)
+                dataset = spans_indexed
 
         return Response(
             self.handle_results_with_meta(
