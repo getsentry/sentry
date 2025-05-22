@@ -42,6 +42,7 @@ export function SecondaryHovercard({children, group}: SecondaryHovercardProps) {
             grid-template-rows: auto 1fr auto;
           `}
           containerDisplayMode="block"
+          offset={0}
         >
           {children}
         </Hovercard>
