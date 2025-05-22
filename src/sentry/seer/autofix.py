@@ -35,24 +35,23 @@ logger = logging.getLogger(__name__)
 TIMEOUT_SECONDS = 60 * 30  # 30 minutes
 
 
-def _get_logs_for_event(event: Event | GroupEvent, project: Project) -> list[dict]:
+def _get_logs_for_event(event: Event | GroupEvent, project: Project) -> list[dict] | None:
     trace_id = event.trace_id
     if not trace_id:
         return None
 
-    project_id_to_slug = dict(
-        Project.objects.filter(
-            organization=project.organization, status=ObjectStatus.ACTIVE
-        ).values_list("id", "slug")
+    projects_qs = Project.objects.filter(
+        organization=project.organization, status=ObjectStatus.ACTIVE
     )
-    project_ids = list(project_id_to_slug.keys())
+    projects = list(projects_qs)
+    project_id_to_slug = dict(projects_qs.values_list("id", "slug"))
     start = event.datetime - timedelta(days=1)
     end = event.datetime + timedelta(days=1)
 
     snuba_params = SnubaParams(
         start=start,
         end=end,
-        projects=project_ids,
+        projects=projects,
         organization=project.organization,
     )
 
@@ -91,15 +90,16 @@ def _get_logs_for_event(event: Event | GroupEvent, project: Project) -> list[dic
     # Find the index of the log closest to the event timestamp (faster with min and enumerate)
     closest_idx = 0
     if data:
-        closest_idx, _ = min(
-            (
-                (i, abs((log.get("_parsed_ts") - event.datetime).total_seconds()))
-                for i, log in enumerate(data)
-                if log.get("_parsed_ts") is not None
-            ),
-            key=lambda x: x[1],
-            default=(0, None),
-        )
+        valid_logs = [(i, log) for i, log in enumerate(data) if log.get("_parsed_ts") is not None]
+        if valid_logs:
+            closest_idx, _ = min(
+                (
+                    (i, abs((log["_parsed_ts"] - event.datetime).total_seconds()))
+                    for i, log in valid_logs
+                ),
+                key=lambda x: x[1],
+                default=(0, None),
+            )
 
     # Select up to 80 logs before and up to 20 logs after (including the closest)
     start_idx = max(0, closest_idx - 80)
@@ -112,7 +112,7 @@ def _get_logs_for_event(event: Event | GroupEvent, project: Project) -> list[dic
     count = 0
     for log in window:
         project_id = log.get("project.id")
-        log["project_slug"] = project_id_to_slug.get(project_id)
+        log["project_slug"] = project_id_to_slug.get(project_id) if project_id else None
         log["code_file_path"] = log.get("code.file.path")
         log["code_function_name"] = log.get("code.function.name")
         log.pop("code.file.path", None)

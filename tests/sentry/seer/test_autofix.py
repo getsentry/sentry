@@ -5,8 +5,6 @@ import orjson
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
-from sentry.constants import ObjectStatus
-from sentry.models.project import Project
 from sentry.seer.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
@@ -1338,6 +1336,7 @@ class TestCallAutofix(TestCase):
         serialized_event = {"event_id": "test-event"}
         profile = {"profile_data": "test"}
         trace_tree = {"trace_data": "test"}
+        logs = [{"message": "test-log"}]
         instruction = "Test instruction"
 
         # Call the function with keyword arguments
@@ -1348,6 +1347,7 @@ class TestCallAutofix(TestCase):
             serialized_event=serialized_event,
             profile=profile,
             trace_tree=trace_tree,
+            logs=logs,
             instruction=instruction,
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",
@@ -1638,11 +1638,8 @@ class TestGetLogsForEvent(TestCase):
         project = self.project
         # Patch project.organization to avoid DB hits
         project.organization = self.organization
-        # Patch project_id_to_slug
-        Project.objects.filter(
-            organization=project.organization, status=ObjectStatus.ACTIVE
-        ).values_list = lambda *a, **k: [(project.id, project.slug)]
         merged = _get_logs_for_event(event, project)
+        assert merged is not None
         # The first two "foo" logs should be merged (consecutive), the last "foo" is not consecutive
         foo_merged = [
             log for log in merged if log["message"] == "foo" and log.get("consecutive_count") == 2
