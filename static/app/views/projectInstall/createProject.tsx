@@ -133,7 +133,7 @@ const keyToErrorText: Record<string, string> = {
 export function CreateProject() {
   const api = useApi();
   const navigate = useNavigate();
-  const [errors, setErrors] = useState(false);
+  const [errors, setErrors] = useState();
   const organization = useOrganization();
   const location = useLocation();
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
@@ -339,7 +339,7 @@ export function CreateProject() {
           )
         );
       } catch (error) {
-        setErrors(!!error.responseJSON);
+        setErrors(error.responseJSON);
         addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
         // Only log this if the error is something other than:
