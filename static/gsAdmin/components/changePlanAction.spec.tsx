@@ -226,7 +226,6 @@ describe('ChangePlanAction', () => {
 
   it('completes form with seer', async () => {
     mockOrg.features = ['seer-billing'];
-    // Mock the PUT endpoint response
     const putMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/subscription/`,
       method: 'PUT',
@@ -235,7 +234,6 @@ describe('ChangePlanAction', () => {
 
     openAndLoadModal();
 
-    // Wait for component to load
     await waitFor(() => {
       expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
     });
@@ -258,7 +256,6 @@ describe('ChangePlanAction', () => {
     expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
     await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
 
-    // Verify the PUT API was called
     expect(putMock).toHaveBeenCalled();
     const requestData = putMock.mock.calls[0][1].data;
     expect(requestData).toHaveProperty('plan', 'am3_business');
