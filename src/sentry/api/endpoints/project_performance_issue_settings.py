@@ -34,15 +34,20 @@ TEN_MB = 10000000  # ten MB in bytes
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 
 
-# These options should only be accessible internally and used by
-# support to enable/disable performance issue detection for an outlying project
-# on a case-by-case basis.
 class InternalProjectOptions(Enum):
+    """
+    Settings that are only accessible to superusers.
+    """
+
     TRANSACTION_DURATION_REGRESSION = "transaction_duration_regression_detection_enabled"
     FUNCTION_DURATION_REGRESSION = "function_duration_regression_detection_enabled"
 
 
 class ConfigurableThresholds(Enum):
+    """
+    All the settings that can be configured by users with the appropriate permissions.
+    """
+
     N_PLUS_ONE_DB = "n_plus_one_db_queries_detection_enabled"
     N_PLUS_ONE_DB_DURATION = "n_plus_one_db_duration_threshold"
     N_PLUS_ONE_DB_COUNT = "n_plus_one_db_count"
@@ -84,6 +89,9 @@ project_settings_to_group_map: dict[str, type[GroupType]] = {
     InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
     InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: ProfileFunctionRegressionType,
 }
+"""
+A mapping of the management settings to the group type that the detector spawns.
+"""
 
 thresholds_to_manage_map: dict[str, str] = {
     ConfigurableThresholds.N_PLUS_ONE_DB_DURATION.value: ConfigurableThresholds.N_PLUS_ONE_DB.value,
@@ -100,6 +108,10 @@ thresholds_to_manage_map: dict[str, str] = {
     ConfigurableThresholds.CONSECUTIVE_HTTP_SPANS_MIN_TIME_SAVED.value: ConfigurableThresholds.CONSECUTIVE_HTTP_SPANS.value,
     ConfigurableThresholds.HTTP_OVERHEAD_REQUEST_DELAY.value: ConfigurableThresholds.HTTP_OVERHEAD.value,
 }
+"""
+A mapping of threshold setting to the parent setting that manages it's detection.
+Used to determine if a threshold setting can be modified.
+"""
 
 
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
@@ -155,11 +167,24 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     function_duration_regression_detection_enabled = serializers.BooleanField(required=False)
 
 
+def get_management_options() -> list[str]:
+    """
+    Returns the option keys that control whether a performance issue detector is enabled.
+    """
+    return [
+        *[setting.value for setting in InternalProjectOptions],
+        *list(thresholds_to_manage_map.values()),
+    ]
+
+
 def get_disabled_threshold_options(payload, current_settings):
+    """
+    Returns the option keys that are disabled, based on the current management settings.
+    """
     options = []
-    internal_only_settings = [setting.value for setting in InternalProjectOptions]
+    management_options = get_management_options()
     for option in payload:
-        if option not in internal_only_settings:
+        if option not in management_options:
             manage_detector_setting = thresholds_to_manage_map.get(option)
             is_threshold_enabled = current_settings.get(manage_detector_setting)
             if not is_threshold_enabled:
@@ -231,6 +256,9 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        body_has_management_options = any(
+            [option in get_management_options() for option in request.data]
+        )
         serializer = ProjectPerformanceIssueSettingsSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -263,7 +291,7 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
             {**performance_issue_settings_default, **performance_issue_settings, **data},
         )
 
-        if body_has_admin_options:
+        if body_has_admin_options or body_has_management_options:
             self.create_audit_entry(
                 request=self.request,
                 actor=request.user,
@@ -280,16 +308,16 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         project_settings = project.get_option(SETTINGS_PROJECT_OPTION_KEY, default={})
+        management_options = get_management_options()
         threshold_options = [setting.value for setting in ConfigurableThresholds]
-        internal_only_settings = [setting.value for setting in InternalProjectOptions]
         disabled_options = get_disabled_threshold_options(threshold_options, project_settings)
 
         if project_settings:
             unchanged_options = (
-                {  # internal settings and disabled threshold settings can not be reset
+                {  # Management settings and disabled threshold settings can not be reset
                     option: project_settings[option]
                     for option in project_settings
-                    if option in internal_only_settings or option in disabled_options
+                    if option in management_options or option in disabled_options
                 }
             )
             project.update_option(SETTINGS_PROJECT_OPTION_KEY, unchanged_options)
