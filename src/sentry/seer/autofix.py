@@ -113,6 +113,10 @@ def _get_logs_for_event(event: Event | GroupEvent, project: Project) -> list[dic
     for log in window:
         project_id = log.get("project.id")
         log["project_slug"] = project_id_to_slug.get(project_id)
+        log["code_file_path"] = log.get("code.file.path")
+        log["code_function_name"] = log.get("code.function.name")
+        log.pop("code.file.path", None)
+        log.pop("code.function.name", None)
         log.pop("_parsed_ts", None)
         log.pop("project.id", None)
 
