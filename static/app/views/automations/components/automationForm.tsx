@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import type FormModel from 'sentry/components/forms/model';
 import useDrawer from 'sentry/components/globalDrawer';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
@@ -40,11 +40,10 @@ const FREQUENCY_OPTIONS = [
   {value: '43200', label: t('30 days')},
 ];
 
-export default function AutomationForm() {
+export default function AutomationForm({model}: {model: FormModel}) {
   const organization = useOrganization();
   const title = useDocumentTitle();
   const {state, actions} = useAutomationBuilderReducer();
-  const [model] = useState(() => new FormModel());
 
   useEffect(() => {
     model.setValue('name', title);
