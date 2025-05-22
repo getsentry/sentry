@@ -1,8 +1,9 @@
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, sane_repr
-from sentry.db.models.base import Model
+from sentry.db.models.base import Model, region_silo_model
 
 
+@region_silo_model
 class StatusUpdateDetector(Model):
     """
     Join table between StatusUpdate and Detector models.

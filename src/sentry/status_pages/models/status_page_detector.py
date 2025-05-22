@@ -1,8 +1,9 @@
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, sane_repr
-from sentry.db.models.base import DefaultFieldsModelExisting
+from sentry.db.models.base import DefaultFieldsModelExisting, region_silo_model
 
 
+@region_silo_model
 class StatusPageDetector(DefaultFieldsModelExisting):
     """
     Join table between StatusPage and Detector models.

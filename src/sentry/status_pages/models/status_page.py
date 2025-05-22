@@ -2,9 +2,10 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, sane_repr
-from sentry.db.models.base import DefaultFieldsModelExisting
+from sentry.db.models.base import DefaultFieldsModelExisting, region_silo_model
 
 
+@region_silo_model
 class StatusPage(DefaultFieldsModelExisting):
     """
     A status page represents a public facing status page for an organization.

@@ -3,9 +3,10 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, sane_repr
-from sentry.db.models.base import DefaultFieldsModelExisting
+from sentry.db.models.base import DefaultFieldsModelExisting, region_silo_model
 
 
+@region_silo_model
 class StatusUpdate(DefaultFieldsModelExisting):
     """
     A status update represents a public notice posted to a status page.
