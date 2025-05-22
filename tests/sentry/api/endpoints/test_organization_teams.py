@@ -195,9 +195,7 @@ class OrganizationTeamsCreateTest(APITestCase):
             user_id=self.user.id, organization=self.organization
         )
 
-        assert OrganizationMemberTeam.objects.filter(
-            organizationmember=member, team=team, is_active=True
-        ).exists()
+        assert OrganizationMemberTeam.objects.filter(organizationmember=member, team=team).exists()
 
     def test_without_slug(self):
         resp = self.get_success_response(

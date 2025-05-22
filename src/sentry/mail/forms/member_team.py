@@ -70,7 +70,6 @@ class MemberTeamForm(forms.Form, Generic[T]):
 
         if targetType == self.memberValue:
             is_active_team_member = OrganizationMemberTeam.objects.filter(
-                is_active=True,
                 organizationmember__user_id=int(targetIdentifier),
                 organizationmember__teams__projectteam__project_id=self.project.id,
             ).exists()

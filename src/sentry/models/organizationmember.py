@@ -472,9 +472,9 @@ class OrganizationMember(ReplicatedRegionModel):
 
         teams = list(
             Team.objects.filter(
-                id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember=self, is_active=True
-                ).values_list("team", flat=True)
+                id__in=OrganizationMemberTeam.objects.filter(organizationmember=self).values_list(
+                    "team", flat=True
+                )
             ).values("id", "slug")
         )
 
@@ -496,17 +496,13 @@ class OrganizationMember(ReplicatedRegionModel):
 
         return Team.objects.filter(
             status=TeamStatus.ACTIVE,
-            id__in=OrganizationMemberTeam.objects.filter(
-                organizationmember=self, is_active=True
-            ).values("team"),
+            id__in=OrganizationMemberTeam.objects.filter(organizationmember=self).values("team"),
         )
 
     def get_team_roles(self):
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
-        return OrganizationMemberTeam.objects.filter(
-            organizationmember=self, is_active=True
-        ).values("team", "role")
+        return OrganizationMemberTeam.objects.filter(organizationmember=self).values("team", "role")
 
     def get_scopes(self) -> frozenset[str]:
         # include org roles from team membership

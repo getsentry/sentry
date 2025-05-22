@@ -68,9 +68,7 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
 
         assert resp.status_code == 204
 
-        assert OrganizationMemberTeam.objects.filter(
-            organizationmember=member, team=team, is_active=True
-        ).exists()
+        assert OrganizationMemberTeam.objects.filter(organizationmember=member, team=team).exists()
 
         assert not OrganizationAccessRequest.objects.filter(id=access_request.id).exists()
 
@@ -96,7 +94,7 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
         assert resp.status_code == 204
 
         assert not OrganizationMemberTeam.objects.filter(
-            organizationmember=member, team=team, is_active=True
+            organizationmember=member, team=team
         ).exists()
 
         assert not OrganizationAccessRequest.objects.filter(id=access_request.id).exists()

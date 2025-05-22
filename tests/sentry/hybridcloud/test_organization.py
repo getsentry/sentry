@@ -109,7 +109,6 @@ def assert_team_member_equals(
     assert team_member.id == orm_team_member.id
     assert team_member.team_id == orm_team_member.team_id
     assert team_member.role == orm_team_member.get_team_role()
-    assert team_member.is_active == orm_team_member.is_active
     assert frozenset(team_member.scopes) == orm_team_member.get_scopes()
     assert set(team_member.project_ids) == {
         p.id for p in Project.objects.get_for_team_ids([orm_team_member.team_id])
@@ -129,7 +128,6 @@ def assert_organization_member_equals(
         list(
             OrganizationMemberTeam.objects.filter(
                 organizationmember_id=orm_organization_member.id,
-                is_active=True,
                 team__status=TeamStatus.ACTIVE,
             )
         ),
