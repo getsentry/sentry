@@ -89,12 +89,12 @@ describe('GroupSummary', function () {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("What's Wrong")).toBeInTheDocument();
+      expect(screen.getByText('What Happened')).toBeInTheDocument();
     });
     expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
     expect(screen.getByText('In the Trace')).toBeInTheDocument();
     expect(screen.getByText('Test trace')).toBeInTheDocument();
-    expect(screen.getByText('Possible Cause')).toBeInTheDocument();
+    expect(screen.getByText('Initial Guess')).toBeInTheDocument();
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
@@ -110,12 +110,12 @@ describe('GroupSummary', function () {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("What's Wrong")).toBeInTheDocument();
+      expect(screen.getByText('What Happened')).toBeInTheDocument();
     });
     expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
     expect(screen.getByText('In the Trace')).toBeInTheDocument();
     expect(screen.getByText('Test trace')).toBeInTheDocument();
-    expect(screen.getByText('Possible Cause')).toBeInTheDocument();
+    expect(screen.getByText('Initial Guess')).toBeInTheDocument();
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
@@ -131,12 +131,12 @@ describe('GroupSummary', function () {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("What's Wrong")).toBeInTheDocument();
+      expect(screen.getByText('What Happened')).toBeInTheDocument();
     });
     expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
     expect(screen.getByText('In the Trace')).toBeInTheDocument();
     expect(screen.getByText('Test trace')).toBeInTheDocument();
-    expect(screen.queryByText('Possible Cause')).not.toBeInTheDocument();
+    expect(screen.queryByText('Initial Guess')).not.toBeInTheDocument();
     expect(screen.queryByText('Test possible cause')).not.toBeInTheDocument();
   });
 
@@ -187,11 +187,11 @@ describe('GroupSummary', function () {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("What's Wrong")).toBeInTheDocument();
+      expect(screen.getByText('What Happened')).toBeInTheDocument();
     });
     expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
     expect(screen.queryByText('In the Trace')).not.toBeInTheDocument();
-    expect(screen.getByText('Possible Cause')).toBeInTheDocument();
+    expect(screen.getByText('Initial Guess')).toBeInTheDocument();
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
@@ -208,8 +208,12 @@ describe('GroupSummary', function () {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("What's Wrong")).toBeInTheDocument();
+      expect(screen.getByText('Initial Guess')).toBeInTheDocument();
     });
-    expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
+    expect(await screen.findByText('Test possible cause')).toBeInTheDocument();
+    expect(screen.queryByText('What Happened')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test whats wrong')).not.toBeInTheDocument();
+    expect(screen.queryByText('In the Trace')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test trace')).not.toBeInTheDocument();
   });
 });
