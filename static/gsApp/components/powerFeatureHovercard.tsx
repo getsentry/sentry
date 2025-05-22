@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -46,6 +47,12 @@ type Props = {
   partial?: boolean;
 
   upsellDefaultSelection?: string;
+
+  /**
+   * Replaces the default learn more button with a more subtle link text that
+   * opens the upsell modal.
+   */
+  useLearnMoreLink?: boolean;
 };
 
 class PowerFeatureHovercard extends Component<Props> {
@@ -79,6 +86,7 @@ class PowerFeatureHovercard extends Component<Props> {
       partial,
       features,
       children,
+      useLearnMoreLink,
     } = this.props;
 
     const hoverBody = (
@@ -90,7 +98,18 @@ class PowerFeatureHovercard extends Component<Props> {
             planName = `Performance ${planName}`;
           }
 
-          return (
+          return useLearnMoreLink ? (
+            <LearnMoreTextBody data-test-id="power-hovercard">
+              <div>
+                {partial
+                  ? t('Better With %s Plan', planName)
+                  : t('Requires %s Plan', planName)}
+              </div>
+              <LearnMoreLink onClick={this.handleClick} data-test-id="power-learn-more">
+                {t('Learn More')}
+              </LearnMoreLink>
+            </LearnMoreTextBody>
+          ) : (
             <HovercardBody data-test-id="power-hovercard">
               <Text>
                 {partial
@@ -126,6 +145,20 @@ class PowerFeatureHovercard extends Component<Props> {
   }
 }
 
+const LearnMoreLink = styled('a')`
+  color: ${p => p.theme.subText};
+  text-decoration: underline;
+
+  &:hover {
+    color: ${p => p.theme.subText};
+    text-decoration: none;
+  }
+`;
+
+const LearnMoreTextBody = styled('div')`
+  padding: ${space(1)};
+`;
+
 const UpsellModalButton = styled(Button)`
   height: auto;
   border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
@@ -150,7 +183,7 @@ const StyledHovercard = styled(Hovercard)`
   }
 `;
 
-const Text = styled('span')`
+const Text = styled('div')`
   margin: 10px;
   font-size: 14px;
   white-space: pre;
