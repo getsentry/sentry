@@ -1,3 +1,4 @@
+import type {ActionHandler} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -19,3 +20,12 @@ export const makeAutomationQueryKey = (
   orgSlug: string,
   automationId = ''
 ): [url: string] => [`/organizations/${orgSlug}/workflows/${automationId}/`];
+
+export function useAvailableActionsQuery() {
+  const {slug} = useOrganization();
+
+  return useApiQuery<ActionHandler[]>([`/organizations/${slug}/available-actions/`], {
+    staleTime: Infinity,
+    retry: false,
+  });
+}
