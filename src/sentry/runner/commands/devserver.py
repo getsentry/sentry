@@ -353,10 +353,6 @@ def devserver(
                 kafka_consumers.add("uptime-results")
 
             if settings.SENTRY_USE_RELAY:
-                # TODO: Remove this once we have a better way to check if relay is running for new devservices
-                if "relay-relay-1" not in containers:
-                    daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
-
                 kafka_consumers.add("ingest-events")
                 kafka_consumers.add("ingest-attachments")
                 kafka_consumers.add("ingest-transactions")
