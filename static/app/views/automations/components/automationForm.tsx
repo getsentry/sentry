@@ -12,6 +12,7 @@ import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
+import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -83,6 +84,8 @@ export default function AutomationForm() {
     }
   };
 
+  const [environment, setEnvironment] = useState<string>('');
+
   return (
     <Form
       hideFooter
@@ -111,6 +114,17 @@ export default function AutomationForm() {
             </ButtonWrapper>
           </Card>
           <Card>
+            <Flex column gap={space(0.5)}>
+              <Heading>{t('Choose Environment')}</Heading>
+              <Description>
+                {t(
+                  'If you select environments different than your monitors then the automation will not fire.'
+                )}
+              </Description>
+            </Flex>
+            <EnvironmentSelector value={environment} onChange={setEnvironment} />
+          </Card>
+          <Card>
             <Heading>{t('Automation Builder')}</Heading>
             <AutomationBuilder />
           </Card>
@@ -133,6 +147,13 @@ export default function AutomationForm() {
 const Heading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin: 0;
+`;
+
+const Description = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  margin: 0;
+  padding: 0;
 `;
 
 const ButtonWrapper = styled(Flex)`
