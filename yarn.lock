@@ -2044,7 +2044,7 @@
     "@mdx-js/mdx" "^3.0.0"
     source-map "^0.7.0"
 
-"@mdx-js/mdx@^3.0.0":
+"@mdx-js/mdx@^3.0.0", "@mdx-js/mdx@^3.1.0":
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/@mdx-js/mdx/-/mdx-3.1.0.tgz#10235cab8ad7d356c262e8c21c68df5850a97dc3"
   integrity sha512-/QxEhPAvGwbQmy1Px8F899L5Uc2KZ6JtXwlCgJmjSTBedwOZkByYcBG4GceIGPXRDsmfxhHazuS+hlOShRLeDw==

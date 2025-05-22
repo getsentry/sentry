@@ -182,6 +182,7 @@
     "@eslint/eslintrc": "^3.3.0",
     "@eslint/js": "^9.22.0",
     "@mdx-js/loader": "^3.1.0",
+    "@mdx-js/mdx": "^3.1.0",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.16",
     "@sentry/jest-environment": "6.0.0",
     "@sentry/profiling-node": "9.16.1",

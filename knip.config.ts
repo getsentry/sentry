@@ -1,3 +1,4 @@
+import {compile} from '@mdx-js/mdx';
 import type {KnipConfig} from 'knip';
 
 const productionEntryPoints = [
@@ -60,7 +61,15 @@ const config: KnipConfig = {
     '!static/app/stories/*.{js,mjs,ts,tsx}!',
   ],
   compilers: {
-    mdx: true,
+    mdx: async text => {
+      const result = await compile(text, {
+        providerImportSource: '@mdx-js/react',
+        jsx: true,
+        outputFormat: 'program',
+      });
+
+      return String(result);
+    },
   },
   rules: {
     binaries: 'off',

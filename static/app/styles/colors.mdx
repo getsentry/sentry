@@ -12,7 +12,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose} from 'sentry/icons';
-import {ThemeToggle, SideBySide} from 'sentry/stories';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export const GRAY_PALETTES = [
@@ -66,7 +66,7 @@ export const FixedWidth = styled('div')`
   max-width: 800px;
 `;
 
-export const SideBySideUl = styled('ul')`
+export const SideBySide = styled('ul')`
   list-style-type: none;
   margin: 0;
   padding: 0;
@@ -158,7 +158,7 @@ export const ColorPalette = ({name, palette}) => {
   const theme = useTheme();
 
   return (
-    <SideBySideUl>
+    <SideBySide>
       {palette.map((section, i) => {
         return (
           <li key={`${name}-${i}`}>
@@ -179,7 +179,7 @@ export const ColorPalette = ({name, palette}) => {
           </li>
         );
       })}
-    </SideBySideUl>
+    </SideBySide>
   );
 }
 
@@ -201,9 +201,9 @@ Here are the recommended use cases:
 - **Gray 200:** borders around large elements (cards, panels, dialogs, tables).
 - **Gray 100:** dividers and borders around small elements (buttons, form inputs). */}
 
-<ThemeToggle>
+<Storybook.ThemeToggle>
   <ColorPalette name="grays" palette={GRAY_PALETTES} />
-</ThemeToggle>
+</Storybook.ThemeToggle>
 
 ## Accent Colors
 
@@ -229,9 +229,9 @@ Each hue comes in 4 levels: 400 (dark), 300 (full opacity), 200 (medium opacity)
 - **The 200 level** has medium opacity, useful for borders and dividers.
 - **The 100 level** has very low opacity, useful as background fills.
 
-<ThemeToggle>
+<Storybook.ThemeToggle>
   <ColorPalette name="levels" palette={LEVELS_PALETTES} />
-</ThemeToggle>
+</Storybook.ThemeToggle>
 
 ## Accessibility
 
@@ -245,7 +245,7 @@ In Sentry's color palette, only Gray 300 and above satisfy the contrast requirem
 
 Accent colors in the 300 series, except for Yellow 300, satisfy the contrast requirement for large text.
 
-<SideBySide>
+<Storybook.SideBySide>
   <ExampleCard
     imgSrc={DoContrast}
     text="Use Gray 300 and above for normal text"
@@ -264,7 +264,7 @@ Accent colors in the 300 series, except for Yellow 300, satisfy the contrast req
     imgSrc={DontAccentColors}
     text="Use accent colors in the 100 or 200 series for any text"
   />
-</SideBySide>
+</Storybook.SideBySide>
 
 ### Separation
 
@@ -272,7 +272,7 @@ Color can be an effective way to visually separate elements in the user interfac
 
 As such, color is an unreliable way to separate elements. Whenever possible, provide additional visual cues like icons, text labels, line type (solid, dashed, dotted),… to further reinforce the separation.
 
-<SideBySide>
+<Storybook.SideBySide>
   <ExampleCard
     imgSrc={DoDifferentiation}
     text="Provide additional visual encoding (e.g. line type) besides color to differentiate elements"
@@ -282,4 +282,4 @@ As such, color is an unreliable way to separate elements. Whenever possible, pro
     imgSrc={DontDifferentiation}
     text="Use color as the only way to differentiate elements"
   />
-</SideBySide>
+</Storybook.SideBySide>
