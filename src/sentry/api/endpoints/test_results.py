@@ -80,16 +80,19 @@ class TestResultNodeSerializer(serializers.Serializer):
     totalFlakyFailCount = serializers.IntegerField()
     totalSkipCount = serializers.IntegerField()
     totalPassCount = serializers.IntegerField()
+    lastDuration = serializers.FloatField()
 
 
-class TestResultSerializer(serializers.Serializer):
+class TestResultSerializer(serializers.ListSerializer):
     """
-    Serializer to transform GraphQL response to client format
+    Serializer for a list of test results - inherits from ListSerializer to handle arrays
     """
 
-    def transform_graphql_response(self, graphql_response):
+    child = TestResultNodeSerializer()
+
+    def to_representation(self, graphql_response):
         """
-        Transform the GraphQL response format to the expected client format
+        Transform the GraphQL response to the expected client format
         """
         try:
             # Extract test result nodes from the nested GraphQL structure
@@ -97,34 +100,21 @@ class TestResultSerializer(serializers.Serializer):
                 "testResults"
             ]["edges"]
 
-            # Transform each node to the expected client format
-            transformed_results = []
+            # Transform each edge to just the node data
+            nodes = []
             for edge in test_results:
                 node = edge["node"]
-                # Note: lastDuration is not in the GraphQL response, using avgDuration as fallback
-                transformed_result = {
-                    "updatedAt": node["updatedAt"],
-                    "name": node["name"],
-                    "commitsFailed": node["commitsFailed"],
-                    "failureRate": node["failureRate"],
-                    "flakeRate": node["flakeRate"],
-                    "avgDuration": node["avgDuration"],
-                    "lastDuration": node.get(
-                        "lastDuration", node["avgDuration"]
-                    ),  # fallback to avgDuration
-                    "totalFailCount": node["totalFailCount"],
-                    "totalFlakyFailCount": node["totalFlakyFailCount"],
-                    "totalSkipCount": node["totalSkipCount"],
-                    "totalPassCount": node["totalPassCount"],
-                }
-                transformed_results.append(transformed_result)
+                # Add lastDuration fallback if not present
+                if "lastDuration" not in node:
+                    node["lastDuration"] = node["avgDuration"]
+                nodes.append(node)
 
-            return transformed_results
+            # Use the parent ListSerializer to serialize each test result
+            return super().to_representation(nodes)
 
         except (KeyError, TypeError) as e:
             # Handle malformed GraphQL response
             sentry_sdk.capture_exception(e)
-
             return []
 
 
@@ -186,8 +176,7 @@ class TestResultsEndpoint(CodecovEndpoint):
         return True
 
     def get(self, request: Request, owner: str, repository: str, commit: str) -> Response:
-        """Retrieves the list of test results for a given commit. If a test result id is also
-        provided, the endpoint will return the test result with that id."""
+        """Retrieves the list of test results for a given commit."""
 
         variables = {
             "owner": owner,
@@ -200,11 +189,10 @@ class TestResultsEndpoint(CodecovEndpoint):
         # TODO: Uncomment when CodecovClient is available
         # graphql_response = CodecovClient.query(list_query, variables)
 
-        # For now, use the sample response for demonstration
-        graphql_response = sample_graphql_response
+        graphql_response = sample_graphql_response  # Mock response for now
 
-        # Transform the GraphQL response to client format
+        # transform response to the response that we want
         serializer = TestResultSerializer()
-        test_results = serializer.transform_graphql_response(graphql_response)
+        test_results = serializer.to_representation(graphql_response)
 
         return Response(test_results)
