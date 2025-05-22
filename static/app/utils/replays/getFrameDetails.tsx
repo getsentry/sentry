@@ -1,4 +1,5 @@
 import {Fragment, type ReactNode} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -56,12 +57,11 @@ import {
   isRageClick,
 } from 'sentry/utils/replays/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import type {Color} from 'sentry/utils/theme';
 import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 
 interface Details {
-  color: Color;
+  color: keyof Theme['tokens']['graphics'];
   description: ReactNode;
   icon: ReactNode;
   tabKey: TabKey;
@@ -77,28 +77,28 @@ const DEVICE_CONNECTIVITY_MESSAGE: Record<string, string> = {
 
 const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'replay.init': (frame: BreadcrumbFrame) => ({
-    color: 'gray300',
+    color: 'muted',
     description: stripURLOrigin(frame.message ?? ''),
     tabKey: TabKey.CONSOLE,
     title: 'Replay Start',
     icon: <IconInfo size="xs" />,
   }),
   navigation: (frame: NavFrame) => ({
-    color: 'green400',
+    color: 'success',
     description: stripURLOrigin(frame.data.to),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
   }),
   feedback: (frame: FeedbackFrame) => ({
-    color: 'purple400',
+    color: 'accent',
     description: frame.data.projectSlug,
     tabKey: TabKey.BREADCRUMBS,
     title: defaultTitle(frame),
     icon: <IconMegaphone size="xs" />,
   }),
   issue: (frame: ErrorFrame) => ({
-    color: 'red400',
+    color: 'danger',
     description: frame.message,
     tabKey: TabKey.ERRORS,
     title: <CrumbErrorTitle frame={frame} />,
@@ -108,7 +108,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     const node = frame.data.node;
     if (isDeadClick(frame)) {
       return {
-        color: isDeadRageClick(frame) ? 'red400' : 'yellow400',
+        color: isDeadRageClick(frame) ? 'danger' : 'warning',
         description: tct(
           'Click on [selector] did not cause a visible effect within [timeout] ms',
           {
@@ -122,7 +122,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
       };
     }
     return {
-      color: 'yellow400',
+      color: 'warning',
       description: tct(
         'Click on [selector] took [duration] ms to have a visible effect',
         {
@@ -138,7 +138,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'ui.multiClick': (frame: MultiClickFrame) => {
     if (isRageClick(frame)) {
       return {
-        color: 'red400',
+        color: 'danger',
         description: tct('Rage clicked [clickCount] times on [selector]', {
           clickCount: frame.data.clickCount,
           selector: stringifyNodeAttributes(frame.data.node),
@@ -150,7 +150,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     }
 
     return {
-      color: 'yellow400',
+      color: 'warning',
       description: tct('[clickCount] clicks on [selector]', {
         clickCount: frame.data.clickCount,
         selector: stringifyNodeAttributes(frame.data.node),
@@ -161,7 +161,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     };
   },
   'replay.mutations': (frame: MutationFrame) => ({
-    color: 'yellow400',
+    color: 'warning',
     description: frame.data.limit
       ? tct(
           'Significant mutations detected [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
@@ -190,7 +190,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     icon: <IconWarning size="xs" />,
   }),
   'replay.hydrate-error': () => ({
-    color: 'red400',
+    color: 'danger',
     description: t(
       'There was a conflict between the server rendered html and the first client render.'
     ),
@@ -199,105 +199,105 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     icon: <IconFire size="xs" />,
   }),
   'ui.click': frame => ({
-    color: 'purple400',
+    color: 'accent',
     description: <SelectorList frame={frame} />,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
   }),
   'ui.swipe': (frame: SwipeFrame) => ({
-    color: 'blue400',
+    color: 'accent',
     description: frame.data,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Swipe',
     icon: <IconTap size="xs" />,
   }),
   'ui.scroll': (frame: ScrollFrame) => ({
-    color: 'blue400',
+    color: 'accent',
     description: frame.data,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Scroll',
     icon: <IconTap size="xs" />,
   }),
   'ui.tap': (frame: TapFrame) => ({
-    color: 'purple400',
+    color: 'accent',
     description: frame.message,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Tap',
     icon: <IconTap size="xs" />,
   }),
   'ui.input': () => ({
-    color: 'purple400',
+    color: 'accent',
     description: t('User Action'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Input',
     icon: <IconInput size="xs" />,
   }),
   'ui.keyDown': () => ({
-    color: 'purple400',
+    color: 'accent',
     description: t('User Action'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'User KeyDown',
     icon: <IconKeyDown size="xs" />,
   }),
   'ui.blur': () => ({
-    color: 'purple400',
+    color: 'accent',
     description: t('The user is preoccupied with another browser, tab, or window'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'Window Blur',
     icon: <IconFocus isFocused={false} size="xs" />,
   }),
   'ui.focus': () => ({
-    color: 'purple400',
+    color: 'accent',
     description: t('The user is currently focused on your application,'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'Window Focus',
     icon: <IconFocus size="xs" />,
   }),
   'app.foreground': () => ({
-    color: 'purple400',
+    color: 'accent',
     description: t('The user is currently focused on your application'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'App in Foreground',
     icon: <IconFocus size="xs" />,
   }),
   'app.background': () => ({
-    color: 'purple400',
+    color: 'accent',
     description: t('The user is preoccupied with another app or activity'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'App in Background',
     icon: <IconFocus isFocused={false} size="xs" />,
   }),
   console: frame => ({
-    color: 'gray300',
+    color: 'muted',
     description: frame.message ?? '',
     tabKey: TabKey.CONSOLE,
     title: 'Console',
     icon: <IconFix size="xs" />,
   }),
   'navigation.navigate': frame => ({
-    color: 'green400',
+    color: 'success',
     description: stripURLOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Page Load',
     icon: <IconLocation size="xs" />,
   }),
   'navigation.reload': frame => ({
-    color: 'green400',
+    color: 'success',
     description: stripURLOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Reload',
     icon: <IconLocation size="xs" />,
   }),
   'navigation.back_forward': frame => ({
-    color: 'green400',
+    color: 'success',
     description: stripURLOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Navigate Back/Forward',
     icon: <IconLocation size="xs" />,
   }),
   'navigation.push': frame => ({
-    color: 'green400',
+    color: 'success',
     description: stripURLOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
@@ -307,7 +307,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     switch (frame.data.rating) {
       case 'good':
         return {
-          color: 'green400',
+          color: 'success',
           description: tct('[value][unit] (Good)', {
             value: frame.data.value.toFixed(2),
             unit: isCLSFrame(frame) ? '' : 'ms',
@@ -318,7 +318,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
         };
       case 'needs-improvement':
         return {
-          color: 'yellow400',
+          color: 'warning',
           description: tct('[value][unit] (Meh)', {
             value: frame.data.value.toFixed(2),
             unit: isCLSFrame(frame) ? '' : 'ms',
@@ -329,7 +329,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
         };
       default:
         return {
-          color: 'red400',
+          color: 'danger',
           description: tct('[value][unit] (Poor)', {
             value: frame.data.value.toFixed(2),
             unit: isCLSFrame(frame) ? '' : 'ms',
@@ -341,91 +341,91 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     }
   },
   memory: () => ({
-    color: 'gray300',
+    color: 'muted',
     description: undefined,
     tabKey: TabKey.MEMORY,
     title: 'Memory',
     icon: <IconInfo size="xs" />,
   }),
   paint: () => ({
-    color: 'gray300',
+    color: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: 'Paint',
     icon: <IconInfo size="xs" />,
   }),
   'resource.css': frame => ({
-    color: 'gray300',
+    color: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.fetch': frame => ({
-    color: 'gray300',
+    color: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.iframe': frame => ({
-    color: 'gray300',
+    color: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.img': frame => ({
-    color: 'gray300',
+    color: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.link': frame => ({
-    color: 'gray300',
+    color: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.other': frame => ({
-    color: 'gray300',
+    color: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.script': frame => ({
-    color: 'gray300',
+    color: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.xhr': frame => ({
-    color: 'gray300',
+    color: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.http': frame => ({
-    color: 'gray300',
+    color: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'device.connectivity': (frame: DeviceConnectivityFrame) => ({
-    color: 'pink400',
+    color: 'promotion',
     description: DEVICE_CONNECTIVITY_MESSAGE[frame.data.state],
     tabKey: TabKey.BREADCRUMBS,
     title: 'Device Connectivity',
     icon: <IconWifi size="xs" />,
   }),
   'device.battery': (frame: DeviceBatteryFrame) => ({
-    color: 'pink400',
+    color: 'promotion',
     description: tct('Device was at [percent]% battery and [charging]', {
       percent: frame.data.level,
       charging: frame.data.charging ? 'charging' : 'not charging',
@@ -435,7 +435,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     icon: <IconLightning size="xs" />,
   }),
   'device.orientation': (frame: DeviceOrientationFrame) => ({
-    color: 'pink400',
+    color: 'promotion',
     description: tct('Device orientation was changed to [orientation]', {
       orientation: frame.data.position,
     }),
@@ -446,7 +446,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
 };
 
 const MAPPER_DEFAULT = (frame: any): Details => ({
-  color: 'gray300',
+  color: 'muted',
   description: frame.message ?? frame.data ?? '',
   tabKey: TabKey.BREADCRUMBS,
   title: toTitleCase(defaultTitle(frame)),
