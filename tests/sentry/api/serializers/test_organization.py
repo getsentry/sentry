@@ -82,6 +82,7 @@ class OrganizationSerializerTest(TestCase):
             "integrations-incident-management",
             "integrations-issue-basic",
             "integrations-issue-sync",
+            "integrations-scm-multi-org",
             "integrations-stacktrace-link",
             "integrations-ticket-rules",
             "integrations-vercel",
