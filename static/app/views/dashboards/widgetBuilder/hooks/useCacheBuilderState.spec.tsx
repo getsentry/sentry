@@ -98,6 +98,7 @@ describe('useCacheBuilderState', () => {
   it('restores builder state from localStorage when available', () => {
     const cachedWidget: WidgetBuilderState = {
       title: 'error widget title',
+      description: 'error widget description',
       dataset: WidgetType.ERRORS,
       displayType: DisplayType.LINE,
       yAxis: [
@@ -110,6 +111,7 @@ describe('useCacheBuilderState', () => {
     };
     const currentWidget: WidgetBuilderState = {
       title: 'issue widget title',
+      description: 'issue widget description',
       dataset: WidgetType.ISSUE,
       displayType: DisplayType.TABLE,
       query: ['issue.id:123'],
@@ -146,6 +148,7 @@ describe('useCacheBuilderState', () => {
         ...cachedWidget,
         yAxis: ['count()'],
         title: 'issue widget title', // The title was not overridden
+        description: 'issue widget description', // The description was not overridden
       }),
     });
   });

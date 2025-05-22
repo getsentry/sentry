@@ -51,7 +51,7 @@ export function useCacheBuilderState() {
         );
         dispatch({
           type: BuilderStateAction.SET_STATE,
-          payload: {...builderState, title: state.title},
+          payload: {...builderState, title: state.title, description: state.description},
         });
       } else {
         dispatch({
@@ -60,7 +60,7 @@ export function useCacheBuilderState() {
         });
       }
     },
-    [dispatch, state.title]
+    [dispatch, state.title, state.description]
   );
 
   return {
