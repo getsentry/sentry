@@ -131,7 +131,11 @@ export function ColumnEditorModal({
   }
 
   return (
-    <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
+    <DragNDropContext
+      columns={tempColumns}
+      setColumns={setTempColumns}
+      defaultColumn={() => ''}
+    >
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">
@@ -194,7 +198,7 @@ export function ColumnEditorModal({
 
 interface ColumnEditorRowProps {
   canDelete: boolean;
-  column: Column;
+  column: Column<string>;
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;

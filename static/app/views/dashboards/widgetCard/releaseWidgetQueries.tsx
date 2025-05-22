@@ -44,6 +44,7 @@ type Props = {
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: {
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
@@ -357,6 +358,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       cursor,
       dashboardFilters,
       onDataFetched,
+      onDataFetchStart,
       limit,
     } = this.props;
     const config = ReleasesConfig;
@@ -372,6 +374,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         cursor={cursor}
         limit={limit}
         onDataFetched={onDataFetched}
+        onDataFetchStart={onDataFetchStart}
         loading={
           requiresCustomReleaseSorting(widget.queries[0]!)
             ? !this.state.releases
