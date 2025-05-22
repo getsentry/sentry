@@ -110,6 +110,13 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper>
+      {group.hasSeen ? (
+        <UnreadIndicatorPlaceholder />
+      ) : (
+        <Tooltip title={t('Unread')} skipWrapper>
+          <UnreadIndicator data-test-id="unread-issue-indicator" />
+        </Tooltip>
+      )}
       <CheckboxLabel>
         <CheckboxWithBackground
           id={group.id}
@@ -119,11 +126,6 @@ function GroupCheckbox({
           onChange={onChange}
         />
       </CheckboxLabel>
-      {group.hasSeen ? null : (
-        <Tooltip title={t('Unread')} skipWrapper>
-          <UnreadIndicator data-test-id="unread-issue-indicator" />
-        </Tooltip>
-      )}
     </GroupCheckBoxWrapper>
   );
 }
@@ -645,15 +647,13 @@ function StreamGroup({
 export default StreamGroup;
 
 const CheckboxLabel = styled('label')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
   height: 100%;
   width: 32px;
+  padding-top: ${space(0.75)};
   padding-left: ${space(2)};
-  padding-top: 14px;
   margin: 0;
+  display: flex;
+  align-items: center;
 `;
 
 const UnreadIndicator = styled('div')`
@@ -661,8 +661,14 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   background-color: ${p => p.theme.purple400};
   border-radius: 50%;
+  margin-top: ${space(0.25)};
+  margin-left: ${space(2)};
+`;
+
+const UnreadIndicatorPlaceholder = styled('div')`
+  width: 8px;
+  height: 8px;
   margin-left: ${space(3)};
-  margin-top: 10px;
 `;
 
 // Position for wrapper is relative for overlay actions
@@ -677,13 +683,6 @@ const Wrapper = styled(PanelItem)<{
 
   &:not(:has(:hover)):not(:focus-within):not(:has(input:checked)) {
     ${CheckboxLabel} {
-      ${p => p.theme.visuallyHidden};
-    }
-  }
-
-  &:hover,
-  &:focus-within {
-    ${UnreadIndicator} {
       ${p => p.theme.visuallyHidden};
     }
   }
@@ -757,7 +756,10 @@ const GroupCheckBoxWrapper = styled('div')`
   align-self: flex-start;
   width: 32px;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  padding-top: ${space(1)};
   z-index: 1;
 `;
 
