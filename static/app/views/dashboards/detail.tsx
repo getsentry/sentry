@@ -444,9 +444,9 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboardId, widgetIndex} = params;
 
     const widgetBuilderRoutes = [
-      `/organizations/${organization.slug}/dashboard/new/widget-builder/widget/new/`,
+      `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`,
+      `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`,
-      `/organizations/${organization.slug}/dashboard/new/widget-builder/widget/${widgetIndex}/edit/`,
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,
     ];
 
@@ -454,8 +454,8 @@ class DashboardDetail extends Component<Props, State> {
       widgetBuilderRoutes.push(
         ...[
           `/dashboards/new/widget-builder/widget/new/`,
-          `/dashboard/${dashboardId}/widget-builder/widget/new/`,
           `/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
+          `/dashboard/${dashboardId}/widget-builder/widget/new/`,
           `/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,
         ]
       );
