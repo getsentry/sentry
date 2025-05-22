@@ -35,10 +35,14 @@ logger = logging.getLogger(__name__)
 TIMEOUT_SECONDS = 60 * 30  # 30 minutes
 
 
-def _get_logs_for_event(event: Event | GroupEvent, project: Project) -> list[dict] | None:
+def _get_logs_for_event(
+    event: Event | GroupEvent, project: Project
+) -> dict[str, list[dict]] | None:
     trace_id = event.trace_id
     if not trace_id:
-        return None
+        return {
+            "logs": [],
+        }
 
     projects_qs = Project.objects.filter(
         organization=project.organization, status=ObjectStatus.ACTIVE
@@ -136,7 +140,9 @@ def _get_logs_for_event(event: Event | GroupEvent, project: Project) -> list[dic
             prev_log["consecutive_count"] = count
         merged_logs.append(prev_log)
 
-    return merged_logs
+    return {
+        "logs": merged_logs,
+    }
 
 
 def build_spans_tree(spans_data: list[dict]) -> list[dict]:
@@ -782,7 +788,7 @@ def _call_autofix(
     serialized_event: dict[str, Any],
     profile: dict[str, Any] | None,
     trace_tree: dict[str, Any] | None,
-    logs: list[dict] | None,
+    logs: dict[str, list[dict]] | None,
     instruction: str | None = None,
     timeout_secs: int = TIMEOUT_SECONDS,
     pr_to_comment_on_url: str | None = None,
