@@ -513,7 +513,7 @@ def shim_to_feedback(
                 org_id=project.organization_id,
                 project_id=project.id,
                 key_id=None,
-                outcome=Outcome.RATE_LIMITED,
+                outcome=Outcome.INVALID,
                 reason="invalid_event_id",
                 timestamp=datetime.fromisoformat(event.timestamp),
                 event_id=event.event_id,
