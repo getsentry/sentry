@@ -21,7 +21,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0908_increase_email_field_length
+sentry: 0909_django_array_field_not_release
 
 social_auth: 0001_squashed_0002_default_auto_field
 
