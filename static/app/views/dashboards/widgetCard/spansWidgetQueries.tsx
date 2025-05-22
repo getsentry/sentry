@@ -115,6 +115,7 @@ function SpansWidgetQueriesSingleRequestImpl({
   limit,
   dashboardFilters,
   onDataFetched,
+  onDataFetchStart,
   getConfidenceInformation,
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
@@ -150,6 +151,7 @@ function SpansWidgetQueriesSingleRequestImpl({
         limit={limit}
         dashboardFilters={dashboardFilters}
         onDataFetched={onDataFetched}
+        onDataFetchStart={onDataFetchStart}
         afterFetchSeriesData={afterFetchSeriesData}
         samplingMode={SAMPLING_MODE.NORMAL}
       >
