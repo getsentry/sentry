@@ -34,7 +34,6 @@ from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.manager import LockManager
-from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
@@ -1544,6 +1543,7 @@ def detect_base_urls_for_uptime(job: PostProcessJob):
 
 def check_if_flags_sent(job: PostProcessJob) -> None:
     from sentry.signals import first_flag_received
+    from sentry.utils.projectflags import set_project_flag_and_signal
 
     event = job["event"]
     project = event.project
