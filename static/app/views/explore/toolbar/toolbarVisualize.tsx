@@ -173,7 +173,18 @@ function VisualizeDropdown({
     SPAN_AGGREGATION_FIELDS[parsedVisualize?.name as AggregationKey];
   const shouldHaveParameters =
     functionDefinition?.parameters && functionDefinition.parameters.length > 0;
-  const lockOptions = yAxis === DEFAULT_VISUALIZATION || !shouldHaveParameters;
+  const isCountVisualization = yAxis === DEFAULT_VISUALIZATION;
+  const lockOptions = isCountVisualization || !shouldHaveParameters;
+
+  const nonParameterFieldOptions: Array<SelectOption<string>> = useMemo(() => {
+    return [
+      {
+        label: t('spans'),
+        value: 'spans',
+        textValue: 'spans',
+      },
+    ];
+  }, []);
 
   const countFieldOptions: Array<SelectOption<string>> = useMemo(
     () => [
@@ -189,7 +200,13 @@ function VisualizeDropdown({
     yAxes,
     yAxis,
   });
-  const fieldOptions = lockOptions ? countFieldOptions : defaultFieldOptions;
+
+  let fieldOptions = defaultFieldOptions;
+  if (isCountVisualization) {
+    fieldOptions = countFieldOptions;
+  } else if (!shouldHaveParameters) {
+    fieldOptions = nonParameterFieldOptions;
+  }
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -235,6 +252,13 @@ function VisualizeDropdown({
     [group, index, parsedVisualize, setVisualizes, visualizes]
   );
 
+  let selectedValue: string = DEFAULT_VISUALIZATION_FIELD;
+  if (!shouldHaveParameters) {
+    selectedValue = 'spans';
+  } else if (parsedVisualize.arguments[0]) {
+    selectedValue = parsedVisualize.arguments[0];
+  }
+
   return (
     <ToolbarRow>
       {label && <ChartLabel>{label}</ChartLabel>}
@@ -246,7 +270,7 @@ function VisualizeDropdown({
       <ColumnCompactSelect
         searchable
         options={fieldOptions}
-        value={parsedVisualize.arguments[0]}
+        value={selectedValue}
         onChange={setChartField}
         disabled={lockOptions}
       />

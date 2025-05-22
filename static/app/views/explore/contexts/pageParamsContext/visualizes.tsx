@@ -182,6 +182,10 @@ export function updateVisualizeAggregate({
     // TODO: check if old parameter is valid for new function
   }
 
+  if (newArgument === undefined) {
+    newArgument = DEFAULT_VISUALIZATION_FIELD;
+  }
+
   return `${newAggregate}(${newArgument})`;
 }
 
