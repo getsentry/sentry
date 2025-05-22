@@ -602,7 +602,7 @@ export default function CustomerDetails() {
             skipConfirmModal: true,
             onAction: () =>
               triggerChangePlanAction({
-                orgId,
+                organization,
                 subscription,
                 partnerPlanId: subscription.partner?.isActive
                   ? subscription.planDetails.id
