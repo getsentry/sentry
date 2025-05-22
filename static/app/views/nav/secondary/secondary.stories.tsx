@@ -2,13 +2,13 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import {NavContextProvider} from 'sentry/views/nav/context';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {SecondarySidebar} from 'sentry/views/nav/secondary/secondarySidebar';
 
-export default storyBook('SecondaryNav', story => {
+export default Storybook.story('SecondaryNav', story => {
   story('Basics (WIP)', () => {
     const [activeItem, setActiveItem] = useState<string | null>('product-area-1');
 
