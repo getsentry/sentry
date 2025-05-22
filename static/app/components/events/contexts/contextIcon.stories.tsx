@@ -2,11 +2,10 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {ContextIcon, NAMES} from 'sentry/components/events/contexts/contextIcon';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
-export default storyBook('ContextIcon', story => {
+export default Storybook.story('ContextIcon', story => {
   story('All', () => (
     <Grid
       style={{
@@ -21,7 +20,7 @@ export default storyBook('ContextIcon', story => {
             key={name}
             isHoverable
             overlayStyle={{maxWidth: 440}}
-            title={<JSXNode name="ContextIcon" props={props} />}
+            title={<Storybook.JSXNode name="ContextIcon" props={props} />}
           >
             <Cell>
               <ContextIcon {...props} />
