@@ -542,6 +542,9 @@ def perform_region_request(region: Region, payload: WebhookPayload) -> None:
 
 
 def perform_codecov_request(payload: WebhookPayload) -> None:
+    """
+    We're dont retrying Codecov forwarding requests for now. We want to prove out that it would work.
+    """
     logging_context: dict[str, str | int] = {
         "payload_id": payload.id,
         "mailbox_name": payload.mailbox_name,
@@ -553,12 +556,39 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
     with metrics.timer(
         "hybridcloud.deliver_webhooks.send_request_to_codecov",
     ):
+        # transform request to match what codecov is expecting
+        if payload.request_path.strip("/") != "extensions/github/webhook":
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.send_request_to_codecov.unexpected_path",
+            )
+            return
+
         try:
+            endpoint = "/webhooks/sentry"
+            headers = orjson.loads(payload.request_headers)
+            data = {
+                "event": headers.get("HTTP_X_GITHUB_EVENT", "unknown"),
+                "payload": orjson.loads(payload.request_body),
+            }
             client = CodecovApiClient(None)
             response = client.post(
-                endpoint=payload.request_path,
-                data=payload.request_body.encode("utf-8"),
-                headers=orjson.loads(payload.request_headers),
+                endpoint=endpoint,
+                data=data,
+                headers=headers,
+            )
+
+            if response is None:
+                metrics.incr(
+                    "hybridcloud.deliver_webhooks.send_request_to_codecov.failure",
+                )
+                return
+
+            logger.debug(
+                "deliver_webhooks.send_request_to_codecov.success",
+                extra={
+                    "status": response.status_code,
+                    **logging_context,
+                },
             )
         except ConfigurationError as err:
             metrics.incr(
@@ -569,17 +599,12 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
                 extra={"error": str(err), **logging_context},
             )
             return
-
-    if response is None:
-        metrics.incr(
-            "hybridcloud.deliver_webhooks.send_request_to_codecov.failure",
-        )
-        return
-
-    logger.debug(
-        "deliver_webhooks.send_request_to_codecov.success",
-        extra={
-            "status": response.status_code,
-            **logging_context,
-        },
-    )
+        except orjson.JSONDecodeError as err:
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.send_request_to_codecov.json_decode_error",
+            )
+            logger.warning(
+                "deliver_webhooks.send_request_to_codecov.json_decode_error",
+                extra={"error": str(err), **logging_context},
+            )
+            return

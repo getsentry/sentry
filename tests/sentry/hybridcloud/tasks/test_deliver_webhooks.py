@@ -400,7 +400,7 @@ class DrainMailboxTest(TestCase):
     def test_drain_codecov_request_error(self) -> None:
         responses.add(
             responses.POST,
-            "https://codecov.io/extensions/github/webhook/",
+            "https://codecov.io/webhooks/sentry",
             status=400,
             body="",
         )
