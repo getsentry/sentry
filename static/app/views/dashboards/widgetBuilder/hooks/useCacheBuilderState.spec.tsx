@@ -97,6 +97,7 @@ describe('useCacheBuilderState', () => {
 
   it('restores builder state from localStorage when available', () => {
     const cachedWidget: WidgetBuilderState = {
+      title: 'error widget title',
       dataset: WidgetType.ERRORS,
       displayType: DisplayType.LINE,
       yAxis: [
@@ -108,6 +109,7 @@ describe('useCacheBuilderState', () => {
       query: ['this is a test query'],
     };
     const currentWidget: WidgetBuilderState = {
+      title: 'issue widget title',
       dataset: WidgetType.ISSUE,
       displayType: DisplayType.TABLE,
       query: ['issue.id:123'],
@@ -140,7 +142,11 @@ describe('useCacheBuilderState', () => {
       type: BuilderStateAction.SET_STATE,
 
       // the yAxis gets converted to a string when used with this payload
-      payload: expect.objectContaining({...cachedWidget, yAxis: ['count()']}),
+      payload: expect.objectContaining({
+        ...cachedWidget,
+        yAxis: ['count()'],
+        title: 'issue widget title', // The title was not overridden
+      }),
     });
   });
 
