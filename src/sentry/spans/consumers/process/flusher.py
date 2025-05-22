@@ -144,6 +144,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                         None, rapidjson.dumps({"spans": spans}).encode("utf8"), []
                     )
 
+                    metrics.timing("spans.buffer.segment_size_bytes", len(kafka_payload.value))
                     produce(kafka_payload)
 
                 for future in producer_futures:
