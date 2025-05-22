@@ -1,4 +1,4 @@
-export type AgentsInsightsEventParameters = {
+type AgentsInsightsEventParameters = {
   'agents-insights.page-view': Record<string, unknown>;
   'agents-insights.table_view_change': {
     isEnabled: boolean;
