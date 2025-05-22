@@ -88,7 +88,13 @@ export function SegmentedControl<Value extends string>({
   const collectionList = useMemo(() => [...collection], [collection]);
 
   return (
-    <GroupWrap {...radioGroupProps} size={size} priority={priority} ref={ref}>
+    <GroupWrap
+      {...radioGroupProps}
+      size={size}
+      priority={priority}
+      ref={ref}
+      listSize={collectionList.length}
+    >
       <LayoutGroup id={radioGroupProps.id}>
         {collectionList.map(option => (
           <Segment
@@ -236,7 +242,7 @@ function Segment<Value extends string>({
 }
 
 const GroupWrap = withChonk(
-  styled('div')<{priority: Priority; size: FormSize}>`
+  styled('div')<{listSize: number; priority: Priority; size: FormSize}>`
     position: relative;
     display: inline-grid;
     grid-auto-flow: column;

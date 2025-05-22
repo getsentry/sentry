@@ -600,7 +600,7 @@ class Group(Model):
     type = BoundedPositiveIntegerField(
         default=DEFAULT_TYPE_ID, db_default=DEFAULT_TYPE_ID, db_index=True
     )
-    priority = models.PositiveSmallIntegerField(null=True)
+    priority = models.PositiveIntegerField(null=True)
     priority_locked_at = models.DateTimeField(null=True)
     seer_fixability_score = models.FloatField(null=True)
     seer_autofix_last_triggered = models.DateTimeField(null=True)
@@ -625,10 +625,7 @@ class Group(Model):
             models.Index(fields=("status", "substatus", "first_seen")),
             models.Index(fields=("project", "status", "priority", "last_seen", "id")),
         ]
-        unique_together = (
-            ("project", "short_id"),
-            ("project", "id"),
-        )
+        unique_together = (("project", "short_id"),)
 
     __repr__ = sane_repr("project_id")
 

@@ -13,7 +13,7 @@ interface WebAuthnParams {
   response: string;
 }
 
-export interface WebAuthnEnrollProps {
+interface WebAuthnEnrollProps {
   challengeData: ChallengeData;
   /**
    * Callback for when the webAuthn flow is completed.

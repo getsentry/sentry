@@ -1,4 +1,5 @@
 import {Fragment, useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -6,10 +7,11 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
+import {useNavContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import {IssueViewNavItems} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
-import {PrimaryNavGroup} from 'sentry/views/nav/types';
+import {IssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViews';
+import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 
 export function IssuesSecondaryNav() {
   const organization = useOrganization();
@@ -19,7 +21,7 @@ export function IssuesSecondaryNav() {
   const hasIssueTaxonomy = organization.features.includes('issue-taxonomy');
 
   return (
-    <SecondaryNav>
+    <Fragment>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.ISSUES].label}
       </SecondaryNav.Header>
@@ -75,19 +77,26 @@ export function IssuesSecondaryNav() {
             </SecondaryNav.Item>
           </SecondaryNav.Section>
         )}
-        {organization.features.includes('issue-stream-custom-views') && (
-          <IssueViewNavItems sectionRef={sectionRef} />
-        )}
+        <IssueViews sectionRef={sectionRef} />
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNav.Body>
-    </SecondaryNav>
+    </Fragment>
   );
 }
 
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
+  const {layout, isCollapsed} = useNavContext();
   const hasWorkflowEngine = useWorkflowEngineFeatureGate();
+
+  const isSticky = layout === NavLayout.SIDEBAR && !isCollapsed;
+
   return (
-    <StickyBottomSection id="issues-configure" title={t('Configure')} collapsible={false}>
+    <StickyBottomSection
+      id="issues-configure"
+      title={t('Configure')}
+      collapsible={false}
+      isSticky={isSticky}
+    >
       {hasWorkflowEngine ? (
         <Fragment>
           <SecondaryNav.Item
@@ -118,8 +127,14 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
   );
 }
 
-const StickyBottomSection = styled(SecondaryNav.Section)`
-  position: sticky;
-  bottom: 0;
-  background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface200)};
+const StickyBottomSection = styled(SecondaryNav.Section, {
+  shouldForwardProp: prop => prop !== 'isSticky',
+})<{isSticky: boolean}>`
+  ${p =>
+    p.isSticky &&
+    css`
+      position: sticky;
+      bottom: 0;
+      background: ${p.theme.isChonk ? p.theme.background : p.theme.surface200};
+    `}
 `;

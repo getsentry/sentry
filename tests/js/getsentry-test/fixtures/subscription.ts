@@ -1,7 +1,7 @@
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {
-  ReservedBudgetFixture,
+  DynamicSamplingReservedBudgetFixture,
   ReservedBudgetMetricHistoryFixture,
 } from 'getsentry-test/fixtures/reservedBudget';
 
@@ -404,7 +404,7 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
     DataCategory.SPANS_INDEXED,
   ];
   subscription.reservedBudgets = [
-    ReservedBudgetFixture({
+    DynamicSamplingReservedBudgetFixture({
       id: '11',
       reservedBudget: 100_000_00,
       totalReservedSpend: 60_000_00,

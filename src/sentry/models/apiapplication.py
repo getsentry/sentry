@@ -1,10 +1,11 @@
 import os
 import secrets
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Literal, Self, TypeIs
 from urllib.parse import urlparse, urlunparse
 
 import petname
 import sentry_sdk
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -19,7 +20,6 @@ from sentry.db.models import (
     control_silo_model,
     sane_repr,
 )
-from sentry.db.models.fields.array import ArrayField
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -67,10 +67,7 @@ class ApiApplication(Model):
     terms_url = models.URLField(null=True)
 
     date_added = models.DateTimeField(default=timezone.now)
-    scopes = ArrayField(
-        models.TextField(),
-        null=True,
-    )
+    scopes = ArrayField(models.TextField(), default=list)
     # ApiApplication by default provides user level access
     # This field is true if a certain application is limited to access only a specific org
     requires_org_level_access = models.BooleanField(default=False, db_default=False)
@@ -108,7 +105,7 @@ class ApiApplication(Model):
     def is_active(self):
         return self.status == ApiApplicationStatus.active
 
-    def is_allowed_response_type(self, value):
+    def is_allowed_response_type(self, value: object) -> TypeIs[Literal["code", "token"]]:
         return value in ("code", "token")
 
     def normalize_url(self, value):

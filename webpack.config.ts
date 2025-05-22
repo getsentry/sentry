@@ -1,4 +1,3 @@
-import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
 import browserslist from 'browserslist';
@@ -244,8 +243,17 @@ const appConfig: webpack.Configuration = {
       {
         test: /\.[tj]sx?$/,
         include: [staticPrefix],
-        exclude: /(vendor|node_modules|dist)/,
+        exclude: [/(vendor|node_modules|dist)/],
         use: babelLoaderConfig,
+      },
+      {
+        test: /\.mdx?$/,
+        use: [
+          babelLoaderConfig,
+          {
+            loader: '@mdx-js/loader',
+          },
+        ],
       },
       {
         test: /\.po$/,
@@ -400,18 +408,13 @@ const appConfig: webpack.Configuration = {
           : []),
       ],
     }),
-
-    WebpackReactSourcemapsPlugin({
-      mode: IS_PRODUCTION ? 'strict' : undefined,
-      debug: false,
-    }),
   ],
 
   resolveLoader: {
     alias: {
       'type-loader': STORYBOOK_TYPES
-        ? path.resolve(__dirname, 'static/app/views/stories/type-loader.ts')
-        : path.resolve(__dirname, 'static/app/views/stories/noop-type-loader.ts'),
+        ? path.resolve(__dirname, 'static/app/stories/type-loader.ts')
+        : path.resolve(__dirname, 'static/app/stories/noop-type-loader.ts'),
     },
   },
 
@@ -820,7 +823,8 @@ appConfig.plugins?.push(
       create: false,
     },
     reactComponentAnnotation: {
-      enabled: true,
+      // Enabled only in production because annotating is slow
+      enabled: IS_PRODUCTION,
     },
     bundleSizeOptimizations: {
       // This is enabled so that our SDKs send exceptions to Sentry

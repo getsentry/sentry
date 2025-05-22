@@ -6,12 +6,14 @@ import {
   type SearchGroup,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
 import {
+  FixabilityScoreThresholds,
   getIssueTitleFromType,
   ISSUE_CATEGORY_TO_DESCRIPTION,
   IssueCategory,
   PriorityLevel,
   type Tag,
   type TagCollection,
+  VALID_ISSUE_CATEGORIES_V2,
   VISIBLE_ISSUE_TYPES,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -283,15 +285,7 @@ function builtInIssuesFields({
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
       values: organization.features.includes('issue-taxonomy')
-        ? [
-            IssueCategory.ERROR,
-            IssueCategory.OUTAGE,
-            IssueCategory.METRIC,
-            IssueCategory.DB_QUERY,
-            IssueCategory.HTTP_CLIENT,
-            IssueCategory.FRONTEND,
-            IssueCategory.MOBILE,
-          ].map(value => ({
+        ? VALID_ISSUE_CATEGORIES_V2.map(value => ({
             icon: null,
             title: value,
             name: value,
@@ -361,6 +355,22 @@ function builtInIssuesFields({
       name: 'Issue Priority',
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
       predefined: true,
+    },
+    [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_ACTIONABILITY]!,
+      name: 'Issue Fixability',
+      values: [
+        FixabilityScoreThresholds.HIGH,
+        FixabilityScoreThresholds.MEDIUM,
+        FixabilityScoreThresholds.LOW,
+      ],
+      predefined: true,
+    },
+    [FieldKey.ISSUE_SEER_LAST_RUN]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_LAST_RUN]!,
+      name: 'Issue Fix Last Triggered',
+      values: [],
+      predefined: false,
     },
   };
 

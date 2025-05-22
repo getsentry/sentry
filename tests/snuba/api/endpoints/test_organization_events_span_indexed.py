@@ -2584,7 +2584,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["http_response_rate(5)"] == 0.0
+        assert data[0]["http_response_rate(5)"] is None
         assert meta["dataset"] == self.dataset
 
     def test_http_response_rate_invalid_param(self):
@@ -3318,6 +3318,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             == 50 / 100
         )
         assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {
+            "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Chrome)": "percentage",
+            "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Firefox)": "percentage",
+        }
 
     def test_total_performance_score(self):
         self.store_spans(
@@ -3444,6 +3448,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data[0]["division(mobile.slow_frames,mobile.total_frames)"] == 10 / 100
         assert data[0]["division(mobile.frozen_frames,mobile.total_frames)"] == 20 / 100
         assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {
+            "division(mobile.slow_frames,mobile.total_frames)": "percentage",
+            "division(mobile.frozen_frames,mobile.total_frames)": "percentage",
+        }
 
     def test_division_with_groupby(self):
         self.store_spans(
@@ -4581,3 +4589,92 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 'tags["flag.evaluation.feature.organizations:foo",number]': 1,
             },
         ]
+
+    def test_count_if_two_args(self):
+        self.store_spans(
+            [
+                self.create_span({"sentry_tags": {"release": "foo"}}),
+                self.create_span(
+                    {"sentry_tags": {"release": "bar"}},
+                    duration=10,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["count_if(release,foo)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["count_if(release,foo)"] == 1
+        assert meta["dataset"] == self.dataset
+
+    def test_span_ops_breakdown(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {"span_ops.ops.http": {"value": 100}},
+                    },
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["spans.http"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["spans.http"] == 100
+        assert meta["dataset"] == self.dataset
+
+    def test_special_characters(self):
+        characters = "_.-"
+        span = self.create_span(
+            {"tags": {f"tag{c}": c for c in characters}},
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans(
+            [
+                span,
+                self.create_span(start_ts=self.ten_mins_ago),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        for c in characters:
+            response = self.do_request(
+                {
+                    "field": [f"tag{c}"],
+                    "query": f"tag{c}:{c}",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+            assert response.status_code == 200, response.content
+            assert response.data["data"] == [
+                {
+                    "id": span["span_id"],
+                    "project.name": self.project.slug,
+                    f"tag{c}": c,
+                }
+            ]

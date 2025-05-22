@@ -15,6 +15,7 @@ import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -67,6 +68,10 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
 
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
+type NamedTimeSeries = TimeSeries & {
+  seriesName?: string;
+};
+
 export function ExploreCharts({
   canUsePreviousResults,
   confidences,
@@ -91,7 +96,7 @@ export function ExploreCharts({
         canUsePreviousResults &&
         dedupedYAxes.every(yAxis => previousTimeseriesResult.data.hasOwnProperty(yAxis));
 
-      const data = dedupedYAxes.flatMap((yAxis, i) => {
+      const data: NamedTimeSeries[] = dedupedYAxes.flatMap((yAxis, i) => {
         const series = shouldUsePreviousResults
           ? previousTimeseriesResult.data[yAxis]
           : timeseriesResult.data[yAxis];
@@ -314,15 +319,12 @@ export function ExploreCharts({
                 <TimeSeriesWidgetVisualization
                   plottables={chartInfo.data.map(timeSeries => {
                     return new DataPlottableConstructor(timeSeries, {
+                      alias: timeSeries.seriesName,
                       delay: INGESTION_DELAY,
                       color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
                       stack: chartInfo.stack,
                     });
                   })}
-                  legendSelection={{
-                    // disable the 'Other' series by default since its large values can cause the other lines to be insignificant
-                    Other: false,
-                  }}
                 />
               }
               Footer={

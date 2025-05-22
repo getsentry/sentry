@@ -6,6 +6,7 @@ from sentry import analytics
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
 )
@@ -19,7 +20,11 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
     Model = OrganizationOnboardingTask
 
     def fetch_onboarding_tasks(self, organization, user):
-        return self.Model.objects.filter(organization=organization)
+        return self.Model.objects.filter(
+            organization=organization,
+            task__in=OnboardingTask.values(),  # we exclude any tasks that might no longer be in the onboarding flow but still linger around in the database
+            status__in=OnboardingTaskStatus.values(),  # same here but for status
+        )
 
     def create_or_update_onboarding_task(self, organization, user, task, values):
         return self.Model.objects.create_or_update(

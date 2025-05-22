@@ -30,7 +30,6 @@ export function useServiceIncidents({
 
   return useQuery<StatuspageIncident[] | null>({
     queryKey: ['statuspage-incidents', {api_host, id, includeResolved}],
-    gcTime: 60 * 5,
     queryFn: async () => {
       if (!api_host || !id) {
         return null;
@@ -74,5 +73,10 @@ export function useServiceIncidents({
 
       return filteredIncidents;
     },
+    // 5 minutes
+    staleTime: 1000 * 60 * 5,
+    // Refetch every 5 minutes and when window is refocused
+    refetchInterval: 1000 * 60 * 5,
+    refetchOnWindowFocus: true,
   });
 }

@@ -1,21 +1,23 @@
-import {Fragment, useState} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
-export default function EditConnectedMonitors() {
-  const {monitors, connectedMonitorIds, toggleConnected} = useConnectedMonitors();
+interface Props {
+  connectedIds: Set<string>;
+  setConnectedIds: Dispatch<SetStateAction<Set<string>>>;
+}
 
-  const connectedMonitors = monitors.filter(monitor =>
-    connectedMonitorIds.has(monitor.id)
-  );
-  const unconnectedMonitors = monitors.filter(
-    monitor => !connectedMonitorIds.has(monitor.id)
-  );
+export default function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
+  const {data: monitors = []} = useDetectorsQuery();
+
+  const connectedMonitors = monitors.filter(monitor => connectedIds.has(monitor.id));
+  const unconnectedMonitors = monitors.filter(monitor => !connectedIds.has(monitor.id));
 
   return (
     <div>
@@ -24,8 +26,8 @@ export default function EditConnectedMonitors() {
           <Heading>{t('Connected Monitors')}</Heading>
           <ConnectedMonitorsList
             monitors={connectedMonitors}
-            connectedMonitorIds={connectedMonitorIds}
-            toggleConnected={toggleConnected}
+            connectedIds={connectedIds}
+            setConnectedIds={setConnectedIds}
           />
         </Fragment>
       )}
@@ -37,36 +39,11 @@ export default function EditConnectedMonitors() {
       </div>
       <ConnectedMonitorsList
         monitors={unconnectedMonitors}
-        connectedMonitorIds={connectedMonitorIds}
-        toggleConnected={toggleConnected}
+        connectedIds={connectedIds}
+        setConnectedIds={setConnectedIds}
       />
     </div>
   );
-}
-
-export function useConnectedMonitors() {
-  // TODO: Fetch monitors from API
-  const monitors: Detector[] = [];
-
-  const [connectedMonitorIds, setConnectedMonitorIds] = useState<Set<string>>(() => {
-    const stored = localStorage.getItem('connectedMonitorIds');
-    return stored ? new Set(JSON.parse(stored)) : new Set();
-  });
-
-  const toggleConnected = (id: string) => {
-    setConnectedMonitorIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      localStorage.setItem('connectedMonitorIds', JSON.stringify(Array.from(newSet)));
-      return newSet;
-    });
-  };
-
-  return {monitors, connectedMonitorIds, toggleConnected};
 }
 
 const Heading = styled('h2')`

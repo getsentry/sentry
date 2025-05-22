@@ -56,6 +56,7 @@ const useTransactionDurationSeries = ({transaction}: {transaction: string}) => {
         transaction,
       } satisfies MetricsQueryFilters),
       transformAliasToInputFormat: true,
+      enabled: !useEap,
     },
     Referrer.SAMPLES_CACHE_TRANSACTION_DURATION_CHART
   );
@@ -67,6 +68,7 @@ const useTransactionDurationSeries = ({transaction}: {transaction: string}) => {
         is_transaction: 'true',
       } satisfies SpanQueryFilters),
       yAxis: [`avg(${SpanFields.SPAN_DURATION})`],
+      enabled: useEap,
     },
     Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
   );

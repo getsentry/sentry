@@ -50,12 +50,6 @@ export default function hydrateFeedbackTags(
     ...(context.device?.name ? {'device.name': context.device?.name} : {}),
     ...(context.os?.name ? {'os.name': context.os?.name} : {}),
     ...(context.os?.version ? {'os.version': context.os?.version} : {}),
-    ...(eventTags.some(e => e.key === 'environment')
-      ? {environment: eventTags.find(e => e.key === 'environment')?.value}
-      : {}),
-    ...(eventTags.some(e => e.key === 'transaction')
-      ? {transaction: eventTags.find(e => e.key === 'transaction')?.value}
-      : {}),
     ...(eventData.platform
       ? {platform: issueData?.project?.platform ?? eventData.platform}
       : {}),
@@ -63,6 +57,14 @@ export default function hydrateFeedbackTags(
     ...(eventData.sdk?.version ? {'sdk.version': eventData.sdk?.version} : {}),
     ...(eventData?.contexts?.feedback?.replay_id
       ? {replay_id: eventData?.contexts?.feedback?.replay_id}
+      : {}),
+    ...(eventData.user?.geo?.city ? {'geo.city': eventData.user?.geo?.city} : {}),
+    ...(eventData.user?.geo?.country_code
+      ? {'geo.country_code': eventData.user?.geo?.country_code}
+      : {}),
+    ...(eventData.user?.geo?.region ? {'geo.region': eventData.user?.geo?.region} : {}),
+    ...(eventData.user?.geo?.subdivision
+      ? {'geo.subdivision': eventData.user?.geo?.subdivision}
       : {}),
   };
 

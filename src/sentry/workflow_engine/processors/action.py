@@ -1,15 +1,18 @@
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import TypedDict
 
 from django.db.models import DurationField, ExpressionWrapper, F, IntegerField, Value
 from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Cast, Coalesce
 from django.utils import timezone
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.exceptions import NotRegistered
+from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.manager import default_manager as integrations_manager
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
@@ -34,11 +37,6 @@ logger = logging.getLogger(__name__)
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
 
-class WorkflowFireHistoryUpdates(TypedDict):
-    has_passed_filters: bool
-    has_fired_actions: bool
-
-
 def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action], group: Group):
     # Annotate the actions with the amount of time since the last update
     statuses = ActionGroupStatus.objects.filter(group=group, action__in=actions)
@@ -51,7 +49,7 @@ def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action
                     "action__dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__config"
                 ),
             ),
-            Value("30"),  # default 30
+            Value("0"),  # default 0
         ),
         output_field=IntegerField(),
     )
@@ -74,37 +72,25 @@ def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action
     return statuses
 
 
-def update_workflow_fire_histories(
-    actions_to_fire: BaseQuerySet[Action],
-    event_data: WorkflowEventData,
-    updates: WorkflowFireHistoryUpdates,
-) -> int:
-    # Update WorkflowFireHistory objects for workflows with actions to fire
-    fired_workflows = set(
+def create_workflow_fire_histories(
+    actions_to_fire: BaseQuerySet[Action], event_data: WorkflowEventData
+) -> list[WorkflowFireHistory]:
+    # Create WorkflowFireHistory objects for workflows we fire actions for
+    workflow_ids = set(
         WorkflowDataConditionGroup.objects.filter(
             condition_group__dataconditiongroupaction__action__in=actions_to_fire
         ).values_list("workflow_id", flat=True)
     )
 
-    logger.info(
-        "workflow_engine.workflow_fire_history.update",
-        extra={
-            "actions": [action.id for action in actions_to_fire],
-            "workflow_ids": list(fired_workflows),
-            "group_id": event_data.event.group_id,
-            "event_id": event_data.event.event_id,
-            "has_passed_filters": updates["has_passed_filters"],
-            "has_fired_actions": updates["has_fired_actions"],
-        },
-    )
-
-    updated_rows = WorkflowFireHistory.objects.filter(
-        workflow_id__in=fired_workflows,
-        group=event_data.event.group,
-        event_id=event_data.event.event_id,
-    ).update(**updates)
-
-    return updated_rows
+    fire_histories = [
+        WorkflowFireHistory(
+            workflow_id=workflow_id,
+            group=event_data.event.group,
+            event_id=event_data.event.event_id,
+        )
+        for workflow_id in workflow_ids
+    ]
+    return WorkflowFireHistory.objects.bulk_create(fire_histories)
 
 
 # TODO(cathy): only reinforce workflow frequency for certain issue types
@@ -116,8 +102,6 @@ def filter_recently_fired_workflow_actions(
         dataconditiongroupaction__condition_group__in=filtered_action_groups
     ).distinct()
 
-    wfh_updates = WorkflowFireHistoryUpdates(has_passed_filters=True, has_fired_actions=False)
-    update_workflow_fire_histories(actions, event_data, wfh_updates)
     group = event_data.event.group
 
     now = timezone.now()
@@ -143,8 +127,7 @@ def filter_recently_fired_workflow_actions(
     actions_without_statuses_ids = {action.id for action in actions_without_statuses}
     filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
 
-    wfh_updates["has_fired_actions"] = True
-    update_workflow_fire_histories(filtered_actions, event_data, wfh_updates)
+    create_workflow_fire_histories(filtered_actions, event_data)
 
     return filtered_actions
 
@@ -209,3 +192,45 @@ def get_integration_services(organization_id: int) -> dict[int, list[tuple[int, 
             )
 
     return services
+
+
+def _get_integration_features(action_type: Action.Type) -> frozenset[IntegrationFeatures]:
+    """
+    Get the IntegrationFeatures for an integration-based action type.
+    """
+    assert action_type.is_integration()
+    integration_key = action_type.value  # action types should be match integration keys.
+    try:
+        integration = integrations_manager.get(integration_key)
+    except NotRegistered:
+        raise ValueError(f"No integration found for action type: {action_type}")
+    return integration.features
+
+
+# The features that are relevent to Action behaviors;
+# if the organization doesn't have access to all of the features an integration
+# requires that are in this list, the action should not be permitted.
+_ACTION_RELEVANT_INTEGRATION_FEATURES = {
+    IntegrationFeatures.ISSUE_BASIC,
+    IntegrationFeatures.ISSUE_SYNC,
+    IntegrationFeatures.TICKET_RULES,
+    IntegrationFeatures.ALERT_RULE,
+    IntegrationFeatures.ENTERPRISE_ALERT_RULE,
+    IntegrationFeatures.ENTERPRISE_INCIDENT_MANAGEMENT,
+    IntegrationFeatures.INCIDENT_MANAGEMENT,
+}
+
+
+def is_action_permitted(action_type: Action.Type, organization: Organization) -> bool:
+    """
+    Check if an action type is permitted for an organization.
+    """
+    if not action_type.is_integration():
+        return True
+    integration_features = _get_integration_features(action_type)
+    required_org_features = integration_features.intersection(_ACTION_RELEVANT_INTEGRATION_FEATURES)
+    feature_names = [
+        f"organizations:integrations-{integration_feature}"
+        for integration_feature in required_org_features
+    ]
+    return all(features.has(feature_name, organization) for feature_name in feature_names)

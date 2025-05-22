@@ -38,7 +38,8 @@ import {EmptyStateText} from 'sentry/views/traces/styles';
 
 import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
 
-const LOGS_INSTRUCTIONS_URL = 'https://github.com/getsentry/sentry/discussions/86804';
+export const LOGS_INSTRUCTIONS_URL =
+  'https://docs.sentry.io/product/explore/logs/getting-started/';
 
 type LogsTableProps = {
   tableData: UseExploreLogsTableResult;
@@ -81,9 +82,10 @@ export function LogsTable({
     <Fragment>
       <Table
         ref={tableRef}
-        styles={initialTableStyles}
+        style={initialTableStyles}
         data-test-id="logs-table"
         hideBorder={isTableFrozen}
+        showVerticalScrollbar={isTableFrozen}
       >
         {showHeader ? (
           <TableHead>

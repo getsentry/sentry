@@ -10,6 +10,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -136,6 +137,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
     openModal(props => (
       <CreateIssueViewModal
         {...props}
+        analyticsSurface={viewId ? 'issue-view-details' : 'issues-feed'}
         name={view ? `${view.name} (Copy)` : undefined}
         query={query}
         querySort={sort}
@@ -159,23 +161,26 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   );
 }
 
-const PrimarySaveButton = styled(Button)`
-  box-shadow: none;
+const PrimarySaveButton = withChonk(
+  styled(Button)`
+    box-shadow: none;
 
-  ${p =>
-    p.priority === 'primary' &&
-    css`
-      &::after {
-        content: '';
-        position: absolute;
-        top: -1px;
-        bottom: -1px;
-        right: -1px;
-        border-right: solid 1px currentColor;
-        opacity: 0.25;
-      }
-    `}
-`;
+    ${p =>
+      p.priority === 'primary' &&
+      css`
+        &::after {
+          content: '';
+          position: absolute;
+          top: -1px;
+          bottom: -1px;
+          right: -1px;
+          border-right: solid 1px currentColor;
+          opacity: 0.25;
+        }
+      `}
+  `,
+  Button
+);
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;

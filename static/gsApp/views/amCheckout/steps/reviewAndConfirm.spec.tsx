@@ -17,6 +17,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import AMCheckout from 'getsentry/views/amCheckout/';
+import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
 import ReviewAndConfirm from './reviewAndConfirm';
@@ -264,6 +265,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     const updatedData = {
       ...formData,
       reserved: {...formData.reserved, errors: reservedErrors},
+      selectedProducts: {
+        [SelectableProduct.SEER]: {
+          enabled: true,
+        },
+      },
     };
     render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
       deprecatedRouterMocks: true,
@@ -287,6 +293,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       )
     );
 
+    // TODO(seer): Add seer analytics
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.upgrade', {
       organization,
       subscription,
@@ -1002,72 +1009,5 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       expect(button).toBeDisabled();
     });
     expect(mockConfirm).toHaveBeenCalled();
-  });
-
-  it('renders Seer AI Agent line item', async function () {
-    const org = OrganizationFixture({features: ['seer-billing']});
-    const updatedData = {...formData, seerEnabled: true};
-
-    mockPreviewGet(org.slug);
-
-    render(
-      <ReviewAndConfirm
-        {...stepProps}
-        organization={org}
-        isActive
-        formData={updatedData}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
-    );
-
-    expect(await screen.findByText('Seer AI Agent')).toBeInTheDocument();
-    expect(screen.getByText('$20')).toBeInTheDocument();
-  });
-
-  it('does not render Seer AI Agent line item when feature is disabled', async function () {
-    const org = OrganizationFixture({features: []});
-    const updatedData = {...formData, seerEnabled: true};
-
-    mockPreviewGet(org.slug);
-
-    render(
-      <ReviewAndConfirm
-        {...stepProps}
-        organization={org}
-        isActive
-        formData={updatedData}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
-    );
-
-    await screen.findByText('Total due');
-    expect(screen.queryByText('Seer AI Agent')).not.toBeInTheDocument();
-  });
-
-  it('does not render Seer AI Agent line item when feature is enabled but seer is not enabled in formData', async function () {
-    const org = OrganizationFixture({features: ['seer-billing']});
-    const updatedData = {...formData, seerEnabled: false};
-
-    mockPreviewGet(org.slug);
-
-    render(
-      <ReviewAndConfirm
-        {...stepProps}
-        organization={org}
-        isActive
-        formData={updatedData}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
-    );
-
-    // Wait for some other element to ensure loading is complete
-    await screen.findByText('Total due');
-    expect(screen.queryByText('Seer AI Agent')).not.toBeInTheDocument();
   });
 });

@@ -1,11 +1,13 @@
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMegaphone, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -15,6 +17,8 @@ import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {logsPickableDays} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+
+import {LOGS_INSTRUCTIONS_URL} from './logsTable';
 
 function FeedbackButton() {
   const openForm = useFeedbackForm();
@@ -84,9 +88,14 @@ export default function LogsPage() {
                 <LinkButton
                   icon={<IconOpen />}
                   priority="primary"
-                  href="https://docs.sentry.io/product/explore/logs/getting-started/"
+                  href={LOGS_INSTRUCTIONS_URL}
                   external
                   size="xs"
+                  onMouseDown={() => {
+                    trackAnalytics('logs.doc_link.clicked', {
+                      organization,
+                    });
+                  }}
                 >
                   {t('Set Up Logs')}
                 </LinkButton>

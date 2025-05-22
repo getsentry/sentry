@@ -123,8 +123,7 @@ function formatHoursToInterval(hours: number): [number, IntervalUnits] {
 }
 
 function getIntervalOption(rangeHours: number): IntervalOption {
-  for (const index in INTERVAL_OPTIONS) {
-    const currentOption = INTERVAL_OPTIONS[index]!;
+  for (const currentOption of INTERVAL_OPTIONS) {
     if (currentOption.rangeStart <= rangeHours) {
       return currentOption;
     }

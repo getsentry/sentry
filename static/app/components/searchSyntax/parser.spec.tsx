@@ -105,9 +105,7 @@ describe('searchSyntax/parser', function () {
 
   Object.entries(testData).map(([name, cases]) =>
     describe(`${name}`, () => {
-      cases.map(c =>
-        registerTestCase(c, {parse: true, parseWildcardsCheckIsEnabled: false})
-      );
+      cases.map(c => registerTestCase(c, {parse: true}));
     })
   );
 
@@ -360,67 +358,6 @@ describe('searchSyntax/parser', function () {
         }),
         expect.objectContaining({type: Token.SPACES}),
       ]);
-    });
-  });
-
-  describe('parseWildcardsCheckIsEnabled', () => {
-    it('sets contains to false when not wrapped in `*`', function () {
-      const result = parseSearch('foo:bar', {
-        parseWildcardsCheckIsEnabled: true,
-      });
-
-      expect(result).toHaveLength(3);
-
-      const bar = result?.[1] as TokenResult<Token.FILTER>;
-      expect(bar.value).toEqual(expect.objectContaining({contains: false}));
-    });
-
-    it('sets contains to true when wrapped in `*`', function () {
-      const result = parseSearch('foo:*bar*', {
-        parseWildcardsCheckIsEnabled: true,
-      });
-
-      expect(result).toHaveLength(3);
-
-      const bar = result?.[1] as TokenResult<Token.FILTER>;
-      expect(bar.value).toEqual(
-        expect.objectContaining({contains: true, value: '*bar*'})
-      );
-    });
-
-    it('sets contains to true when quoted', function () {
-      const result = parseSearch('foo:"*bar*"', {
-        parseWildcardsCheckIsEnabled: true,
-      });
-
-      expect(result).toHaveLength(3);
-
-      const bar = result?.[1] as TokenResult<Token.FILTER>;
-      expect(bar.value).toEqual(
-        expect.objectContaining({contains: true, value: '*bar*'})
-      );
-    });
-
-    it('spaces', function () {
-      const result = parseSearch('foo:"* *"', {
-        parseWildcardsCheckIsEnabled: true,
-      });
-
-      expect(result).toHaveLength(3);
-
-      const bar = result?.[1] as TokenResult<Token.FILTER>;
-      expect(bar.value).toEqual(expect.objectContaining({contains: true, value: '* *'}));
-    });
-
-    it('just asterisks', function () {
-      const result = parseSearch('foo:**', {
-        parseWildcardsCheckIsEnabled: true,
-      });
-
-      expect(result).toHaveLength(3);
-
-      const bar = result?.[1] as TokenResult<Token.FILTER>;
-      expect(bar.value).toEqual(expect.objectContaining({contains: true, value: '**'}));
     });
   });
 });

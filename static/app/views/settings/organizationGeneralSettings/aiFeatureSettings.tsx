@@ -14,12 +14,15 @@ export const makeHideAiFeaturesField = (organization: Organization): FieldObject
   return {
     name: 'hideAiFeatures',
     type: 'boolean',
-    label: t('Enable Generative AI features'),
-    help: tct('Enables [docs:features] powered by Generative AI', {
-      docs: (
-        <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/" />
-      ),
-    }),
+    label: t('Show Generative AI Features'),
+    help: tct(
+      'Allows organization members to access [docs:features] powered by generative AI',
+      {
+        docs: (
+          <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/" />
+        ),
+      }
+    ),
     defaultValue: defaultEnableSeerFeaturesValue(organization),
     disabled: ({access}) => !access.has('org:write'),
     getValue: value => {

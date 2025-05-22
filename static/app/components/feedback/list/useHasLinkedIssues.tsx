@@ -14,7 +14,7 @@ type Props = {
   project: Project;
 };
 
-export default function useExternalIssueData({group, event, project}: Props) {
+export default function useHasLinkedIssues({group, event, project}: Props) {
   const organization = useOrganization();
   const issueTrackingFilter = useIssueTrackingFilter();
   const components = useSentryAppComponentsStore({componentType: 'issue-link'});

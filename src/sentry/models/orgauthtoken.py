@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, Self, TypeGuard
 
+from django.contrib.postgres.fields.array import ArrayField
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -14,7 +15,7 @@ from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.conf.server import SENTRY_SCOPES
-from sentry.db.models import ArrayField, FlexibleForeignKey, control_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
@@ -46,10 +47,7 @@ class OrgAuthToken(ReplicatedControlModel):
     # An optional representation of the last characters of the original token, to be shown to the user
     token_last_characters = models.CharField(max_length=4, null=True)
     name = models.CharField(max_length=MAX_NAME_LENGTH, null=False, blank=False)
-    scope_list = ArrayField(
-        models.TextField(),
-        validators=[validate_scope_list],
-    )
+    scope_list = ArrayField(models.TextField(), validators=[validate_scope_list], default=list)
 
     created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
     date_added = models.DateTimeField(default=timezone.now, null=False)

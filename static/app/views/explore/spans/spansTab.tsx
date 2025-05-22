@@ -29,14 +29,17 @@ import {
 } from 'sentry/utils/fields';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
+  useExploreFields,
   useExploreId,
   useExploreMode,
   useExploreQuery,
@@ -57,7 +60,11 @@ import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-import {combineConfidenceForSeries, type PickableDays} from 'sentry/views/explore/utils';
+import {
+  combineConfidenceForSeries,
+  findSuggestedColumns,
+  type PickableDays,
+} from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
 // eslint-disable-next-line no-restricted-imports
@@ -134,18 +141,32 @@ interface SpanTabSearchSectionProps {
 
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useExploreMode();
+  const fields = useExploreFields();
   const query = useExploreQuery();
   const setExplorePageParams = useSetExplorePageParams();
 
   const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
   const {tags: stringTags, isLoading: stringTagsLoading} = useSpanTags('string');
 
+  const search = useMemo(() => new MutableSearch(query), [query]);
+  const oldSearch = usePrevious(search);
+
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: query,
       onSearch: (newQuery: string) => {
+        const newSearch = new MutableSearch(newQuery);
+        const suggestedColumns = findSuggestedColumns(newSearch, oldSearch, {
+          numberAttributes: numberTags,
+          stringAttributes: stringTags,
+        });
+
+        const existingFields = new Set(fields);
+        const newColumns = suggestedColumns.filter(col => !existingFields.has(col));
+
         setExplorePageParams({
           query: newQuery,
+          fields: newColumns.length ? [...fields, ...newColumns] : undefined,
         });
       },
       searchSource: 'explore',
@@ -165,7 +186,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
       numberTags,
       stringTags,
     }),
-    [mode, query, setExplorePageParams, numberTags, stringTags]
+    [fields, mode, query, setExplorePageParams, numberTags, stringTags, oldSearch]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
@@ -270,7 +291,7 @@ function SpanTabContentSection({
         ? 'traces'
         : 'samples';
 
-  const limit = 25;
+  const limit = 50;
 
   const isAllowedSelection = useMemo(
     () => checkIsAllowedSelection(selection, maxPickableDays),

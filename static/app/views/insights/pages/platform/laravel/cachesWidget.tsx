@@ -6,6 +6,7 @@ import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -41,20 +42,22 @@ export function CachesWidget() {
     {
       fields: ['transaction', 'project.id', 'cache_miss_rate()', 'count()'],
       sorts: [{field: 'cache_miss_rate()', kind: 'desc'}],
-      search: `span.op:[cache.get_item,cache.get] ${query}`,
+      search: `span.op:[cache.get_item,cache.get] has:span.group ${query}`,
       limit: 4,
     },
     Referrer.CACHE_CHART
   );
 
+  const search = new MutableSearch('');
+  search.addDisjunctionFilterValues(
+    'transaction',
+    cachesRequest.data.map(item => `"${item.transaction}"`)
+  );
+
   const timeSeriesRequest = useTopNSpanEAPSeries(
     {
       ...pageFilterChartParams,
-      search:
-        cachesRequest.data &&
-        `transaction:[${cachesRequest.data
-          .map(item => `"${item.transaction}"`)
-          .join(', ')}]`,
+      search,
       fields: ['transaction', 'cache_miss_rate()'],
       yAxis: ['cache_miss_rate()'],
       sort: {field: 'cache_miss_rate()', kind: 'desc'},

@@ -329,11 +329,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     include_other=include_other,
                     query_source=query_source,
                     transform_alias_to_input_format=transform_alias_to_input_format,
-                    fallback_to_transactions=features.has(
-                        "organizations:performance-discover-dataset-selector",
-                        organization,
-                        actor=request.user,
-                    ),
+                    fallback_to_transactions=True,
                 )
 
             if use_rpc:
@@ -374,11 +370,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 ),
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
-                fallback_to_transactions=features.has(
-                    "organizations:performance-discover-dataset-selector",
-                    organization,
-                    actor=request.user,
-                ),
+                fallback_to_transactions=True,
                 transform_alias_to_input_format=transform_alias_to_input_format,
             )
 
@@ -414,13 +406,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 try:
                     widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                     does_widget_have_split = widget.discover_widget_split is not None
-                    has_override_feature = features.has(
-                        "organizations:performance-discover-widget-split-override-save",
-                        organization,
-                        actor=request.user,
-                    )
 
-                    if does_widget_have_split and not has_override_feature:
+                    if does_widget_have_split:
                         # This is essentially cached behaviour and we skip the check
                         split_query = query
                         if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:

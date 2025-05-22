@@ -97,9 +97,7 @@ describe('parseMultiSelectValue', function () {
 
   describe('contains', function () {
     it('sets contains to false when not wrapped in `*`', function () {
-      const result = parseMultiSelectFilterValue('a', {
-        parseWildcardsCheckIsEnabled: true,
-      });
+      const result = parseMultiSelectFilterValue('a');
 
       expect(result).not.toBeNull();
       expect(result!.items).toHaveLength(1);
@@ -109,9 +107,7 @@ describe('parseMultiSelectValue', function () {
     });
 
     it('single value', function () {
-      const result = parseMultiSelectFilterValue('*a*', {
-        parseWildcardsCheckIsEnabled: true,
-      });
+      const result = parseMultiSelectFilterValue('*a*');
 
       expect(result).not.toBeNull();
       expect(result!.items).toHaveLength(1);
@@ -121,9 +117,7 @@ describe('parseMultiSelectValue', function () {
     });
 
     it('multiple value', function () {
-      const result = parseMultiSelectFilterValue('*a*,*b*,c', {
-        parseWildcardsCheckIsEnabled: true,
-      });
+      const result = parseMultiSelectFilterValue('*a*,*b*,c');
 
       expect(result).not.toBeNull();
 
@@ -142,9 +136,7 @@ describe('parseMultiSelectValue', function () {
     });
 
     it('quoted value', function () {
-      const result = parseMultiSelectFilterValue('a,"*b*",c', {
-        parseWildcardsCheckIsEnabled: true,
-      });
+      const result = parseMultiSelectFilterValue('a,"*b*",c');
 
       expect(result).not.toBeNull();
 
@@ -160,9 +152,7 @@ describe('parseMultiSelectValue', function () {
     });
 
     it('just quotes', function () {
-      const result = parseMultiSelectFilterValue('"**"', {
-        parseWildcardsCheckIsEnabled: true,
-      });
+      const result = parseMultiSelectFilterValue('"**"');
 
       expect(result).not.toBeNull();
 
@@ -175,9 +165,7 @@ describe('parseMultiSelectValue', function () {
     });
 
     it('single empty value', function () {
-      const result = parseMultiSelectFilterValue('**', {
-        parseWildcardsCheckIsEnabled: true,
-      });
+      const result = parseMultiSelectFilterValue('**');
 
       expect(result).not.toBeNull();
 
@@ -186,13 +174,11 @@ describe('parseMultiSelectValue', function () {
 
       expect(item!.value!.value).toBe('**');
       expect(item!.value!.text).toBe('**');
-      expect(item!.value!.contains).toBe(true);
+      expect(item!.value!.contains).toBe(false);
     });
 
     it('spaces', function () {
-      const result = parseMultiSelectFilterValue('a,*b c*,d', {
-        parseWildcardsCheckIsEnabled: true,
-      });
+      const result = parseMultiSelectFilterValue('a,*b c*,d');
 
       expect(result).not.toBeNull();
 

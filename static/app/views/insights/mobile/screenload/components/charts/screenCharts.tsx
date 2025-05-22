@@ -29,7 +29,7 @@ import {
 } from 'sentry/views/insights/mobile/screenload/constants';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
 
-export enum YAxis {
+enum YAxis {
   WARM_START = 0,
   COLD_START = 1,
   TTID = 2,

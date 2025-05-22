@@ -468,7 +468,10 @@ describe('WidgetBuilderSlideout', () => {
 
     await userEvent.click(await screen.findByText('Add Widget'));
 
-    expect(onSave).toHaveBeenCalledWith({index: undefined, widget: expect.any(Object)});
+    expect(onSave).toHaveBeenCalledWith({
+      index: undefined,
+      widget: expect.any(Object),
+    });
   });
 
   it('should render the widget template title if templates selected', () => {

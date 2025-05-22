@@ -586,18 +586,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Disable semantic partitioning of spans by trace ID. Use this in case there is
-# partition imbalance on the spans topic produced to by Relay (either
-# snuba-spans or ingest-spans). This will break the span buffer, and anything
-# that depends on segments being assembled by it (performance issue, etc). As
-# of 2025-05-06, the span buffer is not yet rolled out to most regions though.
-register(
-    "relay.spans-ignore-trace-id-partitioning",
-    type=Bool,
-    default=False,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -954,6 +942,12 @@ register(
     "seer.similarity.grouping_killswitch_projects",
     default=[],
     type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity.grouping-ingest-timeout",
+    type=Int,
+    default=1,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1681,6 +1675,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.http_overhead.problem-creation",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2367,13 +2366,6 @@ register(
 )
 
 # END: SDK Crash Detection
-
-# Whether to add the full stack trace to Python errors.
-register(
-    "sentry_sdk.add_full_stack",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     # Lists the shared resource ids we want to account usage for.
@@ -3114,6 +3106,27 @@ register(
 )
 
 # Taskbroker flags
+register(
+    "taskworker.try_compress.profile_metrics",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "taskworker.try_compress.profile_metrics.rollout",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Taskbroker flags
+register(
+    "taskworker.try_compress.profile_metrics.level",
+    default=6,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "taskworker.route.overrides",
@@ -3196,7 +3209,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "sdk-deprecation.profile-chunk.python.hard",
+    default="2.24.1",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "sdk-deprecation.profile-chunk.cocoa",
+    default="8.49.2",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sdk-deprecation.profile-chunk.cocoa.hard",
     default="8.49.0",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3343,5 +3366,3 @@ register(
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-register("process_service_hook.payload.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)

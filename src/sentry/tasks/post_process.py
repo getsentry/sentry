@@ -18,7 +18,6 @@ from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
-from sentry.options.rollout import in_random_rollout
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
@@ -45,11 +44,11 @@ from sentry.workflow_engine.types import WorkflowEventData
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState
+    from sentry.issues.ownership.grammar import Rule
     from sentry.models.group import Group
     from sentry.models.groupinbox import InboxReasonDetails
     from sentry.models.project import Project
     from sentry.models.team import Team
-    from sentry.ownership.grammar import Rule
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
@@ -803,7 +802,7 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    from sentry.issues.escalating import is_escalating, manage_issue_states
+    from sentry.issues.escalating.escalating import is_escalating, manage_issue_states
     from sentry.models.group import GroupStatus
     from sentry.models.groupinbox import GroupInboxReason
     from sentry.models.groupsnooze import GroupSnooze
@@ -1194,19 +1193,14 @@ def process_service_hooks(job: PostProcessJob) -> None:
         if has_alert:
             allowed_events.add("event.alert")
 
-        if in_random_rollout("process_service_hook.payload.rollout"):
-            for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-                if any(e in allowed_events for e in events):
-                    process_service_hook.delay(
-                        servicehook_id=servicehook_id,
-                        project_id=event.project_id,
-                        group_id=event.group_id,
-                        event_id=event.event_id,
-                    )
-        else:
-            for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-                if any(e in allowed_events for e in events):
-                    process_service_hook.delay(servicehook_id=servicehook_id, event=event)
+        for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
+            if any(e in allowed_events for e in events):
+                process_service_hook.delay(
+                    servicehook_id=servicehook_id,
+                    project_id=event.project_id,
+                    group_id=event.group_id,
+                    event_id=event.event_id,
+                )
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:
@@ -1316,13 +1310,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         logger.info("post_process.process_error_ignored", extra={"exception": e})
     except Exception as e:
         logger.exception("post_process.process_error", extra={"exception": e})
-    logger.info(
-        "post_process.plugin_success",
-        extra={
-            "project_id": event.project_id,
-            "plugin_slug": plugin_slug,
-        },
-    )
 
 
 def feedback_filter_decorator(func):
@@ -1483,7 +1470,7 @@ def detect_new_escalation(job: PostProcessJob):
     If we detect that the group has escalated, set has_escalated to True in the
     job.
     """
-    from sentry.issues.issue_velocity import get_latest_threshold
+    from sentry.issues.escalating.issue_velocity import get_latest_threshold
     from sentry.issues.priority import PriorityChangeReason, auto_update_priority
     from sentry.models.activity import Activity
     from sentry.models.group import GroupStatus
@@ -1577,7 +1564,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     group = event.group
 
     if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
-        "projects:trigger-issue-summary-on-alerts", group.project
+        "organizations:trigger-autofix-on-issue-summary", group.organization
     ):
         return
 

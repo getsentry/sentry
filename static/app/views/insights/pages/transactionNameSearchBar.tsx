@@ -22,7 +22,7 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-export type SearchBarProps = {
+type SearchBarProps = {
   onSearch: (query: string) => void;
   organization: Organization;
   /** The project ids to search for */
@@ -260,18 +260,6 @@ const decodeValueToItem = (value: string): DataItem => {
 interface DataItem {
   transaction: string;
 }
-
-export const wrapQueryInWildcards = (query: string) => {
-  if (!query.startsWith('*')) {
-    query = '*' + query;
-  }
-
-  if (!query.endsWith('*')) {
-    query = query + '*';
-  }
-
-  return query;
-};
 
 const Container = styled('div')`
   position: relative;

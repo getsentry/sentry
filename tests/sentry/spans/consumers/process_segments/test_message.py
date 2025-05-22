@@ -10,20 +10,14 @@ from sentry.models.release import Release
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.performance_issues.performance_detection import DETECTOR_CLASSES
+from sentry.testutils.performance_issues.experiments import exclude_experimental_detectors
 from tests.sentry.spans.consumers.process import build_mock_span
 
 
+@exclude_experimental_detectors
 class TestSpansTask(TestCase):
     def setUp(self):
         self.project = self.create_project()
-        # Exclude experimental detectors from _detect_performance_problems in this test suite
-        self.patch_detector_classes = mock.patch(
-            "sentry.utils.performance_issues.performance_detection.DETECTOR_CLASSES",
-            [cls for cls in DETECTOR_CLASSES if "Experimental" not in cls.__name__],
-        )
-        self.patch_detector_classes.start()
-        self.addCleanup(self.patch_detector_classes.stop)
 
     def generate_basic_spans(self):
         segment_span = build_mock_span(

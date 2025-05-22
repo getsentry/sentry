@@ -3,7 +3,6 @@ import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -12,12 +11,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
+import {getTraceProject} from 'sentry/views/performance/newTraceDetails/tracePreferencesDropdown';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
 import {
-  findSpanAttributeValue,
   getSearchInExploreTarget,
   TraceDrawerActionKind,
 } from './traceDrawer/details/utils';
@@ -39,21 +37,13 @@ function TraceActionsMenu({
   const {projects} = useProjects();
   const navigate = useNavigate();
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
+  const hasTraceTabsUi = useHasTraceTabsUI();
 
-  let traceProject: Project | undefined;
-  if (rootEventResults.data) {
-    if (isTraceItemDetailsResponse(rootEventResults.data)) {
-      const attributes = rootEventResults.data.attributes;
-      const projectId =
-        OurLogKnownFieldKey.PROJECT_ID in attributes
-          ? attributes[OurLogKnownFieldKey.PROJECT_ID]
-          : findSpanAttributeValue(attributes, 'project_id');
-      traceProject = projects.find(p => p.id === projectId);
-    } else {
-      const projectSlug = rootEventResults.data.projectSlug;
-      traceProject = projects.find(p => p.slug === projectSlug);
-    }
+  if (hasTraceTabsUi) {
+    return null;
   }
+
+  const traceProject = getTraceProject(projects, rootEventResults);
 
   return (
     <DropdownMenu

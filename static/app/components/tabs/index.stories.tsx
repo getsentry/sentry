@@ -1,15 +1,11 @@
 import {Fragment, useState} from 'react';
 import range from 'lodash/range';
 
-import JSXNode from 'sentry/components/stories/jsxNode';
-import Matrix, {type PropMatrix} from 'sentry/components/stories/matrix';
-import SideBySide from 'sentry/components/stories/sideBySide';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
 import type {TabListProps, TabsProps} from 'sentry/components/tabs';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
-export default storyBook('Tabs', story => {
+export default Storybook.story('Tabs', story => {
   const TABS = [
     {key: 'one', label: 'One', content: 'This is the first Panel.'},
     {key: 'two', label: 'Two', content: 'This is the second panel'},
@@ -19,15 +15,16 @@ export default storyBook('Tabs', story => {
   story('Default', () => (
     <Fragment>
       <p>
-        You should be using all of <JSXNode name="Tabs" />, <JSXNode name="TabList" />,{' '}
-        <JSXNode name="TabList.Item" />, <JSXNode name="TabPanels" /> and
-        <JSXNode name="TabPanels.Item" /> components.
+        You should be using all of <Storybook.JSXNode name="Tabs" />,{' '}
+        <Storybook.JSXNode name="TabList" />, <Storybook.JSXNode name="TabList.Item" />,{' '}
+        <Storybook.JSXNode name="TabPanels" /> and
+        <Storybook.JSXNode name="TabPanels.Item" /> components.
       </p>
       <p>
         This will give you all kinds of accessibility and state tracking out of the box.
         But you will have to render all tab content, including hooks, upfront.
       </p>
-      <SizingWindow>
+      <Storybook.SizingWindow>
         <Tabs>
           <TabList>
             {TABS.map(tab => (
@@ -40,7 +37,7 @@ export default storyBook('Tabs', story => {
             ))}
           </TabPanels>
         </Tabs>
-      </SizingWindow>
+      </Storybook.SizingWindow>
     </Fragment>
   ));
 
@@ -53,7 +50,7 @@ export default storyBook('Tabs', story => {
     return (
       <Fragment>
         <p>When there are many items, they will overflow into a dropdown menu.</p>
-        <SizingWindow display="block" style={{height: '210px', width: '400px'}}>
+        <Storybook.SizingWindow display="block" style={{height: '210px', width: '400px'}}>
           <Tabs defaultValue="two">
             <TabList>
               {tabs.map(tab => (
@@ -61,7 +58,7 @@ export default storyBook('Tabs', story => {
               ))}
             </TabList>
           </Tabs>
-        </SizingWindow>
+        </Storybook.SizingWindow>
       </Fragment>
     );
   });
@@ -69,9 +66,9 @@ export default storyBook('Tabs', story => {
   story('Default Value', () => (
     <Fragment>
       <p>
-        Set <JSXNode name="Tabs" props={{defaultValue: String}} />
+        Set <Storybook.JSXNode name="Tabs" props={{defaultValue: String}} />
       </p>
-      <SizingWindow>
+      <Storybook.SizingWindow>
         <Tabs defaultValue="two">
           <TabList>
             {TABS.map(tab => (
@@ -84,7 +81,7 @@ export default storyBook('Tabs', story => {
             ))}
           </TabPanels>
         </Tabs>
-      </SizingWindow>
+      </Storybook.SizingWindow>
     </Fragment>
   ));
 
@@ -95,14 +92,16 @@ export default storyBook('Tabs', story => {
         <p>
           If you want to control the state of the tabs from outside, you can call{' '}
           <var>{'useState()'}</var> and set{' '}
-          <JSXNode name="Tabs" props={{value: String, onChange: Function}} /> manually.
+          <Storybook.JSXNode name="Tabs" props={{value: String, onChange: Function}} />{' '}
+          manually.
         </p>
         <p>
           This is useful if you want to detect button clicks and do something different.{' '}
-          The <JSXNode name="Tabs" /> context wrapper is not required in this case.
+          The <Storybook.JSXNode name="Tabs" /> context wrapper is not required in this
+          case.
         </p>
         <p>selected={selected}</p>
-        <SizingWindow>
+        <Storybook.SizingWindow>
           <Tabs value={selected} onChange={setSelected}>
             <TabList>
               {TABS.map(tab => (
@@ -115,13 +114,13 @@ export default storyBook('Tabs', story => {
               ))}
             </TabPanels>
           </Tabs>
-        </SizingWindow>
+        </Storybook.SizingWindow>
       </Fragment>
     );
   });
 
   story('Rendering', () => (
-    <Matrix<TabsProps<string> & TabListProps>
+    <Storybook.PropMatrix<TabsProps<string> & TabListProps>
       render={props => (
         <Tabs orientation={props.orientation}>
           <TabList hideBorder={props.hideBorder}>
@@ -145,12 +144,13 @@ export default storyBook('Tabs', story => {
   ));
 
   story('Disabled', () => (
-    <SideBySide>
+    <Storybook.SideBySide>
       <div>
         <p>
-          Use <JSXNode name="Tabs" props={{disabled: true}} /> to disable everything.
+          Use <Storybook.JSXNode name="Tabs" props={{disabled: true}} /> to disable
+          everything.
         </p>
-        <SizingWindow>
+        <Storybook.SizingWindow>
           <Tabs disabled>
             <TabList>
               {TABS.map(tab => (
@@ -163,14 +163,14 @@ export default storyBook('Tabs', story => {
               ))}
             </TabPanels>
           </Tabs>
-        </SizingWindow>
+        </Storybook.SizingWindow>
       </div>
       <div>
         <p>
-          Use <JSXNode name="TabList" props={{disabledKeys: Array}} /> to disable
-          individual <JSXNode name="TabList.Item" /> children.
+          Use <Storybook.JSXNode name="TabList" props={{disabledKeys: Array}} /> to
+          disable individual <Storybook.JSXNode name="TabList.Item" /> children.
         </p>
-        <SizingWindow>
+        <Storybook.SizingWindow>
           <Tabs>
             <TabList disabledKeys={['two']}>
               {TABS.map(tab => (
@@ -183,28 +183,28 @@ export default storyBook('Tabs', story => {
               ))}
             </TabPanels>
           </Tabs>
-        </SizingWindow>
+        </Storybook.SizingWindow>
       </div>
-    </SideBySide>
+    </Storybook.SideBySide>
   ));
 
   story('Variants', () => {
-    const propMatrix: PropMatrix<TabsProps<string> & TabListProps> = {
+    const propMatrix: Storybook.PropMatrix<TabsProps<string> & TabListProps> = {
       hideBorder: [undefined, false, true],
       orientation: [undefined, 'horizontal', 'vertical'],
-      variant: [undefined, 'flat', 'filled', 'floating'],
+      variant: [undefined, 'flat', 'floating'],
     };
+
     return (
       <div>
         <p>
           Use the variant prop to control which tab design to use. The default, "flat", is
-          used in the above examples, but you can also use "filled" variant, as shown
-          below. Note that the "filled" variant does not work when the oritentation is
-          vertical
+          used in the above examples, but you can also use the "floating" variant, as
+          shown below.
         </p>
-        <SizingWindow>
+        <Storybook.SizingWindow>
           <Tabs>
-            <TabList variant={'filled'}>
+            <TabList variant={'floating'} hideBorder>
               {TABS.map(tab => (
                 <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
               ))}
@@ -215,25 +215,9 @@ export default storyBook('Tabs', story => {
               ))}
             </TabPanels>
           </Tabs>
-        </SizingWindow>
+        </Storybook.SizingWindow>
         <br />
-        <p>You can also use the "floating" variant, which is used below</p>
-        <SizingWindow>
-          <Tabs>
-            <TabList variant="floating" hideBorder>
-              {TABS.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-              ))}
-            </TabList>
-            <TabPanels>
-              {TABS.map(tab => (
-                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-              ))}
-            </TabPanels>
-          </Tabs>
-        </SizingWindow>
-        <br />
-        <Matrix<TabsProps<string> & TabListProps>
+        <Storybook.PropMatrix<TabsProps<string> & TabListProps>
           render={props => (
             <Tabs orientation={props.orientation}>
               <TabList variant={props.variant}>
@@ -252,7 +236,7 @@ export default storyBook('Tabs', story => {
           selectedProps={['orientation', 'variant']}
         />
         <br />
-        <Matrix<TabsProps<string> & TabListProps>
+        <Storybook.PropMatrix<TabsProps<string> & TabListProps>
           render={props => (
             <Tabs>
               <TabList variant={props.variant} hideBorder={props.hideBorder}>

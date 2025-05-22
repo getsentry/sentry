@@ -368,8 +368,8 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     def test_builtin_symbol_sources_unity(self):
         """
-        Test that project option for builtin symbol sources contains ["unity"] when creating
-        a Unity project, but uses defaults for other platforms.
+        Test that project option for builtin symbol sources contains relevant buckets
+        when creating a Unity project, but uses defaults for other platforms.
         """
         response = self.get_success_response(
             self.organization.slug,
@@ -385,7 +385,49 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         symbol_sources = ProjectOption.objects.get_value(
             project=unity_project, key="sentry:builtin_symbol_sources"
         )
-        assert symbol_sources == ["unity"]
+        assert symbol_sources == ["unity", "nvidia", "ubuntu"]
+
+    def test_builtin_symbol_sources_unreal(self):
+        """
+        Test that project option for builtin symbol sources contains relevant buckets
+        when creating a Unreal project, but uses defaults for other platforms.
+        """
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="unreal-app",
+            slug="unreal-app",
+            platform="unreal",
+            status_code=201,
+        )
+
+        unreal_project = Project.objects.get(id=response.data["id"])
+        assert unreal_project.platform == "unreal"
+        symbol_sources = ProjectOption.objects.get_value(
+            project=unreal_project, key="sentry:builtin_symbol_sources"
+        )
+        assert symbol_sources == ["nvidia", "ubuntu"]
+
+    def test_builtin_symbol_sources_godot(self):
+        """
+        Test that project option for builtin symbol sources contains relevant buckets
+        when creating a Godot project, but uses defaults for other platforms.
+        """
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="godot-app",
+            slug="godot-app",
+            platform="godot",
+            status_code=201,
+        )
+
+        godot_project = Project.objects.get(id=response.data["id"])
+        assert godot_project.platform == "godot"
+        symbol_sources = ProjectOption.objects.get_value(
+            project=godot_project, key="sentry:builtin_symbol_sources"
+        )
+        assert symbol_sources == ["nvidia", "ubuntu"]
 
     @patch("sentry.api.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
     def test_create_project_with_origin(self, create_audit_entry):
