@@ -5,7 +5,7 @@ import random
 from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import jsonschema
 
@@ -382,6 +382,12 @@ def create_feedback_issue(
 
     # add the associated_event_id and has_linked_error to tags
     associated_event_id = get_path(event_data, "contexts", "feedback", "associated_event_id")
+
+    try:
+        UUID(str(associated_event_id), version=4)
+    except ValueError:
+        associated_event_id = None
+
     if associated_event_id:
         event_fixed["tags"]["associated_event_id"] = associated_event_id
         event_fixed["tags"]["has_linked_error"] = "true"
@@ -498,7 +504,23 @@ def shim_to_feedback(
             },
         }
 
-        feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
+        # An invalid event_id leads to tracking the outcome and dropping the feedback
+        try:
+            UUID(event.event_id, version=4)
+            feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
+        except ValueError:
+            track_outcome(
+                org_id=project.organization_id,
+                project_id=project.id,
+                key_id=None,
+                outcome=Outcome.RATE_LIMITED,
+                reason="invalid_event_id",
+                timestamp=datetime.fromisoformat(event.timestamp),
+                event_id=event.event_id,
+                category=DataCategory.USER_REPORT_V2,
+                quantity=1,
+            )
+            return
 
         if get_path(event.data, "contexts", "replay", "replay_id"):
             feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
