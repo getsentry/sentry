@@ -26,6 +26,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
@@ -74,7 +75,7 @@ FEATURES = [
         """
         Create and link Sentry issue groups directly to a GitHub issue or pull
         request in any of your repositories, providing a quick way to jump from
-        Sentry bug to tracked issue or PR!
+        Sentry bug to tracked issue or PR.
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
@@ -155,7 +156,7 @@ class GitHubEnterpriseIntegration(
 
     @property
     def integration_name(self) -> str:
-        return "github_enterprise"
+        return IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
     def get_client(self):
         if not self.org_integration:
@@ -371,7 +372,7 @@ class InstallationConfigView(PipelineView):
 
 
 class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
-    key = "github_enterprise"
+    key = IntegrationProviderSlug.GITHUB_ENTERPRISE.value
     name = "GitHub Enterprise"
     metadata = metadata
     integration_cls = GitHubEnterpriseIntegration

@@ -129,7 +129,7 @@ describe('mapResponseToTree', () => {
     });
   });
 
-  it('handles URL encoded path segments', () => {
+  it('does not decode URL encoded path segments', () => {
     const response = [
       {
         'avg(span.duration)': 100,
@@ -158,7 +158,7 @@ describe('mapResponseToTree', () => {
                   type: 'file',
                 },
               ],
-              name: 'user profile',
+              name: 'user%20profile',
               type: 'folder',
             },
           ],
