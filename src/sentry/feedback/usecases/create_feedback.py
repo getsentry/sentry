@@ -507,23 +507,7 @@ def shim_to_feedback(
             },
         }
 
-        # An invalid event_id leads to tracking the outcome and dropping the feedback
-        try:
-            UUID(event.event_id, version=4)
-            feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
-        except ValueError:
-            track_outcome(
-                org_id=project.organization_id,
-                project_id=project.id,
-                key_id=None,
-                outcome=Outcome.INVALID,
-                reason="invalid_event_id",
-                timestamp=datetime.fromisoformat(event.timestamp),
-                event_id=event.event_id,
-                category=DataCategory.USER_REPORT_V2,
-                quantity=1,
-            )
-            return
+        feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
 
         if get_path(event.data, "contexts", "replay", "replay_id"):
             feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
