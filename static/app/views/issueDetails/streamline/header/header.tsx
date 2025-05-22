@@ -157,19 +157,12 @@ export default function StreamlinedGroupHeader({
                 </StatLink>
               ))}
           </StatTitle>
-          <Tooltip
-            title={t(
-              'The main message summarizing the event. Typically the error message or log string that triggered this issue.'
-            )}
-            isHoverable
-          >
-            <EventMessage
-              data={group}
-              level={group.level}
-              message={secondaryTitle}
-              type={group.type}
-            />
-          </Tooltip>
+          <EventMessage
+            data={group}
+            level={group.level}
+            message={secondaryTitle}
+            type={group.type}
+          />
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
               <StatCount value={eventCount} aria-label={t('Event count')} />
@@ -185,19 +178,16 @@ export default function StreamlinedGroupHeader({
             )}
             {statusProps?.status ? (
               <Fragment>
-                <Tooltip title={statusProps?.tooltip}>
-                  <Subtext>
-                    <Tooltip
-                      isHoverable
-                      title={tct('The status of the issue. [link:Learn more]', {
-                        link: (
-                          <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/" />
-                        ),
-                      })}
-                    >
-                      {statusProps?.status}
-                    </Tooltip>
-                  </Subtext>
+                <Tooltip
+                  isHoverable
+                  title={tct('[tooltip] [link:Learn more]', {
+                    tooltip: statusProps?.tooltip ?? '',
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/" />
+                    ),
+                  })}
+                >
+                  <Subtext>{statusProps?.status}</Subtext>
                 </Tooltip>
               </Fragment>
             ) : null}
@@ -205,15 +195,7 @@ export default function StreamlinedGroupHeader({
               <Fragment>
                 <Divider />
                 <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={1000}>
-                  <Subtext>
-                    <Tooltip
-                      title={
-                        'Some extra context (function, route, query, etc.) to help you spot where the error happened.'
-                      }
-                    >
-                      {subtitle}
-                    </Tooltip>
-                  </Subtext>
+                  <Subtext>{subtitle}</Subtext>
                 </Subtitle>
               </Fragment>
             )}
