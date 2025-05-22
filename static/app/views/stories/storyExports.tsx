@@ -4,8 +4,8 @@ import {ErrorBoundary} from '@sentry/react';
 
 import {Flex} from 'sentry/components/container/flex';
 import {space} from 'sentry/styles/space';
-import {StorySourceLinks} from 'sentry/views/stories/storySourceLinks';
 
+import {StorySourceLinks} from './storySourceLinks';
 import type {StoryDescriptor} from './useStoriesLoader';
 
 export function StoryExports(props: {story: StoryDescriptor}) {
