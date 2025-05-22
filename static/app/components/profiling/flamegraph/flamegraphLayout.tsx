@@ -1,5 +1,6 @@
-import {cloneElement, useCallback, useMemo, useRef} from 'react';
+import {cloneElement, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -8,7 +9,6 @@ import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraph
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import type {UseResizableDrawerOptions} from 'sentry/utils/useResizableDrawer';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 import {CollapsibleTimeline, CollapsibleTimelineLabel} from './collapsibleTimeline';
@@ -38,46 +38,40 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
   const dispatch = useDispatchFlamegraphState();
   const flamegraphDrawerRef = useRef<HTMLDivElement>(null);
 
-  const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
-    const isSidebarLayout = layout === 'table left' || layout === 'table right';
+  const isSidebarLayout = layout === 'table left' || layout === 'table right';
 
-    const initialSize = isSidebarLayout
-      ? // Half the screen minus the ~sidebar width
-        Math.max(window.innerWidth * 0.5 - 220, MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0])
-      : FLAMEGRAPH_DRAWER_INITIAL_HEIGHT;
-
-    const min = isSidebarLayout
-      ? MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]
-      : MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[1];
-
-    const onResize = (newSize: number) => {
-      if (!flamegraphDrawerRef.current) {
-        return;
-      }
-
-      if (isSidebarLayout) {
-        flamegraphDrawerRef.current.style.width = `${newSize}px`;
-        flamegraphDrawerRef.current.style.height = `100%`;
-      } else {
-        flamegraphDrawerRef.current.style.height = `${newSize}px`;
-        flamegraphDrawerRef.current.style.width = `100%`;
-      }
-    };
-
-    return {
-      initialSize,
-      onResize,
-      direction:
-        layout === 'table left' ? 'left' : layout === 'table right' ? 'right' : 'up',
-      min,
-    };
-  }, [layout]);
-
-  const {onMouseDown} = useResizableDrawer(resizableOptions);
+  const {resize, resizeHandleProps, resizedElementProps} = useResizableDrawer(
+    isSidebarLayout
+      ? {
+          initialSize: {
+            width: Math.max(
+              window.innerWidth * 0.5 - 220,
+              MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]
+            ),
+          },
+          direction: 'left',
+          min: {width: MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]},
+          max: {width: window.innerWidth - 300},
+        }
+      : {
+          initialSize: {height: FLAMEGRAPH_DRAWER_INITIAL_HEIGHT},
+          direction: 'up',
+          min: {height: MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[1]},
+        }
+  );
 
   const onDoubleClick = useCallback(() => {
-    resizableOptions.onResize?.(resizableOptions.initialSize, true);
-  }, [resizableOptions]);
+    resize(
+      isSidebarLayout
+        ? {
+            width: Math.max(
+              window.innerWidth * 0.5 - 220,
+              MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]
+            ),
+          }
+        : {height: FLAMEGRAPH_DRAWER_INITIAL_HEIGHT}
+    );
+  }, [isSidebarLayout, resize]);
 
   const onOpenMinimap = useCallback(
     () =>
@@ -293,9 +287,12 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
           <ProfileLabel>{t('Profile')}</ProfileLabel>
           {props.flamegraph}
         </ZoomViewContainer>
-        <FlamegraphDrawerContainer ref={flamegraphDrawerRef} layout={layout}>
+        <FlamegraphDrawerContainer
+          ref={mergeRefs(flamegraphDrawerRef, resizedElementProps.ref)}
+          layout={layout}
+        >
           {cloneElement(props.flamegraphDrawer, {
-            onResize: onMouseDown,
+            onResize: resizeHandleProps.onPointerDown,
             onResizeReset: onDoubleClick,
           } as any)}
         </FlamegraphDrawerContainer>

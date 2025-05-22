@@ -1,26 +1,26 @@
-import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
+
+import clamp from 'sentry/utils/number/clamp';
 
 export interface UseResizableDrawerOptions {
-  /**
-   * When dragging, which direction should be used for the delta
-   */
   direction: 'right' | 'left' | 'down' | 'up';
-  /**
-   * The starting size of the container
-   */
-  initialSize: number;
-  /**
-   * The minimum sizes the container may be dragged to
-   */
-  min: number;
-  /**
-   * Triggered while dragging
-   */
-  onResize: (size: number, userEvent: boolean) => void;
-  /**
-   * The local storage key used to persist the size of the container
-   */
-  sizeStorageKey?: string;
+  initialSize?: {height: number} | {width: number} | {height: number; width: number};
+  max?: {height?: number; width?: number};
+  min?: {height?: number; width?: number};
+  onResize?: (options: {event: PointerEvent | null; size: number}) => number | string;
+}
+
+export interface UseResizableDrawerResult {
+  resize: (size: NonNullable<UseResizableDrawerOptions['initialSize']>) => void;
+  resizeHandleProps: {
+    onPointerDown: React.PointerEventHandler<HTMLElement>;
+    ref: React.RefCallback<HTMLElement>;
+  };
+  resizedElementProps: {
+    ref: React.RefCallback<HTMLElement>;
+  };
+  resizing: boolean;
 }
 
 /**
@@ -28,108 +28,293 @@ export interface UseResizableDrawerOptions {
  *
  * This only resizes one dimension at a time.
  */
-export function useResizableDrawer(options: UseResizableDrawerOptions): {
-  /**
-   * Indicates the drag handle is held. Useful to apply a styled to your handle
-   * that will not be removed if the mouse moves outside of the hitbox of your
-   * handle.
-   */
-  isHeld: boolean;
-  /**
-   * Apply to the drag handle element
-   */
-  onMouseDown: React.MouseEventHandler<HTMLElement>;
-} {
+export function useResizableDrawer(
+  options: UseResizableDrawerOptions
+): UseResizableDrawerResult {
+  const [resizing, setResizing] = useState(false);
+
   const rafIdRef = useRef<number | null>(null);
-  const currentMouseVectorRaf = useRef<[number, number] | null>(null);
-  const [isHeld, setIsHeld] = useState(false);
-  const sizeRef = useRef<number>(options.initialSize);
+  const handleElementRef = useRef<HTMLElement | null>(null);
+  const pointerVectorRef = useRef<[number, number] | null>(null);
+  const elementSizeRef = useRef<{height: number; width: number} | null>(null);
 
-  const updateSize = useCallback(
-    (newSize: number, userEvent = false) => {
-      sizeRef.current = newSize;
-      options.onResize(newSize, userEvent);
-    },
-    [options]
-  );
-
-  // We intentionally fire this once at mount to ensure the dimensions are set and
-  // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
-  // invoke the onResize callback with the previously stored dimensions.
-  useLayoutEffect(() => {
-    sizeRef.current = options.initialSize;
-    options.onResize(options.initialSize ?? 0, false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.direction]);
-
-  const onMouseMove = useCallback(
-    (event: MouseEvent) => {
+  const {onResize, direction, min, max, initialSize = {}} = options;
+  const onPointerMove = useCallback(
+    (event: PointerEvent) => {
       event.stopPropagation();
-      const isXAxis = options.direction === 'left' || options.direction === 'right';
-      const isInverted = options.direction === 'down' || options.direction === 'left';
-
-      document.body.style.pointerEvents = 'none';
-      document.body.style.userSelect = 'none';
-
-      // We've disabled pointerEvents on the body, the cursor needs to be
-      // applied to the root most element to work
-      document.documentElement.style.cursor = isXAxis ? 'ew-resize' : 'ns-resize';
-
       if (rafIdRef.current !== null) {
         window.cancelAnimationFrame(rafIdRef.current);
       }
 
+      if (!elementSizeRef.current) {
+        Sentry.logger.warn(
+          'useResizableDrawer: element size is not set, this should not happen'
+        );
+        return;
+      }
+
+      const axis = direction === 'left' || direction === 'right' ? 'x' : 'y';
+
+      document.body.style.pointerEvents = 'none';
+      document.body.style.userSelect = 'none';
+      document.documentElement.style.cursor = axis === 'x' ? 'ew-resize' : 'ns-resize';
+
       rafIdRef.current = window.requestAnimationFrame(() => {
-        if (!currentMouseVectorRaf.current) {
+        if (
+          !pointerVectorRef.current ||
+          !handleElementRef.current ||
+          !elementSizeRef.current
+        ) {
           return;
         }
 
-        const newPositionVector: [number, number] = [event.clientX, event.clientY];
-        const newAxisPosition = isXAxis ? newPositionVector[0] : newPositionVector[1];
+        // @TODO:  This should only fire if the element is actully being resized
+        setResizing(true);
 
-        const currentAxisPosition = isXAxis
-          ? currentMouseVectorRaf.current[0]
-          : currentMouseVectorRaf.current[1];
+        const previousPointerVector: [number, number] = pointerVectorRef.current;
+        const currentPointerVector: [number, number] = [event.clientX, event.clientY];
+        pointerVectorRef.current = currentPointerVector;
 
-        const positionDelta = currentAxisPosition - newAxisPosition;
-
-        currentMouseVectorRaf.current = newPositionVector;
-
-        // Round to 1px precision
-        const newSize = Math.round(
-          Math.max(options.min, sizeRef.current + positionDelta * (isInverted ? -1 : 1))
+        const size = computeSizeFromPointerVectorDelta(
+          axis,
+          direction,
+          previousPointerVector,
+          currentPointerVector,
+          elementSizeRef.current
         );
 
-        updateSize(newSize, true);
+        if (typeof onResize === 'function') {
+          const userSize =
+            direction === 'right' || direction === 'left'
+              ? {width: onResize({event, size})}
+              : {height: onResize({event, size})};
+
+          if (direction === 'right' || direction === 'left') {
+            resizeElement(handleElementRef.current, userSize);
+
+            if (typeof userSize === 'number') {
+              updateSizeRef(elementSizeRef.current, userSize);
+            }
+          } else {
+            resizeElement(handleElementRef.current, userSize);
+
+            if (typeof userSize === 'number') {
+              updateSizeRef(elementSizeRef.current, userSize);
+            }
+          }
+          return;
+        }
+
+        const newSize = computeSizeFromPointerVectorDelta(
+          axis,
+          direction,
+          previousPointerVector,
+          currentPointerVector,
+          elementSizeRef.current
+        );
+
+        if (direction === 'right' || direction === 'left') {
+          resizeElement(handleElementRef.current, {
+            width: clamp(
+              newSize,
+              min?.width ?? Number.NEGATIVE_INFINITY,
+              max?.width ?? Number.POSITIVE_INFINITY
+            ),
+          });
+          updateSizeRef(elementSizeRef.current, {width: newSize});
+        } else {
+          resizeElement(handleElementRef.current, {
+            height: clamp(
+              newSize,
+              min?.height ?? Number.NEGATIVE_INFINITY,
+              max?.height ?? Number.POSITIVE_INFINITY
+            ),
+          });
+          updateSizeRef(elementSizeRef.current, {height: newSize});
+        }
       });
     },
-    [options.direction, options.min, updateSize]
+    [direction, onResize, min, max]
   );
 
-  const onMouseUp = useCallback(() => {
+  const onPointerUp = useCallback(() => {
     if (rafIdRef.current !== null) {
       window.cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
     }
 
+    elementSizeRef.current = null;
+
     document.body.style.pointerEvents = '';
     document.body.style.userSelect = '';
     document.documentElement.style.cursor = '';
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
-    setIsHeld(false);
-  }, [onMouseMove]);
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', onPointerUp);
+    // setResizing(false);
+  }, [onPointerMove]);
 
-  const onMouseDown = useCallback(
-    (evt: React.MouseEvent<HTMLElement>) => {
-      setIsHeld(true);
-      currentMouseVectorRaf.current = [evt.clientX, evt.clientY];
+  const onPointerDown = useCallback(
+    (evt: React.PointerEvent<HTMLElement>) => {
+      const boundingClientRect = handleElementRef.current?.getBoundingClientRect();
 
-      document.addEventListener('mousemove', onMouseMove, {passive: true});
-      document.addEventListener('mouseup', onMouseUp);
+      if (boundingClientRect) {
+        elementSizeRef.current = {
+          width: boundingClientRect.width,
+          height: boundingClientRect.height,
+        };
+      }
+
+      pointerVectorRef.current = [evt.clientX, evt.clientY];
+
+      document.addEventListener('pointermove', onPointerMove, {passive: true});
+      document.addEventListener('pointerup', onPointerUp);
     },
-    [onMouseMove, onMouseUp]
+    [onPointerMove, onPointerUp]
   );
 
-  return {isHeld, onMouseDown};
+  const resizeHandleRef = useCallback(
+    (element: HTMLElement | null) => {
+      if (element) {
+        element.style.cursor =
+          direction === 'right' || direction === 'left' ? 'ew-resize' : 'ns-resize';
+      }
+    },
+    [direction]
+  );
+
+  const {width, height} = initialSize;
+  const elementRef = useCallback(
+    (element: HTMLElement | null) => {
+      handleElementRef.current = element;
+
+      if (element) {
+        if (typeof onResize === 'function') {
+          if (initialSize === undefined) {
+            return;
+          }
+
+          const size =
+            typeof width === 'number'
+              ? width
+              : typeof height === 'number'
+                ? height
+                : undefined;
+
+          if (!size) {
+            return;
+          }
+
+          const userSize = onResize({event: null, size});
+          resizeElement(
+            element,
+            direction === 'right' || direction === 'left'
+              ? {width: userSize}
+              : {height: userSize}
+          );
+        } else {
+          resizeElement(element, initialSize);
+        }
+      }
+
+      if (rafIdRef.current !== null) {
+        window.cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+
+      document.body.style.pointerEvents = '';
+      document.body.style.userSelect = '';
+    },
+    [direction, onResize]
+  );
+
+  const onProgrammaticResize = useCallback(
+    (newSize: NonNullable<UseResizableDrawerOptions['initialSize']>) => {
+      if (!handleElementRef.current) {
+        return;
+      }
+
+      if (
+        (direction === 'right' || direction === 'left') &&
+        'width' in newSize &&
+        typeof newSize.width === 'number'
+      ) {
+        const boundingClientRect = handleElementRef.current.getBoundingClientRect();
+        resizeElement(handleElementRef.current, {width: newSize.width});
+        elementSizeRef.current = {
+          width: newSize.width,
+          height: boundingClientRect.height,
+        };
+      } else if (
+        (direction === 'down' || direction === 'up') &&
+        'height' in newSize &&
+        typeof newSize.height === 'number'
+      ) {
+        const boundingClientRect = handleElementRef.current.getBoundingClientRect();
+        resizeElement(handleElementRef.current, {height: newSize.height});
+        elementSizeRef.current = {
+          height: newSize.height,
+          width: boundingClientRect.width,
+        };
+      }
+    },
+    [direction]
+  );
+
+  return {
+    resizeHandleProps: {onPointerDown, ref: resizeHandleRef},
+    resizedElementProps: {ref: elementRef},
+    resize: onProgrammaticResize,
+    resizing,
+  };
+}
+
+function computeSizeFromPointerVectorDelta(
+  axis: 'x' | 'y',
+  direction: 'right' | 'left' | 'down' | 'up',
+  previousPointerVector: [number, number],
+  currentPointerVector: [number, number],
+  elementSizeRef: {height: number; width: number}
+) {
+  const inverted = direction === 'down' || direction === 'left';
+  const distance =
+    axis === 'x'
+      ? previousPointerVector[0] - currentPointerVector[0]
+      : previousPointerVector[1] - currentPointerVector[1];
+
+  const vectorDelta = Math.round(distance * (inverted ? -1 : 1));
+
+  return axis === 'x'
+    ? elementSizeRef.width + vectorDelta
+    : elementSizeRef.height + vectorDelta;
+}
+
+function updateSizeRef(
+  ref: {height: number; width: number},
+  options: {height?: number; width?: number}
+) {
+  if ('width' in options && options.width !== undefined) {
+    ref.width = options.width;
+  }
+  if ('height' in options && options.height !== undefined) {
+    ref.height = options.height;
+  }
+}
+
+function resizeElement(
+  ref: HTMLElement,
+  options: {height?: number | string; width?: number | string}
+) {
+  if ('width' in options && options.width !== undefined) {
+    ref.style.width =
+      typeof options.width === 'string' ? options.width : `${options.width}px`;
+  } else {
+    ref.style.width = '';
+  }
+
+  if ('height' in options && options.height !== undefined) {
+    ref.style.height =
+      typeof options.height === 'string' ? options.height : `${options.height}px`;
+  } else {
+    ref.style.height = '';
+  }
 }

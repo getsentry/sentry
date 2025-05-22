@@ -8,7 +8,7 @@ type Props = {
   'data-is-held': boolean;
   'data-slide-direction': 'leftright' | 'updown';
   onDoubleClick: MouseEventHandler<HTMLElement>;
-  onMouseDown: MouseEventHandler<HTMLElement>;
+  onPointerDown: MouseEventHandler<HTMLElement>;
 };
 
 const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (

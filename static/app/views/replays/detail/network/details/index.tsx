@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import DetailsSplitDivider from 'sentry/components/replays/virtualizedGrid/detailsSplitDivider';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import type {UseResizableDrawerResult} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import NetworkDetailsContent from 'sentry/views/replays/detail/network/details/content';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
@@ -15,17 +15,17 @@ type Props = {
   onClose: () => void;
   onDoubleClick: () => void;
   projectId: undefined | string;
+  resizeProps: UseResizableDrawerResult;
   startTimestampMs: number;
-} & Omit<ReturnType<typeof useResizableDrawer>, 'size'>;
+};
 
 function NetworkDetails({
-  isHeld,
   isSetup,
   isCaptureBodySetup,
   item,
   onClose,
   onDoubleClick,
-  onMouseDown,
+  resizeProps,
   projectId,
   startTimestampMs,
 }: Props) {
@@ -40,10 +40,9 @@ function NetworkDetails({
   return (
     <Fragment>
       <DetailsSplitDivider
-        isHeld={isHeld}
         onClose={onClose}
         onDoubleClick={onDoubleClick}
-        onMouseDown={onMouseDown}
+        resizeProps={resizeProps}
       >
         <NetworkDetailsTabs />
       </DetailsSplitDivider>

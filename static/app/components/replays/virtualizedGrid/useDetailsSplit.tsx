@@ -56,10 +56,11 @@ export default function useDetailsSplit({
 
   const resizableDrawerProps = useResizableDrawer({
     direction: 'up',
-    initialSize,
-    min: 0,
-    onResize: (newSize: number) => {
-      setContainerSize(newSize);
+    initialSize: {height: initialSize},
+    min: {height: 0},
+    onResize: options => {
+      setContainerSize(options.size);
+      return options.size;
     },
   });
 
