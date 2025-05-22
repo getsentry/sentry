@@ -1638,8 +1638,9 @@ class TestGetLogsForEvent(TestCase):
         project = self.project
         # Patch project.organization to avoid DB hits
         project.organization = self.organization
-        merged = _get_logs_for_event(event, project)
-        assert merged is not None
+        result = _get_logs_for_event(event, project)
+        assert result is not None
+        merged = result["logs"]
         # The first two "foo" logs should be merged (consecutive), the last "foo" is not consecutive
         foo_merged = [
             log for log in merged if log["message"] == "foo" and log.get("consecutive_count") == 2
