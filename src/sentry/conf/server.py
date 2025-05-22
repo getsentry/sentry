@@ -2351,18 +2351,16 @@ SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
 # XXX(dcramer): this doesn't work outside of a source distribution as the
-# webpack.config.js is not part of Sentry's datafiles
+# rspack.config.ts is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
     (
         "webpack",
         [
-            os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            os.path.join(NODE_MODULES_ROOT, ".bin", "rspack"),
             "serve",
-            "--color",
-            "--output-pathinfo=true",
             "--config={}".format(
                 os.path.normpath(
-                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.ts")
+                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "rspack.config.ts")
                 )
             ),
         ],
@@ -2696,7 +2694,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.5.0"
+SELF_HOSTED_STABLE_VERSION = "25.5.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3197,13 +3195,13 @@ JIRA_USE_EMAIL_SCOPE = False
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
+    "flags",
     "nodestore",
     "replays",
     "sentry",
     "social_auth",
     "feedback",
     "hybridcloud",
-    "remote_subscriptions",
     "uptime",
     "workflow_engine",
     "tempest",

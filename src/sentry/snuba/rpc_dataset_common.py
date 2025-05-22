@@ -1,5 +1,7 @@
 import logging
+import math
 from dataclasses import dataclass, field
+from datetime import datetime
 
 import sentry_sdk
 from google.protobuf.json_format import MessageToJson
@@ -14,8 +16,12 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableResponse,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
+    ComparisonFilter,
+    TraceItemFilter,
+)
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import (
@@ -24,13 +30,14 @@ from sentry.search.eap.columns import (
     ResolvedConditionalAggregate,
     ResolvedFormula,
 )
-from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
+from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.eap.utils import handle_downsample_meta, transform_binary_formula_to_expression
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.utils import json, snuba_rpc
+from sentry.utils.sdk import set_span_data
 from sentry.utils.snuba import process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -101,6 +108,64 @@ def categorize_aggregate(
         )
 
 
+def update_timestamps(
+    params: SnubaParams, resolver: SearchResolver
+) -> tuple[TraceItemFilter | None, SnubaParams]:
+    """We need to update snuba params to query a wider period than requested so that we get aligned granularities while
+    still querying the requested period
+
+    This is because quote:
+    "the platform will not be changing its behavior to accommodate this request. The endpoint's capabilities are
+    currently flexible enough to allow the client to build either thing. Whether it's rounding time buckets or not, that
+    behavior is up to you. Creating two separate almost identical endpoints to allow for both behaviors is also not
+    going to happen."
+    """
+    if not resolver.config.stable_timestamp_quantization:
+        return None, params
+    elif (
+        params.start is not None and params.end is not None and params.granularity_secs is not None
+    ):
+        # Doing this via timestamps as its the most direct and matches how its stored under the hood
+        start = int(params.start.replace(tzinfo=None).timestamp())
+        end = int(params.end.replace(tzinfo=None).timestamp())
+        timeseries_definition, _ = resolver.resolve_attribute("timestamp")
+        # Need timestamp as a double even though that's not how resolver does it so we can pass the timestamp in directly
+        timeseries_column = AttributeKey(name=timeseries_definition.internal_name, type=DOUBLE)
+
+        # Create a And statement with the date range that the user selected
+        ts_filter = TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=timeseries_column,
+                            op=ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+                            value=AttributeValue(val_int=start),
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=timeseries_column,
+                            op=ComparisonFilter.OP_LESS_THAN,
+                            value=AttributeValue(val_int=end),
+                        )
+                    ),
+                ]
+            )
+        )
+
+        # Round the start & end so that we get buckets that match the granularity
+        params.start = datetime.fromtimestamp(
+            math.floor(params.start.timestamp() / params.granularity_secs) * params.granularity_secs
+        )
+        params.end = datetime.fromtimestamp(
+            math.ceil(params.end.timestamp() / params.granularity_secs) * params.granularity_secs
+        )
+        return ts_filter, params
+    else:
+        raise InvalidSearchQuery("start, end and interval are required")
+
+
 def get_timeseries_query(
     search_resolver: SearchResolver,
     params: SnubaParams,
@@ -115,6 +180,7 @@ def get_timeseries_query(
     list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate],
     list[ResolvedAttribute],
 ]:
+    timeseries_filter, params = update_timestamps(params, search_resolver)
     meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
     query, _, query_contexts = search_resolver.resolve_query(query_string)
     (functions, _) = search_resolver.resolve_functions(y_axes)
@@ -134,6 +200,12 @@ def get_timeseries_query(
             query = TraceItemFilter(and_filter=AndFilter(filters=[query, extra_conditions]))
         else:
             query = extra_conditions
+
+    if timeseries_filter is not None:
+        if query is not None:
+            query = TraceItemFilter(and_filter=AndFilter(filters=[query, timeseries_filter]))
+        else:
+            query = timeseries_filter
 
     return (
         TimeSeriesRequest(
@@ -280,7 +352,7 @@ def run_table_query(
     rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
     sentry_sdk.set_tag("query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier)
 
-    return process_table_response(rpc_response, table_request)
+    return process_table_response(rpc_response, table_request, debug=debug)
 
 
 def process_table_response(
@@ -313,9 +385,7 @@ def process_table_response(
             assert len(column_value.results) == len(column_value.reliabilities), Exception(
                 "Length of rpc results do not match length of rpc reliabilities"
             )
-        sentry_sdk.set_measurement(
-            f"SearchResolver.result_size.{attribute}", len(column_value.results)
-        )
+        set_span_data(f"SearchResolver.result_size.{attribute}", len(column_value.results))
 
         while len(final_data) < len(column_value.results):
             final_data.append({})
@@ -333,7 +403,7 @@ def process_table_response(
                 final_confidence[index][attribute] = CONFIDENCES.get(
                     column_value.reliabilities[index], None
                 )
-    sentry_sdk.set_measurement("SearchResolver.result_size.final_data", len(final_data))
+    set_span_data("SearchResolver.result_size.final_data", len(final_data))
 
     if debug:
         final_meta["query"] = json.loads(MessageToJson(table_request.rpc_request))

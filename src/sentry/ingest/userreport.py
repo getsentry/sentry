@@ -183,23 +183,11 @@ def save_userreport(
         # Additionally processing if save is successful.
         user_feedback_received.send_robust(project=project, sender=save_userreport)
 
-        logger.info(
-            "ingest.user_report",
-            extra={
-                "project_id": project.id,
-                "event_id": report["event_id"],
-                "has_event": bool(event),
-            },
-        )
         metrics.incr(
             "user_report.create_user_report.saved",
             tags={"has_event": bool(event), "referrer": source.value},
         )
         if event and source.value in FeedbackCreationSource.old_feedback_category_values():
-            logger.info(
-                "ingest.user_report.shim_to_feedback",
-                extra={"project_id": project.id, "event_id": report["event_id"]},
-            )
             shim_to_feedback(report, event, project, source)
             # XXX(aliu): the update_user_reports task will still try to shim the report after a period, unless group_id or environment is set.
 

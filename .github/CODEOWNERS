@@ -145,6 +145,12 @@ yarn.lock                                                @getsentry/owners-js-de
 # Sentry product. These rules generally map to a signle team, but that may not
 # always be the case.
 
+# Demo Mode - moved upwards because it wraps other parts of the codebase
+# and was assigned many issues to telemetry-experience that should not have been
+/src/sentry/demo_mode/                                   @getsentry/telemetry-experience
+/tests/sentry/demo_mode/                                 @getsentry/telemetry-experience
+/static/app/utils/demoMode/                              @getsentry/telemetry-experience
+
 ## Crons
 /static/app/views/monitors                               @getsentry/crons
 /src/sentry/monitors                                     @getsentry/crons
@@ -506,7 +512,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
 /tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
-/src/sentry/demo_mode/
 
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
@@ -518,7 +523,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 /static/app/views/projectInstall/                                                @getsentry/telemetry-experience
-/static/app/utils/demoMode/                                                      @getsentry/telemetry-experience
+/static/app/views/insights/agentMonitoring/                                      @getsentry/telemetry-experience
+/static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 
@@ -680,6 +686,9 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/migrations/                                  @getsentry/owners-migrations
 /src/sentry/*/migrations/                                @getsentry/owners-migrations
 
+# Preprod build artifact analysis
+/src/sentry/preprod                                   @getsentry/emerge-tool
+# End of preprod
 
 ## Frontend Platform (keep last as we want highest specificity)
 /static/app/utils/theme/                              @getsentry/design-engineering

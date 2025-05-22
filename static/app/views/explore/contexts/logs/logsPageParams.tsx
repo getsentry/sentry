@@ -37,6 +37,10 @@ interface LogsPageParams {
   readonly isTableFrozen: boolean | undefined;
   readonly search: MutableSearch;
   /**
+   * See setSearchForFrozenPages
+   */
+  readonly setCursorForFrozenPages: (cursor: string) => void;
+  /**
    * On frozen pages (like the issues page), we don't want to store the search in the URL
    * Instead, use a useState in the context, so that it's dropped if you navigate away or refresh.
    */
@@ -84,6 +88,7 @@ export function LogsPageParamsProvider({
 
   // on embedded pages with search bars, use a useState instead of a URL parameter
   const [searchForFrozenPages, setSearchForFrozenPages] = useState(new MutableSearch(''));
+  const [cursorForFrozenPages, setCursorForFrozenPages] = useState('');
 
   const search = isTableFrozen ? searchForFrozenPages : new MutableSearch(logsQuery);
   let baseSearch: MutableSearch | undefined = undefined;
@@ -105,7 +110,9 @@ export function LogsPageParamsProvider({
     : pageFilters.selection.projects;
   // TODO we should handle environments in a similar way to projects - otherwise page filters might break embedded views
 
-  const cursor = getLogCursorFromLocation(location);
+  const cursor = isTableFrozen
+    ? cursorForFrozenPages
+    : getLogCursorFromLocation(location);
 
   return (
     <LogsPageParamsContext
@@ -115,6 +122,7 @@ export function LogsPageParamsProvider({
         setSearchForFrozenPages,
         sortBys,
         cursor,
+        setCursorForFrozenPages,
         isTableFrozen,
         blockRowExpanding,
         baseSearch,
@@ -209,6 +217,26 @@ export function useSetLogsSearch() {
   return setPageParamsCallback;
 }
 
+export function useLogsCursor() {
+  const {cursor} = useLogsPageParams();
+  return cursor;
+}
+
+export function useSetLogsCursor() {
+  const setPageParams = useSetLogsPageParams();
+  const {setCursorForFrozenPages, isTableFrozen} = useLogsPageParams();
+  return useCallback<CursorHandler>(
+    cursor => {
+      if (isTableFrozen) {
+        setCursorForFrozenPages(cursor ?? '');
+      } else {
+        setPageParams({cursor});
+      }
+    },
+    [isTableFrozen, setCursorForFrozenPages, setPageParams]
+  );
+}
+
 export function useLogsIsTableFrozen() {
   const {isTableFrozen} = useLogsPageParams();
   return !!isTableFrozen;
@@ -261,21 +289,6 @@ export function useSetLogsFields() {
       setPersistentParams(prev => ({...prev, fields}));
     },
     [setPageParams, setPersistentParams]
-  );
-}
-
-export function useLogsCursor() {
-  const {cursor} = useLogsPageParams();
-  return cursor;
-}
-
-export function useSetLogsCursor() {
-  const setPageParams = useSetLogsPageParams();
-  return useCallback<CursorHandler>(
-    cursor => {
-      setPageParams({cursor});
-    },
-    [setPageParams]
   );
 }
 

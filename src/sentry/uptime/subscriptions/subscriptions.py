@@ -343,36 +343,43 @@ def disable_uptime_detector(detector: Detector):
     and if the UptimeSubscription no longer has any active ProjectUptimeSubscriptions, it will
     also be disabled.
     """
-    uptime_monitor = get_project_subscription(detector)
-    uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
+    with atomic_transaction(
+        using=(
+            router.db_for_write(UptimeSubscription),
+            router.db_for_write(ProjectUptimeSubscription),
+            router.db_for_write(Detector),
+        )
+    ):
+        uptime_monitor = get_project_subscription(detector)
+        uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
 
-    if uptime_monitor.status == ObjectStatus.DISABLED and not detector.enabled:
-        return
+        if uptime_monitor.status == ObjectStatus.DISABLED and not detector.enabled:
+            return
 
-    if uptime_subscription.uptime_status == UptimeStatus.FAILED:
-        # Resolve the issue so that we don't see it in the ui anymore
-        resolve_uptime_issue(detector)
+        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
+            # Resolve the issue so that we don't see it in the ui anymore
+            resolve_uptime_issue(detector)
 
-    # We set the status back to ok here so that if we re-enable we'll start
-    # from a good state
-    uptime_subscription.update(uptime_status=UptimeStatus.OK)
+        # We set the status back to ok here so that if we re-enable we'll start
+        # from a good state
+        uptime_subscription.update(uptime_status=UptimeStatus.OK)
 
-    uptime_monitor.update(status=ObjectStatus.DISABLED)
-    detector.update(enabled=False)
+        uptime_monitor.update(status=ObjectStatus.DISABLED)
+        detector.update(enabled=False)
 
-    quotas.backend.disable_seat(DataCategory.UPTIME, uptime_monitor)
+        quotas.backend.disable_seat(DataCategory.UPTIME, uptime_monitor)
 
-    # Are there any other project subscriptions associated to the subscription
-    # that are NOT disabled?
-    has_active_subscription = uptime_subscription.projectuptimesubscription_set.exclude(
-        status=ObjectStatus.DISABLED
-    ).exists()
+        # Are there any other project subscriptions associated to the subscription
+        # that are NOT disabled?
+        has_active_subscription = uptime_subscription.projectuptimesubscription_set.exclude(
+            status=ObjectStatus.DISABLED
+        ).exists()
 
-    # All project subscriptions are disabled, we can disable the subscription
-    # and remove the remote subscription.
-    if not has_active_subscription:
-        uptime_subscription.update(status=UptimeSubscription.Status.DISABLED.value)
-        delete_remote_uptime_subscription.delay(uptime_subscription.id)
+        # All project subscriptions are disabled, we can disable the subscription
+        # and remove the remote subscription.
+        if not has_active_subscription:
+            uptime_subscription.update(status=UptimeSubscription.Status.DISABLED.value)
+            delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
 def enable_uptime_detector(detector: Detector, ensure_assignment: bool = False):

@@ -178,6 +178,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable access to NextJS specific insights
     manager.add("organizations:nextjs-insights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable AI Agents specific insights
+    manager.add("organizations:agents-insights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics
     manager.add("organizations:on-demand-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics (experimental features)
@@ -420,7 +422,9 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:user-feedback-spam-filter-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Block User Feedback spam auto filtering feature ingest
     manager.add("organizations:user-feedback-spam-ingest-blocklist", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable User Feedback spam auto filtering feature actions
+    # Enable auto spam classification at User Feedback ingest time (TODO: use this to replace the two flags above)
+    manager.add("organizations:user-feedback-spam-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable auto spam filtering at User Feedback ingest time, if spam-ingest is also enabled
     manager.add("organizations:user-feedback-spam-filter-actions", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Enable User Feedback v2 UI
     manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)

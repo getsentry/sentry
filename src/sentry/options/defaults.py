@@ -2367,13 +2367,6 @@ register(
 
 # END: SDK Crash Detection
 
-# Whether to add the full stack trace to Python errors.
-register(
-    "sentry_sdk.add_full_stack",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     # Lists the shared resource ids we want to account usage for.
     "shared_resources_accounting_enabled",
@@ -3117,6 +3110,14 @@ register(
     "taskworker.try_compress.profile_metrics",
     default=0.0,
     type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Taskbroker flags
+register(
+    "taskworker.try_compress.profile_metrics.level",
+    default=6,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

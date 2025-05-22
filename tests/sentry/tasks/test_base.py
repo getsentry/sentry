@@ -7,6 +7,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import test_tasks
+from sentry.testutils.helpers.options import override_options
 
 
 @instrumented_task(
@@ -110,6 +111,28 @@ def test_exclude_exception_retry(capture_exception):
         exclude_on_exception_task("bruh")
 
     assert capture_exception.call_count == 0
+
+
+@override_settings(
+    CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE=True,
+    CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE=1.0,
+)
+@override_options(
+    {
+        "taskworker.test.rollout": {"*": 0.0},
+        "taskworker.route.overrides": {},
+    }
+)
+@patch("sentry.tasks.base.metrics.distribution")
+def test_capture_payload_metrics(mock_distribution):
+    region_task.apply_async(args=("bruh",))
+
+    mock_distribution.assert_called_once_with(
+        "celery.task.parameter_bytes",
+        71,
+        tags={"taskname": "test.tasks.test_base.region_task"},
+        sample_rate=1.0,
+    )
 
 
 @patch("sentry.taskworker.retry.current_task")

@@ -26,6 +26,7 @@ from sentry.integrations.slack.metrics import (
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView
 from sentry.pipeline.views.base import PipelineView
@@ -100,7 +101,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation):
 
 
 class SlackIntegrationProvider(IntegrationProvider):
-    key = "slack"
+    key = IntegrationProviderSlug.SLACK.value
     name = "Slack"
     metadata = metadata
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])

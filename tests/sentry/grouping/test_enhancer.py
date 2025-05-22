@@ -13,6 +13,7 @@ from sentry.grouping.component import FrameGroupingComponent, StacktraceGrouping
 from sentry.grouping.enhancer import (
     ENHANCEMENT_BASES,
     Enhancements,
+    _split_rules,
     is_valid_profiling_action,
     is_valid_profiling_matcher,
     keep_profiling_rules,
@@ -127,10 +128,9 @@ def test_basic_parsing(insta_snapshot, version):
 
     enhancements_str = enhancements.base64_string
     assert Enhancements.from_base64_string(enhancements_str).base64_string == enhancements_str
-    assert (
-        Enhancements.from_base64_string(enhancements_str)._to_config_structure()
-        == enhancements._to_config_structure()
-    )
+    assert Enhancements.from_base64_string(enhancements_str)._get_base64_bytes_from_rules(
+        enhancements.rules
+    ) == enhancements._get_base64_bytes_from_rules(enhancements.rules)
     assert isinstance(enhancements_str, str)
 
 
@@ -638,6 +638,20 @@ class EnhancementsTest(TestCase):
         # We didn't parse again because the result was cached
         assert parse_enhancements_spy.call_count == 1
 
+    @patch("sentry.grouping.enhancer.parse_enhancements", wraps=parse_enhancements)
+    def test_caches_split_enhancements(self, parse_enhancements_spy: MagicMock):
+        self.project.update_option("sentry:grouping_enhancements", "function:playFetch +app +group")
+
+        # Using version 3 forces the enhancements to be split, and we know a split will happen
+        # because the custom rule added above has both an in-app and a contributes action
+        with patch("sentry.grouping.api.get_enhancements_version", return_value=3):
+            get_grouping_config_dict_for_project(self.project)
+            assert parse_enhancements_spy.call_count == 1
+
+            get_grouping_config_dict_for_project(self.project)
+            # We didn't parse again because the result was cached
+            assert parse_enhancements_spy.call_count == 1
+
     def test_loads_enhancements_from_base64_string(self):
         enhancements = Enhancements.from_rules_text("function:playFetch +app")
         assert len(enhancements.rules) == 1
@@ -650,6 +664,44 @@ class EnhancementsTest(TestCase):
         assert len(strategy_config.enhancements.rules) == 1
         assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app>"
         assert strategy_config.enhancements.id is None
+
+    @patch("sentry.grouping.enhancer._split_rules", wraps=_split_rules)
+    def test_loads_split_enhancements_from_base64_string(self, split_rules_spy: MagicMock):
+        # Using version 3 forces the enhancements to be split, and we know a split will happen
+        # because the rule below has both an in-app and a contributes action
+        enhancements = Enhancements.from_rules_text("function:playFetch +app +group", version=3)
+        assert len(enhancements.rules) == 1
+        assert len(enhancements.classifier_rules) == 1
+        assert len(enhancements.contributes_rules) == 1
+        assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app +group>"
+        assert str(enhancements.classifier_rules[0]) == "<EnhancementRule function:playFetch +app>"
+        assert (
+            str(enhancements.contributes_rules[0]) == "<EnhancementRule function:playFetch +group>"
+        )
+        assert enhancements.id is None
+        assert split_rules_spy.call_count == 1
+
+        strategy_config = load_grouping_config(
+            {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements.base64_string}
+        )
+        assert len(strategy_config.enhancements.rules) == 1
+        assert len(strategy_config.enhancements.classifier_rules) == 1
+        assert len(strategy_config.enhancements.contributes_rules) == 1
+        assert (
+            str(strategy_config.enhancements.rules[0])
+            == "<EnhancementRule function:playFetch +app +group>"
+        )
+        assert (
+            str(strategy_config.enhancements.classifier_rules[0])
+            == "<EnhancementRule function:playFetch +app>"
+        )
+        assert (
+            str(strategy_config.enhancements.contributes_rules[0])
+            == "<EnhancementRule function:playFetch +group>"
+        )
+        assert strategy_config.enhancements.id is None
+        # Currently we re-split the rules when translating from base64 back to object
+        assert split_rules_spy.call_count == 2
 
     def test_uses_default_enhancements_when_loading_string_with_invalid_version(self):
         enhancements = Enhancements.from_rules_text("function:playFetch +app")
