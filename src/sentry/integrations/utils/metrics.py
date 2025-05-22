@@ -108,6 +108,9 @@ class EventLifecycle:
         self._state: EventLifecycleOutcome | None = None
         self._extra = dict(self.payload.get_extras())
 
+    def get_state(self) -> EventLifecycleOutcome | None:
+        return self._state
+
     def add_extra(self, name: str, value: Any) -> None:
         """Add a value to logged "extra" data.
 
