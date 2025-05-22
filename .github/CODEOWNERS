@@ -523,6 +523,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 /static/app/views/projectInstall/                                                @getsentry/telemetry-experience
+/static/app/views/insights/agentMonitoring/                                      @getsentry/telemetry-experience
+/static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 
