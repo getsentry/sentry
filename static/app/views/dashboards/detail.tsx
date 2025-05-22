@@ -440,28 +440,21 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   isWidgetBuilder = (path?: string) => {
-    const {organization, location, params} = this.props;
-    const {dashboardId, widgetIndex} = params;
+    const {location} = this.props;
 
     const widgetBuilderRoutes = [
-      `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`,
-      `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
-      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`,
-      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,
+      /^\/organizations\/.+\/dashboards\/new\/widget-builder\/widget\//,
+      /^\/organizations\/.+\/dashboard\/\d+\/widget-builder\/widget\//,
     ];
 
     if (USING_CUSTOMER_DOMAIN) {
       widgetBuilderRoutes.push(
-        ...[
-          `/dashboards/new/widget-builder/widget/new/`,
-          `/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`,
-          `/dashboard/${dashboardId}/widget-builder/widget/new/`,
-          `/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`,
-        ]
+        /^\/dashboards\/new\/widget-builder\/widget\//,
+        /^\/dashboard\/\d+\/widget-builder\/widget\//
       );
     }
 
-    return widgetBuilderRoutes.includes(path ?? location.pathname);
+    return widgetBuilderRoutes.some(route => route.test(path ?? location.pathname));
   };
 
   onEdit = () => {
