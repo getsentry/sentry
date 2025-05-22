@@ -21,7 +21,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0912_make_organizationmemberteam_replica_is_active_true
+sentry: 0913_soft_delete_omt_is_active
 
 social_auth: 0001_squashed_0002_default_auto_field
 

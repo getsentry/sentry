@@ -58,7 +58,7 @@ def serialize_member(member: OrganizationMember) -> RpcOrganizationMember:
     )
 
     omts = OrganizationMemberTeam.objects.filter(
-        organizationmember=member, is_active=True, team__status=TeamStatus.ACTIVE
+        organizationmember=member, team__status=TeamStatus.ACTIVE
     ).select_related("team")
 
     all_project_ids: set[int] = set()
@@ -108,7 +108,7 @@ def _serialize_team_member(
     result = RpcTeamMember(
         id=team_member.id,
         slug=team_member.team.slug,
-        is_active=team_member.is_active,
+        is_active=True,  # this field is being deprecated on the omt model
         role_id=team_member.get_team_role().id,
         team_id=team_member.team_id,
         project_ids=list(project_ids),
@@ -161,6 +161,6 @@ def serialize_rpc_organization_member_team(
         team_id=omt.team_id,
         organizationmember_id=omt.organizationmember_id,
         organization_id=omt.organizationmember.organization_id,
-        is_active=omt.is_active,
+        is_active=True,  # this field is being deprecated on the omt model
         role=omt.role,
     )

@@ -67,7 +67,7 @@ class TeamManager(BaseManager["Team"]):
                 return []
 
             org_member_team_filter = OrganizationMemberTeam.objects.filter(
-                organizationmember=om, is_active=True
+                organizationmember=om,
             )
             if is_team_admin:
                 org_member_team_filter = org_member_team_filter.filter(role="admin")
@@ -175,7 +175,6 @@ class Team(ReplicatedRegionModel):
         """:returns a QuerySet of all Users that belong to this Team"""
         return self.organization.member_set.filter(
             organizationmemberteam__team=self,
-            organizationmemberteam__is_active=True,
             user_id__isnull=False,
             user_is_active=True,
         ).distinct()
