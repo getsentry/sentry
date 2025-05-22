@@ -38,6 +38,11 @@ interface HovercardProps extends Omit<UseHoverOverlayProps, 'isHoverable'> {
    */
   header?: React.ReactNode;
   /**
+   * Container to render the hovercard content
+   * Defaults to document.body
+   */
+  portalContainer?: HTMLElement;
+  /**
    * Color of the arrow tip border
    */
   tipBorderColor?: ColorOrAlias;
@@ -45,10 +50,6 @@ interface HovercardProps extends Omit<UseHoverOverlayProps, 'isHoverable'> {
    * Color of the arrow tip
    */
   tipColor?: ColorOrAlias;
-  /**
-   * Whether to create a portal for the hovercard content
-   */
-  usePortal?: boolean;
 }
 
 type UseOverOverlayState = ReturnType<typeof useHoverOverlay>;
@@ -147,7 +148,7 @@ function Hovercard({
   tipBorderColor = 'translucentBorder',
   tipColor = 'backgroundElevated',
   animated = true,
-  usePortal = true,
+  portalContainer = document.body,
   ...hoverOverlayProps
 }: HovercardProps): React.ReactElement {
   const {wrapTrigger, isOpen, ...hoverOverlayState} = useHoverOverlay({
@@ -197,7 +198,7 @@ function Hovercard({
   return (
     <HovercardContext.Provider value={contextValue}>
       {wrapTrigger(children)}
-      {usePortal ? createPortal(hovercard, document.body) : hovercard}
+      {createPortal(hovercard, portalContainer)}
     </HovercardContext.Provider>
   );
 }

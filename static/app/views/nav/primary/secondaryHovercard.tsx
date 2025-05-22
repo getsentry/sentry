@@ -14,7 +14,7 @@ interface SecondaryHovercardProps {
 }
 
 export function SecondaryHovercard({children, group}: SecondaryHovercardProps) {
-  const {layout, isCollapsed} = useNavContext();
+  const {layout, isCollapsed, navParentRef} = useNavContext();
 
   if (layout !== NavLayout.SIDEBAR || !isCollapsed) {
     return children;
@@ -43,7 +43,7 @@ export function SecondaryHovercard({children, group}: SecondaryHovercardProps) {
           `}
           containerDisplayMode="block"
           offset={0}
-          usePortal={false}
+          portalContainer={navParentRef.current ?? undefined}
         >
           {children}
         </Hovercard>
