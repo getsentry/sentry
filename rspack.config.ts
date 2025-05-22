@@ -293,10 +293,32 @@ const appConfig: Configuration = {
   },
   plugins: [
     /**
-     * Adds build time measurement instrumentation, which will be reported back
-     * to sentry
+     * Without this, webpack will chunk the locales but attempt to load them all
+     * eagerly.
      */
-    // new SentryInstrumentation(),
+    new rspack.IgnorePlugin({
+      contextRegExp: /moment$/,
+      resourceRegExp: /^\.\/locale$/,
+    }),
+
+    /**
+     * Restrict translation files that are pulled in through app/translations.jsx
+     * and through moment/locale/* to only those which we create bundles for via
+     * locale/catalogs.json.
+     *
+     * Without this, webpack will still output all of the unused locale files despite
+     * the application never loading any of them.
+     */
+    new rspack.ContextReplacementPlugin(
+      /sentry-locale$/,
+      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+      true,
+      new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
+    ),
+    new rspack.ContextReplacementPlugin(
+      /moment\/locale/,
+      new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
+    ),
 
     /**
      * TODO(epurkhiser): Figure out if we still need these
@@ -331,25 +353,6 @@ const appConfig: Configuration = {
       : []),
 
     ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
-
-    /**
-     * Restrict translation files that are pulled in through app/translations.jsx
-     * and through moment/locale/* to only those which we create bundles for via
-     * locale/catalogs.json.
-     *
-     * Without this, webpack will still output all of the unused locale files despite
-     * the application never loading any of them.
-     */
-    new rspack.ContextReplacementPlugin(
-      /sentry-locale$/,
-      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
-      true,
-      new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
-    ),
-    new rspack.ContextReplacementPlugin(
-      /moment\/locale/,
-      new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
-    ),
 
     /**
      * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
