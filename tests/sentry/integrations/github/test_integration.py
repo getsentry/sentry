@@ -1452,7 +1452,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
         assert (
-            b'{"success":false,"data":{"error":"User does not have access to given installation"}'
+            b'{"success":false,"data":{"error":"User does not have access to given installation."}'
             in resp.content
         )
         assert (

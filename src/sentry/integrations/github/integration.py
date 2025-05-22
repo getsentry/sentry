@@ -120,12 +120,6 @@ FEATURES = [
         """,
         IntegrationFeatures.TICKET_RULES,
     ),
-    FeatureDescription(
-        """
-        Connect multiple Sentry organizations to a single GitHub account.
-        """,
-        IntegrationFeatures.SCM_MULTI_ORG,
-    ),
 ]
 
 metadata = IntegrationMetadata(
