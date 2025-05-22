@@ -726,6 +726,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 f"seen_by_id:[{self.user.id + 3},{self.user.id}]",
                 "viewed_by_me:true",
                 "seen_by_me:true",
+                "is_archived:false",
+                "!is_archived:true",
+                "is_archived:0",
+                "!is_archived:1",
             ]
 
             for query in queries:
@@ -796,6 +800,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "ota_updates.channel:unstable",
                 "ota_updates.runtime_version:4.5.6",
                 "ota_updates.update_id:9876543210",
+                "is_archived:true",
+                "!is_archived:false",
+                "is_archived:1",
+                "!is_archived:0",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")

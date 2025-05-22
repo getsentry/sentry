@@ -1,5 +1,6 @@
-export interface NewAction {
+export interface Action {
   data: Record<string, unknown>;
+  id: string;
   type: ActionType;
   integrationId?: string;
 }
