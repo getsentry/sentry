@@ -43,6 +43,7 @@ export function SecondaryHovercard({children, group}: SecondaryHovercardProps) {
           `}
           containerDisplayMode="block"
           offset={0}
+          usePortal={false}
         >
           {children}
         </Hovercard>
