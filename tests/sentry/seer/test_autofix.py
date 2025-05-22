@@ -1336,7 +1336,7 @@ class TestCallAutofix(TestCase):
         serialized_event = {"event_id": "test-event"}
         profile = {"profile_data": "test"}
         trace_tree = {"trace_data": "test"}
-        logs = [{"message": "test-log"}]
+        logs = {"logs": [{"message": "test-log"}]}
         instruction = "Test instruction"
 
         # Call the function with keyword arguments
