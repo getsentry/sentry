@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0909_django_array_field_not_release"),
+        ("sentry", "0910_make_organizationmemberteam_is_active_default"),
     ]
 
     operations = [
