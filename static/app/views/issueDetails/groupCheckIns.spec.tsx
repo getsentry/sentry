@@ -57,17 +57,9 @@ describe('GroupCheckIns', () => {
       deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
-    for (const column of [
-      'Timestamp',
-      'Status',
-      'Duration',
-      'Environment',
-      'Monitor Config',
-      'ID',
-    ]) {
-      expect(screen.getByText(column)).toBeInTheDocument();
-    }
-    expect(screen.getByText('No matching check-ins found')).toBeInTheDocument();
+    expect(
+      screen.getByText('No check-ins have been recorded for this time period.')
+    ).toBeInTheDocument();
   });
 
   it('renders the check-in table with data', async () => {
@@ -88,10 +80,8 @@ describe('GroupCheckIns', () => {
     expect(screen.getByRole('button', {name: 'Previous Page'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next Page'})).toBeInTheDocument();
 
-    expect(screen.getByRole('time')).toHaveTextContent(/Jan 1, 2025/);
     expect(screen.getByText(statusToText[check.status])).toBeInTheDocument();
-    expect(screen.getByText(`${check.duration}ms`)).toBeInTheDocument();
+    expect(screen.getByText('9 seconds')).toBeInTheDocument();
     expect(screen.getByText(check.environment)).toBeInTheDocument();
-    expect(screen.getByText(check.id)).toBeInTheDocument();
   });
 });

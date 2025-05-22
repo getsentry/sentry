@@ -57,6 +57,18 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         PLUGIN = "plugin"
         WEBHOOK = "webhook"
 
+        def is_integration(self) -> bool:
+            """
+            Returns True if the action is an integration action.
+            For those, the value should correspond to the integration key.
+            """
+            return self not in [
+                Action.Type.EMAIL,
+                Action.Type.SENTRY_APP,
+                Action.Type.PLUGIN,
+                Action.Type.WEBHOOK,
+            ]
+
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=[(t.value, t.value) for t in Type])
     data = models.JSONField(default=dict)

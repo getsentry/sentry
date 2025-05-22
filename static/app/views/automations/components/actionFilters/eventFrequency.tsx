@@ -1,16 +1,30 @@
+import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
-import {tct} from 'sentry/locale';
+import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
+import {t, tct} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
   CountBranch,
   PercentBranch,
 } from 'sentry/views/automations/components/actionFilters/comparisonBranches';
+import {SubfiltersList} from 'sentry/views/automations/components/actionFilters/subfiltersList';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export default function EventFrequencyNode() {
-  return tct('Number of events in an issue is [select]', {
-    select: <ComparisonTypeField />,
-  });
+  const {condition} = useDataConditionNodeContext();
+  const hasSubfilters = condition.comparison.filters?.length > 0;
+
+  return (
+    <div>
+      <RowLine>
+        {tct('Number of events in an issue is [select] [where]', {
+          select: <ComparisonTypeField />,
+          where: hasSubfilters ? <ConditionBadge>{t('Where')}</ConditionBadge> : null,
+        })}
+      </RowLine>
+      <SubfiltersList />
+    </div>
+  );
 }
 
 function ComparisonTypeField() {

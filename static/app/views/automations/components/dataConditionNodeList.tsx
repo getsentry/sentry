@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Select} from 'sentry/components/core/select';
 import type {
+  DataCondition,
   DataConditionType,
-  NewDataCondition,
 } from 'sentry/types/workflowEngine/dataConditions';
 import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
 import {
@@ -14,14 +14,14 @@ import {
 } from 'sentry/views/automations/components/dataConditionNodes';
 
 interface DataConditionNodeListProps {
-  conditions: NewDataCondition[];
+  conditions: DataCondition[];
   dataConditionTypes: DataConditionType[];
   group: string;
   onAddRow: (type: DataConditionType) => void;
-  onDeleteRow: (id: number) => void;
+  onDeleteRow: (id: string) => void;
   placeholder: string;
-  updateCondition: (index: number, condition: Record<string, any>) => void;
-  updateConditionType?: (index: number, type: DataConditionType) => void;
+  updateCondition: (id: string, condition: Record<string, any>) => void;
+  updateConditionType?: (id: string, type: DataConditionType) => void;
 }
 
 export default function DataConditionNodeList({
@@ -40,17 +40,18 @@ export default function DataConditionNodeList({
 
   return (
     <Fragment>
-      {conditions.map((condition, i) => (
+      {conditions.map(condition => (
         <AutomationBuilderRow
-          key={`${group}.conditions.${i}`}
-          onDelete={() => onDeleteRow(i)}
+          key={`${group}.conditions.${condition.id}`}
+          onDelete={() => onDeleteRow(condition.id)}
         >
           <DataConditionNodeContext.Provider
             value={{
               condition,
-              condition_id: `${group}.conditions.${i}`,
-              onUpdate: newCondition => updateCondition(i, newCondition),
-              onUpdateType: type => updateConditionType && updateConditionType(i, type),
+              condition_id: `${group}.conditions.${condition.id}`,
+              onUpdate: newCondition => updateCondition(condition.id, newCondition),
+              onUpdateType: type =>
+                updateConditionType && updateConditionType(condition.id, type),
             }}
           >
             <Node />

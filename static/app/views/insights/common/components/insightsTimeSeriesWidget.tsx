@@ -132,7 +132,11 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   }
 
   const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
-    ? ({releases, showReleaseAs: props.showReleaseAs || 'bubble'} as const)
+    ? ({
+        releases,
+        showReleaseAs: props.showReleaseAs || 'bubble',
+        onZoom: props.onZoom,
+      } as const)
     : {};
 
   return (

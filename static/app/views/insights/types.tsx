@@ -11,6 +11,7 @@ export enum ModuleName {
   APP_START = 'app_start',
   RESOURCE = 'resource',
   AI = 'ai',
+  AGENTS = 'agents',
   MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
@@ -168,7 +169,8 @@ type SpanStringFields =
   | 'replayId'
   | 'profile.id'
   | 'profiler.id'
-  | 'thread.id';
+  | 'thread.id'
+  | 'span.domain'; // TODO: With `useInsightsEap` we get a string, without it we get an array
 
 export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanMetricsField.PROJECT_ID]?: string;

@@ -8,7 +8,6 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "@acemarke/react-prod-sourcemaps": "^0.2.1",
     "@amplitude/analytics-browser": "^1.5.3",
     "@babel/core": "~7.26.10",
     "@babel/plugin-transform-runtime": "~7.26.10",
@@ -267,7 +266,8 @@
     "deref-api-docs": "ts-node api-docs/index.ts tests/apidocs/openapi-spectacular.json tests/apidocs/openapi-derefed.json",
     "build-chartcuterie-config": "node --experimental-strip-types config/build-chartcuterie.ts",
     "build-acceptance-rspack": "CODECOV_ENABLE_BA=false IS_ACCEPTANCE_TEST=1 NODE_ENV=production rspack",
-    "build-acceptance": "CODECOV_ENABLE_BA=false IS_ACCEPTANCE_TEST=1 NODE_ENV=production webpack",
+    "build-acceptance-webpack": "CODECOV_ENABLE_BA=false IS_ACCEPTANCE_TEST=1 NODE_ENV=production webpack",
+    "build-acceptance": "yarn build-acceptance-rspack",
     "build-production": "NODE_ENV=production webpack --mode production",
     "build-production-rspack": "NODE_ENV=production rspack --mode production",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 webpack",

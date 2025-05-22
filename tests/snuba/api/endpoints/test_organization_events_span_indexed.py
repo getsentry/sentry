@@ -4618,3 +4618,63 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert len(data) == 1
         assert data[0]["count_if(release,foo)"] == 1
         assert meta["dataset"] == self.dataset
+
+    def test_span_ops_breakdown(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {"span_ops.ops.http": {"value": 100}},
+                    },
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["spans.http"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["spans.http"] == 100
+        assert meta["dataset"] == self.dataset
+
+    def test_special_characters(self):
+        characters = "_.-"
+        span = self.create_span(
+            {"tags": {f"tag{c}": c for c in characters}},
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans(
+            [
+                span,
+                self.create_span(start_ts=self.ten_mins_ago),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        for c in characters:
+            response = self.do_request(
+                {
+                    "field": [f"tag{c}"],
+                    "query": f"tag{c}:{c}",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+            assert response.status_code == 200, response.content
+            assert response.data["data"] == [
+                {
+                    "id": span["span_id"],
+                    "project.name": self.project.slug,
+                    f"tag{c}": c,
+                }
+            ]
