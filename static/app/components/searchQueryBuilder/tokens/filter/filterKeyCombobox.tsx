@@ -33,7 +33,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     inputValue,
     includeSuggestions: false,
   });
-  const {dispatch, getFieldDefinition} = useSearchQueryBuilder();
+  const {dispatch, getFieldDefinition, getSuggestedFilterKey} = useSearchQueryBuilder();
 
   const currentFilterValueType = getFilterValueType(
     token,
@@ -88,6 +88,13 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     [handleSelectKey]
   );
 
+  const onValueCommited = useCallback(
+    (keyName: string) => {
+      handleSelectKey(getSuggestedFilterKey(keyName) ?? keyName);
+    },
+    [handleSelectKey, getSuggestedFilterKey]
+  );
+
   const onCustomValueBlurred = useCallback(() => {
     onCommit();
   }, [onCommit]);
@@ -103,7 +110,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         items={sortedFilterKeys}
         placeholder={getKeyLabel(token.key)}
         onOptionSelected={onOptionSelected}
-        onCustomValueCommitted={handleSelectKey}
+        onCustomValueCommitted={onValueCommited}
         onCustomValueBlurred={onCustomValueBlurred}
         onExit={onExit}
         inputValue={inputValue}
