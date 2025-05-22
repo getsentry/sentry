@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 // eslint-disable-next-line import/no-nodejs-modules
 import path from 'node:path';
+import {TimeSeriesFixture} from 'sentry-fixture/discoverSeries';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -9,6 +10,12 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 
 import type {ChartId} from './chartWidgetLoader';
 import {ChartWidgetLoader} from './chartWidgetLoader';
+
+function mockDiscoverSeries(seriesName: string) {
+  return TimeSeriesFixture({
+    seriesName,
+  });
+}
 
 // Mock this component so it doesn't yell at us for no plottables
 jest.mock(
@@ -146,6 +153,14 @@ jest.mock(
   })
 );
 jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
+  useEAPSeries: jest.fn(() => ({
+    data: {
+      'avg(span.duration)': mockDiscoverSeries('avg(span.duration)'),
+      'p95(span.duration)': mockDiscoverSeries('p95(span.duration)'),
+    },
+    isPending: false,
+    error: null,
+  })),
   useMetricsSeries: jest.fn(() => ({
     data: {
       'performance_score(measurements.score.lcp)': {

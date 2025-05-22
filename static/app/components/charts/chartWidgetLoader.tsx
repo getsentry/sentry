@@ -155,6 +155,10 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget'
     ),
+  overviewApiLatencyChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'
+    ),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;
 
 /**
