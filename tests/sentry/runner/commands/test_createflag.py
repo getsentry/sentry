@@ -32,12 +32,13 @@ class TestCreateFlag(CliTestCase):
         assert parsed_feature.owner == "Test Owner"
 
     def test_no_conditions_in_segment(self):
-        cli_input = ["y", "New segment", "50", "n"]
+        cli_input = ["y", "New segment", "50", "n", "n"]
         rv = self.invoke(
             "--name=new flag",
             "--scope=organizations",
             "--owner=Test Owner",
             input="\n".join(cli_input),
+            catch_exceptions=False,
         )
         assert rv.exit_code == 0
         parsed_feature = self.convert_output_to_feature(rv.output)
