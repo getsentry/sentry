@@ -826,7 +826,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                 #
                 # XXX: They are NOT timezone aware date times, set the timezone
                 # to UTC
-                clock_time = item.ts.replace(tzinfo=UTC)
+                clock_time = item.ts.replace(second=0, microsecond=0, tzinfo=UTC)
+
+                # Record the reported in_progress time when the check is in progress
+                date_in_progress = start_time if status == CheckInStatus.IN_PROGRESS else None
 
                 check_in, created = MonitorCheckIn.objects.get_or_create(
                     defaults={
@@ -835,6 +838,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                         "date_added": start_time,
                         "date_updated": start_time,
                         "date_clock": clock_time,
+                        "date_in_progress": date_in_progress,
                         "expected_time": expected_time,
                         "timeout_at": timeout_at,
                         "monitor_config": monitor_config,

@@ -85,6 +85,10 @@ export type ReservedBudgetCategory = {
    */
   apiName: ReservedBudgetCategoryType;
   /**
+   * The feature flag determining if the product is available for billing
+   */
+  billingFlag: string | null;
+  /**
    * Backend name of the category (all caps, snake case)
    */
   budgetCategoryType: string;
@@ -924,7 +928,7 @@ export interface MonitorCountResponse {
   overQuotaMonitorCount: number;
 }
 
-type PendingReservedBudget = {
+export type PendingReservedBudget = {
   categories: Partial<Record<DataCategory, boolean | null>>;
   reservedBudget: number;
 };

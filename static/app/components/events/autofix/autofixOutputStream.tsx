@@ -148,7 +148,7 @@ export function AutofixOutputStream({
       addSuccessMessage('Thanks for the input.');
     },
     onError: () => {
-      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
+      addErrorMessage(t('Something went wrong when sending Seer your message.'));
     },
   });
 

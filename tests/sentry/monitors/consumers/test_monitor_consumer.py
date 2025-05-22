@@ -357,7 +357,39 @@ class MonitorConsumerTest(TestCase):
         self.send_checkin(monitor.slug, ts=ts, item_ts=item_ts)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.date_added == ts.replace(tzinfo=UTC)
-        assert checkin.date_clock == item_ts.replace(tzinfo=UTC)
+        assert checkin.date_clock == item_ts.replace(second=0, microsecond=0, tzinfo=UTC)
+
+    def test_check_in_date_in_progress(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        now_tz = now.replace(tzinfo=UTC)
+
+        guid1 = uuid.uuid4().hex
+
+        # First check-in will not have a date_in_progress, since we never sent
+        # an in-progress check.
+        self.send_checkin(monitor.slug, guid=guid1, ts=now, status="ok")
+        checkin1 = MonitorCheckIn.objects.get(guid=guid1)
+        assert not checkin1.date_in_progress
+
+        # Second check-in does have a date_in_progress
+        guid2 = uuid.uuid4().hex
+
+        self.send_checkin(
+            monitor.slug,
+            guid=guid2,
+            ts=now + timedelta(minutes=1),
+            status="in_progress",
+        )
+        self.send_checkin(
+            monitor.slug,
+            guid=guid2,
+            ts=now + timedelta(minutes=1, seconds=25),
+            status="ok",
+        )
+
+        checkin2 = MonitorCheckIn.objects.get(guid=guid2)
+        assert checkin2.date_in_progress == now_tz + timedelta(minutes=1)
 
     def test_check_in_timeout_at(self):
         monitor = self._create_monitor(slug="my-monitor")

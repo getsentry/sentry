@@ -23,6 +23,7 @@ const StyledSelectField = styled(SelectField)`
   > div {
     padding-left: 0;
   }
+  border: none;
 `;
 
 export const selectControlStyles = {

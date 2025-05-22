@@ -245,26 +245,37 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
 
 
 def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
+    cache_key = "totalvitalcounts"
+    response = None
+    vital_column = f"count_scores(measurements.score.{vital})"
 
-    snuba_params = settings["snuba_params"]
-    query_string = snuba_params.query_string
+    if cache_key in settings["query_result_cache"]:
+        response = settings["query_result_cache"][cache_key]
 
-    rpc_res = spans_rpc.run_table_query(
-        snuba_params,
-        query_string=query_string if query_string is not None else "",
-        referrer=f"totalvitalcount_{vital}",
-        selected_columns=[f"count_scores(measurements.score.{vital}) as count"],
-        orderby=None,
-        offset=0,
-        limit=1,
-        sampling_mode=snuba_params.sampling_mode,
-        config=SearchResolverConfig(
-            auto_fields=True,
-        ),
-    )
+    else:
+        snuba_params = settings["snuba_params"]
+        query_string = snuba_params.query_string
 
-    if len(rpc_res["data"]) > 0 and rpc_res["data"][0]["count"] is not None:
-        return rpc_res["data"][0]["count"]
+        vital_columns = [f"count_scores({v})" for v in WEB_VITALS_MEASUREMENTS]
+
+        response = spans_rpc.run_table_query(
+            snuba_params,
+            query_string=query_string if query_string is not None else "",
+            referrer=cache_key,
+            selected_columns=vital_columns,
+            orderby=None,
+            offset=0,
+            limit=1,
+            sampling_mode=snuba_params.sampling_mode,
+            config=SearchResolverConfig(
+                auto_fields=True,
+            ),
+        )
+
+        settings["query_result_cache"][cache_key] = response
+
+    if len(response["data"]) > 0 and response["data"][0][vital_column] is not None:
+        return response["data"][0][vital_column]
 
     return 0
 

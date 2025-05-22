@@ -341,6 +341,7 @@ def child_process(
             "taskworker.worker.execute_task",
             tags={
                 "namespace": activation.namespace,
+                "taskname": activation.taskname,
                 "status": status,
                 "processing_pool": processing_pool_name,
             },

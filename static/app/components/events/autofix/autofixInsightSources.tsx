@@ -280,7 +280,7 @@ function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSources
             data-overlay="true"
           >
             <OverlayHeader>
-              <OverlayTitle>{t("Autofix's Thoughts")}</OverlayTitle>
+              <OverlayTitle>{t("Seer's Thoughts")}</OverlayTitle>
               {title && <InsightTitle>"{title.trim()}"</InsightTitle>}
             </OverlayHeader>
             <OverlayContent>

@@ -531,6 +531,18 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
         self.event_data = WorkflowEventData(event=self.group_event)
 
+    @with_feature("organizations:workflow-engine-process-workflows")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @patch("sentry.utils.metrics.incr")
+    def test_metrics_issue_dual_processing_metrics(self, mock_incr):
+        process_workflows(self.event_data)
+        mock_incr.assert_any_call(
+            "workflow_engine.process_workflows.fired_actions",
+            tags={
+                "detector_type": self.detector.type,
+            },
+        )
+
     def test_basic__no_filter(self):
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
         assert set(triggered_actions) == {self.action}
@@ -611,7 +623,6 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
-                has_fired_actions=True,
             ).count()
             == 1
         )

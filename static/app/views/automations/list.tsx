@@ -36,7 +36,7 @@ export default function AutomationsList() {
 function TableHeader() {
   return (
     <Flex gap={space(2)}>
-      <ProjectPageFilter />
+      <ProjectPageFilter size="md" />
       <div style={{flexGrow: 1}}>
         <SearchBar placeholder={t('Search for events, users, tags, and more')} />
       </div>

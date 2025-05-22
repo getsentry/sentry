@@ -186,7 +186,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       </SeerDrawerHeader>
       <SeerDrawerNavigator>
         <Flex align="center" gap={space(1)}>
-          <Header>{t('Autofix')}</Header>
+          <Header>{t('Seer')}</Header>
           <FeatureBadge
             type="beta"
             tooltipProps={{
@@ -229,14 +229,14 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           />
         </Flex>
         {!aiConfig.needsGenAiAcknowledgement && (
-          <ButtonBarWrapper data-test-id="autofix-button-bar">
+          <ButtonBarWrapper data-test-id="seer-button-bar">
             <ButtonBar gap={1}>
               <Feature features={['organizations:autofix-seer-preferences']}>
                 <LinkButton
                   to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                   size="xs"
-                  title={t('Project Settings for Autofix')}
-                  aria-label={t('Project Settings for Autofix')}
+                  title={t('Project Settings for Seer')}
+                  aria-label={t('Project Settings for Seer')}
                   icon={<IconSettings />}
                 />
               </Feature>
@@ -305,7 +305,6 @@ export const useOpenSeerDrawer = ({
   group,
   project,
   event,
-  buttonRef,
 }: {
   event: Event | null;
   group: Group;
@@ -333,46 +332,8 @@ export const useOpenSeerDrawer = ({
         height: fit-content;
         max-height: 100%;
       `,
-      shouldCloseOnInteractOutside: element => {
-        const viewAllButton = buttonRef?.current;
-
-        // Check if the element is inside any autofix input element
-        const isInsideAutofixInput = () => {
-          const rethinkInputs = document.querySelectorAll(
-            '[data-autofix-input-type="rethink"]'
-          );
-          const agentCommentInputs = document.querySelectorAll(
-            '[data-autofix-input-type="agent-comment"]'
-          );
-
-          // Check if element is inside any rethink input
-          for (const input of rethinkInputs) {
-            if (input.contains(element)) {
-              return true;
-            }
-          }
-
-          // Check if element is inside any agent comment input
-          for (const input of agentCommentInputs) {
-            if (input.contains(element)) {
-              return true;
-            }
-          }
-
-          return false;
-        };
-
-        if (
-          viewAllButton?.contains(element) ||
-          document.getElementById('sentry-feedback')?.contains(element) ||
-          isInsideAutofixInput() ||
-          document.getElementById('autofix-output-stream')?.contains(element) ||
-          document.getElementById('autofix-write-access-modal')?.contains(element) ||
-          element.closest('[data-overlay="true"]')
-        ) {
-          return false;
-        }
-        return true;
+      shouldCloseOnInteractOutside: () => {
+        return false;
       },
       onClose: () => {
         navigate({
@@ -384,7 +345,7 @@ export const useOpenSeerDrawer = ({
         });
       },
     });
-  }, [openDrawer, buttonRef, event, group, project, location, navigate, organization]);
+  }, [openDrawer, event, group, project, location, navigate, organization]);
 
   return {openSeerDrawer};
 };
