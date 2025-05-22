@@ -297,10 +297,8 @@ function GroupSummaryFull({
             }
             return (
               <InsightCard key={card.id}>
-                <CardTitle preview={preview} cardId={card.id}>
-                  <CardTitleIcon cardId={card.id} preview={preview}>
-                    {card.icon}
-                  </CardTitleIcon>
+                <CardTitle>
+                  <CardTitleIcon>{card.icon}</CardTitleIcon>
                   <CardTitleText>{card.title}</CardTitleText>
                 </CardTitle>
                 <CardContentContainer>
@@ -362,14 +360,11 @@ const InsightCard = styled('div')`
   min-height: 0;
 `;
 
-const CardTitle = styled('div')<{cardId?: string; preview?: boolean}>`
+const CardTitle = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  color: ${p =>
-    p.preview === false && p.cardId === 'whats_wrong'
-      ? p.theme.textColor
-      : p.theme.subText};
+  color: ${p => p.theme.subText};
   padding-bottom: ${space(0.5)};
 `;
 
@@ -379,13 +374,10 @@ const CardTitleText = styled('p')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const CardTitleIcon = styled('div')<{cardId?: string; preview?: boolean}>`
+const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p =>
-    p.preview === false && p.cardId === 'whats_wrong'
-      ? p.theme.pink400
-      : p.theme.subText};
+  color: ${p => p.theme.subText};
 `;
 
 const CardContentContainer = styled('div')`
