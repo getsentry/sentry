@@ -23,7 +23,7 @@ MODEL_LOAD_ORDER = [
 ]
 
 
-def load_data(input_file):
+def load_data(input_file, org_id):
     """
     Loads data from a JSON file and saves it to the database.
     Assumes that PKs from the file should be preserved.
@@ -67,6 +67,19 @@ def load_data(input_file):
     skipped_count = 0
     error_count = 0
 
+    parsed_org_id = None
+    if org_id:
+        try:
+            parsed_org_id = int(org_id)
+            click.echo(
+                f"Will update OrganizationIntegration objects to organization_id: {parsed_org_id}"
+            )
+        except ValueError:
+            click.echo(
+                f"Warning: Invalid org_id '{org_id}'. It will be ignored. Please provide a valid integer."
+            )
+            parsed_org_id = None
+
     click.echo("Attempting to save objects to the database...")
     with atomic_transaction(
         using=(
@@ -79,6 +92,16 @@ def load_data(input_file):
         for deserialized_object in sorted_deserialized_objects:
             model_name = deserialized_object.object._meta.object_name
             pk = deserialized_object.object.pk
+
+            # If org_id is provided, update OrganizationIntegration's organization_id
+            if parsed_org_id is not None and isinstance(
+                deserialized_object.object, OrganizationIntegration
+            ):
+                click.echo(
+                    f"  Updating organization_id for {model_name} (PK: {pk}) to {parsed_org_id}"
+                )
+                deserialized_object.object.organization_id = parsed_org_id
+
             try:
                 # The deserialized_object.save() method handles saving the object
                 # and its many-to-many data (if any). It attempts to use the PK
@@ -119,6 +142,11 @@ if __name__ == "__main__":
         required=True,
         help="Path to the input JSON file containing the data to load.",
     )
+    parser.add_argument(
+        "--org-id",
+        required=False,
+        help="The organization ID to save integration data for.",
+    )
     args = parser.parse_args()
 
-    load_data(args.input_file)
+    load_data(args.input_file, args.org_id)
