@@ -5,6 +5,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
@@ -143,6 +144,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
             SpanIndexedField.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
             ...additionalFields,
           ],
+          sampling: useInsightsEap() ? SAMPLING_MODE.NORMAL : undefined,
           dataset: useInsightsEap() ? DiscoverDatasets.SPANS_EAP : undefined,
           sort: `-${SPAN_SELF_TIME}`,
         },
