@@ -96,10 +96,6 @@ def update_user_reports(**kwargs: Any) -> None:
             if report:
                 if report.environment_id is None:
                     if not is_in_feedback_denylist(project.organization):
-                        logger.info(
-                            "update_user_reports.shim_to_feedback",
-                            extra={"report_id": report.id, "event_id": event.event_id},
-                        )
                         metrics.incr("tasks.update_user_reports.shim_to_feedback")
                         shim_to_feedback(
                             {
