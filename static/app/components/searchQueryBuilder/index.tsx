@@ -82,8 +82,10 @@ export interface SearchQueryBuilderProps {
    */
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   /**
-   * A function that maps user input to a suggested column. This is used
-   * to autocomplete user input if it's definitive what they're looking for.
+   * This is used when a user types in a search key and submits the token.
+   * The submission happens when the user types a colon or presses enter.
+   * When this happens, this function is used to map the user input to a
+   * known column.
    */
   getSuggestedFilterKey?: (key: string) => string | null;
   /**
