@@ -193,10 +193,8 @@ function GroupSummaryPreview({
             }
             return (
               <InsightCard key={card.id}>
-                <CardTitle preview cardId={card.id}>
-                  <CardTitleIcon cardId={card.id} preview>
-                    {card.icon}
-                  </CardTitleIcon>
+                <CardTitle>
+                  <CardTitleIcon>{card.icon}</CardTitleIcon>
                   <CardTitleText>{card.title}</CardTitleText>
                 </CardTitle>
                 <CardContentContainer>
