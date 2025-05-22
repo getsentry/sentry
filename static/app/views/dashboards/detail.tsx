@@ -1118,12 +1118,12 @@ class DashboardDetail extends Component<Props, State> {
             const checkDashboardRoute = (path: string) => {
               const widgetBuilderRoutes = [
                 // Legacy routes
-                /^\/organizations\/.+\/dashboards\/new\/widget-builder\/widget\//,
-                /^\/organizations\/.+\/dashboard\/\d+\/widget-builder\/widget\//,
+                /^\/organizations\/.+\/dashboards\//,
+                /^\/organizations\/.+\/dashboard\//,
 
                 // Customer domain routes
-                /^\/dashboards\/new\/widget-builder\/widget\//,
-                /^\/dashboard\/\d+\/widget-builder\/widget\//,
+                /^\/dashboards\//,
+                /^\/dashboard\//,
               ];
 
               return widgetBuilderRoutes.some(route =>
@@ -1133,9 +1133,7 @@ class DashboardDetail extends Component<Props, State> {
             const navigatingWithinDashboards =
               checkDashboardRoute(locationChange.nextLocation.pathname) ||
               (checkDashboardRoute(locationChange.currentLocation.pathname) &&
-                [`/dashboard/${dashboard.id}/`, `/dashboards/new/`].includes(
-                  locationChange.nextLocation.pathname
-                ));
+                checkDashboardRoute(locationChange.nextLocation.pathname));
             const hasUnsavedChanges =
               defined(modifiedDashboard) && !isEqual(modifiedDashboard, dashboard);
             return (
