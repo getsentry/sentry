@@ -11,6 +11,7 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
+from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.types import WorkflowEventData
 
 from .json_config import JSONConfigBase
@@ -30,7 +31,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
     enabled = models.BooleanField(db_default=True)
 
-    # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
+    # Required as the 'when' condition for the workflow, this evaluates states emitted from the detectors
     when_condition_group = FlexibleForeignKey(
         "workflow_engine.DataConditionGroup", null=True, blank=True
     )
@@ -73,10 +74,6 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
         """
-        from sentry.workflow_engine.processors.data_condition_group import (
-            process_data_condition_group,
-        )
-
         if self.when_condition_group is None:
             return True, []
 

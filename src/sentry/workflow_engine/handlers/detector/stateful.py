@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 from datetime import UTC, datetime, timedelta
-from typing import Generic
+from typing import Generic, cast
 from uuid import uuid4
 
 from django.conf import settings
@@ -429,6 +429,45 @@ class StatefulDetectorHandler(
 
         return None
 
+    def _is_duplicate_packet(
+        self, data_packet: DataPacket[DataPacketType], group_key: DetectorGroupKey = None
+    ) -> bool:
+        """
+        Extracts the dedupe value from the data packet and confirms the order of the data packet
+        """
+        dedupe_value = self.extract_dedupe_value(data_packet)
+        stored_dedupe_value = self.state_manager.get_state_data([group_key])[group_key].dedupe_value
+        return dedupe_value >= stored_dedupe_value
+
+    def _evaluate_value(self, value: DataPacketEvaluationType) -> DetectorPriorityLevel | None:
+        """
+        Evaluate a single data packets value against the detector conditions.
+        It returns the highest breached threshold level, or None if no thresholds are breached.
+        """
+        is_condition_group_met, new_priority = self._evaluation_detector_conditions(value)
+        state = self.state_manager.get_state_data([None])[None]
+
+        is_status_changed = state.status != new_priority
+        if not is_condition_group_met or not is_status_changed:
+            # If the condition is not met or the status is not the same, nothing to do.
+            return None
+
+        updated_threshold_counts = self._increment_detector_thresholds(state, new_priority, None)
+        return self._has_breached_threshold(updated_threshold_counts)
+
+    def _evaluate_group_values(
+        self, data_packet_values: dict[DetectorGroupKey, DataPacketEvaluationType]
+    ) -> dict[DetectorGroupKey, DetectorEvaluationResult] | None:
+        """
+        Evaluates a group of values against the detector conditions.
+        """
+        # This will iterate through all of the groups in the data packet, and call _evaluate_value
+        # for each item in the group
+        for group_key, value in data_packet_values.items():
+            pass
+
+        return None
+
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult] | None:
@@ -440,24 +479,23 @@ class StatefulDetectorHandler(
         """
         detector_result: IssueOccurrence | StatusChangeMessage
 
-        # TODO ensure this is not a duplicate packet or reprocessing
+        if self._is_duplicate_packet(data_packet):
+            return None
 
         value = self.extract_value(data_packet)
-        is_condition_group_met, new_priority = self._evaluation_detector_conditions(value)
-        state = self.state_manager.get_state_data([None])[None]
+        new_priority: DetectorPriorityLevel = DetectorPriorityLevel.OK
 
-        is_status_changed = state.status != new_priority
-        if not is_condition_group_met or not is_status_changed:
-            # If the condition is not met or the status is not the same, nothing to do.
+        if value is None:
+            # No value to evaluate, so nothing to do
             return None
+        elif isinstance(value, dict):
+            new_priority = self._evaluate_group_values(
+                cast(dict[DetectorGroupKey, DataPacketEvaluationType], value)
+            )
+        else:
+            new_priority = self._evaluate_value(cast(DataPacketEvaluationType, value))
 
-        updated_threshold_counts = self._increment_detector_thresholds(state, new_priority, None)
-        highest_breached_threshold = self._has_breached_threshold(updated_threshold_counts)
-        if highest_breached_threshold is None:
-            # We haven't met any of the thresholds yet, so don't trigger
-            return None
-
-        new_priority = highest_breached_threshold
+        is_condition_group_met = new_priority is not None
 
         if new_priority == DetectorPriorityLevel.OK:
             detector_result = self._create_resolve_message()
