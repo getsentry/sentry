@@ -8,6 +8,7 @@ import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   ALLOWED_EXPLORE_VISUALIZE_FIELDS,
+  SPAN_AGGREGATION_FIELDS,
 } from 'sentry/utils/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -150,6 +151,8 @@ export function updateVisualizeAggregate({
   oldAggregate: string;
   oldArgument: string;
 }): string {
+  const functionDefinition = SPAN_AGGREGATION_FIELDS[newAggregate as AggregationKey];
+
   // the default aggregate only has 1 allowed field
   if (newAggregate === DEFAULT_VISUALIZATION_AGGREGATE) {
     return DEFAULT_VISUALIZATION;
@@ -169,7 +172,17 @@ export function updateVisualizeAggregate({
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }
 
-  return `${newAggregate}(${oldArgument})`;
+  let newArgument = oldArgument;
+  if (functionDefinition) {
+    const hasParameters =
+      functionDefinition.parameters && functionDefinition.parameters.length > 0;
+    if (!hasParameters) {
+      newArgument = '';
+    }
+    // TODO: check if old parameter is valid for new function
+  }
+
+  return `${newAggregate}(${newArgument})`;
 }
 
 const FUNCTION_TO_CHART_TYPE: Record<string, ChartType> = {

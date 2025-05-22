@@ -12,7 +12,11 @@ import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import type {AggregationKey} from 'sentry/utils/fields';
+import {
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  SPAN_AGGREGATION_FIELDS,
+} from 'sentry/utils/fields';
 import {
   useExploreVisualizes,
   useSetExploreVisualizes,
@@ -165,7 +169,11 @@ function VisualizeDropdown({
   // We want to lock down the fields dropdown when using count so that we can
   // render `count(spans)` for better legibility. However, for backwards
   // compatibility, we don't want to lock down all `count` queries immediately.
-  const lockOptions = yAxis === DEFAULT_VISUALIZATION;
+  const functionDefinition =
+    SPAN_AGGREGATION_FIELDS[parsedVisualize?.name as AggregationKey];
+  const shouldHaveParameters =
+    functionDefinition?.parameters && functionDefinition.parameters.length > 0;
+  const lockOptions = yAxis === DEFAULT_VISUALIZATION || !shouldHaveParameters;
 
   const countFieldOptions: Array<SelectOption<string>> = useMemo(
     () => [
@@ -183,7 +191,7 @@ function VisualizeDropdown({
   });
   const fieldOptions = lockOptions ? countFieldOptions : defaultFieldOptions;
 
-  const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
+  const aggregateOptions: Array<SelectOption<AggregationKey>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return {
         label: aggregate,
