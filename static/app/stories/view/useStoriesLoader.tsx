@@ -6,10 +6,19 @@ import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
 const context = require.context('sentry', true, /\.stories.tsx$/, 'lazy');
 const mdxContext = require.context('sentry', true, /\.mdx$/, 'lazy');
 
-export interface StoryDescriptor {
+interface MDXStoryDescriptor {
+  exports: {
+    default: React.ComponentType | any;
+  };
+  filename: string;
+}
+
+interface TSStoryDescriptor {
   exports: Record<string, React.ComponentType | any>;
   filename: string;
 }
+
+export type StoryDescriptor = MDXStoryDescriptor | TSStoryDescriptor;
 
 export function useStoryBookFiles() {
   return useMemo(

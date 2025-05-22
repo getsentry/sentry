@@ -1,14 +1,13 @@
 import {useTheme} from '@emotion/react';
 
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import Matrix, {type PropMatrix} from 'sentry/components/stories/matrix';
 import {IconDelete} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/button';
 
-export default storyBook('Button', (story, APIReference) => {
+export default Storybook.story('Button', (story, APIReference) => {
   APIReference(types.Button);
 
   story('Default', () => {
@@ -17,7 +16,7 @@ export default storyBook('Button', (story, APIReference) => {
       ? ['default', 'transparent', 'primary', 'warning', 'danger', 'link']
       : ['default', 'transparent', 'primary', 'link', 'danger'];
 
-    const propMatrix: PropMatrix<ButtonProps> = {
+    const propMatrix: Storybook.PropMatrix<ButtonProps> = {
       children: ['Delete', undefined],
       icon: [undefined, <IconDelete key="delete" />],
       priority: variants as Array<ButtonProps['priority']>,
@@ -28,17 +27,17 @@ export default storyBook('Button', (story, APIReference) => {
 
     return (
       <div>
-        <Matrix<ButtonProps>
+        <Storybook.PropMatrix<ButtonProps>
           render={Button}
           propMatrix={propMatrix}
           selectedProps={['size', 'priority']}
         />
-        <Matrix<ButtonProps>
+        <Storybook.PropMatrix<ButtonProps>
           render={Button}
           propMatrix={propMatrix}
           selectedProps={['children', 'icon']}
         />
-        <Matrix<ButtonProps>
+        <Storybook.PropMatrix<ButtonProps>
           render={Button}
           propMatrix={propMatrix}
           selectedProps={['priority', 'disabled']}
