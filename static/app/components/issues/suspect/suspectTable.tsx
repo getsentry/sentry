@@ -2,18 +2,22 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
 import useSuspectFlagScoreThreshold from 'sentry/components/issues/suspect/useSuspectFlagScoreThreshold';
 import Link from 'sentry/components/links/link';
+import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {IconSentry} from 'sentry/icons/iconSentry';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
@@ -67,13 +71,18 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
     return null;
   }
 
+  const header = (
+    <TagHeader>
+      {t('Suspect Flags')}
+      {debugThresholdInput}
+      <FeedbackButton />
+    </TagHeader>
+  );
+
   if (isPending) {
     return (
       <GradientBox>
-        <TagHeader>
-          {t('Suspect Flags')}
-          {debugThresholdInput}
-        </TagHeader>
+        {header}
         {t('Loading...')}
       </GradientBox>
     );
@@ -82,10 +91,7 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
   if (!susFlags.length) {
     return (
       <GradientBox>
-        <TagHeader>
-          {t('Suspect Flags')}
-          {debugThresholdInput}
-        </TagHeader>
+        {header}
         {t('Nothing suspicious')}
       </GradientBox>
     );
@@ -93,10 +99,7 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
 
   return (
     <GradientBox>
-      <TagHeader>
-        {t('Suspect Flags')}
-        {debugThresholdInput}
-      </TagHeader>
+      {header}
 
       <TagValueGrid>
         {susFlags.map(flag => {
@@ -132,6 +135,30 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
         })}
       </TagValueGrid>
     </GradientBox>
+  );
+}
+
+function FeedbackButton() {
+  const openFeedbackForm = useFeedbackForm();
+  const title = t('Give feedback on Suspect Tags/Flags');
+  const area = useAnalyticsArea();
+
+  return (
+    <Button
+      title={title}
+      aria-label={title}
+      icon={<IconMegaphone />}
+      size="xs"
+      onClick={() =>
+        openFeedbackForm?.({
+          messagePlaceholder: t('How can we make Suspect Tags and Flags better for you?'),
+          tags: {
+            ['feedback.source']: area,
+            ['feedback.owner']: 'replay',
+          },
+        })
+      }
+    />
   );
 }
 
