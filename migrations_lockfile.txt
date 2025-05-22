@@ -21,7 +21,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 replays: 0001_squashed_0005_drop_replay_index
 
-sentry: 0911_split_discover_dataset_dashboards_self_hosted
+sentry: 0912_split_discover_dataset_dashboards_self_hosted
 
 social_auth: 0001_squashed_0002_default_auto_field
 
