@@ -126,6 +126,10 @@
   "ts-node": {
     "transpileOnly": true,
     "compilerOptions": {
+      // TODO: We should be able to use "node16" on next major version of jest
+      // https://github.com/jestjs/jest/pull/14739
+      "module": "commonjs",
+      // TODO: node10 will be deprecated in typescript 6.0
       "moduleResolution": "node10"
     }
   }
