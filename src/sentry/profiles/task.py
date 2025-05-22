@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import io
+import logging
+import zlib
 from base64 import b64decode, b64encode
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -86,8 +88,23 @@ profile_chunks_producer = SingletonProducer(
     max_futures=settings.SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT,
 )
 
+logger = logging.getLogger(__name__)
 
-def decode_payload(encoded: str) -> dict[str, Any]:
+
+def decode_payload(encoded: str, compressed_profile: bool) -> dict[str, Any]:
+    if compressed_profile:
+        try:
+            res = msgpack.unpackb(
+                zlib.decompress(b64decode(encoded.encode("utf-8"))), use_list=False
+            )
+            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "ok"})
+            return res
+        except Exception as e:
+            logger.exception("Failed to decompress compressed profile", extra={"error": e})
+            metrics.incr("profiling.profile_metrics.decompress", tags={"status": "err"})
+            raise
+
+    # not compressed
     return msgpack.unpackb(b64decode(encoded.encode("utf-8")), use_list=False)
 
 
@@ -117,18 +134,16 @@ def encode_payload(message: dict[str, Any]) -> str:
 )
 def process_profile_task(
     profile: Profile | None = None,
-    payload: str | bytes | None = None,
+    payload: str | None = None,
     sampled: bool = True,
+    compressed_profile: bool = False,
     **kwargs: Any,
 ) -> None:
     if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
         return
 
     if payload:
-        if isinstance(payload, str):  # It's been b64encoded for taskworker
-            message_dict = decode_payload(payload)
-        else:
-            message_dict = msgpack.unpackb(payload, use_list=False)
+        message_dict = decode_payload(payload, compressed_profile)
 
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
