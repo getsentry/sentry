@@ -95,11 +95,9 @@ function GroupCheckbox({
   const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
   const isSelected = selectedGroupMap.get(group.id) ?? false;
 
-  const onChange = useCallback(
-    (evt: React.ChangeEvent<HTMLInputElement>) => {
-      const mouseEvent = evt.nativeEvent as MouseEvent;
-
-      if (mouseEvent.shiftKey) {
+  const handleToggle = useCallback(
+    (isShiftClick: boolean) => {
+      if (isShiftClick) {
         SelectedGroupStore.shiftToggleItems(group.id);
       } else {
         SelectedGroupStore.toggleSelect(group.id);
@@ -108,13 +106,26 @@ function GroupCheckbox({
     [group.id]
   );
 
+  const onChange = useCallback(
+    (evt: React.ChangeEvent<HTMLInputElement>) => {
+      const mouseEvent = evt.nativeEvent as MouseEvent;
+      handleToggle(mouseEvent.shiftKey);
+    },
+    [handleToggle]
+  );
+
   return (
     <GroupCheckBoxWrapper>
-      {group.hasSeen ? (
-        <UnreadIndicatorPlaceholder />
-      ) : (
+      {group.hasSeen && (
         <Tooltip title={t('Unread')} skipWrapper>
-          <UnreadIndicator data-test-id="unread-issue-indicator" />
+          <UnreadIndicator
+            data-test-id="unread-issue-indicator"
+            onClick={(e: React.MouseEvent) => {
+              // Toggle checkbox on unread indicator misclick
+              e.stopPropagation();
+              handleToggle(e.shiftKey);
+            }}
+          />
         </Tooltip>
       )}
       <CheckboxLabel>
@@ -647,11 +658,15 @@ function StreamGroup({
 export default StreamGroup;
 
 const CheckboxLabel = styled('label')`
+  position: absolute;
+  top: -1px;
+  left: 0;
+  bottom: 0;
   height: 100%;
   width: 32px;
-  padding-top: ${space(0.75)};
   padding-left: ${space(2)};
   margin: 0;
+  margin-top: -1px;
   display: flex;
   align-items: center;
 `;
@@ -661,14 +676,9 @@ const UnreadIndicator = styled('div')`
   height: 8px;
   background-color: ${p => p.theme.purple400};
   border-radius: 50%;
-  margin-top: ${space(0.25)};
+  margin-top: 1px;
   margin-left: ${space(2)};
-`;
-
-const UnreadIndicatorPlaceholder = styled('div')`
-  width: 8px;
-  height: 8px;
-  margin-left: ${space(3)};
+  z-index: 1;
 `;
 
 // Position for wrapper is relative for overlay actions
