@@ -64,7 +64,7 @@ class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
         seasonality = comparison["seasonality"]
         threshold_type = comparison["threshold_type"]
 
-        subscription: QuerySubscription = QuerySubscription.objects.get(id=update.source_id)
+        subscription: QuerySubscription = QuerySubscription.objects.get(id=int(update.source_id))
 
         subscription_update = update.packet
 
