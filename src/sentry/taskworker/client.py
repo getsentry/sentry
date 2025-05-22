@@ -166,6 +166,8 @@ class TaskworkerClient:
                 "taskworker.client.rpc_error", tags={"method": "GetTask", "status": err.code().name}
             )
             if err.code() == grpc.StatusCode.NOT_FOUND:
+                # Because our current broker doesn't have any tasks, try rebalancing.
+                self._num_tasks_before_rebalance = 0
                 return None
             raise
         if response.HasField("task"):
@@ -207,6 +209,8 @@ class TaskworkerClient:
                 tags={"method": "SetTaskStatus", "status": err.code().name},
             )
             if err.code() == grpc.StatusCode.NOT_FOUND:
+                # The current broker is empty, switch.
+                self._num_tasks_before_rebalance = 0
                 return None
             raise
         if response.HasField("task"):
