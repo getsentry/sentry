@@ -1,4 +1,5 @@
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -7,6 +8,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   SpanIndexedFieldTypes,
   SpanIndexedProperty,
@@ -141,6 +143,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
             SpanIndexedField.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
             ...additionalFields,
           ],
+          dataset: useInsightsEap() ? DiscoverDatasets.SPANS_EAP : undefined,
           sort: `-${SPAN_SELF_TIME}`,
         },
       },
