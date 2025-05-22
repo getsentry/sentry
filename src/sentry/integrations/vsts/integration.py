@@ -33,6 +33,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineHaltReason,
     IntegrationPipelineViewEvent,
@@ -75,7 +76,7 @@ FEATURES = [
         """
         Create and link Sentry issue groups directly to a Azure DevOps work item in any of
         your projects, providing a quick way to jump from Sentry bug to tracked
-        work item!
+        work item.
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
@@ -398,7 +399,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
 
 class VstsIntegrationProvider(IntegrationProvider):
-    key = "vsts"
+    key = IntegrationProviderSlug.AZURE_DEVOPS.value
     name = "Azure DevOps"
     metadata = metadata
     api_version = "4.1"
@@ -531,10 +532,6 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "secret": subscription_secret,
                 }
 
-                integration["metadata"][
-                    "integration_migration_version"
-                ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
-
                 logger.info(
                     "vsts.build_integration.migrated",
                     extra={
@@ -572,13 +569,6 @@ class VstsIntegrationProvider(IntegrationProvider):
         # Assertion error happens when org_integration does not exist
         # KeyError happens when subscription is not found
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
-            if features.has(
-                "organizations:migrate-azure-devops-integration", self.pipeline.organization
-            ):
-                # If there is a new integration, we need to set the migration version to 1
-                integration["metadata"][
-                    "integration_migration_version"
-                ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
 
             logger.warning(
                 "vsts.build_integration.error",
@@ -599,6 +589,17 @@ class VstsIntegrationProvider(IntegrationProvider):
                 "id": subscription_id,
                 "secret": subscription_secret,
             }
+
+        # Ensure integration_migration_version is set if the feature flag is active.
+        # This guarantees that if the new scopes are in use (due to the flag),
+        # the metadata correctly reflects the current migration version, even if
+        # the integration was already considered "up-to-date" based on DB records.
+        if features.has(
+            "organizations:migrate-azure-devops-integration", self.pipeline.organization
+        ):
+            integration["metadata"][
+                "integration_migration_version"
+            ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
 
         return integration
 

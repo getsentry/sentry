@@ -7,6 +7,7 @@ import type {
   DevServer,
   OptimizationSplitChunksCacheGroup,
   RspackPluginInstance,
+  RuleSetRule,
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
@@ -170,6 +171,35 @@ for (const locale of supportedLocales) {
   };
 }
 
+const swcReactLoaderConfig: RuleSetRule['options'] = {
+  jsc: {
+    experimental: {
+      plugins: [
+        [
+          '@swc/plugin-emotion',
+          {
+            sourceMap: true,
+            // The "dev-only" option does not seem to apply correctly
+            autoLabel: DEV_MODE ? 'always' : 'never',
+          },
+        ],
+      ],
+    },
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+    },
+    transform: {
+      react: {
+        runtime: 'automatic',
+        development: DEV_MODE,
+        refresh: DEV_MODE,
+        importSource: '@emotion/react',
+      },
+    },
+  },
+};
+
 /**
  * Main Webpack config for Sentry React SPA.
  */
@@ -217,34 +247,19 @@ const appConfig: Configuration = {
         test: /\.(js|jsx|ts|tsx)$/,
         exclude: /\/node_modules\//,
         loader: 'builtin:swc-loader',
-        options: {
-          jsc: {
-            experimental: {
-              plugins: [
-                [
-                  '@swc/plugin-emotion',
-                  {
-                    sourceMap: true,
-                    // The "dev-only" option does not seem to apply correctly
-                    autoLabel: DEV_MODE ? 'always' : 'never',
-                  },
-                ],
-              ],
-            },
-            parser: {
-              syntax: 'typescript',
-              tsx: true,
-            },
-            transform: {
-              react: {
-                runtime: 'automatic',
-                development: DEV_MODE,
-                refresh: DEV_MODE,
-                importSource: '@emotion/react',
-              },
-            },
+        options: swcReactLoaderConfig,
+      },
+      {
+        test: /\.mdx?$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: swcReactLoaderConfig,
           },
-        },
+          {
+            loader: '@mdx-js/loader',
+          },
+        ],
       },
       {
         test: /\.po$/,
@@ -753,7 +768,7 @@ if (env.WEBPACK_CACHE_PATH) {
     // https://rspack.dev/config/experiments#cachestorage
     storage: {
       type: 'filesystem',
-      directory: env.WEBPACK_CACHE_PATH,
+      directory: path.join(__dirname, env.WEBPACK_CACHE_PATH),
     },
   };
 }

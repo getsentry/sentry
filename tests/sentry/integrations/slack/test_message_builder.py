@@ -941,7 +941,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         }
 
     @override_options({"alerts.issue_summary_timeout": 5})
-    @with_feature({"organizations:gen-ai-features", "projects:trigger-issue-summary-on-alerts"})
+    @with_feature(
+        {"organizations:gen-ai-features", "organizations:trigger-autofix-on-issue-summary"}
+    )
     @patch(
         "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
         return_value=True,
@@ -1045,7 +1047,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
 
     @override_options({"alerts.issue_summary_timeout": 5})
-    @with_feature({"organizations:gen-ai-features", "projects:trigger-issue-summary-on-alerts"})
+    @with_feature(
+        {"organizations:gen-ai-features", "organizations:trigger-autofix-on-issue-summary"}
+    )
     @patch(
         "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
         return_value=True,
@@ -1193,7 +1197,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary",
         return_value=(None, 403),
     )
-    @with_feature({"organizations:gen-ai-features", "projects:trigger-issue-summary-on-alerts"})
+    @with_feature(
+        {"organizations:gen-ai-features", "organizations:trigger-autofix-on-issue-summary"}
+    )
     def test_build_group_block_with_ai_summary_without_org_acknowledgement(
         self, mock_get_issue_summary, mock_get_seer_org_acknowledgement
     ):

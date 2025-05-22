@@ -7,8 +7,12 @@ from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Cast, Coalesce
 from django.utils import timezone
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.exceptions import NotRegistered
+from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.manager import default_manager as integrations_manager
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
@@ -45,7 +49,7 @@ def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action
                     "action__dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__config"
                 ),
             ),
-            Value("30"),  # default 30
+            Value("0"),  # default 0
         ),
         output_field=IntegerField(),
     )
@@ -83,8 +87,6 @@ def create_workflow_fire_histories(
             workflow_id=workflow_id,
             group=event_data.event.group,
             event_id=event_data.event.event_id,
-            has_passed_filters=True,
-            has_fired_actions=True,
         )
         for workflow_id in workflow_ids
     ]
@@ -190,3 +192,45 @@ def get_integration_services(organization_id: int) -> dict[int, list[tuple[int, 
             )
 
     return services
+
+
+def _get_integration_features(action_type: Action.Type) -> frozenset[IntegrationFeatures]:
+    """
+    Get the IntegrationFeatures for an integration-based action type.
+    """
+    assert action_type.is_integration()
+    integration_key = action_type.value  # action types should be match integration keys.
+    try:
+        integration = integrations_manager.get(integration_key)
+    except NotRegistered:
+        raise ValueError(f"No integration found for action type: {action_type}")
+    return integration.features
+
+
+# The features that are relevent to Action behaviors;
+# if the organization doesn't have access to all of the features an integration
+# requires that are in this list, the action should not be permitted.
+_ACTION_RELEVANT_INTEGRATION_FEATURES = {
+    IntegrationFeatures.ISSUE_BASIC,
+    IntegrationFeatures.ISSUE_SYNC,
+    IntegrationFeatures.TICKET_RULES,
+    IntegrationFeatures.ALERT_RULE,
+    IntegrationFeatures.ENTERPRISE_ALERT_RULE,
+    IntegrationFeatures.ENTERPRISE_INCIDENT_MANAGEMENT,
+    IntegrationFeatures.INCIDENT_MANAGEMENT,
+}
+
+
+def is_action_permitted(action_type: Action.Type, organization: Organization) -> bool:
+    """
+    Check if an action type is permitted for an organization.
+    """
+    if not action_type.is_integration():
+        return True
+    integration_features = _get_integration_features(action_type)
+    required_org_features = integration_features.intersection(_ACTION_RELEVANT_INTEGRATION_FEATURES)
+    feature_names = [
+        f"organizations:integrations-{integration_feature}"
+        for integration_feature in required_org_features
+    ]
+    return all(features.has(feature_name, organization) for feature_name in feature_names)

@@ -1,13 +1,16 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.integrations.base import IntegrationFeatures
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 from sentry.workflow_engine.processors.action import (
     create_workflow_fire_histories,
     filter_recently_fired_workflow_actions,
+    is_action_permitted,
 )
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -93,8 +96,46 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
-                has_passed_filters=True,
-                has_fired_actions=True,
             ).count()
             == 1
         )
+
+
+class TestIsActionPermitted(BaseWorkflowTest):
+    @patch("sentry.workflow_engine.processors.action._get_integration_features")
+    def test_basic(self, mock_get_features):
+        org = self.create_organization()
+
+        # Test non-integration actions (should always be permitted)
+        assert is_action_permitted(Action.Type.EMAIL, org)
+        assert is_action_permitted(Action.Type.SENTRY_APP, org)
+
+        # Single rule.
+        mock_get_features.return_value = {IntegrationFeatures.ALERT_RULE}
+        with self.feature({"organizations:integrations-alert-rule": False}):
+            assert not is_action_permitted(Action.Type.SLACK, org)
+
+        with self.feature("organizations:integrations-alert-rule"):
+            assert is_action_permitted(Action.Type.SLACK, org)
+
+        # Multiple required features.
+        mock_get_features.return_value = {
+            IntegrationFeatures.ALERT_RULE,
+            IntegrationFeatures.ISSUE_BASIC,
+        }
+        with self.feature(
+            {
+                "organizations:integrations-alert-rule": True,
+                "organizations:integrations-issue-basic": False,
+            }
+        ):
+            assert not is_action_permitted(Action.Type.JIRA, org)
+
+        # Both need to be enabled for permission.
+        with self.feature(
+            {
+                "organizations:integrations-alert-rule": True,
+                "organizations:integrations-issue-basic": True,
+            }
+        ):
+            assert is_action_permitted(Action.Type.JIRA, org)

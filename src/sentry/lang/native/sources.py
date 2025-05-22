@@ -15,7 +15,7 @@ from cachetools.func import ttl_cache
 from django.conf import settings
 from django.urls import reverse
 from google.auth import impersonated_credentials
-from google.auth.transport import Request
+from google.auth.transport.requests import Request
 from rediscluster import RedisCluster
 
 from sentry import features, options
@@ -616,7 +616,7 @@ def get_gcp_token(client_email):
     # Fetch the regular credentials for GCP
     source_credentials, _ = google.auth.default()
 
-    if source_credentials.token is None:
+    if source_credentials is None:
         return None
 
     # Impersonate the service account to give the token for symbolicator a proper scope
