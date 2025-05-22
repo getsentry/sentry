@@ -835,7 +835,6 @@ class OAuthLoginView(PipelineView):
             if self.active_user_organization is not None and features.has(
                 "organizations:github-multi-org",
                 organization=self.active_user_organization.organization,
-                actor=request.user,
             ):
                 owner_orgs = self._get_owner_github_organizations()
 
@@ -892,7 +891,6 @@ class GithubOrganizationSelection(PipelineView):
             features.has(
                 "organizations:integrations-scm-multi-org",
                 organization=self.active_user_organization.organization,
-                actor=request.user,
             )
             if self.active_user_organization is not None
             else False
@@ -901,7 +899,6 @@ class GithubOrganizationSelection(PipelineView):
         if self.active_user_organization is None or not features.has(
             "organizations:github-multi-org",
             organization=self.active_user_organization.organization,
-            actor=request.user,
         ):
             return pipeline.next_step()
 
@@ -1000,7 +997,6 @@ class GitHubInstallation(PipelineView):
                 if features.has(
                     "organizations:github-multi-org",
                     organization=self.active_user_organization.organization,
-                    actor=request.user,
                 ):
                     try:
                         integration = Integration.objects.get(
