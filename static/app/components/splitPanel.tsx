@@ -5,13 +5,11 @@ import {IconGrabbable} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
-type DividerProps = {
+interface DividerProps extends React.DOMAttributes<HTMLDivElement> {
   'data-is-held': boolean;
   'data-slide-direction': 'leftright' | 'updown';
-  onDoubleClick: React.MouseEventHandler<HTMLElement>;
-  onMouseDown: React.MouseEventHandler<HTMLElement>;
   icon?: React.ReactNode;
-} & React.DOMAttributes<HTMLDivElement>;
+}
 
 const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   <div {...props}>{icon || <IconGrabbable size="sm" />}</div>
@@ -105,38 +103,38 @@ function SplitPanel(props: SplitPanelProps) {
     onResize,
     sizeStorageKey,
   } = props;
-  const isLeftRight = 'left' in props;
-  const min = isLeftRight ? props.left.min : props.top.min;
-  const max = isLeftRight ? props.left.max : props.top.max;
+  const isLeft = 'left' in props;
+  const min = isLeft ? props.left.min : props.top.min;
+  const max = isLeft ? props.left.max : props.top.max;
 
   const initialSize = useMemo(() => {
     const storedSize = sizeStorageKey
       ? parseInt(localStorage.getItem(sizeStorageKey) ?? '', 10)
       : undefined;
-    return storedSize ?? (isLeftRight ? props.left.default : props.top.default);
-  }, [sizeStorageKey, props, isLeftRight]);
+    return storedSize ?? (isLeft ? props.left.default : props.top.default);
+  }, [sizeStorageKey, props, isLeft]);
 
   const [containerSize, setContainerSize] = useState(initialSize);
 
-  const {isHeld, onMouseDown: onDragStart} = useResizableDrawer({
-    direction: isLeftRight ? 'left' : 'down',
-    initialSize,
-    min,
-    onResize: (size: number) => {
-      setContainerSize(size);
-      onResize?.(size);
+  const {resizing, resizeHandleProps, resizedElementProps} = useResizableDrawer({
+    direction: isLeft ? 'left' : 'down',
+    initialSize: isLeft ? {width: initialSize} : {height: initialSize},
+    min: isLeft ? {width: min} : {height: min},
+    onResize: options => {
+      setContainerSize(options.size);
+      onResize?.(options.size);
+      return options.size;
     },
-    sizeStorageKey,
   });
 
   const sizePct = `${(Math.min(containerSize, max) / availableSize) * 100}%` as const;
 
-  const handleMouseDown = useCallback(
+  const handlePointerDown = useCallback(
     (event: any) => {
       onMouseDown?.(sizePct);
-      onDragStart(event);
+      resizeHandleProps.onPointerDown(event);
     },
-    [onDragStart, sizePct, onMouseDown]
+    [onMouseDown, sizePct, resizeHandleProps]
   );
 
   const isMaximized = containerSize >= max;
@@ -157,45 +155,44 @@ function SplitPanel(props: SplitPanelProps) {
     setContainerSize(initialSize);
   }, [initialSize]);
 
-  if (isLeftRight) {
-    const {left: a, right: b} = props;
-
+  if (isLeft) {
     return (
       <SplitPanelContext value={contextValue}>
         <SplitPanelContainer
-          className={isHeld ? 'disable-iframe-pointer' : undefined}
+          ref={resizedElementProps.ref}
+          className={resizing ? 'disable-iframe-pointer' : undefined}
           orientation="columns"
           size={sizePct}
         >
-          <Panel>{a.content}</Panel>
+          <Panel>{props.left.content}</Panel>
           <SplitDivider
-            data-is-held={isHeld}
+            data-is-held={resizing}
             data-slide-direction="leftright"
             onDoubleClick={onDoubleClick}
-            onMouseDown={handleMouseDown}
+            onMouseDown={handlePointerDown}
           />
-          <Panel>{b}</Panel>
+          <Panel>{props.right}</Panel>
         </SplitPanelContainer>
       </SplitPanelContext>
     );
   }
 
-  const {top: a, bottom: b} = props;
   return (
     <SplitPanelContext value={contextValue}>
       <SplitPanelContainer
+        ref={resizedElementProps.ref}
         orientation="rows"
         size={sizePct}
-        className={isHeld ? 'disable-iframe-pointer' : undefined}
+        className={resizing ? 'disable-iframe-pointer' : undefined}
       >
-        <Panel>{a.content}</Panel>
+        <Panel>{props.top.content}</Panel>
         <SplitDivider
-          data-is-held={isHeld}
+          data-is-held={resizing}
           data-slide-direction="updown"
           onDoubleClick={onDoubleClick}
-          onMouseDown={handleMouseDown}
+          onPointerDown={handlePointerDown}
         />
-        <Panel>{b}</Panel>
+        <Panel>{props.bottom}</Panel>
       </SplitPanelContainer>
     </SplitPanelContext>
   );

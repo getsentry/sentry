@@ -158,11 +158,14 @@ function Breadcrumbs({
   }, []);
 
   const [size, setSize] = useState(PANEL_INITIAL_HEIGHT);
-  const {isHeld, onMouseDown} = useResizableDrawer({
+  const {resizing, resizeHandleProps} = useResizableDrawer({
     direction: 'down',
-    onResize: s => setSize(s),
-    initialSize: PANEL_INITIAL_HEIGHT,
-    min: PANEL_MIN_HEIGHT,
+    initialSize: {height: PANEL_INITIAL_HEIGHT},
+    min: {height: PANEL_MIN_HEIGHT},
+    onResize: options => {
+      setSize(options.size);
+      return options.size;
+    },
   });
 
   const onDoubleClick = useCallback(() => {
@@ -225,9 +228,9 @@ function Breadcrumbs({
         </AutoSizer>
       </StyledBreadcrumbPanelTable>
       <PanelDragHandle
-        onMouseDown={onMouseDown}
+        onPointerDown={resizeHandleProps.onPointerDown}
         onDoubleClick={onDoubleClick}
-        className={isHeld ? 'is-held' : undefined}
+        className={resizing ? 'is-held' : undefined}
       />
     </Fragment>
   );

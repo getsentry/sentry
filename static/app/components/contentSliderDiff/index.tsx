@@ -60,28 +60,19 @@ interface SideProps extends Pick<Props, 'onDragHandleMouseDown' | 'before' | 'af
 }
 
 function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps) {
-  const beforeElemRef = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
   const width = toPixels(viewDimensions.width);
 
-  const {onMouseDown} = useResizableDrawer({
-    direction: 'left',
-    initialSize: viewDimensions.width / 2,
-    min: 0,
-    onResize: newSize => {
+  const {resizeHandleProps, resizedElementProps} = useResizableDrawer({
+    direction: 'right',
+    initialSize: {width: viewDimensions.width / 2},
+    min: {width: 100},
+    onResize: options => {
       const maxWidth = viewDimensions.width - BORDER_WIDTH;
-      const clampedSize = Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize));
+      const clampedSize = Math.max(BORDER_WIDTH, Math.min(maxWidth, options.size));
 
-      if (beforeElemRef.current) {
-        beforeElemRef.current.style.width =
-          viewDimensions.width === 0
-            ? '100%'
-            : (toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))) ?? '0px');
-      }
       if (dividerElem.current) {
-        const adjustedLeft = `${clampedSize - 6}px`;
-        dividerElem.current.style.left = adjustedLeft;
-
+        dividerElem.current.style.left = `${clampedSize - 6}px`;
         dividerElem.current.setAttribute(
           'data-at-min-width',
           String(clampedSize === maxWidth)
@@ -91,6 +82,10 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
           String(clampedSize === BORDER_WIDTH)
         );
       }
+
+      return viewDimensions.width === 0
+        ? '100%'
+        : (toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, options.size))) ?? '0px');
     },
   });
 
@@ -101,7 +96,7 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
           <FullHeightContainer>{after}</FullHeightContainer>
         </Placement>
       </Cover>
-      <Cover ref={beforeElemRef} data-test-id="before-content">
+      <Cover ref={resizedElementProps.ref} data-test-id="before-content">
         <Placement style={{width}}>
           <FullHeightContainer>{before}</FullHeightContainer>
         </Placement>
@@ -109,9 +104,9 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
       <DragHandle
         data-test-id="drag-handle"
         ref={dividerElem}
-        onMouseDown={event => {
+        onPointerDown={event => {
           onDragHandleMouseDown?.(event);
-          onMouseDown(event);
+          resizeHandleProps.onPointerDown(event);
         }}
       >
         <DragIndicator>
