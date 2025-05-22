@@ -608,19 +608,11 @@ function LoadingScreen({
     <StyledTransparentLoadingMask visible={loading}>
       <LoadingIndicator mini />
       {showLoadingText && (
-        <LoadingText id="loading-text">
-          {t('Turning data into pixels - almost ready')}
-        </LoadingText>
+        <p id="loading-text">{t('Turning data into pixels - almost ready')}</p>
       )}
     </StyledTransparentLoadingMask>
   );
 }
-
-const LoadingText = styled('p')`
-  text-align: center;
-  position: relative;
-  z-index: 500000;
-`;
 
 const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
   <Placeholder height="200px" className={className} />
