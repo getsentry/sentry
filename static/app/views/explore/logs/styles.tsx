@@ -4,12 +4,10 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/gridEditable/styles';
 import {HighlightComponent} from 'sentry/components/highlight';
-import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import {unreachable} from 'sentry/utils/unreachable';
-import {SchemaHintsSection} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {
   TableBody,
   TableBodyCell,
@@ -20,13 +18,13 @@ import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
 export const LOGS_GRID_BODY_ROW_HEIGHT = GRID_BODY_ROW_HEIGHT - 16;
 
-export const StyledPanel = styled(Panel)`
-  margin-bottom: 0;
-`;
-
 interface LogTableRowProps {
   isClickable?: boolean;
 }
+
+const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
+`;
 
 export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   &:not(thead > &) {
@@ -125,11 +123,6 @@ export const StyledChevronButton = styled(Button)`
   margin-right: ${space(0.5)};
 `;
 
-export const FloatingTableContainer = styled('div')`
-  position: absolute;
-  justify-self: center;
-`;
-
 const DEFAULT_SIZE = '8px';
 
 export const ColoredLogCircle = styled('span')<{
@@ -202,28 +195,11 @@ export const FilterBarContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-export const LogsTableContainer = styled(Layout.Main)`
-  margin-top: ${space(1)};
-`;
-
 export const TableActionsContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
   justify-content: flex-end;
   align-items: center;
-`;
-
-export const LogsSchemaHintsSection = styled(SchemaHintsSection)`
-  display: grid;
-  /* This is to ensure the hints section spans all the columns */
-  grid-column: 1/-1;
-  margin-bottom: ${space(1)};
-  height: fit-content;
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 1fr;
-    margin-bottom: ${space(1)};
-  }
 `;
 
 export const LogsItemContainer = styled('div')`
