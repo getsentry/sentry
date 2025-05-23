@@ -984,7 +984,7 @@ export default typescript.config([
       boundaries,
     },
     settings: {
-      // order matters here in case of nested directories
+      // order matters here because of nested directories
       'boundaries/elements': [
         // --- stories ---
         {
@@ -995,6 +995,33 @@ export default typescript.config([
         {
           type: 'story-book',
           pattern: 'static/app/stories',
+        },
+        // --- tests ---
+        {
+          type: 'test-sentry',
+          pattern: [
+            'static/app/**/*.spec.{ts,js,tsx,jsx}',
+            'tests/js/sentry-test/**/*.*',
+            'static/app/**/*{t,T}estUtils*.{js,mjs,ts,tsx}',
+          ],
+          mode: 'full',
+        },
+        {
+          type: 'test-getsentry',
+          pattern: [
+            'static/gsApp/**/*.spec.{ts,js,tsx,jsx}',
+            'tests/js/getsentry-test/**/*.*',
+          ],
+          mode: 'full',
+        },
+        {
+          type: 'test-gsAdmin',
+          pattern: ['static/gsAdmin/**/*.spec.{ts,js,tsx,jsx}'],
+          mode: 'full',
+        },
+        {
+          type: 'test',
+          pattern: 'tests/js',
         },
         // --- specifics ---
         {
@@ -1045,19 +1072,6 @@ export default typescript.config([
           type: 'gsAdmin',
           pattern: 'static/gsAdmin',
         },
-        // --- tests ---
-        {
-          type: 'sentry-test',
-          pattern: 'tests/js/sentry-test',
-        },
-        {
-          type: 'getsentry-test',
-          pattern: 'tests/js/getsentry-test',
-        },
-        {
-          type: 'tests',
-          pattern: 'tests/js',
-        },
         // --- configs ---
         {
           type: 'configs',
@@ -1089,10 +1103,6 @@ export default typescript.config([
               allow: ['core*', 'sentry*'],
             },
             {
-              from: ['sentry-test'],
-              allow: ['tests'],
-            },
-            {
               from: ['getsentry*'],
               allow: ['core*', 'getsentry*', 'sentry*'],
             },
@@ -1106,20 +1116,51 @@ export default typescript.config([
               allow: ['devtoolbar', 'sentry*'],
             },
             {
-              from: ['core-button'],
-              allow: ['core*'],
+              from: ['test-sentry'],
+              allow: ['test-sentry', 'test', 'core*', 'sentry*'],
             },
             {
-              from: ['tests'],
-              allow: ['sentry*'],
+              // todo does test-gesentry need test-sentry?
+              from: ['test-getsentry'],
+              allow: [
+                'test-getsentry',
+                'test-sentry',
+                'test',
+                'core*',
+                'getsentry*',
+                'sentry*',
+              ],
+            },
+            {
+              from: ['test-gsAdmin'],
+              allow: [
+                'test-gsAdmin',
+                'test-getsentry',
+                'test-sentry',
+                'test',
+                'core*',
+                'gsAdmin*',
+                'sentry*',
+                'getsentry*',
+              ],
+            },
+            {
+              from: ['test'],
+              allow: ['test', 'test-sentry', 'sentry*'],
             },
             {
               from: ['configs'],
               allow: ['configs', 'build-utils'],
             },
+            // --- stories ---
             {
               from: ['story-files', 'story-book'],
               allow: ['core*', 'sentry*', 'story-book'],
+            },
+            // --- core ---
+            {
+              from: ['core-button'],
+              allow: ['core*'],
             },
             // todo: sentry* shouldn't be allowed
             {
