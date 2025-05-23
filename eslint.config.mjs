@@ -1118,7 +1118,7 @@ export default typescript.config([
               allow: ['configs', 'build-utils'],
             },
             {
-              from: ['story-files'],
+              from: ['story-files', 'story-book'],
               allow: ['core*', 'sentry*', 'story-book'],
             },
             // todo: sentry* shouldn't be allowed
