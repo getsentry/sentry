@@ -38,6 +38,7 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
+import SeerSearchBar from 'sentry/views/explore/components/seerSearchBar';
 import {
   useExploreFields,
   useExploreId,
@@ -104,11 +105,16 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
 
   const organization = useOrganization();
   const [controlSectionExpanded, setControlSectionExpanded] = useState(true);
+  const [seerMode, setSeerMode] = useState(false);
 
   return (
     <Fragment>
       <BodySearch>
-        <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
+        <SpanTabSearchSection
+          datePageFilterProps={datePageFilterProps}
+          seerMode={seerMode}
+          setSeerMode={setSeerMode}
+        />
       </BodySearch>
       <BodyContent>
         <SpanTabControlSection
@@ -137,9 +143,28 @@ function useVisitExplore() {
 
 interface SpanTabSearchSectionProps {
   datePageFilterProps: PickableDays;
+  seerMode: boolean;
+  setSeerMode: (val: boolean) => void;
 }
 
-function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
+function FilterKeyListBoxCustomMenuWrapper(props: any) {
+  const {
+    useFilterKeyListBox,
+  } = require('sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox');
+  const {seerMode, setSeerMode, filterValue} = props;
+  const {customMenu} = useFilterKeyListBox({
+    filterValue,
+    seerMode,
+    setSeerMode,
+  });
+  return customMenu(props);
+}
+
+function SpanTabSearchSection({
+  datePageFilterProps,
+  seerMode,
+  setSeerMode,
+}: SpanTabSearchSectionProps) {
   const mode = useExploreMode();
   const fields = useExploreFields();
   const query = useExploreQuery();
@@ -185,8 +210,25 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
       numberTags,
       stringTags,
+      customMenu: (props: any) => (
+        <FilterKeyListBoxCustomMenuWrapper
+          {...props}
+          seerMode={seerMode}
+          setSeerMode={setSeerMode}
+        />
+      ),
     }),
-    [fields, mode, query, setExplorePageParams, numberTags, stringTags, oldSearch]
+    [
+      fields,
+      mode,
+      query,
+      setExplorePageParams,
+      numberTags,
+      stringTags,
+      oldSearch,
+      seerMode,
+      setSeerMode,
+    ]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
@@ -201,7 +243,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
           id={ExploreSpansTour.SEARCH_BAR}
           title={t('Start Your Search')}
           description={t(
-            'Specify the keys you’d like to narrow your search down to (ex. span.operation) and then any values (ex. db, res, http, etc.).'
+            "Specify the keys you'd like to narrow your search down to (ex. span.operation) and then any values (ex. db, res, http, etc.)."
           )}
           position="bottom"
           margin={-8}
@@ -212,7 +254,11 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
               <EnvironmentPageFilter />
               <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
-            <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
+            {seerMode ? (
+              <SeerSearchBar />
+            ) : (
+              <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
+            )}
           </FilterSection>
           <StyledSchemaHintsSection>
             <SchemaHintsList

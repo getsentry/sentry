@@ -158,7 +158,15 @@ function useFilterKeySections({
 
   return {sections, selectedSection, setSelectedSection};
 }
-export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
+export function useFilterKeyListBox({
+  filterValue,
+  seerMode,
+  setSeerMode,
+}: {
+  filterValue: string;
+  seerMode: boolean;
+  setSeerMode: (val: boolean) => void;
+}) {
   const {filterKeys, getFieldDefinition} = useSearchQueryBuilder();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
@@ -210,6 +218,8 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
         setSelectedSection={setSelectedSection}
         sections={sections}
         recentFilters={recentFilters}
+        seerMode={seerMode}
+        setSeerMode={setSeerMode}
       />
     );
   };
