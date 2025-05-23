@@ -1,0 +1,69 @@
+import { useState } from 'react';
+import { useResizableDrawer } from './useResizableDrawer';
+
+## useResizableDrawer
+
+Use this hook to create a resizable drawer.
+
+```
+function App() {
+  const { isHeld, onMouseDown } = useResizableDrawer({
+    direction: 'right',
+  });
+
+  return (
+    <div>
+      <div onMouseDown={onMouseDown}>Resize</div>
+    </div>
+  );
+}
+```
+
+## Resizing Width
+
+export function Demo() {
+  const [size, setSize] = useState(200);
+  const { resizeHandleProps, resize } = useResizableDrawer({
+    direction: 'right',
+    initialSize: {width: 200, height: 200},
+  });
+
+
+  return (
+    <div>
+      <div
+        {...resizeHandleProps}
+        style={{ padding: '10px', border: '1px solid #ccc', width: size }}
+      >
+        Resize
+      </div>
+    </div>
+  );
+}
+
+<Demo />
+
+## Resizing Height
+
+export function DemoHeight() {
+  const [size, setSize] = useState(200);
+  const { resizeHandleProps } = useResizableDrawer({
+    direction: 'down',
+    initialSize: {width: 200, height: 200},
+  });
+
+  return (
+    <div>
+      <div
+        {...resizeHandleProps}
+        style={{ padding: '10px', border: '1px solid #ccc', height: size }}
+      >
+        Resize
+      </div>
+    </div>
+  );
+}
+
+<DemoHeight />
+
+##

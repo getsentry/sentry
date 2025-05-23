@@ -1,5 +1,6 @@
-import {type CSSProperties, Fragment, useRef} from 'react';
+import {type CSSProperties, Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {IconGrabbable} from 'sentry/icons';
@@ -60,28 +61,20 @@ interface SideProps extends Pick<Props, 'onDragHandleMouseDown' | 'before' | 'af
 }
 
 function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps) {
-  const beforeElemRef = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
   const width = toPixels(viewDimensions.width);
 
-  const {onMouseDown} = useResizableDrawer({
-    direction: 'left',
-    initialSize: viewDimensions.width / 2,
-    min: 0,
-    onResize: newSize => {
-      const maxWidth = viewDimensions.width - BORDER_WIDTH;
-      const clampedSize = Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize));
-
-      if (beforeElemRef.current) {
-        beforeElemRef.current.style.width =
-          viewDimensions.width === 0
-            ? '100%'
-            : (toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))) ?? '0px');
-      }
+  const {resizeHandleProps, resizedElementProps} = useResizableDrawer({
+    direction: 'right',
+    initialSize: {width: viewDimensions.width / 2},
+    min: {width: 0},
+    max: {width: viewDimensions.width - BORDER_WIDTH},
+    onResize: options => {
+      // Updates the divider position to be a the edge of the newly resized element
       if (dividerElem.current) {
-        const adjustedLeft = `${clampedSize - 6}px`;
-        dividerElem.current.style.left = adjustedLeft;
-
+        const maxWidth = viewDimensions.width - BORDER_WIDTH;
+        const clampedSize = Math.max(BORDER_WIDTH, Math.min(maxWidth, options.size));
+        dividerElem.current.style.left = `${clampedSize - 6}px`;
         dividerElem.current.setAttribute(
           'data-at-min-width',
           String(clampedSize === maxWidth)
@@ -91,8 +84,15 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
           String(clampedSize === BORDER_WIDTH)
         );
       }
+
+      return options.size;
     },
   });
+
+  const dividerRef = useMemo(
+    () => mergeRefs(dividerElem, resizeHandleProps.ref),
+    [dividerElem, resizeHandleProps.ref]
+  );
 
   return (
     <Fragment>
@@ -101,17 +101,17 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
           <FullHeightContainer>{after}</FullHeightContainer>
         </Placement>
       </Cover>
-      <Cover ref={beforeElemRef} data-test-id="before-content">
+      <Cover ref={resizedElementProps.ref} data-test-id="before-content">
         <Placement style={{width}}>
           <FullHeightContainer>{before}</FullHeightContainer>
         </Placement>
       </Cover>
       <DragHandle
         data-test-id="drag-handle"
-        ref={dividerElem}
+        ref={dividerRef}
         onMouseDown={event => {
           onDragHandleMouseDown?.(event);
-          onMouseDown(event);
+          resizeHandleProps.onMouseDown(event);
         }}
       >
         <DragIndicator>

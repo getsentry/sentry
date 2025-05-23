@@ -272,7 +272,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           {/* The border should be 1px, but we want the actual handler to be wider
           to improve the user experience and not have users have to click on the exact pixel */}
           <InvisibleHandler
-            onMouseDown={props.onResize}
+            onPointerDown={props.onResize}
             onDoubleClick={props.onResizeReset}
           />
         </ResizableVerticalDrawer>
