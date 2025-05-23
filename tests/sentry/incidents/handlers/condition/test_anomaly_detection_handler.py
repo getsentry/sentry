@@ -2,14 +2,17 @@ from datetime import UTC, datetime
 from unittest import mock
 
 import orjson
+import pytest
 from urllib3.response import HTTPResponse
 
+from sentry.incidents.handlers.condition.anomaly_detection_handler import DetectorError
 from sentry.incidents.utils.types import MetricDetectorUpdate
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
     AnomalyDetectionThresholdType,
     AnomalyType,
+    DataSourceType,
     DetectAnomaliesResponse,
 )
 from sentry.snuba.subscriptions import create_snuba_subscription
@@ -82,7 +85,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
     @mock.patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    def test_does_not_pass(self, mock_seer_request):
+    def test_passes_medium(self, mock_seer_request):
         seer_return_value: DetectAnomaliesResponse = {
             "success": True,
             "timeseries": [
@@ -97,4 +100,73 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             ],
         }
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        self.assert_does_not_pass(self.dc, self.data_packet)
+        assert self.dc.evaluate_value(self.data_packet) == DetectorPriorityLevel.MEDIUM
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_timeout_error(self, mock_logger, mock_seer_request):
+        from urllib3.exceptions import TimeoutError
+
+        mock_seer_request.side_effect = TimeoutError
+        timeout_extra = {
+            "subscription_id": self.subscription.id,
+            "organization_id": self.organization.id,
+            "project_id": self.project.id,
+            "source_id": self.subscription.id,
+            "source_type": DataSourceType.SNUBA_QUERY_SUBSCRIPTION,
+            "dataset": self.subscription.snuba_query.dataset,
+        }
+        with pytest.raises(DetectorError):
+            self.dc.evaluate_value(self.data_packet)
+        mock_logger.warning.assert_called_with(
+            "Timeout error when hitting anomaly detection endpoint", extra=timeout_extra
+        )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
+        seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        with pytest.raises(DetectorError):
+            self.dc.evaluate_value(self.data_packet)
+        assert mock_logger.warning.call_args[0] == (
+            "Seer anomaly detection response returned no potential anomalies",
+        )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_bad_status(self, mock_logger, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=403)
+        extra = {
+            "subscription_id": self.subscription.id,
+            "organization_id": self.organization.id,
+            "project_id": self.project.id,
+            "source_id": self.subscription.id,
+            "source_type": DataSourceType.SNUBA_QUERY_SUBSCRIPTION,
+            "dataset": self.subscription.snuba_query.dataset,
+            "response_data": None,
+        }
+        with pytest.raises(DetectorError):
+            self.dc.evaluate_value(self.data_packet)
+        mock_logger.error.assert_called_with(
+            "Error when hitting Seer detect anomalies endpoint", extra=extra
+        )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
+    def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
+        # XXX: coercing a response into something that will fail to parse
+        mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
+        with pytest.raises(DetectorError):
+            self.dc.evaluate_value(self.data_packet)
+        mock_logger.exception.assert_called_with(
+            "Failed to parse Seer anomaly detection response", extra=mock.ANY
+        )
