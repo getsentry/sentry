@@ -25,7 +25,7 @@ SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
 
 SEER_EVALUATION_TO_DETECTOR_PRIORITY = {
     AnomalyType.HIGH_CONFIDENCE.value: DetectorPriorityLevel.HIGH,
-    AnomalyType.LOW_CONFIDENCE.value: DetectorPriorityLevel.MEDIUM,
+    AnomalyType.LOW_CONFIDENCE.value: DetectorPriorityLevel.OK,  # Seer doesn't support warning alerts yet
     AnomalyType.NONE.value: DetectorPriorityLevel.OK,
 }
 
