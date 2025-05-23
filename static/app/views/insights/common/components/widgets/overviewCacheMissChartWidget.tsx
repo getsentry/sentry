@@ -11,6 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
@@ -31,12 +32,13 @@ import {HighestCacheMissRateTransactionsWidgetEmptyStateWarning} from 'sentry/vi
 function isColumnNotFoundError(error: QueryError | null) {
   return error?.message === 'Column cache.hit was not found in metrics indexer';
 }
-export function CachesWidget() {
+
+export default function OverviewCacheMissChartWidget(props: LoadableChartWidgetProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
-  const releaseBubbleProps = useReleaseBubbleProps();
-  const pageFilterChartParams = usePageFilterChartParams();
+  const releaseBubbleProps = useReleaseBubbleProps(props);
+  const pageFilterChartParams = usePageFilterChartParams(props);
 
   const cachesRequest = useEAPSpans(
     {
@@ -44,6 +46,7 @@ export function CachesWidget() {
       sorts: [{field: 'cache_miss_rate()', kind: 'desc'}],
       search: `span.op:[cache.get_item,cache.get] has:span.group ${query}`,
       limit: 4,
+      pageFilters: props.pageFilters,
     },
     Referrer.CACHE_CHART
   );
@@ -64,7 +67,8 @@ export function CachesWidget() {
       topN: 4,
       enabled: !!cachesRequest.data,
     },
-    Referrer.CACHE_CHART
+    Referrer.CACHE_CHART,
+    props.pageFilters
   );
 
   const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
@@ -92,25 +96,13 @@ export function CachesWidget() {
       emptyMessage={<HighestCacheMissRateTransactionsWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
-        showLegend: 'never',
+        id: 'overviewCacheMissChartWidget',
+        showLegend: props.loaderSource === 'releases-drawer' ? 'auto' : 'never',
         plottables: timeSeries.map(
           (ts, index) =>
-            new Line(
-              convertSeriesToTimeseries({
-                ...ts,
-                // TODO: Remove this once the correct meta is returned from useTopNSpanEAPSeries
-                meta: {
-                  fields: {
-                    [ts.seriesName]: ts.meta.fields['cache_miss_rate()']!,
-                  },
-                  units: {
-                    [ts.seriesName]: ts.meta.units['cache_miss_rate()']!,
-                  },
-                },
-              }),
-              {color: colorPalette[index]}
-            )
+            new Line(convertSeriesToTimeseries(ts), {color: colorPalette[index]})
         ),
+        ...props,
         ...releaseBubbleProps,
       }}
     />
@@ -159,6 +151,7 @@ export function CachesWidget() {
       Actions={
         hasData && (
           <Toolbar
+            loaderSource={props.loaderSource}
             onOpenFullScreen={() => {
               openInsightChartModal({
                 title: t('Cache Miss Rates'),
@@ -174,7 +167,7 @@ export function CachesWidget() {
         )
       }
       noFooterPadding
-      Footer={footer}
+      Footer={props.loaderSource === 'releases-drawer' ? undefined : footer}
     />
   );
 }

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import CodecovProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
-// import TestAnalyticsTable from 'sentry/components/codecov/testAnalytics/testAnalyticsTable';
+import {RepoPicker} from 'sentry/components/codecov/repoPicker/repoPicker';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {space} from 'sentry/styles/space';
@@ -72,6 +73,11 @@ export default function TestsPage() {
           <DatePicker />
         </PageFilterBar>
       </PageFiltersContainer>
+      <CodecovProvider>
+        <PageFilterBar condensed>
+          <RepoPicker />
+        </PageFilterBar>
+      </CodecovProvider>
       {/* TODO: Conditionally show these if the branch we're in is the main branch */}
       <Summaries />
       <TestAnalyticsTable response={fakeApiResponse} sort={sorts[0]} />

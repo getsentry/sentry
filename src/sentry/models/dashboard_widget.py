@@ -63,6 +63,10 @@ class DashboardWidgetTypes(TypesClass):
     This targets transaction-like data from the split from discover. Itt may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
     """
     SPANS = 102
+    """
+    These represent the logs trace item type on the EAP dataset.
+    """
+    LOGS = 103
 
     TYPES = [
         (DISCOVER, "discover"),
@@ -74,6 +78,7 @@ class DashboardWidgetTypes(TypesClass):
         (ERROR_EVENTS, "error-events"),
         (TRANSACTION_LIKE, "transaction-like"),
         (SPANS, "spans"),
+        (LOGS, "logs"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

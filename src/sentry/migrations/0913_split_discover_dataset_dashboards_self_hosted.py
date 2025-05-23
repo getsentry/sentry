@@ -71,7 +71,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0911_increase_email_model_email_field_length"),
+        ("sentry", "0912_make_organizationmemberteam_replica_is_active_true"),
     ]
 
     operations = [

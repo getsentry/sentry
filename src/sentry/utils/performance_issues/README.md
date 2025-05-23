@@ -21,7 +21,6 @@ Performance Issues are built on top of the [Issue Platform](https://develop.sent
   - After recording metrics about the results, two checks are run, dropping the `PerformanceProblem`s if either return `False`:
     - `PerformanceDetector.is_creation_allowed_for_organization()` - Pre-GA, check a feature flag; post-GA, just return `True`
     - `PerformanceDetector.is_creation_allowed_for_project()` - Usually checking project's detector settings
-  - Lastly, we trunacte any `PerformanceProblem`s in excess of `PERFORMANCE_GROUP_COUNT_LIMIT` from [performance_detection.py](./performance_detection.py)
 - We store the list of `PerformanceProblem`s from `_detect_performance_problems` on `job["performance_problems"]`
 - Then we run `_send_occurrence_to_platform` which reads `job["performance_problems"]`
   - It will map each `PerformanceProblem` into an `IssueOccurrence`
