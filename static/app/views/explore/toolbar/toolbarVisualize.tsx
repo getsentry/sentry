@@ -9,7 +9,11 @@ import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import type {AggregationKey} from 'sentry/utils/fields';
+import {
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  SPAN_AGGREGATION_FIELDS,
+} from 'sentry/utils/fields';
 import {
   useExploreVisualizes,
   useSetExploreVisualizes,
@@ -145,7 +149,22 @@ function VisualizeDropdown({
   // We want to lock down the fields dropdown when using count so that we can
   // render `count(spans)` for better legibility. However, for backwards
   // compatibility, we don't want to lock down all `count` queries immediately.
-  const lockOptions = yAxis === DEFAULT_VISUALIZATION;
+  const functionDefinition =
+    SPAN_AGGREGATION_FIELDS[parsedVisualize?.name as AggregationKey];
+  const shouldHaveParameters =
+    functionDefinition?.parameters && functionDefinition.parameters.length > 0;
+  const isCountVisualization = yAxis === DEFAULT_VISUALIZATION;
+  const lockOptions = isCountVisualization || !shouldHaveParameters;
+
+  const nonParameterFieldOptions: Array<SelectOption<string>> = useMemo(() => {
+    return [
+      {
+        label: t('spans'),
+        value: 'spans',
+        textValue: 'spans',
+      },
+    ];
+  }, []);
 
   const countFieldOptions: Array<SelectOption<string>> = useMemo(
     () => [
@@ -161,7 +180,13 @@ function VisualizeDropdown({
     yAxes,
     yAxis,
   });
-  const fieldOptions = lockOptions ? countFieldOptions : defaultFieldOptions;
+
+  let fieldOptions = defaultFieldOptions;
+  if (isCountVisualization) {
+    fieldOptions = countFieldOptions;
+  } else if (!shouldHaveParameters) {
+    fieldOptions = nonParameterFieldOptions;
+  }
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -207,6 +232,13 @@ function VisualizeDropdown({
     [group, index, parsedVisualize, setVisualizes, visualizes]
   );
 
+  let selectedValue: string = DEFAULT_VISUALIZATION_FIELD;
+  if (!shouldHaveParameters) {
+    selectedValue = 'spans';
+  } else if (parsedVisualize.arguments[0]) {
+    selectedValue = parsedVisualize.arguments[0];
+  }
+
   return (
     <ToolbarRow>
       {label && <ChartLabel>{label}</ChartLabel>}
@@ -218,7 +250,7 @@ function VisualizeDropdown({
       <ColumnCompactSelect
         searchable
         options={fieldOptions}
-        value={parsedVisualize.arguments[0]}
+        value={selectedValue}
         onChange={setChartField}
         disabled={lockOptions}
       />
