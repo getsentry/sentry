@@ -3,9 +3,11 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
+import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
@@ -15,6 +17,7 @@ import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {UseLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
@@ -28,11 +31,6 @@ jest.mock('sentry/utils/useRelease', () => ({
       },
     },
   }),
-}));
-
-jest.mock('sentry/views/explore/logs/useLogsQuery', () => ({
-  useExploreLogsTableRow: jest.fn().mockReturnValue({}),
-  usePrefetchLogTableRowOnHover: jest.fn().mockReturnValue({}),
 }));
 
 jest.mock('sentry/components/events/interfaces/frame/useStacktraceLink', () => ({
@@ -50,10 +48,25 @@ jest.mock('sentry/components/events/interfaces/frame/useStacktraceLink', () => (
 describe('LogsTable', function () {
   const {organization, project} = initializeOrg({
     organization: {
-      features: ['ourlogs'],
+      features: ['ourlogs-enabled'],
     },
   });
   ProjectsStore.loadInitialData([project]);
+
+  PageFiltersStore.init();
+  PageFiltersStore.onInitializeUrlState(
+    {
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
+      },
+    },
+    new Set()
+  );
 
   const tableData = {
     data: [
@@ -129,6 +142,25 @@ describe('LogsTable', function () {
   ];
   const frozenColumnFields = [OurLogKnownFieldKey.TIMESTAMP, OurLogKnownFieldKey.MESSAGE];
 
+  function ProviderWrapper({
+    children,
+    isTableFrozen = false,
+  }: {
+    children: React.ReactNode;
+    isTableFrozen?: boolean;
+  }) {
+    return (
+      <OrganizationContext.Provider value={organization}>
+        <LogsPageParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          isTableFrozen={isTableFrozen}
+        >
+          <LogsPageDataProvider>{children}</LogsPageDataProvider>
+        </LogsPageParamsProvider>
+      </OrganizationContext.Provider>
+    );
+  }
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     mockUseLocation.mockReturnValue(
@@ -143,6 +175,12 @@ describe('LogsTable', function () {
     );
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: tableData,
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
       method: 'GET',
       body: {},
@@ -151,9 +189,9 @@ describe('LogsTable', function () {
 
   it('should be interactable', async () => {
     render(
-      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-        <LogsTable tableData={tableData} showHeader />
-      </LogsPageParamsProvider>
+      <ProviderWrapper>
+        <LogsTable showHeader />
+      </ProviderWrapper>
     );
 
     const allTreeRows = await screen.findAllByTestId('log-table-row');
@@ -176,12 +214,9 @@ describe('LogsTable', function () {
 
   it('should not be interactable on embedded views', async () => {
     render(
-      <LogsPageParamsProvider
-        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-        isTableFrozen
-      >
-        <LogsTable tableData={tableData} showHeader />
-      </LogsPageParamsProvider>
+      <ProviderWrapper isTableFrozen>
+        <LogsTable showHeader />
+      </ProviderWrapper>
     );
 
     const allTreeRows = await screen.findAllByTestId('log-table-row');
