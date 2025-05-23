@@ -1,21 +1,5 @@
 import type {Action} from './actions';
 
-interface SnubaQuery {
-  aggregate: string;
-  dataset: string;
-  id: string;
-  query: string;
-  timeWindow: number;
-  environment?: string;
-}
-
-export interface DataSource {
-  id: string;
-  snubaQuery: SnubaQuery;
-  status: number;
-  subscription?: string;
-}
-
 export enum DataConditionType {
   // operators
   EQUAL = 'eq',
@@ -74,6 +58,7 @@ export interface DataCondition {
   id: string;
   condition_result?: any;
 }
+
 export interface DataConditionGroup {
   conditions: DataCondition[];
   id: string;

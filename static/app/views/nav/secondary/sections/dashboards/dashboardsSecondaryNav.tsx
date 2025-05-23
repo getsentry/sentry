@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,7 +27,7 @@ export function DashboardsSecondaryNav() {
   );
 
   return (
-    <SecondaryNav>
+    <Fragment>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.DASHBOARDS].label}
       </SecondaryNav.Header>
@@ -49,6 +51,6 @@ export function DashboardsSecondaryNav() {
           </SecondaryNav.Section>
         ) : null}
       </SecondaryNav.Body>
-    </SecondaryNav>
+    </Fragment>
   );
 }

@@ -61,8 +61,8 @@ export function useTraceItemAttributeKeys({
       // EAP spans contain tags with illegal characters
       // SnQL forbids `-` but is allowed in RPC. So add it back later
       if (
-        !/^[a-zA-Z0-9_.:]+$/.test(attribute.key) &&
-        !/^tags\[[a-zA-Z0-9_.:]+,number\]$/.test(attribute.key)
+        !/^[a-zA-Z0-9_.:-]+$/.test(attribute.key) &&
+        !/^tags\[[a-zA-Z0-9_.:-]+,number\]$/.test(attribute.key)
       ) {
         continue;
       }

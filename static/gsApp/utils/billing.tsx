@@ -368,6 +368,14 @@ export const displayBudgetName = (
   return text;
 };
 
+export const getOnDemandCategories = (plan: Plan) => {
+  return plan.onDemandCategories.filter(category =>
+    plan.availableReservedBudgetTypes.seer
+      ? !plan.availableReservedBudgetTypes.seer.dataCategories.includes(category)
+      : true
+  );
+};
+
 export const displayPlanName = (plan?: Plan | null) => {
   return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : (plan?.name ?? '[unavailable]');
 };

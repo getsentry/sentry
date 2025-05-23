@@ -13,6 +13,7 @@ import {
   PriorityLevel,
   type Tag,
   type TagCollection,
+  VALID_ISSUE_CATEGORIES_V2,
   VISIBLE_ISSUE_TYPES,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -284,15 +285,7 @@ function builtInIssuesFields({
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
       values: organization.features.includes('issue-taxonomy')
-        ? [
-            IssueCategory.ERROR,
-            IssueCategory.OUTAGE,
-            IssueCategory.METRIC,
-            IssueCategory.DB_QUERY,
-            IssueCategory.HTTP_CLIENT,
-            IssueCategory.FRONTEND,
-            IssueCategory.MOBILE,
-          ].map(value => ({
+        ? VALID_ISSUE_CATEGORIES_V2.map(value => ({
             icon: null,
             title: value,
             name: value,

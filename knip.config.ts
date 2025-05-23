@@ -1,3 +1,4 @@
+import {compile} from '@mdx-js/mdx';
 import type {KnipConfig} from 'knip';
 
 const productionEntryPoints = [
@@ -33,7 +34,9 @@ const storyBookEntryPoints = [
   // our storybook implementation is here
   'static/app/stories/storyBook.tsx',
   // custom webpack loaders for stories
-  'static/app/**/stories/*loader.ts',
+  'static/app/stories/*loader.ts',
+  // we have some stories in mdx format
+  'static/app/**/*.mdx',
 ];
 
 const config: KnipConfig = {
@@ -45,6 +48,7 @@ const config: KnipConfig = {
   storybook: true,
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',
+    'static/app/**/*.mdx',
     'tests/js/**/*.{js,mjs,ts,tsx}',
     // exclude this directory because it's how you set up mocks in jest (https://jestjs.io/docs/manual-mocks)
     '!static/{app,gsApp}/**/__mocks__/**',
@@ -54,8 +58,19 @@ const config: KnipConfig = {
     '!static/**/*{t,T}estUtils*.{js,mjs,ts,tsx}!',
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
-    '!static/app/{components,views}/stories/*.{js,mjs,ts,tsx}!',
+    '!static/app/stories/*.{js,mjs,ts,tsx}!',
   ],
+  compilers: {
+    mdx: async text => {
+      const result = await compile(text, {
+        providerImportSource: '@mdx-js/react',
+        jsx: true,
+        outputFormat: 'program',
+      });
+
+      return String(result);
+    },
+  },
   rules: {
     binaries: 'off',
     dependencies: 'off',

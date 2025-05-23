@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models
 from django.db.models import Q, QuerySet
 from django.utils import timezone
@@ -12,7 +13,6 @@ from django.utils import timezone
 from sentry import analytics
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    ArrayField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -199,7 +199,7 @@ class Identity(Model):
     external_id = models.TextField()
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     status = BoundedPositiveIntegerField(default=IdentityStatus.UNKNOWN)
-    scopes = ArrayField()
+    scopes = ArrayField(models.TextField(), default=list)
     date_verified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
