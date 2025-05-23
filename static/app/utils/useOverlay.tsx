@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import type {Modifier} from '@popperjs/core';
@@ -308,6 +308,15 @@ function useOverlay({
     },
     overlayRef
   );
+
+  // Force popper update when elements mount/update
+  useLayoutEffect(() => {
+    if (!openState.isOpen || !popperUpdate) {
+      return undefined;
+    }
+    popperUpdate();
+    return () => {};
+  }, [openState.isOpen, triggerElement, overlayElement, popperUpdate]);
 
   return {
     isOpen: openState.isOpen,
