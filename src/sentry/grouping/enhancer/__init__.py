@@ -715,10 +715,7 @@ class Enhancements:
     @cached_property
     def base64_string(self) -> str:
         """A base64 string representation of the enhancements object"""
-        rulesets = [self.rules]
-
-        if self.run_split_enhancements:
-            rulesets.extend([self.classifier_rules, self.contributes_rules])
+        rulesets = [self.rules, self.classifier_rules, self.contributes_rules]
 
         # Create a base64 bytestring for each set of rules, and join them with a character we know
         # can never appear in base64. We do it this way rather than combining all three sets of
