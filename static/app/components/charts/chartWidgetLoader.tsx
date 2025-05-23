@@ -155,6 +155,14 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget'
     ),
+  overviewAgentsRunsChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget'
+    ),
+  overviewAgentsDurationChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget'
+    ),
   overviewApiLatencyChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'

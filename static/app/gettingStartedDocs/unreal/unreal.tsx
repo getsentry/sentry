@@ -43,6 +43,9 @@ void UMyGameInstance::ConfigureSentrySettings(USentrySettings* Settings)
     // Add data like user ip address and device name
     // See https://docs.sentry.io/platforms/unreal/data-management/data-collected/ for more info
     Settings->SendDefaultPii = true;
+
+    // If your game/app doesn't have sensitive data, you can get screenshots on error events automatically
+    Settings->AttachScreenshot = true;
 }
 
 ...
