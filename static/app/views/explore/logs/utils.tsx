@@ -11,6 +11,7 @@ import {
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
+  type Sort,
 } from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -186,6 +187,18 @@ export function getLogRowItem(
       : null,
     value: dataRow[field] ?? '',
   };
+}
+
+export function checkSortIsTimeBased(sortBys: Sort[]) {
+  return getTimeBasedSortBy(sortBys) !== undefined;
+}
+
+export function getTimeBasedSortBy(sortBys: Sort[]) {
+  return sortBys.find(
+    sortBy =>
+      sortBy.field === OurLogKnownFieldKey.TIMESTAMP ||
+      sortBy.field === OurLogKnownFieldKey.TIMESTAMP_PRECISE
+  );
 }
 
 export function adjustLogTraceID(traceID: string) {

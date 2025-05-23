@@ -18,6 +18,7 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
+import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsFields,
   useLogsIsTableFrozen,
@@ -26,23 +27,22 @@ import {
   useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
+import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
 import {
   FirstTableHeadCell,
   LogTableBody,
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
+import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import {
+  getLogBodySearchTerms,
+  getTableHeaderLabel,
+  logsFieldAlignment,
+} from 'sentry/views/explore/logs/utils';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
-import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
-
-export const LOGS_INSTRUCTIONS_URL =
-  'https://docs.sentry.io/product/explore/logs/getting-started/';
-
 type LogsTableProps = {
-  tableData: UseExploreLogsTableResult;
   allowPagination?: boolean;
   numberAttributes?: TagCollection;
   showHeader?: boolean;
@@ -50,7 +50,6 @@ type LogsTableProps = {
 };
 
 export function LogsTable({
-  tableData,
   showHeader = true,
   allowPagination = true,
   stringAttributes,
@@ -61,7 +60,7 @@ export function LogsTable({
   const setCursor = useSetLogsCursor();
   const isTableFrozen = useLogsIsTableFrozen();
 
-  const {data, isError, isPending, pageLinks, meta} = tableData;
+  const {data, isError, isPending, pageLinks, meta} = useLogsPageData().logsQueryResult;
 
   const tableRef = useRef<HTMLTableElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
