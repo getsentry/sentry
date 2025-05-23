@@ -1,5 +1,6 @@
 import {useCallback, useEffect} from 'react';
 
+import createStorage from 'sentry/utils/createStorage';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -8,11 +9,13 @@ import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetB
 
 const WIDGET_BUILDER_DATASET_STATE_KEY = 'dashboards:widget-builder:dataset';
 
+const STORAGE = createStorage(() => window.sessionStorage);
+
 function cleanUpDatasetState() {
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
+  for (let i = 0; i < STORAGE.length; i++) {
+    const key = STORAGE.key(i);
     if (key?.startsWith(WIDGET_BUILDER_DATASET_STATE_KEY)) {
-      localStorage.removeItem(key);
+      STORAGE.removeItem(key);
     }
   }
 }
@@ -25,12 +28,16 @@ export function useCacheBuilderState() {
   const {state, dispatch} = useWidgetBuilderContext();
 
   useEffect(() => {
+    // Remove all cached dataset states when the component mounts
+    // to prevent stale data from being used.
+    cleanUpDatasetState();
+
     return cleanUpDatasetState;
   }, []);
 
   const cacheBuilderState = useCallback(
     (dataset: WidgetType) => {
-      localStorage.setItem(
+      STORAGE.setItem(
         `${WIDGET_BUILDER_DATASET_STATE_KEY}:${dataset}`,
         JSON.stringify(convertBuilderStateToWidget(state))
       );
@@ -42,7 +49,7 @@ export function useCacheBuilderState() {
   // and restores it if it exists. Otherwise, it sets the dataset.
   const restoreOrSetBuilderState = useCallback(
     (nextDataset: WidgetType) => {
-      const previousDatasetState = localStorage.getItem(
+      const previousDatasetState = STORAGE.getItem(
         `${WIDGET_BUILDER_DATASET_STATE_KEY}:${nextDataset}`
       );
       if (previousDatasetState) {
