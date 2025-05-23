@@ -74,7 +74,9 @@ function TransactionOverview(props: Props) {
     });
   }, [selection, organization, api]);
 
-  const isOTelUI = organization.features.includes('performance-otel-friendly-ui');
+  const isNewTransactionDetailPage = organization.features.includes(
+    'performance-transaction-summary-eap'
+  );
 
   return (
     <MEPSettingProvider>
@@ -86,7 +88,9 @@ function TransactionOverview(props: Props) {
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
         childComponent={
-          isOTelUI ? EAPCardinalityLoadingWrapper : CardinalityLoadingWrapper
+          isNewTransactionDetailPage
+            ? EAPCardinalityLoadingWrapper
+            : CardinalityLoadingWrapper
         }
       />
     </MEPSettingProvider>
