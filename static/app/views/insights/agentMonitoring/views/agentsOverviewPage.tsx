@@ -26,8 +26,11 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
+import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
+import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -76,13 +79,13 @@ function AgentsMonitoringPage() {
               <ModuleLayout.Full>
                 <WidgetGrid>
                   <WidgetGrid.Position1>
-                    <PlaceholderWidget title="Traffic" />
+                    <OverviewAgentsRunsChartWidget />
                   </WidgetGrid.Position1>
                   <WidgetGrid.Position2>
-                    <PlaceholderWidget title="Duration" />
+                    <OverviewAgentsDurationChartWidget />
                   </WidgetGrid.Position2>
                   <WidgetGrid.Position3>
-                    <PlaceholderWidget title="Issues" />
+                    <IssuesWidget />
                   </WidgetGrid.Position3>
                   <WidgetGrid.Position4>
                     <PlaceholderWidget title="LLM Generations" />
