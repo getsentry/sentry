@@ -185,6 +185,23 @@ describe('LogsTable', function () {
       method: 'GET',
       body: {},
     });
+
+    (tableData?.data ?? []).forEach(log => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${log['sentry.item_id']}/`,
+        method: 'GET',
+        body: {
+          data: {
+            id: log['sentry.item_id'],
+            projectId: project.id,
+            traceId: log.trace,
+            type: 'log',
+            timestamp: log.timestamp,
+            message: log.message,
+          },
+        },
+      });
+    });
   });
 
   it('should be interactable', async () => {
