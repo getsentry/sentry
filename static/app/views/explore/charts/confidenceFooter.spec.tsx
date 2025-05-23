@@ -19,10 +19,14 @@ describe('ConfidenceFooter', () => {
         {wrapper: Wrapper}
       );
 
-      expect(screen.getByTestId('wrapper')).toHaveTextContent('Based on 100 samples');
+      expect(screen.getByTestId('wrapper')).toHaveTextContent(
+        'Extrapolated based on 100 span samples'
+      );
       await userEvent.hover(screen.getByText('100'));
       expect(
-        await screen.findByText(/You may not have enough samples for high accuracy./)
+        await screen.findByText(
+          /You may not have enough span samples for a high accuracy extrapolation of your query./
+        )
       ).toBeInTheDocument();
     });
     it('renders for full scan with grouping', async () => {
@@ -37,11 +41,13 @@ describe('ConfidenceFooter', () => {
       );
 
       expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Top 5 groups based on 100 samples'
+        'Top 5 groups extrapolated based on 100 span samples'
       );
       await userEvent.hover(screen.getByText('100'));
       expect(
-        await screen.findByText(/You may not have enough samples for high accuracy./)
+        await screen.findByText(
+          /You may not have enough span samples for a high accuracy extrapolation of your query./
+        )
       ).toBeInTheDocument();
     });
   });
@@ -58,7 +64,9 @@ describe('ConfidenceFooter', () => {
         {wrapper: Wrapper}
       );
 
-      expect(screen.getByTestId('wrapper')).toHaveTextContent('Based on 100 samples');
+      expect(screen.getByTestId('wrapper')).toHaveTextContent(
+        'Extrapolated based on 100 span samples'
+      );
     });
     it('renders for full scan with grouping', () => {
       render(
@@ -72,7 +80,7 @@ describe('ConfidenceFooter', () => {
       );
 
       expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Top 5 groups based on 100 samples'
+        'Top 5 groups extrapolated based on 100 span samples'
       );
     });
   });

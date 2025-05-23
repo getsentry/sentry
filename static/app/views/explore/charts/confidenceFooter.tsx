@@ -22,8 +22,8 @@ function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Prop
   const isTopN = defined(topEvents) && topEvents > 1;
   if (!defined(sampleCount)) {
     return isTopN
-      ? t('* Chart for top %s groups extrapolated from \u2026', topEvents)
-      : t('* Chart extrapolated from \u2026');
+      ? t('* Top %s groups extrapolated based on \u2026', topEvents)
+      : t('* Extrapolated based on \u2026');
   }
 
   const noSampling = defined(isSampled) && !isSampled;
@@ -33,7 +33,7 @@ function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Prop
   if (confidence === 'low') {
     if (isTopN) {
       return tct(
-        'Top [topEvents] groups based on [tooltip:[sampleCountComponent] samples]',
+        'Top [topEvents] groups extrapolated based on [tooltip:[sampleCountComponent] span samples]',
         {
           topEvents,
           tooltip: lowAccuracyFullSampleCount,
@@ -42,20 +42,23 @@ function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Prop
       );
     }
 
-    return tct('Based on [tooltip:[sampleCountComponent] samples]', {
+    return tct('Extrapolated based on [tooltip:[sampleCountComponent] span samples]', {
       tooltip: lowAccuracyFullSampleCount,
       sampleCountComponent,
     });
   }
 
   if (isTopN) {
-    return tct('Top [topEvents] groups based on [sampleCountComponent] samples', {
-      topEvents,
-      sampleCountComponent,
-    });
+    return tct(
+      'Top [topEvents] groups extrapolated based on [sampleCountComponent] span samples',
+      {
+        topEvents,
+        sampleCountComponent,
+      }
+    );
   }
 
-  return tct('Based on [sampleCountComponent] samples', {
+  return tct('Extrapolated based on [sampleCountComponent] span samples', {
     sampleCountComponent,
   });
 }
@@ -71,11 +74,13 @@ function _LowAccuracyFullTooltip({
     <Tooltip
       title={
         <div>
-          {t('You may not have enough samples for high accuracy.')}
+          {t(
+            'You may not have enough span samples for a high accuracy extrapolation of your query.'
+          )}
           <br />
           <br />
           {t(
-            'You can try adjusting your query by removing filters or increasing the time interval.'
+            "You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval."
           )}
           <br />
           <br />
