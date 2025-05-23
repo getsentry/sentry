@@ -1521,6 +1521,77 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'spans'
     );
+    expect(await screen.findByRole('button', {name: 'Column Selection'})).toBeDisabled();
+  });
+
+  it('disables changing visualize fields for epm', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['epm()'],
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Column Selection'})).toBeDisabled();
+  });
+
+  it('changes to epm() when using epm', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg(span.self_time)'],
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'avg'
+    );
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'span.self_time'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'epm'}));
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'epm'
+    );
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'spans'
+    );
+    expect(await screen.findByRole('button', {name: 'Column Selection'})).toBeDisabled();
   });
 
   it('defaults count_unique argument to span.op', async function () {
