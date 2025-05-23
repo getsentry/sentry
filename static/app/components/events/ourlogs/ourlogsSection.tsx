@@ -13,13 +13,13 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LogsPageParamsProvider,
   useLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
-import {useLogsQuery} from 'sentry/views/explore/logs/useLogsQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -56,9 +56,8 @@ function OurlogsSectionContent({
 }) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
-  const tableData = useLogsQuery({disabled: feature, limit: 10});
+  const tableData = useLogsPageData().logsQueryResult;
   const logsSearch = useLogsSearch();
-  const abbreviatedTableData = {...tableData, data: (tableData.data ?? []).slice(0, 5)};
   const {openDrawer} = useDrawer();
 
   const limitToTraceId = event.contexts?.trace?.trace_id;
@@ -104,11 +103,7 @@ function OurlogsSectionContent({
       data-test-id="logs-data-section"
     >
       <LogContentWrapper onClick={() => onOpenLogsDrawer()}>
-        <LogsTable
-          showHeader={false}
-          allowPagination={false}
-          tableData={abbreviatedTableData}
-        />
+        <LogsTable showHeader={false} allowPagination={false} />
         {tableData.data && tableData.data.length > 5 ? (
           <div>
             <Button

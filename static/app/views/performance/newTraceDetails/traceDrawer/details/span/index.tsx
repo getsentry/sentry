@@ -147,7 +147,7 @@ function LogDetails() {
       title={t('Logs')}
       disableCollapsePersistence
     >
-      <LogsTable tableData={logsQueryResult} showHeader={false} />
+      <LogsTable showHeader={false} />
     </FoldSection>
   );
 }

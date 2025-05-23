@@ -18,7 +18,6 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
@@ -29,7 +28,6 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
-import {useLogsQuery} from 'sentry/views/explore/logs/useLogsQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface LogIssueDrawerProps {
@@ -39,7 +37,6 @@ interface LogIssueDrawerProps {
 }
 
 export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
-  const organization = useOrganization();
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
   const {attributes: stringAttributes} = useTraceItemAttributes('string');
@@ -56,9 +53,6 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
   const searchQueryBuilderProps = useSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps
   );
-  const tableData = useLogsQuery({
-    disabled: !organization.features.includes('ourlogs-enabled'),
-  });
 
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
@@ -84,7 +78,7 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
         </EventNavigator>
         <EventDrawerBody>
           <LogsTableContainer>
-            <LogsTable showHeader={false} allowPagination tableData={tableData} />
+            <LogsTable showHeader={false} allowPagination />
           </LogsTableContainer>
         </EventDrawerBody>
       </EventDrawerContainer>

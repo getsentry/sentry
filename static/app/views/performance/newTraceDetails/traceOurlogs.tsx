@@ -19,7 +19,6 @@ import {
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
-import type {UseLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
@@ -53,7 +52,7 @@ export function TraceViewLogsSection() {
   if (hasTraceTabsUi) {
     return (
       <StyledPanel>
-        <LogsSectionContent tableData={tableData.logsQueryResult} />
+        <LogsSectionContent />
       </StyledPanel>
     );
   }
@@ -73,12 +72,12 @@ export function TraceViewLogsSection() {
       initialCollapse={false}
       disableCollapsePersistence
     >
-      <LogsSectionContent tableData={tableData.logsQueryResult} />
+      <LogsSectionContent />
     </FoldSection>
   );
 }
 
-function LogsSectionContent({tableData}: {tableData: UseLogsQueryResult}) {
+function LogsSectionContent() {
   const organization = useOrganization();
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
@@ -95,7 +94,7 @@ function LogsSectionContent({tableData}: {tableData: UseLogsQueryResult}) {
         onSearch={query => setLogsSearch(new MutableSearch(query))}
       />
       <TableContainer>
-        <LogsTable tableData={tableData} showHeader={false} />
+        <LogsTable showHeader={false} />
       </TableContainer>
     </Fragment>
   );
