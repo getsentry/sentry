@@ -12,8 +12,7 @@ import sentry_sdk
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 
-from sentry import audit_log, features
-from sentry.constants import ObjectStatus
+from sentry import audit_log
 from sentry.exceptions import InvalidIdentity
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity

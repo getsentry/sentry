@@ -8,13 +8,8 @@ from requests import RequestException, Response
 from requests.exceptions import ConnectionError, Timeout
 from rest_framework import status
 
-from sentry import audit_log, options
+from sentry import options
 from sentry.http import safe_urlopen
-from sentry.integrations.base import is_response_error, is_response_success
-from sentry.integrations.models.utils import get_redis_key
-from sentry.integrations.notify_disable import notify_disable
-from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models.organization import Organization
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
     SentryAppWebhookFailureReason,
@@ -23,7 +18,6 @@ from sentry.sentry_apps.metrics import (
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
-from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 if TYPE_CHECKING:
@@ -54,83 +48,6 @@ def ignore_unpublished_app_errors(
                 return None
 
     return wrapper
-
-
-def check_broken(sentryapp: SentryApp | RpcSentryApp, org_id: str) -> None:
-    from sentry.sentry_apps.services.app.service import app_service
-
-    redis_key = get_redis_key(sentryapp, org_id)
-    buffer = IntegrationRequestBuffer(redis_key)
-    if buffer.is_integration_broken():
-        # This is broken, this should be using the organization service
-        org = Organization.objects.get(id=org_id)
-        app_service.disable_sentryapp(id=sentryapp.id)
-        notify_disable(org, sentryapp.name, redis_key, sentryapp.slug, sentryapp.webhook_url)
-        buffer.clear()
-        create_system_audit_entry(
-            organization=org,
-            target_object=org.id,
-            event=audit_log.get_event_id("INTERNAL_INTEGRATION_DISABLED"),
-            data={"name": sentryapp.name},
-        )
-        extra = {
-            "sentryapp_webhook": sentryapp.webhook_url,
-            "sentryapp_slug": sentryapp.slug,
-            "sentryapp_uuid": sentryapp.uuid,
-            "org_id": org_id,
-            "buffer_record": buffer._get_all_from_buffer(),
-        }
-        logger.info(
-            "sentryapp.disabled",
-            extra=extra,
-        )
-
-
-def record_timeout(
-    sentryapp: SentryApp | RpcSentryApp, org_id: str, e: ConnectionError | Timeout
-) -> None:
-    """
-    Record Unpublished Sentry App timeout or connection error in integration buffer to check if it is broken and should be disabled
-    """
-    if not sentryapp.is_internal:
-        return
-    redis_key = get_redis_key(sentryapp, org_id)
-    if not len(redis_key):
-        return
-    buffer = IntegrationRequestBuffer(redis_key)
-    buffer.record_timeout()
-    # check_broken(sentryapp, org_id)
-    logger.info(
-        "sentryapp.should_disable",
-        extra={
-            "sentryapp_id": sentryapp.id,
-            "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
-        },
-    )
-
-
-def record_response_for_disabling_integration(
-    sentryapp: SentryApp | RpcSentryApp, org_id: str, response: Response
-) -> None:
-    if not sentryapp.is_internal:
-        return
-    redis_key = get_redis_key(sentryapp, org_id)
-    if not len(redis_key):
-        return
-    buffer = IntegrationRequestBuffer(redis_key)
-    if is_response_success(response):
-        buffer.record_success()
-        return
-    if is_response_error(response):
-        buffer.record_error()
-        # check_broken(sentryapp, org_id)
-        logger.info(
-            "sentryapp.should_disable",
-            extra={
-                "sentryapp_id": sentryapp.id,
-                "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
-            },
-        )
 
 
 @ignore_unpublished_app_errors
@@ -200,7 +117,6 @@ def send_and_save_webhook_request(
                 url=url,
                 headers=app_platform_event.headers,
             )
-            record_timeout(sentry_app, org_id, e)
             lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
             raise
@@ -216,11 +132,6 @@ def send_and_save_webhook_request(
             response=response,
             headers=app_platform_event.headers,
         )
-        # we don't disable alert rules for internal integrations
-        # so we don't want to consider responses related to them
-        # for the purpose of disabling integrations
-        if app_platform_event.action != "event.alert":
-            record_response_for_disabling_integration(sentry_app, org_id, response)
 
         if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
             lifecycle.record_halt(
