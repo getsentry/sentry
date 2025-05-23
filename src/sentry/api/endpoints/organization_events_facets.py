@@ -56,7 +56,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                     )
 
             with sentry_sdk.start_span(op="discover.endpoint", name="populate_results") as span:
-                span.set_data("facet_count", len(facets or []))
+                span.set_attribute("facet_count", len(facets or []))
                 resp: dict[str, _KeyTopValues]
                 resp = defaultdict(lambda: {"key": "", "topValues": []})
                 for row in facets:

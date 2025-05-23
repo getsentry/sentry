@@ -486,7 +486,7 @@ def configure_sdk():
             LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
             RustInfoIntegration(),
             RedisIntegration(),
-            ThreadingIntegration(propagate_hub=True),
+            ThreadingIntegration(),
         ],
         **sdk_options,
     )
@@ -580,7 +580,7 @@ def check_current_scope_transaction(
     Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
     been set maunually.
     """
-    scope = sentry_sdk.Scope.get_current_scope()
+    scope = sentry_sdk.get_current_scope()
     transaction_from_request = get_transaction_name_from_request(request)
 
     if (
@@ -695,19 +695,10 @@ def bind_ambiguous_org_context(
     )
 
 
-def set_measurement(measurement_name, value, unit=None):
-    try:
-        transaction = sentry_sdk.Scope.get_current_scope().transaction
-        if transaction is not None:
-            transaction.set_measurement(measurement_name, value, unit)
-    except Exception:
-        pass
-
-
 def set_span_data(data_name, value):
     span = sentry_sdk.get_current_span()
     if span is not None:
-        span.set_data(data_name, value)
+        span.set_attribute(data_name, value)
 
 
 def merge_context_into_scope(
@@ -746,6 +737,5 @@ __all__ = (
     "patch_transport_for_instrumentation",
     "isolation_scope",
     "set_current_event_project",
-    "set_measurement",
     "traces_sampler",
 )
