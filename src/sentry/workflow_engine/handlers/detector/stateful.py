@@ -38,6 +38,10 @@ def get_redis_client() -> RetryingRedisCluster:
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
+DetectorCounter = str | DetectorPriorityLevel
+DetectorCounters = dict[DetectorCounter, int | None]
+
+
 @dataclasses.dataclass(frozen=True)
 class DetectorStateData:
     group_key: DetectorGroupKey
@@ -47,38 +51,45 @@ class DetectorStateData:
     # processed and all workflows have been done, this value will be used by the stateful detector to prevent
     # reprocessing
     dedupe_value: int
-    # Stateful detectors allow various counts to be tracked. We need to update these after we process workflows, so
+
+    # Stateful detectors allow various counts to be tracked.
+    # By default, Stateful Detectors will track their priority level
+    # threshold values as counters.
+    # We need to update these after we process workflows, so
     # include the updates in the state.
     # This dictionary is in the format {counter_name: counter_value, ...}
     # If a counter value is `None` it means to unset the value
-    counter_updates: dict[str, int | None]
+    counter_updates: DetectorCounters
 
 
 class DetectorStateManager:
-    """
-    :Thinking: should this class not have a DetectorGroupKey? It is only needed for the grouping detector
-    and would better encapsulate the responsibilities there... but isn't needed rn.
-    """
-
     dedupe_updates: dict[DetectorGroupKey, int] = {}
-    counter_updates: dict[DetectorGroupKey, dict[str, int | None]] = {}
+    counter_updates: dict[DetectorGroupKey, DetectorCounters] = {}
     state_updates: dict[DetectorGroupKey, tuple[bool, DetectorPriorityLevel]] = {}
-    counter_names: list[str] = []
+    counter_names: list[DetectorCounter] = []
     detector: Detector
 
     def __init__(
         self,
         detector: Detector,
-        counter_names: list[str],
+        counter_names: list[DetectorCounter] | None = None,
     ):
+        self.counter_names = counter_names or []
         self.detector = detector
-        self.counter_names = counter_names
 
     def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int):
         self.dedupe_updates[group_key] = dedupe_value
 
+    def enqueue_counter_reset(self, group_key: DetectorGroupKey = None) -> None:
+        """
+        Resets the counter values for the detector.
+        This method is to reset the counters when the detector is resolved.
+        """
+        for counter in self.counter_names:
+            self.counter_updates[group_key][counter] = None
+
     def enqueue_counter_update(
-        self, group_key: DetectorGroupKey, counter_updates: dict[str, int | None]
+        self, group_key: DetectorGroupKey, counter_updates: DetectorCounters
     ):
         self.counter_updates[group_key] = counter_updates
 
@@ -122,7 +133,9 @@ class DetectorStateManager:
             for detector_state in self.detector.detectorstate_set.filter(query_filter)
         }
 
-    def build_key(self, group_key: DetectorGroupKey = None, postfix: str | None = None) -> str:
+    def build_key(
+        self, group_key: DetectorGroupKey = None, postfix: str | int | None = None
+    ) -> str:
         group_postfix = f"{group_key if group_key is not None else ''}"
 
         if postfix:
@@ -248,44 +261,49 @@ class DetectorStateManager:
         return results
 
 
+DetectorThresholds = dict[DetectorPriorityLevel, int]
+
+
 class StatefulDetectorHandler(
     Generic[DataPacketType, DataPacketEvaluationType],
     DetectorHandler[DataPacketType, DataPacketEvaluationType],
     abc.ABC,
 ):
-    def __init__(self, detector: Detector):
+    """
+    Stateful Detectors are provided as a base class for new detectors that need to track state.
+    """
+
+    thresholds: DetectorThresholds = {}
+
+    def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
         super().__init__(detector)
-        # if detector.config.get("thresholds"):
-        #     raise Exception(
-        #         "Stateful detectors are required to have `thresholds` set in the config"
-        #     )
 
-        counter_names = self.counter_names or []
-        self.state_manager = DetectorStateManager(detector, counter_names)
+        # Default to 1 for all the possible levels on a given detector
+        default_thresholds = {level: 1 for level in self._get_configured_detector_levels()}
 
-    @property
-    @abc.abstractmethod
-    def counter_names(self) -> list[str]:
-        """
-        The names of the counters that this detector tracks. This is used to build the redis keys for
-        storing counter values.
-        """
-        pass
+        self._thresholds: DetectorThresholds = {
+            DetectorPriorityLevel.OK: 1,  # Make sure the OK level is always set
+            **default_thresholds,
+            **(self.thresholds or {}),  # Allow each handler to override
+            **(thresholds or {}),  # Allow each instance to override
+        }
 
-    def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
-        return []
+        self.state_manager = DetectorStateManager(detector, list(self._thresholds.keys()))
 
-    def create_resolve_message(self) -> StatusChangeMessage:
-        """
-        Create a resolve message for the detectors issue. This is overridable in the subclass, but
-        will work for the majority of cases.
-        """
-        return StatusChangeMessage(
-            fingerprint=[*self.build_issue_fingerprint(), self.state_manager.build_key()],
-            project_id=self.detector.project_id,
-            new_status=GroupStatus.RESOLVED,
-            new_substatus=None,
-        )
+    def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
+        # TODO - Is this something that should be provided by the detector itself rather
+        # than having to query the db for each level?
+        priority_levels: list[DetectorPriorityLevel] = [level for level in DetectorPriorityLevel]
+
+        if self.detector.workflow_condition_group is None:
+            # TODO - Should this default to _all_ levels or no levels?
+            return priority_levels
+
+        condition_result_levels = self.detector.workflow_condition_group.conditions.filter(
+            condition_result__in=priority_levels
+        ).values_list("condition_result", flat=True)
+
+        return list(DetectorPriorityLevel(level) for level in condition_result_levels)
 
     def _create_decorated_issue_occurrence(
         self,
@@ -341,6 +359,61 @@ class StatefulDetectorHandler(
 
         return condition_evaluation, new_priority
 
+    def _increment_detector_thresholds(
+        self,
+        state: DetectorStateData,
+        new_priority: DetectorPriorityLevel,
+        group_key: DetectorGroupKey = None,
+    ) -> DetectorCounters:
+        results: DetectorCounters = {}
+
+        if new_priority == DetectorPriorityLevel.OK:
+            incremented_value = (state.counter_updates.get(new_priority) or 0) + 1
+            results.update({new_priority: incremented_value})
+        else:
+            for level in self._thresholds.keys():
+                if level <= new_priority and level != DetectorPriorityLevel.OK:
+                    incremented_value = (state.counter_updates.get(level) or 0) + 1
+                    results.update({level: incremented_value})
+
+        self.state_manager.enqueue_counter_update(group_key, results)
+        return results
+
+    def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
+        return []
+
+    def create_resolve_message(self) -> StatusChangeMessage:
+        """
+        Create a resolve message for the detectors issue. This is overridable in the subclass, but
+        will work for the majority of cases.
+        """
+        return StatusChangeMessage(
+            fingerprint=[*self.build_issue_fingerprint(), self.state_manager.build_key()],
+            project_id=self.detector.project_id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+        )
+
+    def _has_breached_threshold(
+        self,
+        updated_threshold_counts: DetectorCounters,
+    ) -> DetectorPriorityLevel | None:
+        """
+        Get the list of configured thresholds, then sort them to find the highest
+        breached threshold.
+
+        If the threshold is breached, return the highest breached threshold level.
+        """
+        threshold_keys: list[DetectorPriorityLevel] = list(self._thresholds.keys())
+        threshold_keys.sort(reverse=True)
+
+        for level in threshold_keys:
+            level_count = updated_threshold_counts.get(level)
+            if level_count is not None and level_count >= self._thresholds[level]:
+                return level
+
+        return None
+
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult] | None:
@@ -355,28 +428,31 @@ class StatefulDetectorHandler(
         # TODO ensure this is not a duplicate packet or reprocessing
 
         value = self.extract_value(data_packet)
-        condition_evaluation, new_priority = self._evaluation_detector_conditions(value)
+        is_condition_group_met, new_priority = self._evaluation_detector_conditions(value)
         state = self.state_manager.get_state_data([None])[None]
 
-        if state.status == new_priority or not condition_evaluation:
+        is_status_changed = state.status != new_priority
+        if not is_condition_group_met or not is_status_changed:
+            # If the condition is not met or the status is not the same, nothing to do.
             return None
 
-        # TODO - enqueue state update here
-        # TODO - enqueue threshold update
-        # self.state_manager.enqueue_threshold_update(None, new_priority)
+        updated_threshold_counts = self._increment_detector_thresholds(state, new_priority, None)
+        highest_breached_threshold = self._has_breached_threshold(updated_threshold_counts)
+        if highest_breached_threshold is None:
+            # We haven't met any of the thresholds yet, so don't trigger
+            return None
+
+        new_priority = highest_breached_threshold
 
         if new_priority == DetectorPriorityLevel.OK:
             detector_result = self.create_resolve_message()
+            self.state_manager.enqueue_counter_reset()
         else:
-            # TODO - think through this bit later
-            # thresholds = self.state_manager.get_thresholds(None)
-            # if thresholds[new_priority] > detector.config.get("thresholds", {}).get(new_priority):
-            # create the issue occurrence, otherwise we just needed the state update
             detector_occurrence, event_data = self.create_occurrence(
-                condition_evaluation, data_packet, new_priority
+                is_condition_group_met, data_packet, new_priority
             )
             detector_result = self._create_decorated_issue_occurrence(
-                detector_occurrence, condition_evaluation, new_priority
+                detector_occurrence, is_condition_group_met, new_priority
             )
 
         return {
@@ -390,21 +466,19 @@ class StatefulDetectorHandler(
         }
 
 
-# TODO move to grouping.py as GroupingDetectorHandler?
 class StatefulGroupingDetectorHandler(
     Generic[DataPacketType, DataPacketEvaluationType],
     StatefulDetectorHandler[DataPacketType, DataPacketEvaluationType],
     abc.ABC,
 ):
-    @abc.abstractmethod
     def extract_group_values(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DataPacketEvaluationType]:
+    ) -> dict[DetectorGroupKey, DataPacketEvaluationType] | None:
         """
         Extracts the values for all the group keys that exist in the given data packet,
         and returns then as a dict keyed by group_key.
         """
-        pass
+        return None
 
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
@@ -419,13 +493,11 @@ class StatefulGroupingDetectorHandler(
         data_packet: DataPacket[DataPacketType],
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         dedupe_value = self.extract_dedupe_value(data_packet)
-        group_values = self.extract_group_values(data_packet)
+        group_values = self.extract_group_values(data_packet) or {}
         all_state_data = self.state_manager.get_state_data(list(group_values.keys()))
         results = {}
 
         for group_key, group_value in group_values.items():
-            # invoke the stateful detector with the associated data. doesn't need the group key for evaluation
-            # results returned here will be then committed in bulk
             result = self.evaluate_group_key_value(
                 group_key,
                 group_value,
@@ -433,6 +505,7 @@ class StatefulGroupingDetectorHandler(
                 dedupe_value,
                 data_packet,
             )
+
             if result:
                 results[result.group_key] = result
 
@@ -453,7 +526,6 @@ class StatefulGroupingDetectorHandler(
 
         Checks that we haven't already processed this data-packet for this group_key, and skips evaluation if we have.
         """
-        # TODO - compose this method using the helpers in the base class.
         if dedupe_value <= state_data.dedupe_value:
             metrics.incr("workflow_engine.detector.skipping_already_processed_update")
             return None
@@ -464,16 +536,24 @@ class StatefulGroupingDetectorHandler(
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
             return None
 
-        new_status = DetectorPriorityLevel.OK
-        processed_data_condition, new_status = self._evaluation_detector_conditions(value)
+        new_priority = DetectorPriorityLevel.OK
+        is_condition_group_met, new_priority = self._evaluation_detector_conditions(value)
+        is_status_changed = state_data.status != new_priority
 
-        # TODO - add update for the thresholds here...
-        # self.state_manager.update_thresholds(group_key, new_status)
-        self.state_manager.enqueue_counter_update(group_key, {})
-
-        if state_data.status == new_status or not processed_data_condition:
+        if not is_status_changed or not is_condition_group_met:
             return None
 
+        # Update the counter for the new status
+        updated_threshold_count = self._increment_detector_thresholds(
+            state_data, new_priority, group_key
+        )
+
+        breached_threshold = self._has_breached_threshold(updated_threshold_count)
+        if breached_threshold is None:
+            # We haven't met the threshold yet, so don't trigger
+            return None
+
+        new_status = breached_threshold
         is_triggered = new_status != DetectorPriorityLevel.OK
         self.state_manager.enqueue_state_update(group_key, is_triggered, new_status)
 
@@ -490,9 +570,12 @@ class StatefulGroupingDetectorHandler(
                 new_status=GroupStatus.RESOLVED,
                 new_substatus=None,
             )
+
+            # Now that we've resolved the issue, we can reset the counters
+            self.state_manager.enqueue_counter_reset(group_key)
         else:
             detector_occurrence, event_data = self.create_occurrence(
-                processed_data_condition, data_packet, new_status
+                is_condition_group_met, data_packet, new_status
             )
             evidence_data = {
                 **detector_occurrence.evidence_data,
