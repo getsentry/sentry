@@ -64,7 +64,7 @@ function AllocationForm({
   const [showPrice, setShowPrice] = useState<boolean>(false);
   const [selectedMetric, setSelectedMetric] = useState<DataCategory>(
     initializedData
-      ? (initializedData.billingMetric as DataCategory)
+      ? normalizeBillingMetric(initializedData.billingMetric)
       : initialMetric && getCategoryInfoFromPlural(initialMetric)?.canAllocate
         ? initialMetric
         : DataCategory.ERRORS // default to errors
@@ -544,3 +544,16 @@ const Select = styled(SelectField)`
     padding-left: 0;
   }
 `;
+
+// Normalizes singular billingMetric values to match DataCategory enum
+function normalizeBillingMetric(metric: string): DataCategory {
+  switch (metric) {
+    case 'error':
+      return DataCategory.ERRORS;
+    case 'attachment':
+      return DataCategory.ATTACHMENTS;
+    // Add more mappings as needed
+    default:
+      return metric as DataCategory;
+  }
+}
