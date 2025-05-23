@@ -28,6 +28,7 @@ import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -59,8 +60,9 @@ type FormData = {
 };
 
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
-  alertRule: Partial<RequestDataFragment> | undefined;
   platform: OnboardingSelectedSDK;
+  alertRule?: Partial<RequestDataFragment>;
+  notificationRule?: Partial<RequestDataFragment>;
   team?: string;
 };
 
@@ -138,7 +140,6 @@ export function CreateProject() {
   const [errors, setErrors] = useState();
   const organization = useOrganization();
   const location = useLocation();
-  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
   const canUserCreateProject = useCanCreateProject();
   const createProjectAndRules = useCreateProjectAndRules();
   const {teams} = useTeams();
@@ -146,13 +147,23 @@ export function CreateProject() {
   const referrer = decodeScalar(location.query.referrer);
   const projectId = decodeScalar(location.query.project);
   const [createdProject, setCreatedProject] = useLocalStorageState<CreatedProject | null>(
-    'created-project-context',
+    'created-project',
     null
   );
 
   const autoFill = useMemo(() => {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
+
+  const createNotificationActionParam = useMemo(() => {
+    return autoFill && createdProject?.notificationRule?.actions
+      ? {actions: createdProject.notificationRule.actions}
+      : undefined;
+  }, [autoFill, createdProject?.notificationRule?.actions]);
+
+  const {createNotificationAction, notificationProps} = useCreateNotificationAction(
+    createNotificationActionParam
+  );
 
   const defaultTeam = accessTeams?.[0]?.slug;
 
@@ -242,13 +253,14 @@ export function CreateProject() {
       let projectToRollback: Project | undefined;
 
       try {
-        const {project, ruleIds} = await createProjectAndRules.mutateAsync({
-          projectName,
-          platform: selectedPlatform,
-          team,
-          alertRuleConfig,
-          createNotificationAction,
-        });
+        const {project, customRule, notificationRule} =
+          await createProjectAndRules.mutateAsync({
+            projectName,
+            platform: selectedPlatform,
+            team,
+            alertRuleConfig,
+            createNotificationAction,
+          });
         projectToRollback = project;
 
         trackAnalytics('project_creation_page.created', {
@@ -260,7 +272,7 @@ export function CreateProject() {
               : 'No Rule',
           project_id: project.id,
           platform: selectedPlatform.key,
-          rule_ids: ruleIds,
+          rule_ids: [customRule?.id, notificationRule?.id].filter(defined),
         });
 
         addSuccessMessage(
@@ -277,14 +289,8 @@ export function CreateProject() {
           id: project.id,
           name: project.name,
           team: project.team?.slug,
-          alertRule: {
-            shouldCreateRule: alertRuleConfig?.shouldCreateRule ?? false,
-            shouldCreateCustomRule: alertRuleConfig?.shouldCreateCustomRule ?? false,
-            conditions: alertRuleConfig?.conditions,
-            actions: alertRuleConfig?.actions,
-            actionMatch: alertRuleConfig?.actionMatch,
-            frequency: alertRuleConfig?.frequency,
-          },
+          alertRule: alertRuleConfig,
+          notificationRule,
           platform: selectedPlatform,
         });
 
@@ -460,8 +466,16 @@ export function CreateProject() {
                   ? RuleAction.DEFAULT_ALERT
                   : RuleAction.CREATE_ALERT_LATER
             }
-            interval={formData.alertRuleConfig?.conditions?.[0]?.interval}
-            threshold={formData.alertRuleConfig?.conditions?.[0]?.value}
+            interval={
+              defined(formData.alertRuleConfig?.conditions?.[0]?.interval)
+                ? String(formData.alertRuleConfig?.conditions?.[0]?.interval)
+                : undefined
+            }
+            threshold={
+              defined(formData.alertRuleConfig?.conditions?.[0]?.value)
+                ? String(formData.alertRuleConfig?.conditions?.[0]?.value)
+                : undefined
+            }
             metric={
               formData.alertRuleConfig?.conditions?.[0]?.id.endsWith(
                 'EventFrequencyCondition'
