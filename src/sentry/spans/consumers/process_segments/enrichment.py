@@ -1,11 +1,8 @@
 from collections import defaultdict
 from typing import Any, cast
 
-# TODO(ja): Fix and update the schema
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import _MeasurementValue
-
 from sentry.models.project import Project
-from sentry.spans.consumers.process_segments.types import Span
+from sentry.spans.consumers.process_segments.types import MeasurementValue, Span
 
 # Keys in `sentry_tags` that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -195,7 +192,7 @@ def compute_breakdowns(segment: Span, spans: list[Span], project: Project) -> No
             measurements[f"{breakdown_name}.{key}"] = value
 
 
-def _compute_span_ops(spans: list[Span], config: Any) -> dict[str, _MeasurementValue]:
+def _compute_span_ops(spans: list[Span], config: Any) -> dict[str, MeasurementValue]:
     matches = config.get("matches")
     if not matches:
         return {}
@@ -206,7 +203,7 @@ def _compute_span_ops(spans: list[Span], config: Any) -> dict[str, _MeasurementV
         if operation_name := next(filter(lambda m: op.startswith(m), matches), None):
             intervals_by_op[operation_name].append(_span_interval(span))
 
-    measurements: dict[str, _MeasurementValue] = {}
+    measurements: dict[str, MeasurementValue] = {}
     for operation_name, intervals in intervals_by_op.items():
         duration = _get_duration_us(intervals)
         measurements[f"ops.{operation_name}"] = {"value": duration / 1000, "unit": "millisecond"}
