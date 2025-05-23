@@ -451,11 +451,6 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         <p>A few notes of caution:</p>
         <ol>
           <li>
-            This feature is not compatible with release bubbles! The bubble release series
-            will always force the range to start at 0, since the release bubbles are a
-            series with values of 0.
-          </li>
-          <li>
             This only works well for line series. If you try this with area or bar
             plottables you will have a bad time because the chart will look weird and make
             no sense
