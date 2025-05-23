@@ -26,6 +26,11 @@ type ModalOptions = {
    */
   backdrop?: boolean;
   /**
+   * Additional CSS which will be applied to the modal's backdrop.
+   * Allows specific control over the positioning of z-index for the entire modal
+   */
+  backdropCss?: ReturnType<typeof css>;
+  /**
    * By default, the modal is closed when the backdrop is clicked or the
    * escape key is pressed. This prop allows you to modify that behavior.
    * Only use when completely necessary, the defaults are important for
@@ -217,12 +222,14 @@ function GlobalModal({onClose}: Props) {
     <Fragment>
       <Backdrop
         style={backdrop && visible ? {opacity: 0.5, pointerEvents: 'auto'} : {}}
+        css={options?.backdropCss}
       />
       <Container
         data-test-id="modal-backdrop"
         ref={containerRef}
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}
+        css={options?.backdropCss}
       >
         <TooltipContext
           value={{
