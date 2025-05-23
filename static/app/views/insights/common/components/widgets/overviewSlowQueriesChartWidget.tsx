@@ -12,6 +12,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
@@ -34,12 +35,12 @@ function getSeriesName(item: {'span.group': string; transaction: string}) {
   return `${item.transaction},${item['span.group']}`;
 }
 
-export function QueriesWidget() {
+export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidgetProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
-  const releaseBubbleProps = useReleaseBubbleProps();
-  const pageFilterChartParams = usePageFilterChartParams();
+  const releaseBubbleProps = useReleaseBubbleProps(props);
+  const pageFilterChartParams = usePageFilterChartParams(props);
 
   const fullQuery = `has:db.system has:span.group ${query}`;
 
@@ -56,6 +57,7 @@ export function QueriesWidget() {
       sorts: [{field: 'avg(span.duration)', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
+      pageFilters: props.pageFilters,
     },
     Referrer.QUERIES_CHART
   );
@@ -70,7 +72,8 @@ export function QueriesWidget() {
       topN: 3,
       enabled: !!queriesRequest.data,
     },
-    Referrer.QUERIES_CHART
+    Referrer.QUERIES_CHART,
+    props.pageFilters
   );
 
   const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
@@ -98,7 +101,8 @@ export function QueriesWidget() {
       emptyMessage={<TimeSpentInDatabaseWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
-        showLegend: 'never',
+        id: 'overviewSlowQueriesChartWidget',
+        showLegend: props.loaderSource === 'releases-drawer' ? 'auto' : 'never',
         plottables: timeSeries.map(
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {
@@ -106,6 +110,7 @@ export function QueriesWidget() {
               alias: aliases[ts.seriesName],
             })
         ),
+        ...props,
         ...releaseBubbleProps,
       }}
     />
@@ -157,6 +162,7 @@ export function QueriesWidget() {
               query: fullQuery,
               interval: pageFilterChartParams.interval,
             }}
+            loaderSource={props.loaderSource}
             onOpenFullScreen={() => {
               openInsightChartModal({
                 title: t('Slow Queries'),
@@ -172,7 +178,7 @@ export function QueriesWidget() {
         )
       }
       noFooterPadding
-      Footer={footer}
+      Footer={props.loaderSource === 'releases-drawer' ? undefined : footer}
     />
   );
 }

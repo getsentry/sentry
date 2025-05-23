@@ -167,7 +167,7 @@ export function SpanSearchQueryBuilder(props: SpanSearchQueryBuilderProps) {
   return <IndexedSpanSearchQueryBuilder {...props} />;
 }
 
-export function IndexedSpanSearchQueryBuilder({
+function IndexedSpanSearchQueryBuilder({
   initialQuery,
   searchSource,
   datetime,
@@ -189,7 +189,7 @@ export function IndexedSpanSearchQueryBuilder({
   return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
-export function EapSpanSearchQueryBuilder({
+function EapSpanSearchQueryBuilder({
   initialQuery,
   searchSource,
   datetime,
