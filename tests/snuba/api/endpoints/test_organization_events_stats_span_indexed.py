@@ -1140,7 +1140,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert len(data) == 6
         assert response.data["meta"]["dataset"] == self.dataset
 
-        rows = data[:6]
+        rows = data[0:6]
         for test in zip(event_counts, rows):
             self.assertAlmostEqual(test[1][1][0]["count"], test[0] / (3600.0 / 60.0))
 
@@ -1206,7 +1206,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
-        assert len(data) == 7
+        assert len(data) == 6
         assert meta["dataset"] == self.dataset
 
         rows = data[0:6]
@@ -2133,62 +2133,3 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         )
         assert response.status_code == 200, response.content
         assert set(response.data.keys()) == {"True", "False"}
-
-    def test_datetime_unaligned_with_regular_buckets(self):
-        """When querying from 10:12-22:12 with 1 hour intervals
-        the returned buckets should be every hour; ie 10am, 11am, 12pm
-        but the data should still be constrained from 22:12-22:12"""
-        spans = []
-        # Create a span at 10:05, this should not be in the result
-        spans.append(
-            self.create_span(
-                {
-                    "description": "foo",
-                    "sentry_tags": {"status": "success"},
-                },
-                start_ts=self.day_ago + timedelta(minutes=5),
-            )
-        )
-        # Create a span at 10:30, this should be in the result
-        spans.append(
-            self.create_span(
-                {
-                    "description": "foo",
-                    "sentry_tags": {"status": "success"},
-                },
-                start_ts=self.day_ago + timedelta(minutes=30),
-            )
-        )
-        # Create a span at 22:05, this should be in the result
-        spans.append(
-            self.create_span(
-                {
-                    "description": "foo",
-                    "sentry_tags": {"status": "success"},
-                },
-                start_ts=self.day_ago + timedelta(hours=12, minutes=5),
-            )
-        )
-        self.store_spans(spans, is_eap=self.is_eap)
-
-        # This should be set to 10:00 the previous day
-        query_start = self.day_ago + timedelta(minutes=12)
-        query_end = self.day_ago + timedelta(hours=12, minutes=12)
-        response = self._do_request(
-            data={
-                "start": query_start,
-                "end": query_end,
-                "interval": "1h",
-                "yAxis": "count()",
-                "project": self.project.id,
-                "dataset": self.dataset,
-            },
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 13
-        assert response.data["meta"]["dataset"] == self.dataset
-        # The timestamp of the first event should be 10:00, and there should only be 1 event
-        assert data[0] == (self.day_ago.timestamp(), [{"count": 1}])
-        # The timestamp of the last event should be 22:00 and there should also only be 1 event
-        assert data[-1] == ((self.day_ago + timedelta(hours=12)).timestamp(), [{"count": 1}])

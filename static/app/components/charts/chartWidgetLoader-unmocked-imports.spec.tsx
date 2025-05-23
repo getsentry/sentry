@@ -155,12 +155,8 @@ jest.mock(
 jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
   useEAPSeries: jest.fn(() => ({
     data: {
-      'count(span.duration)': mockDiscoverSeries('count(span.duration)'),
       'avg(span.duration)': mockDiscoverSeries('avg(span.duration)'),
       'p95(span.duration)': mockDiscoverSeries('p95(span.duration)'),
-      'trace_status_rate(internal_error)': mockDiscoverSeries(
-        'trace_status_rate(internal_error)'
-      ),
     },
     isPending: false,
     error: null,

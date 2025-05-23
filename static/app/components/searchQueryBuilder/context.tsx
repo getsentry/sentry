@@ -36,7 +36,6 @@ interface SearchQueryBuilderContextData {
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
-  getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
   handleSearch: (query: string) => void;
   parseQuery: (query: string) => ParseResult | null;
@@ -79,7 +78,6 @@ export function SearchQueryBuilderProvider({
   filterKeys,
   filterKeyMenuWidth = 360,
   filterKeySections,
-  getSuggestedFilterKey,
   getTagValues,
   onSearch,
   placeholder,
@@ -141,7 +139,6 @@ export function SearchQueryBuilderProvider({
       filterKeySections: filterKeySections ?? [],
       filterKeyMenuWidth,
       filterKeys,
-      getSuggestedFilterKey: getSuggestedFilterKey ?? ((key: string) => key),
       getTagValues,
       getFieldDefinition: fieldDefinitionGetter,
       dispatch,
@@ -163,7 +160,6 @@ export function SearchQueryBuilderProvider({
     filterKeySections,
     filterKeyMenuWidth,
     filterKeys,
-    getSuggestedFilterKey,
     getTagValues,
     fieldDefinitionGetter,
     dispatch,

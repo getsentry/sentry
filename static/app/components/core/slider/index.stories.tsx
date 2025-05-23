@@ -2,20 +2,22 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Slider} from 'sentry/components/core/slider';
-import * as Storybook from 'sentry/stories';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
+import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/slider';
 
-export default Storybook.story('Slider', (story, APIReference) => {
+export default storyBook('Slider', (story, APIReference) => {
   APIReference(types.Slider);
   story('Default', () => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="Slider" /> component is a simple slider that can be
-          used to select a value from a range.
+          The <JSXNode name="Slider" /> component is a simple slider that can be used to
+          select a value from a range.
         </p>
         <Label>
           Basic slider
@@ -29,8 +31,7 @@ export default Storybook.story('Slider', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          Use the <Storybook.JSXProperty name="disabled" value /> prop to disable the
-          slider.
+          Use the <JSXProperty name="disabled" value /> prop to disable the slider.
         </p>
         <Label>
           Disabled slider
@@ -45,8 +46,7 @@ export default Storybook.story('Slider', (story, APIReference) => {
       <Fragment>
         <p>
           The label display can be controlled using the{' '}
-          <Storybook.JSXProperty name="formatLabel" value={(n: number) => n} /> callback
-          prop.
+          <JSXProperty name="formatLabel" value={(n: number) => n} /> callback prop.
         </p>
         <Label>
           Formatted label slider
@@ -60,8 +60,8 @@ export default Storybook.story('Slider', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          Use the <Storybook.JSXProperty name="step" value={10} /> property to restrict
-          which values can be selected.
+          Use the <JSXProperty name="step" value={10} /> property to restrict which values
+          can be selected.
         </p>
         <Label>
           Every 10th value
@@ -84,9 +84,9 @@ export default Storybook.story('Slider', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          Pass <Storybook.JSXProperty name="value" value="value" /> and{' '}
-          <Storybook.JSXProperty name="onChange" value="setValue" /> to fully control the{' '}
-          <Storybook.JSXNode name="Slider" /> component.
+          Pass <JSXProperty name="value" value="value" /> and{' '}
+          <JSXProperty name="onChange" value="setValue" /> to fully control the{' '}
+          <JSXNode name="Slider" /> component.
         </p>
         <Label>
           Controlled slider

@@ -1,22 +1,28 @@
-import {isValidElement} from 'react';
+import {type ElementType, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
+import JSXProperty from 'sentry/components/stories/jsxProperty';
+import type {SizingWindowProps} from 'sentry/components/stories/sizingWindow';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {space} from 'sentry/styles/space';
-
-import {JSXProperty} from './jsx';
-import {SizingWindow} from './layout';
 
 export type PropMatrix<P> = Partial<{
   [Prop in keyof P]: Array<P[Prop]>;
 }>;
 
-export interface PropMatrixProps<P> {
+interface Props<P> {
   propMatrix: PropMatrix<P>;
-  render: React.ElementType<P>;
+  render: ElementType<P>;
   selectedProps: [keyof P] | [keyof P, keyof P];
+  sizingWindowProps?: SizingWindowProps;
 }
 
-export function PropMatrix<P>({propMatrix, render, selectedProps}: PropMatrixProps<P>) {
+export default function Matrix<P>({
+  propMatrix,
+  render,
+  selectedProps,
+  sizingWindowProps,
+}: Props<P>) {
   const defaultValues = Object.fromEntries(
     Object.entries(propMatrix).map(([key, values]) => {
       return [key, (values as any[]).at(0)];
@@ -41,7 +47,7 @@ export function PropMatrix<P>({propMatrix, render, selectedProps}: PropMatrixPro
           [selectedProps[0]]: value1,
           ...(selectedProps.length === 2 ? {[selectedProps[1]]: value2} : {}),
         },
-        {}
+        sizingWindowProps
       );
     });
     return [label, ...content];
@@ -76,15 +82,21 @@ export function PropMatrix<P>({propMatrix, render, selectedProps}: PropMatrixPro
   );
 }
 
+const Title = styled('h4')`
+  margin: 0;
+  scroll-margin-top: ${space(2)};
+`;
+
+// ((this: any, key: string, value: any) => any)
+function replacer(this: any, _key: string, value: any) {
+  if (isValidElement(value)) {
+    return 'react'; // value.name ?? value;
+  }
+  return value;
+}
+
 function item(Component: any, props: any, sizingWindowProps: any) {
   const hasChildren = 'children' in props;
-
-  const replacer = (_key: string, value: any) => {
-    if (isValidElement(value)) {
-      return 'react'; // value.name ?? value;
-    }
-    return value;
-  };
 
   if (hasChildren) {
     const {children, ...otherProps} = props;
@@ -101,11 +113,6 @@ function item(Component: any, props: any, sizingWindowProps: any) {
     </SizingWindow>
   );
 }
-
-const Title = styled('h4')`
-  margin: 0;
-  scroll-margin-top: ${space(2)};
-`;
 
 const Grid = styled('section')`
   display: grid;

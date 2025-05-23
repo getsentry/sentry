@@ -1,6 +1,6 @@
 import ChoiceMapperField from 'sentry/components/forms/fields/choiceMapperField';
 import Form from 'sentry/components/forms/form';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 import useProjects from 'sentry/utils/useProjects';
 
 import BlankField from './blankField';
@@ -22,7 +22,7 @@ import SeparatorField from './separatorField';
 import TextareaField from './textareaField';
 import TextField from './textField';
 
-export default Storybook.story('Form', story => {
+export default storyBook('Form', story => {
   story('Available fields', () => {
     const {projects} = useProjects();
 

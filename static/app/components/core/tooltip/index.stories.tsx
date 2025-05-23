@@ -2,12 +2,14 @@ import {Fragment} from 'react';
 
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import * as Storybook from 'sentry/stories';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
+import SideBySide from 'sentry/components/stories/sideBySide';
+import storyBook from 'sentry/stories/storyBook';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/tooltip';
 
-export default Storybook.story('Tooltip', (story, APIReference) => {
+export default storyBook('Tooltip', (story, APIReference) => {
   APIReference(types.Tooltip);
 
   story('Default', () => {
@@ -20,13 +22,13 @@ export default Storybook.story('Tooltip', (story, APIReference) => {
         <p>
           By default, a tooltip renders a wrapper around the children element and renders
           the tooltip content in a portal. The wrapper can be skipped by passing the{' '}
-          <Storybook.JSXProperty name="skipWrapper" value="true" /> prop.
+          <JSXProperty name="skipWrapper" value="true" /> prop.
         </p>
-        <Storybook.SideBySide>
+        <SideBySide>
           <Tooltip title="Tooltip">
             <Button>Hover me</Button>
           </Tooltip>
-        </Storybook.SideBySide>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -37,16 +39,16 @@ export default Storybook.story('Tooltip', (story, APIReference) => {
         <p>
           A tooltip is not hoverable by default and will hide before the pointer enters
           it's container - to make it hoverable, pass the{' '}
-          <Storybook.JSXProperty name="isHoverable" value="true" /> prop.
+          <JSXProperty name="isHoverable" value="true" /> prop.
         </p>
-        <Storybook.SideBySide>
+        <SideBySide>
           <Tooltip title="This can be copied" isHoverable skipWrapper>
             <Button>Hoverable Tooltip</Button>
           </Tooltip>
           <Tooltip title="This cannot be copied" skipWrapper>
             <Button>Non Hoverable Tooltip</Button>
           </Tooltip>
-        </Storybook.SideBySide>
+        </SideBySide>
       </Fragment>
     );
   });

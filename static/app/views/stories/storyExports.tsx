@@ -2,10 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 
-import {Flex} from 'sentry/components/container/flex';
 import {space} from 'sentry/styles/space';
+import {StorySourceLinks} from 'sentry/views/stories/storySourceLinks';
 
-import {StorySourceLinks} from './storySourceLinks';
 import type {StoryDescriptor} from './useStoriesLoader';
 
 export function StoryExports(props: {story: StoryDescriptor}) {
@@ -14,11 +13,9 @@ export function StoryExports(props: {story: StoryDescriptor}) {
   return (
     <Fragment>
       <StorySourceLinksContainer>
-        <Flex justify="flex-end" align="center" gap={1}>
-          <ErrorBoundary>
-            <StorySourceLinks story={props.story} />
-          </ErrorBoundary>
-        </Flex>
+        <ErrorBoundary>
+          <StorySourceLinks story={props.story} />
+        </ErrorBoundary>
       </StorySourceLinksContainer>
       {/* Render default export first */}
       {DefaultExport ? (
@@ -46,6 +43,10 @@ export function StoryExports(props: {story: StoryDescriptor}) {
 }
 
 const StorySourceLinksContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  justify-content: flex-end;
   margin-top: ${space(1.5)};
 `;
 

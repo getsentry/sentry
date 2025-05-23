@@ -4,22 +4,23 @@ import {
   GroupPriorityBadge,
   GroupPriorityDropdown,
 } from 'sentry/components/badge/groupPriority';
-import * as Storybook from 'sentry/stories';
+import SideBySide from 'sentry/components/stories/sideBySide';
+import storyBook from 'sentry/stories/storyBook';
 import {PriorityLevel} from 'sentry/types/group';
 
 const PRIORITIES = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
 
-export const Badge = Storybook.story('GroupPriorityBadge', story => {
+export const Badge = storyBook('GroupPriorityBadge', story => {
   story('Default', () => (
-    <Storybook.SideBySide>
+    <SideBySide>
       {PRIORITIES.map(priority => (
         <GroupPriorityBadge key={priority} priority={priority} />
       ))}
-    </Storybook.SideBySide>
+    </SideBySide>
   ));
 });
 
-export const Dropdown = Storybook.story('GroupPriorityDropdown', story => {
+export const Dropdown = storyBook('GroupPriorityDropdown', story => {
   story('Default', () => {
     const [value, setValue] = useState(PriorityLevel.MEDIUM);
 

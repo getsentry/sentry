@@ -149,7 +149,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         response = self.get_error_response(
             self.project.organization.slug,
             self.project.slug,
-            transaction_duration_regression_detection_enabled=False,
+            n_plus_one_db_queries_detection_enabled=False,
             method="put",
             status_code=status.HTTP_403_FORBIDDEN,
         )
@@ -187,7 +187,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         self.get_error_response(
             self.project.organization.slug,
             self.project.slug,
-            function_duration_regression_detection_enabled=False,
+            n_plus_one_db_queries_detection_enabled=False,
             method="put",
             status_code=status.HTTP_403_FORBIDDEN,
         )
@@ -198,18 +198,18 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         response = self.get_success_response(
             self.project.organization.slug,
             self.project.slug,
-            function_duration_regression_detection_enabled=False,
+            n_plus_one_db_queries_detection_enabled=False,
             method="put",
             status_code=status.HTTP_200_OK,
         )
 
-        assert not response.data["function_duration_regression_detection_enabled"]
+        assert not response.data["n_plus_one_db_queries_detection_enabled"]
 
         get_response = self.get_success_response(
             self.project.organization.slug, self.project.slug, format="json"
         )
 
-        assert not get_response.data["function_duration_regression_detection_enabled"]
+        assert not get_response.data["n_plus_one_db_queries_detection_enabled"]
 
     @with_feature("organizations:performance-view")
     def test_put_update_non_super_user_option(self):

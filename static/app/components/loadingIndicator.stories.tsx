@@ -1,18 +1,20 @@
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import * as Storybook from 'sentry/stories';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
+import SideBySide from 'sentry/components/stories/sideBySide';
+import storyBook from 'sentry/stories/storyBook';
 
-export default Storybook.story('LoadingIndicator', story => {
+export default storyBook('LoadingIndicator', story => {
   story('Default', () => (
     <div>
       <p>
-        Setting custom size on <Storybook.JSXProperty name="size" value={24} /> will cause
-        the border width to scale proportionally with the size of the loading indicator.
+        Setting custom size on <JSXProperty name="size" value={24} /> will cause the
+        border width to scale proportionally with the size of the loading indicator.
       </p>
-      <Storybook.SideBySide>
+      <SideBySide>
         <LoadingIndicator />
         <LoadingIndicator size={48} />
         <LoadingIndicator size={24} />
-      </Storybook.SideBySide>
+      </SideBySide>
     </div>
   ));
 

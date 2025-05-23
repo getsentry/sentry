@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 
 import StructuredEventData from 'sentry/components/structuredEventData';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default Storybook.story('useOrganization', story => {
+export default storyBook('useOrganization', story => {
   story('Default', () => {
     const org = useOrganization();
 

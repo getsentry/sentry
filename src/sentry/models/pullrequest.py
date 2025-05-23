@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -134,7 +134,7 @@ class PullRequestComment(Model):
     pull_request = FlexibleForeignKey("sentry.PullRequest")
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
-    group_ids = ArrayField(BoundedBigIntegerField())
+    group_ids = DjangoArrayField(BoundedBigIntegerField())
     reactions = JSONField(null=True)
     comment_type = BoundedPositiveIntegerField(
         default=CommentType.MERGED_PR,

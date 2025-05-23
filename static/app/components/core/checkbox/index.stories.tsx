@@ -2,20 +2,21 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
-import * as Storybook from 'sentry/stories';
+import SideBySide from 'sentry/components/stories/sideBySide';
+import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/checkbox/index.tsx';
 
-export default Storybook.story('Checkbox', (story, APIReference) => {
+export default storyBook('Checkbox', (story, APIReference) => {
   APIReference(types.Checkbox);
 
   story('Default', () => {
     return (
       <Fragment>
         <p>Checkboxes currently only support controlled state.</p>
-        <Storybook.SideBySide>
+        <SideBySide>
           <Label>
             Default <Checkbox />
           </Label>
@@ -34,7 +35,7 @@ export default Storybook.story('Checkbox', (story, APIReference) => {
           <Label>
             Indeterminate Disabled <Checkbox checked="indeterminate" disabled />
           </Label>
-        </Storybook.SideBySide>
+        </SideBySide>
       </Fragment>
     );
   });

@@ -5,25 +5,26 @@ import {
   GuidedSteps,
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
-import * as Storybook from 'sentry/stories';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
+import storyBook from 'sentry/stories/storyBook';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-export default Storybook.story('GuidedSteps', story => {
+export default storyBook('GuidedSteps', story => {
   story('Default', () => (
     <Fragment>
       <p>
-        To create a GuideStep component, you should use{' '}
-        <Storybook.JSXNode name="GuidedSteps" /> as the container and{' '}
-        <Storybook.JSXNode name="GuidedSteps.Step" /> as direct children.
+        To create a GuideStep component, you should use <JSXNode name="GuidedSteps" /> as
+        the container and <JSXNode name="GuidedSteps.Step" /> as direct children.
       </p>
       <p>
         You have complete control over what to render in the step titles and step content.
-        You may use <Storybook.JSXNode name="GuidedSteps.StepButtons" /> to render the
-        default back/next buttons, but can also render your own.
+        You may use <JSXNode name="GuidedSteps.StepButtons" /> to render the default
+        back/next buttons, but can also render your own.
       </p>
-      <Storybook.SizingWindow display="block">
+      <SizingWindow display="block">
         <GuidedSteps>
           <GuidedSteps.Step title="Step 1 Title" stepKey="step-1">
             This is the first step.
@@ -38,7 +39,7 @@ export default Storybook.story('GuidedSteps', story => {
             <GuidedSteps.StepButtons />
           </GuidedSteps.Step>
         </GuidedSteps>
-      </Storybook.SizingWindow>
+      </SizingWindow>
     </Fragment>
   ));
 
@@ -61,7 +62,7 @@ export default Storybook.story('GuidedSteps', story => {
           <code>useGuidedStepsContext()</code>. This can be used to create step buttons
           with custom behavior.
         </p>
-        <Storybook.SizingWindow display="block">
+        <SizingWindow display="block">
           <GuidedSteps>
             <GuidedSteps.Step title="Step 1 Title" stepKey="step-1">
               This is the first step.
@@ -76,7 +77,7 @@ export default Storybook.story('GuidedSteps', story => {
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
           </GuidedSteps>
-        </Storybook.SizingWindow>
+        </SizingWindow>
       </Fragment>
     );
   });
@@ -87,10 +88,10 @@ export default Storybook.story('GuidedSteps', story => {
         <p>
           By default, previous steps are considered completed. However, if the completed
           state is known it can be controlled using the <code>isCompleted</code> property
-          on <Storybook.JSXNode name="GuidedSteps.Step" />. The GuidedStep component will
-          begin on the first incomplete step.
+          on <JSXNode name="GuidedSteps.Step" />. The GuidedStep component will begin on
+          the first incomplete step.
         </p>
-        <Storybook.SizingWindow display="block">
+        <SizingWindow display="block">
           <GuidedSteps>
             <GuidedSteps.Step title="Step 1 Title" stepKey="step-1" isCompleted>
               Congrats, you finished the first step!
@@ -109,7 +110,7 @@ export default Storybook.story('GuidedSteps', story => {
               </GuidedSteps.ButtonWrapper>
             </GuidedSteps.Step>
           </GuidedSteps>
-        </Storybook.SizingWindow>
+        </SizingWindow>
       </Fragment>
     );
   });

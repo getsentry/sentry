@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 
-export default Storybook.story('ReplayUnsupportedAlert', story => {
+export default storyBook('ReplayUnsupportedAlert', story => {
   story('All', () => {
     return (
       <Fragment>

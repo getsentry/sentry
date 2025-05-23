@@ -4,28 +4,33 @@ import styled from '@emotion/styled';
 import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import * as Storybook from 'sentry/stories';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
+import Matrix from 'sentry/components/stories/matrix';
+import SideBySide from 'sentry/components/stories/sideBySide';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
+import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default Storybook.story('ClippedBox', story => {
+export default storyBook('ClippedBox', story => {
   story('Default', () => (
     <Fragment>
       <p>
-        By default <Storybook.JSXNode name="ClippedBox" /> is just a container. Add{' '}
-        <Storybook.JSXProperty name="defaultClipped" value /> to occlude the bottom part
-        of the content if the content height is larger than{' '}
-        <Storybook.JSXProperty name="clipHeight" value={Number} />. You should also set{' '}
-        <Storybook.JSXProperty name="clipHeight" value={Number} /> (default: 300) to be
-        something reasonable for the situation.
+        By default <JSXNode name="ClippedBox" /> is just a container. Add{' '}
+        <JSXProperty name="defaultClipped" value /> to occlude the bottom part of the
+        content if the content height is larger than{' '}
+        <JSXProperty name="clipHeight" value={Number} />. You should also set{' '}
+        <JSXProperty name="clipHeight" value={Number} /> (default: 300) to be something
+        reasonable for the situation.
       </p>
       <p>
-        Once expanded, <Storybook.JSXNode name="ClippedBox" /> cannot be collapsed again.
+        Once expanded, <JSXNode name="ClippedBox" /> cannot be collapsed again.
       </p>
-      <Storybook.SizingWindow>
+      <SizingWindow>
         <ClippedBox>
           <img src={onboardingFrameworkSelectionJavascript} height={300} />
         </ClippedBox>
-      </Storybook.SizingWindow>
+      </SizingWindow>
     </Fragment>
   ));
 
@@ -41,15 +46,15 @@ export default Storybook.story('ClippedBox', story => {
   `;
 
   story('Title', () => (
-    <Storybook.SizingWindow>
+    <SizingWindow>
       <ClippedBox title="This is the title">
         <img src={onboardingFrameworkSelectionJavascript} height={300} />
       </ClippedBox>
-    </Storybook.SizingWindow>
+    </SizingWindow>
   ));
 
   story('Custom Button & Fade', () => (
-    <Storybook.PropMatrix
+    <Matrix
       render={ClippedBox}
       propMatrix={{
         btnText: ['Custom Label'],
@@ -72,10 +77,10 @@ export default Storybook.story('ClippedBox', story => {
       <Fragment>
         <p>
           Some callbacks are available:{' '}
-          <Storybook.JSXProperty name="onSetRenderedHeight" value={Function} />&{' '}
-          <Storybook.JSXProperty name="onReveal" value={Function} />.
+          <JSXProperty name="onSetRenderedHeight" value={Function} />&{' '}
+          <JSXProperty name="onReveal" value={Function} />.
         </p>
-        <Storybook.SideBySide>
+        <SideBySide>
           {[50, 100, 150].map(imgHeight => {
             const [isRevealed, setIsRevealed] = useState(false);
             const [renderedHeight, setRenderedHeight] = useState<number | undefined>(
@@ -84,13 +89,13 @@ export default Storybook.story('ClippedBox', story => {
             return (
               <div key={imgHeight}>
                 <p>
-                  <Storybook.JSXNode name="ClippedBox" props={{clipHeight: 100}}>
-                    <Storybook.JSXNode name="img" props={{height: imgHeight}} />
-                  </Storybook.JSXNode>
+                  <JSXNode name="ClippedBox" props={{clipHeight: 100}}>
+                    <JSXNode name="img" props={{height: imgHeight}} />
+                  </JSXNode>
                 </p>
                 <p>isRevealed = {String(isRevealed)}</p>
                 <p>renderedHeight = {renderedHeight}</p>
-                <Storybook.SizingWindow>
+                <SizingWindow>
                   <ClippedBox
                     clipHeight={100}
                     onReveal={() => setIsRevealed(true)}
@@ -101,11 +106,11 @@ export default Storybook.story('ClippedBox', story => {
                       height={imgHeight}
                     />
                   </ClippedBox>
-                </Storybook.SizingWindow>
+                </SizingWindow>
               </div>
             );
           })}
-        </Storybook.SideBySide>
+        </SideBySide>
       </Fragment>
     );
   });

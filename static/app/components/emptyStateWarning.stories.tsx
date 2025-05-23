@@ -2,10 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import * as Storybook from 'sentry/stories';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
+import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default Storybook.story('EmptyStateWarning', story => {
+export default storyBook('EmptyStateWarning', story => {
   story('Default', () => (
     <Fragment>
       <p>
@@ -30,16 +31,15 @@ export default Storybook.story('EmptyStateWarning', story => {
         </ul>
       </p>
       <h3>
-        <Storybook.JSXProperty name="small" value={`true`} />
+        <JSXProperty name="small" value={`true`} />
       </h3>
       <EmptyStateWarning small />
       <h3>
-        <Storybook.JSXProperty name="small" value={`true`} /> with children
+        <JSXProperty name="small" value={`true`} /> with children
       </h3>
       <EmptyStateWarning small>No results found.</EmptyStateWarning>
       <h3>
-        <Storybook.JSXProperty name="small" value={`false`} /> with children (with
-        styling)
+        <JSXProperty name="small" value={`false`} /> with children (with styling)
       </h3>
       <StyledEmptyStateWarning>No results found.</StyledEmptyStateWarning>
     </Fragment>

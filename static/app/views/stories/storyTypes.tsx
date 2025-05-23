@@ -7,21 +7,21 @@ import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import * as Storybook from 'sentry/stories';
+import {StorySection, StoryTitle} from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 
-interface APIReferenceProps {
+interface StoryTypesProps {
   types: TypeLoader.ComponentDocWithFilename | undefined;
 }
 
-export function APIReference(props: APIReferenceProps) {
+export function StoryTypes(props: StoryTypesProps) {
   const [query, setQuery] = useState('');
   const nodes = usePropTree(props.types?.props ?? {}, query);
 
   return (
-    <Storybook.Section>
-      <Storybook.Title>API Reference</Storybook.Title>
+    <StorySection>
+      <StoryTitle>API Reference</StoryTitle>
       <p>{props.types?.description}</p>
       <StoryTypesSearchContainer>
         <InputGroup>
@@ -87,7 +87,7 @@ export function APIReference(props: APIReferenceProps) {
           </tbody>
         </StoryTypesTable>
       </StoryTableContainer>
-    </Storybook.Section>
+    </StorySection>
   );
 }
 

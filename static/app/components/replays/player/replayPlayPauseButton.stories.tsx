@@ -5,17 +5,18 @@ import ReplaySlugChooser from 'sentry/components/replays/player/__stories__/repl
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import ReplayPlayPauseButton from 'sentry/components/replays/player/replayPlayPauseButton';
-import * as Storybook from 'sentry/stories';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import storyBook from 'sentry/stories/storyBook';
 
-export default Storybook.story('ReplayPlayer', story => {
+export default storyBook('ReplayPlayer', story => {
   story('Default', () => {
     function Example() {
       return (
         <Fragment>
           <p>
-            Include <Storybook.JSXNode name="ReplayPlayPauseButton" /> inside a{' '}
-            <Storybook.JSXNode name="ReplayPlayerStateContextProvider" /> to control the
-            play/pause state of the replay.
+            Include <JSXNode name="ReplayPlayPauseButton" /> inside a{' '}
+            <JSXNode name="ReplayPlayerStateContextProvider" /> to control the play/pause
+            state of the replay.
           </p>
 
           <NegativeSpaceContainer style={{height: 400}}>
@@ -39,9 +40,9 @@ export default Storybook.story('ReplayPlayer', story => {
       return (
         <Fragment>
           <p>
-            All <Storybook.JSXNode name="ReplayPlayer" /> instances within the{' '}
-            <Storybook.JSXNode name="ReplayPlayerStateContextProvider" /> will play &
-            pause together.
+            All <JSXNode name="ReplayPlayer" /> instances within the{' '}
+            <JSXNode name="ReplayPlayerStateContextProvider" /> will play & pause
+            together.
           </p>
 
           <NegativeSpaceContainer style={{height: 200}}>

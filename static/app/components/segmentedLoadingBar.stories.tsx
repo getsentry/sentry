@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
 import {SegmentedLoadingBar} from 'sentry/components/segmentedLoadingBar';
-import * as Storybook from 'sentry/stories';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
+import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default Storybook.story('SegmentedLoadingBar', story => {
+export default storyBook('SegmentedLoadingBar', story => {
   story('Default', () => (
     <div>
       <p>
@@ -25,13 +26,13 @@ export default Storybook.story('SegmentedLoadingBar', story => {
         The <code>segments</code> prop is the number of segments to display. The{' '}
         <code>phase</code> prop is the index of the segment that is currently active.
       </p>
-      <Storybook.SizingWindow style={{marginBottom: space(2)}}>
+      <SizingWindow style={{marginBottom: space(2)}}>
         <Column>
           <SegmentedLoadingBar segments={3} phase={0} />
           <SegmentedLoadingBar segments={3} phase={1} />
           <SegmentedLoadingBar segments={5} phase={1} />
         </Column>
-      </Storybook.SizingWindow>
+      </SizingWindow>
 
       <p>
         The loading bar can be used to indicate the progress of a task that is

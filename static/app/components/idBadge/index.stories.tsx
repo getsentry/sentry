@@ -1,5 +1,7 @@
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import * as Storybook from 'sentry/stories';
+import Matrix, {type PropMatrix} from 'sentry/components/stories/matrix';
+import SideBySide from 'sentry/components/stories/sideBySide';
+import storyBook from 'sentry/stories/storyBook';
 import type {Actor} from 'sentry/types/core';
 import type {Member} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -10,16 +12,16 @@ import {useUser} from 'sentry/utils/useUser';
 import type {OrganizationBadgeProps} from './organizationBadge';
 import IdBadge from '.';
 
-export default Storybook.story('IdBadge', story => {
+export default storyBook('IdBadge', story => {
   story('Props', () => {
     const org = useOrganization();
 
-    const propMatrix: Storybook.PropMatrix<OrganizationBadgeProps> = {
+    const propMatrix: PropMatrix<OrganizationBadgeProps> = {
       avatarSize: [12, 16, 24],
     };
 
     return (
-      <Storybook.PropMatrix<OrganizationBadgeProps>
+      <Matrix<OrganizationBadgeProps>
         render={props => <IdBadge {...props} organization={org} />}
         propMatrix={propMatrix}
         selectedProps={['avatarSize']}
@@ -118,10 +120,10 @@ export default Storybook.story('IdBadge', story => {
     };
 
     return (
-      <Storybook.SideBySide>
+      <SideBySide>
         <IdBadge actor={userActor} />
         <IdBadge actor={teamActor} />
-      </Storybook.SideBySide>
+      </SideBySide>
     );
   });
 });

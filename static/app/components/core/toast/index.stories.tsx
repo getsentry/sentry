@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
 
 import {Toast, type ToastProps} from 'sentry/components/core/toast';
-import * as Storybook from 'sentry/stories';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import SideBySide from 'sentry/components/stories/sideBySide';
+import storyBook from 'sentry/stories/storyBook';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/toast';
@@ -20,26 +22,26 @@ function makeToastProps(type: 'success' | 'error' | 'loading' | 'undo'): ToastPr
     },
   };
 }
-export default Storybook.story('Toast', (story, APIReference) => {
+export default storyBook('Toast', (story, APIReference) => {
   APIReference(types.Toast);
 
   story('Toast types', () => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="Toast" /> component comes in different types. To
-          display a toast, use the <Storybook.JSXNode name="addSuccessMessage" /> or
-          <Storybook.JSXNode name="addErrorMessage" /> functions from{' '}
+          The <JSXNode name="Toast" /> component comes in different types. To display a
+          toast, use the <JSXNode name="addSuccessMessage" /> or
+          <JSXNode name="addErrorMessage" /> functions from{' '}
           <code>static/app/actionCreators/indicator.tsx</code>.
         </p>
-        <Storybook.SideBySide>
+        <SideBySide>
           {(['success', 'error', 'loading', 'undo'] as const).map(type => (
             <Toast key={type} {...makeToastProps(type)} />
           ))}
-        </Storybook.SideBySide>
+        </SideBySide>
 
         <p>Toast support undoable actions.</p>
-        <Storybook.SideBySide>
+        <SideBySide>
           {(['success', 'error', 'loading', 'undo'] as const).map(type => {
             const props = makeToastProps(type);
             props.indicator.options.undo = () => {
@@ -49,7 +51,7 @@ export default Storybook.story('Toast', (story, APIReference) => {
 
             return <Toast key={type} {...props} />;
           })}
-        </Storybook.SideBySide>
+        </SideBySide>
       </Fragment>
     );
   });

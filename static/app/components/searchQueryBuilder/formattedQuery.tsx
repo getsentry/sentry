@@ -15,7 +15,7 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {getFieldDefinition} from 'sentry/utils/fields';
@@ -43,7 +43,7 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
       <AggregateKeyVisual token={token} />
     </div>
   ) : (
-    <div>{getKeyLabel(token.key)}</div>
+    <div>{getKeyName(token.key, {showExplicitTagPrefix: true})}</div>
   );
 }
 

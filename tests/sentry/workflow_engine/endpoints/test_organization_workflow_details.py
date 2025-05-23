@@ -96,7 +96,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
     def test_does_not_exist(self):
         with outbox_runner():
-            response = self.get_error_response(self.organization.slug, 999999999)
+            response = self.get_error_response(self.organization.slug, -1)
             assert response.status_code == 404
 
         # Ensure it wasn't deleted

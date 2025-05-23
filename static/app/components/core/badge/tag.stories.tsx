@@ -2,25 +2,27 @@ import {Fragment, useState} from 'react';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {IconCheckmark, IconFire, IconSentry} from 'sentry/icons';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/badge/tag.tsx';
 
-export default Storybook.story('Tag', (story, APIReference) => {
+export default storyBook('Tag', (story, APIReference) => {
   APIReference(types.Tag);
   story('Default', () => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="Tag" /> component is a pill-shaped badge. Depending
-          on the <Storybook.JSXProperty name="type" value /> prop specified, it can be
-          used as a success indicator, an error or warning indicator, and for various
-          other use cases.
+          The <JSXNode name="Tag" /> component is a pill-shaped badge. Depending on the{' '}
+          <JSXProperty name="type" value /> prop specified, it can be used as a success
+          indicator, an error or warning indicator, and for various other use cases.
         </p>
-        <Storybook.SizingWindow display="block">
+        <SizingWindow display="block">
           <Tag type="default">Default</Tag>
           <Tag type="success">Success</Tag>
           <Tag type="error">Error</Tag>
@@ -28,7 +30,7 @@ export default Storybook.story('Tag', (story, APIReference) => {
           <Tag type="info">Info</Tag>
           <Tag type="promotion">Promotion</Tag>
           <Tag type="highlight">Highlight</Tag>
-        </Storybook.SizingWindow>
+        </SizingWindow>
       </Fragment>
     );
   });
@@ -36,9 +38,9 @@ export default Storybook.story('Tag', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXProperty name="icon" value /> prop can be specified if you
-          want to add an icon to the tag. Just directly pass in the icon, like{' '}
-          <Storybook.JSXNode name="IconSentry" /> for example, to the prop.
+          The <JSXProperty name="icon" value /> prop can be specified if you want to add
+          an icon to the tag. Just directly pass in the icon, like{' '}
+          <JSXNode name="IconSentry" /> for example, to the prop.
         </p>
         <Tag type="warning" icon={<IconSentry />}>
           Example
@@ -61,7 +63,7 @@ export default Storybook.story('Tag', (story, APIReference) => {
       <Fragment>
         <p>
           You can make your tag dismissible too, by passing into the{' '}
-          <Storybook.JSXProperty name="onDismiss" value /> prop.
+          <JSXProperty name="onDismiss" value /> prop.
         </p>
         {isDismissed ? null : (
           <Tag type="warning" onDismiss={dismiss}>

@@ -2,17 +2,18 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import * as Storybook from 'sentry/stories';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
 import {ScrollCarousel} from './scrollCarousel';
 
-export default Storybook.story('ScrollCarousel', story => {
+export default storyBook('ScrollCarousel', story => {
   story('Default', () => (
     <Fragment>
       <p>
-        <Storybook.JSXNode name="ScrollCarousel" /> will detect if the content overflows
-        and show arrows to scroll left and right. Native scrollbars are hidden.
+        <JSXNode name="ScrollCarousel" /> will detect if the content overflows and show
+        arrows to scroll left and right. Native scrollbars are hidden.
       </p>
       <div style={{width: '375px', display: 'block'}}>
         <ScrollCarousel

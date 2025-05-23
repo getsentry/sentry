@@ -307,7 +307,7 @@ function buildRoutes() {
       </Route>
       <Route
         path="/stories/"
-        component={make(() => import('sentry/stories/view/index'))}
+        component={make(() => import('sentry/views/stories/index'))}
         withOrgPath
       />
     </Route>

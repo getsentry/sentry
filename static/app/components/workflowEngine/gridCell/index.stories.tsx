@@ -21,7 +21,7 @@ import {
   UserCell,
   type UserCellProps,
 } from 'sentry/components/workflowEngine/gridCell/userCell';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 type ExampleAutomation = {
@@ -34,7 +34,7 @@ type ExampleAutomation = {
   type: TypeCellProps['type'];
 };
 
-export default Storybook.story('Grid Cell Components', story => {
+export default storyBook('Grid Cell Components', story => {
   const data: ExampleAutomation[] = [
     {
       title: {

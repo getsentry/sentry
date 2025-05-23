@@ -4,8 +4,12 @@ import {Button} from 'sentry/components/core/button';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import useQueryBasedColumnResize from 'sentry/components/gridEditable/useQueryBasedColumnResize';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
+import Matrix from 'sentry/components/stories/matrix';
+import SideBySide from 'sentry/components/stories/sideBySide';
 import {backend, frontend} from 'sentry/data/platformCategories';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 import {useLocation} from 'sentry/utils/useLocation';
 
 interface ExampleDataItem {
@@ -13,7 +17,7 @@ interface ExampleDataItem {
   name: string;
 }
 
-export default Storybook.story('GridEditable', story => {
+export default storyBook('GridEditable', story => {
   const columns: Array<GridColumnOrder<keyof ExampleDataItem>> = [
     {key: 'category', name: 'Platform Category'},
     {key: 'name', name: 'Platform Name'},
@@ -70,10 +74,10 @@ export default Storybook.story('GridEditable', story => {
   });
 
   story('Props', () => (
-    <Storybook.SideBySide>
+    <SideBySide>
       <div>
         <p>
-          <Storybook.JSXNode name="GridEditable" props={{error: String}} />
+          <JSXNode name="GridEditable" props={{error: String}} />
         </p>
         <GridEditable
           error="An error happened"
@@ -85,7 +89,7 @@ export default Storybook.story('GridEditable', story => {
       </div>
       <div>
         <p>
-          <Storybook.JSXNode name="GridEditable" props={{isLoading: true}} />
+          <JSXNode name="GridEditable" props={{isLoading: true}} />
         </p>
         <GridEditable
           isLoading
@@ -95,7 +99,7 @@ export default Storybook.story('GridEditable', story => {
           grid={{}}
         />
       </div>
-    </Storybook.SideBySide>
+    </SideBySide>
   ));
 
   story('Row Mouse Events', () => {
@@ -105,12 +109,10 @@ export default Storybook.story('GridEditable', story => {
     return (
       <Fragment>
         <p>
-          You can provide a{' '}
-          <Storybook.JSXProperty name="onRowMouseOver" value={Function} /> and a{' '}
-          <Storybook.JSXProperty name="onRowMouseOut" value={Function} /> callback. You
-          can also combine that with the{' '}
-          <Storybook.JSXProperty name="highlightedRowKey" value={Number} /> prop to
-          highlight a row.
+          You can provide a <JSXProperty name="onRowMouseOver" value={Function} /> and a{' '}
+          <JSXProperty name="onRowMouseOut" value={Function} /> callback. You can also
+          combine that with the <JSXProperty name="highlightedRowKey" value={Number} />{' '}
+          prop to highlight a row.
         </p>
         <p>
           Hovered Row: {activeRow?.category} {activeRow?.name}
@@ -170,9 +172,9 @@ export default Storybook.story('GridEditable', story => {
       <Fragment>
         <p>
           You can keep track of the column widths by implementing the{' '}
-          <Storybook.JSXProperty name="onResizeColumn" value={Function} /> callback.
+          <JSXProperty name="onResizeColumn" value={Function} /> callback.
         </p>
-        <Storybook.SideBySide>
+        <SideBySide>
           <div>
             <p>In this example we are saving the column widths to state.</p>
             <GridEditable
@@ -202,7 +204,7 @@ export default Storybook.story('GridEditable', story => {
               }}
             />
           </div>
-        </Storybook.SideBySide>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -222,7 +224,7 @@ export default Storybook.story('GridEditable', story => {
   ));
 
   story('Header Augmentations', () => (
-    <Storybook.PropMatrix
+    <Matrix
       render={GridEditable}
       propMatrix={{
         data: [data],
@@ -233,7 +235,7 @@ export default Storybook.story('GridEditable', story => {
         title: [undefined, 'GridEditable Title'],
       }}
       selectedProps={['title', 'headerButtons']}
-      // Storybook.SizingWindowProps={{display: 'block'}}
+      sizingWindowProps={{display: 'block'}}
     />
   ));
 });

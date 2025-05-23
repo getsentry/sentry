@@ -1,6 +1,6 @@
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 
-export default Storybook.story('MissingReplayAlert', story => {
+export default storyBook('MissingReplayAlert', story => {
   story('All', () => <MissingReplayAlert orgSlug="MY-ORG" />);
 });

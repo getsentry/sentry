@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
 import moment from 'moment-timezone';
 
+import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 
 interface Data {
   action: string;
@@ -26,7 +28,7 @@ const columns = defineColumns<Data>({
   },
 });
 
-export default Storybook.story('SimpleTable', story => {
+export default storyBook('SimpleTable', story => {
   story('default', () => {
     const data: Data[] = [
       {
@@ -52,25 +54,20 @@ export default Storybook.story('SimpleTable', story => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="SimpleTable" /> component is a simplified variant
-          of the
-          <Storybook.JSXNode name="GridEditable" /> component. It does not support
-          adjustable column widths and provides a simplified API surface.
+          The <JSXNode name="SimpleTable" /> component is a simplified variant of the
+          <JSXNode name="GridEditable" /> component. It does not support adjustable column
+          widths and provides a simplified API surface.
         </p>
 
         <p>
-          The <Storybook.JSXNode name="SimpleTable" /> component accepts two
-          properties&mdash;table configuration is handled by{' '}
-          <Storybook.JSXProperty name="columns" value="{}" />. The rows are dictated by{' '}
-          <Storybook.JSXProperty name="data" value="Record<string, unknown>[]" />. The{' '}
-          <code>columns</code> property is an object where the keys match the{' '}
+          The <JSXNode name="SimpleTable" /> component accepts two properties&mdash;table
+          configuration is handled by <JSXProperty name="columns" value="{}" />. The rows
+          are dictated by <JSXProperty name="data" value="Record<string, unknown>[]" />.
+          The <code>columns</code> property is an object where the keys match the{' '}
           <code>Data</code> keys and the values are objects with{' '}
-          <Storybook.JSXProperty name="Header" value="() => React.ReactNode" /> and{' '}
-          <Storybook.JSXProperty
-            name="Cell"
-            value="(props: { value: Cell }) => React.ReactNode"
-          />{' '}
-          <Storybook.JSXProperty name="width" value="string" /> components.
+          <JSXProperty name="Header" value="() => React.ReactNode" /> and{' '}
+          <JSXProperty name="Cell" value="(props: { value: Cell }) => React.ReactNode" />{' '}
+          <JSXProperty name="width" value="string" /> components.
         </p>
         <p>
           Use the <code>defineColumns()</code> helper function for improved type-safety.
@@ -79,7 +76,7 @@ export default Storybook.story('SimpleTable', story => {
         </p>
 
         <p>
-          An example <Storybook.JSXNode name="SimpleTable" /> looks like this:
+          An example <JSXNode name="SimpleTable" /> looks like this:
         </p>
         <SimpleTable columns={columns} data={data} />
       </Fragment>
@@ -92,8 +89,8 @@ export default Storybook.story('SimpleTable', story => {
     return (
       <Fragment>
         <p>
-          Use the <Storybook.JSXProperty name="fallback" value="message" /> property for
-          empty states
+          Use the <JSXProperty name="fallback" value="message" /> property for empty
+          states
         </p>
 
         <SimpleTable

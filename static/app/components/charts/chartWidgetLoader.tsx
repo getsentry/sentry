@@ -159,12 +159,6 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'
     ),
-  overviewPageloadsChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget'
-    ),
-  overviewRequestsChartWidget: () =>
-    import('sentry/views/insights/common/components/widgets/overviewRequestsChartWidget'),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;
 
 /**

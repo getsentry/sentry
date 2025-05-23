@@ -143,14 +143,6 @@ repos:
             |static/app/utils/profiling/profile/formats/typescript/trace\.json
           )$
 
-      - id: knip
-        name: knip
-        language: system
-        files: \.(ts|js|tsx|jsx|mjs)$
-        pass_filenames: false
-        stages: [pre-push]
-        entry: bash -c 'if [ -n "${SENTRY_KNIP_PRE_PUSH:-}" ]; then exec ./node_modules/.bin/knip; fi' --
-
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:

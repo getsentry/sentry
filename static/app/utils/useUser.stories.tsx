@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 
 import StructuredEventData from 'sentry/components/structuredEventData';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 
 import {useUser} from './useUser';
 
-export default Storybook.story('useUser', story => {
+export default storyBook('useUser', story => {
   story('useUser', () => {
     const user = useUser();
 

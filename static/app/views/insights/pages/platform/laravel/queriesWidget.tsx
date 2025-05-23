@@ -41,7 +41,7 @@ export function QueriesWidget() {
   const releaseBubbleProps = useReleaseBubbleProps();
   const pageFilterChartParams = usePageFilterChartParams();
 
-  const fullQuery = `has:db.system has:span.group ${query}`;
+  const fullQuery = `has:db.system ${query}`;
 
   const queriesRequest = useEAPSpans(
     {
@@ -101,24 +101,10 @@ export function QueriesWidget() {
         showLegend: 'never',
         plottables: timeSeries.map(
           (ts, index) =>
-            new Line(
-              convertSeriesToTimeseries({
-                ...ts,
-                // TODO: Remove this once the correct meta is returned from useTopNSpanEAPSeries
-                meta: {
-                  fields: {
-                    [ts.seriesName]: ts.meta.fields['avg(span.duration)']!,
-                  },
-                  units: {
-                    [ts.seriesName]: ts.meta.units['avg(span.duration)']!,
-                  },
-                },
-              }),
-              {
-                color: colorPalette[index],
-                alias: aliases[ts.seriesName],
-              }
-            )
+            new Line(convertSeriesToTimeseries(ts), {
+              color: colorPalette[index],
+              alias: aliases[ts.seriesName],
+            })
         ),
         ...releaseBubbleProps,
       }}

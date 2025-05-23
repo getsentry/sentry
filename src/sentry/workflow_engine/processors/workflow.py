@@ -313,10 +313,9 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             },
         )
     # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
-    if len(actions) > 0:
-        metrics.incr(
-            "workflow_engine.process_workflows.fired_actions",
-            tags={"detector_type": detector.type},
-        )
+    metrics.incr(
+        "workflow_engine.process_workflows.fired_actions",
+        tags={"detector_type": detector.type},
+    )
 
     return triggered_workflows

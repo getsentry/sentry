@@ -547,7 +547,7 @@ def test_create_feedback_spam_detection_produce_to_kafka(
 ):
     with Feature({"organizations:user-feedback-spam-filter-actions": True}):
 
-        with Feature({"organizations:user-feedback-spam-ingest": feature_flag}):
+        with Feature({"organizations:user-feedback-spam-filter-ingest": feature_flag}):
             event = {
                 "project_id": default_project.id,
                 "request": {
@@ -623,7 +623,7 @@ def test_create_feedback_spam_detection_project_option_false(
 ):
     default_project.update_option("sentry:feedback_ai_spam_detection", False)
 
-    with Feature({"organizations:user-feedback-spam-ingest": True}):
+    with Feature({"organizations:user-feedback-spam-filter-ingest": True}):
         event = {
             "project_id": default_project.id,
             "request": {
@@ -686,7 +686,7 @@ def test_create_feedback_spam_detection_set_status_ignored(
     with Feature(
         {
             "organizations:user-feedback-spam-filter-actions": True,
-            "organizations:user-feedback-spam-ingest": True,
+            "organizations:user-feedback-spam-filter-ingest": True,
         }
     ):
         event = {
@@ -859,7 +859,7 @@ def test_create_feedback_filters_large_message(
     features = (
         {
             "organizations:user-feedback-spam-filter-actions": True,
-            "organizations:user-feedback-spam-ingest": True,
+            "organizations:user-feedback-spam-filter-ingest": True,
         }
         if spam_enabled
         else {}
@@ -899,7 +899,7 @@ def test_create_feedback_evidence_has_spam(
     monkeypatch.setattr("sentry.feedback.usecases.create_feedback.is_spam", lambda _: True)
     default_project.update_option("sentry:feedback_ai_spam_detection", True)
 
-    with Feature({"organizations:user-feedback-spam-ingest": True}):
+    with Feature({"organizations:user-feedback-spam-filter-ingest": True}):
         event = mock_feedback_event(default_project.id)
         source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         create_feedback_issue(event, default_project.id, source)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from django.contrib.postgres.fields.array import ArrayField
+from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 from django.db.models.functions import Now
 from django.utils import timezone
@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
+    ArrayField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -155,17 +156,17 @@ class DashboardWidgetQuery(Model):
 
     widget = FlexibleForeignKey("sentry.DashboardWidget")
     name = models.CharField(max_length=255)
-    fields = ArrayField(models.TextField(), default=list)
+    fields = ArrayField()
     conditions = models.TextField()
     # aggregates and columns will eventually replace fields.
     # Using django's built-in array field here since the one
     # from sentry/db/model/fields.py adds a default value to the
     # database migration.
-    aggregates = ArrayField(models.TextField(), null=True)
-    columns = ArrayField(models.TextField(), null=True)
+    aggregates = DjangoArrayField(models.TextField(), null=True)
+    columns = DjangoArrayField(models.TextField(), null=True)
     # Currently only used for tabular widgets.
     # If an alias is defined it will be shown in place of the field description in the table header
-    field_aliases = ArrayField(models.TextField(), null=True)
+    field_aliases = DjangoArrayField(models.TextField(), null=True)
     # Orderby condition for the query
     orderby = models.TextField(default="")
     # Order of the widget query in the widget.
@@ -197,7 +198,7 @@ class DashboardWidgetQueryOnDemand(Model):
 
     dashboard_widget_query = FlexibleForeignKey("sentry.DashboardWidgetQuery")
 
-    spec_hashes = ArrayField(models.TextField(), default=list)
+    spec_hashes = ArrayField()
 
     class OnDemandExtractionState(models.TextChoices):
         DISABLED_NOT_APPLICABLE = "disabled:not-applicable", gettext_lazy("disabled:not-applicable")

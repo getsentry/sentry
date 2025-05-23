@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
-import * as Storybook from 'sentry/stories';
+import Matrix from 'sentry/components/stories/matrix';
+import storyBook from 'sentry/stories/storyBook';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
-export default Storybook.story('AlertBadge', story => {
+export default storyBook('AlertBadge', story => {
   story('Default', () => {
     const props = {
       status: [
@@ -20,17 +21,17 @@ export default Storybook.story('AlertBadge', story => {
 
     return (
       <Fragment>
-        <Storybook.PropMatrix
+        <Matrix
           render={AlertBadge}
           selectedProps={['withText', 'status']}
           propMatrix={props}
         />
-        <Storybook.PropMatrix
+        <Matrix
           render={AlertBadge}
           selectedProps={['isIssue', 'withText']}
           propMatrix={props}
         />
-        <Storybook.PropMatrix
+        <Matrix
           render={AlertBadge}
           selectedProps={['isIssue', 'status']}
           propMatrix={props}

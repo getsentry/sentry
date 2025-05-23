@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
 
 import {AlertLink, type AlertLinkProps} from 'sentry/components/core/alert/alertLink';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import {IconMail} from 'sentry/icons';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/alert/alertLink';
@@ -17,18 +19,17 @@ const ALERT_LINK_VARIANTS: Array<AlertLinkProps['type']> = [
   'muted',
 ];
 
-export default Storybook.story('AlertLink', (story, APIReference) => {
+export default storyBook('AlertLink', (story, APIReference) => {
   APIReference(types.AlertLink);
   story('Default', () => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="AlertLink" /> component is a type of{' '}
-          <Storybook.JSXNode name="Alert" />. The primary use case is when you want the
-          entire alert to be a link.
+          The <JSXNode name="AlertLink" /> component is a type of <JSXNode name="Alert" />
+          . The primary use case is when you want the entire alert to be a link.
         </p>
         <p>
-          The default <Storybook.JSXNode name="AlertLink" /> looks like this:
+          The default <JSXNode name="AlertLink" /> looks like this:
         </p>
         <AlertLink.Container>
           {ALERT_LINK_VARIANTS.map(variant => (
@@ -45,35 +46,31 @@ export default Storybook.story('AlertLink', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="AlertLink" /> component can be used as an external
-          link, an internal link, or a manual link (by specifying a{' '}
-          <Storybook.JSXProperty name="onClick" value /> prop). Currently, only the{' '}
-          <Storybook.JSXNode name="ExternalLink" /> component supports the{' '}
-          <Storybook.JSXProperty name="openInNewTab" value /> prop - this prop is not
-          supported for internal or manual links.{' '}
+          The <JSXNode name="AlertLink" /> component can be used as an external link, an
+          internal link, or a manual link (by specifying a{' '}
+          <JSXProperty name="onClick" value /> prop). Currently, only the{' '}
+          <JSXNode name="ExternalLink" /> component supports the{' '}
+          <JSXProperty name="openInNewTab" value /> prop - this prop is not supported for
+          internal or manual links.{' '}
         </p>
         <p>
           AlertLink as an external link using{' '}
-          <Storybook.JSXProperty name="href" value={`https://santry.io${DUMMY_LINK}`} />
-          and <Storybook.JSXProperty name="openInNewTab" value />:
+          <JSXProperty name="href" value={`https://santry.io${DUMMY_LINK}`} />
+          and <JSXProperty name="openInNewTab" value />:
         </p>
         <AlertLink type="info" href={`https://santry.io/${DUMMY_LINK}`} openInNewTab>
           Info Link
         </AlertLink>
         <p>
-          AlertLink as an internal link using{' '}
-          <Storybook.JSXProperty name="to" value={DUMMY_LINK} />:
+          AlertLink as an internal link using <JSXProperty name="to" value={DUMMY_LINK} />
+          :
         </p>
         <AlertLink type="info" to={DUMMY_LINK}>
           Info Link
         </AlertLink>
         <p>
           AlertLink as a manual link using{' '}
-          <Storybook.JSXProperty
-            name="onClick"
-            value={`() => window.alert('Clicked!')`}
-          />
-          :
+          <JSXProperty name="onClick" value={`() => window.alert('Clicked!')`} />:
         </p>
         {/* eslint-disable-next-line no-alert */}
         <AlertLink type="info" onClick={() => window.alert('Clicked!')}>
@@ -86,9 +83,9 @@ export default Storybook.story('AlertLink', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="AlertLink" /> component can also be used with a
-          custom icon. The icon can be overriden by passing a{' '}
-          <Storybook.JSXProperty name="trailingItems" value={'<IconMail />'} /> prop.
+          The <JSXNode name="AlertLink" /> component can also be used with a custom icon.
+          The icon can be overriden by passing a{' '}
+          <JSXProperty name="trailingItems" value={'<IconMail />'} /> prop.
         </p>
         <AlertLink type="info" to={DUMMY_LINK} trailingItems={<IconMail />}>
           Clicking this link will not open in a new tab!
@@ -101,9 +98,9 @@ export default Storybook.story('AlertLink', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="AlertLink.Container" /> component is a container
-          for one or multiple <Storybook.JSXNode name="AlertLink" /> components. It
-          manages margins between the links.
+          The <JSXNode name="AlertLink.Container" /> component is a container for one or
+          multiple <JSXNode name="AlertLink" /> components. It manages margins between the
+          links.
         </p>
         <AlertLink.Container>
           <AlertLink type="info" to={DUMMY_LINK}>

@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {getHasTag} from 'sentry/components/events/searchBar';
 import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -76,25 +76,6 @@ export function useSearchQueryBuilderProps({
     projectIds: projects,
   });
 
-  const getSuggestedFilterKey = useCallback(
-    (key: string) => {
-      // prioritize exact matches first
-      if (filterTags.hasOwnProperty(key)) {
-        return key;
-      }
-
-      // try to see if there's numeric attribute by the same name
-      const explicitNumberTag = `tags[${key},number]`;
-      if (filterTags.hasOwnProperty(explicitNumberTag)) {
-        return explicitNumberTag;
-      }
-
-      // give up, and fall back to the default behaviour
-      return null;
-    },
-    [filterTags]
-  );
-
   return {
     searchOnChange: organization.features.includes('ui-search-on-change'),
     placeholder: placeholderText,
@@ -107,7 +88,6 @@ export function useSearchQueryBuilderProps({
     getFilterTokenWarning,
     searchSource,
     filterKeySections,
-    getSuggestedFilterKey,
     getTagValues: getTraceItemAttributeValues,
     disallowUnsupportedFilters: true,
     recentSearches: itemTypeToRecentSearches(itemType),
@@ -177,10 +157,7 @@ function useFilterTags(
       ...numberAttributes,
       ...stringAttributes,
     };
-    tags.has = getHasTag({
-      ...numberAttributes,
-      ...stringAttributes,
-    });
+    tags.has = getHasTag({...stringAttributes});
     return tags;
   }, [numberAttributes, stringAttributes, functionTags]);
 }

@@ -100,7 +100,7 @@ test-cli: create-db
 	cd test_cli && sentry init test_conf
 	cd test_cli && sentry --config=test_conf help
 	cd test_cli && sentry --config=test_conf upgrade --traceback --noinput
-	cd test_cli && sentry --config=test_conf export --help
+	cd test_cli && sentry --config=test_conf export
 	rm -r test_cli
 	@echo ""
 

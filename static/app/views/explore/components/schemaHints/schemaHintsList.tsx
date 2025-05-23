@@ -15,14 +15,17 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isAggregateField, parseFunction} from 'sentry/utils/discover/fields';
+import {
+  isAggregateField,
+  parseFunction,
+  prettifyTagKey,
+} from 'sentry/utils/discover/fields';
 import {
   type AggregationKey,
   type FieldDefinition,
   FieldKind,
   FieldValueType,
   getFieldDefinition,
-  prettifyTagKey,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';

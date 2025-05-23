@@ -169,8 +169,7 @@ type SpanStringFields =
   | 'replayId'
   | 'profile.id'
   | 'profiler.id'
-  | 'thread.id'
-  | 'span.domain'; // TODO: With `useInsightsEap` we get a string, without it we get an array
+  | 'thread.id';
 
 export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanMetricsField.PROJECT_ID]?: string;

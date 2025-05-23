@@ -1,21 +1,25 @@
 import {Fragment} from 'react';
 
 import CollapsePanel from 'sentry/components/collapsePanel';
-import * as Storybook from 'sentry/stories';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
+import Matrix from 'sentry/components/stories/matrix';
+import SideBySide from 'sentry/components/stories/sideBySide';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
+import storyBook from 'sentry/stories/storyBook';
 
-export default Storybook.story('CollapsePanel', story => {
+export default storyBook('CollapsePanel', story => {
   story('Basics', () => (
     <Fragment>
       <p>
-        The <Storybook.JSXNode name="CollapsePanel" /> expanded state will be set based on
-        whether <Storybook.JSXProperty name="items" value={Number} /> is larger than{' '}
-        <Storybook.JSXProperty name="collapseCount" value={Number} /> (default: 5).
+        The <JSXNode name="CollapsePanel" /> expanded state will be set based on whether{' '}
+        <JSXProperty name="items" value={Number} /> is larger than{' '}
+        <JSXProperty name="collapseCount" value={Number} /> (default: 5).
       </p>
       <p>
-        Once expanded, <Storybook.JSXNode name="CollapsePanel" /> cannot be collapsed
-        again.
+        Once expanded, <JSXNode name="CollapsePanel" /> cannot be collapsed again.
       </p>
-      <Storybook.SizingWindow display="block">
+      <SizingWindow display="block">
         <CollapsePanel items={6}>
           {({isExpanded, showMoreButton}) => (
             <Fragment>
@@ -24,7 +28,7 @@ export default Storybook.story('CollapsePanel', story => {
             </Fragment>
           )}
         </CollapsePanel>
-      </Storybook.SizingWindow>
+      </SizingWindow>
     </Fragment>
   ));
 
@@ -34,11 +38,11 @@ export default Storybook.story('CollapsePanel', story => {
         Starting with items less than or equal to the <var>collapseCount</var> will return
         an incorrect <var>isExpanded</var> value.
       </p>
-      <Storybook.SideBySide>
+      <SideBySide>
         {[6, 5, 4].map(items => (
           <Fragment key={items}>
-            <Storybook.JSXNode name="CollapsePanel" props={{items, collapseCount: 5}} />
-            <Storybook.SizingWindow display="block">
+            <JSXNode name="CollapsePanel" props={{items, collapseCount: 5}} />
+            <SizingWindow display="block">
               <CollapsePanel items={items} collapseCount={5}>
                 {({isExpanded, showMoreButton}) => (
                   <Fragment>
@@ -47,10 +51,10 @@ export default Storybook.story('CollapsePanel', story => {
                   </Fragment>
                 )}
               </CollapsePanel>
-            </Storybook.SizingWindow>
+            </SizingWindow>
           </Fragment>
         ))}
-      </Storybook.SideBySide>
+      </SideBySide>
     </Fragment>
   ));
 
@@ -63,7 +67,7 @@ export default Storybook.story('CollapsePanel', story => {
           Typically you will render a portion of the list when the panel is collapsed,
           then all items when the panel is expanded.
         </p>
-        <Storybook.SizingWindow display="block">
+        <SizingWindow display="block">
           <CollapsePanel items={allItems.length} collapseCount={collapseCount}>
             {({isExpanded, showMoreButton}) => {
               const items = isExpanded ? allItems : allItems.slice(0, collapseCount);
@@ -79,13 +83,13 @@ export default Storybook.story('CollapsePanel', story => {
               );
             }}
           </CollapsePanel>
-        </Storybook.SizingWindow>
+        </SizingWindow>
       </Fragment>
     );
   });
 
   story('Props', () => (
-    <Storybook.PropMatrix
+    <Matrix
       render={CollapsePanel}
       propMatrix={{
         buttonTitle: [undefined, 'Custom Title'],
@@ -102,7 +106,7 @@ export default Storybook.story('CollapsePanel', story => {
         ],
       }}
       selectedProps={['buttonTitle', 'disableBorder']}
-      // sizingWindowProps={{display: 'block'}}
+      sizingWindowProps={{display: 'block'}}
     />
   ));
 });

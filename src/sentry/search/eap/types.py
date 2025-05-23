@@ -24,8 +24,6 @@ class SearchResolverConfig:
     process_results: bool = True
     # If a field is private, it will only be available if it is in the `fields_acl`
     fields_acl: FieldsACL = field(default_factory=lambda: FieldsACL())
-    # Whether to set the timestamp granularities to stable buckets
-    stable_timestamp_quantization: bool = True
 
 
 CONFIDENCES: dict[Reliability.ValueType, Literal["low", "high"]] = {

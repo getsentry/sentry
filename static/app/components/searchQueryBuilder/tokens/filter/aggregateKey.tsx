@@ -14,7 +14,7 @@ import type {
   AggregateFilter,
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -73,7 +73,7 @@ export function AggregateKey({
 
   const filterButtonProps = useFilterButtonProps({state, item});
 
-  const fnName = getKeyLabel(token.key);
+  const fnName = getKeyName(token.key);
 
   if (isEditing) {
     return (

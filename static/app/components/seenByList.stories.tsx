@@ -2,7 +2,10 @@ import {Fragment, useEffect} from 'react';
 
 import Placeholder from 'sentry/components/placeholder';
 import SeenByList from 'sentry/components/seenByList';
-import * as Storybook from 'sentry/stories';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
+import Matrix from 'sentry/components/stories/matrix';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
+import storyBook from 'sentry/stories/storyBook';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -17,14 +20,14 @@ function useLoadedMembers() {
   return {members, loadMore, ...rest};
 }
 
-export default Storybook.story('SeenByList', story => {
+export default storyBook('SeenByList', story => {
   story('Default', () => {
     const {members, fetching} = useLoadedMembers();
 
     return (
-      <Storybook.SizingWindow display="block" style={{width: '50%'}}>
+      <SizingWindow display="block" style={{width: '50%'}}>
         {fetching ? <Placeholder /> : <SeenByList seenBy={members} />}
-      </Storybook.SizingWindow>
+      </SizingWindow>
     );
   });
 
@@ -35,9 +38,9 @@ export default Storybook.story('SeenByList', story => {
       <Fragment>
         <p>
           Default is{' '}
-          <Storybook.JSXProperty name="iconTooltip" value="People who have viewed this" />
+          <JSXProperty name="iconTooltip" value="People who have viewed this" />
         </p>
-        <Storybook.SizingWindow display="block" style={{width: '50%'}}>
+        <SizingWindow display="block" style={{width: '50%'}}>
           {fetching ? (
             <Placeholder />
           ) : (
@@ -46,7 +49,7 @@ export default Storybook.story('SeenByList', story => {
               iconTooltip="These folks have all seen this record"
             />
           )}
-        </Storybook.SizingWindow>
+        </SizingWindow>
       </Fragment>
     );
   });
@@ -64,9 +67,9 @@ export default Storybook.story('SeenByList', story => {
           if the viewer (you) has seen an issue by changing the font-weight to normal
           after viewed.
         </p>
-        <Storybook.SizingWindow display="block" style={{width: '50%'}}>
+        <SizingWindow display="block" style={{width: '50%'}}>
           {fetching ? <Placeholder /> : <SeenByList seenBy={[user, ...members]} />}
-        </Storybook.SizingWindow>
+        </SizingWindow>
       </Fragment>
     );
   });
@@ -77,13 +80,13 @@ export default Storybook.story('SeenByList', story => {
     return (
       <Fragment>
         <p>
-          Default is <Storybook.JSXProperty name="avatarSize" value={28} />
+          Default is <JSXProperty name="avatarSize" value={28} />
         </p>
         {fetching ? (
           <Placeholder />
         ) : (
-          <Storybook.PropMatrix
-            // Storybook.SizingWindowProps={{display: 'block'}}
+          <Matrix
+            sizingWindowProps={{display: 'block'}}
             render={SeenByList}
             selectedProps={['avatarSize']}
             propMatrix={{
@@ -102,13 +105,13 @@ export default Storybook.story('SeenByList', story => {
     return (
       <Fragment>
         <p>
-          Default is <Storybook.JSXProperty name="maxVisibleAvatars" value={10} />
+          Default is <JSXProperty name="maxVisibleAvatars" value={10} />
         </p>
         {fetching ? (
           <Placeholder />
         ) : (
-          <Storybook.PropMatrix
-            // Storybook.SizingWindowProps={{display: 'block'}}
+          <Matrix
+            sizingWindowProps={{display: 'block'}}
             render={SeenByList}
             selectedProps={['maxVisibleAvatars']}
             propMatrix={{
@@ -127,13 +130,13 @@ export default Storybook.story('SeenByList', story => {
     return (
       <Fragment>
         <p>
-          Default is <Storybook.JSXProperty name="iconPosition" value="left" />
+          Default is <JSXProperty name="iconPosition" value="left" />
         </p>
         {fetching ? (
           <Placeholder />
         ) : (
-          <Storybook.PropMatrix
-            // Storybook.SizingWindowProps={{display: 'block'}}
+          <Matrix
+            sizingWindowProps={{display: 'block'}}
             render={SeenByList}
             selectedProps={['iconPosition']}
             propMatrix={{

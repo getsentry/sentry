@@ -192,19 +192,17 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         interval = 24 * 60 * 60 * 1000
         assert response.status_code == 200, response.content
 
-        rounded_start = seven_days_ago.replace(hour=0, minute=0)
-        rounded_end = rounded_start + timedelta(days=7)
         assert response.data["meta"] == {
             "dataset": "spans",
-            "start": rounded_start.timestamp() * 1000,
-            "end": rounded_end.timestamp() * 1000,
+            "start": seven_days_ago.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
         }
         assert len(response.data["timeseries"]) == 4
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 7
         assert timeseries["yAxis"] == "p50(measurements.lcp)"
         assert timeseries["values"] == build_expected_timeseries(
-            rounded_start, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
+            seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
         )
         assert timeseries["groupBy"] == [{"key": "span.description", "value": "bar"}]
         assert timeseries["meta"] == {
@@ -219,7 +217,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(timeseries["values"]) == 7
         assert timeseries["yAxis"] == "avg(measurements.lcp)"
         assert timeseries["values"] == build_expected_timeseries(
-            rounded_start, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
+            seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
         )
         assert timeseries["groupBy"] == [{"key": "span.description", "value": "bar"}]
         assert timeseries["meta"] == {
@@ -234,7 +232,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(timeseries["values"]) == 7
         assert timeseries["yAxis"] == "p50(measurements.lcp)"
         assert timeseries["values"] == build_expected_timeseries(
-            rounded_start, interval, [0, 0, 0, 0, 0, 0, 1], ignore_accuracy=True
+            seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 1], ignore_accuracy=True
         )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {
@@ -249,7 +247,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(timeseries["values"]) == 7
         assert timeseries["yAxis"] == "avg(measurements.lcp)"
         assert timeseries["values"] == build_expected_timeseries(
-            rounded_start, interval, [0, 0, 0, 0, 0, 0, 1], ignore_accuracy=True
+            seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 1], ignore_accuracy=True
         )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {

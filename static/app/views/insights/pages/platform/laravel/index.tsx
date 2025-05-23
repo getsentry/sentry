@@ -1,9 +1,9 @@
 import {useEffect} from 'react';
 
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
-import OverviewRequestsChartWidget from 'sentry/views/insights/common/components/widgets/overviewRequestsChartWidget';
 import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
 import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
 import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
@@ -11,6 +11,7 @@ import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWi
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
 import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
+import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 
 export function LaravelOverviewPage() {
   const organization = useOrganization();
@@ -26,7 +27,11 @@ export function LaravelOverviewPage() {
     <PlatformLandingPageLayout performanceType={'backend'}>
       <WidgetGrid>
         <WidgetGrid.Position1>
-          <OverviewRequestsChartWidget />
+          <TrafficWidget
+            title={t('Requests')}
+            trafficSeriesName={t('Requests')}
+            baseQuery={'span.op:http.server'}
+          />
         </WidgetGrid.Position1>
         <WidgetGrid.Position2>
           <OverviewApiLatencyChartWidget />

@@ -14,15 +14,10 @@ import type {
   FieldDefinitionGetter,
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
-import {
-  getKeyLabel as getFilterKeyLabel,
-  getKeyName,
-} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {type FieldDefinition, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {type FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 export const ALL_CATEGORY_VALUE = '__all';
@@ -64,9 +59,7 @@ export function getKeyLabel(
     return `${tag.key}()`;
   }
 
-  // Some columns in explore can be formatted as an explicity number tag.
-  // We want to strip the explicit tag syntax before displaying where possible.
-  return prettifyTagKey(tag.key);
+  return tag.key;
 }
 
 export function createSection(
@@ -143,14 +136,13 @@ export function createFilterValueItem(key: string, value: string): FilterValueIt
   };
 }
 
-export function createRecentFilterItem({filter}: {filter: TokenResult<Token.FILTER>}) {
-  const key = getKeyName(filter.key);
+export function createRecentFilterItem({filter}: {filter: string}) {
   return {
-    key: createRecentFilterOptionKey(key),
-    value: key,
-    textValue: key,
+    key: createRecentFilterOptionKey(filter),
+    value: filter,
+    textValue: filter,
     type: 'recent-filter' as const,
-    label: getFilterKeyLabel(filter.key),
+    label: filter,
   };
 }
 

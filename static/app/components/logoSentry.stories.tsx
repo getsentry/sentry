@@ -1,11 +1,12 @@
 import LogoSentry from 'sentry/components/logoSentry';
-import * as Storybook from 'sentry/stories';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
+import storyBook from 'sentry/stories/storyBook';
 
-export default Storybook.story('LogoSentry', story => {
+export default storyBook('LogoSentry', story => {
   story('Default', () => (
-    <Storybook.SizingWindow>
+    <SizingWindow>
       <LogoSentry />
-    </Storybook.SizingWindow>
+    </SizingWindow>
   ));
 
   story('Wordmark', () => <LogoSentry showWordmark />);

@@ -128,6 +128,9 @@ class ProjectMemberSerializer(serializers.Serializer):
         "copy_from_project",
         "targetSampleRate",
         "dynamicSamplingBiases",
+        "performanceIssueCreationRate",
+        "performanceIssueCreationThroughPlatform",
+        "performanceIssueSendToPlatform",
         "tempestFetchScreenshots",
         "tempestFetchDumps",
         "autofixAutomationTuning",
@@ -220,6 +223,9 @@ E.g. `['release', 'environment']`""",
     copy_from_project = serializers.IntegerField(required=False)
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
+    performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
+    performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
+    performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
     autofixAutomationTuning = serializers.ChoiceField(

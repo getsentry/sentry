@@ -52,7 +52,7 @@ There are quite a few places which need to be updated when adding a new performa
   - [ ] If your value is not customizable, add it to the dictionary
   - [ ] If it is customizable, access it via `settings[key_name]`
     - [ ] Then add it to [project_performance_issue_settings.py](../../api/endpoints/project_performance_issue_settings.py), either `InternalProjectOptions` or `ConfigurableThresholds`
-    - [ ] In the same file, Add it to the mappings `project_settings_to_group_map`/`thresholds_to_manage_map` using the new GroupType
+    - [ ] In the same file, Add it to the map, either `internal_only_project_settings_to_group_map` or `configurable_thresholds_to_internal_settings_map` using the new GroupType
     - [ ] In the same file, Add a serializer field to `ProjectPerformanceIssueSettingsSerializer` to allow it to be validated from the inbound API.
     - [ ] (Optional) The frontend file (`projectPerformance.tsx`) should add the new field.
     - [ ] Then, to set a default value, register an option in [defaults.py](../../options/defaults.py)

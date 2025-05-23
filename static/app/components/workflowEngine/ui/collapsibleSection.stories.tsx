@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 
 import {Flex} from 'sentry/components/container/flex';
 import CollapsibleSection from 'sentry/components/workflowEngine/ui/collapsibleSection';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-export default Storybook.story('Collapsible Section', story => {
+export default storyBook('Collapsible Section', story => {
   story('Basics', () => (
     <Fragment>
       <p>

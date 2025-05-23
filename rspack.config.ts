@@ -380,8 +380,8 @@ const appConfig: Configuration = {
   resolveLoader: {
     alias: {
       'type-loader': STORYBOOK_TYPES
-        ? path.resolve(__dirname, 'static/app/stories/type-loader.ts')
-        : path.resolve(__dirname, 'static/app/stories/noop-type-loader.ts'),
+        ? path.resolve(__dirname, 'static/app/views/stories/type-loader.ts')
+        : path.resolve(__dirname, 'static/app/views/stories/noop-type-loader.ts'),
     },
   },
 
@@ -784,8 +784,7 @@ appConfig.plugins?.push(
       create: false,
     },
     reactComponentAnnotation: {
-      // Enabled only in production because annotating is slow
-      enabled: IS_PRODUCTION,
+      enabled: true,
     },
     bundleSizeOptimizations: {
       // This is enabled so that our SDKs send exceptions to Sentry

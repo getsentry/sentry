@@ -1,12 +1,14 @@
 import {useTheme} from '@emotion/react';
 
 import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import * as Storybook from 'sentry/stories';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import Matrix, {type PropMatrix} from 'sentry/components/stories/matrix';
+import storyBook from 'sentry/stories/storyBook';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/button';
 
-export default Storybook.story('LinkButton', (story, APIReference) => {
+export default storyBook('LinkButton', (story, APIReference) => {
   APIReference(types.LinkButton);
 
   story('Default', () => {
@@ -15,7 +17,7 @@ export default Storybook.story('LinkButton', (story, APIReference) => {
       ? ['default', 'transparent', 'primary', 'warning', 'danger', 'link']
       : ['default', 'transparent', 'primary', 'link', 'danger'];
 
-    const propMatrix: Storybook.PropMatrix<LinkButtonProps> = {
+    const propMatrix: PropMatrix<LinkButtonProps> = {
       children: ['Delete', undefined],
       priority: variants as Array<LinkButtonProps['priority']>,
       size: ['md', 'sm', 'xs', 'zero'],
@@ -27,12 +29,12 @@ export default Storybook.story('LinkButton', (story, APIReference) => {
     return (
       <div>
         <p>
-          <Storybook.JSXNode name="LinkButton" /> is a component that renders a link with
-          button styling. It accepts either a <code>to</code> prop with a location
-          descriptor object for internal routing, or an <code>href</code> prop with a
-          string URL for external links.
+          <JSXNode name="LinkButton" /> is a component that renders a link with button
+          styling. It accepts either a <code>to</code> prop with a location descriptor
+          object for internal routing, or an <code>href</code> prop with a string URL for
+          external links.
         </p>
-        <Storybook.PropMatrix<LinkButtonProps>
+        <Matrix<LinkButtonProps>
           render={LinkButton}
           propMatrix={propMatrix}
           selectedProps={['size', 'priority']}

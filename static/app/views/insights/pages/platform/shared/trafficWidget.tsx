@@ -10,7 +10,6 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -21,24 +20,18 @@ import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/s
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
-interface TrafficWidgetProps extends LoadableChartWidgetProps {
-  title: string;
-  trafficSeriesName: string;
-  baseQuery?: string;
-}
-
-export function BaseTrafficWidget({
+export function TrafficWidget({
   title,
   trafficSeriesName,
   baseQuery,
-  ...props
-}: TrafficWidgetProps) {
+}: {
+  title: string;
+  trafficSeriesName: string;
+  baseQuery?: string;
+}) {
   const organization = useOrganization();
-  const releaseBubbleProps = useReleaseBubbleProps(props);
-  const pageFilterChartParams = usePageFilterChartParams({
-    granularity: 'spans-low',
-    pageFilters: props.pageFilters,
-  });
+  const releaseBubbleProps = useReleaseBubbleProps();
+  const pageFilterChartParams = usePageFilterChartParams({granularity: 'spans-low'});
   const {query} = useTransactionNameQuery();
   const theme = useTheme();
 
@@ -51,8 +44,7 @@ export function BaseTrafficWidget({
       yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
       referrer: Referrer.REQUESTS_CHART,
     },
-    Referrer.REQUESTS_CHART,
-    props.pageFilters
+    Referrer.REQUESTS_CHART
   );
 
   const plottables = useMemo(() => {
@@ -84,9 +76,7 @@ export function BaseTrafficWidget({
       isEmpty={isEmpty}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
-        id: props.id,
         plottables,
-        ...props,
         ...releaseBubbleProps,
       }}
     />
@@ -113,7 +103,6 @@ export function BaseTrafficWidget({
               query: fullQuery,
               interval: pageFilterChartParams.interval,
             }}
-            loaderSource={props.loaderSource}
             onOpenFullScreen={() => {
               openInsightChartModal({
                 title,

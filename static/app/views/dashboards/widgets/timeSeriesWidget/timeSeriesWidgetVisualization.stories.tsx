@@ -7,7 +7,10 @@ import moment from 'moment-timezone';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import * as Storybook from 'sentry/stories';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import SideBySide from 'sentry/components/stories/sideBySide';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
+import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -58,17 +61,16 @@ const sampleDurationTimeSeriesP75: TimeSeries = {
 
 const shiftedSpanSamples = shiftTabularDataToNow(spanSamplesWithDurations);
 
-export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIReference) => {
+export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
   APIReference(types.TimeSeriesWidgetVisualization);
 
   story('Getting Started', () => {
     return (
       <Fragment>
         <p>
-          <Storybook.JSXNode name="TimeSeriesWidgetVisualization" /> is a feature-full
-          time series chart, designed to plot data returned from{' '}
-          <code>/events-stats/</code> endpoints in Explore, Dashboards, and other similar
-          UIs. It includes features like:
+          <JSXNode name="TimeSeriesWidgetVisualization" /> is a feature-full time series
+          chart, designed to plot data returned from <code>/events-stats/</code> endpoints
+          in Explore, Dashboards, and other similar UIs. It includes features like:
         </p>
 
         <ul>
@@ -93,7 +95,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           needs. If it doesn't, reach out to the Dashboards team.
         </p>
 
-        <Storybook.SideBySide>
+        <SideBySide>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
@@ -118,7 +120,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
               ]}
             />
           </SmallWidget>
-        </Storybook.SideBySide>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -158,7 +160,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
     return (
       <Fragment>
         <p>
-          <Storybook.JSXNode name="TimeSeriesWidgetVisualization" /> accepts the{' '}
+          <JSXNode name="TimeSeriesWidgetVisualization" /> accepts the{' '}
           <code>plottables</code> prop. Every item in the <code>plottables</code> array
           must be an object of a class that implements the <code>Plottable</code>{' '}
           interface. A few of these objects are already implemented, and ready to use! For
@@ -232,9 +234,9 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
     return (
       <Fragment>
         <p>
-          <Storybook.JSXNode name="TimeSeriesWidgetVisualization" /> can plot most, but
-          not all data types that come back from our time series endpoints. The supported
-          data types are:
+          <JSXNode name="TimeSeriesWidgetVisualization" /> can plot most, but not all data
+          types that come back from our time series endpoints. The supported data types
+          are:
         </p>
 
         <ul>
@@ -277,8 +279,8 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
     return (
       <Fragment>
         <p>
-          <Storybook.JSXNode name="TimeSeriesWidgetVisualization" /> will automatically
-          set up correct Y axes for the plottables. The logic goes like this:
+          <JSXNode name="TimeSeriesWidgetVisualization" /> will automatically set up
+          correct Y axes for the plottables. The logic goes like this:
         </p>
         <ul>
           <li>
@@ -300,7 +302,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           cases, the duration should be on the left.
         </p>
 
-        <Storybook.SideBySide>
+        <SideBySide>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
@@ -324,7 +326,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
               ]}
             />
           </MediumWidget>
-        </Storybook.SideBySide>
+        </SideBySide>
 
         <p>
           In rare cases, none of the data will have a known type. In these cases we drop
@@ -332,7 +334,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           types and the generic "number" type.
         </p>
 
-        <Storybook.SideBySide>
+        <SideBySide>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
@@ -404,7 +406,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
               ]}
             />
           </SmallWidget>
-        </Storybook.SideBySide>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -413,13 +415,12 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
     return (
       <Fragment>
         <p>
-          In a <Storybook.JSXNode name="TimeSeriesWidgetVisualization" />, the X axis is
-          by definition always time. The ticks and labels are automatically determined
-          based on the domain of the data set. You can, however, use the{' '}
-          <code>showXAxis</code> prop to hide the X axis in contexts where it would be too
-          busy or distracting. This might be the case in small sidebar charts, for
-          example. Setting the <code>showXAxis</code> prop to <code>"never"</code> will
-          hide the X axis.
+          In a <JSXNode name="TimeSeriesWidgetVisualization" />, the X axis is by
+          definition always time. The ticks and labels are automatically determined based
+          on the domain of the data set. You can, however, use the <code>showXAxis</code>{' '}
+          prop to hide the X axis in contexts where it would be too busy or distracting.
+          This might be the case in small sidebar charts, for example. Setting the{' '}
+          <code>showXAxis</code> prop to <code>"never"</code> will hide the X axis.
         </p>
 
         <SmallWidget>
@@ -454,19 +455,19 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
     return (
       <Fragment>
         <p>
-          <Storybook.JSXNode name="TimeSeriesWidgetVisualization" /> can plot multiple
-          time series while accounting for their type and units. It adds X axis
-          formatting, Y axis formatting, a tooltip with correct units, it will scale units
-          of the same type if needed.
+          <JSXNode name="TimeSeriesWidgetVisualization" /> can plot multiple time series
+          while accounting for their type and units. It adds X axis formatting, Y axis
+          formatting, a tooltip with correct units, it will scale units of the same type
+          if needed.
         </p>
 
-        <SmallStorybookSizingWindow>
+        <SmallSizingWindow>
           <FillParent>
             <TimeSeriesWidgetVisualization
               plottables={[new Bars(millisecondsSeries), new Line(secondsSeries)]}
             />
           </FillParent>
-        </SmallStorybookSizingWindow>
+        </SmallSizingWindow>
       </Fragment>
     );
   });
@@ -516,7 +517,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           stacked. <code>Line</code> plottables are never stacked.
         </p>
 
-        <Storybook.SideBySide>
+        <SideBySide>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
@@ -534,7 +535,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
             />
           </MediumWidget>
           <SmallWidget />
-        </Storybook.SideBySide>
+        </SideBySide>
         <p>
           Since stacking is configured per plottable, you can combine stacked and
           unstacked series. Be wary, this creates really high information density, so
@@ -571,7 +572,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           number in seconds. By default the delay is <code>0</code>.
         </p>
 
-        <Storybook.SideBySide>
+        <SideBySide>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
@@ -602,7 +603,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
               ]}
             />
           </MediumWidget>
-        </Storybook.SideBySide>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -747,7 +748,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           You can control the color of each plottable by setting the <code>color</code>{' '}
           plotting configuration option to a string that contains a valid hex color code.
         </p>
-        <Storybook.SideBySide>
+        <SideBySide>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
               plottables={[new Line(timeSeries, {color: theme.error})]}
@@ -764,7 +765,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
               plottables={[new Bars(timeSeries, {color: theme.error})]}
             />
           </SmallWidget>
-        </Storybook.SideBySide>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -773,9 +774,9 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
     return (
       <Fragment>
         <p>
-          <Storybook.JSXNode name="TimeSeriesWidgetVisualization" /> includes a loading
-          placeholder. You can use it via{' '}
-          <Storybook.JSXNode name="TimeSeriesWidgetVisualization.LoadingPlaceholder" />
+          <JSXNode name="TimeSeriesWidgetVisualization" /> includes a loading placeholder.
+          You can use it via{' '}
+          <JSXNode name="TimeSeriesWidgetVisualization.LoadingPlaceholder" />
         </p>
 
         <SmallWidget>
@@ -808,9 +809,9 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
     return (
       <Fragment>
         <p>
-          <Storybook.JSXNode name="TimeSeriesWidgetVisualization" /> supports
-          drag-to-select. Dragging the mouse over the visualization area and releasing the
-          cursor will update the page URL with the new datetime selection. You can press{' '}
+          <JSXNode name="TimeSeriesWidgetVisualization" /> supports drag-to-select.
+          Dragging the mouse over the visualization area and releasing the cursor will
+          update the page URL with the new datetime selection. You can press{' '}
           <code>escape</code> during selection to cancel selection. Give it a try!
         </p>
 
@@ -834,10 +835,10 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
     return (
       <Fragment>
         <p>
-          <Storybook.JSXNode name="TimeSeriesWidgetVisualization" /> supports series
-          legends, and a few features on top of them. By default, if only one plottable is
-          provided, the legend does not appear. If there are multiple plottables, a legend
-          is shown above the charts.
+          <JSXNode name="TimeSeriesWidgetVisualization" /> supports series legends, and a
+          few features on top of them. By default, if only one plottable is provided, the
+          legend does not appear. If there are multiple plottables, a legend is shown
+          above the charts.
         </p>
         <p>
           You can control legend selection with the <code>legendSelection</code> prop. By
@@ -856,7 +857,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
 
         <code>{JSON.stringify(legendSelection)}</code>
 
-        <Storybook.SideBySide>
+        <SideBySide>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
@@ -875,7 +876,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
               ]}
             />
           </MediumWidget>
-        </Storybook.SideBySide>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -911,7 +912,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           inside of the flyout.
         </p>
 
-        <Storybook.SideBySide>
+        <SideBySide>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
@@ -936,8 +937,8 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
               releases={releases}
             />
           </MediumWidget>
-        </Storybook.SideBySide>
-        <Storybook.SideBySide>
+        </SideBySide>
+        <SideBySide>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
@@ -949,7 +950,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
               showReleaseAs="bubble"
             />
           </MediumWidget>
-        </Storybook.SideBySide>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -959,7 +960,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         Deep-linking to a chart works by mapping a unique ID to a self-contained component
         that renders a chart and handles all the data-fetching required to do so. The{' '}
         <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
-          <Storybook.JSXNode name="ChartWidgetLoader" />
+          <JSXNode name="ChartWidgetLoader" />
         </ExternalLink>{' '}
         component is where this mapping occurs and handles loading the module and
         rendering the component.
@@ -984,8 +985,8 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         </li>
         <li>
           Components need to pass a unique <code>id</code> prop to{' '}
-          <Storybook.JSXNode name="TimeSeriesWidgetVisualization" />. This <code>id</code>{' '}
-          should also match the filename.
+          <JSXNode name="TimeSeriesWidgetVisualization" />. This <code>id</code> should
+          also match the filename.
         </li>
         <li>
           Components need to be a <code>default</code> export
@@ -993,7 +994,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         <li>
           Component must be manually mapped in{' '}
           <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
-            <Storybook.JSXNode name="ChartWidgetLoader" />
+            <JSXNode name="ChartWidgetLoader" />
           </ExternalLink>{' '}
           so that these paths are statically analyzable
         </li>
@@ -1003,7 +1004,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         Here's an example component, it would be in a file named{' '}
         <code>databaseLandingDurationChartWidget.tsx</code>. Also, in{' '}
         <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
-          <Storybook.JSXNode name="ChartWidgetLoader" />
+          <JSXNode name="ChartWidgetLoader" />
         </ExternalLink>
         , be sure to also map its id to a a function that dynamically imports the
         component.
@@ -1056,7 +1057,7 @@ export default function DatabaseLandingDurationChartWidget(
         </ExternalLink>{' '}
         directory to ensure that{' '}
         <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
-          <Storybook.JSXNode name="ChartWidgetLoader" />
+          <JSXNode name="ChartWidgetLoader" />
         </ExternalLink>{' '}
         is able to load them all.
       </p>
@@ -1087,7 +1088,7 @@ const SmallWidget = styled('div')`
   height: 160px;
 `;
 
-const SmallStorybookSizingWindow = styled(Storybook.SizingWindow)`
+const SmallSizingWindow = styled(SizingWindow)`
   width: 50%;
   height: 300px;
 `;

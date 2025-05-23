@@ -2,13 +2,13 @@ import {Fragment, useState} from 'react';
 import {uuid4} from '@sentry/core';
 
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
-export default Storybook.story('AssigneeBadge', story => {
+export default storyBook('AssigneeBadge', story => {
   story('User Assignee', () => {
     const user = useUser();
     const [chevron1Toggle, setChevron1Toggle] = useState<'up' | 'down'>('down');

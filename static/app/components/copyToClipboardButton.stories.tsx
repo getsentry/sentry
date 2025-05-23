@@ -3,19 +3,22 @@ import {Fragment} from 'react';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Button} from 'sentry/components/core/button';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
+import type {PropMatrix} from 'sentry/components/stories/matrix';
+import Matrix from 'sentry/components/stories/matrix';
 import {IconLink} from 'sentry/icons';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
-export default Storybook.story('CopyToClipboardButton', story => {
+export default storyBook('CopyToClipboardButton', story => {
   story('Basic', () => (
     <Fragment>
       <p>
-        By default the button will stick the{' '}
-        <Storybook.JSXProperty name="text" value={String} /> value onto your clipboard; as
-        if you typed <kbd>CTRL+C</kbd> or <kbd>CMD+C</kbd>. It'll show toast messages, and
-        includes <Storybook.JSXProperty name="onCopy" value={Function} /> &
-        <Storybook.JSXProperty name="onError" value={Function} /> callbacks.
+        By default the button will stick the <JSXProperty name="text" value={String} />{' '}
+        value onto your clipboard; as if you typed <kbd>CTRL+C</kbd> or <kbd>CMD+C</kbd>.
+        It'll show toast messages, and includes{' '}
+        <JSXProperty name="onCopy" value={Function} /> &
+        <JSXProperty name="onError" value={Function} /> callbacks.
       </p>
 
       <CopyToClipboardButton text="Hello World" />
@@ -43,18 +46,18 @@ export default Storybook.story('CopyToClipboardButton', story => {
     );
   });
 
-  const propMatrix: Storybook.PropMatrix<ComponentProps<typeof CopyToClipboardButton>> = {
+  const propMatrix: PropMatrix<ComponentProps<typeof CopyToClipboardButton>> = {
     size: [undefined, 'md', 'sm', 'xs', 'zero'],
     iconSize: [undefined, 'xs', 'sm', 'md', 'lg', 'xl', 'xxl'],
   };
   story('Size Props', () => (
     <Fragment>
       <p>
-        Try to keep the <Storybook.JSXProperty name="size" value="" /> and{' '}
-        <Storybook.JSXProperty name="iconSize" value="" /> props set to the same value.
-        Here's a grid of all the possible combinations.
+        Try to keep the <JSXProperty name="size" value="" /> and{' '}
+        <JSXProperty name="iconSize" value="" /> props set to the same value. Here's a
+        grid of all the possible combinations.
       </p>
-      <Storybook.PropMatrix
+      <Matrix
         render={CopyToClipboardButton}
         propMatrix={propMatrix}
         selectedProps={['size', 'iconSize']}

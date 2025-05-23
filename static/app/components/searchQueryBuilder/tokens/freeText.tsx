@@ -254,7 +254,6 @@ function SearchQueryBuilderInputInternal({
     filterKeys,
     dispatch,
     getFieldDefinition,
-    getSuggestedFilterKey,
     handleSearch,
     placeholder,
     searchSource,
@@ -517,7 +516,7 @@ function SearchQueryBuilderInputInternal({
                 textToken.type === Token.FILTER && textToken.key.text === filterValue
             )
           ) {
-            const filterKey = getSuggestedFilterKey(filterValue) ?? filterValue;
+            const filterKey = filterValue;
             const key = filterKeys[filterKey];
             dispatch({
               type: 'UPDATE_FREE_TEXT',

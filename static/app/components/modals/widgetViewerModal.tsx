@@ -320,8 +320,7 @@ function WidgetViewerModal(props: Props) {
     }]`;
   }
 
-  // Default table columns for visualizations that don't have a group by set
-  const hasGroupBy = (widget.queries[0]?.columns.length ?? 0) > 0;
+  // Default table columns for visualizations that don't have a column setting
   const shouldReplaceTableColumns =
     [
       DisplayType.AREA,
@@ -331,7 +330,7 @@ function WidgetViewerModal(props: Props) {
     ].includes(widget.displayType) &&
     widget.widgetType &&
     [WidgetType.DISCOVER, WidgetType.RELEASE].includes(widget.widgetType) &&
-    !hasGroupBy;
+    !defined(widget.limit);
 
   // Updates fields by adding any individual terms from equation fields as a column
   if (!isTableWidget) {

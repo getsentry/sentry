@@ -2,8 +2,10 @@ import {Fragment, useState} from 'react';
 
 import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import {IconClose, IconSentry, IconStar} from 'sentry/icons';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -21,20 +23,19 @@ const RECOMMENDED_USAGE: Partial<AlertProps> = {
   showIcon: true,
 };
 
-export default Storybook.story('Alert', (story, APIReference) => {
+export default storyBook('Alert', (story, APIReference) => {
   APIReference(types.Alert);
   story('Default', () => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="Alert" /> component is a highlighted banner that
-          can include text, links, and more. Depending on the{' '}
-          <Storybook.JSXProperty name="type" value /> prop specified, it can be used as a
-          success banner, an error or warning message, and for various other use cases. It
-          can be made dismissible as well.
+          The <JSXNode name="Alert" /> component is a highlighted banner that can include
+          text, links, and more. Depending on the <JSXProperty name="type" value /> prop
+          specified, it can be used as a success banner, an error or warning message, and
+          for various other use cases. It can be made dismissible as well.
         </p>
         <p>
-          The default <Storybook.JSXNode name="Alert" /> looks like this:
+          The default <JSXNode name="Alert" /> looks like this:
         </p>
         <Alert.Container>
           {ALERT_VARIANTS.map(variant => (
@@ -66,8 +67,8 @@ export default Storybook.story('Alert', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXProperty name="expand" value /> and{' '}
-          <Storybook.JSXProperty name="defaultExpanded" value /> props can be used to show
+          The <JSXProperty name="expand" value /> and{' '}
+          <JSXProperty name="defaultExpanded" value /> props can be used to show
           additional content when the alert is expanded.
         </p>
         <Alert.Container>
@@ -86,9 +87,9 @@ export default Storybook.story('Alert', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXProperty name="showIcon" value /> and{' '}
-          <Storybook.JSXProperty name="trailingItems" value /> props can be used to
-          customize the alert.
+          The <JSXProperty name="showIcon" value /> and{' '}
+          <JSXProperty name="trailingItems" value /> props can be used to customize the
+          alert.
         </p>
         <Alert.Container>
           <Alert type="info" showIcon={false} trailingItems={<IconStar />}>
@@ -117,11 +118,11 @@ export default Storybook.story('Alert', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXProperty name="trailingItems" value /> prop can be used to
-          customize the item at the far right of the alert. One great use case is making
-          the alert dismissible! You can pair it with a hook like{' '}
-          <code>useDismissAlert</code> to enable this functionality with local storage. Or
-          you can use <code>useState</code> to bring it back on re-render.
+          The <JSXProperty name="trailingItems" value /> prop can be used to customize the
+          item at the far right of the alert. One great use case is making the alert
+          dismissible! You can pair it with a hook like <code>useDismissAlert</code> to
+          enable this functionality with local storage. Or you can use{' '}
+          <code>useState</code> to bring it back on re-render.
         </p>
 
         {isDismissed ? null : (
@@ -172,10 +173,10 @@ export default Storybook.story('Alert', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="Alert" /> component is marginless by default. The{' '}
-          <Storybook.JSXNode name="Alert.Container" /> component is an exported wrapper in
-          the same file that adds the original bottom margin back in, and also
-          automatically spaces all items within the container evenly.
+          The <JSXNode name="Alert" /> component is marginless by default. The{' '}
+          <JSXNode name="Alert.Container" /> component is an exported wrapper in the same
+          file that adds the original bottom margin back in, and also automatically spaces
+          all items within the container evenly.
         </p>
         <Alert.Container>
           <Alert type="info" showIcon>

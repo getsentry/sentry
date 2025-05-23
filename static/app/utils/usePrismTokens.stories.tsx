@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import JSXNode from 'sentry/components/stories/jsxNode';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import * as Storybook from 'sentry/stories';
+import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 import type {SyntaxHighlightLine} from 'sentry/utils/usePrismTokens';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
@@ -47,7 +49,7 @@ function TestComponent({
   );
 }
 
-export default Storybook.story('usePrismTokens', story => {
+export default storyBook('usePrismTokens', story => {
   story('Default', () => {
     const lines = usePrismTokens({code: JS_CODE, language: 'js'});
 
@@ -96,12 +98,12 @@ export default Storybook.story('usePrismTokens', story => {
           The <code>usePrismTokens</code> hook is meant to be used for code blocks which
           require custom UI or behavior, such as customizing line numbers of highlighting
           parts of the code. If this is not required, use the{' '}
-          <Storybook.JSXNode name="CodeSnippet" /> component or{' '}
+          <JSXNode name="CodeSnippet" /> component or{' '}
           <code>Prism.highlightElement()</code>.
         </p>
-        <Storybook.SizingWindow display="block">
+        <SizingWindow display="block">
           <TestComponent languange="js" lines={lines} />
-        </Storybook.SizingWindow>
+        </SizingWindow>
       </Fragment>
     );
   });

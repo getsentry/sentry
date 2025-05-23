@@ -1285,7 +1285,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                     tags={"detection_type": "static"},
                 ),
                 call(
-                    "dual_processing.alert_rules.resolve",
+                    "dual_processing.alert_rules.fire",
                 ),
                 call("incidents.alert_rules.trigger", tags={"type": "resolve"}),
             ]

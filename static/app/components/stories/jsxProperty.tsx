@@ -1,65 +1,13 @@
-import type {ReactNode} from 'react';
-import {Fragment, isValidElement} from 'react';
-import styled from '@emotion/styled';
+import {isValidElement} from 'react';
 
-import {space} from 'sentry/styles/space';
+import JSXNode from 'sentry/components/stories/jsxNode';
 
-interface JSXNodeProps {
-  name: string;
-  children?: ReactNode;
-  props?: Record<string, unknown>;
-}
-
-export function JSXNode({name, props = {}, children}: JSXNodeProps) {
-  if (children) {
-    return (
-      <Code data-node>
-        {`<${name}`}
-        {Object.entries(props).map(([propName, value]) => (
-          <Fragment key={propName}>
-            {' '}
-            <JSXProperty name={propName} value={value} />
-          </Fragment>
-        ))}
-        {`>`}
-        <br />
-        {children}
-        <br />
-        {`</${name}>`}
-      </Code>
-    );
-  }
-  return (
-    <Code data-node>
-      {`<${name} `}
-      {Object.entries(props).map(([propName, value]) => (
-        <Fragment key={propName}>
-          <JSXProperty name={propName} value={value} />{' '}
-        </Fragment>
-      ))}
-      {`/>`}
-    </Code>
-  );
-}
-
-const Code = styled('code')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  padding-inline: 0;
-  & > [data-property] {
-    font-size: ${p => p.theme.fontSizeMedium};
-    padding-inline: 0;
-  }
-  & > [data-node] {
-    padding-left: ${space(2)};
-  }
-`;
-
-interface JSXPropertyProps {
+interface Props {
   name: string;
   value: unknown;
 }
 
-export function JSXProperty({name, value}: JSXPropertyProps) {
+export default function JSXProperty({name, value}: Props) {
   if (name === 'children') {
     return <code data-property="children">{`{children}`}</code>;
   }

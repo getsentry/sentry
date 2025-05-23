@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import Link from 'sentry/components/links/link';
-import * as Storybook from 'sentry/stories';
+import ThemeSwitcher from 'sentry/components/stories/themeSwitcher';
 import {space} from 'sentry/styles/space';
 
 function SentryGradientLogo() {
@@ -39,7 +39,7 @@ export function StoryHeader() {
           <SentryGradientLogo /> Component Library
         </H1>
       </Link>
-      <Storybook.ThemeSwitcher />
+      <ThemeSwitcher />
     </Flex>
   );
 }

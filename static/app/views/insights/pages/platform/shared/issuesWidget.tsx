@@ -329,7 +329,7 @@ export function IssuesWidget() {
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
-    query: `is:unresolved event.type:error ${query}`,
+    query,
     sort: 'freq',
   };
 

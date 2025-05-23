@@ -15,7 +15,9 @@ import type {
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import * as Storybook from 'sentry/stories';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
+import storyBook from 'sentry/stories/storyBook';
 import type {TagCollection} from 'sentry/types/group';
 import {
   FieldKey,
@@ -122,13 +124,13 @@ const getTagValues = (): Promise<string[]> => {
   });
 };
 
-export default Storybook.story('SearchQueryBuilder', story => {
+export default storyBook('SearchQueryBuilder', story => {
   story('Getting started', () => {
     return (
       <Fragment>
         <p>
-          <Storybook.JSXNode name="SearchQueryBuilder" /> is a component which allows you
-          to build a search query using a set of predefined filter keys and values.
+          <JSXNode name="SearchQueryBuilder" /> is a component which allows you to build a
+          search query using a set of predefined filter keys and values.
         </p>
         <p>
           The search query, unless configured otherwise, may contain filters, logical
@@ -668,7 +670,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
           red and display a tooltip with a message when focused. The invalid token
           messages can be customized using the <code>invalidMessages</code> prop. In this
           case, the unsupported tag message is modified with{' '}
-          <Storybook.JSXProperty
+          <JSXProperty
             name="invalidMessages"
             value={{[InvalidReason.LOGICAL_AND_NOT_ALLOWED]: 'foo bar baz'}}
           />
@@ -730,8 +732,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
       <Fragment>
         <p>
           If you just need to render a formatted query outside of the search bar,{' '}
-          <Storybook.JSXNode name="ProvidedFormattedQuery" /> is exported for this
-          purpose:
+          <JSXNode name="ProvidedFormattedQuery" /> is exported for this purpose:
         </p>
         <ProvidedFormattedQuery
           query="count():>1 AND (browser.name:[Firefox,Chrome] OR lastSeen:-7d) TypeError"
@@ -782,13 +783,13 @@ export default Storybook.story('SearchQueryBuilder', story => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="SearchQueryBuilder" /> component already comes
-          pre-wrapped with the <Storybook.JSXNode name="SearchQueryBuilderProvider" />.
-          However, in the event that you need to control the inner state of the{' '}
-          <Storybook.JSXNode name="SearchQueryBuilder" />, you can wrap it in the provider
-          yourself. When passed this way, the search bar will ditch its original provider
-          and use the one you defined. The provider accepts the same props as the{' '}
-          <Storybook.JSXNode name="SearchQueryBuilder" /> component.
+          The <JSXNode name="SearchQueryBuilder" /> component already comes pre-wrapped
+          with the <JSXNode name="SearchQueryBuilderProvider" />. However, in the event
+          that you need to control the inner state of the{' '}
+          <JSXNode name="SearchQueryBuilder" />, you can wrap it in the provider yourself.
+          When passed this way, the search bar will ditch its original provider and use
+          the one you defined. The provider accepts the same props as the{' '}
+          <JSXNode name="SearchQueryBuilder" /> component.
         </p>
         <p>
           The provider will give you access to the context values within the search bar.
@@ -844,9 +845,9 @@ function SearchQueryBuilderExample(queryBuilderProps: SearchQueryBuilderProps) {
     return (
       <Fragment>
         <p>
-          <Storybook.JSXNode name="SearchQueryBuilder" /> is a replacement for{' '}
-          <Storybook.JSXNode name="SmartSearchBar" />. It provides a more flexible and
-          powerful search query builder.
+          <JSXNode name="SearchQueryBuilder" /> is a replacement for{' '}
+          <JSXNode name="SmartSearchBar" />. It provides a more flexible and powerful
+          search query builder.
         </p>
         <p>
           Some props have been renamed:

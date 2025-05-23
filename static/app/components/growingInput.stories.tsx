@@ -4,14 +4,15 @@ import styled from '@emotion/styled';
 import {Input} from 'sentry/components/core/input';
 import {GrowingInput} from 'sentry/components/growingInput';
 import {Slider} from 'sentry/components/slider';
-import * as Storybook from 'sentry/stories';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
+import storyBook from 'sentry/stories/storyBook';
 
-export default Storybook.story('GrowingInput', story => {
+export default storyBook('GrowingInput', story => {
   story('Uncontrolled', () => {
     return (
-      <Storybook.SizingWindow display="block">
+      <SizingWindow display="block">
         <GrowingInput defaultValue="Lorem ipsum dolor sit amat" />
-      </Storybook.SizingWindow>
+      </SizingWindow>
     );
   });
 
@@ -23,9 +24,9 @@ export default Storybook.story('GrowingInput', story => {
         <Input value={value} onChange={e => setValue(e.target.value)} />
         <br />
         <br />
-        <Storybook.SizingWindow display="block">
+        <SizingWindow display="block">
           <GrowingInput value={value} onChange={e => setValue(e.target.value)} />
-        </Storybook.SizingWindow>
+        </SizingWindow>
       </Fragment>
     );
   });
@@ -36,7 +37,7 @@ export default Storybook.story('GrowingInput', story => {
     return (
       <Fragment>
         <p>The input respects the min and max width styles.</p>
-        <Storybook.SizingWindow display="block">
+        <SizingWindow display="block">
           <Slider
             label="Min width"
             min={0}
@@ -60,7 +61,7 @@ export default Storybook.story('GrowingInput', story => {
             maxWidth={maxWidth}
             placeholder="Type something here..."
           />
-        </Storybook.SizingWindow>
+        </SizingWindow>
       </Fragment>
     );
   });

@@ -58,7 +58,6 @@ export default function OverviewApiLatencyChartWidget(props: LoadableChartWidget
       visualizationProps={{
         id: 'overviewApiLatencyChartWidget',
         plottables,
-        ...props,
         ...releaseBubbleProps,
       }}
     />
@@ -83,7 +82,6 @@ export default function OverviewApiLatencyChartWidget(props: LoadableChartWidget
               query: fullQuery,
               interval: pageFilterChartParams.interval,
             }}
-            loaderSource={props.loaderSource}
             onOpenFullScreen={() => {
               openInsightChartModal({
                 title: t('API Latency'),

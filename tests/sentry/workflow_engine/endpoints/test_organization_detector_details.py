@@ -14,7 +14,6 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
-from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -91,15 +90,6 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
 
     def test_does_not_exist(self):
         self.get_error_response(self.organization.slug, 3, status_code=404)
-
-    def test_malformed_id(self):
-        from django.urls import reverse
-
-        # get_error_response can't generate an invalid URL, so we have to
-        # generate a correct one and replace the valid ID with an invalid one.
-        good_url = reverse(self.endpoint, args=[self.organization.slug, 7654])
-        bad_url = good_url.replace("7654", "not-an-id")
-        assert_status_code(self.client.get(bad_url), 404)
 
 
 @region_silo_test

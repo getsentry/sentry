@@ -5,27 +5,27 @@ import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-
 
 import {Flex} from 'sentry/components/container/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import * as Storybook from 'sentry/stories';
+import JSXNode from 'sentry/components/stories/jsxNode';
+import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
 import {ContentSliderDiff} from '.';
 
-export default Storybook.story('ContentSliderDiff', story => {
+export default storyBook('ContentSliderDiff', story => {
   story('Comparing images', function () {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="ContentSliderDiff" /> component compares the before
-          and after of visual elements using an adjustable slider. It allows users to
-          dynamically see the "before" and "after" sections by dragging a divider.
+          The <JSXNode name="ContentSliderDiff" /> component compares the before and after
+          of visual elements using an adjustable slider. It allows users to dynamically
+          see the "before" and "after" sections by dragging a divider.
         </p>
         <p>
           The before and after contents are not directly defined here and have to be
           provided, so it can be very flexible (e.g. images, replays, etc).
         </p>
         <p>
-          An example <Storybook.JSXNode name="ContentSliderDiff" /> using images looks
-          like this:
+          An example <JSXNode name="ContentSliderDiff" /> using images looks like this:
         </p>
         <div>
           <ContentSliderDiff.Header>

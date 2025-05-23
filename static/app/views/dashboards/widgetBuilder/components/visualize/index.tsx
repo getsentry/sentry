@@ -21,13 +21,15 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {
+  classifyTagKey,
   DEPRECATED_FIELDS,
   generateFieldAsString,
   parseFunction,
+  prettifyTagKey,
   type QueryFieldValue,
   type ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
-import {classifyTagKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {FieldKind} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';

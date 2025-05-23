@@ -567,16 +567,22 @@ def get_sources_for_project(project):
             # processing at this point.
             logger.exception("Invalid symbolicator source config")
 
-    def resolve_alias(source, organization):
+    def resolve_alias(source):
         for key in source.get("sources") or ():
             other_source = settings.SENTRY_BUILTIN_SOURCES.get(key)
             if other_source:
                 if other_source.get("type") == "alias":
-                    yield from resolve_alias(other_source, organization)
+                    yield from resolve_alias(other_source)
                 else:
-                    yield fetch_token_for_gcp_source(other_source, organization)
+                    yield other_source
 
-    def fetch_token_for_gcp_source(source, organization):
+    # Add builtin sources last to ensure that custom sources have precedence
+    # over our defaults.
+    builtin_sources = project.get_option("sentry:builtin_symbol_sources")
+    for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
+        if key not in builtin_sources:
+            continue
+
         if features.has("organizations:gcp-bearer-token-authentication", organization):
             if source.get("type") == "gcs":
                 client_email = source.get("client_email")
@@ -592,22 +598,13 @@ def get_sources_for_project(project):
                     if "private_key" in source:
                         del source["private_key"]
 
-        return source
-
-    # Add builtin sources last to ensure that custom sources have precedence
-    # over our defaults.
-    builtin_sources = project.get_option("sentry:builtin_symbol_sources")
-    for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
-        if key not in builtin_sources:
-            continue
-
         # special internal alias type expands to more than one item.  This
         # is used to make `apple` expand to `ios`/`macos` and other
         # sources if configured as such.
         if source.get("type") == "alias":
-            sources.extend(resolve_alias(source, organization))
+            sources.extend(resolve_alias(source))
         else:
-            sources.append(fetch_token_for_gcp_source(source, organization))
+            sources.append(source)
 
     return sources
 

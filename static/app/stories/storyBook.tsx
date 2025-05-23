@@ -2,10 +2,9 @@ import type {ReactNode} from 'react';
 import {Children, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import SideBySide from 'sentry/components/stories/sideBySide';
 import {space} from 'sentry/styles/space';
-
-import {APIReference} from './apiReference';
-import * as StorybookLayout from './layout';
+import {StoryTypes} from 'sentry/views/stories/storyTypes';
 
 type StoryRenderFunction = () => ReactNode | ReactNode[];
 type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
@@ -14,7 +13,10 @@ type SetupFunction = (
   apiReference: (documentation: TypeLoader.ComponentDocWithFilename | undefined) => void
 ) => void;
 
-export function story(title: string, setup: SetupFunction): StoryRenderFunction {
+export default function storyBook(
+  title: string,
+  setup: SetupFunction
+): StoryRenderFunction {
   const stories: Array<{
     name: string;
     render: StoryRenderFunction;
@@ -41,7 +43,7 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
           <Story key={i} name={name} render={render} />
         ))}
         {APIDocumentation.map((documentation, i) => (
-          <APIReference key={i} types={documentation} />
+          <StoryTypes key={i} types={documentation} />
         ))}
       </Fragment>
     );
@@ -55,11 +57,7 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
   return (
     <StorySection>
       <StoryTitle>{props.name}</StoryTitle>
-      {isOneChild ? (
-        children
-      ) : (
-        <StorybookLayout.SideBySide>{children}</StorybookLayout.SideBySide>
-      )}
+      {isOneChild ? children : <SideBySide>{children}</SideBySide>}
     </StorySection>
   );
 }

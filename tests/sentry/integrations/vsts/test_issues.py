@@ -21,7 +21,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_PATH
 from sentry.testutils.cases import TestCase
@@ -591,13 +591,3 @@ class VstsIssueFormTest(VstsIssueBase):
         fields = self.integration.get_create_issue_config(self.group, self.user)
 
         self.assert_project_field(fields, None, [])
-
-
-@region_silo_test
-class VstsIssueRaiseErrorTest(VstsIssueBase):
-    @responses.activate
-    def test_raise_error_api_unauthorized(self):
-        error_message = "According to Microsoft Entra, your Identity xxx is currently Deleted within the following Microsoft Entra tenant: xxx Please contact your Microsoft Entra administrator to resolve this."
-        api_error = ApiError(error_message)
-        with pytest.raises(ApiUnauthorized):
-            self.integration.raise_error(api_error)
