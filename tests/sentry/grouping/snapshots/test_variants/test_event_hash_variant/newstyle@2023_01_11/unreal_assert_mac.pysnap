@@ -1,5 +1,5 @@
 ---
-created: '2025-04-23T19:09:01.325342+00:00'
+created: '2025-05-12T23:41:29.503478+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -76,7 +76,7 @@ app:
           frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
             function*
               "ProcessLocalFunction"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app) but ignored by stack trace rule (category:indirection -group))
             function*
               "ProcessLocalFunction::lambda::operator()"
           frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))

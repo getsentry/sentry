@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:22:16.434462+00:00'
+created: '2025-05-12T23:41:31.498731+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -291,7 +291,7 @@ app:
               "either.rs"
             function*
               "futures::future::either::Either<T>::poll"
-          frame (marked in-app by the client)
+          frame (marked in-app by the client but ignored due to recursion)
             filename*
               "either.rs"
             function*
