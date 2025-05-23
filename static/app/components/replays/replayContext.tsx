@@ -611,6 +611,7 @@ export function Provider({
           restart,
           setCurrentTime,
           togglePlayPause,
+          getMirror: () => replayerRef.current?.getMirror(),
           ...value,
         }}
       >
