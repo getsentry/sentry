@@ -9,6 +9,7 @@ import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   useExploreFields,
   useExploreMode,
@@ -39,6 +40,8 @@ interface ExploreTablesProps extends BaseExploreTablesProps {
 }
 
 export function ExploreTables(props: ExploreTablesProps) {
+  const organization = useOrganization();
+
   const mode = useExploreMode();
   const setMode = useSetExploreMode();
 
@@ -62,6 +65,8 @@ export function ExploreTables(props: ExploreTablesProps) {
       {closeEvents: 'escape-key'}
     );
   }, [fields, setFields, stringTags, numberTags]);
+
+  const openAggregateColumnEditor = useCallback(() => {}, []);
 
   // HACK: This is pretty gross but to not break anything in the
   // short term, we avoid introducing/removing any fields on the
@@ -91,6 +96,11 @@ export function ExploreTables(props: ExploreTablesProps) {
         </Tabs>
         {tab === Tab.SPAN ? (
           <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
+            {t('Edit Table')}
+          </Button>
+        ) : tab === Mode.AGGREGATE &&
+          organization.features.includes('visibility-explore-aggregate-editor') ? (
+          <Button onClick={openAggregateColumnEditor} icon={<IconTable />} size="sm">
             {t('Edit Table')}
           </Button>
         ) : (
