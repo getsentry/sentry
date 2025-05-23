@@ -913,7 +913,7 @@ def test_create_feedback_evidence_has_spam(
 
 
 @django_db_all
-def test_rate_limited(monkeypatch, default_project):
+def test_rate_limited(default_project, monkeypatch, mock_produce_occurrence_to_kafka):
     event = mock_feedback_event(default_project.id)
     MockGranted = namedtuple("MockGranted", ["granted"])
     mock_check_and_use_quotas = Mock(return_value=[MockGranted(granted=False)])
@@ -929,6 +929,7 @@ def test_rate_limited(monkeypatch, default_project):
         )
         is None
     )
+    assert mock_produce_occurrence_to_kafka.call_count == 0
 
     assert mock_check_and_use_quotas.call_count == 1
     assert mock_check_and_use_quotas.call_args[0][0] == [
