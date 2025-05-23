@@ -76,7 +76,6 @@ function SeerSectionContent({
         </Summary>
       );
     }
-    return <p>Hello</p>;
 
     return (
       <Summary>
