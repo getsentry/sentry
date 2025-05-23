@@ -28,6 +28,7 @@ import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 import type {CommentThreadMessage} from './types';
@@ -41,6 +42,7 @@ interface Props {
   stepIndex: number;
   blockName?: string;
   isAgentComment?: boolean;
+  onShouldPersistChange?: (shouldPersist: boolean) => void;
 }
 
 interface OptimisticMessage extends CommentThreadMessage {
@@ -52,6 +54,7 @@ const MIN_LEFT_MARGIN = 8;
 function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
 
   return useMutation({
     mutationFn: (params: {
@@ -62,24 +65,27 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
       step_index: number;
       thread_id: string;
     }) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'comment_thread',
-            message: params.message,
-            thread_id: params.thread_id,
-            selected_text: params.selected_text,
-            step_index: params.step_index,
-            retain_insight_card_index: params.retain_insight_card_index,
-            is_agent_comment: params.is_agent_comment,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'comment_thread',
+              message: params.message,
+              thread_id: params.thread_id,
+              selected_text: params.selected_text,
+              step_index: params.step_index,
+              retain_insight_card_index: params.retain_insight_card_index,
+              is_agent_comment: params.is_agent_comment,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending your comment.'));
@@ -90,6 +96,7 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
 function useCloseCommentThread({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
 
   return useMutation({
     mutationFn: (params: {
@@ -97,21 +104,24 @@ function useCloseCommentThread({groupId, runId}: {groupId: string; runId: string
       step_index: number;
       thread_id: string;
     }) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'resolve_comment_thread',
-            thread_id: params.thread_id,
-            step_index: params.step_index,
-            is_agent_comment: params.is_agent_comment,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'resolve_comment_thread',
+              thread_id: params.thread_id,
+              step_index: params.step_index,
+              is_agent_comment: params.is_agent_comment,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when resolving the thread.'));
@@ -128,10 +138,12 @@ function AutofixHighlightPopupContent({
   isAgentComment,
   blockName,
   isFocused,
+  onShouldPersistChange,
 }: Props & {isFocused?: boolean}) {
   const {mutate: submitComment} = useCommentThread({groupId, runId});
   const {mutate: closeCommentThread} = useCloseCommentThread({groupId, runId});
 
+  const [hidden, setHidden] = useState(false);
   const [comment, setComment] = useState('');
   const [threadId] = useState(() => {
     const timestamp = Date.now();
@@ -252,12 +264,23 @@ function AutofixHighlightPopupContent({
 
   const handleResolve = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setHidden(true);
     closeCommentThread({
       thread_id: threadId,
       step_index: stepIndex,
       is_agent_comment: isAgentComment ?? false,
     });
   };
+
+  useEffect(() => {
+    if (onShouldPersistChange) {
+      onShouldPersistChange(!!commentThread && commentThread.is_completed !== true);
+    }
+  }, [commentThread, onShouldPersistChange]);
+
+  if (hidden) {
+    return null;
+  }
 
   return (
     <Container onClick={handleContainerClick} isFocused={isFocused}>
@@ -647,8 +670,8 @@ const CircularSeerIcon = styled('div')`
   flex-shrink: 0;
 
   > svg {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
     color: ${p => p.theme.white};
   }
 `;

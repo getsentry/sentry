@@ -364,14 +364,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 },
             )
             sentry_sdk.capture_message("Created or updated widget with discover dataset.")
-            if features.has(
-                "organizations:deprecate-discover-widget-type",
-                self.context["organization"],
-                actor=self.context["request"].user,
-            ):
-                raise serializers.ValidationError(
-                    "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
-                )
+            raise serializers.ValidationError(
+                "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+            )
         return widget_type
 
     validate_id = validate_id
@@ -422,7 +417,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     has_query_error = True
                 elif (
                     "widget_type" not in data
-                    or data.get("widget_type") == DashboardWidgetTypes.DISCOVER
+                    or data.get("widget_type")
+                    in [
+                        DashboardWidgetTypes.DISCOVER,
+                        DashboardWidgetTypes.TRANSACTION_LIKE,
+                        DashboardWidgetTypes.ERROR_EVENTS,
+                    ]
                 ) and "discover_query_error" in query:
                     query_errors.append(query["discover_query_error"])
                     has_query_error = True
@@ -814,7 +814,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             description=widget_data.get("description", None),
             thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
-            widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
+            widget_type=widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS),
             discover_widget_split=widget_data.get("discover_widget_split", None),
             order=order,
             limit=widget_data.get("limit", None),

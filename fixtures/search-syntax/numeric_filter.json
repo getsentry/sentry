@@ -10,7 +10,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "random_field", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": ">500", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": ">500",
+          "quoted": false,
+          "contains": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -26,7 +31,12 @@
         "negated": true,
         "key": {"type": "keySimple", "value": "random_field", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": ">500", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": ">500",
+          "quoted": false,
+          "contains": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -41,7 +51,7 @@
         "negated": true,
         "key": {"type": "keySimple", "value": "random_field", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "500", "quoted": false}
+        "value": {"type": "valueText", "value": "500", "quoted": false, "contains": false}
       },
       {"type": "spaces", "value": ""}
     ]

@@ -25,40 +25,40 @@ function PromoCodeFixture(params: Partial<PromoCodeType>): PromoCodeType {
 
 describe('PromoCodes', function () {
   it('renders', async function () {
-    const {router, routerProps} = initializeOrg();
+    const {routerProps} = initializeOrg();
 
     MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'GET',
       body: [],
     });
-    render(<PromoCodes {...routerProps} />, {router});
+    render(<PromoCodes {...routerProps} />);
     expect(await screen.findByRole('heading', {name: 'Promo Codes'})).toBeInTheDocument();
   });
 
   it('shows a promo code created by someone with an email', async function () {
-    const {router, routerProps} = initializeOrg();
+    const {routerProps} = initializeOrg();
 
     MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'GET',
       body: [PromoCodeFixture({})],
     });
-    render(<PromoCodes {...routerProps} />, {router});
+    render(<PromoCodes {...routerProps} />);
     expect(
       await screen.findByRole('link', {name: 'hellboy@cutecats.io'})
     ).toBeInTheDocument();
   });
 
   it('shows a promo code created by someone without an email', async function () {
-    const {router, routerProps} = initializeOrg();
+    const {routerProps} = initializeOrg();
 
     MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'GET',
       body: [PromoCodeFixture({userEmail: null})],
     });
-    render(<PromoCodes {...routerProps} />, {router});
+    render(<PromoCodes {...routerProps} />);
     expect(await screen.findByRole('link', {name: 'Created By'})).toBeEmptyDOMElement();
   });
 });

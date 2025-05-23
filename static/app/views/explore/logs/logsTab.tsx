@@ -1,8 +1,7 @@
-import {useCallback} from 'react';
+import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -17,6 +16,7 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -40,16 +40,14 @@ import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
+import type {PickableDays} from 'sentry/views/explore/utils';
+import {findSuggestedColumns} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-type LogsTabProps = {
-  defaultPeriod: DefaultPeriod;
-  maxPickableDays: MaxPickableDays;
-  relativeOptions: Record<string, React.ReactNode>;
-};
+type LogsTabProps = PickableDays;
 
 export function LogsTabContent({
   defaultPeriod,
@@ -62,7 +60,11 @@ export function LogsTabContent({
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useExploreLogsTable({});
   const pageFilters = usePageFilters();
+  usePersistentLogsPageParameters(); // persist the columns you chose last time
 
+  const oldLogsSearch = usePrevious(logsSearch);
+
+  const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
   const interval = getIntervalOptionsForPageFilter(pageFilters.selection.datetime)?.[0]
     ?.value;
@@ -90,13 +92,18 @@ export function LogsTabContent({
     initialQuery: logsSearch.formatString(),
     searchSource: 'ourlogs',
     onSearch: (newQuery: string) => {
-      const newFields = new MutableSearch(newQuery)
-        .getFilterKeys()
-        .map(key => (key.startsWith('!') ? key.slice(1) : key));
-      const mutableQuery = new MutableSearch(newQuery);
+      const newSearch = new MutableSearch(newQuery);
+      const suggestedColumns = findSuggestedColumns(newSearch, oldLogsSearch, {
+        numberAttributes,
+        stringAttributes,
+      });
+
+      const existingFields = new Set(fields);
+      const newColumns = suggestedColumns.filter(col => !existingFields.has(col));
+
       setLogsPageParams({
-        search: mutableQuery,
-        fields: [...new Set([...fields, ...newFields])],
+        search: newSearch,
+        fields: newColumns.length ? [...fields, ...newColumns] : undefined,
       });
     },
     numberAttributes,
@@ -132,41 +139,39 @@ export function LogsTabContent({
       <Layout.Body noRowGap>
         <Layout.Main fullWidth>
           <FilterBarContainer>
-            <PageFilterBar condensed>
+            <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
               <DatePageFilter
                 defaultPeriod={defaultPeriod}
                 maxPickableDays={maxPickableDays}
-                relativeOptions={({arbitraryOptions}) => ({
-                  ...arbitraryOptions,
-                  ...relativeOptions,
-                })}
+                relativeOptions={relativeOptions}
               />
-            </PageFilterBar>
+            </StyledPageFilterBar>
             <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
 
-            <Button onClick={openColumnEditor} icon={<IconTable />}>
+            <Button
+              onClick={openColumnEditor}
+              icon={<IconTable />}
+              ref={columnEditorButtonRef}
+            >
               {t('Edit Table')}
             </Button>
           </FilterBarContainer>
-          <Feature features="organizations:traces-schema-hints">
-            <SchemaHintsSection>
-              <SchemaHintsList
-                supportedAggregates={[]}
-                numberTags={numberAttributes}
-                stringTags={stringAttributes}
-                isLoading={numberAttributesLoading || stringAttributesLoading}
-                exploreQuery={logsSearch.formatString()}
-                source={SchemaHintsSources.LOGS}
-              />
-            </SchemaHintsSection>
-          </Feature>
-          <Feature features="organizations:ourlogs-graph">
-            <LogsGraphContainer>
-              <LogsGraph timeseriesResult={timeseriesResult} />
-            </LogsGraphContainer>
-          </Feature>
+          <SchemaHintsSection>
+            <SchemaHintsList
+              supportedAggregates={[]}
+              numberTags={numberAttributes}
+              stringTags={stringAttributes}
+              isLoading={numberAttributesLoading || stringAttributesLoading}
+              exploreQuery={logsSearch.formatString()}
+              source={SchemaHintsSources.LOGS}
+              searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
+            />
+          </SchemaHintsSection>
+          <LogsGraphContainer>
+            <LogsGraph timeseriesResult={timeseriesResult} />
+          </LogsGraphContainer>
           <LogsItemContainer>
             <LogsTable
               tableData={tableData}
@@ -181,9 +186,13 @@ export function LogsTabContent({
 }
 
 const FilterBarContainer = styled('div')`
-  display: flex;
-  gap: ${space(2)};
+  gap: ${space(1)};
   margin-bottom: ${space(1)};
+  display: grid;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: minmax(300px, auto) 1fr auto;
+  }
 `;
 
 const LogsItemContainer = styled('div')`
@@ -192,5 +201,9 @@ const LogsItemContainer = styled('div')`
 `;
 
 const LogsGraphContainer = styled(LogsItemContainer)`
-  height: 175px;
+  height: 200px;
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  width: auto;
 `;

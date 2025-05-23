@@ -8,8 +8,7 @@ import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
-import {getAllViews} from 'sentry/views/discover/data';
+import {getAllViews} from 'sentry/views/discover/results/data';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import * as utils from 'sentry/views/discover/savedQuery/utils';
 
@@ -146,11 +145,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
     it('opens dashboard modal with the right props', async () => {
       organization = OrganizationFixture({
-        features: [
-          'discover-query',
-          'dashboards-edit',
-          'performance-discover-dataset-selector',
-        ],
+        features: ['discover-query', 'dashboards-edit'],
       });
       mount(
         location,
@@ -183,28 +178,15 @@ describe('Discover > SaveQueryButtonGroup', function () {
               {
                 aggregates: ['count()', 'failure_count()'],
                 columns: [],
-                conditions: 'event.type:error',
-                fields: ['count()', 'failure_count()'],
+                conditions: '',
+                fields: [],
                 name: '',
                 orderby: '-count()',
               },
             ],
             title: 'Errors by Title',
-            widgetType: WidgetType.ERRORS,
+            widgetType: 'error-events',
           },
-          widgetAsQueryParams: expect.objectContaining({
-            dataset: WidgetType.ERRORS,
-            defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'project'],
-            defaultTitle: 'Errors by Title',
-            defaultWidgetQuery:
-              'name=&aggregates=count()%2Cfailure_count()&columns=&fields=count()%2Cfailure_count()&conditions=event.type%3Aerror&orderby=-count()',
-            displayType: 'area',
-            end: undefined,
-            limit: undefined,
-            source: 'discoverv2',
-            start: undefined,
-            statsPeriod: '24h',
-          }),
         })
       );
     });
@@ -222,7 +204,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       );
 
       // Click on Save in the Dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save for Organization'}));
 
       expect(mockUtils).toHaveBeenCalledWith(
         expect.anything(), // api
@@ -230,6 +212,31 @@ describe('Discover > SaveQueryButtonGroup', function () {
         expect.objectContaining({
           ...errorsView,
           name: 'My New Query Name',
+        }),
+        yAxis,
+        true
+      );
+    });
+
+    it('saves on enter', async () => {
+      mount(location, organization, router, errorsView, undefined, yAxis);
+
+      // Click on ButtonSaveAs to open dropdown
+      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+
+      // Fill in the Input
+      const input = screen.getByPlaceholderText('Display name');
+      await userEvent.type(input, 'My New Query');
+
+      // Press Enter
+      await userEvent.keyboard('{enter}');
+
+      expect(mockUtils).toHaveBeenCalledWith(
+        expect.anything(),
+        organization,
+        expect.objectContaining({
+          ...errorsView,
+          name: 'My New Query',
         }),
         yAxis,
         true
@@ -245,7 +252,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       // Do not fill in Input
 
       // Click on Save in the Dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save for Organization'}));
 
       // Check that EventView has a name
       expect(errorsView.name).toBe('Errors by Title');
@@ -428,7 +435,9 @@ describe('Discover > SaveQueryButtonGroup', function () {
         await userEvent.type(screen.getByPlaceholderText('Display name'), 'Forked Query');
 
         // Click on Save in the Dropdown
-        await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Save for Organization'})
+        );
 
         expect(mockUtils).toHaveBeenCalledWith(
           expect.anything(), // api
@@ -463,7 +472,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
     it('uses the throughput alert type for transaction queries', () => {
       const metricAlertOrg = {
         ...organization,
-        features: ['incidents', 'performance-discover-dataset-selector'],
+        features: ['incidents'],
       };
       const transactionSavedQuery = {
         ...savedQuery,
@@ -491,7 +500,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
     it('uses the num errors alert type for error queries', () => {
       const metricAlertOrg = {
         ...organization,
-        features: ['incidents', 'performance-discover-dataset-selector'],
+        features: ['incidents'],
       };
       const errorSavedQuery = {
         ...savedQuery,

@@ -4,7 +4,6 @@ import re
 from datetime import timedelta
 from typing import Any
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -45,12 +44,11 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             return
 
         data = span.get("data", None)
-        # TODO(nar): `Encoded Body Size` can be removed once SDK adoption has increased and
-        # we are receiving `http.response_content_length` consistently, likely beyond October 2023
-        encoded_body_size = data and (
-            data.get("http.response_content_length", None) or data.get("Encoded Body Size")
-        )
-        if not (encoded_body_size):
+        if not data:
+            return
+
+        encoded_body_size = data.get("http.response_content_length", None)
+        if not encoded_body_size:
             return
 
         payload_size_threshold = self.settings.get("payload_size_threshold")
@@ -131,9 +129,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         return f"1-{PerformanceLargeHTTPPayloadGroupType.type_id}-{hashed_url_paths}"
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-large-http-payload-detector", organization, actor=None
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]

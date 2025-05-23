@@ -18,6 +18,7 @@ from sentry.integrations.base import (
     IntegrationFeatures,
     IntegrationMetadata,
 )
+from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssuesSpec
 from sentry.integrations.github.utils import get_jwt
@@ -25,12 +26,13 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.utils import jwt
+from sentry.utils import jwt, metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
@@ -73,7 +75,7 @@ FEATURES = [
         """
         Create and link Sentry issue groups directly to a GitHub issue or pull
         request in any of your repositories, providing a quick way to jump from
-        Sentry bug to tracked issue or PR!
+        Sentry bug to tracked issue or PR.
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
@@ -154,7 +156,7 @@ class GitHubEnterpriseIntegration(
 
     @property
     def integration_name(self) -> str:
-        return "github_enterprise"
+        return IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
     def get_client(self):
         if not self.org_integration:
@@ -238,7 +240,22 @@ class GitHubEnterpriseIntegration(
     # CommitContextIntegration methods
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
-        raise NotImplementedError
+        if api_error.json:
+            if ISSUE_LOCKED_ERROR_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "issue_locked_error"},
+                )
+                return True
+
+            elif RATE_LIMITED_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "rate_limited_error"},
+                )
+                return True
+
+        return False
 
 
 class InstallationForm(forms.Form):
@@ -355,7 +372,7 @@ class InstallationConfigView(PipelineView):
 
 
 class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
-    key = "github_enterprise"
+    key = IntegrationProviderSlug.GITHUB_ENTERPRISE.value
     name = "GitHub Enterprise"
     metadata = metadata
     integration_cls = GitHubEnterpriseIntegration

@@ -41,8 +41,6 @@ export const QUERY_KEYS = [
 ] as const;
 
 export const UNPARAMETERIZED_TRANSACTION = '<< unparameterized >>'; // Represents 'other' transactions with high cardinality names that were dropped on the metrics dataset.
-const UNPARAMETRIZED_TRANSACTION = '<< unparametrized >>'; // Old spelling. Can be deleted in the future when all data for this transaction name is gone.
-export const EXCLUDE_METRICS_UNPARAM_CONDITIONS = `(!transaction:"${UNPARAMETERIZED_TRANSACTION}" AND !transaction:"${UNPARAMETRIZED_TRANSACTION}")`;
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 
 export enum DiscoverQueryPageSource {
@@ -202,12 +200,7 @@ export function isSummaryViewFrontend(eventView: EventView, projects: Project[])
   );
 }
 
-// TODO - remove in favour of `getPerformanceBaseUrl`
-export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
-  return `${getPerformanceBaseUrl(organization.slug)}/`;
-}
-
-export function getPerformanceTrendsUrl(
+function getPerformanceTrendsUrl(
   organization: OrganizationSummary,
   view?: DomainView
 ): string {

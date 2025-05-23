@@ -55,7 +55,12 @@ import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {type FieldDefinition, FieldKey, FieldValueType} from 'sentry/utils/fields';
+import {
+  type FieldDefinition,
+  FieldKey,
+  FieldValueType,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -194,7 +199,15 @@ function getPredefinedValues({
   }
 
   if (isStringFilterValues(definedValues)) {
-    return [{sectionText: '', suggestions: definedValues.map(value => ({value}))}];
+    return [
+      {
+        sectionText: '',
+        suggestions: definedValues.map(value => ({
+          label: token.filter === FilterType.HAS ? prettifyTagKey(value) : undefined,
+          value,
+        })),
+      },
+    ];
   }
 
   const valuesWithoutSection = definedValues
@@ -321,7 +334,11 @@ function useFilterSuggestions({
       }),
     [key, filterValue, token, fieldDefinition]
   );
-  const shouldFetchValues = key && !key.predefined && predefinedValues === null;
+  // Only keys that explicitly have predefined values should skip the fetch.
+  // This is because the way keys are fetched doesn't guarantee that we have
+  // every key loaded. So we should try to fetch values for it even if it
+  // doesn't exist in the list of available keys.
+  const shouldFetchValues = key ? !key.predefined && predefinedValues === null : true;
   const canSelectMultipleValues = tokenSupportsMultipleValues(
     token,
     filterKeys,
@@ -411,7 +428,17 @@ function useFilterSuggestions({
       {
         sectionText: '',
         items: getItemsWithKeys([
-          ...selectedValues.map(value => createItem({value}, true)),
+          ...selectedValues.map(value => {
+            const matchingSuggestion = suggestionGroups
+              .flatMap(group => group.suggestions)
+              .find(suggestion => suggestion.value === value);
+
+            if (matchingSuggestion) {
+              return createItem(matchingSuggestion, true);
+            }
+
+            return createItem({value}, true);
+          }),
           ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
         ]),
       },
@@ -840,6 +867,13 @@ export function SearchQueryBuilderValueCombobox({
       onCommit,
     ]);
 
+  const placeholder =
+    token.filter === FilterType.HAS
+      ? prettifyTagKey(token.value.text)
+      : canSelectMultipleValues
+        ? ''
+        : formatFilterValue(token.value);
+
   return (
     <ValueEditing ref={ref} data-test-id="filter-value-editing">
       <SearchQueryBuilderCombobox
@@ -851,7 +885,7 @@ export function SearchQueryBuilderValueCombobox({
         onExit={onCommit}
         inputValue={inputValue}
         filterValue={filterValue}
-        placeholder={canSelectMultipleValues ? '' : formatFilterValue(token.value)}
+        placeholder={placeholder}
         token={token}
         inputLabel={t('Edit filter value')}
         onInputChange={e => setInputValue(e.target.value)}

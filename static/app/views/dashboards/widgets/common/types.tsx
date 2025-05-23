@@ -21,21 +21,32 @@ type AttributeValueUnit = DataUnit | null;
 type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;
 export type TimeSeriesMeta = {
-  type: TimeSeriesValueType;
-  unit: TimeSeriesValueUnit;
+  /**
+   * Difference between the timestamps of the datapoints, in milliseconds
+   */
+  interval: number;
+  valueType: TimeSeriesValueType;
+  valueUnit: TimeSeriesValueUnit;
   isOther?: boolean;
+  /**
+   * For a top N request, the order is the position of this `TimeSeries` within the respective yAxis.
+   */
+  order?: number;
 };
 
 export type TimeSeriesItem = {
-  timestamp: string;
+  /**
+   * Milliseconds since Unix epoch
+   */
+  timestamp: number;
   value: number | null;
   delayed?: boolean;
 };
 
 export type TimeSeries = {
-  data: TimeSeriesItem[];
-  field: string;
   meta: TimeSeriesMeta;
+  values: TimeSeriesItem[];
+  yAxis: string;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   sampleCount?: AccuracyStats<number>;

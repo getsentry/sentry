@@ -223,11 +223,6 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
-        # last_org may not always be available
-        if self.last_org and features.has(
-            "organizations:cache-projects-ui", self.last_org, actor=self.user
-        ):
-            yield "organizations:cache-projects-ui"
         # TODO @athena: remove this feature flag after development is done
         # this is a temporary hack to be able to used flagpole in a case where there's no organization
         # availble on the frontend

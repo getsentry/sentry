@@ -6,6 +6,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
@@ -47,8 +48,10 @@ export interface InsightsTimeSeriesWidgetProps
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
+  pageFilters?: PageFilters;
   samples?: Samples;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
+  showReleaseAs?: 'line' | 'bubble';
   stacked?: boolean;
 }
 
@@ -76,10 +79,10 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             : Bars;
 
       return new PlottableDataConstructor(timeSeries, {
-        color: serie.color ?? COMMON_COLORS(theme)[timeSeries.field],
+        color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
         delay: INGESTION_DELAY,
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
-        alias: props.aliases?.[timeSeries.field],
+        alias: props.aliases?.[timeSeries.yAxis],
       });
     }),
   };
@@ -129,7 +132,11 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   }
 
   const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
-    ? ({releases, showReleaseAs: props.showReleaseAs || 'bubble'} as const)
+    ? ({
+        releases,
+        showReleaseAs: props.showReleaseAs || 'bubble',
+        onZoom: props.onZoom,
+      } as const)
     : {};
 
   return (
@@ -151,30 +158,32 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {props.description && (
               <Widget.WidgetDescription description={props.description} />
             )}
-            <Button
-              size="xs"
-              aria-label={t('Open Full-Screen View')}
-              borderless
-              icon={<IconExpand />}
-              onClick={() => {
-                openInsightChartModal({
-                  title: props.title,
-                  children: (
-                    <ModalChartContainer>
-                      <TimeSeriesWidgetVisualization
-                        id={props.id}
-                        {...visualizationProps}
-                        {...enableReleaseBubblesProps}
-                        onZoom={() => {}}
-                        legendSelection={props.legendSelection}
-                        onLegendSelectionChange={props.onLegendSelectionChange}
-                        releases={releases ?? []}
-                      />
-                    </ModalChartContainer>
-                  ),
-                });
-              }}
-            />
+            {props.loaderSource !== 'releases-drawer' && (
+              <Button
+                size="xs"
+                aria-label={t('Open Full-Screen View')}
+                borderless
+                icon={<IconExpand />}
+                onClick={() => {
+                  openInsightChartModal({
+                    title: props.title,
+                    children: (
+                      <ModalChartContainer>
+                        <TimeSeriesWidgetVisualization
+                          id={props.id}
+                          {...visualizationProps}
+                          {...enableReleaseBubblesProps}
+                          onZoom={() => {}}
+                          legendSelection={props.legendSelection}
+                          onLegendSelectionChange={props.onLegendSelectionChange}
+                          releases={releases ?? []}
+                        />
+                      </ModalChartContainer>
+                    ),
+                  });
+                }}
+              />
+            )}
           </Widget.WidgetToolbar>
         }
       />

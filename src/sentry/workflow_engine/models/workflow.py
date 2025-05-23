@@ -7,6 +7,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.owner_base import OwnerModel
@@ -29,6 +30,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
     enabled = models.BooleanField(db_default=True)
+
+    # The workflow's status - used for tracking deletion state
+    status = models.SmallIntegerField(db_default=ObjectStatus.ACTIVE)
 
     # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
     when_condition_group = FlexibleForeignKey(
@@ -81,10 +85,10 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             return True, []
 
         workflow_event_data = replace(event_data, workflow_env=self.environment)
-        (evaluation, _), remaining_conditions = process_data_condition_group(
+        group_evaluation, remaining_conditions = process_data_condition_group(
             self.when_condition_group.id, workflow_event_data
         )
-        return evaluation, remaining_conditions
+        return group_evaluation.logic_result, remaining_conditions
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:

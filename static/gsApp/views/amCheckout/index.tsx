@@ -7,7 +7,7 @@ import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,6 +16,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {QueryClient} from 'sentry/utils/queryClient';
@@ -36,7 +37,7 @@ import {
 import {
   type BillingConfig,
   CheckoutType,
-  type DataCategories,
+  type EventBucket,
   OnDemandBudgetMode,
   type OnDemandBudgets,
   type Plan,
@@ -69,7 +70,11 @@ import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
 import PlanSelect from 'getsentry/views/amCheckout/steps/planSelect';
 import ReviewAndConfirm from 'getsentry/views/amCheckout/steps/reviewAndConfirm';
 import SetPayAsYouGo from 'getsentry/views/amCheckout/steps/setPayAsYouGo';
-import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import type {
+  CheckoutFormData,
+  SelectedProductData,
+} from 'getsentry/views/amCheckout/types';
+import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
@@ -392,11 +397,10 @@ class AMCheckout extends Component<Props, State> {
     // Default to the max event volume per category based on either
     // the current reserved volume or the current reserved price.
     const reserved = Object.fromEntries(
-      Object.entries(planDetails.planCategories)
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      (Object.entries(planDetails.planCategories) as Array<[DataCategory, EventBucket[]]>)
         .filter(([category, _]) => initialPlan.planCategories[category])
         .map(([category, eventBuckets]) => {
-          const currentHistory = subscription.categories[category as DataCategories];
+          const currentHistory = subscription.categories[category];
           // When introducing a new category before backfilling, the reserved value from the billing metric
           // history is not available, so we default to 0.
           let events = currentHistory?.reserved || 0;
@@ -405,7 +409,6 @@ class AMCheckout extends Component<Props, State> {
             const price = getBucket({events, buckets: eventBuckets}).price;
             const eventsByPrice = getBucket({
               price,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               buckets: initialPlan.planCategories[category],
             }).events;
             events = Math.max(events, eventsByPrice);
@@ -432,6 +435,15 @@ class AMCheckout extends Component<Props, State> {
       },
       ...(onDemandMaxSpend > 0 && {onDemandMaxSpend}),
       onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
+      selectedProducts: Object.values(SelectableProduct).reduce(
+        (acc, product) => {
+          acc[product] = {
+            enabled: false,
+          };
+          return acc;
+        },
+        {} as Record<SelectableProduct, SelectedProductData>
+      ),
     };
 
     if (
@@ -448,13 +460,25 @@ class AMCheckout extends Component<Props, State> {
       };
     }
 
+    subscription.reservedBudgets?.forEach(budget => {
+      if (
+        Object.values(SelectableProduct).includes(
+          budget.apiName as string as SelectableProduct
+        )
+      ) {
+        data.selectedProducts[budget.apiName as string as SelectableProduct] = {
+          enabled: budget.reservedBudget > 0,
+        };
+      }
+    });
+
     return this.getValidData(initialPlan, data);
   }
 
   getValidData(plan: Plan, data: Omit<CheckoutFormData, 'plan'>): CheckoutFormData {
     const {subscription, organization, checkoutTier} = this.props;
 
-    const {onDemandMaxSpend, onDemandBudget} = data;
+    const {onDemandMaxSpend, onDemandBudget, selectedProducts} = data;
 
     // Verify next plan data volumes before updating form data
     // finds the approximate bucket if event level does not exist
@@ -500,6 +524,7 @@ class AMCheckout extends Component<Props, State> {
       onDemandMaxSpend: newOnDemandMaxSpend,
       onDemandBudget: newOnDemandBudget,
       reserved: nextReserved,
+      selectedProducts,
     };
   }
 

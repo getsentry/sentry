@@ -75,7 +75,7 @@ describe('EventSamplesTable', function () {
         }}
         sortKey=""
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     expect(screen.getByText('Readable Column Name')).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe('EventSamplesTable', function () {
         sortKey=""
         data={{data: [{id: '1', 'transaction.id': 'abc'}], meta: {}}}
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     // Test only one column to isolate event ID
@@ -119,7 +119,7 @@ describe('EventSamplesTable', function () {
   it('uses the profile ID key to get the profile ID from the data payload and display an icon button', async function () {
     mockQuery = {
       name: '',
-      fields: ['profile.id', 'project.name'], // Project name is required to form the profile target
+      fields: ['profile.id', 'project'], // Project name is required to form the profile target
       query: '',
       version: 2,
     };
@@ -139,11 +139,11 @@ describe('EventSamplesTable', function () {
         }}
         sortKey=""
         data={{
-          data: [{id: '1', 'profile.id': 'abc', 'project.name': 'project'}],
-          meta: {fields: {'profile.id': 'string', 'project.name': 'string'}},
+          data: [{id: '1', 'profile.id': 'abc', project: 'project'}],
+          meta: {fields: {'profile.id': 'string', project: 'string'}},
         }}
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     // Test only one column to isolate profile column
@@ -177,7 +177,7 @@ describe('EventSamplesTable', function () {
         sortKey=""
         data={{data: [{id: '1', 'transaction.id': 'abc'}], meta: {}}}
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     expect(screen.getByRole('button', {name: /device class all/i})).toBeInTheDocument();
@@ -214,7 +214,7 @@ describe('EventSamplesTable', function () {
         data={{data: [{id: '1', 'transaction.id': 'abc'}], meta: {}}}
         pageLinks={pageLinks}
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
     expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
@@ -253,7 +253,7 @@ describe('EventSamplesTable', function () {
         sortKey="customSortKey"
         data={{data: [{id: '1', 'transaction.id': 'abc', duration: 'def'}], meta: {}}}
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     // Ascending sort in transaction ID because the default is descending
@@ -291,7 +291,7 @@ describe('EventSamplesTable', function () {
         sortKey="customSortKey"
         data={{data: [{id: '1', 'transaction.id': 'abc', duration: 'def'}], meta: {}}}
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     // Although ID is queried for, because it's not defined in the map

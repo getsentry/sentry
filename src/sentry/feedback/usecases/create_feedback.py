@@ -132,7 +132,13 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     ret_event["platform"] = event_data.get("platform", "other")
     ret_event["level"] = event_data.get("level", "info")
 
-    ret_event["environment"] = event_data.get("environment", "production")
+    environment = event_data.get("environment")
+    ret_event["environment"] = environment or "production"
+
+    release_value = event_data.get("release")
+    if release_value:
+        ret_event["release"] = release_value
+
     if event_data.get("sdk"):
         ret_event["sdk"] = event_data["sdk"]
     ret_event["request"] = event_data.get("request", {})
@@ -196,32 +202,15 @@ def should_filter_feedback(
         or event["contexts"].get("feedback") is None
         or event["contexts"]["feedback"].get("message") is None
     ):
+        project = Project.objects.get_from_cache(id=project_id)
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
+                "platform": project.platform,
                 "reason": "missing_context",
                 "referrer": source.value,
             },
         )
-        # Temporary log for debugging.
-        if random.random() < 0.1:
-            project = Project.objects.get_from_cache(id=project_id)
-            contexts = event.get("contexts") or {}
-            feedback = contexts.get("feedback") or {}
-            feedback_msg = feedback.get("message")
-            logger.info(
-                "Filtered missing context or message.",
-                extra={
-                    "project_id": project_id,
-                    "organization_id": project.organization_id,
-                    "has_contexts": bool(contexts),
-                    "has_feedback": bool(feedback),
-                    "event_type": event.get("type"),
-                    "feedback_message": feedback_msg,
-                    "platform": project.platform,
-                    "referrer": source.value,
-                },
-            )
         return True, "Missing Feedback Context"
 
     message = event["contexts"]["feedback"]["message"]
@@ -237,21 +226,12 @@ def should_filter_feedback(
         return True, "Sent in Unreal Unattended Mode"
 
     if message.strip() == "":
+        project = Project.objects.get_from_cache(id=project_id)
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
-                "reason": "empty",
-                "referrer": source.value,
-            },
-        )
-        # Temporary log for debugging.
-        project = Project.objects.get_from_cache(id=project_id)
-        logger.info(
-            "Filtered empty feedback message.",
-            extra={
-                "project_id": project_id,
-                "organization_id": project.organization_id,
                 "platform": project.platform,
+                "reason": "empty",
                 "referrer": source.value,
             },
         )
@@ -381,6 +361,9 @@ def create_feedback_issue(
         event_fixed["tags"]["has_linked_error"] = "true"
     else:
         event_fixed["tags"]["has_linked_error"] = "false"
+
+    if event_fixed.get("release"):
+        event_fixed["tags"]["release"] = event_fixed["release"]
 
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)

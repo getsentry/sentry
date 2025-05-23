@@ -38,8 +38,8 @@ export function useTraceItemAttributeKeys({
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
-      item_type: traceItemType,
-      attribute_type: type,
+      itemType: traceItemType,
+      attributeType: type,
     },
   };
 
@@ -61,8 +61,8 @@ export function useTraceItemAttributeKeys({
       // EAP spans contain tags with illegal characters
       // SnQL forbids `-` but is allowed in RPC. So add it back later
       if (
-        !/^[a-zA-Z0-9_.:]+$/.test(attribute.key) &&
-        !/^tags\[[a-zA-Z0-9_.:]+,number\]$/.test(attribute.key)
+        !/^[a-zA-Z0-9_.:-]+$/.test(attribute.key) &&
+        !/^tags\[[a-zA-Z0-9_.:-]+,number\]$/.test(attribute.key)
       ) {
         continue;
       }

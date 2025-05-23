@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from sentry.auth import access
 from sentry.models.group import Group
@@ -6,9 +7,11 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import notifications_control_tasks, notifications_tasks
+from sentry.taskworker.retry import Retry
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import send_messages
+from sentry.utils.email.message_builder import message_from_dict
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +28,7 @@ def _get_user_from_email(group: Group, email: str) -> RpcUser | None:
     return None
 
 
-def process_inbound_email(mailfrom: str, group_id: int, payload: str):
+def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
     from sentry.models.group import Group
     from sentry.web.forms import NewNoteForm
 
@@ -53,10 +56,15 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str):
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=notifications_tasks,
+        processing_deadline_duration=30,
+        retry=Retry(
+            delay=60 * 5,
+        ),
     ),
 )
-def send_email(message):
-    send_messages([message])
+def send_email(message: dict[str, Any]) -> None:
+    django_message = message_from_dict(message)
+    send_messages([django_message])
 
 
 @instrumented_task(
@@ -67,7 +75,12 @@ def send_email(message):
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(
         namespace=notifications_control_tasks,
+        processing_deadline_duration=30,
+        retry=Retry(
+            delay=60 * 5,
+        ),
     ),
 )
-def send_email_control(message):
-    send_messages([message])
+def send_email_control(message: dict[str, Any]) -> None:
+    django_message = message_from_dict(message)
+    send_messages([django_message])

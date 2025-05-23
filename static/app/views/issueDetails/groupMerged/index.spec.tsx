@@ -48,7 +48,9 @@ describe('Issues -> Merged View', function () {
         groupId={group.id}
         location={router.location}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -69,7 +71,9 @@ describe('Issues -> Merged View', function () {
         groupId={group.id}
         location={router.location}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     expect(await screen.findByText(mockData.merged[0]!.id)).toBeInTheDocument();

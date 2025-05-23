@@ -129,7 +129,7 @@ function UserDetails() {
 
     openConfirmModal({
       message: 'Are you sure you want to remove this authenticator?',
-      onConfirm: () =>
+      onConfirm: () => {
         api.request(endpoint, {
           method: 'DELETE',
           success: () => {
@@ -144,7 +144,8 @@ function UserDetails() {
           error: () => {
             addErrorMessage('Unable to remove authenticator from account.');
           },
-        }),
+        });
+      },
     });
   };
 
@@ -167,7 +168,7 @@ function UserDetails() {
         (identity.status === UserIdentityStatus.NEEDED_FOR_ORG_AUTH
           ? ' (Caution: User may be locked out of org access.)'
           : ''),
-      onConfirm: () =>
+      onConfirm: () => {
         api.request(endpoint, {
           method: 'DELETE',
           success: () => {
@@ -185,7 +186,8 @@ function UserDetails() {
           error: () => {
             addErrorMessage('Unable to remove identity from account.');
           },
-        }),
+        });
+      },
     });
   };
 

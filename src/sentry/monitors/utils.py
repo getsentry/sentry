@@ -73,7 +73,7 @@ def get_max_runtime(max_runtime: int | None) -> timedelta:
 
 # Generates a timeout_at value for new check-ins
 def get_timeout_at(
-    monitor_config: dict | None, status: CheckInStatus, date_added: datetime | None
+    monitor_config: dict | None, status: int, date_added: datetime | None
 ) -> datetime | None:
     if status == CheckInStatus.IN_PROGRESS and date_added is not None:
         return date_added.replace(second=0, microsecond=0) + get_max_runtime(
@@ -85,7 +85,7 @@ def get_timeout_at(
 
 # Generates a timeout_at value for existing check-ins that are being updated
 def get_new_timeout_at(
-    checkin: MonitorCheckIn, new_status: CheckInStatus, date_updated: datetime
+    checkin: MonitorCheckIn, new_status: int, date_updated: datetime
 ) -> datetime | None:
     return get_timeout_at(checkin.monitor.get_validated_config(), new_status, date_updated)
 

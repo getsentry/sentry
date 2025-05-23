@@ -4,11 +4,12 @@ import type {Actor} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 type Query = {
   fields: string[];
   groupby: string[];
-  mode: string;
+  mode: Mode;
   orderby: string;
   query: string;
   visualize: Array<{
@@ -19,6 +20,8 @@ type Query = {
 
 export type SortOption =
   | 'name'
+  | '-name'
+  | 'dateAdded'
   | '-dateAdded'
   | '-dateUpdated'
   | 'mostPopular'
@@ -28,10 +31,8 @@ export type SortOption =
 
 // Comes from ExploreSavedQueryModelSerializer
 export type SavedQuery = {
-  createdBy: Actor;
   dateAdded: string;
   dateUpdated: string;
-  environment: string[];
   id: number;
   interval: string;
   lastVisited: string;
@@ -41,7 +42,10 @@ export type SavedQuery = {
   query: [Query, ...Query[]];
   queryDataset: string;
   starred: boolean;
+  createdBy?: Actor;
   end?: string;
+  environment?: string[];
+  isPrebuilt?: boolean;
   range?: string;
   start?: string;
 };

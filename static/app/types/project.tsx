@@ -64,6 +64,7 @@ export type Project = {
   team: Team;
   teams: Team[];
   verifySSL: boolean;
+  autofixAutomationTuning?: 'off' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   eventProcessing?: {
@@ -79,9 +80,6 @@ export type Project = {
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
-  performanceIssueCreationRate?: number;
-  performanceIssueCreationThroughPlatform?: boolean;
-  performanceIssueSendToPlatform?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
   sessionStats?: {

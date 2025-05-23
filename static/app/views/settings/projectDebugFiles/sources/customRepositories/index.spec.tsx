@@ -71,8 +71,7 @@ describe('Custom Repositories', function () {
     const newOrganization = {...props.organization, features: ['custom-symbol-sources']};
 
     const {rerender} = render(
-      <TestComponent {...props} organization={newOrganization} />,
-      {router: props.router}
+      <TestComponent {...props} organization={newOrganization} />
     );
 
     // Section title

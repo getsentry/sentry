@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {MetricsProperty, SpanMetricsProperty} from 'sentry/views/insights/types';
 
 export enum MobileCursors {
   SPANS_TABLE = 'spansCursor',
@@ -27,7 +28,9 @@ export enum YAxis {
   FRAMES_DELAY = 10,
 }
 
-export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
+export const YAXIS_COLUMNS: Readonly<
+  Record<YAxis, MetricsProperty | SpanMetricsProperty>
+> = {
   [YAxis.WARM_START]: 'avg(measurements.app_start_warm)',
   [YAxis.COLD_START]: 'avg(measurements.app_start_cold)',
   [YAxis.TTID]: 'avg(measurements.time_to_initial_display)',
@@ -38,20 +41,6 @@ export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
   [YAxis.COUNT]: 'count()',
 
   // Using span metrics
-  [YAxis.SLOW_FRAMES]: 'avg(mobile.slow_frames)',
-  [YAxis.FROZEN_FRAMES]: 'avg(mobile.frozen_frames)',
-  [YAxis.FRAMES_DELAY]: 'avg(mobile.frames_delay)',
-};
-
-export const READABLE_YAXIS_LABELS: Readonly<Record<YAxis, string>> = {
-  [YAxis.WARM_START]: 'avg(app_start_warm)',
-  [YAxis.COLD_START]: 'avg(app_start_cold)',
-  [YAxis.TTID]: 'avg(time_to_initial_display)',
-  [YAxis.TTFD]: 'avg(time_to_full_display)',
-  [YAxis.SLOW_FRAME_RATE]: 'avg(frames_slow_rate)',
-  [YAxis.FROZEN_FRAME_RATE]: 'avg(frames_frozen_rate)',
-  [YAxis.THROUGHPUT]: 'tpm()',
-  [YAxis.COUNT]: 'count()',
   [YAxis.SLOW_FRAMES]: 'avg(mobile.slow_frames)',
   [YAxis.FROZEN_FRAMES]: 'avg(mobile.frozen_frames)',
   [YAxis.FRAMES_DELAY]: 'avg(mobile.frames_delay)',

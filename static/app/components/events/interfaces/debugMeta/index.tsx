@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
@@ -165,6 +165,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       releventImage => {
         return {
           ...releventImage,
+          // 'debug_status' and 'unwind_status' are only used by native platforms
           status: combineStatus(releventImage.debug_status, releventImage.unwind_status),
         };
       }
@@ -252,7 +253,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         const hasActiveFilter = filterSelections.length > 0;
 
         return {
-          emptyMessage: t('Sorry, no images match your search query'),
+          emptyMessage: t('No images match your search query'),
           emptyAction: hasActiveFilter ? (
             <Button
               onClick={() => setFilterState(fs => ({...fs, filterSelections: []}))}
@@ -385,12 +386,10 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     />
   );
 
-  const isJSPlatform = event.platform?.includes('javascript');
-
   return (
     <InterimSection
       type={SectionKey.DEBUGMETA}
-      title={isJSPlatform ? t('Source Maps Loaded') : t('Images Loaded')}
+      title={t('Images Loaded')}
       help={t(
         'A list of dynamic libraries, shared objects or source maps loaded into process memory at the time of the crash. Images contribute to the application code that is referenced in stack traces.'
       )}
@@ -400,7 +399,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       {isOpen || hasStreamlinedUI ? (
         <Fragment>
           <StyledSearchBarAction
-            placeholder={isJSPlatform ? t('Search source maps') : t('Search images')}
+            placeholder={t('Search images')}
             onChange={value => DebugMetaStore.updateFilter(value)}
             query={searchTerm}
             filterOptions={showFilters ? filterOptions : undefined}
@@ -442,7 +441,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
       grid-column: 1/-1;
       ${p =>
         !p.isEmpty &&
-        `
+        css`
           display: grid;
           padding: 0;
         `}

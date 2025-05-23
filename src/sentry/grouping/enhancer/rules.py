@@ -27,6 +27,15 @@ class EnhancementRule:
         self.has_classifier_actions = any(action.is_classifier for action in actions)
         self.has_contributes_actions = any(action.sets_contributes for action in actions)
 
+    def __repr__(self) -> str:
+        return f"<EnhancementRule {self.text}>"
+
+    def __hash__(self):
+        return hash(self.text)
+
+    def __eq__(self, other):
+        return self.text == other.text
+
     @property
     def text(self) -> str:
         matchers = " ".join(matcher.description for matcher in self.matchers)

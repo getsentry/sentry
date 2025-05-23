@@ -9,6 +9,7 @@ import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   useExploreFields,
   useExploreMode,
@@ -28,27 +29,19 @@ import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface BaseExploreTablesProps {
   confidences: Confidence[];
-  isProgressivelyLoading: boolean;
   samplesTab: Tab;
   setSamplesTab: (tab: Tab) => void;
 }
 
 interface ExploreTablesProps extends BaseExploreTablesProps {
   aggregatesTableResult: AggregatesTableResult;
-  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
   tracesTableResult: TracesTableResult;
-  useTabs: boolean;
 }
 
 export function ExploreTables(props: ExploreTablesProps) {
-  if (props.useTabs) {
-    return <ExploreTablesTabbed {...props} />;
-  }
-  return <ExploreTablesUntabbed {...props} />;
-}
+  const organization = useOrganization();
 
-function ExploreTablesTabbed(props: ExploreTablesProps) {
   const mode = useExploreMode();
   const setMode = useSetExploreMode();
 
@@ -72,6 +65,8 @@ function ExploreTablesTabbed(props: ExploreTablesProps) {
       {closeEvents: 'escape-key'}
     );
   }, [fields, setFields, stringTags, numberTags]);
+
+  const openAggregateColumnEditor = useCallback(() => {}, []);
 
   // HACK: This is pretty gross but to not break anything in the
   // short term, we avoid introducing/removing any fields on the
@@ -103,6 +98,11 @@ function ExploreTablesTabbed(props: ExploreTablesProps) {
           <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
             {t('Edit Table')}
           </Button>
+        ) : tab === Mode.AGGREGATE &&
+          organization.features.includes('visibility-explore-aggregate-editor') ? (
+          <Button onClick={openAggregateColumnEditor} icon={<IconTable />} size="sm">
+            {t('Edit Table')}
+          </Button>
         ) : (
           <Tooltip
             title={
@@ -120,77 +120,6 @@ function ExploreTablesTabbed(props: ExploreTablesProps) {
       {tab === Tab.SPAN && <SpansTable {...props} />}
       {tab === Tab.TRACE && <TracesTable {...props} />}
       {tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
-    </Fragment>
-  );
-}
-
-function ExploreTablesUntabbed(props: ExploreTablesProps) {
-  const mode = useExploreMode();
-
-  return (
-    <Fragment>
-      {mode === Mode.AGGREGATE && <ExploreAggregatesTable {...props} />}
-      {mode === Mode.SAMPLES && <ExploreSamplesTable {...props} />}
-    </Fragment>
-  );
-}
-
-interface AggregatesExploreTablesProps extends BaseExploreTablesProps {
-  aggregatesTableResult: AggregatesTableResult;
-  isProgressivelyLoading: boolean;
-}
-
-function ExploreAggregatesTable(props: AggregatesExploreTablesProps) {
-  return <AggregatesTable {...props} />;
-}
-
-interface SamplesExploreTablesProps extends BaseExploreTablesProps {
-  isProgressivelyLoading: boolean;
-  spansTableResult: SpansTableResult;
-  tracesTableResult: TracesTableResult;
-}
-
-function ExploreSamplesTable(props: SamplesExploreTablesProps) {
-  const fields = useExploreFields();
-  const setFields = useSetExploreFields();
-
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
-
-  const openColumnEditor = useCallback(() => {
-    openModal(
-      modalProps => (
-        <ColumnEditorModal
-          {...modalProps}
-          columns={fields}
-          onColumnsChange={setFields}
-          stringTags={stringTags}
-          numberTags={numberTags}
-        />
-      ),
-      {closeEvents: 'escape-key'}
-    );
-  }, [fields, setFields, stringTags, numberTags]);
-
-  return (
-    <Fragment>
-      <SamplesTableHeader>
-        <Tabs value={props.samplesTab} onChange={props.setSamplesTab}>
-          <TabList hideBorder>
-            <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
-            <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
-          </TabList>
-        </Tabs>
-        <Button
-          disabled={props.samplesTab !== Tab.SPAN}
-          onClick={openColumnEditor}
-          icon={<IconTable />}
-        >
-          {t('Edit Table')}
-        </Button>
-      </SamplesTableHeader>
-      {props.samplesTab === Tab.SPAN && <SpansTable {...props} />}
-      {props.samplesTab === Tab.TRACE && <TracesTable {...props} />}
     </Fragment>
   );
 }

@@ -73,6 +73,8 @@ export enum FieldKey {
   ISSUE = 'issue',
   ISSUE_CATEGORY = 'issue.category',
   ISSUE_PRIORITY = 'issue.priority',
+  ISSUE_SEER_ACTIONABILITY = 'issue.seer_actionability',
+  ISSUE_SEER_LAST_RUN = 'issue.seer_last_run',
   ISSUE_TYPE = 'issue.type',
   LAST_SEEN = 'lastSeen',
   LEVEL = 'level',
@@ -133,6 +135,9 @@ export enum FieldKey {
   USER_SEGMENT = 'user.segment',
   APP_IN_FOREGROUND = 'app.in_foreground',
   FUNCTION_DURATION = 'function.duration',
+  OTA_UPDATES_CHANNEL = 'ota_updates.channel',
+  OTA_UPDATES_RUNTIME_VERSION = 'ota_updates.runtime_version',
+  OTA_UPDATES_UPDATE_ID = 'ota_updates.update_id',
 }
 
 export enum FieldValueType {
@@ -1519,6 +1524,18 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
+  [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
+    desc: t('How actionable the issue is, determined by Seer'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [FieldKey.ISSUE_SEER_LAST_RUN]: {
+    desc: t('The last time Seer attempted to auto-fix the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+    allowWildcard: false,
+  },
   [FieldKey.ISSUE_TYPE]: {
     desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
     kind: FieldKind.FIELD,
@@ -1585,10 +1602,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.PROJECT]: {
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
+  [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
   [FieldKey.FIRST_RELEASE]: {
     desc: t('Issues first seen in a given release'),
     kind: FieldKind.FIELD,
@@ -1840,6 +1854,21 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
+  [FieldKey.OTA_UPDATES_CHANNEL]: {
+    desc: t('The channel name of the build from EAS Update'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.OTA_UPDATES_RUNTIME_VERSION]: {
+    desc: t('The runtime version of the current build from EAS Update'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.OTA_UPDATES_UPDATE_ID]: {
+    desc: t('The UUID that uniquely identifies the update.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
 };
 
 const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
@@ -1879,6 +1908,8 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.IS,
   FieldKey.ISSUE_CATEGORY,
   FieldKey.ISSUE_PRIORITY,
+  FieldKey.ISSUE_SEER_ACTIONABILITY,
+  FieldKey.ISSUE_SEER_LAST_RUN,
   FieldKey.ISSUE_TYPE,
   FieldKey.ISSUE,
   FieldKey.LAST_SEEN,
@@ -1945,6 +1976,9 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
 export const ISSUE_FIELDS: FieldKey[] = [
@@ -2014,6 +2048,9 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ]);
 
 /**
@@ -2127,6 +2164,11 @@ export const DISCOVER_FIELDS = [
   SpanOpBreakdown.SPANS_HTTP,
   SpanOpBreakdown.SPANS_RESOURCE,
   SpanOpBreakdown.SPANS_UI,
+
+  // Expo Updates fields
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
 export enum ReplayFieldKey {
@@ -2142,6 +2184,7 @@ export enum ReplayFieldKey {
   COUNT_URLS = 'count_urls',
   DURATION = 'duration',
   ERROR_IDS = 'error_ids',
+  IS_ARCHIVED = 'is_archived',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   REPLAY_TYPE = 'replay_type',
@@ -2150,6 +2193,10 @@ export enum ReplayFieldKey {
   SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
   URL = 'url',
+  USER_GEO_CITY = 'user.geo.city',
+  USER_GEO_COUNTRY_CODE = 'user.geo.country_code',
+  USER_GEO_REGION = 'user.geo.region',
+  USER_GEO_SUBDIVISION = 'user.geo.subdivision',
   VIEWED_BY_ME = 'viewed_by_me',
 }
 
@@ -2196,6 +2243,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.DURATION,
   ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
+  ReplayFieldKey.IS_ARCHIVED,
   ReplayFieldKey.OS_NAME,
   ReplayFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
@@ -2213,7 +2261,14 @@ export const REPLAY_FIELDS = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  ReplayFieldKey.USER_GEO_CITY,
+  ReplayFieldKey.USER_GEO_COUNTRY_CODE,
+  ReplayFieldKey.USER_GEO_REGION,
+  ReplayFieldKey.USER_GEO_SUBDIVISION,
   ReplayFieldKey.VIEWED_BY_ME,
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
@@ -2277,6 +2332,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.IS_ARCHIVED]: {
+    desc: t('Whether the replay has been archived'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
   [ReplayFieldKey.OS_NAME]: {
     desc: t('Name of the Operating System'),
     kind: FieldKind.FIELD,
@@ -2319,6 +2379,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.USER_GEO_CITY]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_CITY],
+  [ReplayFieldKey.USER_GEO_COUNTRY_CODE]:
+    EVENT_FIELD_DEFINITIONS[FieldKey.GEO_COUNTRY_CODE],
+  [ReplayFieldKey.USER_GEO_REGION]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_REGION],
+  [ReplayFieldKey.USER_GEO_SUBDIVISION]:
+    EVENT_FIELD_DEFINITIONS[FieldKey.GEO_SUBDIVISION],
   [ReplayFieldKey.VIEWED_BY_ME]: {
     desc: t('Whether you have seen this replay before. Alias of seen_by_me (true/false)'),
     kind: FieldKind.FIELD,
@@ -2438,6 +2504,10 @@ export const FEEDBACK_FIELDS = [
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
   FieldKey.ENVIRONMENT,
+  FieldKey.GEO_CITY,
+  FieldKey.GEO_COUNTRY_CODE,
+  FieldKey.GEO_REGION,
+  FieldKey.GEO_SUBDIVISION,
   FieldKey.HAS,
   FieldKey.ID,
   FieldKey.IS,
@@ -2544,17 +2614,11 @@ export const getFieldDefinition = (
       // aggregate functions. We assign value type based on kind, so that we can filter
       // on them when suggesting function parameters.
       if (kind === FieldKind.MEASUREMENT) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.NUMBER,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
       }
 
       if (kind === FieldKind.TAG) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.STRING,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
 
       return null;
@@ -2569,17 +2633,11 @@ export const getFieldDefinition = (
       // aggregate functions. We assign value type based on kind, so that we can filter
       // on them when suggesting function parameters.
       if (kind === FieldKind.MEASUREMENT) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.NUMBER,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
       }
 
       if (kind === FieldKind.TAG) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.STRING,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
       return null;
 
@@ -2594,11 +2652,7 @@ export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
   return Object.fromEntries(
     fieldKeys.map(fieldKey => [
       fieldKey,
-      {
-        key: fieldKey,
-        name: fieldKey,
-        kind: getFieldDefinition(fieldKey)?.kind,
-      },
+      {key: fieldKey, name: fieldKey, kind: getFieldDefinition(fieldKey)?.kind},
     ])
   );
 }
@@ -2608,3 +2662,15 @@ export function isDeviceClass(key: any): boolean {
 }
 
 export const DEVICE_CLASS_TAG_VALUES = ['high', 'medium', 'low'];
+
+const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
+
+export function classifyTagKey(key: string): FieldKind {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
+}
+
+export function prettifyTagKey(key: string): string {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[1] ?? key;
+}

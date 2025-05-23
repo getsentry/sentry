@@ -11,6 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 
 import TrialRequestedActions from 'getsentry/actions/trialRequestedActions';
+import type {EventType} from 'getsentry/components/addEventsCTA';
 
 export async function sendReplayOnboardRequest({
   api,
@@ -96,7 +97,7 @@ export function sendAddEventsRequest({
 }: {
   api: Client;
   organization: Organization;
-  eventTypes?: string[];
+  eventTypes?: EventType[];
   handleSuccess?: () => void;
   notificationType?: string;
 }) {

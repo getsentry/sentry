@@ -673,10 +673,17 @@ export type EventContexts = {
 export type Measurement = {value: number; type?: string; unit?: string};
 
 export type EventTag = {key: string; value: string};
+export type EventTagWithMeta = EventTag & {meta?: Record<string, any>};
 
 type EventUser = {
   data?: string | null;
   email?: string;
+  geo?: {
+    city?: string;
+    country_code?: string;
+    region?: string;
+    subdivision?: string;
+  };
   id?: string;
   ip_address?: string;
   name?: string | null;
@@ -696,7 +703,7 @@ export type EventEvidenceDisplay = {
   value: string;
 };
 
-export type EventOccurrence = {
+type EventOccurrence = {
   detectionTime: string;
   eventId: string;
   /**

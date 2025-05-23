@@ -5,28 +5,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Config} from 'sentry/types/system';
-import type {User} from 'sentry/types/user';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', function () {
-  const user: User = {
-    ...UserFixture(),
-    options: {
-      ...UserFixture().options,
-      clock24Hours: true,
-      timezone: 'America/Los_Angeles',
-    },
-  };
-
-  const config: Config = {...ConfigStore.getState(), user};
-
-  beforeEach(() => {
-    ConfigStore.loadInitialData(config);
-  });
-
   it('renders', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/audit-logs/`,
@@ -67,14 +49,12 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     expect(await screen.findByText('project.remove')).toBeInTheDocument();
     expect(screen.getByText('org.create')).toBeInTheDocument();
     expect(screen.getAllByText('127.0.0.1')).toHaveLength(2);
-    expect(screen.getByText('17:29 PDT')).toBeInTheDocument();
+    expect(screen.getByText('12:29 AM UTC')).toBeInTheDocument();
   });
 
   it('Displays pretty dynamic sampling logs', async function () {
@@ -128,9 +108,7 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     // Enabled dynamic sampling priority
     expect(await screen.findByText('sampling_priority.enabled')).toBeInTheDocument();

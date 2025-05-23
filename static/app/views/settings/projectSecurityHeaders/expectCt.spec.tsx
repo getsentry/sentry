@@ -19,6 +19,7 @@ describe('ProjectExpectCtReports', function () {
   it('renders', async function () {
     render(<ProjectExpectCtReports />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Renders the loading indication initially
@@ -39,6 +40,7 @@ describe('ProjectExpectCtReports', function () {
     });
     render(<ProjectExpectCtReports />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     expect(

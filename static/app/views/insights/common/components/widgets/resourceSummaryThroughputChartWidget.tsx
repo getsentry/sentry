@@ -4,7 +4,9 @@ import {useResourceSummarySeries} from 'sentry/views/insights/common/components/
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/types';
 
-export function ResourceSummaryThroughputChartWidget(props: LoadableChartWidgetProps) {
+export default function ResourceSummaryThroughputChartWidget(
+  props: LoadableChartWidgetProps
+) {
   const {groupId} = useParams();
 
   const {data, isPending, error} = useResourceSummarySeries({

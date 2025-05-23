@@ -59,7 +59,7 @@ function SeerSectionContent({
 }) {
   const aiConfig = useAiConfig(group, project);
 
-  if (!event) {
+  if (!event || aiConfig.isAutofixSetupLoading) {
     return <Placeholder height="160px" />;
   }
 
@@ -114,42 +114,42 @@ export default function SeerSection({
   }
 
   const showCtaButton =
-    aiConfig.needsGenAIConsent ||
+    aiConfig.needsGenAiAcknowledgement ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
 
   const onlyHasResources =
     issueTypeDoesntHaveSeer ||
-    (!aiConfig.needsGenAIConsent &&
+    (!aiConfig.needsGenAiAcknowledgement &&
       !aiConfig.hasSummary &&
       !aiConfig.hasAutofix &&
       aiConfig.hasResources);
 
-  const titleComponent = (
+  const titleComponent = onlyHasResources ? (
+    <HeaderContainer>{t('Resources')}</HeaderContainer>
+  ) : (
     <HeaderContainer>
-      {onlyHasResources ? t('Resources') : t('Seer')}
-      {aiConfig.hasSummary && (
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: tct(
-              'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-              {
-                email: (
-                  <a
-                    href="mailto:autofix@sentry.io"
-                    onClick={clickEvent => {
-                      // Prevent header from collapsing
-                      clickEvent.stopPropagation();
-                    }}
-                  />
-                ),
-              }
-            ),
-            isHoverable: true,
-          }}
-        />
-      )}
+      {t('Seer')}
+      <FeatureBadge
+        type="beta"
+        tooltipProps={{
+          title: tct(
+            'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+            {
+              email: (
+                <a
+                  href="mailto:autofix@sentry.io"
+                  onClick={clickEvent => {
+                    // Prevent header from collapsing
+                    clickEvent.stopPropagation();
+                  }}
+                />
+              ),
+            }
+          ),
+          isHoverable: true,
+        }}
+      />
     </HeaderContainer>
   );
 
@@ -161,10 +161,8 @@ export default function SeerSection({
       preventCollapse={!hasStreamlinedUI}
     >
       <SeerSectionContainer>
-        {aiConfig.needsGenAIConsent ? (
-          <Summary>
-            {t('Explore potential root causes and solutions with Autofix.')}
-          </Summary>
+        {aiConfig.orgNeedsGenAiAcknowledgement && !aiConfig.isAutofixSetupLoading ? (
+          <Summary>{t('Explore potential root causes and solutions with Seer.')}</Summary>
         ) : aiConfig.hasAutofix || aiConfig.hasSummary ? (
           <SeerSectionContent group={group} project={project} event={event} />
         ) : issueTypeConfig.resources ? (

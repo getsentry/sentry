@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal, TypeAlias, TypedDict
@@ -20,6 +20,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
+from sentry.search.eap.types import EAPResponse
 from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int | float
@@ -29,6 +30,7 @@ ResolvedArguments: TypeAlias = list[ResolvedArgument]
 class ResolverSettings(TypedDict):
     extrapolation_mode: ExtrapolationMode.ValueType
     snuba_params: SnubaParams
+    query_result_cache: dict[str, EAPResponse]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -44,7 +46,7 @@ class ResolvedColumn:
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
-    validator: Callable[[Any], bool] | None = None
+    validator: Callable[[Any], bool] | list[Callable[[Any], bool]] | None = None
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False
@@ -56,9 +58,16 @@ class ResolvedColumn:
         return value
 
     def validate(self, value: Any) -> None:
-        if self.validator is not None:
-            if not self.validator(value):
-                raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
+        if callable(self.validator):
+            if self.validator(value):
+                return
+            raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
+
+        elif isinstance(self.validator, Iterable):
+            for validator in self.validator:
+                if validator(value):
+                    return
+            raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
 
     @property
     def proto_type(self) -> AttributeKey.Type.ValueType:
@@ -252,6 +261,7 @@ class FunctionDefinition:
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -271,6 +281,7 @@ class AggregateDefinition(FunctionDefinition):
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
     ) -> ResolvedAggregate:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -317,6 +328,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
     ) -> ResolvedConditionalAggregate:
         key, filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
@@ -347,6 +359,7 @@ class FormulaDefinition(FunctionDefinition):
         search_type: constants.SearchType,
         resolved_arguments: list[AttributeKey | Any],
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
     ) -> ResolvedFormula:
         resolver_settings = ResolverSettings(
             extrapolation_mode=(
@@ -355,6 +368,7 @@ class FormulaDefinition(FunctionDefinition):
                 else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
             ),
             snuba_params=snuba_params,
+            query_result_cache=query_result_cache,
         )
 
         return ResolvedFormula(

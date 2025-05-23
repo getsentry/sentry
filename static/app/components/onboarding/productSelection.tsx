@@ -80,7 +80,11 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
-  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-ios': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
@@ -194,7 +198,11 @@ export const platformProductAvailability = {
   'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'react-native': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'react-native': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   ruby: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -285,7 +293,6 @@ export type ProductSelectionProps = {
   disabledProducts?: DisabledProducts;
   /**
    * Fired when the product selection changes
-   *
    */
   onChange?: (products: ProductSolution[]) => void;
   /**
@@ -417,10 +424,6 @@ export function ProductSelection({
 
 const ProductButton = withChonk(
   styled(Button)`
-    border: 1px solid ${p => p.theme.purple300};
-    color: ${p => p.theme.purple300};
-    background: ${p => p.theme.purple100};
-
     :hover,
     :focus-visible {
       border: 1px solid ${p => p.theme.purple300};

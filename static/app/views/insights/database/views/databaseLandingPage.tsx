@@ -102,7 +102,6 @@ export function DatabaseLandingPage() {
         'epm()',
         'avg(span.self_time)',
         'sum(span.self_time)',
-        'time_spent_percentage()',
       ],
       sorts: [sort],
       limit: LIMIT,
@@ -182,7 +181,7 @@ export function DatabaseLandingPage() {
 }
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
   kind: 'desc' as const,
 };
 

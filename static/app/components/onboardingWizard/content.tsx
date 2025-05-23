@@ -7,8 +7,9 @@ import partition from 'lodash/partition';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
@@ -334,6 +335,11 @@ function ExpandedTaskGroup({sortedTasks, hidePanel}: ExpandedTaskGroupProps) {
 
   const markCompletionTimeout = useRef<number | undefined>(undefined);
 
+  const unseenDoneTasks = useMemo(
+    () => sortedTasks.filter(task => taskIsDone(task) && !task.completionSeen),
+    [sortedTasks]
+  );
+
   function completionTimeout(time: number): Promise<void> {
     window.clearTimeout(markCompletionTimeout.current);
     return new Promise(resolve => {
@@ -342,16 +348,16 @@ function ExpandedTaskGroup({sortedTasks, hidePanel}: ExpandedTaskGroupProps) {
   }
 
   const markTasksAsSeen = useCallback(() => {
-    const unseenDoneTasks = sortedTasks
+    const tasksToMarkComplete = sortedTasks
       .filter(task => taskIsDone(task) && !task.completionSeen)
       .map(task => ({...task, completionSeen: true}));
 
     if (isDemoModeActive()) {
-      for (const unseenDoneTask of unseenDoneTasks) {
-        updateDemoWalkthroughTask(unseenDoneTask);
+      for (const task of tasksToMarkComplete) {
+        updateDemoWalkthroughTask(task);
       }
     } else {
-      mutateOnboardingTasks.mutate(unseenDoneTasks);
+      mutateOnboardingTasks.mutate(tasksToMarkComplete);
     }
   }, [mutateOnboardingTasks, sortedTasks]);
 
@@ -366,11 +372,14 @@ function ExpandedTaskGroup({sortedTasks, hidePanel}: ExpandedTaskGroupProps) {
   );
 
   useEffect(() => {
-    markSeenOnOpen();
+    if (unseenDoneTasks.length > 0) {
+      markSeenOnOpen();
+    }
+
     return () => {
       window.clearTimeout(markCompletionTimeout.current);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [unseenDoneTasks, markSeenOnOpen]);
 
   return (
     <Fragment>

@@ -81,7 +81,11 @@ describe('UpsellProvider', function () {
       >
         {renderer}
       </UpsellProvider>,
-      {router, organization: org}
+      {
+        router,
+        organization: org,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('Start Trial')).toBeInTheDocument();
@@ -107,6 +111,7 @@ describe('UpsellProvider', function () {
     render(<UpsellProvider source="test-abc">{renderer}</UpsellProvider>, {
       router,
       organization: org,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByText('Upgrade Plan')).toBeInTheDocument();
@@ -125,6 +130,7 @@ describe('UpsellProvider', function () {
 
     render(<UpsellProvider source="test-abc">{renderer}</UpsellProvider>, {
       organization: org,
+      deprecatedRouterMocks: true,
     });
     expect(screen.getByText('Start Trial')).toBeInTheDocument();
 
@@ -146,7 +152,11 @@ describe('UpsellProvider', function () {
       <UpsellProvider source="test-abc" triggerMemberRequests>
         {renderer}
       </UpsellProvider>,
-      {router, organization: org}
+      {
+        router,
+        organization: org,
+        deprecatedRouterMocks: true,
+      }
     );
     expect(screen.getByText('Request Trial')).toBeInTheDocument();
 
@@ -167,7 +177,11 @@ describe('UpsellProvider', function () {
       <UpsellProvider source="test-abc" triggerMemberRequests>
         {renderer}
       </UpsellProvider>,
-      {router, organization: org}
+      {
+        router,
+        organization: org,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('Request Upgrade')).toBeInTheDocument();
@@ -201,7 +215,11 @@ describe('UpsellProvider', function () {
       >
         {renderer}
       </UpsellProvider>,
-      {router, organization: org}
+      {
+        router,
+        organization: org,
+        deprecatedRouterMocks: true,
+      }
     );
     await userEvent.click(screen.getByTestId('test-render'));
     await tick();
@@ -233,7 +251,11 @@ describe('UpsellProvider', function () {
       <UpsellProvider source="test-abc" triggerMemberRequests>
         {renderer}
       </UpsellProvider>,
-      {router, organization: org}
+      {
+        router,
+        organization: org,
+        deprecatedRouterMocks: true,
+      }
     );
     expect(container).toBeEmptyDOMElement();
   });

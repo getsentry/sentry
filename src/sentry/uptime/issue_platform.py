@@ -10,13 +10,13 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.models import ProjectUptimeSubscription, get_project_subscription
+from sentry.workflow_engine.models.detector import Detector
 
 
-def create_issue_platform_occurrence(
-    result: CheckResult, project_subscription: ProjectUptimeSubscription
-):
-    occurrence = build_occurrence_from_result(result, project_subscription)
+def create_issue_platform_occurrence(result: CheckResult, detector: Detector):
+    project_subscription = get_project_subscription(detector)
+    occurrence = build_occurrence_from_result(result, detector, project_subscription)
     event_data = build_event_data_for_occurrence(result, project_subscription, occurrence)
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE,
@@ -25,14 +25,19 @@ def create_issue_platform_occurrence(
     )
 
 
+def build_detector_fingerprint_component(detector: Detector) -> str:
+    return f"uptime-detector:{detector.id}"
+
+
 def build_fingerprint_for_project_subscription(
+    detector: Detector,
     project_subscription: ProjectUptimeSubscription,
 ) -> list[str]:
-    return [str(project_subscription.id)]
+    return [build_detector_fingerprint_component(detector), str(project_subscription.id)]
 
 
 def build_occurrence_from_result(
-    result: CheckResult, project_subscription: ProjectUptimeSubscription
+    result: CheckResult, detector: Detector, project_subscription: ProjectUptimeSubscription
 ) -> IssueOccurrence:
     status_reason = result["status_reason"]
     assert status_reason
@@ -71,7 +76,7 @@ def build_occurrence_from_result(
         resource_id=None,
         project_id=project_subscription.project_id,
         event_id=uuid.uuid4().hex,
-        fingerprint=build_fingerprint_for_project_subscription(project_subscription),
+        fingerprint=build_fingerprint_for_project_subscription(detector, project_subscription),
         type=UptimeDomainCheckFailure,
         issue_title=f"Downtime detected for {project_subscription.uptime_subscription.url}",
         subtitle="Your monitored domain is down",
@@ -111,12 +116,13 @@ def build_event_data_for_occurrence(
     }
 
 
-def resolve_uptime_issue(project_subscription: ProjectUptimeSubscription):
+def resolve_uptime_issue(detector: Detector):
     """
     Sends an update to the issue platform to resolve the uptime issue for this monitor.
     """
+    project_subscription = get_project_subscription(detector)
     status_change = StatusChangeMessage(
-        fingerprint=build_fingerprint_for_project_subscription(project_subscription),
+        fingerprint=build_fingerprint_for_project_subscription(detector, project_subscription),
         project_id=project_subscription.project_id,
         new_status=GroupStatus.RESOLVED,
         new_substatus=None,

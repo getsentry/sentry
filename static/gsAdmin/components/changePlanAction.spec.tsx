@@ -14,6 +14,7 @@ import {
 import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {DataCategory} from 'sentry/types/core';
 
 import triggerChangePlanAction from 'admin/components/changePlanAction';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
@@ -30,7 +31,7 @@ describe('ChangePlanAction', () => {
     contractInterval: 'monthly',
     categories: {
       errors: MetricHistoryFixture({
-        category: 'errors',
+        category: DataCategory.ERRORS,
         reserved: 1000000,
         prepaid: 1000000,
         order: 1,
@@ -46,8 +47,8 @@ describe('ChangePlanAction', () => {
     billingInterval: 'monthly',
     contractInterval: 'monthly',
     reservedMinimum: 500000,
-    categories: ['errors', 'transactions'],
-    checkoutCategories: ['errors', 'transactions'],
+    categories: [DataCategory.ERRORS, DataCategory.TRANSACTIONS],
+    checkoutCategories: [DataCategory.ERRORS, DataCategory.TRANSACTIONS],
     planCategories: {
       errors: [
         {events: 50000, price: 1000},

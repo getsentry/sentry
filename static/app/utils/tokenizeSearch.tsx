@@ -6,6 +6,7 @@ const ALLOWED_WILDCARD_FIELDS = [
   'span.status_code',
   'log.body',
   'sentry.normalized_description',
+  'transaction',
 ];
 export const EMPTY_OPTION_VALUE = '(empty)';
 
@@ -268,6 +269,10 @@ export class MutableSearch {
 
   getFilterKeys() {
     return Object.keys(this.filters);
+  }
+
+  getTokenKeys() {
+    return this.tokens.map(t => t.key);
   }
 
   hasFilter(key: string): boolean {

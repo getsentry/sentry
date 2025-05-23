@@ -12,7 +12,9 @@ const {
   HTTP_RESPONSE_TRANSFER_SIZE,
 } = SpanMetricsField;
 
-export function ResourceSummaryAverageSizeChartWidget(props: LoadableChartWidgetProps) {
+export default function ResourceSummaryAverageSizeChartWidget(
+  props: LoadableChartWidgetProps
+) {
   const {groupId} = useParams();
 
   const {data, isPending, error} = useResourceSummarySeries({

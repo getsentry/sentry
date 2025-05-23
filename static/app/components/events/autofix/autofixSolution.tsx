@@ -28,10 +28,11 @@ import {Timeline} from 'sentry/components/timeline';
 import {IconAdd, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
@@ -39,28 +40,32 @@ import AutofixHighlightPopup from './autofixHighlightPopup';
 function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
 
   return useMutation({
     mutationFn: (params: {
       mode: 'all' | 'fix' | 'test';
       solution: AutofixSolutionTimelineEvent[];
     }) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'select_solution',
-            mode: params.mode,
-            solution: params.solution,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'select_solution',
+              mode: params.mode,
+              solution: params.solution,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: (_, params) => {
       setApiQueryData<AutofixResponse>(
         queryClient,
-        makeAutofixQueryKey(groupId),
+        makeAutofixQueryKey(orgSlug, groupId),
         data => {
           if (!data?.autofix) {
             return data;
@@ -429,11 +434,11 @@ function AutofixSolutionDisplay({
                 title={
                   hasNoRepos
                     ? t(
-                        'You need to set up the GitHub integration and configure repository access for Autofix to write code for you.'
+                        'You need to set up the GitHub integration and configure repository access for Seer to write code for you.'
                       )
                     : cantReadRepos
                       ? t(
-                          "We can't access any of your repos. Check your GitHub integration and configure repository access for Autofix to write code for you."
+                          "We can't access any of your repos. Check your GitHub integration and configure repository access for Seer to write code for you."
                         )
                       : undefined
                 }
@@ -467,7 +472,7 @@ function AutofixSolutionDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Autofix is uncertain of the solution...')}
+              blockName={t('Seer is uncertain of the solution...')}
             />
           )}
         </AnimatePresence>
@@ -554,9 +559,6 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-left: ${space(0.5)};
-  padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
   flex-wrap: wrap;
   gap: ${space(1)};
 `;
@@ -571,7 +573,7 @@ const HeaderText = styled('div')`
 
 const SolutionDescriptionWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-top: ${space(1)};
+  margin-top: ${space(0.5)};
 `;
 
 const AnimationWrapper = styled(motion.div)`

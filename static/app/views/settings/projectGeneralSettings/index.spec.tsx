@@ -1,8 +1,6 @@
 import {GroupingConfigsFixture} from 'sentry-fixture/groupingConfigs';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   fireEvent,
@@ -18,7 +16,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import ProjectContextProvider from 'sentry/views/projects/projectContext';
-import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
+import {ProjectGeneralSettings} from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/components/organizations/pageFilters/persistence');
@@ -40,15 +38,7 @@ describe('projectGeneralSettings', function () {
   });
   const groupingConfigs = GroupingConfigsFixture();
   let putMock: jest.Mock;
-
-  const router = RouterFixture();
-  const routerProps = {
-    location: LocationFixture(),
-    routes: router.routes,
-    route: router.routes[0]!,
-    router,
-    routeParams: router.params,
-  };
+  const mockOnChangeSlug = jest.fn();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -72,6 +62,7 @@ describe('projectGeneralSettings', function () {
       method: 'GET',
       body: [],
     });
+    mockOnChangeSlug.mockClear();
   });
 
   afterEach(function () {
@@ -79,15 +70,25 @@ describe('projectGeneralSettings', function () {
     jest.clearAllMocks();
   });
 
-  it('renders form fields', function () {
+  it('renders form fields', async function () {
     render(
-      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
+      <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />,
 
-      {organization}
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/${project.slug}/`,
+          },
+          route: '/:projectId/',
+        },
+      }
     );
 
-    expect(getField('textbox', 'Name')).toHaveValue('Project Name');
-    expect(getField('textbox', 'Subject Prefix')).toHaveValue('[my-org]');
+    expect(await screen.findByRole('textbox', {name: 'Name'})).toHaveValue(
+      'Project Name'
+    );
+    expect(screen.getByRole('textbox', {name: 'Subject Prefix'})).toHaveValue('[my-org]');
 
     // Step 19 of the auto resolve slider equates to 48 hours. This is
     // different from thee actual field value (which will be 48)
@@ -102,20 +103,27 @@ describe('projectGeneralSettings', function () {
     expect(getField('checkbox', 'Verify TLS/SSL')).toBeChecked();
   });
 
-  it('disables scrapeJavaScript when equivalent org setting is false', function () {
+  it('disables scrapeJavaScript when equivalent org setting is false', async function () {
     const orgWithoutScrapeJavaScript = OrganizationFixture({
       scrapeJavaScript: false,
     });
 
-    render(
-      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
-      {
-        organization: orgWithoutScrapeJavaScript,
-      }
-    );
+    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+      organization: orgWithoutScrapeJavaScript,
+      initialRouterConfig: {
+        location: {
+          pathname: `/${project.slug}/`,
+        },
+        route: '/:projectId/',
+      },
+    });
 
-    expect(getField('checkbox', 'Enable JavaScript source fetching')).toBeDisabled();
-    expect(getField('checkbox', 'Enable JavaScript source fetching')).not.toBeChecked();
+    expect(
+      await screen.findByRole('checkbox', {name: 'Enable JavaScript source fetching'})
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('checkbox', {name: 'Enable JavaScript source fetching'})
+    ).not.toBeChecked();
   });
 
   it('project admins can remove project', async function () {
@@ -124,12 +132,17 @@ describe('projectGeneralSettings', function () {
       method: 'DELETE',
     });
 
-    render(
-      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
-      {organization}
-    );
+    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/${project.slug}/`,
+        },
+        route: '/:projectId/',
+      },
+    });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Remove Project'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Remove Project'}));
 
     // Click confirmation button
     renderGlobalModal();
@@ -145,12 +158,17 @@ describe('projectGeneralSettings', function () {
       method: 'POST',
     });
 
-    render(
-      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
-      {organization}
-    );
+    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/${project.slug}/`,
+        },
+        route: '/:projectId/',
+      },
+    });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
 
     // Click confirmation button
     renderGlobalModal();
@@ -180,12 +198,17 @@ describe('projectGeneralSettings', function () {
       body: {detail: 'An organization owner could not be found'},
     });
 
-    render(
-      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
-      {organization}
-    );
+    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/${project.slug}/`,
+        },
+        route: '/:projectId/',
+      },
+    });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
 
     // Click confirmation button
     renderGlobalModal();
@@ -198,48 +221,62 @@ describe('projectGeneralSettings', function () {
     expect(addErrorMessage).toHaveBeenCalled();
 
     // Check the error message
-    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0]);
+    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0], {
+      deprecatedRouterMocks: true,
+    });
     expect(container).toHaveTextContent(
       'Error transferring project-slug. An organization owner could not be found'
     );
   });
 
-  it('displays transfer/remove message for non-admins', function () {
+  it('displays transfer/remove message for non-admins', async function () {
     const nonAdminOrg = OrganizationFixture({
       access: ['org:read'],
     });
 
-    const {container} = render(
-      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
-      {organization: nonAdminOrg}
-    );
+    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+      organization: nonAdminOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: `/${project.slug}/`,
+        },
+        route: '/:projectId/',
+      },
+    });
 
-    expect(container).toHaveTextContent(
-      'You do not have the required permission to remove this project.'
-    );
-    expect(container).toHaveTextContent(
-      'You do not have the required permission to transfer this project.'
-    );
+    // Wait for the component to load
+    await screen.findByRole('heading', {name: 'Project Settings'});
+
+    expect(
+      screen.getByText('You do not have the required permission to remove this project.')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'You do not have the required permission to transfer this project.'
+      )
+    ).toBeInTheDocument();
   });
 
-  it('disables the form for users without write permissions', function () {
+  it('disables the form for users without write permissions', async function () {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
 
-    render(
-      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
-      {
-        organization: readOnlyOrg,
-      }
-    );
+    render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
+      organization: readOnlyOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: `/${project.slug}/`,
+        },
+        route: '/:projectId/',
+      },
+    });
 
     // no textboxes are enabled
     screen.queryAllByRole('textbox').forEach(textbox => expect(textbox).toBeDisabled());
 
-    expect(screen.getByTestId('project-permission-alert')).toBeInTheDocument();
+    expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
   });
 
   it('changing project platform updates ProjectsStore', async function () {
-    const params = {projectId: project.slug};
     ProjectsStore.loadInitialData([project]);
 
     putMock = MockApiClient.addMockResponse({
@@ -253,14 +290,17 @@ describe('projectGeneralSettings', function () {
 
     render(
       <ProjectContextProvider projectSlug={project.slug}>
-        <ProjectGeneralSettings
-          {...routerProps}
-          routes={[]}
-          location={LocationFixture()}
-          params={params}
-        />
+        <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />
       </ProjectContextProvider>,
-      {organization}
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/${project.slug}/`,
+          },
+          route: '/:projectId/',
+        },
+      }
     );
 
     const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
@@ -273,9 +313,7 @@ describe('projectGeneralSettings', function () {
   });
 
   it('changing name updates ProjectsStore', async function () {
-    const params = {projectId: project.slug};
     ProjectsStore.loadInitialData([project]);
-
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
@@ -287,14 +325,17 @@ describe('projectGeneralSettings', function () {
 
     render(
       <ProjectContextProvider projectSlug={project.slug}>
-        <ProjectGeneralSettings
-          {...routerProps}
-          routes={[]}
-          location={LocationFixture()}
-          params={params}
-        />
+        <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />
       </ProjectContextProvider>,
-      {organization, router}
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/${project.slug}/`,
+          },
+          route: '/:projectId/',
+        },
+      }
     );
 
     await userEvent.type(
@@ -308,8 +349,10 @@ describe('projectGeneralSettings', function () {
     // Saves when clicking save
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
-    // Redirects the user
-    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    // Check the mock was called with the new slug
+    await waitFor(() => expect(mockOnChangeSlug).toHaveBeenCalledWith('new-project'));
+
+    // Verify store was updated
     expect(ProjectsStore.getById('2')!.slug).toBe('new-project');
   });
 
@@ -328,17 +371,19 @@ describe('projectGeneralSettings', function () {
     });
 
     function renderProjectGeneralSettings() {
-      const params = {projectId: project.slug};
       render(
         <ProjectContextProvider projectSlug={project.slug}>
-          <ProjectGeneralSettings
-            {...routerProps}
-            routes={[]}
-            location={LocationFixture()}
-            params={params}
-          />
+          <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />
         </ProjectContextProvider>,
-        {organization}
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/${project.slug}/`,
+            },
+            route: '/:projectId/',
+          },
+        }
       );
     }
 

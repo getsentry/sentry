@@ -153,7 +153,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         scope = Scope.get_isolation_scope()
 
         set_top_tags(scope, project, ctx, len(configs) > 0)
-        result = get_stacktrace_config(configs, ctx)
+        result = get_stacktrace_config(configs, ctx, project.organization)
         error = result["error"]
         src_path = result["src_path"]
         # Post-processing before exiting scope context

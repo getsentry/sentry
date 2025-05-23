@@ -72,12 +72,14 @@ class Retry:
         times: int = 1,
         on: tuple[type[BaseException], ...] | None = None,
         ignore: tuple[type[BaseException], ...] | None = None,
-        times_exceeded: LastAction = LastAction.Deadletter,
+        times_exceeded: LastAction = LastAction.Discard,
+        delay: int | None = None,
     ):
         self._times = times
         self._allowed_exception_types: tuple[type[BaseException], ...] = on or ()
         self._denied_exception_types: tuple[type[BaseException], ...] = ignore or ()
         self._times_exceeded = times_exceeded
+        self._delay = delay
 
     def should_retry(self, state: RetryState, exc: Exception) -> bool:
         # We subtract one, as attempts starts at 0, but `times`
@@ -105,4 +107,5 @@ class Retry:
             attempts=0,
             max_attempts=self._times,
             on_attempts_exceeded=self._times_exceeded.to_proto(),
+            delay_on_retry=self._delay,
         )

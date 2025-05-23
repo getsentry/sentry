@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:50.010205+00:00'
+created: '2025-04-25T21:22:31.342432+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,37 +9,37 @@ app:
   component:
     app*
       stacktrace*
-        frame*
+        frame* (marked in-app by the client)
           filename*
             "sentry_logging.dart"
           function*
             "SentryLogging.log"
-        frame*
+        frame* (marked in-app by the client)
           filename*
             "sentry_dio.dart"
           function*
             "SentryDio.dio"
-        frame*
+        frame* (marked in-app by the client)
           filename*
             "sentry_file.dart"
           function*
             "SentryFile.file"
-        frame*
+        frame* (marked in-app by the client)
           filename*
             "sentry_hive.dart"
           function*
             "SentryHive.hive"
-        frame*
+        frame* (marked in-app by the client)
           filename*
             "sentry_isar.dart"
           function*
             "SentryIsar.isar"
-        frame*
+        frame* (marked in-app by the client)
           filename*
             "sentry_sqflite.dart"
           function*
             "SentrySqflite.sqflite"
-        frame*
+        frame* (marked in-app by the client)
           filename*
             "sentry_drift.dart"
           function*

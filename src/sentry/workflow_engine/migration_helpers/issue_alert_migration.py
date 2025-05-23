@@ -204,7 +204,10 @@ class IssueAlertMigrator:
         no_conditions = len(conditions) == 0
         no_data_conditions = len(data_conditions) == 0
         only_has_every_event_cond = (
-            len(conditions) == 1 and conditions[0]["id"] == EveryEventCondition.id
+            len(
+                [condition for condition in conditions if condition["id"] == EveryEventCondition.id]
+            )
+            > 0
         )
 
         if not self.is_dry_run:

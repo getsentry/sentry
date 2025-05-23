@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
-import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -27,11 +26,6 @@ function renderFrameworkModalMockRequests({
   organization: Organization;
   teamSlug: string;
 }) {
-  MockApiClient.addMockResponse({
-    url: `/projects/${organization.slug}/rule-conditions/`,
-    body: [],
-  });
-
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/teams/`,
     body: [TeamFixture({slug: teamSlug})],
@@ -86,13 +80,6 @@ describe('CreateProject', function () {
   beforeEach(() => {
     TeamStore.reset();
     TeamStore.loadUserTeams([teamNoAccess]);
-
-    MockApiClient.addMockResponse({
-      url: `/projects/org-slug/rule-conditions/`,
-      body: {},
-      // Not required for these tests
-      statusCode: 500,
-    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/integrations/?integrationType=messaging`,
@@ -373,11 +360,6 @@ describe('CreateProject', function () {
     const organization = OrganizationFixture();
     beforeEach(() => {
       TeamStore.loadUserTeams([teamWithAccess]);
-
-      MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/rule-conditions/`,
-        body: MOCK_RESP_VERBOSE,
-      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,

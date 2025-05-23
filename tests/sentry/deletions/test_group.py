@@ -1,3 +1,4 @@
+import os
 import random
 from datetime import datetime, timedelta
 from time import time
@@ -7,7 +8,7 @@ from uuid import uuid4
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
 from sentry import nodestore
-from sentry.deletions.defaults.group import ErrorEventsDeletionTask
+from sentry.deletions.defaults.group import ErrorEventsDeletionTask, IssuePlatformEventsDeletionTask
 from sentry.deletions.tasks.groups import delete_groups
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
@@ -139,16 +140,18 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert GroupHistory.objects.filter(id=other_history_one.id).exists() is False
         assert GroupHistory.objects.filter(id=other_history_two.id).exists() is False
 
-    @mock.patch("os.environ.get")
     @mock.patch("sentry.nodestore.delete_multi")
-    def test_cleanup(self, nodestore_delete_multi: mock.Mock, os_environ: mock.Mock) -> None:
-        os_environ.side_effect = lambda key: "1" if key == "_SENTRY_CLEANUP" else None
-        group = self.event.group
+    def test_cleanup(self, nodestore_delete_multi: mock.Mock) -> None:
+        os.environ["_SENTRY_CLEANUP"] = "1"
+        try:
+            group = self.event.group
 
-        with self.tasks():
-            delete_groups(object_ids=[group.id])
+            with self.tasks():
+                delete_groups(object_ids=[group.id])
 
-        assert nodestore_delete_multi.call_count == 0
+            assert nodestore_delete_multi.call_count == 0
+        finally:
+            del os.environ["_SENTRY_CLEANUP"]
 
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
@@ -309,7 +312,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert self.select_issue_platform_events(self.project.id) == occurrence_expected
 
         # This will delete the group and the events from the node store and Snuba
-        with self.tasks(), self.feature({"organizations:issue-platform-deletion": True}):
+        with self.tasks():
             delete_groups(object_ids=[issue_platform_group.id])
 
         # The original event and group still exist
@@ -324,3 +327,37 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert not nodestore.backend.get(occurrence_node_id)
         # Assert that occurrence is gone
         assert self.select_issue_platform_events(self.project.id) is None
+
+    @mock.patch("sentry.deletions.defaults.group.bulk_snuba_queries")
+    def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
+        # Patch max_rows_to_delete to a small value for testing
+        with mock.patch.object(IssuePlatformEventsDeletionTask, "max_rows_to_delete", 6):
+            # Create three groups with times_seen such that batching is required
+            group1 = self.create_group(project=self.project)
+            group2 = self.create_group(project=self.project)
+            group3 = self.create_group(project=self.project)
+            group4 = self.create_group(project=self.project)
+
+            # Set times_seen for each group
+            Group.objects.filter(id=group1.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
+            Group.objects.filter(id=group2.id).update(times_seen=1, type=GroupCategory.FEEDBACK)
+            Group.objects.filter(id=group3.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
+            Group.objects.filter(id=group4.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
+
+            # This will delete the group and the events from the node store and Snuba
+            with self.tasks():
+                delete_groups(object_ids=[group1.id, group2.id, group3.id, group4.id])
+
+            # There should be two batches: [group3, group1] (2+3=5 > 5, so group2 starts new batch), [group2]
+            assert mock_bulk_snuba_queries.call_count == 1
+            requests = mock_bulk_snuba_queries.call_args[0][0]
+            assert len(requests) == 2
+
+            first_batch = requests[0].query.column_conditions["group_id"]
+            second_batch = requests[1].query.column_conditions["group_id"]
+
+            # Since we sort by times_seen, the first batch will be [group2, group1]
+            # and the second batch will be [group3, group4]
+            assert first_batch == [group2.id, group1.id]  # group2 has less times_seen than group1
+            # group3 and group4 have the same times_seen, thus sorted by id
+            assert second_batch == [group3.id, group4.id]

@@ -8,7 +8,6 @@ import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -155,7 +154,7 @@ function AddBillingMetricUsageModal({
       <Body>
         <div>Create and add mock billing metric usage for testing purposes.</div>
         <br />
-        <Form onSubmit={onSubmit} submitLabel={t('Create')} onCancel={closeModal}>
+        <Form onSubmit={onSubmit} submitLabel={'Create'} onCancel={closeModal}>
           <SelectField
             inline={false}
             stacked

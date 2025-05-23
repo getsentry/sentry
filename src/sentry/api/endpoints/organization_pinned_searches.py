@@ -40,6 +40,9 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPinnedSearchPermission,)
 
     def put(self, request: Request, organization) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         serializer = OrganizationSearchSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -56,30 +59,30 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
         )
 
         # This entire endpoint will be removed once custom views are GA'd
-        default_view, created = GroupSearchView.objects.create_or_update(
-            organization=organization,
-            user_id=request.user.id,
-            values={
-                "name": "Default Search",
-                "query": result["query"],
-                "query_sort": result["sort"],
-                "visibility": GroupSearchViewVisibility.ORGANIZATION,
-            },
-        )
-        if created:
-            default_view_id = default_view.id
+        first_starred_view = GroupSearchViewStarred.objects.filter(
+            organization=organization, user_id=request.user.id, position=0
+        ).first()
+
+        if first_starred_view:
+            default_view = first_starred_view.group_search_view
+            default_view.query = result["query"]
+            default_view.query_sort = result["sort"]
+            default_view.save()
         else:
-            default_view_id = GroupSearchView.objects.get(
+            new_default_view = GroupSearchView.objects.create(
                 organization=organization,
                 user_id=request.user.id,
-            ).id
-
-        GroupSearchViewStarred.objects.create_or_update(
-            organization=organization,
-            user_id=request.user.id,
-            group_search_view_id=default_view_id,
-            values={"position": 0},
-        )
+                name="Default Search",
+                query=result["query"],
+                query_sort=result["sort"],
+                visibility=GroupSearchViewVisibility.ORGANIZATION,
+            )
+            GroupSearchViewStarred.objects.create(
+                organization=organization,
+                user_id=request.user.id,
+                group_search_view_id=new_default_view.id,
+                position=0,
+            )
 
         pinned_search = SavedSearch.objects.get(
             organization=organization,
@@ -91,6 +94,9 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
         return Response(serialize(pinned_search, request.user), status=201)
 
     def delete(self, request: Request, organization) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         try:
             search_type = SearchType(int(request.data.get("type", 0)))
         except ValueError as e:

@@ -6,7 +6,7 @@ from typing import Any
 METRIC_PREFIX = "auto_source_code_config"
 DERIVED_ENHANCEMENTS_OPTION_KEY = "sentry:derived_grouping_enhancements"
 SUPPORTED_INTEGRATIONS = ["github"]
-STACK_ROOT_MAX_LEVEL = 3
+STACK_ROOT_MAX_LEVEL = 4
 # Stacktrace roots that match one of these will have three levels of granularity
 # com.au, co.uk, org.uk, gov.uk, net.uk, edu.uk, ct.uk
 # This list does not have to be exhaustive as the fallback is two levels of granularity

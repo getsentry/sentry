@@ -124,6 +124,8 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:seer-based-priority": False,
         # Enable Vercel integration - there is a custom handler in getsentry
         "organizations:integrations-vercel": True,
+        # Enable issue view endpoints and UI
+        "organizations:issue-views": False,
     }
 
     permanent_project_features = {

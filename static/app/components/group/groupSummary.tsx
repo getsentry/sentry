@@ -1,20 +1,18 @@
 import {isValidElement, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Button} from 'sentry/components/core/button';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
-import {IconDocs, IconEllipsis, IconFatal, IconFocus, IconSpan} from 'sentry/icons';
+import {IconDocs, IconFatal, IconFocus, IconRefresh, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
@@ -90,7 +88,7 @@ export function useGroupSummary(
 
   const refresh = () => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/issues/${group.id}/summarize/`],
+      queryKey: makeGroupSummaryQueryKey(organization.slug, group.id),
       exact: false,
     });
     refetch();
@@ -119,7 +117,6 @@ export function GroupSummary({
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const [forceEvent, setForceEvent] = useState(false);
-  const openFeedbackForm = useFeedbackForm();
   const aiConfig = useAiConfig(group, project);
   const {data, isPending, isError, refresh} = useGroupSummary(
     group,
@@ -135,62 +132,23 @@ export function GroupSummary({
     }
   }, [forceEvent, isPending, refresh]);
 
-  const isFixable = data?.scores?.isFixable ?? false;
+  const hasFixabilityScore =
+    data?.scores?.fixabilityScore !== null && data?.scores?.fixabilityScore !== undefined;
 
   useEffect(() => {
-    if (isFixable && !isPending && aiConfig.hasAutofix) {
+    if (hasFixabilityScore && !isPending && aiConfig.hasAutofix) {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(group.id),
+        queryKey: makeAutofixQueryKey(organization.slug, group.id),
       });
     }
-  }, [isFixable, isPending, aiConfig.hasAutofix, group.id, queryClient]);
-
-  const eventDetailsItems = [
-    {
-      key: 'event-info',
-      label:
-        event?.id === data?.eventId ? (
-          t('Based on this event')
-        ) : (
-          <span>{t('See original event (%s)', data?.eventId?.substring(0, 8))}</span>
-        ),
-      to:
-        event?.id === data?.eventId
-          ? undefined
-          : window.location.origin +
-            normalizeUrl(
-              `/organizations/${organization.slug}/issues/${data?.groupId}/events/${data?.eventId}/`
-            ),
-      disabled: event?.id === data?.eventId,
-    },
-    ...(event?.id === data?.eventId
-      ? []
-      : [
-          {
-            key: 'refresh',
-            label: t('Summarize this event instead'),
-            onAction: () => setForceEvent(true),
-            disabled: isPending,
-          },
-        ]),
-    ...(openFeedbackForm
-      ? [
-          {
-            key: 'feedback',
-            label: t('Give feedback'),
-            onAction: () => {
-              openFeedbackForm({
-                messagePlaceholder: t('How can we make Issue Summary better for you?'),
-                tags: {
-                  ['feedback.source']: 'issue_details_ai_autofix',
-                  ['feedback.owner']: 'ml-ai',
-                },
-              });
-            },
-          },
-        ]
-      : []),
-  ];
+  }, [
+    hasFixabilityScore,
+    isPending,
+    aiConfig.hasAutofix,
+    group.id,
+    queryClient,
+    organization.slug,
+  ]);
 
   const shouldShowPossibleCause =
     !data?.scores ||
@@ -231,6 +189,8 @@ export function GroupSummary({
           {
             id: 'resources',
             title: t('Resources'),
+
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
             insight: `${isValidElement(config.resources?.description) ? '' : (config.resources?.description ?? '')}\n\n${config.resources?.links?.map(link => `[${link.text}](${link.link})`).join(' • ') ?? ''}`,
             insightElement: isValidElement(config.resources?.description)
               ? config.resources?.description
@@ -246,26 +206,6 @@ export function GroupSummary({
     <div data-testid="group-summary">
       {isError ? <div>{t('Error loading summary')}</div> : null}
       <Content>
-        {data?.eventId && !isPending && !preview && (
-          <TooltipWrapper id="group-summary-tooltip-wrapper">
-            <DropdownMenu
-              items={eventDetailsItems}
-              triggerProps={{
-                icon: <StyledIconEllipsis size="xs" />,
-                'aria-label': t('Event details'),
-                size: 'xs',
-                borderless: true,
-                showChevron: false,
-                style: {
-                  zIndex: 0,
-                },
-              }}
-              isDisabled={isPending}
-              position="bottom-end"
-              offset={4}
-            />
-          </TooltipWrapper>
-        )}
         <InsightGrid>
           {insightCards.map(card => {
             if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
@@ -274,8 +214,10 @@ export function GroupSummary({
 
             return (
               <InsightCard key={card.id}>
-                <CardTitle preview={preview}>
-                  <CardTitleIcon>{card.icon}</CardTitleIcon>
+                <CardTitle preview={preview} cardId={card.id}>
+                  <CardTitleIcon cardId={card.id} preview={preview}>
+                    {card.icon}
+                  </CardTitleIcon>
                   <CardTitleText>{card.title}</CardTitleText>
                 </CardTitle>
                 <CardContentContainer>
@@ -290,13 +232,7 @@ export function GroupSummary({
                     <CardContent>
                       {card.insightElement}
                       {card.insight && (
-                        <div
-                          dangerouslySetInnerHTML={{
-                            __html: marked(
-                              preview ? card.insight.replace(/\*\*/g, '') : card.insight
-                            ),
-                          }}
-                        />
+                        <MarkedText text={card.insight.replace(/\*\*/g, '')} />
                       )}
                     </CardContent>
                   )}
@@ -305,6 +241,18 @@ export function GroupSummary({
             );
           })}
         </InsightGrid>
+        {data?.eventId && !isPending && !preview && event?.id !== data?.eventId && (
+          <ResummarizeWrapper>
+            <Button
+              onClick={() => setForceEvent(true)}
+              disabled={isPending}
+              size="xs"
+              icon={<IconRefresh />}
+            >
+              {t('Summarize current event')}
+            </Button>
+          </ResummarizeWrapper>
+        )}
       </Content>
     </div>
   );
@@ -331,11 +279,14 @@ const InsightCard = styled('div')`
   min-height: 0;
 `;
 
-const CardTitle = styled('div')<{preview?: boolean}>`
+const CardTitle = styled('div')<{cardId?: string; preview?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p =>
+    p.preview === false && p.cardId === 'whats_wrong'
+      ? p.theme.textColor
+      : p.theme.subText};
   padding-bottom: ${space(0.5)};
 `;
 
@@ -345,10 +296,13 @@ const CardTitleText = styled('p')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const CardTitleIcon = styled('div')`
+const CardTitleIcon = styled('div')<{cardId?: string; preview?: boolean}>`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p =>
+    p.preview === false && p.cardId === 'whats_wrong'
+      ? p.theme.pink400
+      : p.theme.subText};
 `;
 
 const CardContentContainer = styled('div')`
@@ -385,17 +339,9 @@ const CardContent = styled('div')`
   flex: 1;
 `;
 
-const TooltipWrapper = styled('div')`
-  position: absolute;
-  top: -${space(0.5)};
-  right: 0;
-
-  ul {
-    max-height: none !important;
-    overflow: visible !important;
-  }
-`;
-
-const StyledIconEllipsis = styled(IconEllipsis)`
-  color: ${p => p.theme.subText};
+const ResummarizeWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-top: ${space(1)};
+  flex-shrink: 0;
 `;

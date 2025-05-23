@@ -4,12 +4,14 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import AutofixInsightSources from 'sentry/components/events/autofix/autofixInsightSources';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {TimelineItemProps} from 'sentry/components/timeline';
 import {Timeline} from 'sentry/components/timeline';
 import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import type {AutofixTimelineEvent} from './types';
@@ -59,6 +61,7 @@ interface AutofixTimelineItemProps {
   retainInsightCardIndex: number | null | undefined;
   runId: string;
   stepIndex: number;
+  codeUrl?: string | null;
   getCustomIcon?: (event: AutofixTimelineEvent) => React.ReactNode | undefined;
 }
 
@@ -71,6 +74,7 @@ export function AutofixTimelineItem({
   retainInsightCardIndex,
   runId,
   stepIndex,
+  codeUrl,
 }: AutofixTimelineItemProps) {
   const theme = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -82,12 +86,6 @@ export function AutofixTimelineItem({
   const titleHtml = useMemo(() => {
     return {__html: singleLineRenderer(event.title)};
   }, [event.title]);
-
-  const analysisHtml = useMemo(() => {
-    return {
-      __html: singleLineRenderer(replaceHeadersWithBold(event.code_snippet_and_analysis)),
-    };
-  }, [event.code_snippet_and_analysis]);
 
   return (
     <Timeline.Item
@@ -127,8 +125,17 @@ export function AutofixTimelineItem({
                 stepIndex={stepIndex}
                 retainInsightCardIndex={retainInsightCardIndex}
               >
-                <StyledSpan dangerouslySetInnerHTML={analysisHtml} />
+                <StyledSpan
+                  as="span"
+                  text={replaceHeadersWithBold(event.code_snippet_and_analysis)}
+                  inline
+                />
               </AutofixHighlightWrapper>
+              {codeUrl && (
+                <SourcesWrapper>
+                  <AutofixInsightSources codeUrls={[codeUrl]} />
+                </SourcesWrapper>
+              )}
             </Timeline.Text>
           </AnimatedContent>
         )}
@@ -141,11 +148,16 @@ const AnimatedContent = styled(motion.div)`
   overflow: hidden;
 `;
 
-const StyledSpan = styled('span')`
+const StyledSpan = styled(MarkedText)`
   & code {
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSizeSmall};
+    background-color: transparent;
     display: inline-block;
   }
+`;
+
+const SourcesWrapper = styled('div')`
+  margin-top: ${space(2)};
 `;
 
 const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`

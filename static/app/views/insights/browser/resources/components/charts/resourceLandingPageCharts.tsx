@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {ResourceLandingDurationChartWidget} from 'sentry/views/insights/common/components/widgets/resourceLandingDurationChartWidget';
-import {ResourceLandingThroughputChartWidget} from 'sentry/views/insights/common/components/widgets/resourceLandingThroughputChartWidget';
+import ResourceLandingDurationChartWidget from 'sentry/views/insights/common/components/widgets/resourceLandingDurationChartWidget';
+import ResourceLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/resourceLandingThroughputChartWidget';
 
 export function ResourceLandingPageCharts() {
   return (

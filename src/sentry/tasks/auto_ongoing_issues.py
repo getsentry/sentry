@@ -66,6 +66,7 @@ def log_error_if_queue_has_items(func):
         namespace=issues_tasks,
         retry=Retry(
             times=3,
+            delay=60,
         ),
     ),
 )
@@ -82,17 +83,14 @@ def schedule_auto_transition_to_ongoing() -> None:
 
     schedule_auto_transition_issues_new_to_ongoing.delay(
         first_seen_lte=int(seven_days_ago.timestamp()),
-        expires=now + timedelta(hours=1),
     )
 
     schedule_auto_transition_issues_regressed_to_ongoing.delay(
         date_added_lte=int(seven_days_ago.timestamp()),
-        expires=now + timedelta(hours=1),
     )
 
     schedule_auto_transition_issues_escalating_to_ongoing.delay(
         date_added_lte=int(seven_days_ago.timestamp()),
-        expires=now + timedelta(hours=1),
     )
 
 
@@ -110,6 +108,7 @@ def schedule_auto_transition_to_ongoing() -> None:
         processing_deadline_duration=25 * 60,
         retry=Retry(
             times=3,
+            delay=60,
         ),
     ),
 )
@@ -184,6 +183,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
         processing_deadline_duration=25 * 60,
         retry=Retry(
             times=3,
+            delay=60,
         ),
     ),
 )
@@ -219,6 +219,7 @@ def run_auto_transition_issues_new_to_ongoing(
         processing_deadline_duration=25 * 60,
         retry=Retry(
             times=3,
+            delay=60,
         ),
     ),
 )
@@ -286,6 +287,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
         processing_deadline_duration=25 * 60,
         retry=Retry(
             times=3,
+            delay=60,
         ),
     ),
 )
@@ -321,6 +323,7 @@ def run_auto_transition_issues_regressed_to_ongoing(
         processing_deadline_duration=25 * 60,
         retry=Retry(
             times=3,
+            delay=60,
         ),
     ),
 )
@@ -388,6 +391,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
         processing_deadline_duration=25 * 60,
         retry=Retry(
             times=3,
+            delay=60,
         ),
     ),
 )

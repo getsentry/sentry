@@ -27,7 +27,6 @@ export function UserFixture(params: Partial<User> = {}): User {
     canReset2fa: false,
     dateJoined: '2020-01-01T00:00:00.000Z',
     emails: [],
-    experiments: [],
     has2fa: false,
     identities: [],
     isActive: false,

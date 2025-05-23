@@ -17,7 +17,6 @@ import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/y
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {
   useExploreDataset,
-  useExploreFields,
   useExploreGroupBys,
   useExploreMode,
   useExploreQuery,
@@ -28,7 +27,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-const CHART_TYPE_TO_DISPLAY_TYPE = {
+export const CHART_TYPE_TO_DISPLAY_TYPE = {
   [ChartType.LINE]: DisplayType.LINE,
   [ChartType.BAR]: DisplayType.BAR,
   [ChartType.AREA]: DisplayType.AREA,
@@ -45,12 +44,7 @@ export function useAddToDashboard() {
   const groupBys = useExploreGroupBys();
   const sortBys = useExploreSortBys();
   const visualizes = useExploreVisualizes();
-  const sampleFields = useExploreFields();
   const query = useExploreQuery();
-
-  const hasWidgetBuilderRedesign = organization.features.includes(
-    'dashboards-widget-builder-redesign'
-  );
 
   const getEventView = useCallback(
     (visualizeIndex: number) => {
@@ -58,12 +52,7 @@ export function useAddToDashboard() {
 
       let fields: any;
       if (mode === Mode.SAMPLES) {
-        if (hasWidgetBuilderRedesign) {
-          // TODO: Handle the fields for the widget builder if we've selected the samples mode
-          fields = [];
-        } else {
-          fields = sampleFields.filter(Boolean);
-        }
+        fields = [];
       } else {
         fields = [
           ...new Set([...groupBys, ...yAxes, ...sortBys.map(sort => sort.field)]),
@@ -91,17 +80,7 @@ export function useAddToDashboard() {
         CHART_TYPE_TO_DISPLAY_TYPE[visualizes[visualizeIndex]!.chartType];
       return newEventView;
     },
-    [
-      visualizes,
-      mode,
-      sampleFields,
-      groupBys,
-      query,
-      dataset,
-      selection,
-      sortBys,
-      hasWidgetBuilderRedesign,
-    ]
+    [visualizes, mode, groupBys, query, dataset, selection, sortBys]
   );
 
   const addToDashboard = useCallback(

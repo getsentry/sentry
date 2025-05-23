@@ -62,7 +62,8 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsV2EndpointBase):
 
         formatted_data: list[TimeSeriesPoint] = []
         for datum in data:
-            ts_point = TimeSeriesPoint(timestamp=datum[0], value=datum[1].get("count", 0))
+            count = datum[1].get("count", 0)
+            ts_point = TimeSeriesPoint(timestamp=datum[0], value=0 if count is None else count)
             formatted_data.append(ts_point)
         return formatted_data
 

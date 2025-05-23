@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -13,22 +14,7 @@ jest.mock('sentry/views/insights/common/utils/useHasDataTrackAnalytics');
 
 describe('ModulePageProviders', () => {
   beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [2],
-      },
-    });
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
   });
 
   afterEach(() => {

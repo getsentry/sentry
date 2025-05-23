@@ -13,7 +13,7 @@ type DividerProps = {
   icon?: React.ReactNode;
 } & React.DOMAttributes<HTMLDivElement>;
 
-export const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
+const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   <div {...props}>{icon || <IconGrabbable size="sm" />}</div>
 ))<DividerProps>`
   display: grid;
@@ -48,7 +48,7 @@ export const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   }
 `;
 
-export const SplitPanelContext = createContext({
+const SplitPanelContext = createContext({
   isMaximized: false,
   isMinimized: false,
   maximiseSize: () => {},

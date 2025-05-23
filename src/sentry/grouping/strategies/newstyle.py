@@ -444,9 +444,7 @@ def _single_stacktrace_variant(
             if frame.in_app:
                 found_in_app_frame = True
             else:
-                # We have to do this here (rather than it being done in the rust enhancer) because
-                # the rust enhancer doesn't know about system vs app variants
-                frame_component.update(contributes=False, hint="non app frame")
+                frame_component.update(contributes=False)
 
         frame_components.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
@@ -687,7 +685,7 @@ def filter_exceptions_for_exception_groups(
             children: list[SingleException] | None = None,
         ):
             self.exception = exception
-            self.children = children if children else []
+            self.children = children or []
 
     exception_tree: dict[int, ExceptionTreeNode] = {}
     for exception in reversed(exceptions):
@@ -863,10 +861,12 @@ def react_error_with_cause(exceptions: list[SingleException]) -> int | None:
     return main_exception_id
 
 
+MAIN_EXCEPTION_ID_FUNCS = [
+    react_error_with_cause,
+]
+
+
 def determine_main_exception_id(exceptions: list[SingleException]) -> int | None:
-    MAIN_EXCEPTION_ID_FUNCS = [
-        react_error_with_cause,
-    ]
     main_exception_id = None
     for func in MAIN_EXCEPTION_ID_FUNCS:
         main_exception_id = func(exceptions)

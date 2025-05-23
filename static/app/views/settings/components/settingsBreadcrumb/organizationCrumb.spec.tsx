@@ -38,7 +38,6 @@ describe('OrganizationCrumb', function () {
   const renderComponent = (props: Omit<SettingsBreadcrumbProps, 'isLast'>) =>
     render(<OrganizationCrumb {...routerProps} {...props} isLast={false} />, {
       organization,
-      enableRouterMocks: false,
     });
 
   afterEach(function () {
@@ -126,7 +125,7 @@ describe('OrganizationCrumb', function () {
       <OrganizationCrumb {...routerProps} route={route} routes={routes} isLast={false} />,
       {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig: {
           location: {pathname: `/projects/${project.slug}/`},
           route: '/projects/:projectId/',

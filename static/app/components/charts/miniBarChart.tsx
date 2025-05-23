@@ -1,5 +1,5 @@
 // Import to ensure echarts components are loaded.
-import './components/markPoint';
+import 'echarts/lib/component/markPoint';
 
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';

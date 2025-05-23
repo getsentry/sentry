@@ -15,6 +15,7 @@ DEFAULT_DISALLOWED_SOURCES = (
     "ms-browser-extension",
     "chrome://*",
     "chrome-extension://*",
+    "chrome-extension",
     "chromeinvokeimmediate://*",
     "chromenull://*",
     "data:text/html,chromewebdata",

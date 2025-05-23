@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
@@ -76,16 +77,16 @@ const PlatformIconWrapper = styled('div')<{index: number}>`
   height: 14px;
   ${p =>
     p.index === 0 &&
-    `
-    top: 0;
-    left: 0;
-  `}
+    css`
+      top: 0;
+      left: 0;
+    `}
   ${p =>
     p.index === 1 &&
-    `
-    bottom: 0;
-    right: 0;
-  `}
+    css`
+      bottom: 0;
+      right: 0;
+    `}
 `;
 
 export default ProjectIcon;

@@ -1,5 +1,5 @@
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 import OrganizationSettingsNavigation from 'sentry/views/settings/organization/organizationSettingsNavigation';
 

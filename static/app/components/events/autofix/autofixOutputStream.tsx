@@ -1,4 +1,4 @@
-import {type FormEvent, useEffect, useRef, useState} from 'react';
+import {type FormEvent, startTransition, useEffect, useRef, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -7,82 +7,27 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {SeerLoadingIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
+import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
-interface Props {
-  groupId: string;
-  runId: string;
-  stream: string;
-  activeLog?: string;
-  isProcessing?: boolean;
-  responseRequired?: boolean;
-}
-
-const shimmer = keyframes`
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
-`;
-
-export function AutofixOutputStream({
-  stream,
-  activeLog = '',
-  groupId,
-  runId,
-  responseRequired = false,
-}: Props) {
-  const api = useApi({persistInFlight: true});
-  const queryClient = useQueryClient();
-
+function StreamContentText({stream}: {stream: string}) {
   const [displayedText, setDisplayedText] = useState('');
-  const [message, setMessage] = useState('');
-  const seerIconRef = useRef<HTMLDivElement>(null);
 
   const accumulatedTextRef = useRef('');
   const previousStreamPropRef = useRef('');
   const currentIndexRef = useRef(0);
-
-  const isInitializingRun = activeLog === 'Ingesting Sentry data...';
-
-  const displayedActiveLog = useTypingAnimation({
-    text: activeLog,
-    speed: 100,
-    enabled: !!activeLog,
-  });
-
-  const {mutate: send} = useMutation({
-    mutationFn: (params: {message: string}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'user_message',
-            text: params.message,
-          },
-        },
-      });
-    },
-    onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
-      addSuccessMessage('Thanks for the input.');
-    },
-    onError: () => {
-      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
-    },
-  });
 
   // Animation for stream text
   useEffect(() => {
@@ -102,7 +47,9 @@ export function AutofixOutputStream({
         currentIndexRef.current = accumulatedTextRef.current.length;
       } else {
         const fullPreviousTextWithSeparator = previousStream + separator;
-        setDisplayedText(fullPreviousTextWithSeparator);
+        startTransition(() => {
+          setDisplayedText(fullPreviousTextWithSeparator);
+        });
         accumulatedTextRef.current = fullPreviousTextWithSeparator;
         currentIndexRef.current = fullPreviousTextWithSeparator.length;
       }
@@ -115,7 +62,9 @@ export function AutofixOutputStream({
     if (currentIndexRef.current > combinedText.length) {
       currentIndexRef.current = combinedText.length;
       if (displayedText !== combinedText) {
-        setDisplayedText(combinedText);
+        startTransition(() => {
+          setDisplayedText(combinedText);
+        });
       }
     }
 
@@ -123,7 +72,9 @@ export function AutofixOutputStream({
     if (currentIndexRef.current < combinedText.length) {
       intervalId = window.setInterval(() => {
         if (currentIndexRef.current < combinedText.length) {
-          setDisplayedText(combinedText.slice(0, currentIndexRef.current + 1));
+          startTransition(() => {
+            setDisplayedText(combinedText.slice(0, currentIndexRef.current + 1));
+          });
           currentIndexRef.current++;
         } else {
           window.clearInterval(intervalId);
@@ -138,6 +89,68 @@ export function AutofixOutputStream({
       }
     };
   }, [stream, displayedText]);
+
+  return <StreamContent>{displayedText}</StreamContent>;
+}
+
+interface Props {
+  groupId: string;
+  runId: string;
+  stream: string;
+  activeLog?: string;
+  autofixData?: AutofixData;
+  isProcessing?: boolean;
+  responseRequired?: boolean;
+}
+
+export function AutofixOutputStream({
+  stream,
+  activeLog = '',
+  groupId,
+  runId,
+  autofixData,
+  responseRequired = false,
+}: Props) {
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  const [message, setMessage] = useState('');
+  const seerIconRef = useRef<HTMLDivElement>(null);
+
+  const isInitializingRun = activeLog === 'Ingesting Sentry data...';
+
+  const displayedActiveLog = useTypingAnimation({
+    text: activeLog,
+    speed: 200,
+    enabled: !!activeLog,
+  });
+
+  const orgSlug = useOrganization().slug;
+
+  const {mutate: send} = useMutation({
+    mutationFn: (params: {message: string}) => {
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'user_message',
+              text: params.message,
+            },
+          },
+        }
+      );
+    },
+    onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
+      addSuccessMessage('Thanks for the input.');
+    },
+    onError: () => {
+      addErrorMessage(t('Something went wrong when sending Seer your message.'));
+    },
+  });
 
   const handleSend = (e: FormEvent) => {
     e.preventDefault();
@@ -182,12 +195,18 @@ export function AutofixOutputStream({
           <Container required={responseRequired}>
             {activeLog && (
               <ActiveLogWrapper>
-                <SeerIconContainer ref={seerIconRef}>
-                  <StyledAnimatedSeerIcon size="lg" />
-                  {seerIconRef.current && isInitializingRun && (
-                    <FlyingLinesEffect targetElement={seerIconRef.current} />
+                <Tooltip
+                  title={t(
+                    "Seer is hard at work. Feel free to leave - it'll keep running in the background."
                   )}
-                </SeerIconContainer>
+                >
+                  <SeerIconContainer ref={seerIconRef}>
+                    <StyledAnimatedSeerIcon size="lg" />
+                    {seerIconRef.current && isInitializingRun && (
+                      <FlyingLinesEffect targetElement={seerIconRef.current} />
+                    )}
+                  </SeerIconContainer>
+                </Tooltip>
                 <ActiveLog
                   dangerouslySetInnerHTML={{
                     __html: singleLineRenderer(displayedActiveLog),
@@ -195,9 +214,12 @@ export function AutofixOutputStream({
                 />
               </ActiveLogWrapper>
             )}
-            {!responseRequired && stream && (
-              <StreamContent>{displayedText}</StreamContent>
+            {autofixData && (
+              <ProgressBarWrapper>
+                <AutofixProgressBar autofixData={autofixData} />
+              </ProgressBarWrapper>
             )}
+            {!responseRequired && stream && <StreamContentText stream={stream} />}
             <InputWrapper onSubmit={handleSend}>
               <StyledInput
                 autosize
@@ -237,7 +259,6 @@ const Wrapper = styled(motion.div)`
   flex-direction: column;
   align-items: flex-start;
   margin-bottom: ${space(1)};
-  margin-right: ${space(2)};
   gap: ${space(1)};
 `;
 
@@ -247,7 +268,15 @@ const ScaleContainer = styled(motion.div)`
   flex-direction: column;
   align-items: flex-start;
   transform-origin: top left;
-  padding-left: ${space(2)};
+`;
+
+const shimmer = keyframes`
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
 `;
 
 const Container = styled(motion.div)<{required: boolean}>`
@@ -305,7 +334,7 @@ const VerticalLine = styled('div')`
   width: 0;
   height: ${space(4)};
   border-left: 2px dashed ${p => p.theme.subText};
-  margin-left: 17px;
+  margin-left: 16px;
   margin-bottom: -1px;
 `;
 
@@ -350,4 +379,8 @@ const StyledAnimatedSeerIcon = styled(SeerLoadingIcon)`
   flex-shrink: 0;
   color: ${p => p.theme.textColor};
   z-index: 10000;
+`;
+
+const ProgressBarWrapper = styled('div')`
+  position: relative;
 `;

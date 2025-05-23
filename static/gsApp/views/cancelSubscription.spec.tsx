@@ -45,9 +45,7 @@ describe('CancelSubscription', function () {
       await screen.findByRole('heading', {name: 'Cancel Subscription'})
     ).toBeInTheDocument();
     expect(
-      await screen.findByRole('radio', {
-        name: 'The project/product/company is shutting down.',
-      })
+      await screen.findByText('The project/product/company is shutting down.')
     ).toBeInTheDocument();
   });
 
@@ -67,9 +65,9 @@ describe('CancelSubscription', function () {
   it('displays followup textarea when option is selected', async function () {
     render(<CancelSubscription />);
 
-    const radio = await screen.findByRole('radio', {
-      name: 'The project/product/company is shutting down.',
-    });
+    const radio = await screen.findByText(
+      'The project/product/company is shutting down.'
+    );
     expect(radio).toBeInTheDocument();
 
     expect(screen.queryByRole('textbox', {name: 'followup'})).not.toBeInTheDocument();
@@ -83,7 +81,7 @@ describe('CancelSubscription', function () {
       method: 'DELETE',
     });
     render(<CancelSubscription />);
-    const radio = await screen.findByRole('radio', {name: 'Other'});
+    const radio = await screen.findByText('We are switching to a different solution.');
     expect(radio).toBeInTheDocument();
 
     await userEvent.click(radio);
@@ -94,8 +92,35 @@ describe('CancelSubscription', function () {
       `/customers/${organization.slug}/`,
       expect.objectContaining({
         data: {
-          reason: 'other',
+          reason: 'competitor',
           followup: 'Cancellation reason',
+          checkboxes: [],
+        },
+      })
+    );
+  });
+
+  it('calls cancel API with checkboxes', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'DELETE',
+    });
+    render(<CancelSubscription />);
+    const radio = await screen.findByText("Sentry doesn't fit our needs.");
+    expect(radio).toBeInTheDocument();
+
+    await userEvent.click(radio);
+    await userEvent.click(screen.getByTestId('checkbox-reach_out'));
+    await userEvent.type(screen.getByRole('textbox'), 'Cancellation reason');
+    await userEvent.click(screen.getByRole('button', {name: /Cancel Subscription/}));
+
+    expect(mock).toHaveBeenCalledWith(
+      `/customers/${organization.slug}/`,
+      expect.objectContaining({
+        data: {
+          reason: 'not_a_fit',
+          followup: 'Cancellation reason',
+          checkboxes: ['reach_out'],
         },
       })
     );

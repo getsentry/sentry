@@ -3,15 +3,11 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import {tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -20,8 +16,9 @@ import {
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -30,9 +27,11 @@ import useProjects from 'sentry/utils/useProjects';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {
@@ -44,18 +43,18 @@ import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageH
 import {OldFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/oldFrontendOverviewPage';
 import {
   DEFAULT_SORT,
+  EAP_OVERVIEW_PAGE_ALLOWED_OPS,
   FRONTEND_LANDING_TITLE,
-  FRONTEND_PLATFORMS,
-  OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
+import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
-import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
+import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
+import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
-import {
-  generateFrontendOtherPerformanceEventView,
-  USER_MISERY_TOOLTIP,
-} from 'sentry/views/performance/data';
+import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -68,27 +67,6 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-const DURATION_TOOLTIP = tct(
-  'A heuristic measuring when a pageload or navigation completes. Based on whether the initial load of the webpage has become idle. [link:Learn more.]',
-  {
-    link: (
-      <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#idletimeout" />
-    ),
-  }
-);
-
-export const FRONTEND_COLUMN_TITLES = [
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
-  {title: 'p50()', tooltip: DURATION_TOOLTIP},
-  {title: 'p75()', tooltip: DURATION_TOOLTIP},
-  {title: 'p95()', tooltip: DURATION_TOOLTIP},
-  {title: 'users'},
-  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
-];
-
 function EAPOverviewPage() {
   useOverviewPageTrackPageload();
   const organization = useOrganization();
@@ -98,6 +76,7 @@ function EAPOverviewPage() {
   const navigate = useNavigate();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateFrontendOtherPerformanceEventView(
@@ -105,9 +84,13 @@ function EAPOverviewPage() {
     withStaticFilters,
     true
   );
-  const searchBarEventView = eventView.clone();
 
   const sharedProps = {eventView, location, organization, withStaticFilters};
+  const {query: searchBarQuery} = useLocationQuery({
+    fields: {
+      query: decodeScalar,
+    },
+  });
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
@@ -126,17 +109,15 @@ function EAPOverviewPage() {
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
-  const selectedFrontendProjects: Project[] = getSelectedProjectList(
-    selection.projects,
-    projects
-  ).filter((project): project is Project =>
-    Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
-  );
+  const {
+    frontendProjects: selectedFrontendProjects,
+    otherProjects: selectedOtherProjects,
+  } = categorizeProjects(getSelectedProjectList(selection.projects, projects));
 
-  const existingQuery = new MutableSearch(eventView.query);
+  const existingQuery = new MutableSearch(searchBarQuery);
   // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
   existingQuery.addOp('(');
-  existingQuery.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addFilterValue('span.op', `[${EAP_OVERVIEW_PAGE_ALLOWED_OPS.join(',')}]`);
   // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
   if (selectedFrontendProjects.length > 0) {
     existingQuery.addOp('OR');
@@ -152,8 +133,9 @@ function EAPOverviewPage() {
   const showOnboarding = onboardingProject !== undefined;
 
   const doubleChartRowCharts = [
-    PerformanceWidgetSetting.SLOW_HTTP_OPS,
-    PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
+    PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
+    PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+    PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
@@ -168,12 +150,6 @@ function EAPOverviewPage() {
     ],
     mepSetting
   );
-
-  if (organization.features.includes('insights-initial-modules')) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
-  }
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
@@ -213,27 +189,32 @@ function EAPOverviewPage() {
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
 
-  existingQuery.addFilterValue('is_transaction', 'true');
-
   const response = useEAPSpans(
     {
       search: existingQuery,
       sorts,
+      cursor,
+      useQueryOptions: {additonalQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
       fields: [
         'is_starred_transaction',
         'transaction',
-        'span.op',
         'project',
-        'epm()',
-        'p50(span.duration)',
-        'p95(span.duration)',
-        'failure_rate()',
-        'time_spent_percentage(span.duration)',
-        'sum(span.duration)',
+        'tpm()',
+        'p50_if(span.duration,is_transaction,true)',
+        'p95_if(span.duration,is_transaction,true)',
+        'failure_rate_if(is_transaction,true)',
+        'performance_score(measurements.score.total)',
+        'count_unique(user)',
+        'sum_if(span.duration,is_transaction,true)',
       ],
     },
     'api.performance.landing-table'
   );
+
+  const searchBarProjectsIds = [
+    ...selectedFrontendProjects,
+    ...selectedOtherProjects,
+  ].map(project => project.id);
 
   return (
     <Feature
@@ -241,7 +222,10 @@ function EAPOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
+      <FrontendHeader
+        headerTitle={FRONTEND_LANDING_TITLE}
+        headerActions={<NewNextJsExperienceButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -253,14 +237,16 @@ function EAPOverviewPage() {
                   <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (
-                  <StyledTransactionNameSearchBar
-                    organization={organization}
-                    eventView={searchBarEventView}
-                    onSearch={(query: string) => {
-                      handleSearch(query);
-                    }}
-                    query={getFreeTextFromQuery(derivedQuery) ?? ''}
-                  />
+                  <InsightsSpanTagProvider>
+                    <StyledTransactionNameSearchBar
+                      organization={organization}
+                      projectIds={searchBarProjectsIds}
+                      onSearch={(query: string) => {
+                        handleSearch(query);
+                      }}
+                      query={getFreeTextFromQuery(derivedQuery) ?? ''}
+                    />
+                  </InsightsSpanTagProvider>
                 )}
               </ToolRibbon>
             </ModuleLayout.Full>
@@ -296,15 +282,15 @@ function EAPOverviewPage() {
 
 function FrontendOverviewPageWithProviders() {
   const organization = useOrganization();
-  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
+  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
   const useEap = useInsightsEap();
 
   const {maxPickableDays} = limitMaxPickableDays(organization);
 
   return (
     <DomainOverviewPageProviders maxPickableDays={maxPickableDays}>
-      {isNextJsPageAvailable ? (
-        <NextJsOverviewPage headerTitle={FRONTEND_LANDING_TITLE} />
+      {isNextJsPageEnabled ? (
+        <NextJsOverviewPage performanceType="frontend" />
       ) : useEap ? (
         <EAPOverviewPage />
       ) : (

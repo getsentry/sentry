@@ -29,6 +29,9 @@ from sentry.tasks.embeddings_grouping.utils import (
     send_group_and_stacktrace_to_seer_multithreaded,
     update_groups,
 )
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import seer_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 SEER_ACCEPTABLE_FAILURE_REASONS = ["Gateway Timeout", "Service Unavailable"]
@@ -45,6 +48,13 @@ logger = logging.getLogger(__name__)
     soft_time_limit=60 * 15,
     time_limit=60 * 15 + 5,
     acks_late=True,
+    taskworker_config=TaskworkerConfig(
+        namespace=seer_tasks,
+        processing_deadline_duration=60 * 15 + 5,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 def backfill_seer_grouping_records_for_project(
     current_project_id: int | None,

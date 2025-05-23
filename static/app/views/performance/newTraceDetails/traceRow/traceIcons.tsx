@@ -1,13 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
-import {PlatformIcon} from 'platformicons';
 
 import {isEAPError} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 interface ErrorIconsProps {
   errors: TraceTreeNode<TraceTree.Transaction>['errors'];
@@ -96,14 +94,4 @@ export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
       })}
     </Fragment>
   );
-}
-
-export function SpanProjectIcon({platform}: {platform: string}) {
-  const hasTraceNewUi = useHasTraceNewUi();
-
-  if (!hasTraceNewUi) {
-    return null;
-  }
-
-  return <PlatformIcon platform={platform} />;
 }

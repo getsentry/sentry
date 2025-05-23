@@ -32,7 +32,7 @@ from sentry.ratelimits.sliding_windows import Quota
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
@@ -205,7 +205,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     ) -> None:
         # test explicitly set priority of HIGH
         message = get_test_message(self.project.id)
-        message["initial_issue_priority"] = PriorityLevel.HIGH.value
+        message["priority"] = PriorityLevel.HIGH.value
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
             result = _process_message(message)
         assert result is not None
@@ -215,6 +215,27 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assert group.priority == PriorityLevel.HIGH
         assert "severity" not in group.data["metadata"]
+
+    @with_feature("organizations:profile-file-io-main-thread-ingest")
+    def test_issue_platform_updates_priority(self) -> None:
+        # test explicitly set priority of HIGH
+        message = get_test_message(self.project.id)
+        message["priority"] = PriorityLevel.HIGH.value
+        result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
+        assert group.priority == PriorityLevel.HIGH
+
+        # test that the priority is updated
+        message["priority"] = PriorityLevel.MEDIUM.value
+        result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
+        assert group.priority == PriorityLevel.MEDIUM
 
     def test_new_group_with_user_assignee(self) -> None:
         message = get_test_message(self.project.id, assignee=f"user:{self.user.id}")
@@ -528,19 +549,19 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def test_priority(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
         kwargs = _get_kwargs(message)
-        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW
+        assert kwargs["occurrence_data"]["priority"] == PriorityLevel.LOW
 
     def test_priority_defaults_to_grouptype(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
-        message["initial_issue_priority"] = None
+        message["priority"] = None
         kwargs = _get_kwargs(message)
-        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW
+        assert kwargs["occurrence_data"]["priority"] == PriorityLevel.LOW
 
     def test_priority_overrides_defaults(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
-        message["initial_issue_priority"] = PriorityLevel.HIGH
+        message["priority"] = PriorityLevel.HIGH
         kwargs = _get_kwargs(message)
-        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.HIGH
+        assert kwargs["occurrence_data"]["priority"] == PriorityLevel.HIGH
 
     def test_assignee(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
@@ -619,18 +640,3 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == status
-
-
-@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
-class IssueOccurrenceProcessMessageWithPruningTest(IssueOccurrenceProcessMessageTest):
-    pass
-
-
-@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
-class IssueOccurrenceLookupEventIdWithPruningTest(IssueOccurrenceLookupEventIdTest):
-    pass
-
-
-@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
-class ParseEventPayloadWithPruningTest(ParseEventPayloadTest):
-    pass

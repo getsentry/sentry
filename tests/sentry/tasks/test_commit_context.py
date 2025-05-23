@@ -1215,13 +1215,13 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         assert isinstance(install, CommitContextIntegration)
 
         with self.tasks():
-            install.queue_comment_task_if_needed(
+            install.queue_pr_comment_task_if_needed(
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
                 group_id=self.event.group_id,
             )
-            install.queue_comment_task_if_needed(
+            install.queue_pr_comment_task_if_needed(
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
@@ -1275,13 +1275,13 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         )
 
         with self.tasks():
-            install.queue_comment_task_if_needed(
+            install.queue_pr_comment_task_if_needed(
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
                 group_id=self.event.group_id,
             )
-            install.queue_comment_task_if_needed(
+            install.queue_pr_comment_task_if_needed(
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,

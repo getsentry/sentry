@@ -1,17 +1,30 @@
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-const NEW_VIEW_PAGE_REGEX = /\/issues\/views\/new\/?$/;
+export const DEFAULT_TIME_FILTERS: PageFilters['datetime'] = {
+  start: null,
+  end: null,
+  period: '14d',
+  utc: null,
+};
+export const DEFAULT_ENVIRONMENTS: string[] = [];
 
 /**
- * Returns true if the current path is the "New View" page
- * /issues/views/new/
+ * Savable properties of an IssueView, besides lable and position.
+ * Changes to these properties are not automatically saved and can
+ * trigger the unsaved changes indicator.
  */
-export function isNewViewPage(pathname: string) {
-  return NEW_VIEW_PAGE_REGEX.test(pathname);
+export interface IssueViewParams {
+  environments: string[];
+  projects: number[];
+  query: string;
+  querySort: IssueSortOptions;
+  timeFilters: PageFilters['datetime'];
 }
 
 export function canEditIssueView({

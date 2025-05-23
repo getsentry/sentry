@@ -45,6 +45,7 @@ export type GridColumn<K = ObjectKey> = {
 
 export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
   name: string;
+  tooltip?: React.ReactNode;
 };
 
 export type GridColumnOrder<K = ObjectKey> = GridColumnHeader<K>;

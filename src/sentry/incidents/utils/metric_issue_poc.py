@@ -104,7 +104,7 @@ def _build_occurrence_from_incident(
     event_data: dict[str, str | int],
     metric_value: float,
 ) -> IssueOccurrence:
-    initial_issue_priority = (
+    priority = (
         PriorityLevel.HIGH
         if incident.status == IncidentStatus.CRITICAL.value
         else PriorityLevel.MEDIUM
@@ -123,9 +123,9 @@ def _build_occurrence_from_incident(
         detection_time=incident.date_started,
         level="error",
         culprit="",
-        initial_issue_priority=initial_issue_priority,
+        priority=priority,
         # TODO(snigdha): Add more data here as needed
-        evidence_data={"metric_value": metric_value, "alert_rule_id": incident.alert_rule.id},
+        evidence_data={"metric_value": metric_value, "alert_id": incident.alert_rule.id},
         evidence_display=[],
         assignee=incident.alert_rule.owner if incident.alert_rule else None,
     )
@@ -151,7 +151,6 @@ def create_or_update_metric_issue(
         "timestamp": incident.date_started.isoformat(),
         "platform": project.platform or "",
         "received": incident.date_started.isoformat(),
-        "contexts": {"metric_alert": {"alert_rule_id": incident.alert_rule.id}},
     }
 
     occurrence = _build_occurrence_from_incident(project, incident, event_data, metric_value)

@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {
   render,
@@ -19,22 +20,20 @@ describe('HTTPSamplesPanel', () => {
 
   let eventsRequestMock: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -54,6 +53,11 @@ describe('HTTPSamplesPanel', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
 
     eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -226,7 +230,6 @@ describe('HTTPSamplesPanel', () => {
               'http_response_rate(3)',
               'http_response_rate(4)',
               'http_response_rate(5)',
-              'time_spent_percentage()',
             ],
             per_page: 50,
             project: [],
@@ -244,7 +247,6 @@ describe('HTTPSamplesPanel', () => {
         expect.objectContaining({
           method: 'GET',
           query: {
-            cursor: undefined,
             dataset: 'spansMetrics',
             environment: [],
             excludeOther: 0,
@@ -258,8 +260,8 @@ describe('HTTPSamplesPanel', () => {
               'span.module:http span.op:http.client !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
             referrer: 'api.performance.http.samples-panel-response-code-chart',
             statsPeriod: '10d',
-            sort: '-count()',
             topEvents: '5',
+            transformAliasToInputFormat: '0',
             yAxis: 'count()',
           },
         })

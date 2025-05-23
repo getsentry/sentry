@@ -17,7 +17,6 @@ export const enum SectionKey {
   TRACE = 'trace',
 
   USER_FEEDBACK = 'user-feedback',
-  LLM_MONITORING = 'llm-monitoring',
   SEER = 'seer',
   EXTERNAL_ISSUES = 'external-issues',
 
@@ -51,6 +50,7 @@ export const enum SectionKey {
 
   BREADCRUMBS = 'breadcrumbs',
   LOGS = 'logs',
+  SPAN_ATTRIBUTES = 'span-attributes',
   /**
    * Also called images loaded
    */

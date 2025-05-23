@@ -23,6 +23,9 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.taskworker.client")
 
+MAX_ACTIVATION_SIZE = 1024 * 1024 * 10
+"""Max payload size we will process."""
+
 
 class ClientCallDetails(grpc.ClientCallDetails):
     """
@@ -101,9 +104,11 @@ class TaskworkerClient:
         )
 
         grpc_config = options.get("taskworker.grpc_service_config")
-        self._grpc_options = []
+        self._grpc_options: list[tuple[str, Any]] = [
+            ("grpc.max_receive_message_length", MAX_ACTIVATION_SIZE)
+        ]
         if grpc_config:
-            self._grpc_options = [("grpc.service_config", grpc_config)]
+            self._grpc_options.append(("grpc.service_config", grpc_config))
 
         self._cur_host = random.choice(self._hosts)
         self._host_to_stubs: dict[str, ConsumerServiceStub] = {
@@ -161,6 +166,8 @@ class TaskworkerClient:
                 "taskworker.client.rpc_error", tags={"method": "GetTask", "status": err.code().name}
             )
             if err.code() == grpc.StatusCode.NOT_FOUND:
+                # Because our current broker doesn't have any tasks, try rebalancing.
+                self._num_tasks_before_rebalance = 0
                 return None
             raise
         if response.HasField("task"):
@@ -202,6 +209,8 @@ class TaskworkerClient:
                 tags={"method": "SetTaskStatus", "status": err.code().name},
             )
             if err.code() == grpc.StatusCode.NOT_FOUND:
+                # The current broker is empty, switch.
+                self._num_tasks_before_rebalance = 0
                 return None
             raise
         if response.HasField("task"):

@@ -47,7 +47,11 @@ describe('metric details -> RelatedIssues', () => {
           usingPeriod: true,
         }}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();

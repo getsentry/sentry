@@ -1,5 +1,6 @@
 from sentry import analytics, features
 from sentry.constants import ObjectStatus
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import (
@@ -8,6 +9,7 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
+from sentry.shared_integrations.exceptions import ApiUnauthorized, IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.taskworker.config import TaskworkerConfig
@@ -23,7 +25,10 @@ from sentry.taskworker.retry import Retry
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=60 * 5,
+        ),
     ),
 )
 @retry(exclude=(Integration.DoesNotExist,))
@@ -51,7 +56,9 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
     )
     if not integration:
         return None
-    installation = integration.get_installation(organization_id=external_issue.organization_id)
+    installation: IntegrationInstallation = integration.get_installation(
+        organization_id=external_issue.organization_id
+    )
     if not (hasattr(installation, "should_sync") and hasattr(installation, "sync_status_outbound")):
         return None
 
@@ -68,9 +75,13 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
                     "status": group.status,
                 }
             )
-            installation.sync_status_outbound(
-                external_issue, group.status == GroupStatus.RESOLVED, group.project_id
-            )
+            try:
+                installation.sync_status_outbound(
+                    external_issue, group.status == GroupStatus.RESOLVED, group.project_id
+                )
+            except (IntegrationFormError, ApiUnauthorized) as e:
+                lifecycle.record_halt(halt_reason=e)
+                return None
             analytics.record(
                 "integration.issue.status.synced",
                 provider=integration.provider,

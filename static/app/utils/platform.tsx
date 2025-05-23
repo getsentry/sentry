@@ -49,6 +49,10 @@ export function isNativePlatform(platform: string | undefined) {
   }
 }
 
+export function isJavascriptPlatform(platform: string | undefined) {
+  return platform?.includes('javascript');
+}
+
 export function isMobilePlatform(platform: string | undefined) {
   if (!platform) {
     return false;

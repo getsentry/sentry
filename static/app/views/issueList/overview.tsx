@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -11,7 +12,6 @@ import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -49,15 +49,13 @@ import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
-import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
-import LeftNavViewsHeader from 'sentry/views/issueList/leftNavViewsHeader';
+import IssueViewsHeader from 'sentry/views/issueList/issueViewsHeader';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import IssueListFilters from './filters';
 import IssueListHeader from './header';
@@ -86,6 +84,8 @@ interface Props
   > {
   initialQuery?: string;
   shouldFetchOnMount?: boolean;
+  title?: ReactNode;
+  titleDescription?: ReactNode;
 }
 
 interface EndpointParams extends Partial<PageFilters['datetime']> {
@@ -161,15 +161,20 @@ function IssueListOverview({
   router,
   initialQuery = DEFAULT_QUERY,
   shouldFetchOnMount = true,
+  title = t('Issues'),
+  titleDescription,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const api = useApi();
+  const prefersStackedNav = usePrefersStackedNav();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
-    typeof realtimeActiveCookie === 'undefined' ? false : realtimeActiveCookie === 'true'
+    prefersStackedNav || typeof realtimeActiveCookie === 'undefined'
+      ? false
+      : realtimeActiveCookie === 'true'
   );
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [pageLinks, setPageLinks] = useState('');
@@ -185,11 +190,9 @@ function IssueListOverview({
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
-  const prefersStackedNav = usePrefersStackedNav();
   const urlParams = useParams<{viewId?: string}>();
 
-  const {savedSearch, savedSearchLoading, savedSearches, selectedSearchId} =
-    useSavedSearches();
+  const {savedSearch, savedSearchLoading, selectedSearchId} = useSavedSearches();
 
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {
@@ -498,8 +501,30 @@ function IssueListOverview({
     [getEndpointParams, api, organization.slug]
   );
 
+  // Blank views are created with ?new=true, in order to show the empty state.
+  // We want to clear this query param when data is fetched.
+  const resetNewViewQueryParam = useCallback(() => {
+    if (location.query.new) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            new: undefined,
+          },
+        },
+        {
+          replace: true,
+          preventScrollReset: true,
+        }
+      );
+    }
+  }, [location.pathname, navigate, location.query]);
+
   const fetchData = useCallback(
     (fetchAllCounts = false) => {
+      resetNewViewQueryParam();
+
       if (realtimeActive || (!actionTakenRef.current && !undoRef.current)) {
         GroupStore.loadInitialData([]);
 
@@ -611,13 +636,14 @@ function IssueListOverview({
       });
     },
     [
+      resetNewViewQueryParam,
       realtimeActive,
       sort,
       api,
       organization,
       requestParams,
-      fetchStats,
       fetchCounts,
+      fetchStats,
       navigate,
       location.query,
       query,
@@ -1063,96 +1089,81 @@ function IssueListOverview({
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
   return (
-    <NewTabContextProvider>
-      <Layout.Page>
-        {prefersStackedNav && (
-          <LeftNavViewsHeader selectedProjectIds={selection.projects} />
-        )}
-        {!prefersStackedNav &&
-          (organization.features.includes('issue-stream-custom-views') ? (
-            <ErrorBoundary message={'Failed to load custom tabs'} mini>
-              <IssueViewsIssueListHeader
-                router={router}
-                selectedProjectIds={selection.projects}
-                realtimeActive={realtimeActive}
-                onRealtimeChange={onRealtimeChange}
-              />
-            </ErrorBoundary>
-          ) : (
-            <IssueListHeader
-              organization={organization}
-              query={query}
-              sort={sort}
-              queryCount={queryCount}
-              queryCounts={queryCounts}
-              realtimeActive={realtimeActive}
-              router={router}
-              displayReprocessingTab={showReprocessingTab}
-              selectedProjectIds={selection.projects}
-              onRealtimeChange={onRealtimeChange}
-            />
-          ))}
-        <StyledBody>
-          <StyledMain>
-            <IssuesDataConsentBanner source="issues" />
-            <IssueListFilters
-              query={query}
-              sort={sort}
-              onSortChange={onSortChange}
-              onSearch={onSearch}
-            />
-            <IssueListTable
-              selection={selection}
-              query={query}
-              queryCount={modifiedQueryCount}
-              onSelectStatsPeriod={onSelectStatsPeriod}
-              onActionTaken={onActionTaken}
-              onDelete={onDelete}
-              statsPeriod={getGroupStatsPeriod()}
-              groupIds={groupIds}
-              allResultsVisible={allResultsVisible()}
-              displayReprocessingActions={displayReprocessingActions}
-              memberList={memberList}
-              selectedProjectIds={selection.projects}
-              issuesLoading={issuesLoading}
-              error={error}
-              refetchGroups={fetchData}
-              paginationCaption={
-                !issuesLoading && modifiedQueryCount > 0
-                  ? tct('[start]-[end] of [total]', {
-                      start: numPreviousIssues + 1,
-                      end: numPreviousIssues + numIssuesOnPage,
-                      total: (
-                        <QueryCount
-                          hideParens
-                          hideIfEmpty={false}
-                          count={modifiedQueryCount}
-                          max={queryMaxCount || 100}
-                        />
-                      ),
-                    })
-                  : null
-              }
-              pageLinks={pageLinks}
-              onCursor={onCursorChange}
-              paginationAnalyticsEvent={paginationAnalyticsEvent}
-              personalSavedSearches={savedSearches?.filter(
-                search => search.visibility === 'owner'
-              )}
-              organizationSavedSearches={savedSearches?.filter(
-                search => search.visibility === 'organization'
-              )}
-              issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
-            />
-          </StyledMain>
-          <SavedIssueSearches
-            {...{organization, query}}
-            onSavedSearchSelect={onSavedSearchSelect}
+    <Layout.Page>
+      {prefersStackedNav ? (
+        <IssueViewsHeader
+          selectedProjectIds={selection.projects}
+          title={title}
+          description={titleDescription}
+        />
+      ) : (
+        <IssueListHeader
+          organization={organization}
+          query={query}
+          sort={sort}
+          queryCount={queryCount}
+          queryCounts={queryCounts}
+          realtimeActive={realtimeActive}
+          router={router}
+          displayReprocessingTab={showReprocessingTab}
+          selectedProjectIds={selection.projects}
+          onRealtimeChange={onRealtimeChange}
+        />
+      )}
+      <StyledBody>
+        <StyledMain>
+          <IssuesDataConsentBanner source="issues" />
+          <IssueListFilters
+            query={query}
             sort={sort}
+            onSortChange={onSortChange}
+            onSearch={onSearch}
           />
-        </StyledBody>
-      </Layout.Page>
-    </NewTabContextProvider>
+          <IssueListTable
+            selection={selection}
+            query={query}
+            queryCount={modifiedQueryCount}
+            onSelectStatsPeriod={onSelectStatsPeriod}
+            onActionTaken={onActionTaken}
+            onDelete={onDelete}
+            statsPeriod={getGroupStatsPeriod()}
+            groupIds={groupIds}
+            allResultsVisible={allResultsVisible()}
+            displayReprocessingActions={displayReprocessingActions}
+            memberList={memberList}
+            selectedProjectIds={selection.projects}
+            issuesLoading={issuesLoading}
+            error={error}
+            refetchGroups={fetchData}
+            paginationCaption={
+              !issuesLoading && modifiedQueryCount > 0
+                ? tct('[start]-[end] of [total]', {
+                    start: numPreviousIssues + 1,
+                    end: numPreviousIssues + numIssuesOnPage,
+                    total: (
+                      <QueryCount
+                        hideParens
+                        hideIfEmpty={false}
+                        count={modifiedQueryCount}
+                        max={queryMaxCount || 100}
+                      />
+                    ),
+                  })
+                : null
+            }
+            pageLinks={pageLinks}
+            onCursor={onCursorChange}
+            paginationAnalyticsEvent={paginationAnalyticsEvent}
+            issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
+          />
+        </StyledMain>
+        <SavedIssueSearches
+          {...{organization, query}}
+          onSavedSearchSelect={onSavedSearchSelect}
+          sort={sort}
+        />
+      </StyledBody>
+    </Layout.Page>
   );
 }
 

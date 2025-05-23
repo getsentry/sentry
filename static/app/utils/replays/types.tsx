@@ -170,6 +170,14 @@ export function isTouchEndFrame(frame: RecordingFrame) {
   );
 }
 
+export function isTouchMoveFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.IncrementalSnapshot &&
+    'source' in frame.data &&
+    frame.data.source === IncrementalSource.TouchMove
+  );
+}
+
 export function isMetaFrame(frame: RecordingFrame) {
   return frame.type === EventType.Meta;
 }
@@ -275,14 +283,6 @@ export function isHydrationErrorFrame(
   frame: BreadcrumbFrame
 ): frame is HydrationErrorFrame {
   return frame.category === 'replay.hydrate-error';
-}
-
-export function isBackgroundFrame(frame: ReplayFrame): frame is BreadcrumbFrame {
-  return frame && 'category' in frame && frame.category === 'app.background';
-}
-
-export function isForegroundFrame(frame: ReplayFrame): frame is BreadcrumbFrame {
-  return frame && 'category' in frame && frame.category === 'app.foreground';
 }
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
@@ -433,28 +433,6 @@ export type ResourceFrame = HydratedSpan<
   | 'resource.other'
   | 'resource.script'
 >;
-
-// This list should match each of the operations used in `HydratedSpan` above
-// And any app-specific types that we hydrate (ie: replay.end).
-export const SpanOps = [
-  'web-vital',
-  'memory',
-  'navigation.back_forward',
-  'navigation.navigate',
-  'navigation.push',
-  'navigation.reload',
-  'paint',
-  'replay.end',
-  'resource.css',
-  'resource.fetch',
-  'resource.iframe',
-  'resource.img',
-  'resource.link',
-  'resource.other',
-  'resource.script',
-  'resource.xhr',
-  'resource.http',
-];
 
 /**
  * This is a result of a custom discover query

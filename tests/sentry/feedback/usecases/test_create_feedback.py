@@ -302,6 +302,21 @@ def test_corrected_still_works():
     assert isinstance(fixed_event["received"], str)
 
 
+@pytest.mark.parametrize("environment", ("missing", None, "", "my-environment"))
+def test_fix_for_issue_platform_environment(environment):
+    event = mock_feedback_event(1)
+    if environment == "missing":
+        event.pop("environment", "")
+    else:
+        event["environment"] = environment
+
+    fixed_event = fix_for_issue_platform(event)
+    if environment == "my-environment":
+        assert fixed_event["environment"] == environment
+    else:
+        assert fixed_event["environment"] == "production"
+
+
 @django_db_all
 def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence_to_kafka):
     event = {
@@ -532,7 +547,7 @@ def test_create_feedback_spam_detection_produce_to_kafka(
 ):
     with Feature({"organizations:user-feedback-spam-filter-actions": True}):
 
-        with Feature({"organizations:user-feedback-spam-filter-ingest": feature_flag}):
+        with Feature({"organizations:user-feedback-spam-ingest": feature_flag}):
             event = {
                 "project_id": default_project.id,
                 "request": {
@@ -608,7 +623,7 @@ def test_create_feedback_spam_detection_project_option_false(
 ):
     default_project.update_option("sentry:feedback_ai_spam_detection", False)
 
-    with Feature({"organizations:user-feedback-spam-filter-ingest": True}):
+    with Feature({"organizations:user-feedback-spam-ingest": True}):
         event = {
             "project_id": default_project.id,
             "request": {
@@ -671,7 +686,7 @@ def test_create_feedback_spam_detection_set_status_ignored(
     with Feature(
         {
             "organizations:user-feedback-spam-filter-actions": True,
-            "organizations:user-feedback-spam-filter-ingest": True,
+            "organizations:user-feedback-spam-ingest": True,
         }
     ):
         event = {
@@ -802,6 +817,9 @@ def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka)
     assert tags["associated_event_id"] == event_id
     assert tags["has_linked_error"] == "true"
 
+    # Adds release to tags
+    assert tags["release"] == "frontend@daf1316f209d961443664cd6eb4231ca154db502"
+
 
 @django_db_all
 def test_create_feedback_tags_no_associated_event_id(
@@ -841,7 +859,7 @@ def test_create_feedback_filters_large_message(
     features = (
         {
             "organizations:user-feedback-spam-filter-actions": True,
-            "organizations:user-feedback-spam-filter-ingest": True,
+            "organizations:user-feedback-spam-ingest": True,
         }
         if spam_enabled
         else {}
@@ -881,7 +899,7 @@ def test_create_feedback_evidence_has_spam(
     monkeypatch.setattr("sentry.feedback.usecases.create_feedback.is_spam", lambda _: True)
     default_project.update_option("sentry:feedback_ai_spam_detection", True)
 
-    with Feature({"organizations:user-feedback-spam-filter-ingest": True}):
+    with Feature({"organizations:user-feedback-spam-ingest": True}):
         event = mock_feedback_event(default_project.id)
         source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         create_feedback_issue(event, default_project.id, source)
@@ -949,3 +967,14 @@ def test_denylist(set_sentry_option, default_project):
 def test_denylist_not_in_list(set_sentry_option, default_project):
     with set_sentry_option("feedback.organizations.slug-denylist", ["not-in-list"]):
         assert is_in_feedback_denylist(default_project.organization) is False
+
+
+@django_db_all
+def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka):
+    event = mock_feedback_event(default_project.id)
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event.get("release") is not None
+    assert produced_event.get("release") == "frontend@daf1316f209d961443664cd6eb4231ca154db502"

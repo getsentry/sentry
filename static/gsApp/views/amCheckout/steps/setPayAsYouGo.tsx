@@ -139,7 +139,12 @@ function SetPayAsYouGo({
             {checkoutCategories.map(category => (
               <li key={category}>
                 <IconSubtract size="xs" />
-                <span>{getPlanCategoryName({plan: activePlan, category})}</span>
+                <span>
+                  {getPlanCategoryName({
+                    plan: activePlan,
+                    category,
+                  })}
+                </span>
               </li>
             ))}
           </CategoryInfoList>
@@ -157,7 +162,12 @@ function SetPayAsYouGo({
                     ) : (
                       <IconSubtract size="xs" />
                     )}
-                    <span>{getPlanCategoryName({plan: activePlan, category})}</span>
+                    <span>
+                      {getPlanCategoryName({
+                        plan: activePlan,
+                        category,
+                      })}
+                    </span>
                   </li>
                 ))}
               </CategoryInfoList>

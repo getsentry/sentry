@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -8,6 +9,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 interface Props {
   crashReportId: string;
@@ -26,14 +28,26 @@ export default function CrashReportSection({
     projectSlug,
   });
 
+  useEffect(() => {
+    if (!groupData) {
+      trackAnalytics('feedback.no_associated_event_found', {
+        orgSlug: organization.slug,
+        organization,
+      });
+    }
+  }, [organization, groupData]);
+
   if (isFetching) {
     return <Placeholder height="92px" />;
   }
 
   if (!groupData) {
     return (
-      <Alert type="error" showIcon>
-        {tct('Unable to find error [id]', {id: crashReportId})}
+      <Alert type="warning" showIcon>
+        {tct(
+          'Event [id] was linked but not found in this project. The event might have been dropped or the ID may be incorrect.',
+          {id: crashReportId}
+        )}
       </Alert>
     );
   }

@@ -3,11 +3,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import Any, TypedDict
 
 from django.utils.datastructures import OrderedSet
-from isodate import parse_datetime
 
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -245,7 +244,7 @@ def _get_matching_file_blame(
         return None
 
     try:
-        committed_date = parse_datetime(committed_date_str).astimezone(timezone.utc)
+        committed_date = datetime.fromisoformat(committed_date_str).astimezone(timezone.utc)
     except Exception:
         logger.exception(
             "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",

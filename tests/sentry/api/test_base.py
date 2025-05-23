@@ -594,3 +594,32 @@ class SuperuserPermissionTest(APITestCase):
         response = self.superuser_or_any_permission_view(self.request)
 
         assert response.status_code == 200, response.content
+
+
+class RequestAccessTest(APITestCase):
+    """Tests for ensuring request.access is properly set before being accessed."""
+
+    def setUp(self):
+        super().setUp()
+        self.org = self.create_organization()
+        self.user = self.create_user()
+        self.create_member(user=self.user, organization=self.org)
+        self.request = self.make_request(user=self.user, method="GET")
+
+    def test_access_property_set_before_convert_args(self):
+        """Test that request.access is available during convert_args"""
+
+        class AccessUsingEndpoint(Endpoint):
+            permission_classes = ()
+
+            def convert_args(self, request, *args, **kwargs):
+                # This should not raise an AttributeError
+                assert request.access is not None
+                return (args, kwargs)
+
+            def get(self, request):
+                return Response({"ok": True})
+
+        response = AccessUsingEndpoint.as_view()(self.request)
+        assert response.status_code == 200
+        assert response.data == {"ok": True}

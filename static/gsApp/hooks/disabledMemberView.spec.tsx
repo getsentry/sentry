@@ -9,7 +9,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 describe('DisabledMemberView', function () {
   it('click triggers request member', async function () {
-    const {router, routerProps} = initializeOrg();
+    const {routerProps} = initializeOrg();
     const organization = OrganizationFixture();
     const sub = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, sub);
@@ -34,9 +34,7 @@ describe('DisabledMemberView', function () {
       method: 'POST',
     });
 
-    render(<DisabledMemberView {...routerProps} params={{orgId: organization.slug}} />, {
-      router,
-    });
+    render(<DisabledMemberView {...routerProps} params={{orgId: organization.slug}} />);
 
     await screen.findByText('Request Upgrade');
     await userEvent.click(screen.getByText('Request Upgrade'));

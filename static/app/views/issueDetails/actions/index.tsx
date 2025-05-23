@@ -3,7 +3,11 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
@@ -13,7 +17,8 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Flex} from 'sentry/components/container/flex';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {renderResolutionReason} from 'sentry/components/resolutionBox';
@@ -48,7 +53,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
-import PublishIssueModal from 'sentry/views/issueDetails/actions/publishModal';
 import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -95,23 +99,13 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       archiveUntilOccurrence: archiveUntilOccurrenceCap,
       delete: deleteCap,
       deleteAndDiscard: deleteDiscardCap,
-      share: shareCap,
       resolve: resolveCap,
       resolveInRelease: resolveInReleaseCap,
+      share: shareCap,
     },
     customCopy: {resolution: resolvedCopyCap},
     discover: discoverCap,
   } = config;
-
-  // Update the deleteCap to be enabled if the feature flag is present
-  const hasIssuePlatformDeletionUI = organization.features.includes(
-    'issue-platform-deletion-ui'
-  );
-  const updatedDeleteCap = {
-    ...deleteCap,
-    enabled: hasIssuePlatformDeletionUI || deleteCap.enabled,
-    disabledReason: hasIssuePlatformDeletionUI ? null : deleteCap.disabledReason,
-  };
 
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
@@ -180,6 +174,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         complete: () => {
           clearIndicators();
 
+          addSuccessMessage(t('Issue deleted'));
           navigate({
             pathname: `/organizations/${organization.slug}/issues/`,
             query: {project: project.id},
@@ -192,9 +187,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     IssueListCacheStore.reset();
   };
 
-  const onUpdate = (data: UpdateData) => {
-    addLoadingMessage(t('Saving changes\u2026'));
-
+  const onUpdate = (data: UpdateData, onComplete?: () => void) => {
     bulkUpdate(
       api,
       {
@@ -204,7 +197,10 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         data,
       },
       {
-        complete: clearIndicators,
+        complete: () => {
+          clearIndicators();
+          onComplete?.();
+        },
       }
     );
 
@@ -225,7 +221,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     openReprocessEventModal({organization, groupId: group.id});
   };
 
-  const onToggleShare = () => {
+  const onTogglePublicShare = () => {
     const newIsPublic = !group.isPublic;
     if (newIsPublic) {
       trackAnalytics('issue.shared_publicly', {
@@ -236,13 +232,21 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   };
 
   const onToggleBookmark = () => {
-    onUpdate({isBookmarked: !group.isBookmarked});
-    trackIssueAction('bookmarked');
+    onUpdate({isBookmarked: !group.isBookmarked}, () => {
+      trackIssueAction('bookmarked');
+      addSuccessMessage(
+        group.isBookmarked ? t('Issue bookmark removed') : t('Issue bookmarked')
+      );
+    });
   };
 
   const onToggleSubscribe = () => {
-    onUpdate({isSubscribed: !group.isSubscribed});
-    trackIssueAction('subscribed');
+    onUpdate({isSubscribed: !group.isSubscribed}, () => {
+      trackIssueAction('subscribed');
+      addSuccessMessage(
+        group.isSubscribed ? t('Unsubscribed from issue') : t('Subscribed to issue')
+      );
+    });
   };
 
   const onDiscard = () => {
@@ -345,23 +349,9 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         organization={organization}
         groupId={group.id}
         event={event}
-      />
-    ));
-  };
-
-  const openPublishModal = () => {
-    trackAnalytics('issue_details.publish_issue_modal_opened', {
-      organization,
-      streamline: hasStreamlinedUI,
-      ...getAnalyticsDataForGroup(group),
-    });
-    openModal(modalProps => (
-      <PublishIssueModal
-        {...modalProps}
-        organization={organization}
-        projectSlug={group.project.slug}
-        groupId={group.id}
-        onToggle={onToggleShare}
+        onToggle={onTogglePublicShare}
+        projectSlug={project.slug}
+        hasIssueShare={shareCap.enabled}
       />
     ));
   };
@@ -472,6 +462,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           icon={<IconUpload />}
           aria-label={t('Share')}
           title={t('Share Issue')}
+          disabled={disabled}
           analyticsEventKey="issue_details.share_action_clicked"
           analyticsEventName="Issue Details: Share Action Clicked"
         />
@@ -504,6 +495,12 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             ? []
             : [
                 {
+                  key: 'share',
+                  label: t('Share'),
+                  onAction: openShareModal,
+                  disabled,
+                },
+                {
                   key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
                   className: 'hidden-sm hidden-md hidden-lg',
                   label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
@@ -526,13 +523,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             onAction: () => onUpdate({inbox: false}),
           },
           {
-            key: 'publish',
-            label: t('Publish'),
-            disabled: disabled || !shareCap.enabled,
-            hidden: !organization.features.includes('shared-issues'),
-            onAction: openPublishModal,
-          },
-          {
             key: bookmarkKey,
             label: bookmarkTitle,
             onAction: onToggleBookmark,
@@ -548,8 +538,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             priority: 'danger',
             label: t('Delete'),
             hidden: !hasDeleteAccess,
-            disabled: !updatedDeleteCap.enabled,
-            details: updatedDeleteCap.disabledReason,
+            disabled: !deleteCap.enabled,
+            details: deleteCap.disabledReason,
             onAction: openDeleteModal,
           },
           {

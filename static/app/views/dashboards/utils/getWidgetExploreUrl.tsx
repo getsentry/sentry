@@ -9,8 +9,10 @@ import {
   isAggregateFieldOrEquation,
 } from 'sentry/utils/discover/fields';
 import {decodeBoolean, decodeList, decodeScalar} from 'sentry/utils/queryString';
-import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {
+  applyDashboardFilters,
   eventViewFromWidget,
   getFieldsFromEquations,
   getWidgetInterval,
@@ -21,6 +23,7 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export function getWidgetExploreUrl(
   widget: Widget,
+  dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization
 ) {
@@ -138,7 +141,10 @@ export function getWidgetExploreUrl(
     ],
     groupBy: exploreMode === Mode.SAMPLES ? undefined : groupBy,
     field: exploreMode === Mode.SAMPLES ? decodeList(queryFields) : undefined,
-    query: decodeScalar(locationQueryParams.query),
+    query: applyDashboardFilters(
+      decodeScalar(locationQueryParams.query),
+      dashboardFilters
+    ),
     sort: locationQueryParams.sort || undefined,
     interval:
       decodeScalar(locationQueryParams.interval) ??

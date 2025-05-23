@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -6,6 +6,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import AutofixInsightSources from 'sentry/components/events/autofix/autofixInsightSources';
 import {type AutofixSolutionTimelineEvent} from 'sentry/components/events/autofix/types';
 import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {
@@ -19,7 +20,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 function getEventIcon(eventType: string) {
@@ -99,17 +100,6 @@ export function SolutionEventItem({
   // For now, approximating based on index 0 not being the last.
   const isActive = event.is_most_important_event && index !== 0;
 
-  const titleHtml = useMemo(() => {
-    return {__html: singleLineRenderer(event.title)};
-  }, [event.title]);
-
-  const analysisHtml = useMemo(() => {
-    if (!event.code_snippet_and_analysis) {
-      return undefined;
-    }
-    return {__html: singleLineRenderer(event.code_snippet_and_analysis)};
-  }, [event.code_snippet_and_analysis]);
-
   const handleToggleExpand = () => {
     setIsExpanded(e => !e);
   };
@@ -153,7 +143,7 @@ export function SolutionEventItem({
             stepIndex={stepIndex}
             retainInsightCardIndex={retainInsightCardIndex}
           >
-            <div dangerouslySetInnerHTML={titleHtml} />
+            <StyledSpan text={event.title} inline />
           </AutofixHighlightWrapper>
           <IconWrapper>
             {!isHumanAction && event.code_snippet_and_analysis && isSelected && (
@@ -202,8 +192,13 @@ export function SolutionEventItem({
                   stepIndex={stepIndex}
                   retainInsightCardIndex={retainInsightCardIndex}
                 >
-                  <StyledSpan dangerouslySetInnerHTML={analysisHtml} />
+                  <StyledSpan text={event.code_snippet_and_analysis} inline />
                 </AutofixHighlightWrapper>
+                {event.relevant_code_file && event.relevant_code_file.url && (
+                  <SourcesWrapper>
+                    <AutofixInsightSources codeUrls={[event.relevant_code_file.url]} />
+                  </SourcesWrapper>
+                )}
               </Timeline.Text>
             </AnimatedContent>
           )}
@@ -212,6 +207,10 @@ export function SolutionEventItem({
     </Timeline.Item>
   );
 }
+
+const SourcesWrapper = styled('div')`
+  margin-top: ${space(2)};
+`;
 
 const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.subText};
@@ -265,9 +264,10 @@ const AnimatedContent = styled(motion.div)`
   overflow: hidden;
 `;
 
-const StyledSpan = styled('span')`
+const StyledSpan = styled(MarkedText)`
   & code {
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSizeSmall};
+    background-color: transparent;
     display: inline-block;
   }
 `;
