@@ -21,15 +21,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
-from sentry.utils.validators import is_empty_string, is_event_id, is_span_id
-
-
-def validate_event_id(value: str | list[str]) -> bool:
-    if isinstance(value, list):
-        return all([is_event_id(item) for item in value])
-    else:
-        return is_event_id(value)
-
+from sentry.utils.validators import is_empty_string, is_event_id_or_list, is_span_id
 
 SPAN_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
@@ -125,7 +117,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",
-            validator=validate_event_id,
+            validator=is_event_id_or_list,
         ),
         ResolvedAttribute(
             public_alias="transaction",

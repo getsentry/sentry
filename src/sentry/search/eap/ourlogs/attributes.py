@@ -10,7 +10,7 @@ from sentry.search.eap.columns import (
     simple_sentry_field,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS
-from sentry.utils.validators import is_event_id
+from sentry.utils.validators import is_event_id_or_list
 
 OURLOG_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
@@ -35,7 +35,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",
-            validator=is_event_id,
+            validator=is_event_id_or_list,
         ),
         ResolvedAttribute(
             public_alias="timestamp",
