@@ -7,6 +7,7 @@ export const RowLine = styled('div')`
   align-items: center;
   gap: ${space(1)};
   flex-wrap: wrap;
+  flex: 1;
 `;
 
 export const OptionalRowLine = styled(RowLine)`
