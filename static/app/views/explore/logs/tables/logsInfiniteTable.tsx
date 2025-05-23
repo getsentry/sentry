@@ -47,7 +47,7 @@ import {EmptyStateText} from 'sentry/views/traces/styles';
 const LOGS_FETCH_PREVIOUS_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; // Pixels from bottom of table to trigger table fetch.
 const LOGS_FETCH_NEXT_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 20; // Pixels from bottom of table to trigger table fetch.
 
-export type LogsTableProps = {
+type LogsTableProps = {
   allowPagination?: boolean;
   numberAttributes?: TagCollection;
   showHeader?: boolean;
