@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
@@ -18,8 +19,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
-import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
-import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
+import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import type {Platform} from 'sentry/components/platformPicker';
 import PlatformPicker from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
@@ -140,8 +140,7 @@ export function CreateProject() {
   const location = useLocation();
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
   const canUserCreateProject = useCanCreateProject();
-  const createProject = useCreateProject();
-  const createProjectRules = useCreateProjectRules();
+  const createProjectAndRules = useCreateProjectAndRules();
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const referrer = decodeScalar(location.query.referrer);
@@ -149,44 +148,6 @@ export function CreateProject() {
   const [createdProject, setCreatedProject] = useLocalStorageState<CreatedProject | null>(
     'created-project-context',
     null
-  );
-
-  const createRules = useCallback(
-    async ({
-      project,
-      alertRuleConfig,
-    }: {project: Project} & Pick<FormData, 'alertRuleConfig'>) => {
-      const ruleIds = [];
-
-      if (alertRuleConfig?.shouldCreateCustomRule) {
-        const ruleData = await createProjectRules.mutateAsync({
-          projectSlug: project.slug,
-          name: project.name,
-          conditions: alertRuleConfig?.conditions,
-          actions: alertRuleConfig?.actions,
-          actionMatch: alertRuleConfig?.actionMatch,
-          frequency: alertRuleConfig?.frequency,
-        });
-
-        ruleIds.push(ruleData.id);
-      }
-
-      const notificationRule = await createNotificationAction({
-        shouldCreateRule: alertRuleConfig?.shouldCreateRule,
-        name: project.name,
-        projectSlug: project.slug,
-        conditions: alertRuleConfig?.conditions,
-        actionMatch: alertRuleConfig?.actionMatch,
-        frequency: alertRuleConfig?.frequency,
-      });
-
-      if (notificationRule) {
-        ruleIds.push(notificationRule.id);
-      }
-
-      return ruleIds;
-    },
-    [createNotificationAction, createProjectRules]
   );
 
   const autoFill = useMemo(() => {
@@ -235,9 +196,6 @@ export function CreateProject() {
     missingValues.isMissingMessagingIntegrationChannel,
   ].filter(value => value).length;
 
-  const canSubmitForm =
-    !createProject.isPending && canUserCreateProject && formErrorCount === 0;
-
   const submitTooltipText = getSubmitTooltipText({
     ...missingValues,
     formErrorCount,
@@ -284,16 +242,14 @@ export function CreateProject() {
       let projectToRollback: Project | undefined;
 
       try {
-        const project = await createProject.mutateAsync({
-          name: projectName,
+        const {project, ruleIds} = await createProjectAndRules.mutateAsync({
+          projectName,
           platform: selectedPlatform,
-          default_rules: alertRuleConfig?.defaultRules ?? true,
-          firstTeamSlug: team,
+          team,
+          alertRuleConfig,
+          createNotificationAction,
         });
-
         projectToRollback = project;
-
-        const ruleIds = await createRules({project, alertRuleConfig});
 
         trackAnalytics('project_creation_page.created', {
           organization,
@@ -373,11 +329,20 @@ export function CreateProject() {
         }
       }
     },
-    [createRules, organization, createProject, setCreatedProject, navigate, api]
+    [
+      organization,
+      setCreatedProject,
+      navigate,
+      api,
+      createProjectAndRules,
+      createNotificationAction,
+    ]
   );
 
   const handleProjectCreation = useCallback(
     async (data: FormData) => {
+      setErrors(undefined);
+
       const selectedPlatform = data.platform;
 
       if (!isNotPartialPlatform(selectedPlatform)) {
@@ -426,6 +391,11 @@ export function CreateProject() {
       );
     },
     [configurePlatform, organization]
+  );
+
+  const debounceHandleProjectCreation = useMemo(
+    () => debounce(handleProjectCreation, 2000, {leading: true, trailing: false}),
+    [handleProjectCreation]
   );
 
   const handlePlatformChange = useCallback(
@@ -549,8 +519,9 @@ export function CreateProject() {
                 <Button
                   data-test-id="create-project"
                   priority="primary"
-                  disabled={!canSubmitForm}
-                  onClick={() => handleProjectCreation(formData)}
+                  disabled={!(canUserCreateProject && formErrorCount === 0)}
+                  busy={createProjectAndRules.isPending}
+                  onClick={() => debounceHandleProjectCreation(formData)}
                 >
                   {t('Create Project')}
                 </Button>
