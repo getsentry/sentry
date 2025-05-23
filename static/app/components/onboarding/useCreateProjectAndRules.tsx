@@ -45,22 +45,18 @@ export function useCreateProjectAndRules() {
         firstTeamSlug: team,
       });
 
-      const ruleIds = [];
+      const customRulePromise = alertRuleConfig?.shouldCreateCustomRule
+        ? createProjectRules.mutateAsync({
+            projectSlug: project.slug,
+            name: project.name,
+            conditions: alertRuleConfig?.conditions,
+            actions: alertRuleConfig?.actions,
+            actionMatch: alertRuleConfig?.actionMatch,
+            frequency: alertRuleConfig?.frequency,
+          })
+        : undefined;
 
-      if (alertRuleConfig?.shouldCreateCustomRule) {
-        const ruleData = await createProjectRules.mutateAsync({
-          projectSlug: project.slug,
-          name: project.name,
-          conditions: alertRuleConfig?.conditions,
-          actions: alertRuleConfig?.actions,
-          actionMatch: alertRuleConfig?.actionMatch,
-          frequency: alertRuleConfig?.frequency,
-        });
-
-        ruleIds.push(ruleData.id);
-      }
-
-      const notificationRule = await createNotificationAction({
+      const notificationRulePromise = createNotificationAction({
         shouldCreateRule: alertRuleConfig?.shouldCreateRule,
         name: project.name,
         projectSlug: project.slug,
@@ -69,9 +65,10 @@ export function useCreateProjectAndRules() {
         frequency: alertRuleConfig?.frequency,
       });
 
-      ruleIds.push(notificationRule?.id);
+      const rules = await Promise.all([customRulePromise, notificationRulePromise]);
+      const ruleIds = rules.filter(defined).map(rule => rule.id);
 
-      return {project, ruleIds: ruleIds.filter(defined)};
+      return {project, ruleIds};
     },
   });
 }
