@@ -42,7 +42,7 @@ export function CachesWidget() {
     {
       fields: ['transaction', 'project.id', 'cache_miss_rate()', 'count()'],
       sorts: [{field: 'cache_miss_rate()', kind: 'desc'}],
-      search: `span.op:[cache.get_item,cache.get] ${query}`,
+      search: `span.op:[cache.get_item,cache.get] has:span.group ${query}`,
       limit: 4,
     },
     Referrer.CACHE_CHART

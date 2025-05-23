@@ -160,6 +160,7 @@ export function CacheSamplePanel() {
           SpanIndexedField.CACHE_HIT,
           SpanIndexedField.SPAN_OP,
           SpanIndexedField.CACHE_ITEM_SIZE,
+          SpanIndexedField.TRACE,
           ...(useEap ? [] : ([SpanIndexedField.TRANSACTION_ID] as const)),
         ],
         sorts: [SPAN_SAMPLES_SORT],
@@ -197,8 +198,9 @@ export function CacheSamplePanel() {
   }, [cacheHitSamples, cacheMissSamples]);
 
   const transactionIds = cacheSamples?.map(span => span[transactionIdField]) || [];
+  const traceIds = cacheSamples?.map(span => span.trace) || [];
   const search = useEap
-    ? `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`
+    ? `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] trace:[${traceIds.join(',')}] is_transaction:true`
     : `id:[${transactionIds.join(',')}]`;
 
   const {

@@ -2,8 +2,8 @@ import {createContext, useContext} from 'react';
 
 import {t} from 'sentry/locale';
 import {
+  type DataCondition,
   DataConditionType,
-  type NewDataCondition,
 } from 'sentry/types/workflowEngine/dataConditions';
 import AgeComparisonNode from 'sentry/views/automations/components/actionFilters/ageComparison';
 import EventAttributeNode from 'sentry/views/automations/components/actionFilters/eventAttribute';
@@ -17,7 +17,7 @@ import PercentSessionsNode from 'sentry/views/automations/components/actionFilte
 import TaggedEventNode from 'sentry/views/automations/components/actionFilters/taggedEvent';
 
 interface DataConditionNodeProps {
-  condition: NewDataCondition;
+  condition: DataCondition;
   condition_id: string;
   onUpdate: (comparison: Record<string, any>) => void;
   onUpdateType: (type: DataConditionType) => void;
