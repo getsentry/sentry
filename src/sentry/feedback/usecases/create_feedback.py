@@ -15,12 +15,14 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
+from sentry.issues.ingest import issue_rate_limiter
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
+from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
@@ -191,7 +193,7 @@ def validate_issue_platform_event_schema(event_data):
 
 
 def should_filter_feedback(
-    event, project_id, source: FeedbackCreationSource
+    event, project, source: FeedbackCreationSource
 ) -> tuple[bool, str | None]:
     # Right now all unreal error events without a feedback
     # actually get a sent a feedback with this message
@@ -202,7 +204,7 @@ def should_filter_feedback(
         or event["contexts"].get("feedback") is None
         or event["contexts"]["feedback"].get("message") is None
     ):
-        project = Project.objects.get_from_cache(id=project_id)
+        project = Project.objects.get_from_cache(id=project.id)
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
@@ -226,7 +228,7 @@ def should_filter_feedback(
         return True, "Sent in Unreal Unattended Mode"
 
     if message.strip() == "":
-        project = Project.objects.get_from_cache(id=project_id)
+        project = Project.objects.get_from_cache(id=project.id)
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
@@ -251,7 +253,7 @@ def should_filter_feedback(
             logger.info(
                 "Feedback message exceeds max size.",
                 extra={
-                    "project_id": project_id,
+                    "project_id": project.id,
                     "entrypoint": "create_feedback_issue",
                     "referrer": source.value,
                     "length": len(message),
@@ -281,7 +283,34 @@ def create_feedback_issue(
 
     project = Project.objects.get_from_cache(id=project_id)
 
-    should_filter, filter_reason = should_filter_feedback(event, project_id, source)
+    # Rate limiting. We apply the issue rate limiter in create_feedback_issue, to
+    # mitigate load on downstream infra (spam detection LLM and issue platform).
+    granted_quota = issue_rate_limiter.check_and_use_quotas(
+        [
+            RequestedQuota(
+                f"issue-platform-issues:{project.id}:{FeedbackGroup.slug}",  # noqa E231 missing whitespace after ':'
+                1,
+                [FeedbackGroup.creation_quota],
+            )
+        ]
+    )[0]
+
+    if not granted_quota.granted:
+        metrics.incr("feedback.create_feedback_issue.rate_limited")
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project_id,
+            key_id=None,
+            outcome=Outcome.RATE_LIMITED,
+            reason="group_type_rate_limit",
+            timestamp=datetime.fromisoformat(event.timestamp),
+            event_id=event.event_id,
+            category=DataCategory.USER_REPORT_V2,
+            quantity=1,
+        )
+        return None
+
+    should_filter, filter_reason = should_filter_feedback(event, project, source)
     if should_filter:
         track_outcome(
             org_id=project.organization_id,
