@@ -21,6 +21,7 @@ interface AssigneeSelectorProps {
   group: Group;
   handleAssigneeChange: (assignedActor: AssignableEntity | null) => void;
   additionalMenuFooterItems?: React.ReactNode;
+  createPortalOnDropdown?: boolean;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
   showLabel?: boolean;
@@ -81,6 +82,7 @@ export function AssigneeSelector({
   owners,
   additionalMenuFooterItems,
   showLabel = false,
+  createPortalOnDropdown = false,
 }: AssigneeSelectorProps) {
   const theme = useTheme();
 
@@ -116,6 +118,7 @@ export function AssigneeSelector({
         </StyledDropdownButton>
       )}
       additionalMenuFooterItems={additionalMenuFooterItems}
+      createPortalOnDropdown={createPortalOnDropdown}
     />
   );
 }

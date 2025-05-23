@@ -21,6 +21,7 @@ export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
 interface BaseSelectProps<Value extends SelectKey> extends ControlProps {
   options: Array<SelectOptionOrSection<Value>>;
+  createPortalOnDropdown?: boolean;
 }
 
 export interface SingleSelectProps<Value extends SelectKey>
@@ -70,6 +71,7 @@ function CompactSelect<Value extends SelectKey>({
   sizeLimitMessage,
 
   // Control props
+  createPortalOnDropdown = false,
   grid,
   disabled,
   emptyMessage,
@@ -114,6 +116,7 @@ function CompactSelect<Value extends SelectKey>({
       disabled={controlDisabled}
       grid={grid}
       size={size}
+      createPortalOnDropdown={createPortalOnDropdown}
     >
       <List
         {...listProps}

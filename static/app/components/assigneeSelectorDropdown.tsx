@@ -77,6 +77,10 @@ interface AssigneeSelectorDropdownProps {
    */
   className?: string;
   /**
+   * If true, places the assignee dropdown in document body
+   */
+  createPortalOnDropdown?: boolean;
+  /**
    * Optional list of members to populate the dropdown with.
    */
   memberList?: User[];
@@ -214,6 +218,7 @@ export default function AssigneeSelectorDropdown({
   sizeLimit = 150,
   trigger,
   additionalMenuFooterItems,
+  createPortalOnDropdown = false,
 }: AssigneeSelectorDropdownProps) {
   const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = useUser();
@@ -581,6 +586,7 @@ export default function AssigneeSelectorDropdown({
         menuFooter={footerInviteButton}
         sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
+        createPortalOnDropdown={createPortalOnDropdown}
       />
     </AssigneeWrapper>
   );
