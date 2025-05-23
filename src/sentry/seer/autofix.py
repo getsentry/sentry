@@ -40,9 +40,7 @@ def _get_logs_for_event(
 ) -> dict[str, list[dict]] | None:
     trace_id = event.trace_id
     if not trace_id:
-        return {
-            "logs": [],
-        }
+        return None
 
     projects_qs = Project.objects.filter(
         organization=project.organization, status=ObjectStatus.ACTIVE
@@ -68,7 +66,7 @@ def _get_logs_for_event(
             "code.file.path",
             "code.function.name",
         ],
-        query=f"trace_id:{trace_id}",
+        query=f"trace:{trace_id}",
         snuba_params=snuba_params,
         orderby=["-timestamp"],
         offset=0,
