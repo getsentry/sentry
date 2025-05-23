@@ -52,12 +52,6 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
-export const enum DetectorPriorityLevel {
-  HIGH = 75,
-  MEDIUM = 50,
-  LOW = 25,
-}
-
 export interface DataCondition {
   comparison: any;
   comparison_type: DataConditionType;

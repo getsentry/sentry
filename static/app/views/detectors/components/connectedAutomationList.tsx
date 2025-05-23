@@ -90,7 +90,3 @@ const connectedColumns = defineColumns<ConnectedAutomationsData>({
     width: '1fr',
   },
 });
-
-export interface ConnectedAutomationsListProps {
-  automations: Automation[];
-}

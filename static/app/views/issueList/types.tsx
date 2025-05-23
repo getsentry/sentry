@@ -47,18 +47,6 @@ export type GroupSearchView = StarredGroupSearchView & {
   visibility: GroupSearchViewVisibility;
 };
 
-export interface UpdateGroupSearchViewPayload
-  extends Omit<
-    GroupSearchView,
-    'id' | 'lastVisited' | 'visibility' | 'starred' | 'dateCreated' | 'dateUpdated'
-  > {
-  environments: string[];
-  projects: number[];
-  timeFilters: PageFilters['datetime'];
-  id?: string;
-  isAllProjects?: boolean;
-}
-
 // Frontend sort options which map to multiple backend sorts
 export enum GroupSearchViewSort {
   VIEWED = 'visited',
