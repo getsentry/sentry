@@ -28,7 +28,7 @@ import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFet
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
-type LeftNavViewsHeaderProps = {
+type IssueViewsHeaderProps = {
   selectedProjectIds: number[];
   title: ReactNode;
   description?: ReactNode;
@@ -200,11 +200,11 @@ function IssueViewEditMenu() {
   );
 }
 
-function LeftNavViewsHeader({
+function IssueViewsHeader({
   selectedProjectIds,
   title,
   description,
-}: LeftNavViewsHeaderProps) {
+}: IssueViewsHeaderProps) {
   const {projects} = useProjects();
   const prefersStackedNav = usePrefersStackedNav();
   const selectedProjects = projects.filter(({id}) =>
@@ -228,7 +228,7 @@ function LeftNavViewsHeader({
   );
 }
 
-export default LeftNavViewsHeader;
+export default IssueViewsHeader;
 
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   grid-column: 1/-1;

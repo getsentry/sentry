@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
@@ -28,7 +30,7 @@ export function ExploreSecondaryNav() {
   const showOurlogsNew = !localStorage.getItem(ourlogsSeenKey);
 
   return (
-    <SecondaryNav>
+    <Fragment>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.EXPLORE].label}
       </SecondaryNav.Header>
@@ -106,6 +108,6 @@ export function ExploreSecondaryNav() {
           )}
         </Feature>
       </SecondaryNav.Body>
-    </SecondaryNav>
+    </Fragment>
   );
 }

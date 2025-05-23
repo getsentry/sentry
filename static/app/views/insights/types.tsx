@@ -428,7 +428,6 @@ export type SpanIndexedResponse = {
     | 'unavailable'
     | 'data_loss'
     | 'unauthenticated';
-  [SpanIndexedField.SPAN_ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;
   [SpanIndexedField.TRANSACTION]: string;
@@ -488,8 +487,6 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.LCP_ELEMENT]: string;
   [SpanIndexedField.CLS_SOURCE]: string;
   [SpanIndexedField.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH]: number;
-  [SpanIndexedField.PROJECT]: string;
-  [SpanIndexedField.SPAN_GROUP]: string;
   'any(id)': string;
   [SpanIndexedField.DB_SYSTEM]: SupportedDatabaseSystem;
   [SpanIndexedField.CODE_FILEPATH]: string;
