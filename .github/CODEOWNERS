@@ -20,8 +20,9 @@
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
 /src/sentry/sentry_metrics/                              @getsentry/owners-snuba
 /tests/sentry/sentry_metrics/                            @getsentry/owners-snuba
-/src/sentry/snuba/metrics/                               @getsentry/owners-snuba @getsentry/telemetry-experience
+/src/sentry/snuba/metrics/                               @getsentry/owners-snuba
 /src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
+/src/sentry/snuba/metrics/extraction.py                  @getsentry/owners-snuba @getsentry/telemetry-experience
 /src/sentry/snuba/metrics_layer/                         @getsentry/owners-snuba
 /src/sentry/search/events/datasets/metrics_layer.py      @getsentry/owners-snuba
 /tests/snuba/test_snql_snuba.py                          @getsentry/owners-snuba
@@ -507,8 +508,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/querying/                                             @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
-/src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
-/tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
 
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
