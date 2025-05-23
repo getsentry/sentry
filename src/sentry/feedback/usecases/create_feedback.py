@@ -204,7 +204,6 @@ def should_filter_feedback(
         or event["contexts"].get("feedback") is None
         or event["contexts"]["feedback"].get("message") is None
     ):
-        project = Project.objects.get_from_cache(id=project.id)
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
@@ -228,7 +227,6 @@ def should_filter_feedback(
         return True, "Sent in Unreal Unattended Mode"
 
     if message.strip() == "":
-        project = Project.objects.get_from_cache(id=project.id)
         metrics.incr(
             "feedback.create_feedback_issue.filtered",
             tags={
