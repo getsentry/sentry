@@ -4,7 +4,7 @@ import threading
 import time
 from collections.abc import Callable
 
-import rapidjson
+import orjson
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -119,50 +119,43 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     producer_futures.append(producer.produce(topic, payload))
 
             while not stopped.value:
-                with metrics.timer("spans.buffer.flusher.loop_body"):
-                    now = int(time.time()) + current_drift.value
-                    flushed_segments = buffer.flush_segments(
-                        max_segments=max_flush_segments, now=now
-                    )
+                now = int(time.time()) + current_drift.value
+                flushed_segments = buffer.flush_segments(max_segments=max_flush_segments, now=now)
 
-                    if len(flushed_segments) >= max_flush_segments * len(buffer.assigned_shards):
-                        if backpressure_since.value == 0:
-                            backpressure_since.value = int(time.time())
-                    else:
-                        backpressure_since.value = 0
+                if len(flushed_segments) >= max_flush_segments * len(buffer.assigned_shards):
+                    if backpressure_since.value == 0:
+                        backpressure_since.value = int(time.time())
+                else:
+                    backpressure_since.value = 0
 
-                    if not flushed_segments:
-                        time.sleep(1)
-                        continue
+                if not flushed_segments:
+                    time.sleep(1)
+                    continue
 
-                    with metrics.timer("spans.buffer.flusher.produce"):
-                        for _, flushed_segment in flushed_segments.items():
-                            if not flushed_segment.spans:
-                                # This is a bug, most likely the input topic is not
-                                # partitioned by trace_id so multiple consumers are writing
-                                # over each other. The consequence is duplicated segments,
-                                # worst-case.
-                                metrics.incr("sentry.spans.buffer.empty_segments")
-                                continue
+                with metrics.timer("spans.buffer.flusher.produce"):
+                    for _, flushed_segment in flushed_segments.items():
+                        if not flushed_segment.spans:
+                            # This is a bug, most likely the input topic is not
+                            # partitioned by trace_id so multiple consumers are writing
+                            # over each other. The consequence is duplicated segments,
+                            # worst-case.
+                            metrics.incr("sentry.spans.buffer.empty_segments")
+                            continue
 
-                            spans = [span.payload for span in flushed_segment.spans]
+                        spans = [span.payload for span in flushed_segment.spans]
 
-                            kafka_payload = KafkaPayload(
-                                None, rapidjson.dumps({"spans": spans}).encode("utf8"), []
-                            )
+                        kafka_payload = KafkaPayload(None, orjson.dumps({"spans": spans}), [])
 
-                            metrics.timing(
-                                "spans.buffer.segment_size_bytes", len(kafka_payload.value)
-                            )
-                            produce(kafka_payload)
+                        metrics.timing("spans.buffer.segment_size_bytes", len(kafka_payload.value))
+                        produce(kafka_payload)
 
-                    with metrics.timer("spans.buffer.flusher.wait_produce"):
-                        for future in producer_futures:
-                            future.result()
+                with metrics.timer("spans.buffer.flusher.wait_produce"):
+                    for future in producer_futures:
+                        future.result()
 
-                    producer_futures.clear()
+                producer_futures.clear()
 
-                    buffer.done_flush_segments(flushed_segments)
+                buffer.done_flush_segments(flushed_segments)
 
             if producer is not None:
                 producer.close()
