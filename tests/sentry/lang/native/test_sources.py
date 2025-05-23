@@ -57,7 +57,7 @@ class TestGcpBearerAuthentication:
         for i in (1, 2):
             assert "client_email" not in sources[i]
             assert "private_key" not in sources[i]
-            assert sources[i]["bearer_token"] == "ya29.TOKEN"
+            assert sources[i]["bearer_token"] == "Bearer ya29.TOKEN"
 
     @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_TEST)
     @patch("sentry.lang.native.sources.get_gcp_token")
@@ -84,7 +84,7 @@ class TestGcpBearerAuthentication:
         for i in (1, 2):
             assert "client_email" not in sources[i]
             assert "private_key" not in sources[i]
-            assert sources[i]["bearer_token"] == "ya29.TOKEN"
+            assert sources[i]["bearer_token"] == "Bearer ya29.TOKEN"
 
 
 class TestIgnoredSourcesFiltering:

@@ -584,7 +584,7 @@ def get_sources_for_project(project):
                 # if target_credentials.token is None it means that the
                 # token could not be fetched successfully
                 if token is not None:
-                    source["bearer_token"] = token
+                    source["bearer_token"] = "Bearer " + token
 
                     # Remove other credentials if we have a token
                     if "client_email" in source:
