@@ -2,9 +2,9 @@ import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
 
 export function ServiceField() {
-  const {action, actionId, onUpdate, integrations} = useActionNodeContext();
+  const {action, actionId, onUpdate, handler} = useActionNodeContext();
   const integrationId = action.integrationId;
-  const integration = integrations?.find(i => i.id === integrationId);
+  const integration = handler.integrations?.find(i => i.id === integrationId);
 
   if (!integration || !integrationId) {
     return null;
