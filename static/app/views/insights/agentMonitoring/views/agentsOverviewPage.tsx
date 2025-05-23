@@ -14,7 +14,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import DurationWidget from 'sentry/views/insights/agentMonitoring/components/durationWidget';
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
 import {ToolsTable} from 'sentry/views/insights/agentMonitoring/components/toolsTable';
 import {TracesTable} from 'sentry/views/insights/agentMonitoring/components/tracesTable';
@@ -23,16 +22,16 @@ import {
   useActiveTable,
 } from 'sentry/views/insights/agentMonitoring/hooks/useActiveTable';
 import {AgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {getAgentRunsFilter} from 'sentry/views/insights/agentMonitoring/utils/query';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
+import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
-import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {ModuleName} from 'sentry/views/insights/types';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
@@ -80,14 +79,10 @@ function AgentsMonitoringPage() {
               <ModuleLayout.Full>
                 <WidgetGrid>
                   <WidgetGrid.Position1>
-                    <TrafficWidget
-                      title={t('Traffic')}
-                      trafficSeriesName={t('Runs')}
-                      baseQuery={getAgentRunsFilter()}
-                    />
+                    <OverviewAgentsRunsChartWidget />
                   </WidgetGrid.Position1>
                   <WidgetGrid.Position2>
-                    <DurationWidget />
+                    <OverviewAgentsDurationChartWidget />
                   </WidgetGrid.Position2>
                   <WidgetGrid.Position3>
                     <IssuesWidget />

@@ -165,6 +165,14 @@ const CHART_MAP = {
     ),
   overviewRequestsChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewRequestsChartWidget'),
+  overviewAgentsRunsChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget'
+    ),
+  overviewAgentsDurationChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget'
+    ),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;
 
 /**
