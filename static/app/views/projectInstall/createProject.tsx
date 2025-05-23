@@ -135,7 +135,6 @@ const keyToErrorText: Record<string, string> = {
 export function CreateProject() {
   const api = useApi();
   const navigate = useNavigate();
-  const [errors, setErrors] = useState();
   const organization = useOrganization();
   const location = useLocation();
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
@@ -297,7 +296,6 @@ export function CreateProject() {
           )
         );
       } catch (error) {
-        setErrors(error.responseJSON);
         addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
         // Only log this if the error is something other than:
@@ -341,8 +339,6 @@ export function CreateProject() {
 
   const handleProjectCreation = useCallback(
     async (data: FormData) => {
-      setErrors(undefined);
-
       const selectedPlatform = data.platform;
 
       if (!isNotPartialPlatform(selectedPlatform)) {
@@ -528,13 +524,13 @@ export function CreateProject() {
               </Tooltip>
             </div>
           </FormFieldGroup>
-          {errors && (
+          {createProjectAndRules.isError && createProjectAndRules.error.responseJSON && (
             <Alert.Container>
               <Alert type="error">
-                {Object.keys(errors).map(key => (
+                {Object.keys(createProjectAndRules.error.responseJSON).map(key => (
                   <div key={key}>
                     <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
-                    {(errors as any)[key]}
+                    {(createProjectAndRules.error.responseJSON as any)[key]}
                   </div>
                 ))}
               </Alert>

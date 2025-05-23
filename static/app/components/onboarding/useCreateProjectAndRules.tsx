@@ -1,18 +1,35 @@
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useIsMutating, useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 
 const MUTATION_KEY = 'create-project-and-rules';
 
+type Variables = {
+  alertRuleConfig: Partial<RequestDataFragment>;
+  createNotificationAction: ReturnType<
+    typeof useCreateNotificationAction
+  >['createNotificationAction'];
+  platform: OnboardingSelectedSDK;
+  projectName: string;
+  team?: string;
+};
+
+type Response = {
+  project: Project;
+  ruleIds: string[];
+};
+
 export function useCreateProjectAndRules() {
   const createProject = useCreateProject();
   const createProjectRules = useCreateProjectRules();
 
-  return useMutation({
+  return useMutation<Response, RequestError, Variables>({
     mutationKey: [MUTATION_KEY],
     mutationFn: async ({
       projectName,
@@ -20,14 +37,6 @@ export function useCreateProjectAndRules() {
       alertRuleConfig,
       team,
       createNotificationAction,
-    }: {
-      alertRuleConfig: Partial<RequestDataFragment>;
-      createNotificationAction: ReturnType<
-        typeof useCreateNotificationAction
-      >['createNotificationAction'];
-      platform: OnboardingSelectedSDK;
-      projectName: string;
-      team?: string;
     }) => {
       const project = await createProject.mutateAsync({
         name: projectName,
