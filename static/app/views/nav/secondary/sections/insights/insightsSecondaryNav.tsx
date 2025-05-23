@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
@@ -64,7 +64,7 @@ export function InsightsSecondaryNav() {
     : nonStarredProjects.filter(project => project.isMember).slice(0, 8);
 
   return (
-    <SecondaryNav>
+    <Fragment>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.INSIGHTS].label}
       </SecondaryNav.Header>
@@ -155,7 +155,7 @@ export function InsightsSecondaryNav() {
           </SecondaryNav.Section>
         ) : null}
       </SecondaryNav.Body>
-    </SecondaryNav>
+    </Fragment>
   );
 }
 

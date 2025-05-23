@@ -49,7 +49,7 @@ import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
-import LeftNavViewsHeader from 'sentry/views/issueList/leftNavViewsHeader';
+import IssueViewsHeader from 'sentry/views/issueList/issueViewsHeader';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
@@ -1091,7 +1091,7 @@ function IssueListOverview({
   return (
     <Layout.Page>
       {prefersStackedNav ? (
-        <LeftNavViewsHeader
+        <IssueViewsHeader
           selectedProjectIds={selection.projects}
           title={title}
           description={titleDescription}

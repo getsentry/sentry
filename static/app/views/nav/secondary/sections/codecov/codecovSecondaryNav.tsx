@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeCodecovPathname} from 'sentry/views/codecov/pathnames';
@@ -26,7 +28,7 @@ function CodecovSecondaryNav() {
   });
 
   return (
-    <SecondaryNav>
+    <Fragment>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.CODECOV].label}
       </SecondaryNav.Header>
@@ -48,7 +50,7 @@ function CodecovSecondaryNav() {
           </SecondaryNav.Item>
         </SecondaryNav.Section>
       </SecondaryNav.Body>
-    </SecondaryNav>
+    </Fragment>
   );
 }
 
