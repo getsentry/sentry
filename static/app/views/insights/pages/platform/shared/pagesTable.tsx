@@ -78,7 +78,6 @@ const pageloadColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Pageloads'), width: 122},
   {key: 'failure_rate()', name: t('Error Rate'), width: 122},
-  {key: 'sum(span.duration)', name: t('Time Spent'), width: 110},
   {
     key: 'performance_score(measurements.score.total)',
     name: t('Perf Score'),
