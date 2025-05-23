@@ -168,7 +168,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.SEER_AUTOFIX]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_AUTOFIX],
     canAllocate: false,
-    canProductTrial: false,
+    canProductTrial: true,
     maxAdminGift: 0,
     freeEventsMultiple: 0,
     feature: 'seer-billing',

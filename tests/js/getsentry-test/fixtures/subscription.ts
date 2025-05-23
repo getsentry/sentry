@@ -402,6 +402,8 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
   subscription.reservedBudgetCategories = [
     DataCategory.SPANS,
     DataCategory.SPANS_INDEXED,
+    DataCategory.SEER_AUTOFIX,
+    DataCategory.SEER_SCANNER,
   ];
   subscription.reservedBudgets = [
     DynamicSamplingReservedBudgetFixture({
@@ -424,6 +426,21 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
   ];
   subscription.categories.spans!.reserved = RESERVED_BUDGET_QUOTA;
   subscription.categories.spansIndexed!.reserved = RESERVED_BUDGET_QUOTA;
+  // Ensure SEER categories exist for AM3 DS plans
+  if (!subscription.categories.seerAutofix) {
+    subscription.categories.seerAutofix = MetricHistoryFixture({
+      category: DataCategory.SEER_AUTOFIX,
+      reserved: 0,
+      order: 10,
+    });
+  }
+  if (!subscription.categories.seerScanner) {
+    subscription.categories.seerScanner = MetricHistoryFixture({
+      category: DataCategory.SEER_SCANNER,
+      reserved: 0,
+      order: 11,
+    });
+  }
 
   return subscription;
 }

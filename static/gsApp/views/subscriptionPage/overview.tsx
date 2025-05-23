@@ -192,7 +192,19 @@ function Overview({location, subscription, promotionData}: Props) {
       nonPlanProductTrials?.filter(pt => pt.category === DataCategory.PROFILES).length >
         0 || false;
 
-    const showAllBudgetTotals = subscription.hadCustomDynamicSampling ? true : false;
+    const showAllBudgetTotals = subscription.hadCustomDynamicSampling;
+
+    // Ensure relevant categories in reservedBudgetCategoryInfo have reservedSpend initialized
+    // and safely access source properties.
+    const spansCategoryInfo = reservedBudgetCategoryInfo[DataCategory.SPANS];
+    if (spansCategoryInfo) {
+      spansCategoryInfo.reservedSpend = spansCategoryInfo.reservedSpend ?? 0;
+    }
+    const seerAutofixCategoryInfo = reservedBudgetCategoryInfo[DataCategory.SEER_AUTOFIX];
+    if (seerAutofixCategoryInfo) {
+      seerAutofixCategoryInfo.reservedSpend = seerAutofixCategoryInfo.reservedSpend ?? 0;
+    }
+
     if (
       !subscription.hadCustomDynamicSampling &&
       isAm3DsPlan(subscription.plan) &&
@@ -200,8 +212,18 @@ function Overview({location, subscription, promotionData}: Props) {
     ) {
       // if the customer has not yet stated using custom DS in the current period,
       // just show one spans UsageTotalsTable
-      reservedBudgetCategoryInfo[DataCategory.SPANS]!.reservedSpend +=
-        reservedBudgetCategoryInfo[DataCategory.SPANS_INDEXED]!.reservedSpend ?? 0;
+      const spansIndexedSpend =
+        reservedBudgetCategoryInfo[DataCategory.SPANS_INDEXED]?.reservedSpend ?? 0;
+      if (spansCategoryInfo) {
+        spansCategoryInfo.reservedSpend += spansIndexedSpend;
+      }
+
+      // Combine SEER_SCANNER into SEER_AUTOFIX
+      const seerScannerSpend =
+        reservedBudgetCategoryInfo[DataCategory.SEER_SCANNER]?.reservedSpend ?? 0;
+      if (seerAutofixCategoryInfo) {
+        seerAutofixCategoryInfo.reservedSpend += seerScannerSpend;
+      }
     }
 
     return (
@@ -209,7 +231,11 @@ function Overview({location, subscription, promotionData}: Props) {
         {sortCategories(subscription.categories).map(categoryHistory => {
           const category = categoryHistory.category;
           // Stored spans are combined into the accepted spans category's table
-          if (category === DataCategory.SPANS_INDEXED) {
+          // Seer issue scans are combined into the Seer Autofix table
+          if (
+            category === DataCategory.SPANS_INDEXED ||
+            category === DataCategory.SEER_SCANNER
+          ) {
             return null;
           }
 
