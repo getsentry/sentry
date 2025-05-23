@@ -200,28 +200,16 @@ def _compute_span_ops(spans: list[Span], config: Any) -> dict[str, _MeasurementV
     if not matches:
         return {}
 
-    emit_intervals = defaultdict(list)
-    other_intervals = defaultdict(list)
+    intervals_by_op = defaultdict(list)
     for span in spans:
-        # If the span operation matches one of the prefixes, emit a breakdown
-        # for this interval. Otherwise, only count it for total_time.
         op = span["op"]
         if operation_name := next(filter(lambda m: op.startswith(m), matches), None):
-            emit_intervals[operation_name].append(_span_interval(span))
-        else:
-            other_intervals[op].append(_span_interval(span))
+            intervals_by_op[operation_name].append(_span_interval(span))
 
-    total_time = 0
-    measurements = {}
-
-    for _, intervals in other_intervals.items():
-        total_time += _get_duration_us(intervals)
-
-    for operation_name, intervals in emit_intervals.items():
-        total_time += _get_duration_us(intervals)
-        measurements[f"ops.{operation_name}"] = _measurement_us(_get_duration_us(intervals))
-
-    measurements["total.time"] = _measurement_us(total_time)
+    measurements: dict[str, _MeasurementValue] = {}
+    for operation_name, intervals in intervals_by_op.items():
+        duration = _get_duration_us(intervals)
+        measurements[f"ops.{operation_name}"] = {"value": duration / 1000, "unit": "millisecond"}
     return measurements
 
 
@@ -244,11 +232,3 @@ def _get_duration_us(intervals: list[tuple[int, int]]) -> int:
         last_end = end
 
     return duration
-
-
-def _measurement_us(value_us: int) -> _MeasurementValue:
-    """
-    Create a measurement value from the provided value in microseconds
-    """
-
-    return {"value": value_us / 1000, "unit": "millisecond"}
