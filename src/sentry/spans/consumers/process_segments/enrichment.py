@@ -186,12 +186,12 @@ def compute_breakdowns(segment: Span, spans: list[Span], project: Project) -> No
         ty = breakdown_config.get("type")
 
         if ty == "spanOperations":
-            measurements = _compute_span_ops(spans, breakdown_config)
+            breakdowns = _compute_span_ops(spans, breakdown_config)
         else:
             continue
 
         measurements = segment.setdefault("measurements", {})
-        for key, value in measurements.items():
+        for key, value in breakdowns.items():
             measurements[f"{breakdown_name}.{key}"] = value
 
 
@@ -202,7 +202,7 @@ def _compute_span_ops(spans: list[Span], config: Any) -> dict[str, _MeasurementV
 
     intervals_by_op = defaultdict(list)
     for span in spans:
-        op = span["op"]
+        op = span.get("sentry_tags", {}).get("op", "")
         if operation_name := next(filter(lambda m: op.startswith(m), matches), None):
             intervals_by_op[operation_name].append(_span_interval(span))
 
