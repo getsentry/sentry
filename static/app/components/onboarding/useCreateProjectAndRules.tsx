@@ -1,7 +1,6 @@
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import {defined} from 'sentry/utils';
 import {useIsMutating, useMutation} from 'sentry/utils/queryClient';
 import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
@@ -36,21 +35,6 @@ export function useCreateProjectAndRules() {
         firstTeamSlug: team,
       });
 
-      const ruleIds = [];
-
-      if (alertRuleConfig?.shouldCreateCustomRule) {
-        const ruleData = await createProjectRules.mutateAsync({
-          projectSlug: project.slug,
-          name: project.name,
-          conditions: alertRuleConfig?.conditions,
-          actions: alertRuleConfig?.actions,
-          actionMatch: alertRuleConfig?.actionMatch,
-          frequency: alertRuleConfig?.frequency,
-        });
-
-        ruleIds.push(ruleData.id);
-      }
-
       const notificationRule = await createNotificationAction({
         shouldCreateRule: alertRuleConfig?.shouldCreateRule,
         name: project.name,
@@ -60,9 +44,27 @@ export function useCreateProjectAndRules() {
         frequency: alertRuleConfig?.frequency,
       });
 
-      ruleIds.push(notificationRule?.id);
+      if (alertRuleConfig?.shouldCreateCustomRule) {
+        const customRule = await createProjectRules.mutateAsync({
+          projectSlug: project.slug,
+          name: project.name,
+          conditions: alertRuleConfig?.conditions,
+          actions: alertRuleConfig?.actions,
+          actionMatch: alertRuleConfig?.actionMatch,
+          frequency: alertRuleConfig?.frequency,
+        });
 
-      return {project, ruleIds: ruleIds.filter(defined)};
+        return {
+          project,
+          customRule,
+          notificationRule,
+        };
+      }
+
+      return {
+        project,
+        notificationRule,
+      };
     },
   });
 }
