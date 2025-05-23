@@ -45,12 +45,12 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if lcp_value and (lcp_unit is None or lcp_unit == "millisecond"):
             self.lcp = lcp_value
 
+    @classmethod
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
+        return not is_event_from_browser_javascript_sdk(event)
+
     def visit_span(self, span: Span) -> None:
-        if is_event_from_browser_javascript_sdk(self.event()):
-            return
-
         span_id = span.get("span_id", None)
-
         if not span_id or not self._is_eligible_http_span(span):
             return
 
@@ -71,12 +71,16 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         exceeds_count_threshold = len(self.consecutive_http_spans) >= self.settings.get(
             "consecutive_count_threshold"
         )
+        if not exceeds_count_threshold:
+            return
 
         exceeds_min_time_saved_duration = False
         if self.consecutive_http_spans:
             exceeds_min_time_saved_duration = self._calculate_time_saved() >= self.settings.get(
                 "min_time_saved"
             )
+        if not exceeds_min_time_saved_duration:
+            return
 
         subceeds_duration_between_spans_threshold = all(
             get_duration_between_spans(
@@ -85,13 +89,10 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             < self.settings.get("max_duration_between_spans")
             for idx in range(1, len(self.consecutive_http_spans))
         )
+        if not subceeds_duration_between_spans_threshold:
+            return
 
-        if (
-            exceeds_count_threshold
-            and subceeds_duration_between_spans_threshold
-            and exceeds_min_time_saved_duration
-        ):
-            self._store_performance_problem()
+        self._store_performance_problem()
 
     def _calculate_time_saved(self) -> float:
         total_time = get_total_span_duration(self.consecutive_http_spans)
