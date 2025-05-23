@@ -3115,6 +3115,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "generic-metrics-subscription-results": "default",
     "metrics-subscription-results": "default",
     "eap-spans-subscription-results": "default",
+    "subscription-results-eap-items": "default",
     "ingest-events": "default",
     "ingest-feedback-events": "default",
     "ingest-feedback-events-dlq": "default",
