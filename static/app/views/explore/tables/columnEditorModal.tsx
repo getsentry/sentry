@@ -242,7 +242,7 @@ function ColumnEditorRow({
         );
       }
     }
-    return <TriggerLabel>{!column.column && t('None')}</TriggerLabel>;
+    return <TriggerLabel>{column.column || t('\u2014')}</TriggerLabel>;
   }, [column.column, options]);
 
   return (
@@ -255,7 +255,7 @@ function ColumnEditorRow({
       }}
       {...attributes}
     >
-      <Button
+      <StyledButton
         aria-label={t('Drag to reorder')}
         borderless
         size="sm"
@@ -276,13 +276,13 @@ function ColumnEditorRow({
           },
         }}
       />
-      <Button
+      <StyledButton
         aria-label={t('Remove Column')}
         borderless
         disabled={!canDelete}
         size="sm"
         icon={<IconDelete size="sm" />}
-        onClick={() => onColumnDelete()}
+        onClick={onColumnDelete}
       />
     </RowContainer>
   );
@@ -292,10 +292,16 @@ const RowContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
+  gap: ${space(1)};
 
   :not(:first-child) {
     margin-top: ${space(1)};
   }
+`;
+
+const StyledButton = styled(Button)`
+  padding-left: 0;
+  padding-right: 0;
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
