@@ -92,9 +92,9 @@ class RecordingIngestMessage:
 
 def ingest_recording(message_bytes: bytes) -> None:
     """Ingest non-chunked recording messages."""
-    isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
+    isolation_scope = sentry_sdk.get_isolation_scope().fork()
 
-    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
+    with sentry_sdk.use_isolation_scope(isolation_scope):
         with sentry_sdk.start_span(
             name="replays.consumer.process_recording",
             op="replays.consumer",

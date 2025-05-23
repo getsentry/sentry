@@ -1161,8 +1161,8 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     _snuba_query,
                     [
                         (
-                            sentry_sdk.Scope.get_isolation_scope(),
-                            sentry_sdk.Scope.get_current_scope(),
+                            sentry_sdk.get_isolation_scope(),
+                            sentry_sdk.get_current_scope(),
                             snuba_request,
                         )
                         for snuba_request in snuba_requests_list
@@ -1174,8 +1174,8 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             query_results = [
                 _snuba_query(
                     (
-                        sentry_sdk.Scope.get_isolation_scope(),
-                        sentry_sdk.Scope.get_current_scope(),
+                        sentry_sdk.get_isolation_scope(),
+                        sentry_sdk.get_current_scope(),
                         snuba_requests_list[0],
                     )
                 )
@@ -1285,8 +1285,8 @@ def _snuba_query(
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function. (bc of thread .map)
     thread_isolation_scope, thread_current_scope, snuba_request = params
-    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
-        with sentry_sdk.scope.use_scope(thread_current_scope):
+    with sentry_sdk.use_isolation_scope(thread_isolation_scope):
+        with sentry_sdk.use_scope(thread_current_scope):
             headers = snuba_request.headers
             request = snuba_request.request
             try:

@@ -122,8 +122,8 @@ def _make_rpc_requests(
     # Sets the thread parameters once so we're not doing it in the map repeatedly
     partial_request = partial(
         _make_rpc_request,
-        thread_isolation_scope=sentry_sdk.Scope.get_isolation_scope(),
-        thread_current_scope=sentry_sdk.Scope.get_current_scope(),
+        thread_isolation_scope=sentry_sdk.get_isolation_scope(),
+        thread_current_scope=sentry_sdk.get_current_scope(),
     )
     response = [
         result
@@ -248,21 +248,19 @@ def _make_rpc_request(
     thread_current_scope: sentry_sdk.Scope | None = None,
 ) -> BaseHTTPResponse:
     thread_isolation_scope = (
-        sentry_sdk.Scope.get_isolation_scope()
+        sentry_sdk.get_isolation_scope()
         if thread_isolation_scope is None
         else thread_isolation_scope
     )
     thread_current_scope = (
-        sentry_sdk.Scope.get_current_scope()
-        if thread_current_scope is None
-        else thread_current_scope
+        sentry_sdk.get_current_scope() if thread_current_scope is None else thread_current_scope
     )
     if SNUBA_INFO:
         from google.protobuf.json_format import MessageToJson
 
         log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
-    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
-        with sentry_sdk.scope.use_scope(thread_current_scope):
+    with sentry_sdk.use_isolation_scope(thread_isolation_scope):
+        with sentry_sdk.use_scope(thread_current_scope):
             with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
                 if referrer:
                     span.set_tag("snuba.referrer", referrer)

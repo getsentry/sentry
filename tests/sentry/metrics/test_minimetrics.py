@@ -51,7 +51,7 @@ def scope():
             traces_sample_rate=1.0,
         ),
     )
-    with sentry_sdk.scope.use_scope(scope):
+    with sentry_sdk.use_scope(scope):
         yield scope
 
 
