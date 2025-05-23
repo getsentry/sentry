@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from collections import namedtuple
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import Mock
@@ -18,7 +19,9 @@ from sentry.feedback.usecases.create_feedback import (
     shim_to_feedback,
     validate_issue_platform_event_schema,
 )
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
+from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
@@ -907,6 +910,34 @@ def test_create_feedback_evidence_has_spam(
     assert mock_produce_occurrence_to_kafka.call_count == 1
     evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
     assert evidence["is_spam"] is True
+
+
+@django_db_all
+def test_rate_limited(monkeypatch, default_project):
+    event = mock_feedback_event(default_project.id)
+    MockGranted = namedtuple("MockGranted", ["granted"])
+    mock_check_and_use_quotas = Mock(return_value=[MockGranted(granted=False)])
+
+    monkeypatch.setattr(
+        "sentry.issues.ingest.issue_rate_limiter.check_and_use_quotas",
+        mock_check_and_use_quotas,
+    )
+
+    assert (
+        create_feedback_issue(
+            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+        is None
+    )
+
+    assert mock_check_and_use_quotas.call_count == 1
+    assert mock_check_and_use_quotas.call_args[0][0] == [
+        RequestedQuota(
+            f"issue-platform-issues:{default_project.id}:{FeedbackGroup.slug}",
+            1,
+            [FeedbackGroup.creation_quota],
+        )
+    ]
 
 
 """

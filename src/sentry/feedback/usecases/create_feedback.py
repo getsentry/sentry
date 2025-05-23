@@ -303,8 +303,8 @@ def create_feedback_issue(
             key_id=None,
             outcome=Outcome.RATE_LIMITED,
             reason="group_type_rate_limit",
-            timestamp=datetime.fromisoformat(event.timestamp),
-            event_id=event.event_id,
+            timestamp=datetime.fromtimestamp(event["timestamp"]),
+            event_id=event["event_id"],
             category=DataCategory.USER_REPORT_V2,
             quantity=1,
         )
