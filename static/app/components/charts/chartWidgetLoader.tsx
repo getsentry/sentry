@@ -159,12 +159,22 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'
     ),
+  overviewCacheMissChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget'
+    ),
+  overviewJobsChartWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewJobsChartWidget'),
   overviewPageloadsChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget'
     ),
   overviewRequestsChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewRequestsChartWidget'),
+  overviewSlowQueriesChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget'
+    ),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;
 
 /**
