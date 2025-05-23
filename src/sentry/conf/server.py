@@ -1510,7 +1510,6 @@ TASKWORKER_SCHEDULES: ScheduleConfigMap = {
     },
 }
 
-TASKWORKER_ENABLE_HIGH_THROUGHPUT_NAMESPACES = False
 TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
     "ingest.profiling",
     "ingest.transactions",
