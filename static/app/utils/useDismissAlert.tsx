@@ -39,6 +39,7 @@ function isValid(timestamp: number, expirationDays: number) {
 function useDismissAlert({expirationDays = Number.MAX_SAFE_INTEGER, key}: Opts) {
   const [dismissedTimestamp, setDismissedTimestamp] = useLocalStorageState<
     undefined | string
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
   >(key, val => (val ? String(val) : undefined));
 
   const isDismissed =

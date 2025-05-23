@@ -1,5 +1,6 @@
-export interface NewAction {
+export interface Action {
   data: Record<string, unknown>;
+  id: string;
   type: ActionType;
   integrationId?: string;
 }
@@ -24,4 +25,8 @@ export enum ActionType {
 export interface Integration {
   id: string;
   name: string;
+  services?: Array<{
+    id: string;
+    name: string;
+  }>;
 }

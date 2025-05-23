@@ -82,9 +82,10 @@ export function LogsTable({
     <Fragment>
       <Table
         ref={tableRef}
-        styles={initialTableStyles}
+        style={initialTableStyles}
         data-test-id="logs-table"
         hideBorder={isTableFrozen}
+        showVerticalScrollbar={isTableFrozen}
       >
         {showHeader ? (
           <TableHead>

@@ -802,7 +802,7 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    from sentry.issues.escalating import is_escalating, manage_issue_states
+    from sentry.issues.escalating.escalating import is_escalating, manage_issue_states
     from sentry.models.group import GroupStatus
     from sentry.models.groupinbox import GroupInboxReason
     from sentry.models.groupsnooze import GroupSnooze
@@ -1310,13 +1310,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         logger.info("post_process.process_error_ignored", extra={"exception": e})
     except Exception as e:
         logger.exception("post_process.process_error", extra={"exception": e})
-    logger.info(
-        "post_process.plugin_success",
-        extra={
-            "project_id": event.project_id,
-            "plugin_slug": plugin_slug,
-        },
-    )
 
 
 def feedback_filter_decorator(func):
@@ -1477,7 +1470,7 @@ def detect_new_escalation(job: PostProcessJob):
     If we detect that the group has escalated, set has_escalated to True in the
     job.
     """
-    from sentry.issues.issue_velocity import get_latest_threshold
+    from sentry.issues.escalating.issue_velocity import get_latest_threshold
     from sentry.issues.priority import PriorityChangeReason, auto_update_priority
     from sentry.models.activity import Activity
     from sentry.models.group import GroupStatus
@@ -1571,7 +1564,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     group = event.group
 
     if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
-        "projects:trigger-issue-summary-on-alerts", group.project
+        "organizations:trigger-autofix-on-issue-summary", group.organization
     ):
         return
 

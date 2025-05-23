@@ -99,6 +99,9 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         """
         Checks if we are able to run Autofix on the given group.
         """
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         org: Organization = request.organization
 
         integration_check = None

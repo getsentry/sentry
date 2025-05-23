@@ -25,7 +25,7 @@ function DetailLayout({children, project}: WorkflowEngineDetailLayoutProps) {
   const title = useDocumentTitle();
   return (
     <StyledPage>
-      <Layout.Header>
+      <Layout.Header unified>
         <Layout.HeaderContent>
           <BreadcrumbsFromContext />
           <Layout.Title>{title}</Layout.Title>

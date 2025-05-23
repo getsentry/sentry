@@ -245,9 +245,8 @@ describe('AddToDashboardButton', () => {
           queries: [
             {
               aggregates: [
+                // because the visualizes get flattend, we only take the first y axis
                 'avg(span.duration)',
-                'max(span.duration)',
-                'min(span.duration)',
               ],
               columns: [],
               fields: [],

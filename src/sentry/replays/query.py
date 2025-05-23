@@ -354,6 +354,7 @@ replay_url_parser_config = SearchConfig(
         "count_screens",
     },
     duration_keys={"duration"},
+    boolean_keys={"is_archived"},
 )
 
 
@@ -564,6 +565,10 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "user.email": ["user_email"],
     "user.username": ["user_username"],
     "user.ip": ["user_ip"],
+    "user.geo.city": ["user_geo_city"],
+    "user.geo.country_code": ["user_geo_country_code"],
+    "user.geo.region": ["user_geo_region"],
+    "user.geo.subdivision": ["user_geo_subdivision"],
     "os.name": ["os_name"],
     "os.version": ["os_version"],
     "browser.name": ["browser_name"],
@@ -719,6 +724,10 @@ QUERY_ALIAS_COLUMN_MAP = {
         parameters=[anyIfNonZeroIP(column_name="ip_address_v4", aliased=False)],
         alias="user_ip",
     ),
+    "user_geo_city": anyIf(column_name="user_geo_city"),
+    "user_geo_country_code": anyIf(column_name="user_geo_country_code"),
+    "user_geo_region": anyIf(column_name="user_geo_region"),
+    "user_geo_subdivision": anyIf(column_name="user_geo_subdivision"),
     "os_name": anyIf(column_name="os_name"),
     "os_version": anyIf(column_name="os_version"),
     "browser_name": anyIf(column_name="browser_name"),

@@ -1,5 +1,5 @@
 import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   StickyFooter,
   StickyFooterLabel,

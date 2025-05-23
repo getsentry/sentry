@@ -1,7 +1,7 @@
 import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
@@ -37,7 +37,7 @@ export default function MultiQueryMode() {
       renderDisabled={NoAccess}
     >
       <SentryDocumentTitle title={t('Compare Queries')} orgSlug={organization.slug}>
-        <Layout.Header>
+        <Layout.Header unified>
           <Layout.HeaderContent>
             <Breadcrumbs
               crumbs={[

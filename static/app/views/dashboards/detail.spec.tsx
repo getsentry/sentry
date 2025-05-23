@@ -284,6 +284,7 @@ describe('Dashboards > Detail', function () {
     let widgets!: Array<ReturnType<typeof WidgetFixture>>;
     let mockVisit!: jest.Mock;
     let mockPut!: jest.Mock;
+    let mockScrollIntoView!: jest.Mock;
 
     beforeEach(function () {
       window.confirm = jest.fn();
@@ -447,6 +448,9 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/measurements-meta/',
         body: [],
       });
+
+      mockScrollIntoView = jest.fn();
+      window.HTMLElement.prototype.scrollIntoView = mockScrollIntoView;
     });
 
     afterEach(function () {
@@ -2542,6 +2546,7 @@ describe('Dashboards > Detail', function () {
 
         // The widget is added in the dashboard
         expect(await screen.findByText('Totally new widget')).toBeInTheDocument();
+        expect(mockScrollIntoView).toHaveBeenCalled();
       });
 
       it('allows for editing a widget in view mode', async function () {
@@ -2599,6 +2604,7 @@ describe('Dashboards > Detail', function () {
             widgets: [expect.objectContaining({title: 'Updated Widget Title'})],
           })
         );
+        expect(mockScrollIntoView).toHaveBeenCalled();
       });
 
       it('allows for creating a widget in view mode', async function () {

@@ -178,6 +178,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable access to NextJS specific insights
     manager.add("organizations:nextjs-insights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable AI Agents specific insights
+    manager.add("organizations:agents-insights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics
     manager.add("organizations:on-demand-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics (experimental features)
@@ -204,8 +206,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-change-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     manager.add("organizations:performance-chart-interpolation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable consecutive http performance issue type
-    manager.add("organizations:performance-consecutive-http-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable Discover Saved Query dataset selector
     manager.add("organizations:performance-discover-dataset-selector", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable deprecate discover widget type
@@ -222,8 +222,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-issues-search", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
     # Detect performance issues in the new standalone spans pipeline instead of on transactions
     manager.add("organizations:performance-issues-spans", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
-    # Enable consecutive http performance issue type
-    manager.add("organizations:performance-large-http-payload-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable internal view for bannerless MEP view
     manager.add("organizations:performance-mep-bannerless-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Re-enable histograms for Metrics Enhanced Performance Views
@@ -275,6 +273,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:profiling-beta", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enables monitoring for latest profiling sdk used
     manager.add("organizations:profiling-sdks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables dropping of deprecated profiling sdks used
+    manager.add("organizations:profiling-deprecate-sdks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables production profiling in sentry browser application
     manager.add("organizations:profiling-browser", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables separate differential flamegraph page
@@ -420,7 +420,9 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:user-feedback-spam-filter-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Block User Feedback spam auto filtering feature ingest
     manager.add("organizations:user-feedback-spam-ingest-blocklist", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable User Feedback spam auto filtering feature actions
+    # Enable auto spam classification at User Feedback ingest time (TODO: use this to replace the two flags above)
+    manager.add("organizations:user-feedback-spam-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable auto spam filtering at User Feedback ingest time, if spam-ingest is also enabled
     manager.add("organizations:user-feedback-spam-filter-actions", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Enable User Feedback v2 UI
     manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -500,10 +502,10 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:jira-per-project-statuses", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable using paginated projects endpoint for Jira integration
     manager.add("organizations:jira-paginated-projects", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable using paginated labels for GitHub integration
-    manager.add("organizations:github-paginated-labels", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable single trace summary
     manager.add("organizations:single-trace-summary", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable users to connect many Sentry orgs to a single Github org
+    manager.add("organizations:github-multi-org", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Relay extracting logs from breadcrumbs for a project.
     manager.add("projects:ourlogs-breadcrumb-extraction", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
@@ -531,8 +533,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:use-eap-spans-for-metrics-explorer", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable tagging span with whether or not we should ingest it in the EAP
     manager.add("projects:ingest-spans-in-eap", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enables automatically triggering issue summary on alerts
-    manager.add("projects:trigger-issue-summary-on-alerts", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable num events in an issue debugging
     manager.add("projects:num-events-issue-debugging", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 

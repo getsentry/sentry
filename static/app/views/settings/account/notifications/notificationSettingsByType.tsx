@@ -427,6 +427,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       {description && <TextBlock>{description}</TextBlock>}
       <Observer>
         {() => {
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           return providerModel.getValue('provider')?.toString().includes('slack') &&
             unlinkedSlackOrgs.length > 0 ? (
             <UnlinkedAlert organizations={unlinkedSlackOrgs} />

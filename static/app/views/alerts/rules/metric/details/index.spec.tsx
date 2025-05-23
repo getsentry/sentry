@@ -237,9 +237,10 @@ describe('MetricAlertDetails', () => {
     );
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('dataset=errors')
-    );
+
+    const button = screen.getByRole('button', {name: 'Open in Discover'});
+    expect(button).toBeInTheDocument();
+    expect(button).toBeEnabled();
+    expect(button).toHaveAttribute('href', expect.stringContaining('dataset=errors'));
   });
 });

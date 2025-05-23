@@ -28,6 +28,7 @@ interface TabProps extends AriaTabProps {
   overflowing: boolean;
   state: TabListState<any>;
   as?: React.ElementType;
+  ref?: React.Ref<HTMLLIElement>;
   variant?: BaseTabProps['variant'];
 }
 
@@ -139,9 +140,7 @@ export function Tab({
   overflowing,
   variant,
   as = 'li',
-}: TabProps & {
-  ref?: React.Ref<HTMLLIElement>;
-}) {
+}: TabProps) {
   const objectRef = useObjectRef(ref);
 
   const {

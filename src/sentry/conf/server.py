@@ -735,7 +735,7 @@ CELERY_ALWAYS_EAGER = False
 # Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
 # this works.
 CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
-CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE = 0.01
+CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE = 0.02
 
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
@@ -1435,7 +1435,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.vsts.tasks.subscription_check",
-    "sentry.issues.forecasts",
+    "sentry.issues.escalating.forecasts",
     "sentry.middleware.integrations.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
@@ -2351,18 +2351,16 @@ SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
 # XXX(dcramer): this doesn't work outside of a source distribution as the
-# webpack.config.js is not part of Sentry's datafiles
+# rspack.config.ts is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
     (
         "webpack",
         [
-            os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            os.path.join(NODE_MODULES_ROOT, ".bin", "rspack"),
             "serve",
-            "--color",
-            "--output-pathinfo=true",
             "--config={}".format(
                 os.path.normpath(
-                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.ts")
+                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "rspack.config.ts")
                 )
             ),
         ],
@@ -2696,7 +2694,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.4.0"
+SELF_HOSTED_STABLE_VERSION = "25.5.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3117,6 +3115,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "generic-metrics-subscription-results": "default",
     "metrics-subscription-results": "default",
     "eap-spans-subscription-results": "default",
+    "subscription-results-eap-items": "default",
     "ingest-events": "default",
     "ingest-feedback-events": "default",
     "ingest-feedback-events-dlq": "default",
@@ -3197,13 +3196,13 @@ JIRA_USE_EMAIL_SCOPE = False
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
+    "flags",
     "nodestore",
     "replays",
     "sentry",
     "social_auth",
     "feedback",
     "hybridcloud",
-    "remote_subscriptions",
     "uptime",
     "workflow_engine",
     "tempest",
@@ -3355,7 +3354,6 @@ SEER_SEVERITY_RETRIES = 1
 SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-SEER_GROUPING_TIMEOUT = 1
 
 SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 

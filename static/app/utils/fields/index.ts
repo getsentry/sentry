@@ -2184,6 +2184,7 @@ export enum ReplayFieldKey {
   COUNT_URLS = 'count_urls',
   DURATION = 'duration',
   ERROR_IDS = 'error_ids',
+  IS_ARCHIVED = 'is_archived',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   REPLAY_TYPE = 'replay_type',
@@ -2192,6 +2193,10 @@ export enum ReplayFieldKey {
   SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
   URL = 'url',
+  USER_GEO_CITY = 'user.geo.city',
+  USER_GEO_COUNTRY_CODE = 'user.geo.country_code',
+  USER_GEO_REGION = 'user.geo.region',
+  USER_GEO_SUBDIVISION = 'user.geo.subdivision',
   VIEWED_BY_ME = 'viewed_by_me',
 }
 
@@ -2238,6 +2243,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.DURATION,
   ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
+  ReplayFieldKey.IS_ARCHIVED,
   ReplayFieldKey.OS_NAME,
   ReplayFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
@@ -2255,7 +2261,14 @@ export const REPLAY_FIELDS = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  ReplayFieldKey.USER_GEO_CITY,
+  ReplayFieldKey.USER_GEO_COUNTRY_CODE,
+  ReplayFieldKey.USER_GEO_REGION,
+  ReplayFieldKey.USER_GEO_SUBDIVISION,
   ReplayFieldKey.VIEWED_BY_ME,
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
@@ -2319,6 +2332,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.IS_ARCHIVED]: {
+    desc: t('Whether the replay has been archived'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
   [ReplayFieldKey.OS_NAME]: {
     desc: t('Name of the Operating System'),
     kind: FieldKind.FIELD,
@@ -2361,6 +2379,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.USER_GEO_CITY]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_CITY],
+  [ReplayFieldKey.USER_GEO_COUNTRY_CODE]:
+    EVENT_FIELD_DEFINITIONS[FieldKey.GEO_COUNTRY_CODE],
+  [ReplayFieldKey.USER_GEO_REGION]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_REGION],
+  [ReplayFieldKey.USER_GEO_SUBDIVISION]:
+    EVENT_FIELD_DEFINITIONS[FieldKey.GEO_SUBDIVISION],
   [ReplayFieldKey.VIEWED_BY_ME]: {
     desc: t('Whether you have seen this replay before. Alias of seen_by_me (true/false)'),
     kind: FieldKind.FIELD,
@@ -2638,3 +2662,15 @@ export function isDeviceClass(key: any): boolean {
 }
 
 export const DEVICE_CLASS_TAG_VALUES = ['high', 'medium', 'low'];
+
+const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
+
+export function classifyTagKey(key: string): FieldKind {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
+}
+
+export function prettifyTagKey(key: string): string {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[1] ?? key;
+}

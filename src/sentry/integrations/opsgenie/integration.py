@@ -24,6 +24,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason, OnCallInteractionType
 from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
@@ -231,7 +232,7 @@ class OpsgenieIntegration(IntegrationInstallation):
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
-    key = "opsgenie"
+    key = IntegrationProviderSlug.OPSGENIE.value
     name = "Opsgenie"
     metadata = metadata
     integration_cls = OpsgenieIntegration

@@ -73,6 +73,9 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         Retrieve a list of custom views for the current organization member.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         if not features.has(
             "organizations:issue-stream-custom-views", organization, actor=request.user
         ):
@@ -178,6 +181,9 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         """
         Create a new custom view for the current organization member.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         if not features.has(
             "organizations:issue-stream-custom-views", organization, actor=request.user
         ):

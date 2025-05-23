@@ -42,7 +42,6 @@ from .detectors.slow_db_query_detector import SlowDBQueryDetector
 from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
 from .performance_problem import PerformanceProblem
 
-PERFORMANCE_GROUP_COUNT_LIMIT = 10
 INTEGRATIONS_OF_INTEREST = [
     "django",
     "flask",
@@ -301,7 +300,9 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
         DetectorType.EXPERIMENTAL_M_N_PLUS_ONE_DB_QUERIES: {
             "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "minimum_occurrences_of_pattern": 3,
-            "max_sequence_length": 5,
+            "max_sequence_length": 8,
+            "max_allowable_depth": 3,  # This should not be user-configurable, to avoid O(n^2) complexity and load issues.
+            "min_percentage_of_db_spans": 0.05,
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
@@ -407,13 +408,7 @@ def _detect_performance_problems(
             else:
                 continue
 
-    truncated_problems = problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
-
-    metrics.incr("performance.performance_issue.pretruncated", len(problems))
-    metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
-
-    # Leans on Set to remove duplicate problems when extending a detector, since the new extended detector can overlap in terms of created issues.
-    unique_problems = set(truncated_problems)
+    unique_problems = set(problems)
 
     if len(unique_problems) > 0:
         metrics.incr(

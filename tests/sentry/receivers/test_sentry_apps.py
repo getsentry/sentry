@@ -3,7 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.issues.escalating import manage_issue_states
+from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit

@@ -1,3 +1,5 @@
+import type {Dispatch, SetStateAction} from 'react';
+
 import {Button} from 'sentry/components/core/button';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
@@ -12,17 +14,29 @@ import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 type Props = {
   monitors: Detector[];
-  connectedMonitorIds?: Set<string>;
-  toggleConnected?: (id: string) => void;
+  connectedIds?: Set<string>;
+  setConnectedIds?: Dispatch<SetStateAction<Set<string>>>;
 };
 
 export default function ConnectedMonitorsList({
   monitors,
-  connectedMonitorIds,
-  toggleConnected,
+  connectedIds,
+  setConnectedIds,
 }: Props) {
   const organization = useOrganization();
-  const canEdit = connectedMonitorIds && !!toggleConnected;
+  const canEdit = connectedIds && !!setConnectedIds;
+
+  const toggleConnected = (id: string) => {
+    setConnectedIds?.(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
 
   const data = monitors.map(monitor => ({
     title: {
@@ -35,7 +49,7 @@ export default function ConnectedMonitorsList({
     createdBy: monitor.createdBy,
     connected: canEdit
       ? {
-          isConnected: connectedMonitorIds?.has(monitor.id),
+          isConnected: connectedIds?.has(monitor.id),
           toggleConnected: () => toggleConnected?.(monitor.id),
         }
       : undefined,
@@ -45,7 +59,13 @@ export default function ConnectedMonitorsList({
     return <SimpleTable columns={connectedColumns} data={data} />;
   }
 
-  return <SimpleTable columns={baseColumns} data={data} />;
+  return (
+    <SimpleTable
+      columns={baseColumns}
+      data={data}
+      fallback={t('No monitors connected')}
+    />
+  );
 }
 
 interface BaseMonitorsData {

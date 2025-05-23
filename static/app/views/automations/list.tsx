@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
@@ -36,7 +36,7 @@ export default function AutomationsList() {
 function TableHeader() {
   return (
     <Flex gap={space(2)}>
-      <ProjectPageFilter />
+      <ProjectPageFilter size="md" />
       <div style={{flexGrow: 1}}>
         <SearchBar placeholder={t('Search for events, users, tags, and more')} />
       </div>

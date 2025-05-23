@@ -127,7 +127,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             actor=self.context.get("user", None),
         )
         allow_eap = features.has(
-            "organizations:alerts-eap",
+            "organizations:visibility-explore-view",
             self.context["organization"],
             actor=self.context.get("user", None),
         )

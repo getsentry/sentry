@@ -2,7 +2,7 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   AutofixStatus,
   type AutofixStep,
@@ -98,13 +98,13 @@ export function SeerSectionCtaButton({
       );
       if (prevProcessingStep && prevProcessingStep.status !== AutofixStatus.COMPLETED) {
         if (currentSteps.some(step => step.type === AutofixStepType.CHANGES)) {
-          addSuccessMessage(t('Autofix has finished coding.'));
+          addSuccessMessage(t('Seer has finished coding.'));
         } else if (currentSteps.some(step => step.type === AutofixStepType.SOLUTION)) {
-          addSuccessMessage(t('Autofix has found a solution.'));
+          addSuccessMessage(t('Seer has found a solution.'));
         } else if (
           currentSteps.some(step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS)
         ) {
-          addSuccessMessage(t('Autofix has found the root cause.'));
+          addSuccessMessage(t('Seer has found the root cause.'));
         }
       }
     }

@@ -7,7 +7,7 @@ import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import type {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
@@ -323,17 +323,13 @@ const HeaderContainer = styled('div')`
 export function IssuesWidget() {
   const location = useLocation();
   const {query} = useTransactionNameQuery();
-  const queryWithDefault = new MutableSearch(['is:unresolved', 'event.type:error']);
-  if (query) {
-    queryWithDefault.setFilterValues('transaction', [query]);
-  }
 
   const queryParams = {
     limit: '5',
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
-    query: queryWithDefault.formatString(),
+    query: `is:unresolved event.type:error ${query}`,
     sort: 'freq',
   };
 

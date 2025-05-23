@@ -85,17 +85,9 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/llmGroupTotalTokensUsedChartWidget'
     ),
-  llmEventTotalTokensUsedChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmEventTotalTokensUsedChartWidget'
-    ),
   llmGroupNumberOfPipelinesChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/llmGroupNumberOfPipelinesChartWidget'
-    ),
-  llmEventNumberOfPipelinesChartWidget: () =>
-    import(
-      'sentry/views/insights/common/components/widgets/llmEventNumberOfPipelinesChartWidget'
     ),
   queuesSummaryThroughputChartWidget: () =>
     import(
@@ -162,6 +154,34 @@ const CHART_MAP = {
   httpDomainSummaryDurationChartWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget'
+    ),
+  overviewAgentsRunsChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget'
+    ),
+  overviewAgentsDurationChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget'
+    ),
+  overviewApiLatencyChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'
+    ),
+  overviewCacheMissChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget'
+    ),
+  overviewJobsChartWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewJobsChartWidget'),
+  overviewPageloadsChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget'
+    ),
+  overviewRequestsChartWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewRequestsChartWidget'),
+  overviewSlowQueriesChartWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget'
     ),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;
 

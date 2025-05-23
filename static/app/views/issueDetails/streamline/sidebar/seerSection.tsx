@@ -161,7 +161,7 @@ export default function SeerSection({
       preventCollapse={!hasStreamlinedUI}
     >
       <SeerSectionContainer>
-        {aiConfig.needsGenAiAcknowledgement && !aiConfig.isAutofixSetupLoading ? (
+        {aiConfig.orgNeedsGenAiAcknowledgement && !aiConfig.isAutofixSetupLoading ? (
           <Summary>{t('Explore potential root causes and solutions with Seer.')}</Summary>
         ) : aiConfig.hasAutofix || aiConfig.hasSummary ? (
           <SeerSectionContent group={group} project={project} event={event} />

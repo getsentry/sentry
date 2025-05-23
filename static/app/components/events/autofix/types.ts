@@ -176,6 +176,10 @@ type AutofixRelevantCodeFile = {
   repo_name: string;
 };
 
+type AutofixRelevantCodeFileWithUrl = AutofixRelevantCodeFile & {
+  url?: string;
+};
+
 export type AutofixTimelineEvent = {
   code_snippet_and_analysis: string;
   relevant_code_file: AutofixRelevantCodeFile;
@@ -190,12 +194,13 @@ export type AutofixSolutionTimelineEvent = {
   code_snippet_and_analysis?: string;
   is_active?: boolean;
   is_most_important_event?: boolean;
-  relevant_code_file?: AutofixRelevantCodeFile;
+  relevant_code_file?: AutofixRelevantCodeFileWithUrl;
 };
 
 export type AutofixRootCauseData = {
   id: string;
-  description?: string; // TODO: this is for backwards compatibility with old runs, we should remove it soon
+  description?: string;
+  reproduction_urls?: Array<string | null>;
   root_cause_reproduction?: AutofixTimelineEvent[];
 };
 

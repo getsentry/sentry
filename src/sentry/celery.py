@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.safestring import SafeString
 
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger("celery.pickle")
 
@@ -33,12 +33,13 @@ def holds_bad_pickle_object(value, memo=None):
             bad_object = holds_bad_pickle_object(item, memo)
             if bad_object is not None:
                 return bad_object
+        return
     elif isinstance(value, dict):
         for item in value.values():
             bad_object = holds_bad_pickle_object(item, memo)
             if bad_object is not None:
                 return bad_object
-
+        return
     if isinstance(value, models.Model):
         return (
             value,
@@ -56,7 +57,7 @@ def holds_bad_pickle_object(value, memo=None):
         return None
     elif value is None:
         return None
-    elif not isinstance(value, (dict, list, str, float, int, bool, tuple, frozenset)):
+    elif not isinstance(value, (str, float, int, bool)):
         return value, "do not pickle stdlib classes"
     return None
 
@@ -69,9 +70,9 @@ def good_use_of_pickle_or_bad_use_of_pickle(task, args, kwargs):
         if bad is not None:
             bad_object, reason = bad
             raise TypeError(
-                "Task %r was invoked with an object that we do not want "
+                "Task %s was invoked with an object that we do not want "
                 "to pass via pickle (%r, reason is %s) in argument %s"
-                % (task, bad_object, reason, name)
+                % (task.name, bad_object, reason, name)
             )
 
 
@@ -113,6 +114,26 @@ class SentryTask(Task):
         )
         should_sample = random.random() <= settings.CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE
         if should_complain or should_sample:
+            try:
+                cleaned_kwargs: dict[str, Any] = {}
+                for k, v in kwargs.items():
+                    # Remove kombu objects that celery injects
+                    module_name = type(v).__module__
+                    if module_name.startswith("kombu."):
+                        continue
+                    cleaned_kwargs[k] = v
+                param_size = json.dumps({"args": args, "kwargs": cleaned_kwargs})
+                metrics.distribution(
+                    "celery.task.parameter_bytes",
+                    len(param_size.encode("utf8")),
+                    tags={"taskname": self.name},
+                    sample_rate=1.0,
+                )
+            except Exception as e:
+                logger.warning(
+                    "task.payload.measure.failure", extra={"error": str(e), "task": self.name}
+                )
+
             try:
                 good_use_of_pickle_or_bad_use_of_pickle(self, args, kwargs)
             except TypeError:

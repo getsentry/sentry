@@ -104,6 +104,7 @@ export function useSpanSamplesWebVitalsQuery({
         SpanIndexedField.TOTAL_SCORE,
         SpanIndexedField.TRACE,
         SpanIndexedField.PROFILE_ID,
+        SpanIndexedField.PROFILEID,
         SpanIndexedField.REPLAY_ID,
         SpanIndexedField.REPLAYID,
         SpanIndexedField.USER_EMAIL,
@@ -136,7 +137,8 @@ export function useSpanSamplesWebVitalsQuery({
               row[SpanIndexedField.USER_ID] ??
               row[SpanIndexedField.USER_IP],
             replayId: row[SpanIndexedField.REPLAY_ID] ?? row[SpanIndexedField.REPLAYID],
-            'profile.id': row[SpanIndexedField.PROFILE_ID],
+            'profile.id':
+              row[SpanIndexedField.PROFILEID] ?? row[SpanIndexedField.PROFILE_ID],
             totalScore: Math.round((row[`measurements.score.total`] ?? 0) * 100),
             inpScore: Math.round((row[SpanIndexedField.INP_SCORE_RATIO] ?? 0) * 100),
             lcpScore: Math.round((row[SpanIndexedField.LCP_SCORE_RATIO] ?? 0) * 100),

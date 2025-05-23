@@ -45,6 +45,7 @@ export function useReleaseStats(
     data,
   } = useInfiniteApiQuery<ReleaseMetaBasic[]>({
     queryKey: [
+      'infinite' as const,
       `/organizations/${organization.slug}/releases/stats/`,
       {
         query: {

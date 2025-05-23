@@ -69,8 +69,8 @@ export enum IssueCategory {
 
   /**
    * @deprecated
-   * Regression issues will move to the "performance_regression" category
-   * Other issues will move to the "performance_best_practice" category
+   * Regression issues will move to the "metric" category
+   * Other issues will move to "db_query"/"http_client"/"mobile"/"frontend"
    */
   PERFORMANCE = 'performance',
   /**
@@ -80,7 +80,7 @@ export enum IssueCategory {
   CRON = 'cron',
   /**
    * @deprecated
-   * Rage/dead click issues will move to the "user_experience" category
+   * Rage click and hydration issues will move to the "frontend" category
    */
   REPLAY = 'replay',
   /**
@@ -90,7 +90,7 @@ export enum IssueCategory {
   UPTIME = 'uptime',
   /**
    * @deprecated
-   * Metric alert issues will move to the "performance_regression" category
+   * Metric alert issues will move to the "metric" category
    */
   METRIC_ALERT = 'metric_alert',
 
@@ -102,6 +102,19 @@ export enum IssueCategory {
   DB_QUERY = 'db_query',
   MOBILE = 'mobile',
 }
+
+/**
+ * Valid issue categories for the new issue-taxonomy flag
+ */
+export const VALID_ISSUE_CATEGORIES_V2 = [
+  IssueCategory.ERROR,
+  IssueCategory.OUTAGE,
+  IssueCategory.METRIC,
+  IssueCategory.DB_QUERY,
+  IssueCategory.HTTP_CLIENT,
+  IssueCategory.FRONTEND,
+  IssueCategory.MOBILE,
+];
 
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.ERROR]: t('Runtime errors or exceptions.'),
@@ -232,10 +245,12 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1001: IssueType.PERFORMANCE_SLOW_DB_QUERY,
   1004: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
   1006: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+  1906: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
   1007: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
   1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
   1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
   1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+  1910: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
   1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
   1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
   1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
@@ -976,7 +991,7 @@ export type KeyValueListDataItem = {
   key: string;
   subject: string;
   action?: {
-    link?: string | LocationDescriptor;
+    link?: LocationDescriptor;
   };
   actionButton?: React.ReactNode;
   /**

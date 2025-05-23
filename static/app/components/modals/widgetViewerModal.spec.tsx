@@ -244,7 +244,10 @@ describe('Modals -> WidgetViewerModal', function () {
         await renderModal({initialData, widget: mockWidget});
         expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
         expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
       });
 
       it('renders updated table columns and orderby', async function () {
@@ -1028,7 +1031,10 @@ describe('Modals -> WidgetViewerModal', function () {
             widgetType: 'discover',
           },
         });
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
 
         await userEvent.hover(screen.getByRole('button', {name: 'Open in Discover'}));
         expect(await screen.findByText(performanceScoreTooltip)).toBeInTheDocument();
@@ -1254,24 +1260,25 @@ describe('Modals -> WidgetViewerModal', function () {
 
   describe('Release Health Widgets', function () {
     let metricsMock!: jest.Mock;
-    const mockQuery = {
-      conditions: '',
-      fields: [`sum(session)`],
-      columns: [],
-      aggregates: ['sum(session)'],
-      id: '1',
-      name: 'Query Name',
-      orderby: '',
-    };
-    const mockWidget = {
-      id: '1',
-      title: 'Release Widget',
-      displayType: DisplayType.LINE,
-      interval: '5m',
-      queries: [mockQuery],
-      widgetType: WidgetType.RELEASE,
-    };
+    let mockQuery: WidgetQuery;
+    let mockWidget: Widget;
     beforeEach(function () {
+      mockQuery = {
+        conditions: '',
+        fields: [`sum(session)`],
+        columns: [],
+        aggregates: ['sum(session)'],
+        name: 'Query Name',
+        orderby: '',
+      };
+      mockWidget = {
+        id: '1',
+        title: 'Release Widget',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        queries: [mockQuery],
+        widgetType: WidgetType.RELEASE,
+      };
       setMockDate(new Date('2022-08-02'));
       metricsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/metrics/data/',
@@ -1309,7 +1316,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Open in Releases'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/releases/?environment=prod&environment=dev&project=1&project=2&statsPeriod=24h'
+        '/organizations/org-slug/releases/?environment=prod&environment=dev&project=1&project=2&query=&statsPeriod=24h'
       );
     });
 
@@ -1383,6 +1390,64 @@ describe('Modals -> WidgetViewerModal', function () {
       await waitFor(() => {
         expect(metricsMock).toHaveBeenCalledTimes(2);
       });
+    });
+
+    it('adds the release column to the table if no group by is set', async function () {
+      mockQuery = {
+        conditions: '',
+        fields: [`sum(session)`],
+        columns: [],
+        aggregates: ['sum(session)'],
+        name: 'Query Name',
+        orderby: '',
+      };
+      mockWidget = {
+        id: '1',
+        title: 'Release Widget',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        queries: [mockQuery],
+        widgetType: WidgetType.RELEASE,
+      };
+      await renderModal({initialData, widget: mockWidget});
+      expect(await screen.findByText('release')).toBeInTheDocument();
+      expect(metricsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/metrics/data/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            groupBy: ['release'],
+          }),
+        })
+      );
+    });
+
+    it('does not add a release grouping to the table if a group by is set', async function () {
+      mockQuery = {
+        conditions: '',
+        fields: [],
+        columns: ['environment'],
+        aggregates: ['sum(session)'],
+        name: 'Query Name',
+        orderby: '',
+      };
+      mockWidget = {
+        id: '1',
+        title: 'Release Widget',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        queries: [mockQuery],
+        widgetType: WidgetType.RELEASE,
+      };
+      await renderModal({initialData, widget: mockWidget});
+      expect(await screen.findByText('environment')).toBeInTheDocument();
+      expect(metricsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/metrics/data/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            groupBy: ['environment'],
+          }),
+        })
+      );
     });
   });
 

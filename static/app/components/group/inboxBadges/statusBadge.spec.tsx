@@ -12,7 +12,7 @@ describe('GroupStatusBadge', () => {
       />
     );
     await userEvent.hover(screen.getByText('Archived'));
-    expect(await screen.findByText('Archived until escalating')).toBeInTheDocument();
+    expect(await screen.findByText('Archived until escalating.')).toBeInTheDocument();
   });
   it('should display new', () => {
     render(

@@ -21,6 +21,9 @@ export const FILTER_DATA_CONDITION_TYPES = [
   DataConditionType.EVENT_ATTRIBUTE,
   DataConditionType.TAGGED_EVENT,
   DataConditionType.LEVEL,
+  DataConditionType.EVENT_FREQUENCY,
+  DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+  DataConditionType.PERCENT_SESSIONS,
 ];
 
 export enum MatchType {
@@ -96,6 +99,16 @@ export enum Level {
   SAMPLING = 0,
 }
 
+enum Interval {
+  ONE_MINUTE = '1m',
+  FIVE_MINUTES = '5m',
+  FIFTEEN_MINUTES = '15m',
+  ONE_HOUR = '1h',
+  ONE_DAY = '1d',
+  ONE_WEEK = '1w',
+  THIRTY_DAYS = '30d',
+}
+
 export const MATCH_CHOICES = [
   {value: MatchType.CONTAINS, label: 'contains'},
   {value: MatchType.EQUAL, label: 'equals'},
@@ -151,4 +164,23 @@ export const LEVEL_CHOICES = [
   {value: Level.INFO, label: t('info')},
   {value: Level.DEBUG, label: t('debug')},
   {value: Level.SAMPLING, label: t('sampling')},
+];
+
+export const INTERVAL_CHOICES = [
+  {value: Interval.ONE_MINUTE, label: t('in one minute')},
+  {value: Interval.FIVE_MINUTES, label: t('in 5 minutes')},
+  {value: Interval.FIFTEEN_MINUTES, label: t('in 15 minutes')},
+  {value: Interval.ONE_HOUR, label: t('in one hour')},
+  {value: Interval.ONE_DAY, label: t('in one day')},
+  {value: Interval.ONE_WEEK, label: t('in one week')},
+  {value: Interval.THIRTY_DAYS, label: t('in 30 days')},
+];
+
+export const COMPARISON_INTERVAL_CHOICES = [
+  {value: Interval.FIVE_MINUTES, label: t('5 minutes ago')},
+  {value: Interval.FIFTEEN_MINUTES, label: t('15 minutes ago')},
+  {value: Interval.ONE_HOUR, label: t('one hour ago')},
+  {value: Interval.ONE_DAY, label: t('one day ago')},
+  {value: Interval.ONE_WEEK, label: t('one week ago')},
+  {value: Interval.THIRTY_DAYS, label: t('30 days ago')},
 ];

@@ -7,7 +7,7 @@ export function TagsField() {
   return (
     <AutomationBuilderInputField
       name={`${actionId}.data.tags`}
-      placeholder={t('example tags ')}
+      placeholder={t('example tags')}
       value={action.data.tags}
       onChange={(value: string) => {
         onUpdate({

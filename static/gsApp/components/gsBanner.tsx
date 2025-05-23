@@ -18,8 +18,9 @@ import {
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
@@ -1062,6 +1063,10 @@ class GSBanner extends Component<Props, State> {
       this.PATHS_FOR_PRODUCT_TRIALS['/performance/database/'] = {
         product: DataCategory.SPANS,
         categories: [DataCategory.SPANS],
+      };
+      this.PATHS_FOR_PRODUCT_TRIALS['/profiling/'] = {
+        product: DataCategory.PROFILES,
+        categories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
       };
     }
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

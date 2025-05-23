@@ -96,6 +96,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         """
         Retrieve a list of custom dashboards that are associated with the given organization.
         """
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
 

@@ -195,6 +195,7 @@ function RootCauseDescription({
       {cause.root_cause_reproduction && (
         <AutofixTimeline
           events={cause.root_cause_reproduction}
+          eventCodeUrls={cause.reproduction_urls}
           groupId={groupId}
           runId={runId}
           stepIndex={previousDefaultStepIndex ?? 0}
@@ -392,7 +393,7 @@ function AutofixRootCauseDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Autofix is uncertain of the root cause...')}
+              blockName={t('Seer is uncertain of the root cause...')}
             />
           )}
         </AnimatePresence>
