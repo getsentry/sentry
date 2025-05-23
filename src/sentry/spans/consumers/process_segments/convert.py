@@ -13,6 +13,8 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
 
 from sentry.spans.consumers.process_segments.types import Span
 
+I64_MAX = 2**63 - 1
+
 FIELD_TO_ATTRIBUTE = {
     "description": "sentry.raw_description",
     "duration_ms": "sentry.duration_ms",
@@ -38,7 +40,8 @@ def convert_span_to_item(span: Span) -> TraceItem:
     server_sample_rate = 1.0
 
     for k, v in (span.get("data") or {}).items():
-        attributes[k] = _anyvalue(v)
+        if v is not None:
+            attributes[k] = _anyvalue(v)
 
     for k, v in (span.get("measurements") or {}).items():
         if k is not None and v is not None:
@@ -87,6 +90,8 @@ def _anyvalue(value: Any) -> AnyValue:
     elif isinstance(value, bool):
         return AnyValue(bool_value=value)
     elif isinstance(value, int):
+        if value > I64_MAX:
+            return AnyValue(double_value=float(value))
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)
