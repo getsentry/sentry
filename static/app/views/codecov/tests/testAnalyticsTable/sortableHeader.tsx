@@ -62,6 +62,7 @@ const HeaderCell = styled('div')<{alignment: string}>`
 
 const StyledLink = styled(Link)`
   color: inherit;
+  text-transform: capitalize;
 
   :hover {
     color: inherit;

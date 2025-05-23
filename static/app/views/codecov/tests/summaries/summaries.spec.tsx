@@ -6,7 +6,7 @@ describe('Summaries', () => {
   it('renders the CIEfficiency component', () => {
     render(<Summaries />);
 
-    const ciEfficiencyPanel = screen.getByText('CI Efficiency');
+    const ciEfficiencyPanel = screen.getByText('CI Run Efficiency');
     expect(ciEfficiencyPanel).toBeInTheDocument();
   });
 });
