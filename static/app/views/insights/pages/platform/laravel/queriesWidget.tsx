@@ -41,7 +41,7 @@ export function QueriesWidget() {
   const releaseBubbleProps = useReleaseBubbleProps();
   const pageFilterChartParams = usePageFilterChartParams();
 
-  const fullQuery = `has:db.system ${query}`;
+  const fullQuery = `has:db.system has:span.group ${query}`;
 
   const queriesRequest = useEAPSpans(
     {

@@ -1,6 +1,9 @@
+import {useMemo} from 'react';
+
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import FormModel from 'sentry/components/forms/model';
 import {
   StickyFooter,
   StickyFooterLabel,
@@ -16,10 +19,11 @@ import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 export default function AutomationNewSettings() {
   const organization = useOrganization();
   useWorkflowEngineFeatureGate({redirect: true});
+  const model = useMemo(() => new FormModel(), []);
 
   return (
     <NewAutomationLayout>
-      <AutomationForm />
+      <AutomationForm model={model} />
       <StickyFooter>
         <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
