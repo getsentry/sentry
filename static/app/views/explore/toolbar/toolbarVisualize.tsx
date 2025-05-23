@@ -22,6 +22,7 @@ import {
   updateVisualizeAggregate,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 
 import {
@@ -136,32 +137,14 @@ function VisualizeDropdown({
   yAxis,
   label,
 }: VisualizeDropdownProps) {
+  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+
   const yAxes: string[] = useMemo(() => {
     return visualizes.flatMap(visualize => visualize.yAxes);
   }, [visualizes]);
 
-  const parsedVisualize = useMemo(() => parseFunction(yAxis)!, [yAxis]);
-
-  // We want to lock down the fields dropdown when using count so that we can
-  // render `count(spans)` for better legibility. However, for backwards
-  // compatibility, we don't want to lock down all `count` queries immediately.
-  const lockOptions = yAxis === DEFAULT_VISUALIZATION;
-
-  const countFieldOptions: Array<SelectOption<string>> = useMemo(
-    () => [
-      {
-        label: t('spans'),
-        value: DEFAULT_VISUALIZATION_FIELD,
-        textValue: DEFAULT_VISUALIZATION_FIELD,
-      },
-    ],
-    []
-  );
-  const defaultFieldOptions: Array<SelectOption<string>> = useVisualizeFields({
-    yAxes,
-    yAxis,
-  });
-  const fieldOptions = lockOptions ? countFieldOptions : defaultFieldOptions;
+  const parsedFunction = useMemo(() => parseFunction(yAxis)!, [yAxis]);
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -173,38 +156,45 @@ function VisualizeDropdown({
     });
   }, []);
 
-  const setChartField = useCallback(
-    ({value}: SelectOption<SelectKey>) => {
+  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
+    numberTags,
+    stringTags,
+    yAxes,
+    parsedFunction,
+  });
+
+  const setYAxis = useCallback(
+    (newYAxis: string, fields?: string[]) => {
       const newVisualizes = visualizes.map((visualize, i) => {
         if (i === group) {
           const newYAxes = [...visualize.yAxes];
-          newYAxes[index] = `${parsedVisualize.name}(${value})`;
+          newYAxes[index] = newYAxis;
           visualize = visualize.replace({yAxes: newYAxes});
         }
         return visualize.toJSON();
       });
-      setVisualizes(newVisualizes, [String(value)]);
+      setVisualizes(newVisualizes, fields);
     },
-    [group, index, parsedVisualize, setVisualizes, visualizes]
+    [group, index, setVisualizes, visualizes]
   );
 
   const setChartAggregate = useCallback(
-    ({value}: SelectOption<SelectKey>) => {
-      const newVisualizes = visualizes.map((visualize, i) => {
-        if (i === group) {
-          const newYAxes = [...visualize.yAxes];
-          newYAxes[index] = updateVisualizeAggregate({
-            newAggregate: value as string,
-            oldAggregate: parsedVisualize.name,
-            oldArgument: parsedVisualize.arguments[0]!,
-          });
-          visualize = visualize.replace({yAxes: newYAxes});
-        }
-        return visualize.toJSON();
+    (option: SelectOption<SelectKey>) => {
+      const newYAxis = updateVisualizeAggregate({
+        newAggregate: option.value as string,
+        oldAggregate: parsedFunction.name,
+        oldArgument: parsedFunction.arguments[0]!,
       });
-      setVisualizes(newVisualizes);
+      setYAxis(newYAxis);
     },
-    [group, index, parsedVisualize, setVisualizes, visualizes]
+    [parsedFunction, setYAxis]
+  );
+
+  const setChartField = useCallback(
+    (option: SelectOption<SelectKey>) => {
+      setYAxis(`${parsedFunction.name}(${option.value})`, [option.value as string]);
+    },
+    [parsedFunction.name, setYAxis]
   );
 
   return (
@@ -212,15 +202,15 @@ function VisualizeDropdown({
       {label && <ChartLabel>{label}</ChartLabel>}
       <AggregateCompactSelect
         options={aggregateOptions}
-        value={parsedVisualize.name}
+        value={parsedFunction.name}
         onChange={setChartAggregate}
       />
       <ColumnCompactSelect
         searchable
         options={fieldOptions}
-        value={parsedVisualize.arguments[0]}
+        value={parsedFunction.arguments[0]}
         onChange={setChartField}
-        disabled={lockOptions}
+        disabled={fieldOptions.length === 1}
       />
       {canDelete ? (
         <Button
