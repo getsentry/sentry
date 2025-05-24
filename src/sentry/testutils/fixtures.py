@@ -95,7 +95,7 @@ class Fixtures:
         # XXX: handle legacy team fixture
         queryset = OrganizationMember.objects.filter(organization=self.organization)
         for om in queryset:
-            OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
+            OrganizationMemberTeam.objects.create(team=team, organizationmember=om)
         return team
 
     @cached_property

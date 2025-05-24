@@ -459,7 +459,7 @@ class Factories:
             )
 
         return OrganizationMemberTeam.objects.create(
-            team=team, organizationmember=member, is_active=True, role=role
+            team=team, organizationmember=member, role=role
         )
 
     @staticmethod

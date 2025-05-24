@@ -74,7 +74,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
 
         if create_default_team:
             team = org.team_set.create(name=org.name)
-            OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
+            OrganizationMemberTeam.objects.create(team=team, organizationmember=om)
 
         return org
 
