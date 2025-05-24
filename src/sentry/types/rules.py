@@ -1,7 +1,12 @@
-from collections import namedtuple
 from dataclasses import dataclass
+from typing import Any, NamedTuple
 
-RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
+from sentry.models.rule import Rule
+
+
+class RuleFuture(NamedTuple):
+    rule: Rule
+    kwargs: dict[str, Any]
 
 
 @dataclass
