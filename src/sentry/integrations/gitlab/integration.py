@@ -25,6 +25,7 @@ from sentry.integrations.source_code_management.commit_context import (
     PRCommentWorkflow,
 )
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
@@ -109,7 +110,7 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
 
     @property
     def integration_name(self) -> str:
-        return "gitlab"
+        return IntegrationProviderSlug.GITLAB
 
     def get_client(self) -> GitLabApiClient:
         try:
@@ -386,7 +387,7 @@ class InstallationGuideView(PipelineView):
 
 
 class GitlabIntegrationProvider(IntegrationProvider):
-    key = "gitlab"
+    key = IntegrationProviderSlug.GITLAB.value
     name = "GitLab"
     metadata = metadata
     integration_cls = GitlabIntegration
@@ -423,7 +424,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
         return NestedPipelineView(
             bind_key="identity",
-            provider_key="gitlab",
+            provider_key=IntegrationProviderSlug.GITLAB.value,
             pipeline_cls=IdentityProviderPipeline,
             config=identity_pipeline_config,
         )
@@ -514,7 +515,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 "include_subgroups": include_subgroups,
             },
             "user_identity": {
-                "type": "gitlab",
+                "type": IntegrationProviderSlug.GITLAB.value,
                 "external_id": "{}:{}".format(hostname, user["id"]),
                 "scopes": scopes,
                 "data": oauth_data,

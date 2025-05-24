@@ -21,6 +21,7 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
@@ -68,7 +69,7 @@ def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
 class GitlabWebhook(SCMWebhook, ABC):
     @property
     def provider(self) -> str:
-        return "gitlab"
+        return IntegrationProviderSlug.GITLAB.value
 
     def get_repo(
         self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
@@ -260,7 +261,7 @@ class GitlabWebhookEndpoint(Endpoint):
     }
     authentication_classes = ()
     permission_classes = ()
-    provider = "gitlab"
+    provider = IntegrationProviderSlug.GITLAB
 
     _handlers: dict[str, type[GitlabWebhook]] = {
         "Push Hook": PushEventWebhook,

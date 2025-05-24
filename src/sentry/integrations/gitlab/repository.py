@@ -1,3 +1,4 @@
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
@@ -5,7 +6,7 @@ from sentry.shared_integrations.exceptions import ApiError
 
 class GitlabRepositoryProvider(IntegrationRepositoryProvider):
     name = "Gitlab"
-    repo_provider = "gitlab"
+    repo_provider = IntegrationProviderSlug.GITLAB.value
 
     def get_repository_data(self, organization, config):
         installation = self.get_installation(config.get("installation"), organization.id)
