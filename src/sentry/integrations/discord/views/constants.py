@@ -1,1 +1,0 @@
-SALT = "sentry-discord-integration"
