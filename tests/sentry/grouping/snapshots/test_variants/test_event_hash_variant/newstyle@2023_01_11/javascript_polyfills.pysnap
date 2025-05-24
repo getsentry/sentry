@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:15.459981+00:00'
+created: '2025-05-12T23:41:15.722000+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,17 +10,17 @@ app:
     app*
       exception*
         stacktrace (ignored because it contains no in-app frames)
-          frame (marked out of app by stack trace rule (module:@babel/** -app -group))
+          frame (marked out of app by stack trace rule (module:@babel/** -app))
             module*
               "@babel/runtime/helpers/asyncToGenerator"
             function (ignored unknown function name)
               "<anonymous>"
-          frame (marked out of app by stack trace rule (module:core-js/** -app -group))
+          frame (marked out of app by stack trace rule (module:core-js/** -app))
             module*
               "core-js/internals/task"
             function*
               "listener"
-          frame (marked out of app by stack trace rule (module:tslib/** -app -group))
+          frame (marked out of app by stack trace rule (module:tslib/** -app))
             module*
               "tslib/tslib.es6"
             function* (trimmed javascript function)
@@ -37,17 +37,17 @@ system:
     system (exception of app takes precedence)
       exception (ignored because hash matches app variant)
         stacktrace (ignored because it contains no contributing frames)
-          frame (ignored by stack trace rule (module:@babel/** -app -group))
+          frame (ignored by stack trace rule (module:@babel/** -group))
             module*
               "@babel/runtime/helpers/asyncToGenerator"
             function (ignored unknown function name)
               "<anonymous>"
-          frame (ignored by stack trace rule (module:core-js/** -app -group))
+          frame (ignored by stack trace rule (module:core-js/** -group))
             module*
               "core-js/internals/task"
             function*
               "listener"
-          frame (ignored by stack trace rule (module:tslib/** -app -group))
+          frame (ignored by stack trace rule (module:tslib/** -group))
             module*
               "tslib/tslib.es6"
             function* (trimmed javascript function)
