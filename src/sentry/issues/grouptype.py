@@ -502,6 +502,18 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
     default_priority = PriorityLevel.LOW
 
 
+@dataclass(frozen=True)
+class DBInjectionVulnerabilityGroupType(GroupType):
+    type_id = 1020
+    slug = "db_injection_vulnerability"
+    description = "Database Injection Vulnerability"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    default_priority = PriorityLevel.LOW
+
+
 # 2000 was ProfileBlockingFunctionMainThreadType
 @dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
