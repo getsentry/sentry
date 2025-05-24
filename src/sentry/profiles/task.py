@@ -55,6 +55,7 @@ from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.sdk import set_span_data
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
@@ -291,8 +292,7 @@ def process_profile_task(
 
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):
-            if not project.flags.has_profiles:
-                first_profile_received.send_robust(project=project, sender=Project)
+            set_project_flag_and_signal(project, "has_profiles", first_profile_received)
             try:
                 if quotas.backend.should_emit_profile_duration_outcome(
                     organization=organization, profile=profile
