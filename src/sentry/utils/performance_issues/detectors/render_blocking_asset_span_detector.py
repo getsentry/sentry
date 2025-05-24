@@ -27,8 +27,6 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
     type = DetectorType.RENDER_BLOCKING_ASSET_SPAN
     settings_key = DetectorType.RENDER_BLOCKING_ASSET_SPAN
 
-    MAX_SIZE_BYTES = 1_000_000_000  # 1GB
-
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
@@ -75,7 +73,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
                     op=op,
-                    desc=span.get("description") or "",
+                    desc=span.get("description", ""),
                     type=PerformanceRenderBlockingAssetSpanGroupType,
                     offender_span_ids=[span_id],
                     parent_span_ids=[],
@@ -127,8 +125,8 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
     def _is_blocking_render(self, span: Span) -> bool:
         assert self.fcp is not None
 
-        data = span.get("data", None)
-        render_blocking_status = data and data.get("resource.render_blocking_status")
+        data = span.get("data", {})
+        render_blocking_status = data.get("resource.render_blocking_status")
         if render_blocking_status == "non-blocking":
             return False
 
@@ -138,14 +136,11 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             return False
 
         minimum_size_bytes = self.settings.get("minimum_size_bytes")
-        # TODO(nar): `Encoded Body Size` can be removed once SDK adoption has increased and
-        # we are receiving `http.response_content_length` consistently, likely beyond October 2023
-        encoded_body_size = (
-            data
-            and (data.get("http.response_content_length", 0) or data.get("Encoded Body Size", 0))
-            or 0
-        )
-        if encoded_body_size < minimum_size_bytes or encoded_body_size > self.MAX_SIZE_BYTES:
+        encoded_body_size = data.get("http.response_content_length", 0)
+
+        if encoded_body_size < minimum_size_bytes or encoded_body_size > self.settings.get(
+            "maximum_size_bytes"
+        ):
             return False
 
         span_duration = get_span_duration(span)
