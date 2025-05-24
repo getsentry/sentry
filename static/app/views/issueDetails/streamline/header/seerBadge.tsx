@@ -22,7 +22,7 @@ function SeerBadge({group}: {group: Group}) {
   }
 
   return (
-    <Tooltip title={t('This issue might be quick to fix')} skipWrapper>
+    <Tooltip title={t('Seer thinks this issue might be quick to fix')} skipWrapper>
       <Wrapper>
         <Divider />
         <SeerIcon size="sm" />
