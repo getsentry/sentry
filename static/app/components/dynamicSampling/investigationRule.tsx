@@ -193,7 +193,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     ? appendEventTypeCondition(eventView.getQuery())
     : eventView.getQuery();
 
-  if (organization.features.includes('performance-transaction-summary-eap')) {
+  if (organization.features.includes('performance-otel-friendly-ui')) {
     query = query.replace(/\bis_transaction:true\b/i, 'event.type:transaction');
   }
 
