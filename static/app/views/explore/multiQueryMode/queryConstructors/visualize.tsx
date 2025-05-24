@@ -67,7 +67,7 @@ export function VisualizeSection({query, index}: Props) {
         <StyledPageFilterBar>
           <CompactSelect
             options={aggregateOptions}
-            value={parsedFunction?.name}
+            value={parsedFunction?.name ?? ''}
             onChange={newAggregate => {
               const newYAxis = updateVisualizeAggregate({
                 newAggregate: newAggregate.value,
@@ -80,7 +80,7 @@ export function VisualizeSection({query, index}: Props) {
           <CompactSelect
             searchable
             options={options}
-            value={parsedFunction?.arguments?.[0]}
+            value={parsedFunction?.arguments?.[0] ?? ''}
             onChange={newField => {
               const newYAxis = `${parsedFunction!.name}(${newField.value})`;
               updateYAxis({yAxes: [newYAxis]});

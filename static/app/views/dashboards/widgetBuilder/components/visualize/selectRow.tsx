@@ -33,10 +33,7 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {
-  DEFAULT_VISUALIZATION_AGGREGATE,
-  DEFAULT_VISUALIZATION_FIELD,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type AggregateFunction = [
@@ -132,26 +129,36 @@ export function SelectRow({
     });
   }, []);
 
-  // We want to lock down the fields dropdown when using count so that we can
-  // render `count(spans)` for better legibility. However, for backwards
-  // compatibility, we don't want to lock down all `count` queries immediately.
-  const lockOptions =
-    state.dataset === WidgetType.SPANS &&
-    field.kind === FieldValueKind.FUNCTION &&
-    field.function[0] === DEFAULT_VISUALIZATION_AGGREGATE &&
-    field.function[1] === DEFAULT_VISUALIZATION_FIELD;
-
-  const columnOptions = useMemo(() => {
-    return lockOptions
-      ? [
+  const [lockOptions, columnOptions] = useMemo(() => {
+    if (state.dataset === WidgetType.SPANS && field.kind === FieldValueKind.FUNCTION) {
+      if (field.function[0] === AggregationKey.COUNT) {
+        const options = [
           {
             label: t('spans'),
             value: DEFAULT_VISUALIZATION_FIELD,
             textValue: DEFAULT_VISUALIZATION_FIELD,
           },
-        ]
-      : defaultColumnOptions;
-  }, [lockOptions, defaultColumnOptions]);
+        ];
+        return [true, options];
+      }
+
+      if (
+        field.function[0] === AggregationKey.EPM ||
+        field.function[0] === AggregationKey.EPS
+      ) {
+        const options = [
+          {
+            label: t('spans'),
+            value: '',
+            textValue: '',
+          },
+        ];
+        return [true, options];
+      }
+    }
+
+    return [false, defaultColumnOptions];
+  }, [defaultColumnOptions, state.dataset, field]);
 
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
@@ -268,47 +275,38 @@ export function SelectRow({
             openColumnSelect();
           } else {
             if (currentField.kind === FieldValueKind.FUNCTION) {
-              const originalFunction = currentField.function[0];
               // Handle setting an aggregate from an aggregate
               currentField.function[0] = parseAggregateFromValueKey(
                 dropdownSelection.value as string
               ) as AggregationKeyWithAlias;
 
-              if (
-                // when switching to the count aggregate, we want to reset the
-                // field to the default
-                state.dataset === WidgetType.SPANS &&
-                currentField.function[0] === DEFAULT_VISUALIZATION_AGGREGATE
-              ) {
-                currentField.function[1] = DEFAULT_VISUALIZATION_FIELD;
+              if (state.dataset === WidgetType.SPANS) {
+                if (
+                  // when switching to the count_unique aggregate, we want to reset the
+                  // field to the default
+                  currentField.function[0] === AggregationKey.COUNT_UNIQUE
+                ) {
+                  currentField.function[1] = SpanIndexedField.SPAN_OP;
 
-                // Wipe out the remaining parameters that are unnecessary
-                for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
-                  currentField.function[i + 1] = undefined;
-                }
-              } else if (
-                // when switching to the count_unique aggregate, we want to reset the
-                // field to the default
-                state.dataset === WidgetType.SPANS &&
-                currentField.function[0] === AggregationKey.COUNT_UNIQUE
-              ) {
-                currentField.function[1] = SpanIndexedField.SPAN_OP;
+                  // Wipe out the remaining parameters that are unnecessary
+                  for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
+                    currentField.function[i + 1] = undefined;
+                  }
+                } else if (
+                  // when switching to the epm/eps aggregate we want to wipe the fields
+                  currentField.function[0] === AggregationKey.EPM ||
+                  currentField.function[0] === AggregationKey.EPS
+                ) {
+                  for (let i = 0; i < MAX_FUNCTION_PARAMETERS; i++) {
+                    currentField.function[i + 1] = undefined;
+                  }
+                } else {
+                  currentField.function[1] = DEFAULT_VISUALIZATION_FIELD;
 
-                // Wipe out the remaining parameters that are unnecessary
-                for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
-                  currentField.function[i + 1] = undefined;
-                }
-              } else if (
-                // when switching away from the count_unique aggregate, we want to reset the
-                // field to the default
-                state.dataset === WidgetType.SPANS &&
-                originalFunction === AggregationKey.COUNT_UNIQUE
-              ) {
-                currentField.function[1] = DEFAULT_VISUALIZATION_FIELD;
-
-                // Wipe out the remaining parameters that are unnecessary
-                for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
-                  currentField.function[i + 1] = undefined;
+                  // Wipe out the remaining parameters that are unnecessary
+                  for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
+                    currentField.function[i + 1] = undefined;
+                  }
                 }
               } else if (
                 selectedAggregate?.value.meta &&
