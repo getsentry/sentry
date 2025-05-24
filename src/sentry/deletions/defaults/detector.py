@@ -3,6 +3,8 @@ from sentry.workflow_engine.models.detector import Detector
 
 
 class DetectorDeletionTask(ModelDeletionTask[Detector]):
+    manager_name = "objects_for_deletion"
+
     def get_child_relations(self, instance: Detector) -> list[BaseRelation]:
         from sentry.workflow_engine.models import DataConditionGroup, DataSource
 
@@ -13,7 +15,11 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
             "id", flat=True
         )
         if data_source_ids:
-            if Detector.objects.filter(data_sources__in=[data_source_ids[0]]).count() == 1:
+            # this ensures we're not deleting a data source that's connected to another detector
+            if (
+                Detector.objects_for_deletion.filter(data_sources__in=[data_source_ids[0]]).count()
+                == 1
+            ):
                 model_relations.append(ModelRelation(DataSource, {"detector": instance.id}))
 
         if instance.workflow_condition_group:
