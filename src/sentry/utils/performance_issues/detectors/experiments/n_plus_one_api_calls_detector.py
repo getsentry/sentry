@@ -187,6 +187,7 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
                 "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
                 "parameters": self._get_parameters()["query_params"],
                 "path_parameters": self._get_parameters()["path_params"],
+                "common_url": problem_description,
             },
             evidence_display=[
                 IssueEvidence(
@@ -215,9 +216,23 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
 
             for key, value in query_params.items():
                 query_dict[key] += value
+
+        path_params_list = [f"{', '.join(param_group)}" for param_group in path_params]
+        path_seen_set = set()
+        query_params_list = [f"{key}: {', '.join(values)}" for key, values in query_dict.items()]
+        query_param_set = set()
         return {
-            "path_params": [f"{', '.join(param_group)}" for param_group in path_params],
-            "query_params": [f"{key}: {', '.join(values)}" for key, values in query_dict.items()],
+            # Use sets to deduplicate the lists, but still preserve the order.
+            "path_params": [
+                param
+                for param in path_params_list
+                if not (param in path_seen_set or path_seen_set.add(param))
+            ],
+            "query_params": [
+                param
+                for param in query_params_list
+                if not (param in query_param_set or query_param_set.add(param))
+            ],
         }
 
     def _get_parameterized_url(self, span: Span) -> str:
