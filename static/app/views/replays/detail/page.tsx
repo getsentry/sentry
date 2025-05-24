@@ -47,7 +47,10 @@ export default function Page({
     : `Session Replay — ${orgSlug}`;
 
   const onShareReplay = useShareReplayAtTimestamp();
-  const onDeleteReplay = useDeleteReplay({replayId: replayRecord?.id, projectSlug});
+  const onDeleteReplay = useDeleteReplay({
+    replayId: replayRecord?.id,
+    projectSlug,
+  });
 
   const dropdownItems: MenuItemProps[] = [
     {
