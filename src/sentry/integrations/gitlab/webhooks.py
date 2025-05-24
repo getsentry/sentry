@@ -20,11 +20,13 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
@@ -154,6 +156,8 @@ class MergeEventWebhook(GitlabWebhook):
             if last_commit:
                 author_email = last_commit["author"]["email"]
                 author_name = last_commit["author"]["name"]
+
+            action = event["object_attributes"].get("action")
         except KeyError as e:
             logger.info(
                 "gitlab.webhook.invalid-merge-data",
@@ -172,7 +176,7 @@ class MergeEventWebhook(GitlabWebhook):
 
         author.preload_users()
         try:
-            PullRequest.objects.update_or_create(
+            pr, created = PullRequest.objects.update_or_create(
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
@@ -184,6 +188,12 @@ class MergeEventWebhook(GitlabWebhook):
                     "date_added": parse_date(created_at).astimezone(timezone.utc),
                 },
             )
+
+            installation = integration.get_installation(organization_id=organization.id)
+            if action == "open" and created and isinstance(installation, CommitContextIntegration):
+                org = Organization.objects.get_from_cache(id=organization.id)
+                installation.queue_open_pr_comment_task_if_needed(pr=pr, organization=org)
+
         except IntegrityError:
             pass
 

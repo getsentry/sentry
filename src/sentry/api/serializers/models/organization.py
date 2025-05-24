@@ -548,6 +548,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     githubOpenPRBot: bool
     githubNudgeInvite: bool
     gitlabPRBot: bool
+    gitlabOpenPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -688,6 +689,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
             ),
             "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
+            "gitlabOpenPRBot": bool(
+                obj.get_option("sentry:gitlab_open_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)
+            ),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),
