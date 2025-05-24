@@ -3,34 +3,23 @@ from __future__ import annotations
 from dataclasses import asdict
 from datetime import datetime, timezone
 from unittest import mock
-from unittest.mock import patch
 from urllib.parse import quote
 
 import orjson
 import pytest
 import responses
-from requests.exceptions import ConnectionError
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.constants import ObjectStatus
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
 from sentry.integrations.gitlab.utils import get_rate_limit_info_from_response
-from sentry.integrations.models.integration import Integration
-from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
     FileBlameInfo,
     SourceLineInfo,
 )
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.shared_integrations.exceptions import (
-    ApiError,
-    ApiHostError,
-    ApiRateLimitedError,
-    ApiRetryError,
-)
-from sentry.testutils.outbox import outbox_runner
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiRetryError
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
 from sentry.utils.cache import cache
@@ -740,32 +729,3 @@ class GitLabGetMergeCommitShaFromCommitTest(GitLabClientTest):
 
         sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
         assert sha is None
-
-
-@control_silo_test
-class GitLabUnhappyPathTest(GitLabClientTest):
-    @pytest.mark.skip("Feature is temporarily disabled")
-    @responses.activate
-    @patch.object(IntegrationRequestBuffer, "is_integration_broken", return_value=True)
-    def test_unreachable_host(self, mock_is_integration_broken):
-
-        integration = Integration.objects.get(id=self.integration.id)
-        assert integration.status == ObjectStatus.ACTIVE
-
-        path = "src/file.py"
-        ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
-        responses.add(
-            responses.HEAD,
-            f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
-            body=ConnectionError("Unable to reach host: https://example.gitlab.com"),
-        )
-        with (
-            self.feature({"organizations:gitlab-disable-on-broken": True}),
-            outbox_runner(),
-            pytest.raises(ApiHostError),
-        ):
-            self.gitlab_client.check_file(self.repo, path, ref)
-
-        # Assert integration is disabled.
-        integration = Integration.objects.get(id=self.integration.id)
-        assert integration.status == ObjectStatus.DISABLED
