@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {createPortal} from 'react-dom';
 import type {To} from 'react-router-dom';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
@@ -25,6 +24,7 @@ import {isLinkActive} from 'sentry/views/nav/utils';
 
 type SecondaryNavProps = {
   children: ReactNode;
+  className?: string;
 };
 
 interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
@@ -46,14 +46,12 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   trailingItems?: ReactNode;
 }
 
-export function SecondaryNav({children}: SecondaryNavProps) {
-  const {secondaryNavEl} = useNavContext();
-
-  if (!secondaryNavEl) {
-    return null;
-  }
-
-  return createPortal(children, secondaryNavEl);
+export function SecondaryNav({children, className}: SecondaryNavProps) {
+  return (
+    <Wrapper className={className} role="navigation" aria-label="Secondary Navigation">
+      {children}
+    </Wrapper>
+  );
 }
 
 SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactNode}) {
@@ -193,6 +191,7 @@ SecondaryNav.Item = function SecondaryNavItem({
   leadingItems,
   showInteractionStateLayer = true,
   trailingItems,
+  onClick,
   ...linkProps
 }: SecondaryNavItemProps) {
   const organization = useOrganization();
@@ -210,7 +209,7 @@ SecondaryNav.Item = function SecondaryNavItem({
       aria-current={isActive ? 'page' : undefined}
       aria-selected={isActive}
       layout={layout}
-      onClick={() => {
+      onClick={e => {
         if (analyticsItemName) {
           trackAnalytics('navigation.secondary_item_clicked', {
             item: analyticsItemName,
@@ -221,6 +220,8 @@ SecondaryNav.Item = function SecondaryNavItem({
         // When this is rendered inside a hovercard (when the nav is collapsed)
         // this will dismiss it when clicking on a link.
         closeCollapsedNavHovercard();
+
+        onClick?.(e);
       }}
     >
       {leadingItems}
@@ -238,6 +239,11 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
 
   return <Footer layout={layout}>{children}</Footer>;
 };
+
+const Wrapper = styled('div')`
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+`;
 
 const Header = styled('div')`
   display: grid;

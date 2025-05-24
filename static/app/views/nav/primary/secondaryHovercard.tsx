@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {useNavContext} from 'sentry/views/nav/context';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {SecondaryNavContent} from 'sentry/views/nav/secondary/secondaryNavContent';
 import type {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {NavLayout} from 'sentry/views/nav/types';
@@ -26,7 +27,7 @@ export function SecondaryHovercard({children, group}: SecondaryHovercardProps) {
         <Hovercard
           body={
             <IconDefaultsProvider>
-              <SecondaryBody role="navigation" aria-label="Secondary Navigation">
+              <SecondaryBody>
                 <SecondaryNavContent group={group} />
               </SecondaryBody>
             </IconDefaultsProvider>
@@ -52,6 +53,6 @@ export function SecondaryHovercard({children, group}: SecondaryHovercardProps) {
   );
 }
 
-const SecondaryBody = styled('div')`
+const SecondaryBody = styled(SecondaryNav)`
   display: contents;
 `;
