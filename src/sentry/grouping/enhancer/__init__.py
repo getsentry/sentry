@@ -14,7 +14,6 @@ from typing import Any, Literal
 import msgpack
 import sentry_sdk
 import zstandard
-from sentry_ophio.enhancers import AssembleResult as RustStacktraceResult
 from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Component as RustFrame
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
@@ -333,107 +332,6 @@ def keep_profiling_rules(config: str) -> str:
     return "\n".join(filtered_rules)
 
 
-def _check_split_enhancements_frame_category_and_in_app(
-    i: int,
-    category: str | None,
-    category_split: str | None,
-    in_app: bool | None,
-    in_app_split: bool | None,
-    split_enhancement_misses: list[Any],
-):
-    """
-    Determine if the given frame's `category` and `in_app` values returned by the split ehnancements
-    are what we expect given what's returned by the current enhancements, and if not, append to our
-    list of misses.
-    """
-    if category_split != category:
-        split_enhancement_misses.append((i, category, category_split))
-    if in_app_split != in_app:
-        split_enhancement_misses.append((i, in_app, in_app_split))
-
-
-def _check_split_enhancements_frame_contributes_and_hint(
-    i: int,
-    rust_frame: RustFrame,
-    contributes_rust_frame: RustFrame,
-    current_hint: str | None,
-    split_in_app_hint: str | None,
-    split_contributes_hint: str | None,
-    split_enhancement_misses: list[Any],
-) -> None:
-    """
-    Determine if the given frame's `contributes` and `hint` values returned by the split
-    ehnancements are what we expect given what's returned by the current enhancements, and if not,
-    append to our list of misses.
-    """
-    if rust_frame.contributes != contributes_rust_frame.contributes:
-        split_enhancement_misses.append(
-            (i, rust_frame.contributes, contributes_rust_frame.contributes)
-        )
-
-    current_hint = current_hint or ""
-    split_in_app_hint = split_in_app_hint or ""
-    split_contributes_hint = split_contributes_hint or ""
-
-    if current_hint == split_in_app_hint or current_hint == split_contributes_hint:
-        return
-
-    # Rules which in their original form have both +/-app and +/-group actions will only include the
-    # +/-app part once they're split into classifier rules, so that's a hint difference we
-    # anticipate and are okay with
-    if (
-        current_hint.replace(" +group", "") == split_in_app_hint
-        or current_hint.replace(" -group", "") == split_in_app_hint
-    ):
-        return
-
-    # Similarly, rules which in their original form have both +/-app and +/-group actions will only
-    # include the +/-group part once they're split into contributes rules, so that's also a hint
-    # difference we anticipate and are okay with
-    if (
-        current_hint.replace(" +app", "") == split_contributes_hint
-        or current_hint.replace(" -app", "") == split_contributes_hint
-    ):
-        return
-
-    # Right now, frames which have both their `in_app` and `contributes` values changed will only
-    # get one of the two applicable hints back from rust. If it's the `contributes` hint clobbering
-    # the `in_app` hint (in which case we'd ignore it, and still have the generic hint), the split
-    # version will have the `in_app` hint which got clobbered.
-    if current_hint == "non app frame" and split_in_app_hint.startswith("marked out of app"):
-        return
-
-    split_enhancement_misses.append((i, current_hint, split_in_app_hint, split_contributes_hint))
-
-
-def _check_split_enhancements_stacktrace_contributes_and_hint(
-    rust_stacktrace_results: RustStacktraceResult,
-    rust_stacktrace_results_split: RustStacktraceResult,
-    split_enhancement_misses: list[Any],
-):
-    """
-    Determine if the overall stacktrace's `contributes` and `hint` values returned by the split
-    ehnancements are what we expect given what's returned by the current enhancements, and if not,
-    append to our list of misses.
-    """
-    if rust_stacktrace_results.contributes != rust_stacktrace_results_split.contributes:
-        split_enhancement_misses.append(
-            (
-                "stacktrace",
-                rust_stacktrace_results.contributes,
-                rust_stacktrace_results_split.contributes,
-            )
-        )
-    if rust_stacktrace_results.hint != rust_stacktrace_results_split.hint:
-        split_enhancement_misses.append(
-            (
-                "stacktrace",
-                rust_stacktrace_results.hint,
-                rust_stacktrace_results_split.hint,
-            )
-        )
-
-
 # This makes it so that for any given deployment, an eligible project either will or won't be opted
 # into the split enhancements (which we'll be able to determine from anywhere we have access to the
 # project), but from deployment to deployment it won't always be the same projects opted in
@@ -537,15 +435,11 @@ class Enhancements:
                         match_frames, rust_exception_data
                     )
                 )
-            split_enhancement_misses: list[Any] = []
         else:
             category_and_in_app_results_split = category_and_in_app_results
 
-        for i, frame, (category, in_app), (category_split, in_app_split) in zip(
-            range(len(frames)),
-            frames,
-            category_and_in_app_results,
-            category_and_in_app_results_split,
+        for frame, (category, in_app), (category_split, in_app_split) in zip(
+            frames, category_and_in_app_results, category_and_in_app_results_split
         ):
             if in_app is not None:
                 # If the `in_app` value changes as a result of this call, the original value (in
@@ -553,23 +447,6 @@ class Enhancements:
                 set_in_app(frame, in_app)
             if category is not None:
                 set_path(frame, "data", "category", value=category)
-
-            # If we're running the split enhancements experiment, track any places where the results
-            # are different from what we expect
-            if self.run_split_enhancements:
-                _check_split_enhancements_frame_category_and_in_app(
-                    i, category, category_split, in_app, in_app_split, split_enhancement_misses
-                )
-
-        if self.run_split_enhancements:
-            logger.info(
-                "grouping.split_enhancements.classifier_results",
-                extra=(
-                    {"outcome": "failure", "frames": frames, "misses": split_enhancement_misses}
-                    if split_enhancement_misses
-                    else {"outcome": "success"}
-                ),
-            )
 
     def assemble_stacktrace_component_legacy(
         self,
@@ -701,7 +578,6 @@ class Enhancements:
                     )
                 )
 
-            split_enhancement_misses: list[Any] = []
         else:
             # We need to give these values so the zip below will work, but we're not going to use
             # them if we're not running split enhancements, so we can just reuse the regular results
@@ -714,13 +590,8 @@ class Enhancements:
         frame_counts: Counter[str] = Counter()
 
         # Update frame components with results from rust
-        for i, frame, frame_component, rust_frame, in_app_rust_frame, contributes_rust_frame in zip(
-            range(len(frames)),
-            frames,
-            frame_components,
-            rust_frames,
-            in_app_rust_frames,
-            contributes_rust_frames,
+        for frame, frame_component, rust_frame, in_app_rust_frame, contributes_rust_frame in zip(
+            frames, frame_components, rust_frames, in_app_rust_frames, contributes_rust_frames
         ):
             # System frames should never contribute in the app variant, so if that's what we have,
             # force `contribtues=False`, regardless of the rust results
@@ -749,36 +620,6 @@ class Enhancements:
             # Add this frame to our tally
             key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
             frame_counts[key] += 1
-
-            if self.run_split_enhancements:
-                _check_split_enhancements_frame_contributes_and_hint(
-                    i,
-                    rust_frame,
-                    contributes_rust_frame,
-                    hint,
-                    split_in_app_hint,
-                    split_contributes_hint,
-                    split_enhancement_misses,
-                )
-
-        if self.run_split_enhancements:
-            _check_split_enhancements_stacktrace_contributes_and_hint(
-                rust_stacktrace_results, rust_stacktrace_results_split, split_enhancement_misses
-            )
-
-            logger.info(
-                "grouping.split_enhancements.contributes_results",
-                extra=(
-                    {
-                        "outcome": "failure",
-                        "variant": variant_name,
-                        "frames": frames,
-                        "misses": split_enhancement_misses,
-                    }
-                    if split_enhancement_misses
-                    else {"outcome": "success"}
-                ),
-            )
 
         # Because of the special case above, in which we ignore the rust-derived `contributes` value
         # for certain frames, it's possible for the rust-derived `contributes` value for the overall
