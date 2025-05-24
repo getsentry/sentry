@@ -458,30 +458,28 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     ) -> SlackBlock:
         summary_headline = self.get_issue_summary_headline(event_or_group)
         title = summary_headline or build_attachment_title(event_or_group)
-        title_emoji = self.get_title_emoji(has_action)
+        title_emojis = self.get_title_emoji(has_action)
 
-        title_text = f"{title_emoji}<{title_link}|*{escape_slack_text(title)}*>"
-        return self.get_markdown_block(title_text)
+        return self.get_rich_text_link(title_emojis, title, title_link)
 
-    def get_title_emoji(self, has_action: bool) -> str | None:
+    def get_title_emoji(self, has_action: bool) -> list[str]:
         is_error_issue = self.group.issue_category == GroupCategory.ERROR
 
-        title_emoji = None
+        title_emojis: list[str] = []
         if has_action:
             # if issue is resolved, archived, or assigned, replace circle emojis with white circle
-            title_emoji = (
+            title_emojis = (
                 ACTION_EMOJI
                 if is_error_issue
-                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category)
+                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category, [])
             )
         elif is_error_issue:
             level_text = LOG_LEVELS[self.group.level]
-            title_emoji = LEVEL_TO_EMOJI.get(level_text)
+            title_emojis = LEVEL_TO_EMOJI.get(level_text, [])
         else:
-            title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            title_emojis = CATEGORY_TO_EMOJI.get(self.group.issue_category, [])
 
-        title_emoji = title_emoji + " " if title_emoji else ""
-        return title_emoji
+        return title_emojis
 
     def get_issue_summary_headline(self, event_or_group: Event | GroupEvent | Group) -> str | None:
         if self.issue_summary is None:

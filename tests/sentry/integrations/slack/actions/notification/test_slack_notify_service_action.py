@@ -99,10 +99,12 @@ class TestInit(RuleTestCase):
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
-        assert (
-            blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack|*Hello world*>"
-        )
+        emoji = "large_yellow_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack"
+        text = "Hello world"
+        assert blocks[0]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[0]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[0]["elements"][0]["elements"][-1]["text"] == text
 
         assert NotificationMessage.objects.all().count() == 0
 
@@ -139,10 +141,12 @@ class TestInit(RuleTestCase):
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
-        assert (
-            blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack|*Hello world*>"
-        )
+        emoji = "large_yellow_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack"
+        text = "Hello world"
+        assert blocks[0]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[0]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[0]["elements"][0]["elements"][-1]["text"] == text
 
         assert NotificationMessage.objects.all().count() == 0
 
@@ -200,10 +204,12 @@ class TestInit(RuleTestCase):
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
-        assert (
-            blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={self.rule.id}&alert_type=issue|*Hello world*>"
-        )
+        emoji = "large_yellow_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={self.rule.id}&alert_type=issue"
+        text = "Hello world"
+        assert blocks[0]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[0]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[0]["elements"][0]["elements"][-1]["text"] == text
 
         assert NotificationMessage.objects.all().count() == 1
 
@@ -257,10 +263,12 @@ class TestInit(RuleTestCase):
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
-        assert (
-            blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={self.rule.id}&alert_type=issue|*Hello world*>"
-        )
+        emoji = "large_yellow_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={self.rule.id}&alert_type=issue"
+        text = "Hello world"
+        assert blocks[0]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[0]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[0]["elements"][0]["elements"][-1]["text"] == text
 
         assert NotificationMessage.objects.all().count() == 2
         assert (
@@ -302,10 +310,13 @@ class TestInit(RuleTestCase):
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
-        assert (
-            blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={action_data['legacy_rule_id']}&alert_type=issue|*Hello world*>"
-        )
+        emoji = "large_yellow_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={action_data['legacy_rule_id']}&alert_type=issue"
+        text = "Hello world"
+
+        assert blocks[0]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[0]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[0]["elements"][0]["elements"][-1]["text"] == text
 
         assert NotificationMessage.objects.all().count() == 1
 
@@ -345,10 +356,13 @@ class TestInit(RuleTestCase):
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
-        assert (
-            blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={action_data['legacy_rule_id']}&alert_type=issue|*Hello world*>"
-        )
+        emoji = "large_yellow_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={action_data['legacy_rule_id']}&alert_type=issue"
+        text = "Hello world"
+
+        assert blocks[0]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[0]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[0]["elements"][0]["elements"][-1]["text"] == text
 
         # Test action should not create a notification message
         assert NotificationMessage.objects.all().count() == 0
@@ -386,10 +400,13 @@ class TestInit(RuleTestCase):
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
-        assert (
-            blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&workflow_id={action_data['workflow_id']}&alert_type=issue|*Hello world*>"
-        )
+        emoji = "large_yellow_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&workflow_id={action_data['workflow_id']}&alert_type=issue"
+        text = "Hello world"
+
+        assert blocks[0]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[0]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[0]["elements"][0]["elements"][-1]["text"] == text
 
         assert NotificationMessage.objects.all().count() == 1
 
@@ -429,10 +446,12 @@ class TestInit(RuleTestCase):
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
-        assert (
-            blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={action_data['legacy_rule_id']}&alert_type=issue|*Hello world*>"
-        )
+        emoji = "large_yellow_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={action_data['legacy_rule_id']}&alert_type=issue"
+        text = "Hello world"
+        assert blocks[0]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[0]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[0]["elements"][0]["elements"][-1]["text"] == text
 
         assert NotificationMessage.objects.all().count() == 1
 
@@ -488,10 +507,12 @@ class TestInit(RuleTestCase):
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
-        assert (
-            blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={action_data['legacy_rule_id']}&alert_type=issue|*Hello world*>"
-        )
+        emoji = "large_yellow_circle"
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={action_data['legacy_rule_id']}&alert_type=issue"
+        text = "Hello world"
+        assert blocks[0]["elements"][0]["elements"][0]["name"] == emoji
+        assert blocks[0]["elements"][0]["elements"][-1]["url"] == url
+        assert blocks[0]["elements"][0]["elements"][-1]["text"] == text
 
         assert NotificationMessage.objects.all().count() == 2
         assert (
