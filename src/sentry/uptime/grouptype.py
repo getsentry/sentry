@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
+from sentry.uptime.consumers.workflow_engine import UptimeDetectorHandler
 from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.workflow_engine.types import DetectorSettings
 
@@ -21,6 +22,7 @@ class UptimeDomainCheckFailure(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     detector_settings = DetectorSettings(
+        handler=UptimeDetectorHandler,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "A representation of an uptime alert",
