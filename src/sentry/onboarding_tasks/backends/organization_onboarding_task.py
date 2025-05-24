@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -34,6 +36,32 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
             defaults={"user_id": user.id},
         )
 
+    def complete_onboarding_task(
+        self,
+        organization: Organization,
+        task: int,
+        date_completed: datetime | None = None,
+        **task_kwargs,
+    ) -> OrganizationOnboardingTask | None:
+        # Mark the task as complete
+        task_model = self.Model.objects.record(
+            organization=organization,
+            task=task,
+            status=OnboardingTaskStatus.COMPLETE,
+            date_completed=date_completed or timezone.now(),
+            **task_kwargs,
+        )
+
+        # Check if all required tasks are complete to see if we can mark onboarding as complete
+        if task_model:
+            self.try_mark_onboarding_complete(organization.id)
+        return task_model
+
+    def has_completed_onboarding_task(organization: Organization, task: int) -> bool:
+        return OrganizationOnboardingTask.objects.filter(
+            organization_id=organization.id, task=task
+        ).exists()
+
     def try_mark_onboarding_complete(self, organization_id: int):
         if OrganizationOption.objects.filter(
             organization_id=organization_id, key="onboarding:complete"
@@ -52,15 +80,16 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
 
         organization = Organization.objects.get_from_cache(id=organization_id)
 
-        projects = Project.objects.filter(organization=organization)
-        project_with_source_maps = next((p for p in projects if p.platform in SOURCE_MAPS), None)
+        has_project_with_source_maps = Project.objects.filter(
+            organization=organization, platform__in=SOURCE_MAPS
+        ).exists()
 
         # If a project supports source maps, we require them to complete the quick start.
         # It's possible that the first project doesn't have source maps,
         # but the second project (which users are guided to create in the "Add Sentry to other parts of the app" step) may have source maps.
         required_tasks = (
             OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS
-            if project_with_source_maps
+            if has_project_with_source_maps
             else OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS
         )
 
