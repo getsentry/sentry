@@ -5,7 +5,10 @@ import {Provider as ReplayContextProvider} from 'sentry/components/replays/repla
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
+import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
@@ -38,16 +41,22 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
 
   return (
     <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
-      <ReplayContextProvider
-        analyticsContext="replay_details"
-        initialTimeOffsetMs={initialTimeOffsetMs}
-        isFetching={false}
-        replay={replay}
-      >
-        <ReplayTransactionContext replayRecord={replayRecord}>
-          {children}
-        </ReplayTransactionContext>
-      </ReplayContextProvider>
+      <ReplayPlayerPluginsContextProvider>
+        <ReplayReaderProvider replay={replay}>
+          <ReplayPlayerStateContextProvider>
+            <ReplayContextProvider
+              analyticsContext="replay_details"
+              initialTimeOffsetMs={initialTimeOffsetMs}
+              isFetching={false}
+              replay={replay}
+            >
+              <ReplayTransactionContext replayRecord={replayRecord}>
+                {children}
+              </ReplayTransactionContext>
+            </ReplayContextProvider>
+          </ReplayPlayerStateContextProvider>
+        </ReplayReaderProvider>
+      </ReplayPlayerPluginsContextProvider>
     </ReplayPreferencesContextProvider>
   );
 }
