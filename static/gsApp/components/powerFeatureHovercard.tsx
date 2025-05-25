@@ -1,7 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {linkStyles} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
@@ -87,7 +86,6 @@ class PowerFeatureHovercard extends Component<Props> {
       partial,
       features,
       children,
-      useLearnMoreLink,
     } = this.props;
 
     const hoverBody = (
@@ -99,7 +97,7 @@ class PowerFeatureHovercard extends Component<Props> {
             planName = `Performance ${planName}`;
           }
 
-          return useLearnMoreLink ? (
+          return (
             <LearnMoreTextBody data-test-id="power-hovercard">
               <div>
                 {partial
@@ -110,22 +108,6 @@ class PowerFeatureHovercard extends Component<Props> {
                 {t('Learn More')}
               </LearnMoreLink>
             </LearnMoreTextBody>
-          ) : (
-            <HovercardBody data-test-id="power-hovercard">
-              <Text>
-                {partial
-                  ? t('Better With %s Plan', planName)
-                  : t('Requires %s Plan', planName)}
-              </Text>
-              <UpsellModalButton
-                priority="primary"
-                size="sm"
-                onClick={this.handleClick}
-                data-test-id="power-learn-more"
-              >
-                {t('Learn More')}
-              </UpsellModalButton>
-            </HovercardBody>
           );
         }}
       </PlanFeature>
@@ -162,21 +144,6 @@ const LearnMoreTextBody = styled('div')`
   padding: ${space(1)};
 `;
 
-const UpsellModalButton = styled(Button)`
-  height: auto;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-  white-space: pre;
-  margin-top: -1px;
-  margin-bottom: -1px;
-  margin-right: -1px;
-  box-shadow: none;
-`;
-
-const HovercardBody = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
 const StyledHovercard = styled(Hovercard)`
   width: auto;
   border-radius: ${p => p.theme.borderRadius};
@@ -184,12 +151,6 @@ const StyledHovercard = styled(Hovercard)`
     padding: 0;
     align-items: center;
   }
-`;
-
-const Text = styled('div')`
-  margin: 10px;
-  font-size: 14px;
-  white-space: pre;
 `;
 
 export default withOrganization(
