@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
+import {linkStyles} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -145,7 +146,9 @@ class PowerFeatureHovercard extends Component<Props> {
   }
 }
 
-const LearnMoreLink = styled('a')`
+const LearnMoreLink = styled('div')`
+  ${p => linkStyles({theme: p.theme})}
+
   color: ${p => p.theme.subText};
   text-decoration: underline;
 
