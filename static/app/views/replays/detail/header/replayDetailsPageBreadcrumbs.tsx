@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
-import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
@@ -66,16 +65,5 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
     replayRecord ? replayCrumb : null,
   ].filter(defined);
 
-  return (
-    <ReplayLoadingState
-      readerResult={readerResult}
-      renderArchived={() => <Breadcrumbs crumbs={crumbs} />}
-      renderError={() => <Breadcrumbs crumbs={crumbs} />}
-      renderLoading={() => <Breadcrumbs crumbs={crumbs} />}
-      renderMissing={() => <Breadcrumbs crumbs={crumbs} />}
-      renderProcessingError={() => <Breadcrumbs crumbs={crumbs} />}
-    >
-      {() => <Breadcrumbs crumbs={[listPageCrumb, projectCrumb, replayCrumb]} />}
-    </ReplayLoadingState>
-  );
+  return <Breadcrumbs crumbs={crumbs} />;
 }
