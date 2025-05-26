@@ -40,7 +40,7 @@ export type TimeSeriesItem = {
    */
   timestamp: number;
   value: number | null;
-  delayed?: boolean;
+  incomplete?: boolean;
 };
 
 export type TimeSeries = {

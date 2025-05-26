@@ -1,9 +1,6 @@
 import partition from 'lodash/partition';
 
-import type {
-  TimeSeries,
-  TimeSeriesItem,
-} from 'sentry/views/dashboards/widgets/common/types';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {markDelayedData} from './markDelayedData';
 
@@ -15,7 +12,7 @@ export function splitSeriesIntoCompleteAndIncomplete(
 
   const [completeData, incompleteData] = partition(
     markedTimeserie.values,
-    datum => !datum.delayed
+    datum => !datum.incomplete
   );
 
   // If there is both complete and incomplete data, prepend the incomplete data
@@ -27,27 +24,18 @@ export function splitSeriesIntoCompleteAndIncomplete(
     incompleteData.unshift({...finalCompletePoint});
   }
 
-  // Discard the delayed property since the split series already communicate
-  // that information
   return [
     completeData.length > 0
       ? {
           ...timeSeries,
-          values: completeData.map(discardDelayProperty),
+          values: completeData,
         }
       : undefined,
     incompleteData.length > 0
       ? {
           ...timeSeries,
-          values: incompleteData.map(discardDelayProperty),
+          values: incompleteData,
         }
       : undefined,
   ];
-}
-
-function discardDelayProperty(
-  datum: TimeSeriesItem
-): Omit<TimeSeries['values'][number], 'delayed'> {
-  const {delayed: _delayed, ...other} = datum;
-  return other;
 }
