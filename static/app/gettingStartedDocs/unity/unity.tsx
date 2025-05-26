@@ -13,7 +13,6 @@ import {
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 const getVerifySnippet = () => `
 using Sentry; // On the top of the script
@@ -36,11 +35,7 @@ const onboarding: OnboardingConfig = {
         {
           language: 'url',
           partialLoading: params.sourcePackageRegistries.isLoading,
-          code: `https://github.com/getsentry/unity.git#${getPackageVersion(
-            params,
-            'sentry.dotnet.unity',
-            '1.5.0'
-          )}`,
+          code: 'https://github.com/getsentry/unity.git',
         },
       ],
       additionalInfo: (
