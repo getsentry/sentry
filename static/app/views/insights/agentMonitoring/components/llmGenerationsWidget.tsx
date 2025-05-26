@@ -4,21 +4,22 @@ import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {
+  AI_MODEL_ID_ATTRIBUTE,
+  getLLMGenerationsFilter,
+} from 'sentry/views/insights/agentMonitoring/utils/query';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanEAPSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
-import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {
   ModalChartContainer,
   ModalTableWrapper,
@@ -27,68 +28,55 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
-import {ModuleName} from 'sentry/views/insights/types';
 import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-function getSeriesName(item: {'span.group': string; transaction: string}) {
-  return `${item.transaction},${item['span.group']}`;
-}
-
-export function QueriesWidget() {
-  const theme = useTheme();
+export default function LLMGenerationsWidget() {
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
-  const releaseBubbleProps = useReleaseBubbleProps();
-  const pageFilterChartParams = usePageFilterChartParams();
+  const pageFilterChartParams = usePageFilterChartParams({
+    granularity: 'spans-low',
+  });
 
-  const fullQuery = `has:db.system has:span.group ${query}`;
+  const theme = useTheme();
 
-  const queriesRequest = useEAPSpans(
+  const fullQuery = `${getLLMGenerationsFilter()} ${query}`.trim();
+
+  const generationsRequest = useEAPSpans(
     {
-      fields: [
-        'span.op',
-        'span.group',
-        'project.id',
-        'sentry.normalized_description',
-        'avg(span.duration)',
-        'transaction',
-      ],
-      sorts: [{field: 'avg(span.duration)', kind: 'desc'}],
+      fields: [AI_MODEL_ID_ATTRIBUTE, 'count()'],
+      sorts: [{field: 'count()', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
     },
-    Referrer.QUERIES_CHART
+    Referrer.QUERIES_CHART // TODO
   );
 
   const timeSeriesRequest = useTopNSpanEAPSeries(
     {
       ...pageFilterChartParams,
-      search: `span.group:[${queriesRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
-      fields: ['transaction', 'span.group', 'avg(span.duration)'],
-      yAxis: ['avg(span.duration)'],
-      sort: {field: 'avg(span.duration)', kind: 'desc'},
+      search: fullQuery,
+      fields: [AI_MODEL_ID_ATTRIBUTE, 'count(span.duration)'],
+      yAxis: ['count(span.duration)'],
+      sort: {field: 'count(span.duration)', kind: 'desc'},
       topN: 3,
-      enabled: !!queriesRequest.data,
+      enabled: !!generationsRequest.data,
     },
-    Referrer.QUERIES_CHART
+    Referrer.QUERIES_CHART // TODO
   );
 
   const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
 
-  const isLoading = timeSeriesRequest.isLoading || queriesRequest.isLoading;
-  const error = timeSeriesRequest.error || queriesRequest.error;
+  const isLoading = timeSeriesRequest.isLoading || generationsRequest.isLoading;
+  const error = timeSeriesRequest.error || generationsRequest.error;
 
-  const hasData =
-    queriesRequest.data && queriesRequest.data.length > 0 && timeSeries.length > 0;
+  // TODO(telex): Add model id attribute to Fields and get rid of this cast
+  const models = generationsRequest.data as unknown as Array<
+    Record<string, string | number>
+  >;
+
+  const hasData = models && models.length > 0 && timeSeries.length > 0;
 
   const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
-
-  const aliases = Object.fromEntries(
-    queriesRequest.data?.map(item => [
-      getSeriesName(item),
-      item['sentry.normalized_description'],
-    ]) ?? []
-  );
 
   const visualization = (
     <WidgetVisualizationStates
@@ -101,34 +89,20 @@ export function QueriesWidget() {
         showLegend: 'never',
         plottables: timeSeries.map(
           (ts, index) =>
-            new Line(
-              convertSeriesToTimeseries({
-                ...ts,
-                // TODO: Remove this once the correct meta is returned from useTopNSpanEAPSeries
-                meta: {
-                  fields: {
-                    [ts.seriesName]: ts.meta.fields['avg(span.duration)']!,
-                  },
-                  units: {
-                    [ts.seriesName]: ts.meta.units['avg(span.duration)']!,
-                  },
-                },
-              }),
-              {
-                color: colorPalette[index],
-                alias: aliases[ts.seriesName],
-              }
-            )
+            new Bars(convertSeriesToTimeseries(ts), {
+              color: colorPalette[index],
+              alias: ts.seriesName,
+              stack: 'stack',
+            })
         ),
-        ...releaseBubbleProps,
       }}
     />
   );
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {queriesRequest.data?.map((item, index) => (
-        <Fragment key={item['sentry.normalized_description']}>
+      {models?.map((item, index) => (
+        <Fragment key={item[AI_MODEL_ID_ATTRIBUTE]}>
           <div>
             <SeriesColorIndicator
               style={{
@@ -137,15 +111,9 @@ export function QueriesWidget() {
             />
           </div>
           <div>
-            <SpanDescriptionCell
-              projectId={Number(item['project.id'])}
-              group={item['span.group']}
-              description={item['sentry.normalized_description']}
-              moduleName={ModuleName.DB}
-            />
-            <ControllerText>{item.transaction}</ControllerText>
+            <ModelText>{item[AI_MODEL_ID_ATTRIBUTE]}</ModelText>
           </div>
-          <span>{getDuration((item['avg(span.duration)'] ?? 0) / 1000, 2, true)}</span>
+          <span>{item['count(span.duration)']}</span>
         </Fragment>
       ))}
     </WidgetFooterTable>
@@ -153,7 +121,7 @@ export function QueriesWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Slow Queries')} />}
+      Title={<Widget.WidgetTitle title={t('LLM Generations')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
@@ -163,17 +131,18 @@ export function QueriesWidget() {
               mode: Mode.AGGREGATE,
               visualize: [
                 {
-                  chartType: ChartType.LINE,
-                  yAxes: ['avg(span.duration)'],
+                  chartType: ChartType.BAR,
+                  yAxes: ['count(span.duration)'],
                 },
               ],
-              groupBy: ['sentry.normalized_description'],
+              groupBy: [AI_MODEL_ID_ATTRIBUTE],
               query: fullQuery,
+              sort: `-count(span.duration)`,
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Slow Queries'),
+                title: t('LLM Generations'),
                 children: (
                   <Fragment>
                     <ModalChartContainer>{visualization}</ModalChartContainer>
@@ -191,7 +160,7 @@ export function QueriesWidget() {
   );
 }
 
-const ControllerText = styled('div')`
+const ModelText = styled('div')`
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};

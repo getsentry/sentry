@@ -11,6 +11,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -27,12 +28,13 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {QueuesWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export function JobsWidget() {
+export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps) {
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
-  const releaseBubbleProps = useReleaseBubbleProps();
+  const releaseBubbleProps = useReleaseBubbleProps(props);
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
+    ...props.pageFilters,
   });
   const theme = useTheme();
 
@@ -45,7 +47,8 @@ export function JobsWidget() {
       yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
       referrer: Referrer.JOBS_CHART,
     },
-    Referrer.JOBS_CHART
+    Referrer.JOBS_CHART,
+    props.pageFilters
   );
 
   const plottables = useMemo(() => {
@@ -78,8 +81,10 @@ export function JobsWidget() {
       emptyMessage={<QueuesWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
+        id: 'overviewJobsChartWidget',
         showLegend: 'never',
         plottables,
+        ...props,
         ...releaseBubbleProps,
       }}
     />
@@ -148,6 +153,7 @@ export function JobsWidget() {
               sort: '-count(span.duration)',
               interval: pageFilterChartParams.interval,
             }}
+            loaderSource={props.loaderSource}
             onOpenFullScreen={() => {
               openInsightChartModal({
                 title: t('Jobs'),

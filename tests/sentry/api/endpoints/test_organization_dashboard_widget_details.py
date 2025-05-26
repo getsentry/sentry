@@ -1106,6 +1106,29 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
+    def test_widget_type_logs(self):
+        data = {
+            "title": "Test Logs Query",
+            "widgetType": "logs",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["log.message", "count()"],
+                    "columns": ["log.message"],
+                    "aggregates": ["count()"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
     def test_has_group_by_and_no_limit_on_creation(self):
         data = {
             "title": "Test Query",

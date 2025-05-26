@@ -176,7 +176,7 @@ type AutofixRelevantCodeFile = {
   repo_name: string;
 };
 
-export type AutofixRelevantCodeFileWithUrl = AutofixRelevantCodeFile & {
+type AutofixRelevantCodeFileWithUrl = AutofixRelevantCodeFile & {
   url?: string;
 };
 
