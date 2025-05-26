@@ -12,6 +12,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
@@ -136,7 +137,8 @@ class GithubRequestParserTest(TestCase):
             region_names=[region.name],
         )
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_CODECOV_URL="https://api.codecov.io")
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_options({"codecov.base-url": "https://api.codecov.io"})
     @override_regions(region_config)
     def test_webhook_for_codecov(self):
         integration = self.get_integration()
