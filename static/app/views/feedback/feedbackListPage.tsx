@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -76,33 +75,31 @@ export default function FeedbackListPage() {
           <PageFiltersContainer>
             <ErrorBoundary>
               <Background>
-                <Flex column gap={space(2)} align="stretch" w="100%">
-                  {showWidgetBanner ? (
-                    <FeedbackWidgetBanner />
-                  ) : showWhatsNewBanner ? (
-                    <FeedbackWhatsNewBanner />
-                  ) : null}
-                  <LayoutGrid>
-                    <FeedbackFilters style={{gridArea: 'filters'}} />
-                    {hasSetupOneFeedback || hasSlug ? (
-                      <Fragment>
-                        <Container style={{gridArea: 'list'}}>
-                          <FeedbackList />
-                        </Container>
-                        <SearchContainer>
-                          <FeedbackSearch />
-                        </SearchContainer>
-                        <Container style={{gridArea: 'details'}}>
-                          <FeedbackItemLoader />
-                        </Container>
-                      </Fragment>
-                    ) : (
-                      <SetupContainer>
-                        <FeedbackSetupPanel />
-                      </SetupContainer>
-                    )}
-                  </LayoutGrid>
-                </Flex>
+                {showWidgetBanner ? (
+                  <FeedbackWidgetBanner />
+                ) : showWhatsNewBanner ? (
+                  <FeedbackWhatsNewBanner />
+                ) : null}
+                <LayoutGrid>
+                  <FeedbackFilters style={{gridArea: 'filters'}} />
+                  {hasSetupOneFeedback || hasSlug ? (
+                    <Fragment>
+                      <Container style={{gridArea: 'list'}}>
+                        <FeedbackList />
+                      </Container>
+                      <SearchContainer>
+                        <FeedbackSearch />
+                      </SearchContainer>
+                      <Container style={{gridArea: 'details'}}>
+                        <FeedbackItemLoader />
+                      </Container>
+                    </Fragment>
+                  ) : (
+                    <SetupContainer>
+                      <FeedbackSetupPanel />
+                    </SetupContainer>
+                  )}
+                </LayoutGrid>
               </Background>
             </ErrorBoundary>
           </PageFiltersContainer>
@@ -116,8 +113,9 @@ const Background = styled('div')`
   background: ${p => p.theme.background};
   overflow: hidden;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: stretch;
+  gap: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(2)};
