@@ -44,9 +44,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
-            return Response(
-                {"attributeDistributions": []}  # Empty response matching the expected structure
-            )
+            return Response({"rankedAttributes": []})
 
         resolver = SearchResolver(
             params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
@@ -54,8 +52,12 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
 
         meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value)
         query_1 = request.GET.get("query_1", "")
-        cohort_1, _, _ = resolver.resolve_query(query_1)
+        query_2 = request.GET.get("query_2", "")
 
+        if query_1 == query_2:
+            return Response({"rankedAttributes": []})
+
+        cohort_1, _, _ = resolver.resolve_query(query_1)
         cohort_1_request = TraceItemStatsRequest(
             filter=cohort_1,
             meta=meta,
@@ -68,9 +70,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             ],
         )
 
-        query_2 = request.GET.get("query_2", "")
         cohort_2, _, _ = resolver.resolve_query(query_2)
-
         cohort_2_request = TraceItemStatsRequest(
             filter=cohort_2,
             meta=meta,
@@ -160,4 +160,4 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             }
             ranked_distribution["rankedAttributes"].append(distribution)
 
-        return Response({"results": ranked_distribution})
+        return Response(ranked_distribution)

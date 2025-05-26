@@ -53,7 +53,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
     def test_no_project(self):
         response = self.do_request()
         assert response.status_code == 200, response.data
-        assert response.data == {"attributeDistributions": []}
+        assert response.data == {"rankedAttributes": []}
 
     def test_no_feature(self):
         response = self.do_request(features=[])
@@ -77,7 +77,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             query={"query_1": "span.duration:<=100", "query_2": "span.duration:>100"}
         )
         assert response.status_code == 200, response.data
-        distributions = response.data["results"]["rankedAttributes"]
+        distributions = response.data["rankedAttributes"]
         assert distributions[0]["attributeName"] == "sentry.device"
         assert distributions[0]["cohort1"] == [
             {"label": "mobile", "value": 3.0},
