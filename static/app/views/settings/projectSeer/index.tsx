@@ -3,6 +3,9 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
@@ -65,10 +68,68 @@ export const autofixAutomatingTuningField = {
   saveMessage: t('Automatic Seer settings updated'),
 } satisfies FieldObject;
 
+const configureAllProjectsField = {
+  name: 'configureAutomationForAllProjects',
+  type: 'custom' as const,
+  Component: () => {
+    const organization = useOrganization();
+    return (
+      <FieldGroup
+        label={t('Configure Automation for All Projects')}
+        help={t(
+          'Allow Seer to automatically fix issues for other projects in addition to this one.'
+        )}
+        alignRight
+      >
+        <div style={{width: 'auto'}}>
+          <LinkButton
+            to={`/settings/${organization.slug}/seer`}
+            priority="link"
+            size="sm"
+          >
+            {t('Go to Seer Automation Settings')}
+          </LinkButton>
+        </div>
+      </FieldGroup>
+    );
+  },
+};
+
+const configureSourceIntegration = {
+  name: 'configureSourceIntegration',
+  type: 'custom' as const,
+  Component: () => {
+    const organization = useOrganization();
+    return (
+      <FieldGroup
+        label={t('Configure GitHub Integration')}
+        help={t(
+          'The GitHub integration allows Seer to analyze your code to find more accurate root causes and solutions to your issues. Support for other source providers is coming soon.'
+        )}
+        alignRight
+      >
+        <div style={{width: 'auto'}}>
+          <LinkButton
+            to={`/settings/${organization.slug}/integrations/github/`}
+            priority="link"
+            size="sm"
+          >
+            {t('Go to GitHub Integration Settings')}
+          </LinkButton>
+        </div>
+      </FieldGroup>
+    );
+  },
+};
+
 const seerFormGroups: JsonFormObject[] = [
   {
     title: t('General'),
-    fields: [autofixAutomatingTuningField],
+    fields: [
+      autofixAutomatingTuningField,
+      configureAllProjectsField,
+      configureSourceIntegration,
+    ],
   },
 ];
 
@@ -92,20 +153,34 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   );
 
   return (
-    <Form
-      saveOnBlur
-      apiMethod="PUT"
-      apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
-      allowUndo
-      initialData={{
-        autofixAutomationTuning: SEER_THRESHOLD_MAP.indexOf(
-          project.autofixAutomationTuning ?? 'off'
-        ),
-      }}
-      onSubmitSuccess={handleSubmitSuccess}
-    >
-      <JsonForm forms={seerFormGroups} disabled={!canWriteProject} />
-    </Form>
+    <Fragment>
+      <Form
+        saveOnBlur
+        apiMethod="PUT"
+        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
+        allowUndo
+        initialData={{
+          autofixAutomationTuning: SEER_THRESHOLD_MAP.indexOf(
+            project.autofixAutomationTuning ?? 'off'
+          ),
+        }}
+        onSubmitSuccess={handleSubmitSuccess}
+      >
+        <JsonForm
+          forms={seerFormGroups}
+          disabled={!canWriteProject}
+          renderHeader={() =>
+            !canWriteProject && (
+              <Alert type="warning" system>
+                {t(
+                  'These settings can only be edited by users with the organization-level owner, manager, or team-level admin role.'
+                )}
+              </Alert>
+            )
+          }
+        />
+      </Form>
+    </Fragment>
   );
 }
 

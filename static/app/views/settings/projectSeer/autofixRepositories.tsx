@@ -199,7 +199,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     <Panel>
       <PanelHeader hasButtons>
         <Flex align="center" gap={space(0.5)}>
-          {t('Seer Repositories')}
+          {t('Working Repositories')}
           <QuestionTooltip
             title={t(
               'Below are the repositories that Seer will work on. Seer will only be able to see code from and make PRs to the repositories that you select here.'
