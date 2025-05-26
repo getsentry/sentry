@@ -30,6 +30,8 @@ import {
   HTTP_RESPONSE_5XX_COLOR,
   THROUGHPUT_COLOR,
 } from 'sentry/views/insights/colors';
+import {CreateAlertButton} from 'sentry/views/insights/common/components/createAlertButton';
+import {OpenInExploreButton} from 'sentry/views/insights/common/components/openInExploreButton';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
@@ -67,6 +69,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       version,
     })) ?? [];
 
+  const hasChartActionsEnabled = organization.features.includes('insights-chart-actions');
+  const yAxes: string[] = [];
+
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
     showLegend: props.showLegend,
     plottables: (props.series.filter(Boolean) ?? [])?.map(serie => {
@@ -77,6 +82,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
           : props.visualizationType === 'area'
             ? Area
             : Bars;
+
+      yAxes.push(timeSeries.yAxis);
 
       return new PlottableDataConstructor(timeSeries, {
         color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
@@ -158,6 +165,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {props.description && (
               <Widget.WidgetDescription description={props.description} />
             )}
+            {hasChartActionsEnabled && <OpenInExploreButton yAxes={yAxes} />}
+            {hasChartActionsEnabled && <CreateAlertButton yAxis={yAxes[0]} />}
             {props.loaderSource !== 'releases-drawer' && (
               <Button
                 size="xs"
