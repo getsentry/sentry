@@ -35,7 +35,7 @@ class DashboardFavoriteUser(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
-    organization = FlexibleForeignKey("sentry.Organization")
+    organization = FlexibleForeignKey("sentry.Organization", null=True)
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
 
     position = models.PositiveSmallIntegerField(null=True, db_default=None)
@@ -48,12 +48,6 @@ class DashboardFavoriteUser(DefaultFieldsModel):
             UniqueConstraint(
                 fields=["user_id", "dashboard"],
                 name="sentry_dashboardfavoriteuser_unique_favorite_per_dashboard",
-                deferrable=models.Deferrable.DEFERRED,
-            ),
-            # A user cannot have multiple favorites in the same position for the same organization
-            UniqueConstraint(
-                fields=["user_id", "organization", "position"],
-                name="sentry_dashboardfavoriteuser_unique_favorite_position_per_org_user",
                 deferrable=models.Deferrable.DEFERRED,
             ),
         ]
@@ -105,7 +99,9 @@ class Dashboard(Model):
         )
         with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
             newly_favourited = [
-                DashboardFavoriteUser(dashboard=self, user_id=user_id)
+                DashboardFavoriteUser(
+                    dashboard=self, user_id=user_id, organization=self.organization
+                )
                 for user_id in set(user_ids) - set(existing_user_ids)
             ]
             DashboardFavoriteUser.objects.filter(
