@@ -33,6 +33,7 @@ export enum WidgetType {
   ERRORS = 'error-events',
   TRANSACTIONS = 'transaction-like',
   SPANS = 'spans',
+  LOGS = 'logs',
 }
 
 // These only pertain to on-demand warnings at this point in time

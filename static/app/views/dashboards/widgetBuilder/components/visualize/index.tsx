@@ -132,7 +132,11 @@ export function getColumnOptions(
   filterOutIncompatibleResults?: boolean
 ) {
   const fieldValues = Object.values(fieldOptions);
-  if (selectedField.kind !== FieldValueKind.FUNCTION || dataset === WidgetType.SPANS) {
+  if (
+    selectedField.kind !== FieldValueKind.FUNCTION ||
+    dataset === WidgetType.SPANS ||
+    dataset === WidgetType.LOGS
+  ) {
     return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField)
       .filter(option => (filterOutIncompatibleResults ? !option.disabled : true))
       .sort(_sortFn);
