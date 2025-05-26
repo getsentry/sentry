@@ -58,7 +58,7 @@ export default function ProjectToolbarSettings({
               {t('Domains where the dev toolbar is allowed to access your data.')}
               <br />
               {t(
-                'Protocol and port are optional; wildcard subdomains (*) are are supported.'
+                'Protocol and port are optional; wildcard subdomains (*) are supported.'
               )}
               <br />
               {tct(
