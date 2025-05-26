@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -14,12 +15,15 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import useOrganization from 'sentry/utils/useOrganization';
 import {TableBody} from 'sentry/views/explore/components/table';
 import {
+  LogsPageDataProvider,
+  useLogsPageData,
+} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {
   LogsPageParamsProvider,
   useLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
-import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -34,14 +38,18 @@ export function OurlogsSection({
   project: Project;
 }) {
   return (
-    <LogsPageParamsProvider
-      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-      isTableFrozen
-      blockRowExpanding
-      limitToTraceId={event.contexts?.trace?.trace_id}
-    >
-      <OurlogsSectionContent event={event} group={group} project={project} />
-    </LogsPageParamsProvider>
+    <PageFiltersContainer>
+      <LogsPageParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+        isTableFrozen
+        blockRowExpanding
+        limitToTraceId={event.contexts?.trace?.trace_id}
+      >
+        <LogsPageDataProvider>
+          <OurlogsSectionContent event={event} group={group} project={project} />
+        </LogsPageDataProvider>
+      </LogsPageParamsProvider>
+    </PageFiltersContainer>
   );
 }
 
@@ -56,7 +64,7 @@ function OurlogsSectionContent({
 }) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
-  const tableData = useExploreLogsTable({enabled: feature, limit: 10});
+  const tableData = useLogsPageData().logsQueryResult;
   const logsSearch = useLogsSearch();
   const abbreviatedTableData = (tableData.data ?? []).slice(0, 5);
   const {openDrawer} = useDrawer();
@@ -70,15 +78,19 @@ function OurlogsSectionContent({
     });
     openDrawer(
       () => (
-        <LogsPageParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-          isTableFrozen
-          limitToTraceId={limitToTraceId}
-        >
-          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <OurlogsDrawer group={group} event={event} project={project} />
-          </TraceItemAttributeProvider>
-        </LogsPageParamsProvider>
+        <PageFiltersContainer>
+          <LogsPageParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+            isTableFrozen
+            limitToTraceId={limitToTraceId}
+          >
+            <LogsPageDataProvider>
+              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+                <OurlogsDrawer group={group} event={event} project={project} />
+              </TraceItemAttributeProvider>
+            </LogsPageDataProvider>
+          </LogsPageParamsProvider>
+        </PageFiltersContainer>
       ),
       {
         ariaLabel: 'logs drawer',
@@ -102,7 +114,10 @@ function OurlogsSectionContent({
     // We may change this in the future if we have a trace-group or we generate trace sids for these issue types.
     return null;
   }
-  if (!tableData || (tableData.data?.length === 0 && logsSearch.isEmpty())) {
+  if (
+    !tableData ||
+    (tableData.data && tableData.data.length === 0 && logsSearch.isEmpty())
+  ) {
     // Like breadcrumbs, we don't show the logs section if there are no logs.
     return null;
   }
@@ -127,7 +142,7 @@ function OurlogsSectionContent({
             ))}
           </TableBody>
         </SmallTable>
-        {tableData.data?.length > 5 ? (
+        {tableData.data && tableData.data.length > 5 ? (
           <div>
             <Button
               icon={<IconChevron direction="right" />}

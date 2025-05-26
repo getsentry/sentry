@@ -1,4 +1,5 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -10,7 +11,7 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {useLocation} from 'sentry/utils/useLocation';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
+import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {useExploreLogsTableRow} from 'sentry/views/explore/logs/useLogsQuery';
 
@@ -58,16 +59,14 @@ describe('logsTableRow', () => {
   ProjectsStore.loadInitialData(projects);
 
   // These are the values in the actual row - e.g., the ones loaded before you click the row
-  const rowData = {
-    [OurLogKnownFieldKey.ID]: 1,
-    [OurLogKnownFieldKey.PROJECT_ID]: projects[0]!.id,
-    [OurLogKnownFieldKey.ORGANIZATION_ID]: 1,
+  const rowData = LogFixture({
+    [OurLogKnownFieldKey.ID]: '1',
+    [OurLogKnownFieldKey.PROJECT_ID]: String(projects[0]!.id),
+    [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
     [OurLogKnownFieldKey.MESSAGE]: 'test log body',
     [OurLogKnownFieldKey.SEVERITY_NUMBER]: 456,
-    [OurLogKnownFieldKey.SEVERITY]: 'error',
-    [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-03T15:50:10+00:00',
     [OurLogKnownFieldKey.TRACE_ID]: '7b91699f',
-  };
+  });
 
   // These are the detailed attributes of the row - only displayed when you click the row.
   const rowDetails = [
