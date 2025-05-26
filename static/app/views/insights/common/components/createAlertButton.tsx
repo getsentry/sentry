@@ -9,10 +9,11 @@ import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 type Props = {
+  search?: MutableSearch;
   yAxis?: string;
 };
 
-export function CreateAlertButton({yAxis}: Props) {
+export function CreateAlertButton({yAxis, search}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -30,7 +31,7 @@ export function CreateAlertButton({yAxis}: Props) {
       navigate(
         getAlertsUrl({
           project,
-          query: '',
+          query: search?.formatString(),
           pageFilters: selection,
           aggregate: yAxis,
           organization,

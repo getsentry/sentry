@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
@@ -167,9 +168,15 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
               <Widget.WidgetDescription description={props.description} />
             )}
             {hasChartActionsEnabled && (
-              <OpenInExploreButton yAxes={yAxes} title={props.title} />
+              <OpenInExploreButton
+                yAxes={yAxes}
+                title={props.title}
+                search={props.search}
+              />
             )}
-            {hasChartActionsEnabled && <CreateAlertButton yAxis={yAxes[0]} />}
+            {hasChartActionsEnabled && (
+              <CreateAlertButton yAxis={yAxes[0]} search={props.search} />
+            )}
             {props.loaderSource !== 'releases-drawer' && (
               <Button
                 size="xs"
