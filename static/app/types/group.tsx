@@ -114,6 +114,7 @@ export const VALID_ISSUE_CATEGORIES_V2 = [
   IssueCategory.HTTP_CLIENT,
   IssueCategory.FRONTEND,
   IssueCategory.MOBILE,
+  IssueCategory.FEEDBACK,
 ];
 
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
