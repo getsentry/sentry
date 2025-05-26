@@ -58,6 +58,10 @@ class DashboardFavoriteUser(DefaultFieldsModel):
             ),
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.organization = self.dashboard.organization
+
 
 @region_silo_model
 class Dashboard(Model):
@@ -101,9 +105,7 @@ class Dashboard(Model):
         )
         with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
             newly_favourited = [
-                DashboardFavoriteUser(
-                    dashboard=self, user_id=user_id, organization=self.organization
-                )
+                DashboardFavoriteUser(dashboard=self, user_id=user_id)
                 for user_id in set(user_ids) - set(existing_user_ids)
             ]
             DashboardFavoriteUser.objects.filter(
