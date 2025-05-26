@@ -225,7 +225,7 @@ class DbAccess(Access):
         return {
             omt.team: omt
             for omt in OrganizationMemberTeam.objects.filter(
-                organizationmember=self._member, is_active=True, team__status=TeamStatus.ACTIVE
+                organizationmember=self._member, team__status=TeamStatus.ACTIVE
             ).select_related("team")
         }
 

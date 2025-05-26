@@ -458,7 +458,6 @@ class Project(Model):
 
         return self.organization.member_set.filter(
             id__in=OrganizationMember.objects.filter(
-                organizationmemberteam__is_active=True,
                 organizationmemberteam__team__in=self.teams.all(),
             ).values("id"),
             user_is_active=True,

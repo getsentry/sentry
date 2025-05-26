@@ -64,7 +64,6 @@ class OrganizationMemberTeamDetailsSerializer(Serializer):
         self, obj: OrganizationMemberTeam, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
     ) -> OrganizationMemberTeamSerializerResponse:
         return {
-            "isActive": obj.is_active,
             "teamRole": obj.role,  # type:ignore[typeddict-item]
         }
 

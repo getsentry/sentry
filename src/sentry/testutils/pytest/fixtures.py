@@ -97,7 +97,7 @@ def default_team(factories, default_organization):
     # XXX: handle legacy team fixture
     queryset = OrganizationMember.objects.filter(organization=default_organization)
     for om in queryset:
-        OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
+        OrganizationMemberTeam.objects.create(team=team, organizationmember=om)
     return team
 
 
