@@ -199,7 +199,7 @@ function updateNullableLocation(
     return true;
   }
   if (defined(value) && location.query[key] !== value) {
-    location.query[key] = String(value);
+    location.query[key] = value;
     return true;
   }
   if (value === null && location.query[key]) {
