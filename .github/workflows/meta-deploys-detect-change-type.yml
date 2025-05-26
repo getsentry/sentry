@@ -5,7 +5,7 @@ name: meta(deploy)
 on:
   push:
     branches:
-      - master
+      main
 
 jobs:
   files-changed:
