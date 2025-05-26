@@ -1,5 +1,6 @@
 import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -8,9 +9,11 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 type Props = {
   yAxes: string[];
+  search?: MutableSearch;
+  title?: string;
 };
 
-export function OpenInExploreButton({yAxes}: Props) {
+export function OpenInExploreButton({yAxes, title, search}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
 
@@ -25,8 +28,8 @@ export function OpenInExploreButton({yAxes}: Props) {
           },
         ],
         mode: Mode.AGGREGATE,
-        title: 'chart title',
-        query: '',
+        title: title ?? yAxes[0],
+        query: search?.formatString(),
         sort: undefined,
         groupBy: undefined,
       })

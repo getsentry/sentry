@@ -52,6 +52,7 @@ export interface InsightsTimeSeriesWidgetProps
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
   pageFilters?: PageFilters;
   samples?: Samples;
+  search?: MutableSearch;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   showReleaseAs?: 'line' | 'bubble';
   stacked?: boolean;
@@ -165,7 +166,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {props.description && (
               <Widget.WidgetDescription description={props.description} />
             )}
-            {hasChartActionsEnabled && <OpenInExploreButton yAxes={yAxes} />}
+            {hasChartActionsEnabled && (
+              <OpenInExploreButton yAxes={yAxes} title={props.title} />
+            )}
             {hasChartActionsEnabled && <CreateAlertButton yAxis={yAxes[0]} />}
             {props.loaderSource !== 'releases-drawer' && (
               <Button
