@@ -245,8 +245,15 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
 
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
 
-    event.setdefault("data", {}).setdefault("num_of_spans", num_of_spans)
-
+    # `measurements` are deprecated and have already been removed from the Python SDK.
+    # We ignore those lines in the mypy check because the SDKs Event type does not have `measurements` anymore.
+    # (on ingest and in the product measurements are still there so it is fine to set them for the time being)
+    if not event["measurements"]:  # type: ignore[typeddict-item]
+        event["measurements"] = {}  # type: ignore[typeddict-unknown-key]
+    event["measurements"]["num_of_spans"] = {  # type: ignore[typeddict-item]
+        "value": num_of_spans,
+        "unit": None,
+    }
     return event
 
 
