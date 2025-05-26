@@ -8,7 +8,7 @@ import sentry.db.models.fields.foreignkey
 from sentry.new_migrations.migrations import CheckedMigration
 
 
-def backfill_dashboard_organization(apps, schema_editor):
+def backfill_dashboard_organization(apps: list):
     """
     Backfill the organization field for DashboardFavoriteUser objects for existing favorites.
     """
