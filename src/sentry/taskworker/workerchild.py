@@ -285,7 +285,6 @@ def child_process(
             with (
                 track_memory_usage("taskworker.worker.memory_change"),
                 sentry_sdk.start_span(
-                    environ_or_headers=headers,
                     op="queue.task.taskworker",
                     name=f"{activation.namespace}:{activation.taskname}",
                     origin="taskworker",
