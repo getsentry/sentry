@@ -13,7 +13,7 @@ import {
   updateLocationWithId,
 } from 'sentry/views/explore/contexts/pageParamsContext/id';
 
-import type {AggregateField, GroupBy} from './aggregateFields';
+import type {AggregateField, BaseAggregateField, GroupBy} from './aggregateFields';
 import {
   defaultAggregateFields,
   getAggregateFieldsFromLocation,
@@ -167,6 +167,11 @@ export function useExploreDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS_EAP_RPC;
 }
 
+export function useExploreAggregateFields(): AggregateField[] {
+  const pageParams = useExplorePageParams();
+  return pageParams.aggregateFields;
+}
+
 export function useExploreFields(): string[] {
   const pageParams = useExplorePageParams();
   return pageParams.fields;
@@ -233,6 +238,16 @@ export function useSetExplorePageParams(): (pageParams: WritablePageParams) => v
       navigate(target);
     },
     [location, navigate]
+  );
+}
+
+export function useSetExploreAggregateFields() {
+  const setPageParams = useSetExplorePageParams();
+  return useCallback(
+    (aggregateFields: BaseAggregateField[]) => {
+      setPageParams({aggregateFields});
+    },
+    [setPageParams]
   );
 }
 
