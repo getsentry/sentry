@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 from django.db import models
+from django.db.models import UniqueConstraint
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -34,12 +35,28 @@ class DashboardFavoriteUser(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization")
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+
+    position = models.PositiveSmallIntegerField(null=True, db_default=None)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardfavoriteuser"
-        unique_together = (("user_id", "dashboard"),)
+        constraints = [
+            # A user can only favorite a dashboard once
+            UniqueConstraint(
+                fields=["user_id", "dashboard"],
+                name="sentry_dashboardfavoriteuser_unique_favorite_per_dashboard",
+                deferrable=models.Deferrable.DEFERRED,
+            ),
+            # A user cannot have multiple favorites in the same position for the same organization
+            UniqueConstraint(
+                fields=["user_id", "organization", "position"],
+                name="sentry_dashboardfavoriteuser_unique_favorite_position_per_org_user",
+                deferrable=models.Deferrable.DEFERRED,
+            ),
+        ]
 
 
 @region_silo_model
