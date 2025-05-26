@@ -1057,8 +1057,8 @@ def _get_project_config(
     # anything.
     add_experimental_config(config, "sampling", get_dynamic_sampling_config, project)
 
-    # Rules to replace high cardinality transaction names
-    add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
+    if not project.get_option("performance:transaction-name-clustering-disabled"):
+        add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
 
     # Mark the project as ready if it has seen >= 10 clusterer runs.
     # This prevents projects from prematurely marking all URL transactions as sanitized.
