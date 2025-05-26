@@ -132,7 +132,7 @@ export default function LLMGenerationsWidget() {
         hasData && (
           <Toolbar
             exploreParams={{
-              mode: Mode.SAMPLES,
+              mode: Mode.AGGREGATE,
               visualize: [
                 {
                   chartType: ChartType.BAR,

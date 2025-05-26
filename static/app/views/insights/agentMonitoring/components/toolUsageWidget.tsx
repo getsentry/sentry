@@ -132,7 +132,7 @@ export default function ToolUsageWidget() {
         hasData && (
           <Toolbar
             exploreParams={{
-              mode: Mode.SAMPLES,
+              mode: Mode.AGGREGATE,
               visualize: [
                 {
                   chartType: ChartType.BAR,
