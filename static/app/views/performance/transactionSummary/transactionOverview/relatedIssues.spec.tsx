@@ -7,8 +7,6 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import RelatedIssues from 'sentry/views/performance/transactionSummary/transactionOverview/relatedIssues';
 
 describe('RelatedIssues', function () {
-  let issuesRequestMock: jest.Mock;
-
   const organization = OrganizationFixture();
   const issues = GroupsFixture();
   const transaction = 'test-transaction';
@@ -27,8 +25,9 @@ describe('RelatedIssues', function () {
   });
 
   beforeEach(() => {
-    issuesRequestMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
+    // NOTE: This mock is jank. `GroupList` concatenates the query string with the URL. This means we have to mock the full URL including the parameters. There are a few other tests that have to do the same.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3Atest-transaction&sort=trends&statsPeriod=14d',
       method: 'GET',
       body: issues,
     });
@@ -57,20 +56,6 @@ describe('RelatedIssues', function () {
     const placeholders = screen.queryAllByTestId('loading-placeholder');
     await waitForElementToBeRemoved(placeholders);
 
-    expect(issuesRequestMock).toHaveBeenCalledTimes(1);
-    expect(issuesRequestMock).toHaveBeenLastCalledWith(
-      `/organizations/org-slug/issues/`,
-      expect.objectContaining({
-        query: {
-          project: '1',
-          limit: 5,
-          sort: 'trends',
-          query: 'is:unresolved transaction:test-transaction',
-          statsPeriod: '14d',
-        },
-      })
-    );
-
     expect(screen.getByRole('heading', {name: 'Related Issues'})).toBeInTheDocument();
 
     const $openInIssuesButton = screen.getByRole('button', {name: 'Open in Issues'});
@@ -84,7 +69,7 @@ describe('RelatedIssues', function () {
 
   it('shows empty state when no issues are found', async function () {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
+      url: '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3Atest-transaction&sort=trends&statsPeriod=14d',
       method: 'GET',
       body: [],
     });

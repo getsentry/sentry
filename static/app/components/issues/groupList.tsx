@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import type {Client} from 'sentry/api';
@@ -137,7 +138,7 @@ class GroupList extends Component<Props, State> {
 
   fetchData = async () => {
     GroupStore.loadInitialData([]);
-    const {api, organization, queryParams, endpointPath} = this.props;
+    const {api, organization, queryParams} = this.props;
     api.clear();
 
     this.setState({loading: true, error: false, errorData: null});
@@ -146,8 +147,7 @@ class GroupList extends Component<Props, State> {
       this.setState({memberList: indexMembersByProject(members)});
     });
 
-    const endpoint = endpointPath ?? this.getGroupListEndpoint();
-    const queryParameters = queryParams ?? this.getQueryParams();
+    const endpoint = this.getGroupListEndpoint();
 
     const parsedQuery = parseSearch(
       (queryParams ?? this.getQueryParams()).query as string
@@ -176,7 +176,6 @@ class GroupList extends Component<Props, State> {
     try {
       const [data, , jqXHR] = await api.requestPromise(endpoint, {
         includeAllArgs: true,
-        query: queryParameters,
       });
 
       GroupStore.add(data);
@@ -198,8 +197,12 @@ class GroupList extends Component<Props, State> {
   };
 
   getGroupListEndpoint() {
-    const {organization, endpointPath} = this.props;
-    return endpointPath ?? `/organizations/${organization.slug}/issues/`;
+    // TODO: Split up the query parameters and the URL. This will make it much easier to mock the endpoint.
+    const {organization, endpointPath, queryParams} = this.props;
+    const path = endpointPath ?? `/organizations/${organization.slug}/issues/`;
+    const queryParameters = queryParams ?? this.getQueryParams();
+
+    return `${path}?${qs.stringify(queryParameters)}`;
   }
 
   getQueryParams() {
