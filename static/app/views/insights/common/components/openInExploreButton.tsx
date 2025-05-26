@@ -1,7 +1,6 @@
-import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -14,31 +13,26 @@ type Props = {
 };
 
 export function OpenInExploreButton({yAxes, title, search}: Props) {
-  const navigate = useNavigate();
   const organization = useOrganization();
 
-  const handleButtonClick = () => {
-    navigate(
-      getExploreUrl({
-        organization,
-        visualize: [
-          {
-            chartType: ChartType.LINE,
-            yAxes,
-          },
-        ],
-        mode: Mode.AGGREGATE,
-        title: title ?? yAxes[0],
-        query: search?.formatString(),
-        sort: undefined,
-        groupBy: undefined,
-      })
-    );
-  };
+  const url = getExploreUrl({
+    organization,
+    visualize: [
+      {
+        chartType: ChartType.LINE,
+        yAxes,
+      },
+    ],
+    mode: Mode.AGGREGATE,
+    title: title ?? yAxes[0],
+    query: search?.formatString(),
+    sort: undefined,
+    groupBy: undefined,
+  });
 
   return (
-    <Button size="xs" onClick={handleButtonClick}>
+    <LinkButton size="xs" to={url}>
       {t('Open in Explore')}
-    </Button>
+    </LinkButton>
   );
 }
