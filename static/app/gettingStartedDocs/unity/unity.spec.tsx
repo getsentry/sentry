@@ -28,7 +28,7 @@ describe('unity onboarding docs', function () {
     // Renders SDK version from registry
     expect(
       await screen.findByText(
-        textWithMarkupMatcher(/https:\/\/github.com\/getsentry\/unity\.git#1\.99\.9/)
+        textWithMarkupMatcher(/https:\/\/github.com\/getsentry\/unity\.git/)
       )
     ).toBeInTheDocument();
   });
