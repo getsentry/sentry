@@ -130,12 +130,14 @@ def main() -> None:
         # We do this here because `configure_structlog` executes later
         logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
         logger = logging.getLogger(__name__)
-
         try:
             func(**kwargs)
         except Exception as e:
             # This reports errors sentry-devservices
-            with sentry_sdk.init(dsn=os.environ["SENTRY_DEVSERVICES_DSN"]):
+            with sentry_sdk.new_scope() as scope:
+                scope.set_client(
+                    sentry_sdk.Client(dsn=os.environ["SENTRY_DEVSERVICES_DSN"], debug=True)
+                )
                 if os.environ.get("USER"):
                     sentry_sdk.set_user({"username": os.environ.get("USER")})
                 sentry_sdk.capture_exception(e)
