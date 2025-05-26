@@ -308,7 +308,6 @@ function OTelSummaryContentInner({
           start={eventView.start}
           end={eventView.end}
           statsPeriod={eventView.statsPeriod}
-          shouldUseOTelFriendlyUI
         />
       </Layout.Main>
       <Layout.Side>
@@ -679,7 +678,6 @@ function SummaryContent({
           start={eventView.start}
           end={eventView.end}
           statsPeriod={eventView.statsPeriod}
-          shouldUseOTelFriendlyUI={false}
         />
       </Layout.Main>
       <Layout.Side>
