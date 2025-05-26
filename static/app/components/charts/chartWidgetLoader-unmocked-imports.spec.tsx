@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 // eslint-disable-next-line import/no-nodejs-modules
 import path from 'node:path';
+import {TimeSeriesFixture} from 'sentry-fixture/discoverSeries';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -9,6 +10,12 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 
 import type {ChartId} from './chartWidgetLoader';
 import {ChartWidgetLoader} from './chartWidgetLoader';
+
+function mockDiscoverSeries(seriesName: string) {
+  return TimeSeriesFixture({
+    seriesName,
+  });
+}
 
 // Mock this component so it doesn't yell at us for no plottables
 jest.mock(
@@ -145,7 +152,42 @@ jest.mock(
     })),
   })
 );
+jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
+  useEAPSpans: jest.fn(() => ({
+    data: [
+      {
+        'avg(span.duration)': 123,
+        'sum(span.duration)': 456,
+        'span.group': 'abc123',
+        'span.description': 'span1',
+        'sentry.normalized_description': 'span1',
+        transaction: 'transaction_a',
+      },
+    ],
+    isPending: false,
+    error: null,
+  })),
+}));
+jest.mock('sentry/views/insights/common/queries/useTopNDiscoverSeries', () => ({
+  useTopNSpanEAPSeries: jest.fn(() => ({
+    data: [mockDiscoverSeries('transaction_a,abc123')],
+    isPending: false,
+    error: null,
+  })),
+}));
 jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
+  useEAPSeries: jest.fn(() => ({
+    data: {
+      'count(span.duration)': mockDiscoverSeries('count(span.duration)'),
+      'avg(span.duration)': mockDiscoverSeries('avg(span.duration)'),
+      'p95(span.duration)': mockDiscoverSeries('p95(span.duration)'),
+      'trace_status_rate(internal_error)': mockDiscoverSeries(
+        'trace_status_rate(internal_error)'
+      ),
+    },
+    isPending: false,
+    error: null,
+  })),
   useMetricsSeries: jest.fn(() => ({
     data: {
       'performance_score(measurements.score.lcp)': {

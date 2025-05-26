@@ -63,10 +63,15 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
     @staticmethod
     def post(request: Request, organization: Organization) -> Response:
         """
-        Checks if we are able to run Autofix on the given group.
+        Request to translate a natural language query into a sentry EQS query.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         project_ids = [int(x) for x in request.data.get("project_ids", [])]
         natural_language_query = request.data.get("natural_language_query")
+        limit = request.data.get("limit", 1)
+        use_flyout = request.data.get("use_flyout", True)
 
         if len(project_ids) == 0 or not natural_language_query:
             return Response(
@@ -99,15 +104,50 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
             )
         data = send_translate_request(organization.id, project_ids, natural_language_query)
 
+        # XXX: This is a fallback to support the old response format until we fully support using multiple queries on the frontend
+        if "responses" in data and use_flyout:
+            if not data["responses"]:
+                logger.info("No results found for query")
+                return Response(
+                    {"detail": "No results found for query"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            data = data["responses"][0]
+        if "responses" not in data:
+            return Response(
+                {
+                    "status": "ok",
+                    "query": data["query"],  # the sentry EQS query as a string
+                    "stats_period": data["stats_period"],
+                    "group_by": list(data.get("group_by", [])),
+                    "visualization": list(
+                        data.get("visualization")
+                    ),  # [{chart_type: 1, y_axes: ["count_message"]}, ...]
+                    "sort": data["sort"],
+                }
+            )
+
+        data = data["responses"][:limit]
+
+        if len(data) == 0:
+            logger.info("No results found for query")
+            return Response(
+                {"detail": "No results found for query"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         return Response(
             {
                 "status": "ok",
-                "query": data["query"],  # the sentry EQS query as a string
-                "stats_period": data["stats_period"],
-                "group_by": list(data.get("group_by", [])),
-                "visualization": list(
-                    data.get("visualization")
-                ),  # [{chart_type: 1, y_axes: ["count_message"]}, ...]
-                "sort": data["sort"],
+                "queries": [
+                    {
+                        "query": query["query"],
+                        "stats_period": query["stats_period"],
+                        "group_by": list(query.get("group_by", [])),
+                        "visualization": list(query.get("visualization")),
+                        "sort": query["sort"],
+                    }
+                    for query in data
+                ],
             }
         )

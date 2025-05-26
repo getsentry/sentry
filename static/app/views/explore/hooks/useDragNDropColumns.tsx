@@ -2,26 +2,31 @@ import {useEffect, useMemo, useState} from 'react';
 import type {DragEndEvent} from '@dnd-kit/core';
 import {arrayMove} from '@dnd-kit/sortable';
 
-export type Column = {
-  column: string | undefined;
+export type Column<T> = {
+  column: T | undefined;
   id: number;
 };
 
-interface UseDragAndDropColumnsProps {
-  columns: string[];
-  setColumns: (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => void;
+interface UseDragAndDropColumnsProps<T> {
+  columns: T[];
+  defaultColumn: () => T;
+  setColumns: (columns: T[], op: 'insert' | 'update' | 'delete' | 'reorder') => void;
 }
 
-const extractColumns = (editableColumns: Column[]) => {
-  return editableColumns.map(({column}) => column ?? '');
-};
+function extractColumns<T>(editableColumns: Array<Column<T>>, defaultColumn: () => T) {
+  return editableColumns.map(({column}) => column ?? defaultColumn());
+}
 
-export function useDragNDropColumns({columns, setColumns}: UseDragAndDropColumnsProps) {
+export function useDragNDropColumns<T>({
+  columns,
+  defaultColumn,
+  setColumns,
+}: UseDragAndDropColumnsProps<T>) {
   const mappedColumns = useMemo(() => {
     return columns.map((column, i) => ({id: i + 1, column}));
   }, [columns]);
 
-  const [editableColumns, setEditableColumns] = useState<Column[]>(mappedColumns);
+  const [editableColumns, setEditableColumns] = useState<Array<Column<T>>>(mappedColumns);
 
   useEffect(() => {
     setEditableColumns(prevEditableColumns => {
@@ -44,18 +49,18 @@ export function useDragNDropColumns({columns, setColumns}: UseDragAndDropColumns
 
       setNextId(nextId + 1); // make sure to increment the id for the next time
 
-      setColumns(extractColumns(newEditableColumns), 'insert');
+      setColumns(extractColumns(newEditableColumns, defaultColumn), 'insert');
 
       return newEditableColumns;
     });
   }
 
-  function updateColumnAtIndex(i: number, column: string) {
+  function updateColumnAtIndex(i: number, column: T) {
     setEditableColumns(oldEditableColumns => {
       const newEditableColumns = [...oldEditableColumns];
       newEditableColumns[i]!.column = column;
 
-      setColumns(extractColumns(newEditableColumns), 'update');
+      setColumns(extractColumns(newEditableColumns, defaultColumn), 'update');
 
       return newEditableColumns;
     });
@@ -64,7 +69,7 @@ export function useDragNDropColumns({columns, setColumns}: UseDragAndDropColumns
   function deleteColumnAtIndex(i: number) {
     setEditableColumns(oldEditableColumns => {
       if (oldEditableColumns.length === 1) {
-        setColumns([''], 'delete');
+        setColumns([defaultColumn()], 'delete');
         return [{id: 1, column: undefined}];
       }
 
@@ -73,7 +78,7 @@ export function useDragNDropColumns({columns, setColumns}: UseDragAndDropColumns
         ...oldEditableColumns.slice(i + 1),
       ];
 
-      setColumns(extractColumns(newEditableColumns), 'delete');
+      setColumns(extractColumns(newEditableColumns, defaultColumn), 'delete');
 
       return newEditableColumns;
     });
@@ -89,7 +94,7 @@ export function useDragNDropColumns({columns, setColumns}: UseDragAndDropColumns
       setEditableColumns(oldEditableColumns => {
         const newEditableColumns = arrayMove(oldEditableColumns, oldIndex, newIndex);
 
-        setColumns(extractColumns(newEditableColumns), 'reorder');
+        setColumns(extractColumns(newEditableColumns, defaultColumn), 'reorder');
 
         return newEditableColumns;
       });

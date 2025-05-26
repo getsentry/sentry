@@ -142,7 +142,7 @@ export function SuspectFunctionsTable({
           />
         </ButtonBar>
       </TableHeader>
-      <Table ref={tableRef} styles={initialTableStyles}>
+      <Table ref={tableRef} style={initialTableStyles}>
         <TableHead>
           <TableRow>
             {COLUMNS.map((column, i) => {

@@ -1,7 +1,7 @@
 import {createContext, useContext} from 'react';
 
 import {t} from 'sentry/locale';
-import type {Integration, NewAction} from 'sentry/types/workflowEngine/actions';
+import type {Action, Integration} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {AzureDevOpsNode} from 'sentry/views/automations/components/actions/azureDevOps';
 import {DiscordNode} from 'sentry/views/automations/components/actions/discord';
@@ -16,7 +16,7 @@ import {PagerdutyNode} from 'sentry/views/automations/components/actions/pagerdu
 import {SlackNode} from 'sentry/views/automations/components/actions/slack';
 
 interface ActionNodeProps {
-  action: NewAction;
+  action: Action;
   actionId: string;
   onUpdate: (condition: Record<string, any>) => void;
   integrations?: Integration[];

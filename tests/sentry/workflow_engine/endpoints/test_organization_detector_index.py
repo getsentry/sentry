@@ -14,6 +14,8 @@ from sentry.snuba.models import (
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -48,6 +50,31 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug, qs_params={"project": self.project.id}
         )
         assert response.data == serialize([detector, detector_2])
+
+    def test_uptime_detector(self):
+        subscription = self.create_uptime_subscription()
+        data_source = self.create_data_source(
+            organization_id=self.organization.id,
+            source_id=subscription.id,
+            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+        )
+        detector = self.create_detector(
+            project_id=self.project.id,
+            name="Test Detector",
+            type=UptimeDomainCheckFailure.slug,
+            config={
+                "mode": 1,
+                "environment": "production",
+            },
+        )
+        self.create_data_source_detector(
+            data_source=data_source,
+            detector=detector,
+        )
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        assert response.data[0]["dataSources"][0]["queryObj"] == serialize(subscription)
 
     def test_empty_result(self):
         response = self.get_success_response(

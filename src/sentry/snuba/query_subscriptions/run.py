@@ -33,9 +33,13 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         input_block_size: int | None,
         output_block_size: int | None,
         multi_proc: bool = True,
+        topic_override: str | None = None,
     ):
         self.dataset = Dataset(dataset)
         self.logical_topic = dataset_to_logical_topic[self.dataset]
+        if topic_override:
+            self.logical_topic = topic_override
+
         self.topic = get_topic_definition(Topic(self.logical_topic))["real_topic_name"]
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time

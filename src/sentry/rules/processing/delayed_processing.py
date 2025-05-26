@@ -2,7 +2,6 @@ import logging
 import random
 import uuid
 from collections import defaultdict
-from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
@@ -338,18 +337,21 @@ def get_group_to_groupevent(
         if event_id is not None
     ]
 
-    # Use a list comprehension for occurrence_ids
-    occurrence_ids: Sequence[str] = [
+    occurrence_ids: set[str] = {
         occurrence_id
         for occurrence_id in (
             instance_data.get("occurrence_id")
             for instance_data in relevant_rulegroup_to_event_data.values()
         )
         if occurrence_id is not None
-    ]
+    }
 
     bulk_event_id_to_events = bulk_fetch_events(event_ids, project_id)
-    bulk_occurrences = IssueOccurrence.fetch_multi(occurrence_ids, project_id=project_id)
+
+    bulk_occurrences = []
+    # We aren't guaranteed to have occurrences for all the events.
+    if occurrence_ids:
+        bulk_occurrences = IssueOccurrence.fetch_multi(list(occurrence_ids), project_id=project_id)
 
     bulk_occurrence_id_to_occurrence = {
         occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
@@ -591,18 +593,14 @@ def fire_rules(
                     ).values()
 
                     # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
-                    not_sent = 0
                     for callback, futures in callback_and_futures:
-                        results = safe_execute(callback, groupevent, futures)
-                        if results is None:
-                            not_sent += 1
+                        safe_execute(callback, groupevent, futures)
 
                     if log_config.num_events_issue_debugging:
                         logger.info(
                             "delayed_processing.rules_fired",
                             extra={
                                 "total": len(callback_and_futures),
-                                "not_sent": not_sent,
                                 "project_id": project_id,
                                 "rule_id": rule.id,
                             },

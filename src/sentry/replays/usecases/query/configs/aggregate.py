@@ -13,7 +13,7 @@ acts as a validation step as must as a type coercion step.
 
 from __future__ import annotations
 
-from sentry.replays.lib.new_query.conditions import IntegerScalar, UUIDScalar
+from sentry.replays.lib.new_query.conditions import BooleanIntegerScalar, IntegerScalar, UUIDScalar
 from sentry.replays.lib.new_query.fields import (
     ColumnField,
     CountField,
@@ -117,6 +117,7 @@ search_config: dict[str, FieldProtocol] = {
     # do not understand the UUID type.
     "id": ColumnField("replay_id", parse_uuid, UUIDScalar),
     "info_ids": ComputedField(parse_uuid, SumOfInfoIdScalar),
+    "is_archived": SumField("is_archived", parse_int, BooleanIntegerScalar),
     "os.name": string_field("os_name"),
     "os.version": string_field("os_version"),
     "platform": string_field("platform"),

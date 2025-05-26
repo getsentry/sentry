@@ -18,7 +18,7 @@ export default function useDeadRageSelectors(params: DeadRageSelectorQueryParams
         `/organizations/${organization.slug}/replay-selectors/`,
         {
           query: {
-            query: params.query ?? '!count_dead_clicks:0',
+            query: '!count_dead_clicks:0',
             cursor: params.cursor,
             environment: query.environment,
             project: query.project,

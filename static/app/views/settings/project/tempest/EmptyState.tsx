@@ -58,7 +58,7 @@ export default function EmptyState() {
                   'Allow list our Outbound IP addresses as they will be the once used for making the requests using the provided credentials'
                 )}
                 <CodeSnippetWrapper>
-                  <OnboardingCodeSnippet language="javascript">
+                  <OnboardingCodeSnippet>
                     {`
 35.184.238.160/32
 104.155.159.182/32

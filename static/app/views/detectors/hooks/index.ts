@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   useApiQueries,
   useApiQuery,
@@ -10,7 +11,7 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export interface UseDetectorsQueryOptions {
+interface UseDetectorsQueryOptions {
   query?: string;
   sortBy?: string;
 }
@@ -22,8 +23,9 @@ export function useDetectorsQuery(_options: UseDetectorsQueryOptions = {}) {
   });
 }
 
-export const makeDetectorQueryKey = (orgSlug: string, detectorId = ''): [url: string] => [
+const makeDetectorQueryKey = (orgSlug: string, detectorId = ''): ApiQueryKey => [
   `/organizations/${orgSlug}/detectors/${detectorId ? `${detectorId}/` : ''}`,
+  {query: {query: 'type:metric_issue'}}, // TODO: remove this when backend is ready
 ];
 
 export function useCreateDetector() {

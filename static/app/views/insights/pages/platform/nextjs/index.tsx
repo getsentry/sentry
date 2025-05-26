@@ -8,16 +8,16 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
+import OverviewPageloadsChartWidget from 'sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget';
 import {DeadRageClicksWidget} from 'sentry/views/insights/pages/platform/nextjs/deadRageClickWidget';
 import SSRTreeWidget from 'sentry/views/insights/pages/platform/nextjs/ssrTreeWidget';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
-import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
 import {PagesTable} from 'sentry/views/insights/pages/platform/shared/pagesTable';
 import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
-import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 
 enum TableType {
   API = 'api',
@@ -90,14 +90,10 @@ export function NextJsOverviewPage({
     <PlatformLandingPageLayout performanceType={performanceType}>
       <WidgetGrid>
         <WidgetGrid.Position1>
-          <TrafficWidget
-            title={t('Pageloads')}
-            trafficSeriesName={t('Pageloads')}
-            baseQuery={'span.op:[pageload]'}
-          />
+          <OverviewPageloadsChartWidget />
         </WidgetGrid.Position1>
         <WidgetGrid.Position2>
-          <DurationWidget />
+          <OverviewApiLatencyChartWidget />
         </WidgetGrid.Position2>
         <WidgetGrid.Position3>
           <IssuesWidget />

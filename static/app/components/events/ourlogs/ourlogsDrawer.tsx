@@ -6,6 +6,7 @@ import {
   EventDrawerBody,
   EventDrawerContainer,
   EventDrawerHeader,
+  EventNavigator,
   NavigationCrumbs,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
@@ -26,8 +27,7 @@ import {
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {LogsTable} from 'sentry/views/explore/logs/logsTable';
-import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface LogIssueDrawerProps {
@@ -39,7 +39,6 @@ interface LogIssueDrawerProps {
 export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
-  const tableData = useExploreLogsTable({});
   const {attributes: stringAttributes} = useTraceItemAttributes('string');
   const {attributes: numberAttributes} = useTraceItemAttributes('number');
 
@@ -56,32 +55,34 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
   );
 
   return (
-    <EventDrawerContainer>
-      <EventDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            {label: getShortEventId(event.id)},
-            {label: t('Logs')},
-          ]}
-        />
-      </EventDrawerHeader>
-      <EventDrawerBody>
-        <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+    <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+      <EventDrawerContainer>
+        <EventDrawerHeader>
+          <NavigationCrumbs
+            crumbs={[
+              {
+                label: (
+                  <CrumbContainer>
+                    <ProjectAvatar project={project} />
+                    <ShortId>{group.shortId}</ShortId>
+                  </CrumbContainer>
+                ),
+              },
+              {label: getShortEventId(event.id)},
+              {label: t('Logs')},
+            ]}
+          />
+        </EventDrawerHeader>
+        <EventNavigator>
+          <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+        </EventNavigator>
+        <EventDrawerBody>
           <LogsTableContainer>
-            <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
-            <LogsTable showHeader={false} allowPagination tableData={tableData} />
+            <LogsTable showHeader={false} allowPagination />
           </LogsTableContainer>
-        </SearchQueryBuilderProvider>
-      </EventDrawerBody>
-    </EventDrawerContainer>
+        </EventDrawerBody>
+      </EventDrawerContainer>
+    </SearchQueryBuilderProvider>
   );
 }
 

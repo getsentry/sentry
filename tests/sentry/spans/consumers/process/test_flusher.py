@@ -80,4 +80,4 @@ def test_backpressure(monkeypatch):
 
     assert messages
 
-    assert flusher.should_backpressure.value
+    assert flusher.backpressure_since.value

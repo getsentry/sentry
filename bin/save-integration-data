@@ -1,0 +1,61 @@
+#!/usr/bin/env python
+from sentry.runner import configure
+
+configure()
+
+import argparse
+
+import click
+from django.core import serializers
+
+from sentry.integrations.models import Integration, OrganizationIntegration
+from sentry.users.models.identity import Identity, IdentityProvider
+
+MODELS_TO_SERIALIZE = [
+    IdentityProvider,  # Has no FKs to other serialized models
+    Integration,  # Has no FKs to other serialized models
+    Identity,  # Depends on IdentityProvider
+    OrganizationIntegration,  # Depends on Integration
+]
+
+
+def save_data(output_file):
+    """
+    Collects data from specified models and serializes it to a JSON file.
+    """
+    all_objects_to_serialize = []
+    click.echo("Collecting data from models...")
+    for model_cls in MODELS_TO_SERIALIZE:
+        model_name = f"{model_cls._meta.app_label}.{model_cls._meta.model_name}"
+        click.echo(f"  Fetching from {model_name}...")
+        # Order by PK for consistent output, though serializer might reorder.
+        # Convert queryset to list to avoid issues with extending during iteration if any.
+        objects = list(model_cls.objects.order_by("pk").all())
+        all_objects_to_serialize.extend(objects)
+        click.echo(f"    Found {len(objects)} objects.")
+
+    if not all_objects_to_serialize:
+        click.echo("No objects found to serialize.")
+        serialized_data = "[]"
+    else:
+        click.echo(f"\nSerializing {len(all_objects_to_serialize)} objects in total...")
+        serialized_data = serializers.serialize("json", all_objects_to_serialize, indent=2)
+
+    click.echo(f"Writing serialized data to {output_file}...")
+    with open(output_file, "w") as f:
+        f.write(serialized_data)
+    click.echo(f"Successfully saved data to {output_file}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Save Sentry integration-related models to a JSON file."
+    )
+    parser.add_argument(
+        "--output-file",
+        required=True,
+        help="Path to the output JSON file where data will be saved.",
+    )
+    args = parser.parse_args()
+
+    save_data(args.output_file)

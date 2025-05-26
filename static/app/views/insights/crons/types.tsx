@@ -176,9 +176,9 @@ export interface CheckIn {
   environment: string;
   /**
    * What was the monitors nextCheckIn value when this check-in occured, this
-   * is when we expected the check-in to happen.
+   * is when we expected the check-in to happen. May be null for the very first check-in.
    */
-  expectedTime: string;
+  expectedTime: string | null;
   /**
    * Check-in GUID
    */
@@ -322,3 +322,12 @@ export interface CheckinProcessingError {
   errors: ProcessingError[];
   id: string;
 }
+
+export type CheckInCellKey =
+  | 'status'
+  | 'started'
+  | 'completed'
+  | 'duration'
+  | 'issues'
+  | 'environment'
+  | 'expectedAt';

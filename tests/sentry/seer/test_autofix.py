@@ -9,6 +9,7 @@ from sentry.seer.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
     _convert_profile_to_execution_tree,
+    _get_logs_for_event,
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
     _respond_with_error,
@@ -1335,6 +1336,7 @@ class TestCallAutofix(TestCase):
         serialized_event = {"event_id": "test-event"}
         profile = {"profile_data": "test"}
         trace_tree = {"trace_data": "test"}
+        logs = {"logs": [{"message": "test-log"}]}
         instruction = "Test instruction"
 
         # Call the function with keyword arguments
@@ -1345,6 +1347,7 @@ class TestCallAutofix(TestCase):
             serialized_event=serialized_event,
             profile=profile,
             trace_tree=trace_tree,
+            logs=logs,
             instruction=instruction,
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",
@@ -1587,3 +1590,69 @@ class TestBuildSpansTree(TestCase):
         assert root["children"][0]["span_id"] == "slow-child"
         assert root["children"][1]["span_id"] == "medium-child"
         assert root["children"][2]["span_id"] == "fast-child"
+
+
+class TestGetLogsForEvent(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.trace_id = "1234567890abcdef1234567890abcdef"
+        self.now = before_now(minutes=0)
+
+    @patch("sentry.snuba.ourlogs.query")
+    def test_merging_consecutive_logs(self, mock_query):
+        # Simulate logs with identical message/severity in sequence
+        dt = self.now
+        logs = [
+            {
+                "project.id": self.project.id,
+                "timestamp": (dt - timedelta(seconds=3)).isoformat(),
+                "message": "foo",
+                "severity": "info",
+            },
+            {
+                "project.id": self.project.id,
+                "timestamp": (dt - timedelta(seconds=2)).isoformat(),
+                "message": "foo",
+                "severity": "info",
+            },
+            {
+                "project.id": self.project.id,
+                "timestamp": (dt - timedelta(seconds=1)).isoformat(),
+                "message": "bar",
+                "severity": "error",
+            },
+            {
+                "project.id": self.project.id,
+                "timestamp": dt.isoformat(),
+                "message": "foo",
+                "severity": "info",
+            },
+        ]
+        mock_query.return_value = {"data": logs}
+        # Use a mock event with datetime at dt
+        event = Mock()
+        event.trace_id = self.trace_id
+        event.datetime = dt
+        project = self.project
+        # Patch project.organization to avoid DB hits
+        project.organization = self.organization
+        result = _get_logs_for_event(event, project)
+        assert result is not None
+        merged = result["logs"]
+        # The first two "foo" logs should be merged (consecutive), the last "foo" is not consecutive
+        foo_merged = [
+            log for log in merged if log["message"] == "foo" and log.get("consecutive_count") == 2
+        ]
+        foo_single = [
+            log for log in merged if log["message"] == "foo" and "consecutive_count" not in log
+        ]
+        bar = [log for log in merged if log["message"] == "bar"]
+        assert len(foo_merged) == 1
+        assert len(foo_single) == 1
+        assert len(bar) == 1
+        # Order: merged foo, bar, single foo
+        assert merged[0]["message"] == "foo" and merged[0]["consecutive_count"] == 2
+        assert merged[1]["message"] == "bar"
+        assert merged[2]["message"] == "foo" and "consecutive_count" not in merged[2]

@@ -8,9 +8,9 @@ import {useUser} from 'sentry/utils/useUser';
  * @return {boolean} - Returns true if the user is a Sentry employee, otherwise false.
  */
 export function useIsSentryEmployee(): boolean {
-  const {emails} = useUser();
+  const user = useUser();
 
-  return emails.some(
+  return user?.emails.some(
     // TODO: In the near future isStaff should actually mean is a Sentry employee, right now it doesn't.
     ({email, is_verified}) => email.endsWith('@sentry.io') && is_verified
   );

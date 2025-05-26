@@ -33,7 +33,7 @@ function WidgetTemplatesList({
 }: WidgetTemplatesListProps) {
   const theme = useTheme();
   const organization = useOrganization();
-  const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
+  const [selectedWidget, setSelectedWidget] = useState<number | null>(0);
 
   const {dispatch} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();

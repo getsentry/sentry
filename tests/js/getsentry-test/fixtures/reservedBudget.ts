@@ -3,29 +3,13 @@ import {DataCategory} from 'sentry/types/core';
 import type {
   PendingReservedBudget as TPendingReservedBudget,
   ReservedBudget as TReservedBudget,
-  ReservedBudgetCategory as TReservedBudgetCategory,
   ReservedBudgetMetricHistory as TReservedBudgetMetricHistory,
 } from 'getsentry/types';
 import {ReservedBudgetCategoryType} from 'getsentry/types';
 
-type ReservedBudgetCategoryProps = Partial<TReservedBudgetCategory>;
 type BudgetProps = Partial<TReservedBudget>;
 type MetricHistoryProps = Partial<TReservedBudgetMetricHistory>;
-export type PendingBudgetProps = Partial<TPendingReservedBudget>;
-
-export function ReservedBudgetCategoryFixture(props: ReservedBudgetCategoryProps) {
-  return {
-    budgetCategoryType: '',
-    name: '',
-    docLink: '',
-    isFixed: false,
-    defaultBudget: 0,
-    dataCategories: [],
-    productName: '',
-    canProductTrial: false,
-    ...props,
-  };
-}
+type PendingBudgetProps = Partial<TPendingReservedBudget>;
 
 export function ReservedBudgetFixture(props: BudgetProps) {
   const defaultCategoryProps = {

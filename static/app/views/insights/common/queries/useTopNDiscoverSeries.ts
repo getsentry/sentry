@@ -67,9 +67,15 @@ export const useTopNSpanEAPSeries = <
     | string[],
 >(
   options: UseMetricsSeriesOptions<Fields>,
-  referrer: string
+  referrer: string,
+  pageFilters?: PageFilters
 ) => {
-  return useTopNDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_EAP_RPC, referrer);
+  return useTopNDiscoverSeries<Fields>(
+    options,
+    DiscoverDatasets.SPANS_EAP_RPC,
+    referrer,
+    pageFilters
+  );
 };
 
 const useTopNDiscoverSeries = <T extends string[]>(
@@ -136,6 +142,7 @@ const useTopNDiscoverSeries = <T extends string[]>(
   });
 
   const parsedData: DiscoverSeries[] = [];
+  const parsedMeta: EventsMetaType = {fields: {}, units: {}};
 
   const seriesData = result.data ?? {};
 
@@ -144,14 +151,36 @@ const useTopNDiscoverSeries = <T extends string[]>(
   if (!seriesData?.data) {
     Object.keys(seriesData).forEach(seriesName => {
       const data = seriesData[seriesName]?.data ?? [];
-      const meta = (seriesData[seriesName]?.meta ?? {}) as EventsMetaType;
       parsedData.push({
         seriesName,
         data: convertDiscoverTimeseriesResponse(data),
-        meta,
+        meta: parsedMeta,
       });
+
+      const meta = (seriesData[seriesName]?.meta ?? {}) as EventsMetaType;
+      const yAxisField = yAxis[0];
+
+      if (meta) {
+        parsedMeta.fields = {
+          ...parsedMeta.fields,
+          ...meta.fields,
+        };
+        parsedMeta.units = {
+          ...parsedMeta.units,
+          ...meta.units,
+        };
+      }
+
+      if (yAxisField) {
+        if (meta.fields[yAxisField]) {
+          parsedMeta.fields[seriesName] = meta.fields[yAxisField];
+        }
+        if (meta.units[yAxisField]) {
+          parsedMeta.units[seriesName] = meta.units[yAxisField];
+        }
+      }
     });
   }
 
-  return {...result, data: parsedData};
+  return {...result, data: parsedData, meta: parsedMeta};
 };

@@ -116,6 +116,7 @@ function WidgetPreview({
       // ensure table columns are at least a certain width (helps with lack of truncation on large fields)
       minTableColumnWidth={MIN_TABLE_COLUMN_WIDTH}
       disableZoom
+      showLoadingText
     />
   );
 }

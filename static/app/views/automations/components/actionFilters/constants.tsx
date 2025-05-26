@@ -99,7 +99,7 @@ export enum Level {
   SAMPLING = 0,
 }
 
-export enum Interval {
+enum Interval {
   ONE_MINUTE = '1m',
   FIVE_MINUTES = '5m',
   FIFTEEN_MINUTES = '15m',

@@ -12,6 +12,9 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {classifyTagKey} from 'sentry/utils/fields';
+import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   useExploreGroupBys,
@@ -73,12 +76,22 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
         value: UNGROUPED,
         textValue: t('\u2014'),
       },
-      ...potentialOptions.map(key => ({label: key, value: key, textValue: key})),
+      ...potentialOptions.map(key => {
+        const kind = classifyTagKey(key);
+        return {
+          label: key,
+          value: key,
+          textValue: key,
+          trailingItems: <TypeBadge kind={kind} />,
+          showDetailsInOverlay: true,
+          details: <AttributeDetails column={key} kind={kind} label={key} type="span" />,
+        };
+      }),
     ];
   }, [groupBys, tags]);
 
   return (
-    <DragNDropContext columns={groupBys} setColumns={setColumns}>
+    <DragNDropContext columns={groupBys} setColumns={setColumns} defaultColumn={() => ''}>
       {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => {
         return (
           <ToolbarSection data-test-id="section-group-by">
@@ -123,7 +136,7 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
 
 interface ColumnEditorRowProps {
   canDelete: boolean;
-  column: Column;
+  column: Column<string>;
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;

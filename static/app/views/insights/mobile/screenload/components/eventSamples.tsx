@@ -53,13 +53,13 @@ export function ScreenLoadEventSamples({
   const searchQuery = useMemo(() => {
     const mutableQuery = useEap
       ? new MutableSearch([
-          'span.op:ui.load',
+          'span.op:[ui.load,navigation]',
           `is_transaction:true`,
           `transaction:${transaction}`,
           `release:${release}`,
         ])
       : new MutableSearch([
-          'transaction.op:ui.load',
+          'transaction.op:[ui.load,navigation]',
           `transaction:${transaction}`,
           `release:${release}`,
         ]);

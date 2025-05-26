@@ -123,7 +123,7 @@ describe('ColumnEditorModal', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
 
-    const columns2 = ['id', 'project', 'None'];
+    const columns2 = ['id', 'project', '\u2014'];
     screen.getAllByTestId('editor-column').forEach((column, i) => {
       expect(column).toHaveTextContent(columns2[i]!);
     });
@@ -134,7 +134,7 @@ describe('ColumnEditorModal', function () {
       ['span.duration', 'number'],
       ['span.op', 'string'],
     ];
-    await userEvent.click(screen.getByRole('button', {name: 'Column None'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Column \u2014'}));
     const columnOptions = await screen.findAllByRole('option');
     columnOptions.forEach((option, i) => {
       expect(option).toHaveTextContent(options[i]![0]);

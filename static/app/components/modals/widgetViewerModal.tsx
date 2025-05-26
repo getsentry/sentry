@@ -320,7 +320,8 @@ function WidgetViewerModal(props: Props) {
     }]`;
   }
 
-  // Default table columns for visualizations that don't have a column setting
+  // Default table columns for visualizations that don't have a group by set
+  const hasGroupBy = (widget.queries[0]?.columns.length ?? 0) > 0;
   const shouldReplaceTableColumns =
     [
       DisplayType.AREA,
@@ -330,7 +331,7 @@ function WidgetViewerModal(props: Props) {
     ].includes(widget.displayType) &&
     widget.widgetType &&
     [WidgetType.DISCOVER, WidgetType.RELEASE].includes(widget.widgetType) &&
-    !defined(widget.limit);
+    !hasGroupBy;
 
   // Updates fields by adding any individual terms from equation fields as a column
   if (!isTableWidget) {
@@ -1189,6 +1190,10 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
 export const modalCss = css`
   width: 100%;
   max-width: 1200px;
+`;
+
+export const backdropCss = css`
+  z-index: 9998;
 `;
 
 const Container = styled('div')<{height?: number | null}>`

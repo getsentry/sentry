@@ -236,7 +236,6 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         title: str | None = None,
         description: str | None = None,
         comment: str | None = None,
-        link: str | None = None,
     ) -> dict[str, Any]:
         data = []
         if title:
@@ -245,16 +244,6 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
             data.append({"op": "add", "path": FIELD_MAP["description"], "value": description})
         if comment:
             data.append({"op": "add", "path": FIELD_MAP["comment"], "value": comment})
-        # XXX: Link is not yet used, as we can't explicitly bind it to Sentry.
-        # if link:
-        #     data.append({
-        #         'op': 'add',
-        #         'path': FIELD_MAP['link'],
-        #         'value': {
-        #             'rel': 'Hyperlink',
-        #             'url': link,
-        #         }
-        #     })
 
         return self.patch(
             VstsApiPath.work_items_create.format(

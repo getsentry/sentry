@@ -571,8 +571,8 @@ export default class ReplayReader {
   });
 
   /**
-   * Filter out style mutations as they can cause perf problems especially when
-   * used in replayStepper
+   * Do not include style mutation content as they can cause perf problems when
+   * used in replayStepper. However, we need to keep the nodes itself as to not affect the tree structure.
    */
   getRRWebFramesWithoutStyles = memoize(() => {
     return this.getRRWebFrames().map(e => {
@@ -581,17 +581,62 @@ export default class ReplayReader {
         'source' in e.data &&
         e.data.source === IncrementalSource.Mutation
       ) {
+        // Example `data` object:
+        // [{
+        //       "parentId": 4,
+        //       "nextId": 21,
+        //       "node": {
+        //           "type": 2,
+        //           "tagName": "style",
+        //           "attributes": {
+        //               "data-emotion": "css",
+        //               "data-s": "",
+        //               "_cssText": ".css {...} "
+        //           },
+        //           "childNodes": [],
+        //           "id": 47
+        //       }
+        //   },
+        //   {
+        //       "parentId": 414,
+        //       "nextId": null,
+        //       "node": {
+        //           "type": 3,
+        //           "textContent": ".css {...}",
+        //           "isStyle": true,
+        //           "id": 427
+        //       }
+        //   }
+        // ]
+
         return {
           ...e,
           data: {
             ...e.data,
-            adds: e.data.adds.filter(
-              add =>
-                !(
-                  (add.node.type === 3 && add.node.isStyle) ||
-                  (add.node.type === 2 && add.node.tagName === 'style')
-                )
-            ),
+            adds: e.data.adds.map(add => {
+              if (add.node.type === 3 && add.node.isStyle) {
+                return {
+                  ...add,
+                  node: {
+                    ...add.node,
+                    textContent: '',
+                  },
+                };
+              }
+
+              if (add.node.type === 2 && add.node.tagName === 'style') {
+                return {
+                  ...add,
+                  node: {
+                    ...add.node,
+                    attributes: {},
+                    childNodes: [],
+                  },
+                };
+              }
+
+              return add;
+            }),
           },
         };
       }

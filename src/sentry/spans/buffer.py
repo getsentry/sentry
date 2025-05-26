@@ -344,15 +344,17 @@ class SpansBuffer:
 
                 result = p.execute()
 
-        segment_keys: list[tuple[QueueKey, SegmentKey]] = []
+        segment_keys: list[tuple[int, QueueKey, SegmentKey]] = []
 
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
             with self.client.pipeline(transaction=False) as p:
                 # ZRANGEBYSCORE output
-                for queue_key, segment_span_ids in zip(queue_keys, result):
+                for shard, queue_key, segment_span_ids in zip(
+                    self.assigned_shards, queue_keys, result
+                ):
                     # process return value of zrevrangebyscore
                     for segment_key in segment_span_ids:
-                        segment_keys.append((queue_key, segment_key))
+                        segment_keys.append((shard, queue_key, segment_key))
                         p.smembers(segment_key)
 
                 segments = p.execute()
@@ -361,7 +363,7 @@ class SpansBuffer:
 
         num_has_root_spans = 0
 
-        for (queue_key, segment_key), segment in zip(segment_keys, segments):
+        for (shard, queue_key, segment_key), segment in zip(segment_keys, segments):
             segment_span_id = _segment_key_to_span_id(segment_key).decode("ascii")
 
             output_spans = []
@@ -396,6 +398,9 @@ class SpansBuffer:
 
                 output_spans.append(OutputSpan(payload=val))
 
+            metrics.incr(
+                "spans.buffer.flush_segments.num_segments_per_shard", tags={"shard_i": shard}
+            )
             return_segments[segment_key] = FlushedSegment(queue_key=queue_key, spans=output_spans)
             num_has_root_spans += int(has_root_span)
 

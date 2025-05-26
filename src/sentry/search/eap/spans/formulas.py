@@ -172,7 +172,7 @@ def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Colu
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(
-                    name="sentry.trace.status",
+                    name="sentry.status",
                     type=AttributeKey.TYPE_STRING,
                 ),
                 filter=TraceItemFilter(
@@ -181,7 +181,7 @@ def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Colu
                             TraceItemFilter(
                                 comparison_filter=ComparisonFilter(
                                     key=AttributeKey(
-                                        name="sentry.trace.status",
+                                        name="sentry.status",
                                         type=AttributeKey.TYPE_STRING,
                                     ),
                                     op=ComparisonFilter.OP_NOT_IN,
@@ -219,13 +219,13 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(
-                    name="sentry.trace.status",
+                    name="sentry.status",
                     type=AttributeKey.TYPE_STRING,
                 ),
                 filter=TraceItemFilter(
                     comparison_filter=ComparisonFilter(
                         key=AttributeKey(
-                            name="sentry.trace.status",
+                            name="sentry.status",
                             type=AttributeKey.TYPE_STRING,
                         ),
                         op=ComparisonFilter.OP_NOT_IN,

@@ -69,6 +69,7 @@ interface ReleaseBubbleSeriesProps {
   };
   releases: ReleaseMetaBasic[];
   theme: Theme;
+  yAxisIndex?: number;
 }
 
 /**
@@ -82,6 +83,7 @@ function ReleaseBubbleSeries({
   bubblePadding,
   dateFormatOptions,
   alignInMiddle,
+  yAxisIndex,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
   const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
   const avgReleases = totalReleases / buckets.length;
@@ -190,6 +192,7 @@ function ReleaseBubbleSeries({
   return {
     id: BUBBLE_SERIES_ID,
     type: 'custom',
+    yAxisIndex,
     renderItem: renderReleaseBubble,
     name: t('Releases'),
     data,
@@ -286,6 +289,10 @@ interface UseReleaseBubblesParams {
    * List of releases that will be grouped
    */
   releases?: ReleaseMetaBasic[];
+  /**
+   * The index of the y-axis to use for the release bubbles
+   */
+  yAxisIndex?: number;
 }
 
 export function useReleaseBubbles({
@@ -297,6 +304,7 @@ export function useReleaseBubbles({
   environments,
   projects,
   legendSelected,
+  yAxisIndex,
   alignInMiddle = false,
   bubbleSize = 4,
   bubblePadding = 2,
@@ -342,6 +350,23 @@ export function useReleaseBubbles({
     }),
     [bubbleSize, totalBubblePaddingY]
   );
+
+  const releaseBubbleYAxis = useMemo(
+    () => ({
+      type: 'value' as const,
+      min: 0,
+      max: 100,
+      show: false,
+      // `axisLabel` causes an unwanted whitespace/width on the y-axis
+      axisLabel: {show: false},
+      // Hides an axis line + tooltip when hovering on chart
+      // This is default `false`, but the main y-axis has
+      // `tooltip.trigger=axis` which will cause this to be enabled.
+      axisPointer: {show: false},
+    }),
+    []
+  );
+
   const releaseBubbleGrid = useMemo(
     () => ({
       // Moves bottom of grid "up" `bubbleSize` pixels so that bubbles are
@@ -600,6 +625,7 @@ export function useReleaseBubbles({
       ReleaseBubbleSeries: null,
       releaseBubbleXAxis: {},
       releaseBubbleGrid: {},
+      releaseBubbleYAxis: null,
     };
   }
 
@@ -610,6 +636,7 @@ export function useReleaseBubbles({
      * Series to append to a chart's existing `series`
      */
     releaseBubbleSeries: ReleaseBubbleSeries({
+      yAxisIndex,
       alignInMiddle,
       buckets,
       bubbleSize,
@@ -621,6 +648,8 @@ export function useReleaseBubbles({
         timezone: options.timezone,
       },
     }),
+
+    releaseBubbleYAxis,
 
     /**
      * ECharts xAxis configuration. Spread/override charts `xAxis` prop.

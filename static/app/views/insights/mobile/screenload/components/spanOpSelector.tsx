@@ -18,6 +18,7 @@ export const TTID_CONTRIBUTING_SPAN_OPS = [
   'file.read',
   'file.write',
   'ui.load',
+  'navigation',
   'http.client',
   'db',
   'db.sql.room',
@@ -38,7 +39,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
   const value = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
 
   const searchQuery = new MutableSearch([
-    'transaction.op:ui.load',
+    'transaction.op:[ui.load,navigation]',
     `transaction:${transaction}`,
     `span.op:[${TTID_CONTRIBUTING_SPAN_OPS.join(',')}]`,
     'has:span.description',

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/gridEditable/styles';
 import {HighlightComponent} from 'sentry/components/highlight';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -15,13 +16,15 @@ import {
 } from 'sentry/views/explore/components/table';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
-const StyledPanel = styled(Panel)`
-  margin-bottom: 0;
-`;
+export const LOGS_GRID_BODY_ROW_HEIGHT = GRID_BODY_ROW_HEIGHT - 16;
 
 interface LogTableRowProps {
   isClickable?: boolean;
 }
+
+const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
+`;
 
 export const LogTableRow = styled(TableRow)<LogTableRowProps>`
   &:not(thead > &) {
@@ -43,7 +46,7 @@ export const LogAttributeTreeWrapper = styled('div')`
 `;
 
 export const LogTableBodyCell = styled(TableBodyCell)`
-  min-height: ${GRID_BODY_ROW_HEIGHT - 16}px;
+  min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${space(2)};
 
@@ -184,6 +187,44 @@ export const FirstTableHeadCell = styled(TableHeadCell)`
 export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-right: 0;
   padding-left: ${space(1)};
+`;
+
+export const FilterBarContainer = styled('div')`
+  display: flex;
+  gap: ${space(2)};
+  margin-bottom: ${space(1)};
+`;
+
+export const TableActionsContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  justify-content: flex-end;
+  align-items: center;
+`;
+
+export const LogsItemContainer = styled('div')`
+  flex: 1 1 auto;
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+export const LogsTableActionsContainer = styled(LogsItemContainer)`
+  margin-bottom: 0;
+`;
+
+export const LogsGraphContainer = styled(LogsItemContainer)`
+  height: 200px;
+`;
+
+export const StyledPageFilterBar = styled(PageFilterBar)`
+  width: auto;
+`;
+
+export const AutoRefreshLabel = styled('label')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  margin-bottom: 0;
 `;
 
 export function getLogColors(level: SeverityLevel, theme: Theme) {

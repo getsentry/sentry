@@ -6,7 +6,7 @@ from typing import Literal
 import pytest
 
 from sentry.grouping.component import FrameGroupingComponent
-from sentry.grouping.enhancer import get_hint_for_frame
+from sentry.grouping.enhancer import _combine_hints, get_hint_for_frame
 
 
 @dataclass
@@ -429,5 +429,37 @@ def test_get_hint_for_frame(
 
     assert (
         get_hint_for_frame(variant_name, frame, frame_component, rust_frame, desired_hint_type)  # type: ignore[arg-type]
+        == expected_result
+    )
+
+
+@pytest.mark.parametrize(
+    ["variant_name", "in_app", "contributes", "in_app_hint", "contributes_hint", "expected_result"],
+    [
+        ("app", True, True, in_app_hint, None, in_app_hint),
+        ("app", True, True, in_app_hint, unignored_hint, f"{in_app_hint} and {unignored_hint}"),
+        ("app", True, False, in_app_hint, ignored_hint, f"{in_app_hint} but {ignored_hint}"),
+        ("app", False, True, out_of_app_hint, None, out_of_app_hint),
+        ("app", False, True, out_of_app_hint, unignored_hint, out_of_app_hint),
+        ("app", False, False, out_of_app_hint, ignored_hint, out_of_app_hint),
+        ("system", True, True, None, None, None),
+        ("system", True, True, None, unignored_hint, unignored_hint),
+        ("system", True, False, None, ignored_hint, ignored_hint),
+        ("system", False, True, None, None, None),
+        ("system", False, True, None, unignored_hint, unignored_hint),
+        ("system", False, False, None, ignored_hint, ignored_hint),
+    ],
+)
+def test_combining_hints(
+    variant_name,
+    in_app,
+    contributes,
+    in_app_hint,
+    contributes_hint,
+    expected_result,
+):
+    frame_component = FrameGroupingComponent(in_app=in_app, contributes=contributes, values=[])
+    assert (
+        _combine_hints(variant_name, frame_component, in_app_hint, contributes_hint)
         == expected_result
     )

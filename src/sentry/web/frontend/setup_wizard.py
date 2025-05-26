@@ -72,6 +72,8 @@ class SetupWizardView(BaseView):
         """
         if is_demo_user(request.user):
             return HttpResponse(status=403)
+        elif not request.user.is_authenticated:
+            return HttpResponse(status=400)
 
         context = {
             "hash": wizard_hash,
@@ -134,6 +136,8 @@ class SetupWizardView(BaseView):
         """
         if is_demo_user(request.user):
             return HttpResponse(status=403)
+        elif not request.user.is_authenticated:
+            return HttpResponse(status=400)
 
         json_data = json.loads(request.body)
         organization_id = json_data.get("organizationId", None)

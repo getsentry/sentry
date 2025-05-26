@@ -69,6 +69,14 @@ export interface TimeSeriesWidgetVisualizationProps
    */
   plottables: Plottable[];
   /**
+   * Sets the range of the Y axis.
+   *
+   * - `auto`: The Y axis starts at 0, and ends at the maximum value of the data.
+   * - `dataMin`: The Y axis starts at the minimum value of the data, and ends at the maximum value of the data.
+   * Default: `auto`
+   */
+  axisRange?: 'auto' | 'dataMin';
+  /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
@@ -76,6 +84,7 @@ export interface TimeSeriesWidgetVisualizationProps
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
   onLegendSelectionChange?: (selection: LegendSelection) => void;
+
   /**
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
@@ -132,82 +141,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const hasReleaseBubbles =
     organization.features.includes('release-bubbles-ui') &&
     props.showReleaseAs === 'bubble';
-
-  // find min/max timestamp of *all* timeSeries
-  const allBoundaries = props.plottables
-    .flatMap(plottable => [plottable.start, plottable.end])
-    .toSorted();
-  const earliestTimeStamp = allBoundaries.at(0);
-  const latestTimeStamp = allBoundaries.at(-1);
-
-  const {
-    connectReleaseBubbleChartRef,
-    releaseBubbleSeries,
-    releaseBubbleXAxis,
-    releaseBubbleGrid,
-  } = useReleaseBubbles({
-    chartId: props.id,
-    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
-    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
-    releases: hasReleaseBubbles
-      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
-      : [],
-  });
-
-  const releaseSeries = props.releases
-    ? hasReleaseBubbles
-      ? releaseBubbleSeries
-      : ReleaseSeries(
-          theme,
-          props.releases,
-          function onReleaseClick(release: Release) {
-            if (organization.features.includes('release-bubbles-ui')) {
-              navigate(
-                makeReleaseDrawerPathname({
-                  location,
-                  release: release.version,
-                  source: 'time-series-widget',
-                })
-              );
-              return;
-            }
-            navigate(
-              makeReleasesPathname({
-                organization,
-                path: `/${encodeURIComponent(release.version)}/`,
-              })
-            );
-          },
-          utc ?? false
-        )
-    : null;
-
-  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
-
-  const handleChartRef = useCallback(
-    (e: ReactEchartsRef | null) => {
-      if (!e?.getEchartsInstance) {
-        return;
-      }
-
-      for (const plottable of props.plottables) {
-        plottable.handleChartRef?.(e);
-      }
-
-      const echartsInstance = e.getEchartsInstance();
-      registerWithWidgetSyncContext(echartsInstance);
-
-      if (hasReleaseBubblesSeries) {
-        connectReleaseBubbleChartRef(e);
-      }
-    },
-    [
-      hasReleaseBubblesSeries,
-      connectReleaseBubbleChartRef,
-      registerWithWidgetSyncContext,
-      props.plottables,
-    ]
-  );
 
   const {onDataZoom, ...chartZoomProps} = useChartZoom({
     saveOnZoom: true,
@@ -299,6 +232,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
   });
 
+  const axisRangeProp = props.axisRange ?? 'auto';
+
   const leftYAxis: YAXisComponentOption = TimeSeriesWidgetYAxis(
     {
       axisLabel: {
@@ -307,7 +242,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       },
       position: 'left',
     },
-    leftYAxisType
+    leftYAxisType,
+    axisRangeProp
   );
 
   const rightYAxis: YAXisComponentOption | undefined = rightYAxisType
@@ -323,7 +259,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           },
           position: 'right',
         },
-        rightYAxisType
+        rightYAxisType,
+        axisRangeProp
       )
     : undefined;
 
@@ -430,6 +367,88 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
+
+  // find min/max timestamp of *all* timeSeries
+  const allBoundaries = props.plottables
+    .flatMap(plottable => [plottable.start, plottable.end])
+    .toSorted();
+  const earliestTimeStamp = allBoundaries.at(0);
+  const latestTimeStamp = allBoundaries.at(-1);
+
+  const {
+    connectReleaseBubbleChartRef,
+    releaseBubbleSeries,
+    releaseBubbleXAxis,
+    releaseBubbleGrid,
+    releaseBubbleYAxis,
+  } = useReleaseBubbles({
+    chartId: props.id,
+    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
+    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
+    releases: hasReleaseBubbles
+      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
+      : [],
+    yAxisIndex: yAxes.length,
+  });
+
+  if (releaseBubbleYAxis) {
+    yAxes.push(releaseBubbleYAxis);
+  }
+
+  const releaseSeries = props.releases
+    ? hasReleaseBubbles
+      ? releaseBubbleSeries
+      : ReleaseSeries(
+          theme,
+          props.releases,
+          function onReleaseClick(release: Release) {
+            if (organization.features.includes('release-bubbles-ui')) {
+              navigate(
+                makeReleaseDrawerPathname({
+                  location,
+                  release: release.version,
+                  source: 'time-series-widget',
+                })
+              );
+              return;
+            }
+            navigate(
+              makeReleasesPathname({
+                organization,
+                path: `/${encodeURIComponent(release.version)}/`,
+              })
+            );
+          },
+          utc ?? false
+        )
+    : null;
+
+  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
+
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef | null) => {
+      if (!e?.getEchartsInstance) {
+        return;
+      }
+
+      for (const plottable of props.plottables) {
+        plottable.handleChartRef?.(e);
+      }
+
+      const echartsInstance = e.getEchartsInstance();
+      registerWithWidgetSyncContext(echartsInstance);
+
+      if (hasReleaseBubblesSeries) {
+        connectReleaseBubbleChartRef(e);
+      }
+    },
+    [
+      hasReleaseBubblesSeries,
+      connectReleaseBubbleChartRef,
+      registerWithWidgetSyncContext,
+      props.plottables,
+    ]
+  );
 
   const showXAxisProp = props.showXAxis ?? 'auto';
   const showXAxis = showXAxisProp === 'auto';

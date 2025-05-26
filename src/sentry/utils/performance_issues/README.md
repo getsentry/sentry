@@ -21,7 +21,6 @@ Performance Issues are built on top of the [Issue Platform](https://develop.sent
   - After recording metrics about the results, two checks are run, dropping the `PerformanceProblem`s if either return `False`:
     - `PerformanceDetector.is_creation_allowed_for_organization()` - Pre-GA, check a feature flag; post-GA, just return `True`
     - `PerformanceDetector.is_creation_allowed_for_project()` - Usually checking project's detector settings
-  - Lastly, we trunacte any `PerformanceProblem`s in excess of `PERFORMANCE_GROUP_COUNT_LIMIT` from [performance_detection.py](./performance_detection.py)
 - We store the list of `PerformanceProblem`s from `_detect_performance_problems` on `job["performance_problems"]`
 - Then we run `_send_occurrence_to_platform` which reads `job["performance_problems"]`
   - It will map each `PerformanceProblem` into an `IssueOccurrence`
@@ -52,7 +51,7 @@ There are quite a few places which need to be updated when adding a new performa
   - [ ] If your value is not customizable, add it to the dictionary
   - [ ] If it is customizable, access it via `settings[key_name]`
     - [ ] Then add it to [project_performance_issue_settings.py](../../api/endpoints/project_performance_issue_settings.py), either `InternalProjectOptions` or `ConfigurableThresholds`
-    - [ ] In the same file, Add it to the map, either `internal_only_project_settings_to_group_map` or `configurable_thresholds_to_internal_settings_map` using the new GroupType
+    - [ ] In the same file, Add it to the mappings `project_settings_to_group_map`/`thresholds_to_manage_map` using the new GroupType
     - [ ] In the same file, Add a serializer field to `ProjectPerformanceIssueSettingsSerializer` to allow it to be validated from the inbound API.
     - [ ] (Optional) The frontend file (`projectPerformance.tsx`) should add the new field.
     - [ ] Then, to set a default value, register an option in [defaults.py](../../options/defaults.py)

@@ -28,6 +28,7 @@ class Topic(Enum):
     GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
     METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
     EAP_SPANS_SUBSCRIPTIONS_RESULTS = "eap-spans-subscription-results"
+    EAP_ITEMS_SUBSCRIPTIONS_RESULTS = "subscription-results-eap-items"
     INGEST_EVENTS = "ingest-events"
     INGEST_EVENTS_DLQ = "ingest-events-dlq"
     INGEST_EVENTS_BACKLOG = "ingest-events-backlog"

@@ -1,25 +1,21 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import JSXNode from 'sentry/components/stories/jsxNode';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import SideBySide from 'sentry/components/stories/sideBySide';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 
 import {BigNumberWidgetVisualization} from './bigNumberWidgetVisualization';
 
-export default storyBook('BigNumberWidgetVisualization', story => {
+export default Storybook.story('BigNumberWidgetVisualization', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="BigNumberWidgetVisualization" /> is a visualization used for "Big
-          Number" widgets across the app. It displays a single large value. Used in places
-          like Dashboards Big Number widgets, Project Details pages, and Organization
-          Stats pages.
+          <Storybook.JSXNode name="BigNumberWidgetVisualization" /> is a visualization
+          used for "Big Number" widgets across the app. It displays a single large value.
+          Used in places like Dashboards Big Number widgets, Project Details pages, and
+          Organization Stats pages.
         </p>
         <p>
           It has features like:
@@ -42,20 +38,20 @@ export default storyBook('BigNumberWidgetVisualization', story => {
     return (
       <Fragment>
         <p>
-          The visualization of <JSXNode name="BigNumberWidgetVisualiztion" /> a large
-          number, just like it says on the tin. Depending on the value passed to it, it
-          intelligently rounds and humanizes the results. If the number is humanized,
+          The visualization of <Storybook.JSXNode name="BigNumberWidgetVisualiztion" /> a
+          large number, just like it says on the tin. Depending on the value passed to it,
+          it intelligently rounds and humanizes the results. If the number is humanized,
           hovering over the visualization shows a tooltip with the full value.
         </p>
 
         <p>
-          <JSXNode name="BigNumberWidgetVisualization" /> also supports string values.
-          This is not commonly used, but it's capable of rendering timestamps and in fact
-          most fields defined in our field renderer pipeline
+          <Storybook.JSXNode name="BigNumberWidgetVisualization" /> also supports string
+          values. This is not commonly used, but it's capable of rendering timestamps and
+          in fact most fields defined in our field renderer pipeline
         </p>
 
-        <SideBySide>
-          <SmallSizingWindow>
+        <Storybook.SideBySide>
+          <SmallStorybookSizingWindow>
             <Container>
               <BigNumberWidgetVisualization
                 value={0.01087819860850493}
@@ -71,8 +67,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
                 }}
               />
             </Container>
-          </SmallSizingWindow>
-          <SmallSizingWindow>
+          </SmallStorybookSizingWindow>
+          <SmallStorybookSizingWindow>
             <Container>
               <BigNumberWidgetVisualization
                 value={178451214}
@@ -81,8 +77,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
                 unit={null}
               />
             </Container>
-          </SmallSizingWindow>
-          <SmallSizingWindow>
+          </SmallStorybookSizingWindow>
+          <SmallStorybookSizingWindow>
             <Container>
               <BigNumberWidgetVisualization
                 value={17.28}
@@ -91,8 +87,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
                 unit={DurationUnit.MILLISECOND}
               />
             </Container>
-          </SmallSizingWindow>
-          <SmallSizingWindow>
+          </SmallStorybookSizingWindow>
+          <SmallStorybookSizingWindow>
             <Container>
               <BigNumberWidgetVisualization
                 value={'2024-10-17T16:08:07+00:00'}
@@ -101,8 +97,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
                 unit={null}
               />
             </Container>
-          </SmallSizingWindow>
-        </SideBySide>
+          </SmallStorybookSizingWindow>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
@@ -111,9 +107,9 @@ export default storyBook('BigNumberWidgetVisualization', story => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="BigNumberWidgetVisualization" /> includes a loading placeholder.
-          You can use it via{' '}
-          <JSXNode name="BigNumberWidgetVisualization.LoadingPlaceholder" />
+          <Storybook.JSXNode name="BigNumberWidgetVisualization" /> includes a loading
+          placeholder. You can use it via{' '}
+          <Storybook.JSXNode name="BigNumberWidgetVisualization.LoadingPlaceholder" />
         </p>
 
         <SmallWidget>
@@ -132,9 +128,9 @@ export default storyBook('BigNumberWidgetVisualization', story => {
           too expensive for the API to compute, so the API returns a maximum of 1,000,000.
           If the API returns exactly 1,000,000, that means the actual number is unknown,
           something higher than the max. Setting{' '}
-          <JSXProperty name="maximumValue" value={1000000} /> will show &gt;1m.
+          <Storybook.JSXProperty name="maximumValue" value={1000000} /> will show &gt;1m.
         </p>
-        <SideBySide>
+        <Storybook.SideBySide>
           <SmallWidget>
             <BigNumberWidgetVisualization
               value={1000000}
@@ -144,7 +140,7 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               unit={null}
             />
           </SmallWidget>
-        </SideBySide>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
@@ -153,20 +149,20 @@ export default storyBook('BigNumberWidgetVisualization', story => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="BigNumberWidgetVisualization" /> can show the difference of the
-          current value and the previous period value as the difference between the two
-          values, in small text next to the main value.
+          <Storybook.JSXNode name="BigNumberWidgetVisualization" /> can show the
+          difference of the current value and the previous period value as the difference
+          between the two values, in small text next to the main value.
         </p>
 
         <p>
           The <code>preferredPolarity</code> prop controls the color of the comparison
-          string. Setting <JSXProperty name="preferredPolarity" value={'+'} /> mean that a
-          higher number is <i>better</i> and will paint increases in the value green. Vice
-          versa with negative polarity. Omitting a preferred polarity will prevent
-          colorization.
+          string. Setting <Storybook.JSXProperty name="preferredPolarity" value={'+'} />{' '}
+          mean that a higher number is <i>better</i> and will paint increases in the value
+          green. Vice versa with negative polarity. Omitting a preferred polarity will
+          prevent colorization.
         </p>
 
-        <SideBySide>
+        <Storybook.SideBySide>
           <SmallWidget>
             <BigNumberWidgetVisualization
               value={17.1087819860850493}
@@ -197,7 +193,7 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               unit={null}
             />
           </SmallWidget>
-        </SideBySide>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
@@ -217,13 +213,13 @@ export default storyBook('BigNumberWidgetVisualization', story => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="BigNumberWidgetVisualization" /> supports a{' '}
+          <Storybook.JSXNode name="BigNumberWidgetVisualization" /> supports a{' '}
           <code>thresholds</code> prop. If specified, the value in the widget will be
           evaluated against these thresholds, and indicated using a colorful circle next
           to the value.
         </p>
 
-        <SideBySide>
+        <Storybook.SideBySide>
           <SmallWidget>
             <BigNumberWidgetVisualization
               value={7.1}
@@ -256,14 +252,14 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               preferredPolarity="+"
             />
           </SmallWidget>
-        </SideBySide>
+        </Storybook.SideBySide>
 
         <p>
           The thresholds respect the preferred polarity. By default, the preferred
           polarity is positive (higher numbers are good).
         </p>
 
-        <SideBySide>
+        <Storybook.SideBySide>
           <SmallWidget>
             <BigNumberWidgetVisualization
               field="eps()"
@@ -296,13 +292,13 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               preferredPolarity="-"
             />
           </SmallWidget>
-        </SideBySide>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
 });
 
-const SmallSizingWindow = styled(SizingWindow)`
+const SmallStorybookSizingWindow = styled(Storybook.SizingWindow)`
   width: auto;
   height: 200px;
 `;

@@ -37,7 +37,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
         FeatureDescription(
             """
             Create and link Sentry issue groups directly to an Redmine issue in any of your
-            projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+            projects, providing a quick way to jump from a Sentry bug to tracked ticket.
             """,
             IntegrationFeatures.ISSUE_BASIC,
         ),

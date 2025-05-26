@@ -11,6 +11,7 @@ export enum ModuleName {
   APP_START = 'app_start',
   RESOURCE = 'resource',
   AI = 'ai',
+  AGENTS = 'agents',
   MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
@@ -168,7 +169,8 @@ type SpanStringFields =
   | 'replayId'
   | 'profile.id'
   | 'profiler.id'
-  | 'thread.id';
+  | 'thread.id'
+  | 'span.domain'; // TODO: With `useInsightsEap` we get a string, without it we get an array
 
 export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanMetricsField.PROJECT_ID]?: string;
@@ -426,7 +428,6 @@ export type SpanIndexedResponse = {
     | 'unavailable'
     | 'data_loss'
     | 'unauthenticated';
-  [SpanIndexedField.SPAN_ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;
   [SpanIndexedField.TRANSACTION]: string;
@@ -486,8 +487,6 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.LCP_ELEMENT]: string;
   [SpanIndexedField.CLS_SOURCE]: string;
   [SpanIndexedField.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH]: number;
-  [SpanIndexedField.PROJECT]: string;
-  [SpanIndexedField.SPAN_GROUP]: string;
   'any(id)': string;
   [SpanIndexedField.DB_SYSTEM]: SupportedDatabaseSystem;
   [SpanIndexedField.CODE_FILEPATH]: string;

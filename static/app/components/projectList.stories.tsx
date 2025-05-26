@@ -1,21 +1,19 @@
 import {Fragment} from 'react';
 
 import {ProjectList} from 'sentry/components/projectList';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import Matrix from 'sentry/components/stories/matrix';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
 const PROJECT_SLUGS = ['sentry', 'javascript', 'snuba', 'seer'];
 
-export default storyBook('ProjectList', story => {
+export default Storybook.story('ProjectList', story => {
   story('Configuring the number of visible projects', () => (
     <Fragment>
       <p>
         The number of visible projects is configurable with the{' '}
-        <JSXProperty name="maxVisibleProjects" value /> prop.
+        <Storybook.JSXProperty name="maxVisibleProjects" value /> prop.
       </p>
       <p>The default is 2.</p>
-      <Matrix
+      <Storybook.PropMatrix
         propMatrix={{
           maxVisibleProjects: [1, 2, 3, 4],
         }}
@@ -29,7 +27,7 @@ export default storyBook('ProjectList', story => {
     <Fragment>
       <p>
         The tooltip text is also configurable with the{' '}
-        <JSXProperty name="collapsedProjectsTooltip" value /> prop.
+        <Storybook.JSXProperty name="collapsedProjectsTooltip" value /> prop.
       </p>
       <ProjectList
         projectSlugs={PROJECT_SLUGS}

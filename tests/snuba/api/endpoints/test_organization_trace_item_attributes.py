@@ -7,7 +7,9 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase, OurLogTestCase, SnubaTestCase
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 
 
 class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase):
@@ -279,6 +281,76 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             },
             {"key": "measurements.lcp", "name": "measurements.lcp"},
             {"key": "span.duration", "name": "span.duration"},
+        ]
+
+    @override_options({"performance.spans-tags-key.max": 3})
+    def test_pagination(self):
+        for tag in ["foo", "bar", "baz"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:16],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+                transaction="foo",
+                duration=100,
+                exclusive_time=100,
+                tags={tag: tag},
+                is_eap=True,
+            )
+
+        response = self.do_request(
+            {
+                "attributeType": "string",
+            }
+        )
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {"key": "bar", "name": "bar"},
+            {"key": "baz", "name": "baz"},
+            {"key": "foo", "name": "foo"},
+            {"key": "span.description", "name": "span.description"},
+            {"key": "project", "name": "project"},
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
+
+        assert links["next"]["href"] is not None
+        with self.feature(self.feature_flags):
+            response = self.client.get(links["next"]["href"], format="json")
+        assert response.status_code == 200, response.content
+        assert response.data == [
+            {"key": "span.description", "name": "span.description"},
+            {"key": "transaction", "name": "transaction"},
+            {"key": "project", "name": "project"},
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "true"
+        assert links["next"]["results"] == "false"
+
+        assert links["previous"]["href"] is not None
+        with self.feature(self.feature_flags):
+            response = self.client.get(links["previous"]["href"], format="json")
+        assert response.status_code == 200, response.content
+        assert response.data == [
+            {"key": "bar", "name": "bar"},
+            {"key": "baz", "name": "baz"},
+            {"key": "foo", "name": "foo"},
+            {"key": "span.description", "name": "span.description"},
+            {"key": "project", "name": "project"},
         ]
 
 
@@ -1016,3 +1088,105 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
 
         response = self.do_request(key="tag")
         assert response.status_code == 400, response.data
+
+    @override_options({"performance.spans-tags-values.max": 2})
+    def test_pagination(self):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        for tag in ["foo", "bar", "baz", "qux"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:16],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=timestamp,
+                transaction="foo",
+                duration=100,
+                exclusive_time=100,
+                tags={"tag": tag},
+                is_eap=True,
+            )
+
+        response = self.do_request(key="tag")
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "tag",
+                "value": "bar",
+                "name": "bar",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": mock.ANY,
+                "key": "tag",
+                "value": "baz",
+                "name": "baz",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
+
+        assert links["next"]["href"] is not None
+        with self.feature(self.feature_flags):
+            response = self.client.get(links["next"]["href"], format="json")
+        assert response.status_code == 200, response.content
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "tag",
+                "value": "foo",
+                "name": "foo",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": mock.ANY,
+                "key": "tag",
+                "value": "qux",
+                "name": "qux",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+        ]
+
+        links = {}
+        for url, attrs in parse_link_header(response["Link"]).items():
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+
+        assert links["previous"]["results"] == "true"
+        assert links["next"]["results"] == "false"
+
+        assert links["previous"]["href"] is not None
+        with self.feature(self.feature_flags):
+            response = self.client.get(links["previous"]["href"], format="json")
+        assert response.status_code == 200, response.content
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "tag",
+                "value": "bar",
+                "name": "bar",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": mock.ANY,
+                "key": "tag",
+                "value": "baz",
+                "name": "baz",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+        ]

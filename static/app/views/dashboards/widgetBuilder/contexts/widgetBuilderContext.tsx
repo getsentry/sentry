@@ -19,7 +19,9 @@ interface WidgetBuilderProviderProps {
 function WidgetBuilderStateProvider({children}: WidgetBuilderProviderProps) {
   const widgetBuilderState = useWidgetBuilderState();
   return (
-    <WidgetBuilderContext value={widgetBuilderState}>{children}</WidgetBuilderContext>
+    <WidgetBuilderContext.Provider value={widgetBuilderState}>
+      {children}
+    </WidgetBuilderContext.Provider>
   );
 }
 

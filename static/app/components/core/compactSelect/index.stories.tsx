@@ -1,9 +1,8 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {Grid} from 'sentry/components/stories/sideBySide';
 import {t} from 'sentry/locale';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
 const countryNameToCode = {
@@ -261,7 +260,7 @@ const countryNameToCode = {
 
 import {CompactSelect} from './';
 
-export default storyBook('CompactSelect', story => {
+export default Storybook.story('CompactSelect', story => {
   story('Basics', () => {
     return (
       <Fragment>
@@ -341,7 +340,7 @@ export default storyBook('CompactSelect', story => {
           the props for the trigger.
         </p>
 
-        <Grid>
+        <Storybook.Grid>
           <CompactSelect
             size="md"
             triggerProps={{
@@ -378,7 +377,7 @@ export default storyBook('CompactSelect', story => {
             searchable
             clearable
           />
-        </Grid>
+        </Storybook.Grid>
       </Fragment>
     );
   });
