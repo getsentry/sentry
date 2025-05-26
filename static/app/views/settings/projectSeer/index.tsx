@@ -75,7 +75,7 @@ const configureAllProjectsField = {
     const organization = useOrganization();
     return (
       <FieldGroup
-        label={t('Configure Automation for All Projects')}
+        label={t('Configure Automation for Other Projects')}
         help={t(
           'Allow Seer to automatically fix issues for other projects in addition to this one.'
         )}
