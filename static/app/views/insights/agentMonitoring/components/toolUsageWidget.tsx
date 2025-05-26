@@ -43,9 +43,8 @@ export default function ToolUsageWidget() {
 
   const toolsRequest = useEAPSpans(
     {
-      // @ts-expect-error TODO(telex): Add tool name attribute to Fields
-      fields: [AI_TOOL_NAME_ATTRIBUTE, 'count(span.duration)'],
-      sorts: [{field: 'count(span.duration)', kind: 'desc'}],
+      fields: [AI_TOOL_NAME_ATTRIBUTE, 'count()'],
+      sorts: [{field: 'count()', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
     },
@@ -71,12 +70,7 @@ export default function ToolUsageWidget() {
   const error = timeSeriesRequest.error || toolsRequest.error;
 
   // TODO(telex): Add tool name attribute to Fields and get rid of this cast
-  const tools = toolsRequest.data as unknown as
-    | Array<{
-        [AI_TOOL_NAME_ATTRIBUTE]: string;
-        'count(span.duration)': number;
-      }>
-    | undefined;
+  const tools = toolsRequest.data as unknown as Array<Record<string, string | number>>;
 
   const hasData = tools && tools.length > 0 && timeSeries.length > 0;
 
@@ -115,7 +109,7 @@ export default function ToolUsageWidget() {
             />
           </div>
           <div>
-            <ModelText>{item[AI_TOOL_NAME_ATTRIBUTE]}</ModelText>
+            <ToolText>{item[AI_TOOL_NAME_ATTRIBUTE]}</ToolText>
           </div>
           <span>{item['count(span.duration)']}</span>
         </Fragment>
@@ -139,7 +133,9 @@ export default function ToolUsageWidget() {
                   yAxes: ['count(span.duration)'],
                 },
               ],
+              groupBy: [AI_TOOL_NAME_ATTRIBUTE],
               query: fullQuery,
+              sort: `-count(span.duration)`,
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {
@@ -162,7 +158,7 @@ export default function ToolUsageWidget() {
   );
 }
 
-const ModelText = styled('div')`
+const ToolText = styled('div')`
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
