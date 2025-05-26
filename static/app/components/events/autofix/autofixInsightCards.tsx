@@ -147,8 +147,8 @@ function AutofixInsightCard({
                         type="submit"
                         priority="primary"
                         size="sm"
-                        title={t('Rethink from here using your insight')}
-                        aria-label={t('Rethink from here using your insight')}
+                        title={t('Rethink the answer')}
+                        aria-label={t('Rethink the answer')}
                       >
                         <IconRefresh size="sm" />
                       </Button>
@@ -189,7 +189,7 @@ function AutofixInsightCard({
                     onClick={handleEdit}
                     icon={<IconRefresh size="xs" />}
                     aria-label={t('Edit insight')}
-                    title={t('Replace insight and rethink')}
+                    title={t('Rethink the answer from here')}
                   />
                 </RightSection>
               </InsightCardRow>
@@ -367,8 +367,8 @@ function CollapsibleChainLink({
                       type="submit"
                       priority="primary"
                       size="sm"
-                      title={t('Add insight and rethink')}
-                      aria-label={t('Add insight and rethink')}
+                      title={t('Rethink the answer')}
+                      aria-label={t('Rethink the answer')}
                     >
                       <IconRefresh size="sm" />
                     </Button>
@@ -382,8 +382,8 @@ function CollapsibleChainLink({
               borderless
               onClick={() => setIsAdding(true)}
               icon={<IconRefresh size="sm" />}
-              title={t('Add insight and rethink')}
-              aria-label={t('Add insight and rethink')}
+              title={t('Give feedback and rethink the answer')}
+              aria-label={t('Give feedback and rethink the answer')}
             />
           ))}
       </RethinkButtonContainer>
