@@ -33,7 +33,7 @@ def signal_first_checkin(project: Project, monitor: Monitor):
         transaction.on_commit(
             lambda: set_project_flag_and_signal(
                 project,
-                "has_new_feedbacks",
+                "has_cron_checkins",
                 first_cron_checkin_received,
                 monitor_id=str(monitor.guid),
             ),
