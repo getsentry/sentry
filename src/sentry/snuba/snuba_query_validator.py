@@ -126,11 +126,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             self.context["organization"],
             actor=self.context.get("user", None),
         )
-        allow_eap = features.has(
-            "organizations:visibility-explore-view",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        )
+        allow_eap = self.initial_data.get("dataset") == Dataset.EventsAnalyticsPlatform.value
         try:
             if not check_aggregate_column_support(
                 value,
@@ -143,7 +139,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         except InvalidSearchQuery as e:
             raise serializers.ValidationError(f"Invalid Metric: {e}")
 
-        return translate_aggregate_field(value, allow_mri=allow_mri)
+        return translate_aggregate_field(value, allow_mri=allow_mri, allow_eap=allow_eap)
 
     def validate_event_types(self, value: Sequence[str]) -> list[SnubaQueryEventType.EventType]:
         try:
@@ -184,7 +180,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             self.context["organization"],
             actor=self.context.get("user", None),
         ):
-            column = get_column_from_aggregate(data["aggregate"], allow_mri=True)
+            column = get_column_from_aggregate(
+                data["aggregate"],
+                allow_mri=True,
+                allow_eap=dataset == Dataset.EventsAnalyticsPlatform.value,
+            )
             if is_mri(column) and dataset != Dataset.PerformanceMetrics:
                 raise serializers.ValidationError(
                     "You can use an MRI only on alerts on performance metrics"
