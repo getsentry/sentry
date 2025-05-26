@@ -73,7 +73,8 @@ export function SpanDescription({
 
   const category = findSpanAttributeValue(attributes, 'span.category');
   const dbSystem = findSpanAttributeValue(attributes, 'db.system');
-  const description = findSpanAttributeValue(attributes, 'raw_description');
+  const description =
+    findSpanAttributeValue(attributes, 'raw_description') ?? span.description;
   const group = findSpanAttributeValue(attributes, 'span.group');
 
   const resolvedModule: ModuleName = resolveSpanModule(span.op, category);
@@ -186,10 +187,10 @@ export function SpanDescription({
       <DescriptionWrapper>
         {formattedDescription ? (
           <Fragment>
-            <span>
+            <FormattedDescription>
               {formattedDescription}
               <LinkHint value={formattedDescription} />
-            </span>
+            </FormattedDescription>
             <CopyToClipboardButton
               borderless
               size="zero"
@@ -361,9 +362,15 @@ const StyledCodeSnippet = styled(CodeSnippet)`
   }
 `;
 
+const FormattedDescription = styled('div')`
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+`;
+
 const DescriptionWrapper = styled('div')`
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   font-size: ${p => p.theme.fontSizeMedium};
   width: 100%;
   justify-content: space-between;
