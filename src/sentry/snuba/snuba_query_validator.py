@@ -126,7 +126,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             self.context["organization"],
             actor=self.context.get("user", None),
         )
-        allow_eap = self.initial_data.get("dataset") == Dataset.EventsAnalyticsPlatform.value
+        allow_eap = self.data.get("dataset") == Dataset.EventsAnalyticsPlatform.value
         try:
             if not check_aggregate_column_support(
                 value,
