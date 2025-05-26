@@ -9,6 +9,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
+
 import FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
@@ -23,7 +24,7 @@ import useApi from 'sentry/utils/useApi';
 import PlanList from 'admin/components/planList';
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
-import {CheckoutType, PlanTier} from 'getsentry/types';
+import {CheckoutType, PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
 
 const ALLOWED_TIERS = [PlanTier.MM2, PlanTier.AM1, PlanTier.AM2, PlanTier.AM3];
 
@@ -47,7 +48,37 @@ function ChangePlanAction({
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [formModel] = useState(() => new FormModel());
 
+  /**
+   * Check if the current subscription has Seer budget enabled
+   */
+  const hasCurrentSeerBudget = useMemo(() => {
+    return (
+      subscription.reservedBudgets?.some(
+        budget => budget.apiName === ReservedBudgetCategoryType.SEER
+      ) ?? false
+    );
+  }, [subscription.reservedBudgets]);
+
+  /**
+   * Check if a tier is an AM tier (supports Seer budget)
+   */
+  const isAMTier = (tier: PlanTier): boolean => {
+    return [PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(tier);
+  };
+
+  /**
+   * Check if a tier supports Seer budget (AM tiers + TEST tier)
+   */
+  const supportsSeerBudget = (tier: PlanTier): boolean => {
+    return isAMTier(tier) || tier === PlanTier.TEST;
+  };
+
   const api = useApi({persistInFlight: true});
+
+  // Initialize Seer budget value in form model
+  React.useEffect(() => {
+    formModel.setValue('seer', hasCurrentSeerBudget);
+  }, [formModel, hasCurrentSeerBudget]);
   const {
     data: configs,
     isPending,
@@ -191,13 +222,19 @@ function ChangePlanAction({
       return;
     }
 
+    // Add Seer budget parameter for AM plans and TEST tier
+    const submitData = {
+      ...data,
+      ...(supportsSeerBudget(activeTier) && {seer: formModel.getValue('seer')}),
+    };
+
     if (activeTier === PlanTier.MM2) {
       try {
         await api.requestPromise(`/customers/${orgId}/`, {
           method: 'PUT',
-          data,
+          data: submitData,
         });
-        onSubmitSuccess(data);
+        onSubmitSuccess(submitData);
       } catch (error) {
         onSubmitError(error);
       }
@@ -208,9 +245,9 @@ function ChangePlanAction({
     try {
       await api.requestPromise(`/customers/${orgId}/subscription/`, {
         method: 'PUT',
-        data,
+        data: submitData,
       });
-      onSubmitSuccess(data);
+      onSubmitSuccess(submitData);
       onSuccess?.();
     } catch (error) {
       onSubmitError(error);
@@ -252,6 +289,13 @@ function ChangePlanAction({
             setActiveTier(tab);
             setBillingInterval(MONTHLY);
             setContractInterval(MONTHLY);
+            // Reset Seer budget when switching to tiers that don't support Seer
+            if (!supportsSeerBudget(tab)) {
+              formModel.setValue('seer', false);
+            } else {
+              // Reset to current subscription state when switching to tiers that support Seer
+              formModel.setValue('seer', hasCurrentSeerBudget);
+            }
           }}
         >
           <TabList>
@@ -333,6 +377,7 @@ function ChangePlanAction({
         }}
         onPlanChange={handlePlanChange}
         tierPlans={getPlanListForTier()}
+        showSeerBudget={supportsSeerBudget(activeTier) && !partnerPlanId}
       />
     </Fragment>
   );

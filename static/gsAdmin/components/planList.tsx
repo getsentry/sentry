@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import InputField from 'sentry/components/forms/fields/inputField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -26,6 +27,7 @@ type Props = {
   onSubmitSuccess: (data: Data) => void;
   subscription: Subscription;
   tierPlans: BillingConfig['planList'];
+  showSeerBudget?: boolean;
 };
 
 function PlanList({
@@ -38,6 +40,7 @@ function PlanList({
   formModel,
   tierPlans,
   onPlanChange,
+  showSeerBudget,
 }: Props) {
   /**
    * Helper to get current value display for a category
@@ -181,6 +184,18 @@ function PlanList({
           maxLength={500}
         />
       </AuditFields>
+      {showSeerBudget && (
+        <StyledFormSection>
+          <h4>Add-ons</h4>
+          <CheckboxField
+            name="seer"
+            label="Seer Budget"
+            help="$20/month for $25 reserved budget with pay-as-you-go overage for AI-powered features like Autofix and Scanner"
+            inline={false}
+            stacked
+          />
+        </StyledFormSection>
+      )}
     </Form>
   );
 }
