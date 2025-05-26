@@ -667,10 +667,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
           c.errors.add(error);
         }
 
-      if (isBrowserRequestSpan(c.value)) {
-        const serverRequestHandler = c.parent?.children.find(n =>
-          isServerRequestHandlerTransactionNode(n)
-        );
         if (isBrowserRequestSpan(c.value)) {
           const serverRequestHandler = c.parent?.children.find(n =>
             isServerRequestHandlerTransactionNode(n)
