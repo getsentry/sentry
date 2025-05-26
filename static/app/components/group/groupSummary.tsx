@@ -226,7 +226,7 @@ export function GroupSummary({
                   </CardLineDecorationWrapper>
                   {isPending ? (
                     <CardContent>
-                      <Placeholder height="1.5rem" />
+                      <Placeholder height="2.5rem" />
                     </CardContent>
                   ) : (
                     <CardContent>

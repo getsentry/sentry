@@ -52,7 +52,12 @@ const AiSetupDataConsent = HookOrDefault({
 
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
-  const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
+  const {
+    autofixData,
+    triggerAutofix,
+    reset,
+    isPending: autofixDataPending,
+  } = useAiAutofix(group, event);
   const aiConfig = useAiConfig(group, project);
   const location = useLocation();
   const navigate = useNavigate();
@@ -283,7 +288,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
-            <LoadingIndicator />
+            <LoadingIndicator size={32} />
           </div>
         ) : aiConfig.needsGenAiAcknowledgement ? (
           <AiSetupDataConsent groupId={group.id} />
@@ -307,6 +312,8 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                     groupId={group.id}
                     runId={autofixData.run_id}
                   />
+                ) : autofixDataPending ? (
+                  <LoadingIndicator size={32} />
                 ) : (
                   <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
                 )}
