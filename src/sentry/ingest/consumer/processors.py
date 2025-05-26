@@ -54,11 +54,8 @@ def trace_func(**span_kwargs):
                     default=getattr(settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0),
                 )
             )
-            # New behavior is to add a custom `sample_rate` that is picked up by `traces_sampler`
-            span_kwargs.setdefault(
-                "custom_sampling_context",
-                {"sample_rate": sample_rate},
-            )
+            # New behavior is to add a custom `sentry.sample_rate` that is picked up by `traces_sampler`
+            span_kwargs.setdefault("attributes", {}).setdefault("sentry.sample_rate", sample_rate)
             with sentry_sdk.start_span(**span_kwargs):
                 return f(*args, **kwargs)
 
