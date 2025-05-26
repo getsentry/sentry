@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -11,6 +12,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   AI_MODEL_ID_ATTRIBUTE,
+  AI_TOKEN_USAGE_ATTRIBUTE_SUM,
   getLLMGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -30,21 +32,20 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function LLMGenerationsWidget() {
+export default function TokenUsageWidget() {
+  const theme = useTheme();
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
   });
 
-  const theme = useTheme();
-
   const fullQuery = `${getLLMGenerationsFilter()} ${query}`.trim();
 
-  const generationsRequest = useEAPSpans(
+  const tokensRequest = useEAPSpans(
     {
-      fields: [AI_MODEL_ID_ATTRIBUTE, 'count()'],
-      sorts: [{field: 'count()', kind: 'desc'}],
+      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      sorts: [{field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'}],
       search: fullQuery,
       limit: 3,
     },
@@ -55,26 +56,25 @@ export default function LLMGenerationsWidget() {
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: [AI_MODEL_ID_ATTRIBUTE, 'count(span.duration)'],
-      yAxis: ['count(span.duration)'],
-      sort: {field: 'count(span.duration)', kind: 'desc'},
+      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      yAxis: [AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      sort: {field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'},
       topN: 3,
-      enabled: !!generationsRequest.data,
+      enabled: !!tokensRequest.data,
     },
     Referrer.QUERIES_CHART // TODO
   );
 
   const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
 
-  const isLoading = timeSeriesRequest.isLoading || generationsRequest.isLoading;
-  const error = timeSeriesRequest.error || generationsRequest.error;
+  const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
+  const error = timeSeriesRequest.error || tokensRequest.error;
 
-  // TODO(telex): Add model id attribute to Fields and get rid of this cast
-  const models = generationsRequest.data as unknown as Array<
-    Record<string, string | number>
-  >;
+  const tokens = tokensRequest.data as unknown as
+    | Array<Record<string, string | number>>
+    | undefined;
 
-  const hasData = models && models.length > 0 && timeSeries.length > 0;
+  const hasData = tokens && tokens.length > 0 && timeSeries.length > 0;
 
   const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
 
@@ -101,7 +101,7 @@ export default function LLMGenerationsWidget() {
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {models?.map((item, index) => (
+      {tokens?.map((item, index) => (
         <Fragment key={item[AI_MODEL_ID_ATTRIBUTE]}>
           <div>
             <SeriesColorIndicator
@@ -113,7 +113,7 @@ export default function LLMGenerationsWidget() {
           <div>
             <ModelText>{item[AI_MODEL_ID_ATTRIBUTE]}</ModelText>
           </div>
-          <span>{item['count(span.duration)']}</span>
+          <span>{formatAbbreviatedNumber(item['sum(ai.total_tokens.used)'] || 0)}</span>
         </Fragment>
       ))}
     </WidgetFooterTable>
@@ -121,28 +121,28 @@ export default function LLMGenerationsWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('LLM Generations')} />}
+      Title={<Widget.WidgetTitle title={t('Token Usage')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
-        hasData && (
+        timeSeries && (
           <Toolbar
             exploreParams={{
               mode: Mode.AGGREGATE,
               visualize: [
                 {
                   chartType: ChartType.BAR,
-                  yAxes: ['count(span.duration)'],
+                  yAxes: ['sum(ai.total_tokens.used)'],
                 },
               ],
               groupBy: [AI_MODEL_ID_ATTRIBUTE],
               query: fullQuery,
-              sort: `-count(span.duration)`,
+              sort: `-${AI_TOKEN_USAGE_ATTRIBUTE_SUM}`,
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('LLM Generations'),
+                title: t('Token Usage'),
                 children: (
                   <Fragment>
                     <ModalChartContainer>{visualization}</ModalChartContainer>
