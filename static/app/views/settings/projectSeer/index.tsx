@@ -4,8 +4,6 @@ import {useQueryClient} from '@tanstack/react-query';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
@@ -74,37 +72,10 @@ export const autofixAutomatingTuningField = {
   saveMessage: t('Automatic Seer settings updated'),
 } satisfies FieldObject;
 
-const configureSourceIntegration = {
-  name: 'configureSourceIntegration',
-  type: 'custom' as const,
-  Component: () => {
-    const organization = useOrganization();
-    return (
-      <FieldGroup
-        label={t('Integrate with Your Codebase')}
-        help={t(
-          'The GitHub integration allows Seer to analyze your code to find more accurate root causes and solutions to your issues. Support for other source providers is coming soon.'
-        )}
-        alignRight
-      >
-        <div style={{width: 'auto'}}>
-          <LinkButton
-            to={`/settings/${organization.slug}/integrations/github/`}
-            priority="link"
-            size="sm"
-          >
-            {t('Go to Integration Settings')}
-          </LinkButton>
-        </div>
-      </FieldGroup>
-    );
-  },
-};
-
 const seerFormGroups: JsonFormObject[] = [
   {
     title: t('General'),
-    fields: [autofixAutomatingTuningField, configureSourceIntegration],
+    fields: [autofixAutomatingTuningField],
   },
 ];
 
