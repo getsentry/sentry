@@ -217,22 +217,19 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
             for key, value in query_params.items():
                 query_dict[key] += value
 
-        path_params_list = [f"{', '.join(param_group)}" for param_group in path_params]
-        path_seen_set = set()
-        query_params_list = [f"{key}: {', '.join(values)}" for key, values in query_dict.items()]
-        query_param_set = set()
+        # Note: dict.fromkeys() is just to deduplicate values and Python dicts are ordered
+        path_params_list: list[str] = list(
+            dict.fromkeys([f"{', '.join(param_group)}" for param_group in path_params]).keys()
+        )
+        query_params_list: list[str] = list(
+            dict.fromkeys(
+                [f"{key}: {', '.join(values)}" for key, values in query_dict.items()]
+            ).keys()
+        )
         return {
             # Use sets to deduplicate the lists, but still preserve the order.
-            "path_params": [
-                param
-                for param in path_params_list
-                if not (param in path_seen_set or path_seen_set.add(param))
-            ],
-            "query_params": [
-                param
-                for param in query_params_list
-                if not (param in query_param_set or query_param_set.add(param))
-            ],
+            "path_params": path_params_list,
+            "query_params": query_params_list,
         }
 
     def _get_parameterized_url(self, span: Span) -> str:
