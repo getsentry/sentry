@@ -7,7 +7,6 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {EventTransaction} from 'sentry/types/event';
 import {IssueType} from 'sentry/types/group';
 
 import {
@@ -199,16 +198,6 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
-      const event = builder.getEventFixture();
-      event.occurrence = {
-        ...event.occurrence,
-        evidenceData: {
-          pattern_size: 2,
-          pattern_span_ids: ['aaa', 'bbb'],
-          num_pattern_repetitions: 4,
-        },
-      } as EventTransaction['occurrence'];
-
       render(
         <SpanEvidenceKeyValueList
           event={builder.getEventFixture()}
@@ -248,21 +237,6 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.queryByTestId('span-evidence-key-value-list.problem-parameters')
       ).not.toBeInTheDocument();
-
-      expect(screen.getByRole('cell', {name: 'Pattern Size'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.pattern-size')
-      ).toHaveTextContent('2');
-      expect(screen.getByRole('cell', {name: 'Pattern Span IDs'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.pattern-span-i-ds')
-      ).toHaveTextContent('aaabbb');
-      expect(
-        screen.getByRole('cell', {name: 'Number of Repetitions'})
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.number-of-repetitions')
-      ).toHaveTextContent('4');
     });
   });
 
@@ -435,7 +409,7 @@ describe('SpanEvidenceKeyValueList', () => {
       startTimestamp: 10,
       endTimestamp: 2100,
       op: 'http.client',
-      description: 'GET /user/123/book/?book_id=8&sort=down',
+      description: 'GET /book/?book_id=8&sort=down',
       problemSpan: ProblemSpan.OFFENDER,
     });
 
@@ -451,15 +425,6 @@ describe('SpanEvidenceKeyValueList', () => {
     );
 
     it('Renders relevant fields', () => {
-      const event = builder.getEventFixture();
-      event.occurrence = {
-        ...event.occurrence,
-        subtitle: '/user/*/book/?book_id=*',
-        evidenceData: {
-          pathParameters: ['123'],
-        },
-      } as EventTransaction['occurrence'];
-
       render(
         <SpanEvidenceKeyValueList
           event={builder.getEventFixture()}
@@ -485,23 +450,16 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
-      ).toHaveTextContent('/user/*/book/?book_id=*');
+      ).toHaveTextContent('/book/[Parameters]');
 
-      expect(screen.getByRole('cell', {name: 'Query Parameters'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Parameters'})).toBeInTheDocument();
 
-      const queryParamsKeyValue = screen.getByTestId(
-        'span-evidence-key-value-list.query-parameters'
+      const parametersKeyValue = screen.getByTestId(
+        'span-evidence-key-value-list.parameters'
       );
 
-      expect(queryParamsKeyValue).toHaveTextContent('book_id:{7,8}');
-      expect(queryParamsKeyValue).toHaveTextContent('sort:{up,down}');
-
-      expect(screen.getByRole('cell', {name: 'Path Parameters'})).toBeInTheDocument();
-      const pathParamsKeyValue = screen.getByTestId(
-        'span-evidence-key-value-list.path-parameters'
-      );
-
-      expect(pathParamsKeyValue).toHaveTextContent('123');
+      expect(parametersKeyValue).toHaveTextContent('book_id:{7,8}');
+      expect(parametersKeyValue).toHaveTextContent('sort:{up,down}');
     });
 
     describe('extractSpanURLString', () => {

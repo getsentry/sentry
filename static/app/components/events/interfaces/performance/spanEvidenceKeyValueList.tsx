@@ -182,10 +182,6 @@ function NPlusOneDBQueriesSpanEvidence({
         getSpanEvidenceValue(span)
       )
     );
-  const evidenceData = event?.occurrence?.evidenceData ?? {};
-  const patternSize = evidenceData.pattern_size ?? 0;
-  const patternSpanIds = evidenceData.pattern_span_ids ?? [];
-  const numPatternRepetitions = evidenceData.num_pattern_repetitions ?? 0;
 
   return (
     <PresortedKeyValueList
@@ -197,13 +193,6 @@ function NPlusOneDBQueriesSpanEvidence({
             ? makeRow(t('Preceding Span'), getSpanEvidenceValue(causeSpans[0]!))
             : null,
           ...repeatingSpanRows,
-          patternSize > 0 ? makeRow(t('Pattern Size'), patternSize) : null,
-          patternSpanIds.length > 0
-            ? makeRow(t('Pattern Span IDs'), patternSpanIds)
-            : null,
-          numPatternRepetitions > 0
-            ? makeRow(t('Number of Repetitions'), numPatternRepetitions)
-            : null,
         ].filter(Boolean) as KeyValueListData
       }
     />
@@ -218,14 +207,10 @@ function NPlusOneAPICallsSpanEvidence({
   location,
 }: SpanEvidenceKeyValueListProps) {
   const requestEntry = event?.entries?.find(isRequestEntry);
-  const occurrence = event?.occurrence;
-  const evidenceData = occurrence?.evidenceData ?? {};
   const baseURL = requestEntry?.data?.url;
 
-  const queryParameters = formatChangingQueryParameters(offendingSpans, baseURL);
-  const pathParameters = evidenceData.pathParameters ?? [];
-  const commonPathPrefix =
-    occurrence?.subtitle ?? formatBasePath(offendingSpans[0]!, baseURL);
+  const problemParameters = formatChangingQueryParameters(offendingSpans, baseURL);
+  const commonPathPrefix = formatBasePath(offendingSpans[0]!, baseURL);
 
   return (
     <PresortedKeyValueList
@@ -239,24 +224,16 @@ function NPlusOneAPICallsSpanEvidence({
                   <AnnotatedText
                     value={
                       <Fragment>
-                        {commonPathPrefix.split('').map((char, i) => {
-                          return char === '*' ? (
-                            <HighlightedEvidence key={i}>{char}</HighlightedEvidence>
-                          ) : (
-                            char
-                          );
-                        })}
+                        {commonPathPrefix}
+                        <HighlightedEvidence>[Parameters]</HighlightedEvidence>
                       </Fragment>
                     }
                   />
                 </pre>
               )
             : null,
-          queryParameters.length > 0
-            ? makeRow(t('Query Parameters'), queryParameters)
-            : null,
-          pathParameters.length > 0
-            ? makeRow(t('Path Parameters'), pathParameters)
+          problemParameters.length > 0
+            ? makeRow(t('Parameters'), problemParameters)
             : null,
         ].filter(Boolean) as KeyValueListData
       }
