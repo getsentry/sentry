@@ -1,3 +1,4 @@
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {
   ColumnValueType,
   CountUnit,
@@ -6,6 +7,7 @@ import type {
   PercentageUnit,
   PercentChangeUnit,
 } from 'sentry/utils/discover/fields';
+import type {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 
 type OurLogCustomFieldKey = string; // We could brand this for nominal types.
 
@@ -22,6 +24,7 @@ export enum OurLogKnownFieldKey {
   PROJECT = 'project',
   SPAN_ID = 'span_id',
   TIMESTAMP = 'timestamp',
+  TIMESTAMP_PRECISE = 'tags[sentry.timestamp_precise,number]',
   CODE_FILE_PATH = 'code.file.path',
   CODE_LINE_NUMBER = 'tags[code.line.number,number]',
   CODE_FUNCTION_NAME = 'code.function.name',
@@ -41,13 +44,18 @@ export enum OurLogKnownFieldKey {
 
 export type OurLogFieldKey = OurLogCustomFieldKey | OurLogKnownFieldKey;
 
-type OurLogsKnownFieldResponseMap = {
+type OurLogsKnownFieldResponseMap = Record<
+  (typeof AlwaysPresentLogFields)[number],
+  string | number
+> & {
   [OurLogKnownFieldKey.MESSAGE]: string;
-  [OurLogKnownFieldKey.SEVERITY_NUMBER]: number;
+  [OurLogKnownFieldKey.TRACE_ID]: string;
+  [OurLogKnownFieldKey.ID]: string;
   [OurLogKnownFieldKey.SEVERITY]: string;
   [OurLogKnownFieldKey.ORGANIZATION_ID]: number;
   [OurLogKnownFieldKey.PROJECT_ID]: string;
   [OurLogKnownFieldKey.TIMESTAMP]: string;
+  [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: string | number;
 };
 
 type OurLogsCustomFieldResponseMap = Record<OurLogCustomFieldKey, string | number>;
@@ -73,4 +81,9 @@ export interface LogRowItem {
 export interface LogAttributeItem {
   fieldKey: OurLogFieldKey;
   value: OurLogsResponseItem[OurLogFieldKey] | null;
+}
+
+export interface EventsLogsResult {
+  data: OurLogsResponseItem[];
+  meta?: EventsMetaType;
 }

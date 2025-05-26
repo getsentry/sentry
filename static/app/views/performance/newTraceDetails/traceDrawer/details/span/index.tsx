@@ -29,7 +29,7 @@ import {
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LogsTable} from 'sentry/views/explore/logs/logsTable';
+import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -137,8 +137,8 @@ function SpanSections({
 }
 
 function LogDetails() {
-  const {logsData} = useLogsPageData();
-  if (!logsData.data?.length) {
+  const {logsQueryResult} = useLogsPageData();
+  if (!logsQueryResult?.data?.length) {
     return null;
   }
   return (
@@ -147,7 +147,7 @@ function LogDetails() {
       title={t('Logs')}
       disableCollapsePersistence
     >
-      <LogsTable tableData={logsData} showHeader={false} />
+      <LogsTable showHeader={false} />
     </FoldSection>
   );
 }
