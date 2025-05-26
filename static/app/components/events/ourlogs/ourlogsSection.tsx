@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -13,7 +14,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TableBody} from 'sentry/views/explore/components/table';
-import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {
+  LogsPageDataProvider,
+  useLogsPageData,
+} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LogsPageParamsProvider,
   useLogsSearch,
@@ -34,14 +38,18 @@ export function OurlogsSection({
   project: Project;
 }) {
   return (
-    <LogsPageParamsProvider
-      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-      isTableFrozen
-      blockRowExpanding
-      limitToTraceId={event.contexts?.trace?.trace_id}
-    >
-      <OurlogsSectionContent event={event} group={group} project={project} />
-    </LogsPageParamsProvider>
+    <PageFiltersContainer>
+      <LogsPageParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+        isTableFrozen
+        blockRowExpanding
+        limitToTraceId={event.contexts?.trace?.trace_id}
+      >
+        <LogsPageDataProvider>
+          <OurlogsSectionContent event={event} group={group} project={project} />
+        </LogsPageDataProvider>
+      </LogsPageParamsProvider>
+    </PageFiltersContainer>
   );
 }
 
@@ -70,15 +78,19 @@ function OurlogsSectionContent({
     });
     openDrawer(
       () => (
-        <LogsPageParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-          isTableFrozen
-          limitToTraceId={limitToTraceId}
-        >
-          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <OurlogsDrawer group={group} event={event} project={project} />
-          </TraceItemAttributeProvider>
-        </LogsPageParamsProvider>
+        <PageFiltersContainer>
+          <LogsPageParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+            isTableFrozen
+            limitToTraceId={limitToTraceId}
+          >
+            <LogsPageDataProvider>
+              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+                <OurlogsDrawer group={group} event={event} project={project} />
+              </TraceItemAttributeProvider>
+            </LogsPageDataProvider>
+          </LogsPageParamsProvider>
+        </PageFiltersContainer>
       ),
       {
         ariaLabel: 'logs drawer',

@@ -2,6 +2,7 @@ import type React from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Panel from 'sentry/components/panels/panel';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
@@ -34,13 +35,15 @@ export function TraceViewLogsDataProvider({
   children,
 }: UseTraceViewLogsDataProps) {
   return (
-    <LogsPageParamsProvider
-      isTableFrozen
-      limitToTraceId={traceSlug}
-      analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
-    >
-      <LogsPageDataProvider>{children}</LogsPageDataProvider>
-    </LogsPageParamsProvider>
+    <PageFiltersContainer>
+      <LogsPageParamsProvider
+        isTableFrozen
+        limitToTraceId={traceSlug}
+        analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+      >
+        <LogsPageDataProvider>{children}</LogsPageDataProvider>
+      </LogsPageParamsProvider>
+    </PageFiltersContainer>
   );
 }
 
