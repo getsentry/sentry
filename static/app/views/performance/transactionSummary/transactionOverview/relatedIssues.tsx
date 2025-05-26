@@ -22,6 +22,7 @@ import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 type Props = {
   location: Location;
   organization: Organization;
+  shouldUseOTelFriendlyUI: boolean;
   transaction: string;
   end?: string;
   start?: string;
@@ -87,14 +88,12 @@ class RelatedIssues extends Component<Props> {
   };
 
   render() {
-    const {organization} = this.props;
+    const {organization, shouldUseOTelFriendlyUI} = this.props;
     const {queryParams} = this.getIssuesEndpointQueryParams();
     const issueSearch = {
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {referrer: 'performance-related-issues', ...queryParams},
     };
-
-    const isOTelUI = organization.features.includes('performance-otel-friendly-ui');
 
     return (
       <Fragment>
@@ -114,7 +113,7 @@ class RelatedIssues extends Component<Props> {
           <GroupList
             queryParams={queryParams}
             canSelectGroups={false}
-            renderEmptyMessage={() => this.renderEmptyMessage(isOTelUI)}
+            renderEmptyMessage={() => this.renderEmptyMessage(shouldUseOTelFriendlyUI)}
             withChart={false}
             withPagination={false}
             source="performance-related-issues"

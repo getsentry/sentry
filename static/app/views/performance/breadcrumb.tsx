@@ -10,6 +10,7 @@ import {DOMAIN_VIEW_BASE_TITLE} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 
+import {useOTelFriendlyUI} from './otlp/useOTelFriendlyUI';
 import type Tab from './transactionSummary/tabs';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 
@@ -113,9 +114,9 @@ export const getTabCrumbs = ({
     view,
   };
 
-  const isOTelUI = organization.features.includes('performance-otel-friendly-ui');
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
-  isOTelUI
+  shouldUseOTelFriendlyUI
     ? crumbs.push({
         to: transactionSummaryRouteWithQuery(routeQuery),
         label: t('Service Entry Span Summary'),

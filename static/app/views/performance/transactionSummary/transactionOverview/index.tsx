@@ -32,6 +32,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
@@ -74,9 +75,7 @@ function TransactionOverview(props: Props) {
     });
   }, [selection, organization, api]);
 
-  const isNewTransactionDetailPage = organization.features.includes(
-    'performance-transaction-summary-eap'
-  );
+  const shouldUseTransactionSummaryEAP = useTransactionSummaryEAP();
 
   return (
     <MEPSettingProvider>
@@ -88,7 +87,7 @@ function TransactionOverview(props: Props) {
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
         childComponent={
-          isNewTransactionDetailPage
+          shouldUseTransactionSummaryEAP
             ? EAPCardinalityLoadingWrapper
             : CardinalityLoadingWrapper
         }
@@ -333,11 +332,11 @@ function getDocumentTitle(transactionName: string): string {
 
 function generateEventView({
   location,
-  organization,
   transactionName,
+  shouldUseOTelFriendlyUI,
 }: {
   location: Location;
-  organization: Organization;
+  shouldUseOTelFriendlyUI: boolean;
   transactionName: string;
 }): EventView {
   // Use the user supplied query but overwrite any transaction or event type
@@ -346,8 +345,7 @@ function generateEventView({
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  const isOTelUI = organization.features.includes('performance-otel-friendly-ui');
-  if (isOTelUI) {
+  if (shouldUseOTelFriendlyUI) {
     conditions.setFilterValues('is_transaction', ['true']);
     conditions.setFilterValues(
       'transaction.method',
@@ -365,7 +363,7 @@ function generateEventView({
     }
   });
 
-  const fields = isOTelUI
+  const fields = shouldUseOTelFriendlyUI
     ? [
         'id',
         'user.email',
@@ -386,7 +384,7 @@ function generateEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
-      dataset: isOTelUI ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
+      dataset: shouldUseOTelFriendlyUI ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
     },
     location
   );
