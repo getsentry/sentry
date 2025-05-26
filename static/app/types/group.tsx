@@ -108,6 +108,7 @@ export enum IssueCategory {
  */
 export const VALID_ISSUE_CATEGORIES_V2 = [
   IssueCategory.ERROR,
+  IssueCategory.FEEDBACK,
   IssueCategory.OUTAGE,
   IssueCategory.METRIC,
   IssueCategory.DB_QUERY,
