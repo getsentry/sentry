@@ -43,9 +43,8 @@ export default function LLMGenerationsWidget() {
 
   const generationsRequest = useEAPSpans(
     {
-      // @ts-expect-error TODO(telex): Add model id attribute to Fields
-      fields: [AI_MODEL_ID_ATTRIBUTE, 'count(span.duration)'],
-      sorts: [{field: 'count(span.duration)', kind: 'desc'}],
+      fields: [AI_MODEL_ID_ATTRIBUTE, 'count()'],
+      sorts: [{field: 'count()', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
     },
@@ -71,12 +70,9 @@ export default function LLMGenerationsWidget() {
   const error = timeSeriesRequest.error || generationsRequest.error;
 
   // TODO(telex): Add model id attribute to Fields and get rid of this cast
-  const models = generationsRequest.data as unknown as
-    | Array<{
-        [AI_MODEL_ID_ATTRIBUTE]: string;
-        'count(span.duration)': number;
-      }>
-    | undefined;
+  const models = generationsRequest.data as unknown as Array<
+    Record<string, string | number>
+  >;
 
   const hasData = models && models.length > 0 && timeSeries.length > 0;
 

@@ -44,7 +44,6 @@ export default function TokenUsageWidget() {
 
   const tokensRequest = useEAPSpans(
     {
-      // @ts-expect-error TODO(telex): Add tool name attribute to Fields
       fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
       sorts: [{field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'}],
       search: fullQuery,
@@ -72,10 +71,7 @@ export default function TokenUsageWidget() {
   const error = timeSeriesRequest.error || tokensRequest.error;
 
   const tokens = tokensRequest.data as unknown as
-    | Array<{
-        [AI_MODEL_ID_ATTRIBUTE]: string;
-        [AI_TOKEN_USAGE_ATTRIBUTE_SUM]: number;
-      }>
+    | Array<Record<string, string | number>>
     | undefined;
 
   const hasData = tokens && tokens.length > 0 && timeSeries.length > 0;
@@ -117,7 +113,7 @@ export default function TokenUsageWidget() {
           <div>
             <ModelText>{item[AI_MODEL_ID_ATTRIBUTE]}</ModelText>
           </div>
-          <span>{formatAbbreviatedNumber(item['sum(ai.total_tokens.used)'])}</span>
+          <span>{formatAbbreviatedNumber(item['sum(ai.total_tokens.used)'] || 0)}</span>
         </Fragment>
       ))}
     </WidgetFooterTable>
