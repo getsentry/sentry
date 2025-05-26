@@ -17,6 +17,9 @@ export function SeerAutomationDefault() {
     ...autofixAutomatingTuningField,
     name: 'defaultAutofixAutomationTuning',
     label: t('Default for New Projects'),
+    help: t(
+      "Set the default automation level for newly-created projects. This setting can be overridden on a per-project basis. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager."
+    ),
   } satisfies FieldObject;
 
   const seerFormGroups: JsonFormObject[] = [

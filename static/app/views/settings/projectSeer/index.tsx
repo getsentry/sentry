@@ -9,8 +9,9 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
+import Link from 'sentry/components/links/link';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -46,9 +47,14 @@ export function formatSeerValue(value: string | undefined) {
 export const autofixAutomatingTuningField = {
   name: 'autofixAutomationTuning',
   label: t('Automatically Fix Issues with Seer'),
-  help: t(
-    "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager."
-  ),
+  help: props =>
+    tct(
+      "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager.[break][break][link:You can configure automation for other projects too.]",
+      {
+        break: <br />,
+        link: <Link to={`/settings/${props.organization?.slug}/seer`} />,
+      }
+    ),
   type: 'range',
   min: 0,
   max: SEER_THRESHOLD_MAP.length - 1,
@@ -68,33 +74,6 @@ export const autofixAutomatingTuningField = {
   saveMessage: t('Automatic Seer settings updated'),
 } satisfies FieldObject;
 
-const configureAllProjectsField = {
-  name: 'configureAutomationForAllProjects',
-  type: 'custom' as const,
-  Component: () => {
-    const organization = useOrganization();
-    return (
-      <FieldGroup
-        label={t('Configure Automation for Other Projects')}
-        help={t(
-          'Allow Seer to automatically fix issues for other projects in addition to this one.'
-        )}
-        alignRight
-      >
-        <div style={{width: 'auto'}}>
-          <LinkButton
-            to={`/settings/${organization.slug}/seer`}
-            priority="link"
-            size="sm"
-          >
-            {t('Go to Seer Automation Settings')}
-          </LinkButton>
-        </div>
-      </FieldGroup>
-    );
-  },
-};
-
 const configureSourceIntegration = {
   name: 'configureSourceIntegration',
   type: 'custom' as const,
@@ -102,7 +81,7 @@ const configureSourceIntegration = {
     const organization = useOrganization();
     return (
       <FieldGroup
-        label={t('Configure GitHub Integration')}
+        label={t('Integrate with Your Codebase')}
         help={t(
           'The GitHub integration allows Seer to analyze your code to find more accurate root causes and solutions to your issues. Support for other source providers is coming soon.'
         )}
@@ -114,7 +93,7 @@ const configureSourceIntegration = {
             priority="link"
             size="sm"
           >
-            {t('Go to GitHub Integration Settings')}
+            {t('Go to Integration Settings')}
           </LinkButton>
         </div>
       </FieldGroup>
@@ -125,11 +104,7 @@ const configureSourceIntegration = {
 const seerFormGroups: JsonFormObject[] = [
   {
     title: t('General'),
-    fields: [
-      autofixAutomatingTuningField,
-      configureAllProjectsField,
-      configureSourceIntegration,
-    ],
+    fields: [autofixAutomatingTuningField, configureSourceIntegration],
   },
 ];
 
@@ -165,6 +140,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
           ),
         }}
         onSubmitSuccess={handleSubmitSuccess}
+        additionalFieldProps={{organization}}
       >
         <JsonForm
           forms={seerFormGroups}
