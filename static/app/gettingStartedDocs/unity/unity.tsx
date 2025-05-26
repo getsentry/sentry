@@ -36,11 +36,7 @@ const onboarding: OnboardingConfig = {
         {
           language: 'url',
           partialLoading: params.sourcePackageRegistries.isLoading,
-          code: `https://github.com/getsentry/unity.git#${getPackageVersion(
-            params,
-            'sentry.dotnet.unity',
-            '1.5.0'
-          )}`,
+          code: 'https://github.com/getsentry/unity.git',
         },
       ],
       additionalInfo: (
