@@ -34,7 +34,6 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type AggregateFunction = [
   AggregationKeyWithAlias,
@@ -137,20 +136,6 @@ export function SelectRow({
             label: t('spans'),
             value: DEFAULT_VISUALIZATION_FIELD,
             textValue: DEFAULT_VISUALIZATION_FIELD,
-          },
-        ];
-        return [true, options];
-      }
-
-      if (
-        field.function[0] === AggregationKey.EPM ||
-        field.function[0] === AggregationKey.EPS
-      ) {
-        const options = [
-          {
-            label: t('spans'),
-            value: '',
-            textValue: '',
           },
         ];
         return [true, options];
@@ -280,35 +265,7 @@ export function SelectRow({
                 dropdownSelection.value as string
               ) as AggregationKeyWithAlias;
 
-              if (state.dataset === WidgetType.SPANS) {
-                if (
-                  // when switching to the count_unique aggregate, we want to reset the
-                  // field to the default
-                  currentField.function[0] === AggregationKey.COUNT_UNIQUE
-                ) {
-                  currentField.function[1] = SpanIndexedField.SPAN_OP;
-
-                  // Wipe out the remaining parameters that are unnecessary
-                  for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
-                    currentField.function[i + 1] = undefined;
-                  }
-                } else if (
-                  // when switching to the epm/eps aggregate we want to wipe the fields
-                  currentField.function[0] === AggregationKey.EPM ||
-                  currentField.function[0] === AggregationKey.EPS
-                ) {
-                  for (let i = 0; i < MAX_FUNCTION_PARAMETERS; i++) {
-                    currentField.function[i + 1] = undefined;
-                  }
-                } else {
-                  currentField.function[1] = DEFAULT_VISUALIZATION_FIELD;
-
-                  // Wipe out the remaining parameters that are unnecessary
-                  for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
-                    currentField.function[i + 1] = undefined;
-                  }
-                }
-              } else if (
+              if (
                 selectedAggregate?.value.meta &&
                 'parameters' in selectedAggregate.value.meta
               ) {
@@ -336,6 +293,7 @@ export function SelectRow({
                           option.value === currentField.function[1] && !option.disabled
                       )?.value
                     );
+
                   currentField.function[1] =
                     (isValidColumn
                       ? currentField.function[1]
