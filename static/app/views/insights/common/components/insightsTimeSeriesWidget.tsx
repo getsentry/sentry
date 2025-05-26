@@ -31,6 +31,7 @@ import {
   HTTP_RESPONSE_5XX_COLOR,
   THROUGHPUT_COLOR,
 } from 'sentry/views/insights/colors';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {CreateAlertButton} from 'sentry/views/insights/common/components/createAlertButton';
 import {OpenInExploreButton} from 'sentry/views/insights/common/components/openInExploreButton';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -148,6 +149,13 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       } as const)
     : {};
 
+  let chartType = ChartType.LINE;
+  if (props.visualizationType === 'area') {
+    chartType = ChartType.AREA;
+  } else if (props.visualizationType === 'bar') {
+    chartType = ChartType.BAR;
+  }
+
   return (
     <ChartContainer height={props.height}>
       <Widget
@@ -169,6 +177,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             )}
             {hasChartActionsEnabled && (
               <OpenInExploreButton
+                chartType={chartType}
                 yAxes={yAxes}
                 title={props.title}
                 search={props.search}
