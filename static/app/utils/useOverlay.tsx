@@ -91,10 +91,6 @@ export interface UseOverlayProps
    * Options to pass to the `arrow` modifier.
    */
   arrowOptions?: ArrowModifier['options'];
-  /**
-   * If true, disable overflow prevention settings
-   */
-  disableOverflowPrevention?: boolean;
   disableTrigger?: boolean;
   /**
    * Options to pass to the `flip` modifier.

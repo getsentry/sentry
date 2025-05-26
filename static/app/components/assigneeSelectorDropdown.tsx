@@ -77,10 +77,6 @@ interface AssigneeSelectorDropdownProps {
    */
   className?: string;
   /**
-   * If true, disable overflow prevention options
-   */
-  disableOverflowPrevention?: boolean;
-  /**
    * Optional list of members to populate the dropdown with.
    */
   memberList?: User[];
