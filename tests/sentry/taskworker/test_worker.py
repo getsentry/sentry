@@ -300,6 +300,35 @@ def test_child_process_complete(mock_capture_checkin) -> None:
 
 
 @pytest.mark.django_db
+def test_child_process_remove_start_time_kwargs() -> None:
+    activation = TaskActivation(
+        id="6789",
+        taskname="examples.will_retry",
+        namespace="examples",
+        parameters='{"args": ["stuff"], "kwargs": {"__start_time": 123}}',
+        processing_deadline_duration=100000,
+    )
+    todo: queue.Queue[TaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
+
+    todo.put(activation)
+    child_process(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
+
+    assert todo.empty()
+    result = processed.get()
+    assert result.task_id == activation.id
+    assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
+
+
+@pytest.mark.django_db
 @mock.patch("sentry.usage_accountant.record")
 def test_child_process_complete_record_usage(mock_record: mock.Mock) -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
