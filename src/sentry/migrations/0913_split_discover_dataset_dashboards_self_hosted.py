@@ -79,11 +79,11 @@ class DatasetSourcesTypes(Enum):
     SPLIT_VERSION_2 = 5
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return tuple((source.value, source.name.lower()) for source in cls)
 
     @classmethod
-    def as_text_choices(cls):
+    def as_text_choices(cls) -> tuple[tuple[str, int], ...]:
         return tuple((source.name.lower(), source.value) for source in cls)
 
 
