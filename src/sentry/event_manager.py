@@ -543,10 +543,7 @@ class EventManager:
                     project=project, event=job["event"], sender=Project
                 )
 
-            if (
-                has_event_minified_stack_trace(job["event"])
-                and not project.flags.has_minified_stack_trace
-            ):
+            if has_event_minified_stack_trace(job["event"]):
                 set_project_flag_and_signal(
                     project,
                     "has_minified_stack_trace",
