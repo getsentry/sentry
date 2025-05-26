@@ -4,8 +4,11 @@ const AI_PIPELINE_OPS = ['ai.pipeline.generateText', 'ai.pipeline.generateObject
 const AI_GENERATION_OPS = ['ai.run.doGenerate'];
 const AI_TOOL_CALL_OPS = ['ai.toolCall'];
 
-export const AI_MODEL_ID_ATTRIBUTE = 'ai.model_id';
+export const AI_MODEL_ID_ATTRIBUTE = 'ai.model.id';
 export const AI_TOOL_NAME_ATTRIBUTE = 'ai.toolCall.name';
+export const AI_TOKEN_USAGE_ATTRIBUTE = 'ai.total_tokens.used';
+
+export const AI_TOKEN_USAGE_ATTRIBUTE_SUM = `sum(${AI_TOKEN_USAGE_ATTRIBUTE})`;
 
 export const getAgentRunsFilter = () => {
   return `span.op:[${AI_PIPELINE_OPS.join(',')}]`;

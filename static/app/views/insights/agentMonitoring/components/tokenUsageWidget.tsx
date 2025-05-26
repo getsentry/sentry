@@ -4,14 +4,16 @@ import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
-  AI_TOOL_NAME_ATTRIBUTE,
-  getAIToolCallsFilter,
+  AI_MODEL_ID_ATTRIBUTE,
+  AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+  getLLMGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -30,22 +32,21 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function ToolUsageWidget() {
+export default function TokenUsageWidget() {
+  const theme = useTheme();
   const organization = useOrganization();
   const {query} = useTransactionNameQuery();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
   });
 
-  const theme = useTheme();
+  const fullQuery = `${getLLMGenerationsFilter()} ${query}`.trim();
 
-  const fullQuery = `${getAIToolCallsFilter()} ${query}`.trim();
-
-  const toolsRequest = useEAPSpans(
+  const tokensRequest = useEAPSpans(
     {
       // @ts-expect-error TODO(telex): Add tool name attribute to Fields
-      fields: [AI_TOOL_NAME_ATTRIBUTE, 'count(span.duration)'],
-      sorts: [{field: 'count(span.duration)', kind: 'desc'}],
+      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      sorts: [{field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'}],
       search: fullQuery,
       limit: 3,
     },
@@ -56,29 +57,28 @@ export default function ToolUsageWidget() {
     {
       ...pageFilterChartParams,
       search: fullQuery,
-      fields: [AI_TOOL_NAME_ATTRIBUTE, 'count(span.duration)'],
-      yAxis: ['count(span.duration)'],
-      sort: {field: 'count(span.duration)', kind: 'desc'},
+      fields: [AI_MODEL_ID_ATTRIBUTE, AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      yAxis: [AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+      sort: {field: AI_TOKEN_USAGE_ATTRIBUTE_SUM, kind: 'desc'},
       topN: 3,
-      enabled: !!toolsRequest.data,
+      enabled: !!tokensRequest.data,
     },
     Referrer.QUERIES_CHART // TODO
   );
 
   const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');
 
-  const isLoading = timeSeriesRequest.isLoading || toolsRequest.isLoading;
-  const error = timeSeriesRequest.error || toolsRequest.error;
+  const isLoading = timeSeriesRequest.isLoading || tokensRequest.isLoading;
+  const error = timeSeriesRequest.error || tokensRequest.error;
 
-  // TODO(telex): Add tool name attribute to Fields and get rid of this cast
-  const tools = toolsRequest.data as unknown as
+  const tokens = tokensRequest.data as unknown as
     | Array<{
-        [AI_TOOL_NAME_ATTRIBUTE]: string;
-        'count(span.duration)': number;
+        [AI_MODEL_ID_ATTRIBUTE]: string;
+        [AI_TOKEN_USAGE_ATTRIBUTE_SUM]: number;
       }>
     | undefined;
 
-  const hasData = tools && tools.length > 0 && timeSeries.length > 0;
+  const hasData = tokens && tokens.length > 0 && timeSeries.length > 0;
 
   const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
 
@@ -105,8 +105,8 @@ export default function ToolUsageWidget() {
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {tools.map((item, index) => (
-        <Fragment key={item[AI_TOOL_NAME_ATTRIBUTE]}>
+      {tokens?.map((item, index) => (
+        <Fragment key={item[AI_MODEL_ID_ATTRIBUTE]}>
           <div>
             <SeriesColorIndicator
               style={{
@@ -115,9 +115,9 @@ export default function ToolUsageWidget() {
             />
           </div>
           <div>
-            <ToolText>{item[AI_TOOL_NAME_ATTRIBUTE]}</ToolText>
+            <ModelText>{item[AI_MODEL_ID_ATTRIBUTE]}</ModelText>
           </div>
-          <span>{item['count(span.duration)']}</span>
+          <span>{formatAbbreviatedNumber(item['sum(ai.total_tokens.used)'])}</span>
         </Fragment>
       ))}
     </WidgetFooterTable>
@@ -125,28 +125,28 @@ export default function ToolUsageWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Tool Usage')} />}
+      Title={<Widget.WidgetTitle title={t('Token Usage')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
-        hasData && (
+        timeSeries && (
           <Toolbar
             exploreParams={{
               mode: Mode.SAMPLES,
               visualize: [
                 {
                   chartType: ChartType.BAR,
-                  yAxes: ['count(span.duration)'],
+                  yAxes: ['sum(ai.total_tokens.used)'],
                 },
               ],
-              groupBy: [AI_TOOL_NAME_ATTRIBUTE],
+              groupBy: [AI_MODEL_ID_ATTRIBUTE],
               query: fullQuery,
-              sort: `-count(span.duration)`,
+              sort: `-${AI_TOKEN_USAGE_ATTRIBUTE_SUM}`,
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Tool Usage'),
+                title: t('Token Usage'),
                 children: (
                   <Fragment>
                     <ModalChartContainer>{visualization}</ModalChartContainer>
@@ -164,7 +164,7 @@ export default function ToolUsageWidget() {
   );
 }
 
-const ToolText = styled('div')`
+const ModelText = styled('div')`
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};

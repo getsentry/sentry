@@ -139,7 +139,9 @@ export default function LLMGenerationsWidget() {
                   yAxes: ['count(span.duration)'],
                 },
               ],
+              groupBy: [AI_MODEL_ID_ATTRIBUTE],
               query: fullQuery,
+              sort: `-count(span.duration)`,
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {
