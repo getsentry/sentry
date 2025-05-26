@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import type {UseLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
 import {TraceContextTags} from 'sentry/views/performance/newTraceDetails/traceContextTags';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
@@ -45,7 +45,7 @@ function decodeTraceSlug(maybeSlug: string | undefined): string {
   if (!maybeSlug || maybeSlug === 'null' || maybeSlug === 'undefined') {
     Sentry.withScope(scope => {
       scope.setFingerprint(['trace-null-slug']);
-      Sentry.captureMessage(`Trace slug is empty`);
+      Sentry.captureMessage('Trace slug is empty');
     });
 
     return '';
@@ -85,14 +85,14 @@ export function TraceView() {
 // to represent only-logs traces. The embedded logs components fetch their own data and support
 // pagination.
 function useInitialLogsData() {
-  const logsTableData = useLogsPageData();
-  const logsData = useRef<UseExploreLogsTableResult | undefined>(undefined);
+  const {logsQueryResult} = useLogsPageData();
+  const logsData = useRef<UseLogsQueryResult | undefined>(undefined);
 
   useEffect(() => {
-    if (logsTableData.logsData.data && !logsData.current?.data.length) {
-      logsData.current = logsTableData.logsData;
+    if (logsQueryResult.data && !logsData.current?.data?.length) {
+      logsData.current = logsQueryResult;
     }
-  }, [logsTableData]);
+  }, [logsQueryResult]);
 
   return logsData.current;
 }
@@ -101,8 +101,9 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
+  const {logsQueryResult} = useLogsPageData();
   const logsData = useInitialLogsData();
-  const hideTraceWaterfallIfEmpty = (logsData?.data.length ?? 0) > 0;
+  const hideTraceWaterfallIfEmpty = (logsData?.data?.length ?? 0) > 0;
   const hasTraceTabsUI = useHasTraceTabsUI();
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
@@ -110,7 +111,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const tree = useTraceTree({traceSlug, trace, meta, replay: null});
   const rootEventResults = useTraceRootEvent({
     tree,
-    logs: logsData?.data,
+    logs: logsQueryResult?.data,
     traceId: traceSlug,
   });
 
