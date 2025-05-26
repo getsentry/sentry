@@ -1111,6 +1111,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             )
             data["tempestFetchDumps"] = attrs["options"].get("sentry:tempest_fetch_dumps", False)
 
+        if features.has("organizations:disable-clustering-setting", obj.organization, actor=user):
+            data["transactionNameClusteringDisabled"] = attrs["options"].get(
+                "performance:transaction-name-clustering-disabled", False
+            )
+
         return data
 
     def format_options(self, attrs: Mapping[str, Any]) -> dict[str, Any]:

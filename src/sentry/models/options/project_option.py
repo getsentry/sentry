@@ -75,6 +75,7 @@ OPTION_KEYS = frozenset(
         "filters:react-hydration-errors",
         "filters:chunk-load-error",
         "relay.cardinality-limiter.limits",
+        "performance:transaction-name-clustering-disabled",
     ]
 )
 
