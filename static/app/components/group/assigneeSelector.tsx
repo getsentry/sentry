@@ -82,7 +82,6 @@ export function AssigneeSelector({
   owners,
   additionalMenuFooterItems,
   showLabel = false,
-  createPortalOnDropdown = false,
 }: AssigneeSelectorProps) {
   const theme = useTheme();
 
@@ -118,7 +117,6 @@ export function AssigneeSelector({
         </StyledDropdownButton>
       )}
       additionalMenuFooterItems={additionalMenuFooterItems}
-      createPortalOnDropdown={createPortalOnDropdown}
     />
   );
 }

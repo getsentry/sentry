@@ -32,7 +32,6 @@ export function IssueAssignee({groupId}: IssueAssigneeProps) {
       memberList={memberListState.members}
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
-      createPortalOnDropdown
     />
   );
 }

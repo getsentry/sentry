@@ -124,6 +124,11 @@ export interface UseOverlayProps
    * If this is not desired, set to `false`.
    */
   shouldApplyMinWidth?: boolean;
+  /**
+   * Strategy for the overlay. See https://popper.js.org/docs/v2/constructors/#strategy
+   * for details.
+   */
+  strategy?: PopperProps<any>['strategy'];
 }
 
 function useOverlay({
@@ -144,7 +149,7 @@ function useOverlay({
   shouldCloseOnInteractOutside,
   onInteractOutside,
   disableTrigger,
-  disableOverflowPrevention = false,
+  strategy = 'fixed',
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
@@ -210,7 +215,7 @@ function useOverlay({
       },
       {
         name: 'preventOverflow',
-        enabled: !disableOverflowPrevention,
+        enabled: true,
         options: {
           padding: 16,
           ...preventOverflowOptions,
@@ -241,14 +246,17 @@ function useOverlay({
       preventOverflowOptions,
       openState.isOpen,
       shouldApplyMinWidth,
-      disableOverflowPrevention,
     ]
   );
   const {
     styles: popperStyles,
     state: popperState,
     update: popperUpdate,
-  } = usePopper(triggerElement, overlayElement, {modifiers, placement: position});
+  } = usePopper(triggerElement, overlayElement, {
+    modifiers,
+    placement: position,
+    strategy,
+  });
 
   // Get props for trigger button
   const {triggerProps, overlayProps: overlayTriggerAriaProps} = useOverlayTriggerAria(

@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import {createPortal} from 'react-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -106,6 +105,7 @@ export interface ControlProps
       | 'onInteractOutside'
       | 'preventOverflowOptions'
       | 'flipOptions'
+      | 'strategy'
     > {
   children?: React.ReactNode;
   className?: string;
@@ -113,10 +113,6 @@ export interface ControlProps
    * If true, there will be a "Clear" button in the menu header.
    */
   clearable?: boolean;
-  /**
-   * If true, places the dropdown in the document body instead.
-   */
-  createPortalOnDropdown?: boolean;
   /**
    * If true, places the dropdown in the document body instead.
    */
@@ -241,6 +237,7 @@ export function Control({
   flipOptions,
   disabled,
   position = 'bottom-start',
+  strategy = 'absolute',
   offset,
   hideOptions,
   menuTitle,
@@ -251,7 +248,6 @@ export function Control({
   menuBody,
   menuFooter,
   onOpenChange,
-  createPortalOnDropdown,
   disableOverflowPrevention,
 
   // Select props
@@ -339,6 +335,7 @@ export function Control({
     preventOverflowOptions,
     disableOverflowPrevention,
     flipOptions,
+    strategy,
     onOpenChange: open => {
       onOpenChange?.(open);
 
@@ -516,66 +513,6 @@ export function Control({
   }, [saveSelectedOptions, overlayState, overlayIsOpen, search]);
 
   const theme = useTheme();
-  const dropdown = (
-    <StyledPositionWrapper
-      zIndex={theme.zIndex?.tooltip}
-      visible={overlayIsOpen}
-      {...overlayProps}
-    >
-      <StyledOverlay
-        width={menuWidth ?? menuFullWidth}
-        minWidth={overlayProps.style!.minWidth}
-        maxWidth={maxMenuWidth}
-        maxHeight={overlayProps.style!.maxHeight}
-        maxHeightProp={maxMenuHeight}
-        data-menu-has-header={!!menuTitle || clearable}
-        data-menu-has-search={searchable}
-        data-menu-has-footer={!!menuFooter}
-      >
-        <FocusScope contain={overlayIsOpen}>
-          {(menuTitle || menuHeaderTrailingItems || (clearable && showClearButton)) && (
-            <MenuHeader size={size}>
-              <MenuTitle>{menuTitle}</MenuTitle>
-              <MenuHeaderTrailingItems>
-                {loading && <StyledLoadingIndicator size={12} />}
-                {typeof menuHeaderTrailingItems === 'function'
-                  ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
-                  : menuHeaderTrailingItems}
-                {clearable && showClearButton && (
-                  <ClearButton onClick={clearSelection} size="zero" borderless>
-                    {t('Clear')}
-                  </ClearButton>
-                )}
-              </MenuHeaderTrailingItems>
-            </MenuHeader>
-          )}
-          {searchable && (
-            <SearchInput
-              ref={searchRef}
-              placeholder={searchPlaceholder}
-              value={searchInputValue}
-              onFocus={onSearchFocus}
-              onBlur={onSearchBlur}
-              onChange={e => updateSearch(e.target.value)}
-              size="xs"
-              {...searchKeyboardProps}
-            />
-          )}
-          {typeof menuBody === 'function'
-            ? menuBody({closeOverlay: overlayState.close})
-            : menuBody}
-          {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
-          {menuFooter && (
-            <MenuFooter>
-              {typeof menuFooter === 'function'
-                ? menuFooter({closeOverlay: overlayState.close})
-                : menuFooter}
-            </MenuFooter>
-          )}
-        </FocusScope>
-      </StyledOverlay>
-    </StyledPositionWrapper>
-  );
 
   return (
     <SelectContext value={contextValue}>
@@ -592,7 +529,66 @@ export function Control({
             {triggerLabel}
           </DropdownButton>
         )}
-        {createPortalOnDropdown ? createPortal(dropdown, document.body) : dropdown}
+        <StyledPositionWrapper
+          zIndex={theme.zIndex?.tooltip}
+          visible={overlayIsOpen}
+          {...overlayProps}
+        >
+          <StyledOverlay
+            width={menuWidth ?? menuFullWidth}
+            minWidth={overlayProps.style!.minWidth}
+            maxWidth={maxMenuWidth}
+            maxHeight={overlayProps.style!.maxHeight}
+            maxHeightProp={maxMenuHeight}
+            data-menu-has-header={!!menuTitle || clearable}
+            data-menu-has-search={searchable}
+            data-menu-has-footer={!!menuFooter}
+          >
+            <FocusScope contain={overlayIsOpen}>
+              {(menuTitle ||
+                menuHeaderTrailingItems ||
+                (clearable && showClearButton)) && (
+                <MenuHeader size={size}>
+                  <MenuTitle>{menuTitle}</MenuTitle>
+                  <MenuHeaderTrailingItems>
+                    {loading && <StyledLoadingIndicator size={12} />}
+                    {typeof menuHeaderTrailingItems === 'function'
+                      ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                      : menuHeaderTrailingItems}
+                    {clearable && showClearButton && (
+                      <ClearButton onClick={clearSelection} size="zero" borderless>
+                        {t('Clear')}
+                      </ClearButton>
+                    )}
+                  </MenuHeaderTrailingItems>
+                </MenuHeader>
+              )}
+              {searchable && (
+                <SearchInput
+                  ref={searchRef}
+                  placeholder={searchPlaceholder}
+                  value={searchInputValue}
+                  onFocus={onSearchFocus}
+                  onBlur={onSearchBlur}
+                  onChange={e => updateSearch(e.target.value)}
+                  size="xs"
+                  {...searchKeyboardProps}
+                />
+              )}
+              {typeof menuBody === 'function'
+                ? menuBody({closeOverlay: overlayState.close})
+                : menuBody}
+              {!hideOptions && <OptionsWrap>{children}</OptionsWrap>}
+              {menuFooter && (
+                <MenuFooter>
+                  {typeof menuFooter === 'function'
+                    ? menuFooter({closeOverlay: overlayState.close})
+                    : menuFooter}
+                </MenuFooter>
+              )}
+            </FocusScope>
+          </StyledOverlay>
+        </StyledPositionWrapper>
       </ControlWrap>
     </SelectContext>
   );
@@ -709,7 +705,7 @@ const StyledPositionWrapper = styled(PositionWrapper, {
 })<{visible?: boolean; zIndex?: number}>`
   min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
-  ${p => (p.zIndex ? `z-index: ${p.zIndex} !important;` : '')}
+  z-index: ${p => p?.zIndex};
 `;
 
 const OptionsWrap = styled('div')`

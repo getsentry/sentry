@@ -71,7 +71,6 @@ function CompactSelect<Value extends SelectKey>({
   sizeLimitMessage,
 
   // Control props
-  createPortalOnDropdown = false,
   grid,
   disabled,
   emptyMessage,
@@ -116,7 +115,6 @@ function CompactSelect<Value extends SelectKey>({
       disabled={controlDisabled}
       grid={grid}
       size={size}
-      createPortalOnDropdown={createPortalOnDropdown}
     >
       <List
         {...listProps}

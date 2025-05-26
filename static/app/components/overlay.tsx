@@ -144,7 +144,7 @@ const OverlayInner = withChonk(
     font-size: ${p => p.theme.fontSizeMedium};
 
     /* Override z-index from useOverlayPosition */
-    z-index: ${p => p.theme.zIndex.dropdown} !important;
+    z-index: ${p => p.theme.zIndex.dropdown};
     ${p => p.animated && `will-change: transform, opacity;`}
 
     /* Specificity hack to allow override styles to have higher specificity than
@@ -165,7 +165,7 @@ const OverlayInner = withChonk(
     font-size: ${p => p.theme.fontSizeMedium};
 
     /* Override z-index from useOverlayPosition */
-    z-index: ${p => p.theme.zIndex.dropdown} !important;
+    z-index: ${p => p.theme.zIndex.dropdown};
     will-change: transform, opacity;
 
     /* Specificity hack to allow override styles to have higher specificity than
