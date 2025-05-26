@@ -2,16 +2,11 @@ import partition from 'lodash/partition';
 
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
-import {markDelayedData} from './markDelayedData';
-
 export function splitSeriesIntoCompleteAndIncomplete(
-  timeSeries: TimeSeries,
-  delay: number
+  timeSeries: TimeSeries
 ): Array<TimeSeries | undefined> {
-  const markedTimeserie = markDelayedData(timeSeries, delay);
-
   const [completeData, incompleteData] = partition(
-    markedTimeserie.values,
+    timeSeries.values,
     datum => !datum.incomplete
   );
 

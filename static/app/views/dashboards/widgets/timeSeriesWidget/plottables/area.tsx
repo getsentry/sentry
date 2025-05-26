@@ -24,7 +24,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     super(timeSeries, config);
 
     const [completeTimeSeries, incompleteTimeSeries] =
-      splitSeriesIntoCompleteAndIncomplete(timeSeries, config?.delay ?? 0);
+      splitSeriesIntoCompleteAndIncomplete(timeSeries);
 
     this.#completeTimeSeries = completeTimeSeries;
     this.#incompleteTimeSeries = incompleteTimeSeries;

@@ -326,15 +326,9 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {
-                  delay: 90,
-                }),
-                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
-                  delay: 90,
-                }),
-                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeriesP50), {
-                  delay: 90,
-                }),
+                new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {}),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {}),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeriesP50), {}),
               ]}
             />
           </MediumWidget>
@@ -534,9 +528,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
 
   story('Samples', () => {
     const timeSeriesPlottable = useMemo(() => {
-      return new Bars(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
-        delay: 1800,
-      });
+      return new Bars(shiftTimeSeriesToNow(sampleDurationTimeSeries), {});
     }, []);
 
     const samplesPlottable = useMemo(() => {
@@ -622,8 +614,6 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
       sampleDurationTimeSeriesP50
     );
 
-    const delay = 60 * 60 * 3;
-
     return (
       <Fragment>
         <p>
@@ -636,16 +626,16 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line(shiftedSampleDurationTimeSeries, {delay}),
-                new Line(shiftedSampleDurationTimeSeries2, {delay}),
+                new Line(shiftedSampleDurationTimeSeries, {}),
+                new Line(shiftedSampleDurationTimeSeries2, {}),
               ]}
             />
           </MediumWidget>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Area(shiftedSampleDurationTimeSeries, {delay}),
-                new Area(shiftedSampleDurationTimeSeries2, {delay}),
+                new Area(shiftedSampleDurationTimeSeries, {}),
+                new Area(shiftedSampleDurationTimeSeries2, {}),
               ]}
             />
           </MediumWidget>
@@ -653,11 +643,9 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Bars(shiftedSampleDurationTimeSeries, {
-                  delay,
                   stack: 'all',
                 }),
                 new Bars(shiftedSampleDurationTimeSeries2, {
-                  delay,
                   stack: 'all',
                 }),
               ]}
@@ -704,9 +692,10 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
     const [legendSelection, setLegendSelection] = useState<LegendSelection>({});
     const [sampleId, setSampleId] = useState<string | null>(null);
 
-    const aggregatePlottable = new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
-      delay: 1800,
-    });
+    const aggregatePlottable = new Line(
+      shiftTimeSeriesToNow(sampleDurationTimeSeries),
+      {}
+    );
 
     const samplesPlottable = useMemo(() => {
       return new Samples(shiftedSpanSamples, {
