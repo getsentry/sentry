@@ -1,7 +1,6 @@
 import logging
 from dataclasses import asdict, replace
 from enum import StrEnum
-from typing import Any
 
 import sentry_sdk
 from django.db import router, transaction
@@ -218,14 +217,6 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
 
     # TODO: remove fetching org, only used for feature flag checks
     organization = detector.project.organization
-    workflow_metric_tags: dict[str, Any] = {
-        "detector_type": detector.type,
-        "organization_id": None,
-    }
-    if features.has(
-        "organizations:workflow-engine-metric-alert-dual-processing-logs", organization
-    ):
-        workflow_metric_tags["organization_id"] = organization.id
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(
@@ -240,7 +231,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         metrics.incr(
             "workflow_engine.process_workflows",
             len(workflows),
-            tags=workflow_metric_tags,
+            tags={"detector_type": detector.type},
         )
 
         logger.info(
@@ -263,7 +254,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             metrics.incr(
                 "workflow_engine.process_workflows.triggered_workflows",
                 len(triggered_workflows),
-                tags=workflow_metric_tags,
+                tags={"detector_type": detector.type},
             )
 
             logger.info(
@@ -284,7 +275,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         metrics.incr(
             "workflow_engine.process_workflows.actions",
             amount=len(actions),
-            tags=workflow_metric_tags,
+            tags={"detector_type": detector.type},
         )
 
         logger.info(
@@ -309,7 +300,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         metrics.incr(
             "workflow_engine.process_workflows.triggered_actions",
             amount=len(actions),
-            tags=workflow_metric_tags,
+            tags={"detector_type": detector.type},
         )
         logger.info(
             "workflow_engine.process_workflows.triggered_actions (batch)",
@@ -322,9 +313,10 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             },
         )
     # in order to check if workflow engine is firing 1:1 with the old system, we must only count once rather than each action
-    metrics.incr(
-        "workflow_engine.process_workflows.fired_actions",
-        tags=workflow_metric_tags,
-    )
+    if len(actions) > 0:
+        metrics.incr(
+            "workflow_engine.process_workflows.fired_actions",
+            tags={"detector_type": detector.type},
+        )
 
     return triggered_workflows

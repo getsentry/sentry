@@ -162,6 +162,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:laravel-insights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:mep-use-default-tags", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:disable-clustering-setting", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=False)
     # Migrate Orgs to new Azure DevOps Integration
     manager.add("organizations:migrate-azure-devops-integration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Session Stats down to a minute resolution
@@ -178,6 +179,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable access to NextJS specific insights
     manager.add("organizations:nextjs-insights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable AI Agents specific insights
+    manager.add("organizations:agents-insights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics
     manager.add("organizations:on-demand-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics (experimental features)
@@ -198,8 +201,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:ownership-size-limit-large", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable xlarge ownership rule file size limit
     manager.add("organizations:ownership-size-limit-xlarge", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable project admins to enable/disable performance detectors
-    manager.add("organizations:performance-manage-detectors", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable mobile performance score calculation for transactions in relay
     manager.add("organizations:performance-calculate-mobile-perf-score-relay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable performance change explorer panel on trends page
@@ -351,6 +352,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-modules-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Make insights overview module use EAP instead of metrics
     manager.add("organizations:insights-overview-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable open in explore and create alert actions inside insight charts
+    manager.add("organizations:insights-chart-actions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to insights metrics alerts
     manager.add("organizations:insights-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Related Issues table in Insights modules
@@ -422,7 +425,9 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:user-feedback-spam-filter-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Block User Feedback spam auto filtering feature ingest
     manager.add("organizations:user-feedback-spam-ingest-blocklist", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable User Feedback spam auto filtering feature actions
+    # Enable auto spam classification at User Feedback ingest time (TODO: use this to replace the two flags above)
+    manager.add("organizations:user-feedback-spam-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable auto spam filtering at User Feedback ingest time, if spam-ingest is also enabled
     manager.add("organizations:user-feedback-spam-filter-actions", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Enable User Feedback v2 UI
     manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)

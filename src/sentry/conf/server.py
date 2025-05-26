@@ -1510,7 +1510,6 @@ TASKWORKER_SCHEDULES: ScheduleConfigMap = {
     },
 }
 
-TASKWORKER_ENABLE_HIGH_THROUGHPUT_NAMESPACES = False
 TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
     "ingest.profiling",
     "ingest.transactions",
@@ -2694,7 +2693,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.5.0"
+SELF_HOSTED_STABLE_VERSION = "25.5.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3115,6 +3114,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "generic-metrics-subscription-results": "default",
     "metrics-subscription-results": "default",
     "eap-spans-subscription-results": "default",
+    "subscription-results-eap-items": "default",
     "ingest-events": "default",
     "ingest-feedback-events": "default",
     "ingest-feedback-events-dlq": "default",
@@ -3195,13 +3195,13 @@ JIRA_USE_EMAIL_SCOPE = False
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
+    "flags",
     "nodestore",
     "replays",
     "sentry",
     "social_auth",
     "feedback",
     "hybridcloud",
-    "remote_subscriptions",
     "uptime",
     "workflow_engine",
     "tempest",

@@ -4,13 +4,14 @@ import threading
 import time
 from collections.abc import Callable
 
-import rapidjson
+import orjson
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import FilteredPayload, Message
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer import SpansBuffer
 from sentry.utils import metrics
@@ -42,21 +43,27 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         max_memory_percentage: float,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
         next_step: ProcessingStrategy[FilteredPayload | int],
+        max_segment_size_bytes: int = 10000000,
     ):
         self.buffer = buffer
         self.max_flush_segments = max_flush_segments
         self.max_memory_percentage = max_memory_percentage
+        self.max_segment_size_bytes = max_segment_size_bytes
         self.next_step = next_step
 
         self.stopped = multiprocessing.Value("i", 0)
         self.redis_was_full = False
         self.current_drift = multiprocessing.Value("i", 0)
-        self.should_backpressure = multiprocessing.Value("i", 0)
+        self.backpressure_since = multiprocessing.Value("i", 0)
+        self.produce_to_pipe = produce_to_pipe
 
+        self._create_process()
+
+    def _create_process(self):
         from sentry.utils.arroyo import _get_arroyo_subprocess_initializer
 
         make_process: Callable[..., multiprocessing.Process | threading.Thread]
-        if produce_to_pipe is None:
+        if self.produce_to_pipe is None:
             initializer = _get_arroyo_subprocess_initializer(None)
             make_process = multiprocessing.Process
         else:
@@ -69,16 +76,16 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 initializer,
                 self.stopped,
                 self.current_drift,
-                self.should_backpressure,
+                self.backpressure_since,
                 self.buffer,
                 self.max_flush_segments,
-                produce_to_pipe,
+                self.produce_to_pipe,
+                self.max_segment_size_bytes,
             ),
             daemon=True,
         )
 
         self.process_restarts = 0
-
         self.process.start()
 
     @staticmethod
@@ -86,17 +93,18 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         initializer: Callable | None,
         stopped,
         current_drift,
-        should_backpressure,
+        backpressure_since,
         buffer: SpansBuffer,
         max_flush_segments: int,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
+        max_segment_size_bytes: int,
     ) -> None:
+        if initializer:
+            initializer()
+
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
 
         try:
-            if initializer:
-                initializer()
-
             producer_futures = []
 
             if produce_to_pipe is not None:
@@ -118,33 +126,42 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 now = int(time.time()) + current_drift.value
                 flushed_segments = buffer.flush_segments(max_segments=max_flush_segments, now=now)
 
-                should_backpressure.value = len(flushed_segments) >= max_flush_segments * len(
-                    buffer.assigned_shards
-                )
+                if len(flushed_segments) >= max_flush_segments * len(buffer.assigned_shards):
+                    if backpressure_since.value == 0:
+                        backpressure_since.value = int(time.time())
+                else:
+                    backpressure_since.value = 0
 
                 if not flushed_segments:
                     time.sleep(1)
                     continue
 
-                for _, flushed_segment in flushed_segments.items():
-                    if not flushed_segment.spans:
-                        # This is a bug, most likely the input topic is not
-                        # partitioned by trace_id so multiple consumers are writing
-                        # over each other. The consequence is duplicated segments,
-                        # worst-case.
-                        metrics.incr("sentry.spans.buffer.empty_segments")
-                        continue
+                with metrics.timer("spans.buffer.flusher.produce"):
+                    for _, flushed_segment in flushed_segments.items():
+                        if not flushed_segment.spans:
+                            # This is a bug, most likely the input topic is not
+                            # partitioned by trace_id so multiple consumers are writing
+                            # over each other. The consequence is duplicated segments,
+                            # worst-case.
+                            metrics.incr("sentry.spans.buffer.empty_segments")
+                            continue
 
-                    spans = [span.payload for span in flushed_segment.spans]
+                        spans = [span.payload for span in flushed_segment.spans]
 
-                    kafka_payload = KafkaPayload(
-                        None, rapidjson.dumps({"spans": spans}).encode("utf8"), []
-                    )
+                        kafka_payload = KafkaPayload(None, orjson.dumps({"spans": spans}), [])
 
-                    produce(kafka_payload)
+                        metrics.timing("spans.buffer.segment_size_bytes", len(kafka_payload.value))
+                        if len(kafka_payload.value) <= max_segment_size_bytes:
+                            produce(kafka_payload)
+                        else:
+                            metrics.incr("spans.buffer.flusher.segment_size_exceeded")
+                            logger.error(
+                                "Skipping too large segment, byte size %s", len(kafka_payload.value)
+                            )
 
-                for future in producer_futures:
-                    future.result()
+                with metrics.timer("spans.buffer.flusher.wait_produce"):
+                    for future in producer_futures:
+                        future.result()
 
                 producer_futures.clear()
 
@@ -154,6 +171,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 producer.close()
         except KeyboardInterrupt:
             pass
+        except Exception:
+            sentry_sdk.capture_exception()
+            raise
 
     def poll(self) -> None:
         self.next_step.poll()
@@ -166,7 +186,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         if not self.process.is_alive():
             metrics.incr("sentry.spans.buffer.flusher_dead")
             if self.process_restarts < MAX_PROCESS_RESTARTS:
-                self.process.start()
+                self._create_process()
                 self.process_restarts += 1
             else:
                 raise RuntimeError(
@@ -180,12 +200,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # efforts, it is still always going to be less durable than Kafka.
         # Minimizing our Redis memory usage also makes COGS easier to reason
         # about.
-        #
-        # should_backpressure is true if there are many segments to flush, but
-        # the flusher can't get all of them out.
-        if self.should_backpressure.value:
-            metrics.incr("sentry.spans.buffer.flusher.backpressure")
-            raise MessageRejected()
+        if self.backpressure_since.value > 0:
+            if int(time.time()) - self.backpressure_since.value > options.get(
+                "standalone-spans.buffer.flusher.backpressure_seconds"
+            ):
+                metrics.incr("sentry.spans.buffer.flusher.backpressure")
+                raise MessageRejected()
 
         # We set the drift. The backpressure based on redis memory comes after.
         # If Redis is full for a long time, the drift will grow into a large

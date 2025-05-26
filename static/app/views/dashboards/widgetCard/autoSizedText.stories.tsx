@@ -1,47 +1,46 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import JSXNode from 'sentry/components/stories/jsxNode';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 
-export default storyBook('AutoSizedText', story => {
+export default Storybook.story('AutoSizedText', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="AutoSizedText" /> is a helper component that automatically sizes
-          a piece of text (single line only!) against its parent. It iteratively measures
-          the size of the parent element, and chooses a font size for the child element to
-          fit it perfectly (within reason) inside the parent. For example:
+          <Storybook.JSXNode name="AutoSizedText" /> is a helper component that
+          automatically sizes a piece of text (single line only!) against its parent. It
+          iteratively measures the size of the parent element, and chooses a font size for
+          the child element to fit it perfectly (within reason) inside the parent. For
+          example:
         </p>
 
-        <SmallSizingWindow>
+        <SmallStorybookSizingWindow>
           <AutoSizedText>
             <OneLineSpan>NEWSFLASH, y'all!</OneLineSpan>
           </AutoSizedText>
-        </SmallSizingWindow>
+        </SmallStorybookSizingWindow>
 
         <p>
           This was built for the "Big Number" widget in our Dashboards product. It's not
           possible to <i>perfectly</i> size the text using only CSS and HTML!
         </p>
         <p>
-          To use <JSXNode name="AutoSizedText" />, set it as the child of positioned
-          element of known dimensions. Pass the content you want to size as the{' '}
+          To use <Storybook.JSXNode name="AutoSizedText" />, set it as the child of
+          positioned element of known dimensions. Pass the content you want to size as the{' '}
           <strong>
             <code>children</code>
           </strong>
-          prop. <JSXNode name="AutoSizedText" /> will set the font size of its children to
-          fit into the parent.
+          prop. <Storybook.JSXNode name="AutoSizedText" /> will set the font size of its
+          children to fit into the parent.
         </p>
       </Fragment>
     );
   });
 });
 
-const SmallSizingWindow = styled(SizingWindow)`
+const SmallStorybookSizingWindow = styled(Storybook.SizingWindow)`
   width: 300px;
   height: 200px;
 `;

@@ -580,13 +580,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             else:
                 footer_text = footer_text[:-4]  # chop off the empty space
 
-            if self.issue_summary:
-                footer_text += "    Powered by Seer"
-
             return self.get_context_block(text=footer_text)
         else:
-            if self.issue_summary:
-                footer += " | Powered by Seer"
             return self.get_context_block(text=footer, timestamp=timestamp)
 
     def build(self, notification_uuid: str | None = None) -> SlackBlock:

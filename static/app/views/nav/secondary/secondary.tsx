@@ -6,6 +6,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {useHovercardContext} from 'sentry/components/hovercard';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {type LinkProps} from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
@@ -19,9 +20,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {NavLayout} from 'sentry/views/nav/types';
-import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 import {isLinkActive} from 'sentry/views/nav/utils';
 
 type SecondaryNavProps = {
@@ -59,7 +58,6 @@ export function SecondaryNav({children}: SecondaryNavProps) {
 
 SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactNode}) {
   const {isCollapsed, setIsCollapsed, layout} = useNavContext();
-  const group = useActiveNavGroup();
 
   if (layout === NavLayout.MOBILE) {
     return null;
@@ -67,7 +65,7 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
 
   return (
     <Header>
-      <div>{children ?? PRIMARY_NAV_GROUP_CONFIG[group].label}</div>
+      <div>{children}</div>
       <div>
         <Button
           borderless
@@ -202,6 +200,7 @@ SecondaryNav.Item = function SecondaryNavItem({
   const isActive = incomingIsActive ?? isLinkActive(activeTo, location.pathname, {end});
 
   const {layout} = useNavContext();
+  const {reset: closeCollapsedNavHovercard} = useHovercardContext();
 
   return (
     <Item
@@ -218,6 +217,10 @@ SecondaryNav.Item = function SecondaryNavItem({
             organization,
           });
         }
+
+        // When this is rendered inside a hovercard (when the nav is collapsed)
+        // this will dismiss it when clicking on a link.
+        closeCollapsedNavHovercard();
       }}
     >
       {leadingItems}
@@ -254,6 +257,7 @@ const Header = styled('div')`
 
 const Body = styled('div')<{layout: NavLayout}>`
   overflow-y: auto;
+  overscroll-behavior: contain;
 
   ${p =>
     p.layout === NavLayout.MOBILE &&

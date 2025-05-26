@@ -31,7 +31,7 @@ class TestDetectorSerializer(TestCase):
             "dateUpdated": detector.date_updated,
             "dataSources": None,
             "conditionGroup": None,
-            "connectedWorkflows": [],
+            "workflowIds": [],
             "config": default_detector_config_data[MetricIssue.slug],
         }
 
@@ -136,7 +136,7 @@ class TestDetectorSerializer(TestCase):
                     }
                 ],
             },
-            "connectedWorkflows": [str(workflow.id)],
+            "workflowIds": [str(workflow.id)],
             "config": default_detector_config_data[MetricIssue.slug],
         }
 
@@ -364,6 +364,7 @@ class TestWorkflowSerializer(TestCase):
             "triggers": None,
             "actionFilters": [],
             "environment": None,
+            "detectorIds": [],
         }
 
     def test_serialize_full(self):
@@ -407,6 +408,12 @@ class TestWorkflowSerializer(TestCase):
 
         self.create_workflow_data_condition_group(
             condition_group=condition_group,
+            workflow=workflow,
+        )
+
+        detector = self.create_detector()
+        self.create_detector_workflow(
+            detector=detector,
             workflow=workflow,
         )
 
@@ -458,4 +465,5 @@ class TestWorkflowSerializer(TestCase):
                 },
             ],
             "environment": self.environment.name,
+            "detectorIds": [str(detector.id)],
         }
