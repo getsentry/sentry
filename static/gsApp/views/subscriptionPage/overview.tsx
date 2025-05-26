@@ -25,7 +25,7 @@ import type {
 } from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {hasAccessToSubscriptionOverview, isAm3DsPlan} from 'getsentry/utils/billing';
-import {sortCategories} from 'getsentry/utils/dataCategory';
+import {isSeer, sortCategories} from 'getsentry/utils/dataCategory';
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -239,6 +239,11 @@ function Overview({location, subscription, promotionData}: Props) {
             return null;
           }
 
+          // Hide Seer cards for sponsored plans
+          if (subscription.isSponsored && isSeer(category)) {
+            return null;
+          }
+
           // The usageData does not include details for seat-based categories.
           // For now we will handle the monitor category specially
 
@@ -307,6 +312,11 @@ function Overview({location, subscription, promotionData}: Props) {
         {nonPlanProductTrials?.map(pt => {
           const categoryTotals = usageData.totals[pt.category];
           const eventTotals = usageData.eventTotals?.[pt.category];
+
+          // Hide Seer trials for sponsored plans
+          if (subscription.isSponsored && isSeer(pt.category)) {
+            return null;
+          }
 
           return (
             <UsageTotals

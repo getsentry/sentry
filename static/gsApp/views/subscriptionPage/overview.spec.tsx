@@ -12,6 +12,7 @@ import {
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
+import {UsageTotalFixture} from 'getsentry-test/fixtures/usageTotal';
 import {
   render,
   renderGlobalModal,
@@ -962,5 +963,43 @@ describe('Subscription > Overview', () => {
 
     // event breakdown is not shown for profileDuration
     expect(screen.queryByTestId('event-table-accepted')).not.toBeInTheDocument();
+  });
+
+  it('hides Seer cards for sponsored plans', async function () {
+    const subscription = SubscriptionFixture({
+      plan: 'am2_sponsored',
+      planTier: PlanTier.AM2,
+      organization,
+      isSponsored: true,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    // Add Seer categories to the customer usage mock
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/usage/`,
+      method: 'GET',
+      body: CustomerUsageFixture({
+        totals: {
+          errors: UsageTotalFixture(),
+          transactions: UsageTotalFixture(),
+          attachments: UsageTotalFixture(),
+          seerAutofix: UsageTotalFixture(),
+          seerScanner: UsageTotalFixture(),
+        },
+        stats: {
+          errors: [],
+          transactions: [],
+          attachments: [],
+          seerAutofix: [],
+          seerScanner: [],
+        },
+      }),
+    });
+
+    render(<Overview location={mockLocation} />, {organization});
+
+    expect(await screen.findByText('Overview')).toBeInTheDocument();
+    expect(screen.getByText('Errors usage this period')).toBeInTheDocument();
+    expect(screen.queryByText('Seer')).not.toBeInTheDocument();
   });
 });

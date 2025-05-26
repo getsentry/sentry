@@ -2,7 +2,6 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
-import moment from 'moment-timezone';
 
 import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
@@ -46,6 +45,7 @@ import {
   getChunkCategoryFromDuration,
   getPlanCategoryName,
   isContinuousProfiling,
+  isSeer,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {roundUpToNearestDollar} from 'getsentry/utils/roundUpToNearestDollar';
@@ -432,8 +432,7 @@ function UsageTotals({
     getActiveProductTrial(subscription.productTrials ?? null, category) ??
     getPotentialProductTrial(subscription.productTrials ?? null, category);
 
-  const isSeer =
-    category === DataCategory.SEER_AUTOFIX || category === DataCategory.SEER_SCANNER;
+  const isSeerCard = isSeer(category);
 
   // Determine if the organization has a reserved budget for Seer
   const seerReservedBudget = subscription.reservedBudgets?.find(
@@ -442,14 +441,12 @@ function UsageTotals({
   );
   const hasSeer = (seerReservedBudget?.reservedBudget ?? 0) > 0;
 
-  const showManageButton =
-    isSeer && !hasSeer && !productTrial?.isStarted && !productTrial;
-  const showUsage = !isSeer || (isSeer && hasSeer);
-  const hasExpiredSeerTrial =
-    productTrial &&
-    !productTrial?.isStarted &&
-    moment(productTrial.endDate).isAfter(moment());
-  const showSeerPromptBar = isSeer && (!hasSeer || hasExpiredSeerTrial);
+  const activeTrial = productTrial?.isStarted || false;
+  const showManageButton = isSeerCard && !activeTrial && !productTrial;
+  const showUsage = !isSeerCard || activeTrial || hasSeer;
+  const showSeerPromptBar = isSeerCard && !activeTrial && !hasSeer;
+
+  disableTable = disableTable || (isSeerCard && !hasSeer); // special case for Seer
 
   const {
     ondemandPercentUsed,
@@ -505,7 +502,7 @@ function UsageTotals({
   }
 
   function getTitle(): React.ReactNode {
-    if (isSeer) {
+    if (isSeerCard) {
       return t(' ');
     }
     if (productTrial?.isStarted) {
@@ -538,6 +535,12 @@ function UsageTotals({
   const hasReservedQuota: boolean =
     reserved !== null && (reserved === UNLIMITED_RESERVED || reserved > 0);
 
+  const showReservedInfo =
+    hasReservedQuota ||
+    displayGifts ||
+    (!isSeerCard && activeTrial) ||
+    (isSeerCard && (hasSeer || activeTrial));
+
   const checkoutUrl = `/settings/billing/checkout/?referrer=manage_subscription`;
 
   return (
@@ -547,8 +550,8 @@ function UsageTotals({
           <BaseRow>
             <div>
               <UsageSummaryTitle>
-                {isSeer && t('Seer')}
-                {!isSeer &&
+                {isSeerCard && t('Seer')}
+                {!isSeerCard &&
                   getPlanCategoryName({
                     plan: subscription.planDetails,
                     category,
@@ -561,12 +564,12 @@ function UsageTotals({
                   </MarginSpan>
                 )}
               </UsageSummaryTitle>
-              {isSeer && !hasSeer && (
+              {isSeerCard && !hasSeer && !activeTrial && (
                 <SubText data-test-id={reservedTestId}>
                   {t('Detect and fix issues faster with our AI debugging agent.')}
                 </SubText>
               )}
-              {!showSeerPromptBar && (hasReservedQuota || displayGifts) && (
+              {showReservedInfo && (
                 <SubText data-test-id={reservedTestId}>
                   {productTrial?.isStarted &&
                   getDaysSinceDate(productTrial.endDate ?? '') <= 0
@@ -614,7 +617,7 @@ function UsageTotals({
                 </MarginSpan>
               )}
 
-              {!disableTable && !showManageButton && (
+              {!disableTable && (
                 <Button
                   data-test-id={`expand-usage-totals-${category}`}
                   size="sm"
@@ -629,7 +632,7 @@ function UsageTotals({
             <MarginSpan>
               <FeaturePromptBar>
                 <IconLock size="sm" />
-                {productTrial && moment(productTrial.endDate).isBefore()
+                {productTrial && !productTrial.isStarted
                   ? t('Start your Seer trial to view usage')
                   : t('Enable Seer to view usage')}
               </FeaturePromptBar>
@@ -898,6 +901,32 @@ function UsageTotals({
                 ))
             )}
 
+          {/* Show both Seer category tables when a Seer trial is active */}
+          {isSeerCard && activeTrial && (
+            <Fragment>
+              {category !== DataCategory.SEER_AUTOFIX && (
+                <UsageTotalsTable
+                  key={DataCategory.SEER_AUTOFIX}
+                  category={DataCategory.SEER_AUTOFIX}
+                  totals={
+                    allTotalsByCategory?.[DataCategory.SEER_AUTOFIX] ?? EMPTY_STAT_TOTAL
+                  }
+                  subscription={subscription}
+                />
+              )}
+              {category !== DataCategory.SEER_SCANNER && (
+                <UsageTotalsTable
+                  key={DataCategory.SEER_SCANNER}
+                  category={DataCategory.SEER_SCANNER}
+                  totals={
+                    allTotalsByCategory?.[DataCategory.SEER_SCANNER] ?? EMPTY_STAT_TOTAL
+                  }
+                  subscription={subscription}
+                />
+              )}
+            </Fragment>
+          )}
+
           {showEventBreakdown &&
             Object.entries(eventTotals).map(([key, eventTotal]) => {
               return (
@@ -956,6 +985,8 @@ const BaseRow = styled('div')`
 const SubText = styled('span')`
   color: ${p => p.theme.chartLabel};
   font-size: ${p => p.theme.fontSizeMedium};
+  padding: ${space(0.5)} 0;
+  display: block;
 `;
 
 const AcceptedSummary = styled('div')`

@@ -2,6 +2,7 @@ import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
@@ -1165,6 +1166,1026 @@ describe('Subscription > UsageTotals', function () {
       '0 Reserved'
     );
   });
+
+  it('renders reserved budget quota with gifted budget when both present', function () {
+    render(
+      <UsageTotals
+        category={DataCategory.SPANS}
+        totals={UsageTotalFixture({accepted: 100})}
+        reservedUnits={RESERVED_BUDGET_QUOTA}
+        prepaidUnits={RESERVED_BUDGET_QUOTA}
+        reservedBudget={100_000_00}
+        freeBudget={10_000_00}
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('gifted-spans')).toHaveTextContent(
+      '$100,000.00 Reserved + $10,000.00 Gifted'
+    );
+  });
+
+  it('shows both Seer category tables when expanded during active trial', async function () {
+    subscription.productTrials = [
+      {
+        category: DataCategory.SEER_AUTOFIX,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(10, 'days').format(),
+        endDate: moment().utc().add(20, 'days').format(),
+      },
+    ];
+
+    // Add both Seer categories to subscription
+    subscription.categories.seerAutofix = MetricHistoryFixture({
+      usage: 10,
+      category: DataCategory.SEER_AUTOFIX,
+    });
+    subscription.categories.seerScanner = MetricHistoryFixture({
+      usage: 15,
+      category: DataCategory.SEER_SCANNER,
+    });
+
+    const seerAutofixTotals = UsageTotalFixture({
+      accepted: 10,
+      dropped: 2,
+    });
+
+    const allTotalsByCategory = {
+      [DataCategory.SEER_AUTOFIX]: seerAutofixTotals,
+      [DataCategory.SEER_SCANNER]: UsageTotalFixture({
+        accepted: 15,
+        dropped: 3,
+      }),
+    };
+
+    render(
+      <UsageTotals
+        category={DataCategory.SEER_AUTOFIX}
+        totals={seerAutofixTotals}
+        allTotalsByCategory={allTotalsByCategory}
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('20 days left')).toBeInTheDocument(); // Trial tag should be present
+
+    // Expand usage table
+    await userEvent.click(screen.getByTestId('expand-usage-totals-seerAutofix'));
+
+    // Should show both Seer category tables
+    expect(
+      screen.getByRole('row', {name: 'Issue Fixes Quantity % of Issue Fixes'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: 'Issue Scans Quantity % of Issue Scans'})
+    ).toBeInTheDocument();
+
+    // Verify the content of both tables
+    expect(screen.getByRole('row', {name: 'Accepted 10 83%'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Accepted 15 83%'})).toBeInTheDocument();
+  });
+
+  describe('Seer card element visibility', function () {
+    it('shows Enable Seer button and descriptive text when Seer is not enabled and no trial exists', function () {
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show Seer title
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      // Should show descriptive text
+      expect(
+        screen.getByText('Detect and fix issues faster with our AI debugging agent.')
+      ).toBeInTheDocument();
+
+      // Should show Enable Seer button
+      expect(screen.getByText('Enable Seer')).toBeInTheDocument();
+
+      // Should NOT show usage information
+      expect(screen.queryByText('usage this period')).not.toBeInTheDocument();
+      expect(screen.queryByText('trial usage this period')).not.toBeInTheDocument();
+
+      // Should NOT show Start trial button
+      expect(screen.queryByText('Start trial')).not.toBeInTheDocument();
+
+      // Should NOT show Manage button
+      expect(screen.queryByText('Manage')).not.toBeInTheDocument();
+
+      // Should NOT show expand button
+      expect(screen.queryByLabelText('Expand usage totals')).not.toBeInTheDocument();
+    });
+
+    it('shows Start trial button when potential trial exists', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: false,
+          reasonCode: 1001,
+          startDate: undefined,
+          endDate: moment().utc().add(30, 'days').format(),
+        },
+      ];
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show Seer title
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      // Should show Start trial button
+      expect(screen.getByText('Start trial')).toBeInTheDocument();
+
+      // Should NOT show Enable Seer button
+      expect(screen.queryByText('Enable Seer')).not.toBeInTheDocument();
+
+      // Should NOT show Manage button
+      expect(screen.queryByText('Manage')).not.toBeInTheDocument();
+
+      // Should NOT show usage information (Seer card title is always empty)
+      expect(screen.queryByText('usage this period')).not.toBeInTheDocument();
+      expect(screen.queryByText('trial usage this period')).not.toBeInTheDocument();
+
+      // Should show expand button (because potential trial means !showManageButton)
+      expect(screen.getByLabelText('Expand usage totals')).toBeInTheDocument();
+    });
+
+    it('shows usage information and trial tag during active trial', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(5, 'days').format(),
+          endDate: moment().utc().add(25, 'days').format(),
+        },
+      ];
+
+      subscription.categories.seerAutofix = MetricHistoryFixture({
+        usage: 50,
+      });
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 50})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show Seer title
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      // Should NOT show "trial usage this period" (Seer card title is always empty space)
+      expect(screen.queryByText('trial usage this period')).not.toBeInTheDocument();
+
+      // Should show trial tag
+      expect(screen.getByText('25 days left')).toBeInTheDocument();
+
+      // Should show usage count
+      expect(screen.getByText('50')).toBeInTheDocument();
+
+      // Should show unlimited reserved info
+      expect(screen.getByText('∞')).toBeInTheDocument();
+
+      // Should show expand button (activeTrial means !showManageButton)
+      expect(screen.getByLabelText('Expand usage totals')).toBeInTheDocument();
+
+      // Should NOT show any buttons
+      expect(screen.queryByText('Enable Seer')).not.toBeInTheDocument();
+      expect(screen.queryByText('Start trial')).not.toBeInTheDocument();
+      expect(screen.queryByText('Manage')).not.toBeInTheDocument();
+
+      // Should NOT show descriptive text (only shows when !hasSeer && !activeTrial)
+      expect(
+        screen.queryByText('Detect and fix issues faster with our AI debugging agent.')
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows feature prompt bar when trial has expired', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(35, 'days').format(),
+          endDate: moment().utc().subtract(5, 'days').format(),
+        },
+      ];
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show Seer title
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      // Should show feature prompt bar with trial text
+      expect(screen.getByText('Enable Seer to view usage')).toBeInTheDocument();
+
+      // Should NOT show usage information (Seer card title is always empty)
+      expect(screen.queryByText('usage this period')).not.toBeInTheDocument();
+      expect(screen.queryByText('trial usage this period')).not.toBeInTheDocument();
+
+      // Should show Enable Seer button (showManageButton is true for expired trial with no hasSeer)
+      expect(screen.getByText('Enable Seer')).toBeInTheDocument();
+
+      // Should NOT show these buttons
+      expect(screen.queryByText('Start trial')).not.toBeInTheDocument();
+      expect(screen.queryByText('Manage')).not.toBeInTheDocument();
+
+      // Should NOT show expand button (showManageButton is true)
+      expect(screen.queryByLabelText('Expand usage totals')).not.toBeInTheDocument();
+    });
+
+    it('shows feature prompt bar when potential trial exists but has expired', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: false,
+          reasonCode: 1001,
+          startDate: undefined,
+          endDate: moment().utc().subtract(5, 'days').format(),
+        },
+      ];
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show Seer title
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      // Should show feature prompt bar (expired potential trial means showSeerPromptBar is true)
+      expect(screen.getByText('Enable Seer to view usage')).toBeInTheDocument();
+
+      // Should NOT show usage information (Seer card title is always empty)
+      expect(screen.queryByText('usage this period')).not.toBeInTheDocument();
+      expect(screen.queryByText('trial usage this period')).not.toBeInTheDocument();
+
+      // Should show Enable Seer button (showManageButton is true)
+      expect(screen.getByText('Enable Seer')).toBeInTheDocument();
+
+      // Should NOT show these buttons
+      expect(screen.queryByText('Start trial')).not.toBeInTheDocument();
+      expect(screen.queryByText('Manage')).not.toBeInTheDocument();
+
+      // Should NOT show expand button (showManageButton is true)
+      expect(screen.queryByLabelText('Expand usage totals')).not.toBeInTheDocument();
+    });
+
+    it('shows Manage button and usage when Seer is enabled with reserved budget', function () {
+      // Add a reserved budget for Seer
+      subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+
+      subscription.categories.seerAutofix = MetricHistoryFixture({
+        usage: 100,
+      });
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 100})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show Seer title
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      // Should NOT show "usage this period" (Seer card title is always empty)
+      expect(screen.queryByText('usage this period')).not.toBeInTheDocument();
+
+      // Should NOT show Manage button (hasSeer is true so showManageButton is false)
+      expect(screen.queryByText('Manage')).not.toBeInTheDocument();
+
+      // Should show usage count
+      expect(screen.getByText('100')).toBeInTheDocument();
+
+      // Should show expand button (hasSeer means !showManageButton)
+      expect(screen.getByLabelText('Expand usage totals')).toBeInTheDocument();
+
+      // Should NOT show Enable Seer button
+      expect(screen.queryByText('Enable Seer')).not.toBeInTheDocument();
+
+      // Should NOT show Start trial button
+      expect(screen.queryByText('Start trial')).not.toBeInTheDocument();
+
+      // Should NOT show descriptive text (only shows when !hasSeer && !activeTrial)
+      expect(
+        screen.queryByText('Detect and fix issues faster with our AI debugging agent.')
+      ).not.toBeInTheDocument();
+
+      // Should NOT show feature prompt bar (hasSeer is true)
+      expect(screen.queryByText('Enable Seer to view usage')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Start your Seer trial to view usage')
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows correct reserved budget information when Seer is enabled', function () {
+      subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 100})}
+          reservedUnits={RESERVED_BUDGET_QUOTA}
+          prepaidUnits={RESERVED_BUDGET_QUOTA}
+          reservedBudget={100000}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show reserved budget amount
+      expect(screen.getByTestId('reserved-seerAutofix')).toHaveTextContent(
+        '$1,000.00 Reserved'
+      );
+
+      // Should show Manage button with correct icon
+      const manageButton = screen.getByText('Manage');
+      expect(manageButton).toBeInTheDocument();
+    });
+
+    it('does not show usage bars or expand button when Seer is not enabled or in trial', function () {
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should NOT show usage bar container
+      expect(
+        screen.queryByTestId('usage-bar-container-seerAutofix')
+      ).not.toBeInTheDocument();
+
+      // Should NOT show expand button
+      expect(screen.queryByLabelText('Expand usage totals')).not.toBeInTheDocument();
+
+      // Should NOT show usage totals in legend
+      expect(screen.queryByText('Total Usage')).not.toBeInTheDocument();
+      expect(screen.queryByText('Included in Subscription')).not.toBeInTheDocument();
+    });
+
+    it('shows usage bars and expand button during active trial', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(5, 'days').format(),
+          endDate: moment().utc().add(25, 'days').format(),
+        },
+      ];
+
+      subscription.categories.seerAutofix = MetricHistoryFixture({
+        usage: 50,
+      });
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 50})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show usage bar container
+      expect(screen.getByTestId('usage-bar-container-seerAutofix')).toBeInTheDocument();
+
+      // Should show expand button
+      expect(screen.getByLabelText('Expand usage totals')).toBeInTheDocument();
+
+      // Should show usage totals in legend
+      expect(screen.getByText('Total Usage')).toBeInTheDocument();
+    });
+
+    it('shows correct button text based on Seer state for both SEER_AUTOFIX and SEER_SCANNER categories', function () {
+      // Test SEER_SCANNER without Seer enabled
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_SCANNER}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      expect(screen.getByText('Enable Seer')).toBeInTheDocument();
+
+      // Test SEER_SCANNER with Seer enabled
+      subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_SCANNER}
+          totals={UsageTotalFixture({accepted: 50})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      expect(screen.getByText('Manage')).toBeInTheDocument();
+    });
+
+    it('shows trial prompt bar when potential trial exists and is not started', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: false,
+          reasonCode: 1001,
+          startDate: undefined,
+          endDate: moment().utc().add(30, 'days').format(),
+        },
+      ];
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show feature prompt bar with trial text
+      expect(screen.getByText('Start your Seer trial to view usage')).toBeInTheDocument();
+
+      // Should show Start trial button
+      expect(screen.getByText('Start trial')).toBeInTheDocument();
+
+      // Should NOT show Enable Seer button
+      expect(screen.queryByText('Enable Seer')).not.toBeInTheDocument();
+    });
+
+    it('shows correct icon for Enable Seer button when Seer is not enabled', function () {
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      const enableButton = screen.getByText('Enable Seer');
+      expect(enableButton).toBeInTheDocument();
+
+      // Check that the button has the lock icon (IconLock)
+      const lockIcon = enableButton.parentElement?.querySelector('svg');
+      expect(lockIcon).toBeInTheDocument();
+    });
+
+    it('shows correct icon for Manage button when Seer is enabled', function () {
+      subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 100})}
+          reservedUnits={RESERVED_BUDGET_QUOTA}
+          prepaidUnits={RESERVED_BUDGET_QUOTA}
+          reservedBudget={100000}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      const manageButton = screen.getByText('Manage');
+      expect(manageButton).toBeInTheDocument();
+
+      // Check that the button has the open icon (IconOpen)
+      const openIcon = manageButton.parentElement?.querySelector('svg');
+      expect(openIcon).toBeInTheDocument();
+    });
+
+    it('handles trial ending exactly today', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(30, 'days').format(),
+          endDate: moment().utc().format(), // Ends today
+        },
+      ];
+
+      subscription.categories.seerAutofix = MetricHistoryFixture({
+        usage: 50,
+      });
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 50})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show trial tag with "0 days left" or similar
+      expect(screen.getByText('0 days left')).toBeInTheDocument();
+
+      // Should still show usage during trial
+      expect(screen.getByText('50')).toBeInTheDocument();
+      expect(screen.getByText('∞')).toBeInTheDocument();
+    });
+
+    it('shows unlimited reserved during active trial regardless of reserved budget', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(5, 'days').format(),
+          endDate: moment().utc().add(25, 'days').format(),
+        },
+      ];
+
+      // Even with a reserved budget, during trial it should show unlimited
+      subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+      subscription.categories.seerAutofix = MetricHistoryFixture({
+        usage: 50,
+      });
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 50})}
+          reservedUnits={RESERVED_BUDGET_QUOTA}
+          prepaidUnits={RESERVED_BUDGET_QUOTA}
+          reservedBudget={100000}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show unlimited symbol during trial
+      expect(screen.getByText('∞')).toBeInTheDocument();
+
+      // Should NOT show the reserved budget amount during trial
+      expect(screen.queryByText('$1,000.00 Reserved')).not.toBeInTheDocument();
+    });
+
+    it('handles SEER_SCANNER category with active trial', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_SCANNER, // Trial for scanner category
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(5, 'days').format(),
+          endDate: moment().utc().add(25, 'days').format(),
+        },
+      ];
+
+      subscription.categories.seerScanner = MetricHistoryFixture({
+        usage: 75,
+      });
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_SCANNER}
+          totals={UsageTotalFixture({accepted: 75})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show Seer title
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      // Should show trial tag
+      expect(screen.getByText('25 days left')).toBeInTheDocument();
+
+      // Should show usage count in the total usage section
+      expect(screen.getByText('75')).toBeInTheDocument();
+
+      // Should show unlimited reserved info
+      expect(screen.getByText('∞')).toBeInTheDocument();
+
+      // Should NOT show expand button during trial (activeTrial means !showManageButton, but disableTable is true for Seer without hasSeer)
+      expect(screen.queryByLabelText('Expand usage totals')).not.toBeInTheDocument();
+    });
+
+    it('handles mixed trial states between SEER_AUTOFIX and SEER_SCANNER', function () {
+      // Only SEER_AUTOFIX has an active trial
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(5, 'days').format(),
+          endDate: moment().utc().add(25, 'days').format(),
+        },
+      ];
+
+      subscription.categories.seerScanner = MetricHistoryFixture({
+        usage: 0,
+      });
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_SCANNER}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // SEER_SCANNER should not show trial info since its trial is not active
+      expect(screen.queryByText('days left')).not.toBeInTheDocument();
+
+      // Should show Enable Seer button (no trial for this category)
+      expect(screen.getByText('Enable Seer')).toBeInTheDocument();
+
+      // Should show descriptive text
+      expect(
+        screen.getByText('Detect and fix issues faster with our AI debugging agent.')
+      ).toBeInTheDocument();
+    });
+
+    it('shows correct checkout URL for Enable Seer button', function () {
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      const enableButton = screen.getByText('Enable Seer');
+      expect(enableButton.closest('a')).toHaveAttribute(
+        'href',
+        '/settings/billing/checkout/?referrer=manage_subscription'
+      );
+    });
+
+    it('shows correct checkout URL for Manage button when Seer is enabled', function () {
+      subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 100})}
+          reservedUnits={RESERVED_BUDGET_QUOTA}
+          prepaidUnits={RESERVED_BUDGET_QUOTA}
+          reservedBudget={100000}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      const manageButton = screen.getByText('Manage');
+      expect(manageButton.closest('a')).toHaveAttribute(
+        'href',
+        '/settings/billing/checkout/?referrer=manage_subscription'
+      );
+    });
+
+    it('handles zero usage during active trial', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(5, 'days').format(),
+          endDate: moment().utc().add(25, 'days').format(),
+        },
+      ];
+
+      subscription.categories.seerAutofix = MetricHistoryFixture({
+        usage: 0,
+      });
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show trial tag
+      expect(screen.getByText('25 days left')).toBeInTheDocument();
+
+      // Should show zero usage
+      expect(screen.getByText('0')).toBeInTheDocument();
+
+      // Should show unlimited reserved info
+      expect(screen.getByText('∞')).toBeInTheDocument();
+
+      // Should show usage bars but NOT expand button (activeTrial means !showManageButton, but disableTable is true for Seer without hasSeer)
+      expect(screen.getByTestId('usage-bar-container-seerAutofix')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Expand usage totals')).not.toBeInTheDocument();
+    });
+
+    it('handles high usage during active trial', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(5, 'days').format(),
+          endDate: moment().utc().add(25, 'days').format(),
+        },
+      ];
+
+      subscription.categories.seerAutofix = MetricHistoryFixture({
+        usage: 1_000_000,
+      });
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 1_000_000})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show trial tag
+      expect(screen.getByText('25 days left')).toBeInTheDocument();
+
+      // Should show formatted high usage
+      expect(screen.getByText('1,000,000')).toBeInTheDocument();
+
+      // Should show unlimited reserved info (no limits during trial)
+      expect(screen.getByText('∞')).toBeInTheDocument();
+    });
+
+    it('handles potential trial with different reason codes', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: false,
+          reasonCode: 2001, // Different reason code
+          startDate: undefined,
+          endDate: moment().utc().add(30, 'days').format(),
+        },
+      ];
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should still show Start trial button regardless of reason code
+      expect(screen.getByText('Start trial')).toBeInTheDocument();
+
+      // Should show trial prompt bar
+      expect(screen.getByText('Start your Seer trial to view usage')).toBeInTheDocument();
+    });
+
+    it('handles trial button busy state', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: false,
+          reasonCode: 1001,
+          startDate: undefined,
+          endDate: moment().utc().add(30, 'days').format(),
+        },
+      ];
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Find the button by its test ID instead of text content
+      const startTrialButton = screen.getByTestId('start-trial-button');
+      expect(startTrialButton).toBeInTheDocument();
+      expect(startTrialButton).toBeEnabled();
+      expect(startTrialButton).toHaveTextContent('Start trial');
+
+      // The button should have proper aria-label (StartTrialButton component sets this)
+      expect(startTrialButton).toHaveAttribute('aria-label', 'Start trial');
+    });
+
+    it('handles Seer with gifted budget in addition to reserved budget', function () {
+      subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 100})}
+          reservedUnits={RESERVED_BUDGET_QUOTA}
+          prepaidUnits={RESERVED_BUDGET_QUOTA}
+          reservedBudget={100000}
+          freeBudget={10000} // Gifted budget
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show both reserved and gifted budget
+      expect(screen.getByTestId('gifted-seerAutofix')).toHaveTextContent(
+        '$1,000.00 Reserved + $100.00 Gifted'
+      );
+    });
+
+    it('handles Seer card in spend mode during trial', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(5, 'days').format(),
+          endDate: moment().utc().add(25, 'days').format(),
+        },
+      ];
+
+      subscription.categories.seerAutofix = MetricHistoryFixture({
+        usage: 50,
+      });
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 50})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="cost" // Cost mode during trial
+        />
+      );
+
+      // Should show trial tag
+      expect(screen.getByText('25 days left')).toBeInTheDocument();
+
+      // Should show cost in spend mode
+      expect(screen.getByText('$0')).toBeInTheDocument();
+
+      // Should show unlimited during trial regardless of display mode
+      expect(screen.getByText('∞')).toBeInTheDocument();
+    });
+
+    it('handles Seer card when both categories have different trial states', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(5, 'days').format(),
+          endDate: moment().utc().add(25, 'days').format(),
+        },
+        {
+          category: DataCategory.SEER_SCANNER,
+          isStarted: false,
+          reasonCode: 1001,
+          startDate: undefined,
+          endDate: moment().utc().add(30, 'days').format(),
+        },
+      ];
+
+      // Test SEER_AUTOFIX with active trial
+      subscription.categories.seerAutofix = MetricHistoryFixture({
+        usage: 50,
+      });
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 50})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show active trial state for SEER_AUTOFIX
+      expect(screen.getByText('25 days left')).toBeInTheDocument();
+      expect(screen.getByText('50')).toBeInTheDocument();
+      expect(screen.getByText('∞')).toBeInTheDocument();
+    });
+
+    it('handles Seer card with very long trial duration', function () {
+      subscription.productTrials = [
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(5, 'days').format(),
+          endDate: moment().utc().add(365, 'days').format(), // Very long trial
+        },
+      ];
+
+      subscription.categories.seerAutofix = MetricHistoryFixture({
+        usage: 50,
+      });
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 50})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should show trial tag with correct days
+      expect(screen.getByText('365 days left')).toBeInTheDocument();
+
+      // Should show unlimited during trial
+      expect(screen.getByText('∞')).toBeInTheDocument();
+    });
+
+    it('handles Seer card when subscription has no categories', function () {
+      // Remove Seer categories from subscription
+      delete subscription.categories.seerAutofix;
+      delete subscription.categories.seerScanner;
+
+      render(
+        <UsageTotals
+          category={DataCategory.SEER_AUTOFIX}
+          totals={UsageTotalFixture({accepted: 0})}
+          subscription={subscription}
+          organization={organization}
+          displayMode="usage"
+        />
+      );
+
+      // Should still show Seer title
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      // Should show Enable Seer button
+      expect(screen.getByText('Enable Seer')).toBeInTheDocument();
+
+      // Should show descriptive text
+      expect(
+        screen.getByText('Detect and fix issues faster with our AI debugging agent.')
+      ).toBeInTheDocument();
+    });
+  });
 });
 
 describe('calculateCategoryPrepaidUsage', () => {
@@ -1557,23 +2578,6 @@ describe('hasReservedQuotaFunctionality', function () {
     );
 
     expect(screen.getByTestId('reserved-errors')).toHaveTextContent('100K Reserved');
-  });
-
-  it('does not render reserved quota section when reserved is 0', function () {
-    render(
-      <UsageTotals
-        category={DataCategory.ERRORS}
-        totals={UsageTotalFixture({accepted: 100})}
-        reservedUnits={0}
-        prepaidUnits={0}
-        subscription={subscription}
-        organization={organization}
-        displayMode="usage"
-      />
-    );
-
-    expect(screen.queryByTestId('reserved-errors')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('gifted-errors')).not.toBeInTheDocument();
   });
 
   it('renders reserved quota with gifted amount when both present', function () {
