@@ -116,31 +116,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 )
         return query
 
-    def validate_aggregate(self, value: str):
-        allow_mri = features.has(
-            "organizations:custom-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ) or features.has(
-            "organizations:insights-alerts",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        )
-        allow_eap = self.data.get("dataset") == Dataset.EventsAnalyticsPlatform.value
-        try:
-            if not check_aggregate_column_support(
-                value,
-                allow_mri=allow_mri,
-                allow_eap=allow_eap,
-            ):
-                raise serializers.ValidationError(
-                    "Invalid Metric: We do not currently support this field."
-                )
-        except InvalidSearchQuery as e:
-            raise serializers.ValidationError(f"Invalid Metric: {e}")
-
-        return translate_aggregate_field(value, allow_mri=allow_mri, allow_eap=allow_eap)
-
     def validate_event_types(self, value: Sequence[str]) -> list[SnubaQueryEventType.EventType]:
         try:
             return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in value]
@@ -153,6 +128,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     def validate(self, data):
         data = super().validate(data)
         self._validate_query(data)
+        self._validate_aggregate(data)
 
         query_type = data["query_type"]
         if query_type == SnubaQuery.Type.CRASH_RATE:
@@ -167,6 +143,35 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             )
 
         return data
+
+    def _validate_aggregate(self, data):
+        dataset = data.setdefault("dataset", Dataset.Events.value)
+        aggregate = data.get("aggregate")
+        allow_mri = features.has(
+            "organizations:custom-metrics",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ) or features.has(
+            "organizations:insights-alerts",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        )
+        allow_eap = dataset == Dataset.EventsAnalyticsPlatform.value
+        try:
+            if not check_aggregate_column_support(
+                aggregate,
+                allow_mri=allow_mri,
+                allow_eap=allow_eap,
+            ):
+                raise serializers.ValidationError(
+                    "Invalid Metric: We do not currently support this field."
+                )
+        except InvalidSearchQuery as e:
+            raise serializers.ValidationError(f"Invalid Metric: {e}")
+
+        data["aggregate"] = translate_aggregate_field(
+            aggregate, allow_mri=allow_mri, allow_eap=allow_eap
+        )
 
     def _validate_query(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
