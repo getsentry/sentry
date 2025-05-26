@@ -1193,7 +1193,7 @@ export const modalCss = css`
 `;
 
 export const backdropCss = css`
-  z-index: 9998 !important;
+  z-index: 9998;
 `;
 
 const Container = styled('div')<{height?: number | null}>`
