@@ -952,6 +952,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     tempestFetchScreenshots: NotRequired[bool]
     tempestFetchDumps: NotRequired[bool]
     autofixAutomationTuning: NotRequired[str]
+    transactionNameClusteringDisabled: NotRequired[bool]
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1110,6 +1111,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "sentry:tempest_fetch_screenshots", False
             )
             data["tempestFetchDumps"] = attrs["options"].get("sentry:tempest_fetch_dumps", False)
+
+        if features.has("organizations:disable-clustering-setting", obj.organization, actor=user):
+            data["transactionNameClusteringDisabled"] = attrs["options"].get(
+                "performance:transaction-name-clustering-disabled", False
+            )
 
         return data
 

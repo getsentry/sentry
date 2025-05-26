@@ -1974,3 +1974,22 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             )
             assert self.project.get_option("sentry:autofix_automation_tuning") == "off"
             assert resp.data["autofixAutomationTuning"] == "off"
+
+    def test_transaction_name_clustering_disabled(self):
+        # test without feature flag - should be ignored
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, transactionNameClusteringDisabled=True
+        )
+        assert "disable-clustering-setting feature enabled" not in resp.data
+        assert self.project.get_option("performance:transaction-name-clustering-disabled") is False
+
+        # test with feature flag - should be updated
+        with self.feature("organizations:disable-clustering-setting"):
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, transactionNameClusteringDisabled=True
+            )
+            assert (
+                self.project.get_option("performance:transaction-name-clustering-disabled") is True
+            )
+            assert "transactionNameClusteringDisabled" in resp.data
+            assert resp.data["transactionNameClusteringDisabled"] is True
