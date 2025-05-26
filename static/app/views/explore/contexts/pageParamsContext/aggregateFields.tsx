@@ -39,6 +39,7 @@ export function isVisualize(value: GroupBy | Visualize): value is Visualize {
   return 'yAxes' in value && Array.isArray(value.yAxes);
 }
 
+export type BaseAggregateField = GroupBy | BaseVisualize;
 export type AggregateField = GroupBy | Visualize;
 
 export function defaultAggregateFields(): AggregateField[] {

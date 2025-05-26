@@ -5,7 +5,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
@@ -59,19 +58,6 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_INDEXED,
     referrer
   );
-};
-
-export const useOurlogs = <Fields extends OurLogFieldKey[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const {data, ...rest} = useDiscover<Fields, OurLogsResponseItem>(
-    options,
-    DiscoverDatasets.OURLOGS,
-    referrer
-  );
-  const castData = data as OurLogsResponseItem[];
-  return {...rest, data: castData};
 };
 
 export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
@@ -181,7 +167,7 @@ export const useDiscover = <
   };
 };
 
-function getEventView(
+export function getEventView(
   search: MutableSearch | string | undefined,
   fields: string[] = [],
   sorts: Sort[] = [],
