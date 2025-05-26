@@ -7,6 +7,7 @@ import {defined} from 'sentry/utils';
 import {domId} from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
+import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
@@ -311,7 +312,9 @@ export default class ReplayReader {
   private _videoEvents: VideoEvent[] = [];
   private _clipWindow: ClipWindow | undefined = undefined;
   private _errorBeforeReplayStart = false;
-  private _replayerQuery: ReturnType<typeof replayerDomQuery> | undefined = undefined;
+  private _replayerQuery: ReturnType<
+    typeof replayerDomQuery<ReplayFrame | RecordingFrame, Extraction>
+  > | null = null;
 
   private _applyClipWindow = (clipWindow: ClipWindow, eventTimestampMs?: number) => {
     let clipStartTimestampMs: number;
@@ -458,11 +461,11 @@ export default class ReplayReader {
     return this._replayerQuery;
   };
 
-  getDomNodesForFrame = ({frame}: {frame: ReplayFrame}) => {
+  getDomNodesForFrame = ({frame}: {frame: ReplayFrame}): Extraction | null => {
     if (this._fetching) {
       return null;
     }
-    return this.domQuery()?.getResult(frame);
+    return this.domQuery()?.getResult(frame) ?? null;
   };
 
   getClipWindow = () => this._clipWindow;

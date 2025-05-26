@@ -26,9 +26,9 @@ export function replayerDomQuery<
   const {replayer} = createHiddenPlayer(rrwebEvents);
 
   return {
-    getResult: (frame: Frame) => {
+    getResult: (frame: Frame): CollectionData | null => {
       if (collection.has(frame)) {
-        return collection.get(frame);
+        return collection.get(frame) ?? null;
       }
 
       // Fetch result
@@ -36,7 +36,7 @@ export function replayerDomQuery<
         'offsetMs' in frame ? frame.offsetMs : frame.timestamp - startTimestampMs;
       replayer.pause(timestamp);
       onVisitFrame(frame, collection, replayer);
-      return collection.get(frame);
+      return collection.get(frame) ?? null;
     },
   };
 }
