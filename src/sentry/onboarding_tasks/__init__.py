@@ -20,3 +20,4 @@ if TYPE_CHECKING:
     complete_onboarding_task = __onboarding_task_backend.complete_onboarding_task
     has_completed_onboarding_task = __onboarding_task_backend.has_completed_onboarding_task
     try_mark_onboarding_complete = __onboarding_task_backend.try_mark_onboarding_complete
+    transfer_onboarding_tasks = __onboarding_task_backend.transfer_onboarding_tasks

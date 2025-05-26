@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.forms import model_to_dict
 from django.utils import timezone
 
 from sentry import analytics
@@ -109,3 +110,27 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
                 )
             except IntegrityError:
                 pass
+
+    def transfer_onboarding_tasks(
+        self,
+        from_organization_id: Organization,
+        to_organization_id: Organization,
+        project: Project | None = None,
+    ):
+        # get a list of task IDs that already exist in the new organization
+        existing_tasks_in_new_org = OrganizationOnboardingTask.objects.filter(
+            organization_id=to_organization_id
+        ).values_list("task", flat=True)
+
+        # get a list of tasks to transfer from the old organization
+        tasks_to_transfer = OrganizationOnboardingTask.objects.filter(
+            organization=from_organization_id,
+            task__in=OrganizationOnboardingTask.TRANSFERABLE_TASKS,
+        ).exclude(task__in=existing_tasks_in_new_org)
+
+        for task_to_transfer in tasks_to_transfer:
+            task_dict = model_to_dict(task_to_transfer, exclude=["id", "organization", "project"])
+            new_task = OrganizationOnboardingTask(
+                **task_dict, organization_id=to_organization_id, project=project
+            )
+            new_task.save()
