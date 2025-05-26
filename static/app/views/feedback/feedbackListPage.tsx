@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -74,31 +75,35 @@ export default function FeedbackListPage() {
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>
-              <LayoutGrid data-banner={showWhatsNewBanner}>
-                {showWidgetBanner ? (
-                  <FeedbackWidgetBanner style={{gridArea: 'banner'}} />
-                ) : showWhatsNewBanner ? (
-                  <FeedbackWhatsNewBanner style={{gridArea: 'banner'}} />
-                ) : null}
-                <FeedbackFilters style={{gridArea: 'filters'}} />
-                {hasSetupOneFeedback || hasSlug ? (
-                  <Fragment>
-                    <Container style={{gridArea: 'list'}}>
-                      <FeedbackList />
-                    </Container>
-                    <SearchContainer>
-                      <FeedbackSearch />
-                    </SearchContainer>
-                    <Container style={{gridArea: 'details'}}>
-                      <FeedbackItemLoader />
-                    </Container>
-                  </Fragment>
-                ) : (
-                  <SetupContainer>
-                    <FeedbackSetupPanel />
-                  </SetupContainer>
-                )}
-              </LayoutGrid>
+              <Background>
+                <Flex column gap={space(2)} align="stretch" w="100%">
+                  {showWidgetBanner ? (
+                    <FeedbackWidgetBanner />
+                  ) : showWhatsNewBanner ? (
+                    <FeedbackWhatsNewBanner />
+                  ) : null}
+                  <LayoutGrid>
+                    <FeedbackFilters style={{gridArea: 'filters'}} />
+                    {hasSetupOneFeedback || hasSlug ? (
+                      <Fragment>
+                        <Container style={{gridArea: 'list'}}>
+                          <FeedbackList />
+                        </Container>
+                        <SearchContainer>
+                          <FeedbackSearch />
+                        </SearchContainer>
+                        <Container style={{gridArea: 'details'}}>
+                          <FeedbackItemLoader />
+                        </Container>
+                      </Fragment>
+                    ) : (
+                      <SetupContainer>
+                        <FeedbackSetupPanel />
+                      </SetupContainer>
+                    )}
+                  </LayoutGrid>
+                </Flex>
+              </Background>
             </ErrorBoundary>
           </PageFiltersContainer>
         </FeedbackQueryKeys>
@@ -107,10 +112,28 @@ export default function FeedbackListPage() {
   );
 }
 
-const LayoutGrid = styled('div')`
+const Background = styled('div')`
   background: ${p => p.theme.background};
   overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
 
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(2)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(2)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    padding: ${space(2)} ${space(4)};
+  }
+`;
+
+const LayoutGrid = styled('div')`
+  overflow: hidden;
   flex-grow: 1;
 
   display: grid;
@@ -122,42 +145,23 @@ const LayoutGrid = styled('div')`
     'filters search'
     'list details';
 
-  &[data-banner='true'] {
-    grid-template-rows: max-content max-content 1fr;
-    grid-template-areas:
-      'banner banner'
-      'filters search'
-      'list details';
-  }
-
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)};
     grid-template-columns: 1fr;
     grid-template-areas:
       'filters'
       'search'
       'list'
       'details';
-
-    &[data-banner='true'] {
-      grid-template-areas:
-        'banner'
-        'filters'
-        'search'
-        'list'
-        'details';
-    }
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)};
     grid-template-columns: minmax(1fr, 195px) 1fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding: ${space(2)} ${space(4)} ${space(2)} ${space(4)};
     grid-template-columns: 390px 1fr;
   }
+
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }
