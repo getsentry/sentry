@@ -59,6 +59,10 @@ const PREDEFINED_FIELDS = {
 // "environment" is excluded because it should be handled by the environment page filter
 const EXCLUDED_TAGS = ['environment'];
 
+const SEARCHABLE_ISSUE_CATEGORIES = VALID_ISSUE_CATEGORIES_V2.filter(
+  category => category !== IssueCategory.FEEDBACK
+);
+
 /**
  * Certain field keys may conflict with custom tags. In this case, the tag will be
  * renamed, e.g. `platform` -> `tags[platform]`
@@ -285,7 +289,7 @@ function builtInIssuesFields({
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
       values: organization.features.includes('issue-taxonomy')
-        ? VALID_ISSUE_CATEGORIES_V2.map(value => ({
+        ? SEARCHABLE_ISSUE_CATEGORIES.map(value => ({
             icon: null,
             title: value,
             name: value,
