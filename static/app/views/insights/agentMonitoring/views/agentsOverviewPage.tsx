@@ -14,8 +14,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmGenerationsWidget';
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
 import {ToolsTable} from 'sentry/views/insights/agentMonitoring/components/toolsTable';
+import ToolUsageWidget from 'sentry/views/insights/agentMonitoring/components/toolUsageWidget';
 import {TracesTable} from 'sentry/views/insights/agentMonitoring/components/tracesTable';
 import {
   TableType,
@@ -88,10 +90,10 @@ function AgentsMonitoringPage() {
                     <IssuesWidget />
                   </WidgetGrid.Position3>
                   <WidgetGrid.Position4>
-                    <PlaceholderWidget title="LLM Generations" />
+                    <LLMGenerationsWidget />
                   </WidgetGrid.Position4>
                   <WidgetGrid.Position5>
-                    <PlaceholderWidget title="Tool Usage" />
+                    <ToolUsageWidget />
                   </WidgetGrid.Position5>
                   <WidgetGrid.Position6>
                     <PlaceholderWidget title="Token Usage" />
