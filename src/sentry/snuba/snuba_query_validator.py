@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from snuba_sdk import Column, Condition, Entity, Limit, Op
 
@@ -127,8 +128,8 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     def validate(self, data):
         data = super().validate(data)
-        self._validate_query(data)
         self._validate_aggregate(data)
+        self._validate_query(data)
 
         query_type = data["query_type"]
         if query_type == SnubaQuery.Type.CRASH_RATE:
@@ -145,7 +146,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         return data
 
     def _validate_aggregate(self, data):
-        dataset = data.setdefault("dataset", Dataset.Events.value)
+        dataset = data.setdefault("dataset", Dataset.Events)
         aggregate = data.get("aggregate")
         allow_mri = features.has(
             "organizations:custom-metrics",
@@ -156,7 +157,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             self.context["organization"],
             actor=self.context.get("user", None),
         )
-        allow_eap = dataset == Dataset.EventsAnalyticsPlatform.value
+        allow_eap = dataset == Dataset.EventsAnalyticsPlatform
         try:
             if not check_aggregate_column_support(
                 aggregate,
@@ -164,10 +165,10 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 allow_eap=allow_eap,
             ):
                 raise serializers.ValidationError(
-                    "Invalid Metric: We do not currently support this field."
+                    {"aggregate": _("Invalid Metric: We do not currently support this field.")}
                 )
         except InvalidSearchQuery as e:
-            raise serializers.ValidationError(f"Invalid Metric: {e}")
+            raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
 
         data["aggregate"] = translate_aggregate_field(
             aggregate, allow_mri=allow_mri, allow_eap=allow_eap
@@ -188,7 +189,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             column = get_column_from_aggregate(
                 data["aggregate"],
                 allow_mri=True,
-                allow_eap=dataset == Dataset.EventsAnalyticsPlatform.value,
+                allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
             )
             if is_mri(column) and dataset != Dataset.PerformanceMetrics:
                 raise serializers.ValidationError(
