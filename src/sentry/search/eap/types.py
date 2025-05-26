@@ -24,6 +24,8 @@ class SearchResolverConfig:
     process_results: bool = True
     # If a field is private, it will only be available if it is in the `fields_acl`
     fields_acl: FieldsACL = field(default_factory=lambda: FieldsACL())
+    # If set to True, do not extrapolate any values regardless of individual aggregate settings
+    disable_aggregate_extrapolation: bool = False
     # Whether to set the timestamp granularities to stable buckets
     stable_timestamp_quantization: bool = True
 
