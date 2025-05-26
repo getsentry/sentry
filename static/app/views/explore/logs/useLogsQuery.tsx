@@ -154,7 +154,7 @@ export function useLogsQuery({
   const {queryKey, other} = useLogsQueryKey({limit, referrer: _referrer});
 
   const queryResult = useApiQuery<EventsLogsResult>(queryKey, {
-    enabled: !disabled && other.pageFiltersReady,
+    enabled: !disabled,
     staleTime: getStaleTimeForEventView(other.eventView),
     refetchOnWindowFocus: false,
     retry: false,
