@@ -60,7 +60,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   useRouteAnalyticsParams({autofix_status: autofixData?.status ?? 'none'});
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const userScrolledRef = useRef(false);
+  const userScrolledRef = useRef(true);
   const lastScrollTopRef = useRef(0);
   const autofixDataRef = useRef(autofixData);
 
@@ -137,6 +137,24 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               );
             }, 200);
           }
+        } else {
+          // No matching step found, scroll to bottom
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+          userScrolledRef.current = true;
+
+          // Clear the scrollTo parameter from the URL after scrolling
+          setTimeout(() => {
+            navigate(
+              {
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  scrollTo: undefined,
+                },
+              },
+              {replace: true}
+            );
+          }, 200);
         }
       }
     },
