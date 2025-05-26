@@ -59,6 +59,8 @@ import {TraceTreeNode} from './traceTreeNode';
 
 const {info, fmt} = Sentry.logger;
 
+const REPARENT_REASON_SSR = 'pageload server handler';
+
 /**
  *
  * This file implements the tree data structure that is used to represent a trace. We do
@@ -521,7 +523,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         //   // The swap can occur at a later point when new transactions are fetched,
         //   // which means we need to invalidate the tree and re-render the UI.
         const parent = c.parent.parent;
-        TraceTree.Swap({parent: c.parent, child: c, reason: 'pageload server handler'});
+        TraceTree.Swap({parent: c.parent, child: c, reason: REPARENT_REASON_SSR});
         TraceTree.invalidate(parent!, true);
       }
     });
@@ -665,6 +667,21 @@ export class TraceTree extends TraceTreeEventDispatcher {
           c.errors.add(error);
         }
       }
+
+      if (isBrowserRequestSpan(c.value)) {
+        const serverRequestHandler = c.parent?.children.find(n =>
+          isServerRequestHandlerTransactionNode(n)
+        );
+
+        // todo: add test to only reparent with ssr reason
+        if (serverRequestHandler?.reparent_reason === REPARENT_REASON_SSR) {
+          serverRequestHandler.parent!.children =
+            serverRequestHandler.parent!.children.filter(n => n !== serverRequestHandler);
+          c.children.push(serverRequestHandler);
+          serverRequestHandler.parent = c;
+        }
+      }
+
       c.children.sort(traceChronologicalSort);
     });
 
