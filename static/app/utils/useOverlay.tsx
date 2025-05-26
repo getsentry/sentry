@@ -1,4 +1,4 @@
-import {useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import type {Modifier} from '@popperjs/core';
@@ -91,6 +91,10 @@ export interface UseOverlayProps
    * Options to pass to the `arrow` modifier.
    */
   arrowOptions?: ArrowModifier['options'];
+  /**
+   * If true, disable overflow prevention settings
+   */
+  disableOverflowPrevention?: boolean;
   disableTrigger?: boolean;
   /**
    * Options to pass to the `flip` modifier.
@@ -140,6 +144,7 @@ function useOverlay({
   shouldCloseOnInteractOutside,
   onInteractOutside,
   disableTrigger,
+  disableOverflowPrevention = false,
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
@@ -205,7 +210,7 @@ function useOverlay({
       },
       {
         name: 'preventOverflow',
-        enabled: true,
+        enabled: !disableOverflowPrevention,
         options: {
           padding: 16,
           ...preventOverflowOptions,
@@ -236,6 +241,7 @@ function useOverlay({
       preventOverflowOptions,
       openState.isOpen,
       shouldApplyMinWidth,
+      disableOverflowPrevention,
     ]
   );
   const {
@@ -308,15 +314,6 @@ function useOverlay({
     },
     overlayRef
   );
-
-  // Force popper update when elements mount/update
-  useLayoutEffect(() => {
-    if (!openState.isOpen || !popperUpdate) {
-      return undefined;
-    }
-    popperUpdate();
-    return () => {};
-  }, [openState.isOpen, triggerElement, overlayElement, popperUpdate]);
 
   return {
     isOpen: openState.isOpen,

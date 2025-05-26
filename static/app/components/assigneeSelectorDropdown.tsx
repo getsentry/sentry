@@ -81,6 +81,10 @@ interface AssigneeSelectorDropdownProps {
    */
   createPortalOnDropdown?: boolean;
   /**
+   * If true, disable overflow prevention options
+   */
+  disableOverflowPrevention?: boolean;
+  /**
    * Optional list of members to populate the dropdown with.
    */
   memberList?: User[];
@@ -587,6 +591,7 @@ export default function AssigneeSelectorDropdown({
         sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
         createPortalOnDropdown={createPortalOnDropdown}
+        disableOverflowPrevention
       />
     </AssigneeWrapper>
   );

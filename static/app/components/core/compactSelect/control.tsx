@@ -118,6 +118,10 @@ export interface ControlProps
    */
   createPortalOnDropdown?: boolean;
   /**
+   * If true, places the dropdown in the document body instead.
+   */
+  disableOverflowPrevention?: boolean;
+  /**
    * Whether to disable the search input's filter function (applicable only when
    * `searchable` is true). This is useful for implementing custom search behaviors,
    * like fetching new options on search (via the onSearch() prop).
@@ -248,6 +252,7 @@ export function Control({
   menuFooter,
   onOpenChange,
   createPortalOnDropdown,
+  disableOverflowPrevention,
 
   // Select props
   size = 'md',
@@ -332,6 +337,7 @@ export function Control({
     shouldCloseOnInteractOutside,
     shouldCloseOnBlur,
     preventOverflowOptions,
+    disableOverflowPrevention,
     flipOptions,
     onOpenChange: open => {
       onOpenChange?.(open);
