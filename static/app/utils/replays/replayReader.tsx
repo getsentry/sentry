@@ -19,7 +19,7 @@ import {
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
-import {replayerDomQuery} from 'sentry/utils/replays/replayerStepper';
+import {replayerDomQuery} from 'sentry/utils/replays/replayerDomQuery';
 import type {
   BreadcrumbFrame,
   ClipWindow,
