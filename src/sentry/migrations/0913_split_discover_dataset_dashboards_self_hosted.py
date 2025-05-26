@@ -27,13 +27,13 @@ class DashboardWidgetTypes(TypesClass):
     """
     TRANSACTION_LIKE = 101
     """
-    This targets transaction-like data from the split from discover. Itt may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
+    This targets transaction-like data from the split from discover. It may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
     """
     SPANS = 102
+    LOGS = 103
     """
     These represent the logs trace item type on the EAP dataset.
     """
-    LOGS = 103
 
     TYPES = [
         (DISCOVER, "discover"),
