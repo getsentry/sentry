@@ -36,7 +36,7 @@ const getQueryString = (
   selectedPlatform: string | undefined
 ) => {
   const {query: locationQuery} = location;
-  const query = new MutableSearch(['transaction.op:ui.load']);
+  const query = new MutableSearch(['transaction.op:[ui.load,navigation]']);
 
   const searchQuery = decodeScalar(locationQuery.query, '');
 
