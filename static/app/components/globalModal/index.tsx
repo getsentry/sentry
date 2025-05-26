@@ -157,6 +157,7 @@ function GlobalModal({onClose}: Props) {
       preventScroll: true,
       escapeDeactivates: false,
       fallbackFocus: portal,
+      allowOutsideClick: true,
     });
     ModalStore.setFocusTrap(focusTrap.current);
   }, [portal]);
