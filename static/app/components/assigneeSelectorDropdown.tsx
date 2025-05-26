@@ -582,8 +582,6 @@ export default function AssigneeSelectorDropdown({
         sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
         strategy="fixed"
-        // disable overflow prevention
-        preventOverflowOptions={{mainAxis: false}}
       />
     </AssigneeWrapper>
   );

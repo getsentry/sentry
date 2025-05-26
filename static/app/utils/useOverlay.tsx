@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import type {Modifier} from '@popperjs/core';
@@ -318,6 +318,15 @@ function useOverlay({
     },
     overlayRef
   );
+
+  // Force popper update when elements mount/update
+  useEffect(() => {
+    if (!openState.isOpen || !popperUpdate) {
+      return undefined;
+    }
+    const updatePopper = requestAnimationFrame(popperUpdate);
+    return () => cancelAnimationFrame(updatePopper);
+  }, [openState.isOpen, triggerElement, overlayElement, popperUpdate]);
 
   return {
     isOpen: openState.isOpen,
