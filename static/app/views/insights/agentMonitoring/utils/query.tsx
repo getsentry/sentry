@@ -6,7 +6,7 @@ const AI_TOOL_CALL_OPS = ['ai.toolCall'];
 
 export const AI_MODEL_ID_ATTRIBUTE = 'ai.model.id';
 export const AI_TOOL_NAME_ATTRIBUTE = 'ai.toolCall.name';
-export const AI_TOKEN_USAGE_ATTRIBUTE = 'ai.total_tokens.used';
+const AI_TOKEN_USAGE_ATTRIBUTE = 'ai.total_tokens.used';
 
 export const AI_TOKEN_USAGE_ATTRIBUTE_SUM = `sum(${AI_TOKEN_USAGE_ATTRIBUTE})`;
 
