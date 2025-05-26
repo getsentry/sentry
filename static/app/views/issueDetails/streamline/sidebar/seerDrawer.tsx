@@ -22,7 +22,7 @@ import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -287,9 +287,11 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
 
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
-          <div data-test-id="ai-setup-loading-indicator">
-            <LoadingIndicator size={32} />
-          </div>
+          <PlaceholderStack data-test-id="ai-setup-loading-indicator">
+            <Placeholder height="10rem" />
+            <Placeholder height="15rem" />
+            <Placeholder height="15rem" />
+          </PlaceholderStack>
         ) : aiConfig.needsGenAiAcknowledgement ? (
           <AiSetupDataConsent groupId={group.id} />
         ) : (
@@ -313,7 +315,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                     runId={autofixData.run_id}
                   />
                 ) : autofixDataPending ? (
-                  <LoadingIndicator size={32} />
+                  <PlaceholderStack>
+                    <Placeholder height="15rem" />
+                    <Placeholder height="15rem" />
+                  </PlaceholderStack>
                 ) : (
                   <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
                 )}
@@ -374,6 +379,13 @@ export const useOpenSeerDrawer = ({
 
   return {openSeerDrawer};
 };
+
+const PlaceholderStack = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  margin-top: ${space(2)};
+`;
 
 const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
