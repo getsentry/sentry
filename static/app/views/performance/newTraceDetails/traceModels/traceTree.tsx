@@ -666,19 +666,25 @@ export class TraceTree extends TraceTreeEventDispatcher {
         for (const error of getRelatedSpanErrorsFromTransaction(c.value, node)) {
           c.errors.add(error);
         }
-      }
 
       if (isBrowserRequestSpan(c.value)) {
         const serverRequestHandler = c.parent?.children.find(n =>
           isServerRequestHandlerTransactionNode(n)
         );
+        if (isBrowserRequestSpan(c.value)) {
+          const serverRequestHandler = c.parent?.children.find(n =>
+            isServerRequestHandlerTransactionNode(n)
+          );
 
-        // todo: add test to only reparent with ssr reason
-        if (serverRequestHandler?.reparent_reason === REPARENT_REASON_SSR) {
-          serverRequestHandler.parent!.children =
-            serverRequestHandler.parent!.children.filter(n => n !== serverRequestHandler);
-          c.children.push(serverRequestHandler);
-          serverRequestHandler.parent = c;
+          // todo: add test to only reparent with ssr reason
+          if (serverRequestHandler?.reparent_reason === REPARENT_REASON_SSR) {
+            serverRequestHandler.parent!.children =
+              serverRequestHandler.parent!.children.filter(
+                n => n !== serverRequestHandler
+              );
+            c.children.push(serverRequestHandler);
+            serverRequestHandler.parent = c;
+          }
         }
       }
 
