@@ -18,6 +18,7 @@ import prettier from 'eslint-config-prettier';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
+import * as mdx from 'eslint-plugin-mdx';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -190,7 +191,7 @@ export default typescript.config([
     name: 'eslint/global/files',
     // Default file selection
     // https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
-    files: ['**/*.js', '**/*.mjs', '**/*.ts', '**/*.jsx', '**/*.tsx'],
+    files: ['**/*.js', '**/*.mjs', '**/*.ts', '**/*.jsx', '**/*.tsx', '**/*.mdx'],
   },
   // Global ignores
   // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
@@ -219,36 +220,35 @@ export default typescript.config([
     'stylelint.config.js',
     '.artifacts/**/*',
   ]),
-  /**
-   * Rules are grouped by plugin. If you want to override a specific rule inside
-   * the recommended set, then it's recommended to spread the new rule on top
-   * of the predefined ones.
-   *
-   * For example: if you want to enable a new plugin in the codebase and their
-   * recommended rules (or a new rule that's part of an existing plugin)
-   *
-   * 1. First you'd setup a configuration object for that plugin:
-   *    {
-   *      name: 'my-plugin/recommended',
-   *      ...myPlugin.configs.recommended,
-   *    },
-   *
-   * 2. Second you'd override the rule you want to deal with, maybe making it a
-   *    warning to start:
-   *    {
-   *      name: 'my-plugin/recommended',
-   *      ...myPlugin.configs.recommended,
-   *      rules: {
-   *        ['a-rule-outside-the-recommended-list']: 'error',
-   *
-   *        ...myPlugin.configs.recommended.rules,
-   *        ['a-recommended-rule']: 'warn',
-   *      }
-   *    },
-   *
-   * 3. Finally, once all warnings are fixed, update from 'warning' to 'error',
-   *    or remove the override and rely on the recommended rules again.
-   */
+  //    * Rules are grouped by plugin. If you want to override a specific rule inside
+  //    * the recommended set, then it's recommended to spread the new rule on top
+  //    * of the predefined ones.
+  //    *
+  //    * For example: if you want to enable a new plugin in the codebase and their
+  //    * recommended rules (or a new rule that's part of an existing plugin)
+  //    *
+  //    * 1. First you'd setup a configuration object for that plugin:
+  //    *    {
+  //    *      name: 'my-plugin/recommended',
+  //    *      ...myPlugin.configs.recommended,
+  //    *    },
+  //    *
+  //    * 2. Second you'd override the rule you want to deal with, maybe making it a
+  //    *    warning to start:
+  //    *    {
+  //    *      name: 'my-plugin/recommended',
+  //    *      ...myPlugin.configs.recommended,
+  //    *      rules: {
+  //    *        ['a-rule-outside-the-recommended-list']: 'error',
+  //    *
+  //    *        ...myPlugin.configs.recommended.rules,
+  //    *        ['a-recommended-rule']: 'warn',
+  //    *      }
+  //    *    },
+  //    *
+  //    * 3. Finally, once all warnings are fixed, update from 'warning' to 'error',
+  //    *    or remove the override and rely on the recommended rules again.
+  //
   {
     name: 'eslint/rules',
     // https://eslint.org/docs/latest/rules/
@@ -457,113 +457,113 @@ export default typescript.config([
       'react-hooks/rules-of-hooks': 'error',
     },
   },
-  {
-    name: 'plugin/typescript-eslint/custom',
-    rules: {
-      'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
-      'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
+  //   {
+  //     name: 'plugin/typescript-eslint/custom',
+  //     rules: {
+  //       'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
+  //       'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
 
-      '@typescript-eslint/naming-convention': [
-        'error',
-        {selector: 'typeLike', format: ['PascalCase'], leadingUnderscore: 'allow'},
-        {selector: 'enumMember', format: ['UPPER_CASE']},
-      ],
+  //       '@typescript-eslint/naming-convention': [
+  //         'error',
+  //         {selector: 'typeLike', format: ['PascalCase'], leadingUnderscore: 'allow'},
+  //         {selector: 'enumMember', format: ['UPPER_CASE']},
+  //       ],
 
-      '@typescript-eslint/no-restricted-types': [
-        'error',
-        {
-          types: {
-            object: {
-              message:
-                'The `object` type is hard to use. Use `Record<PropertyKey, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
-              fixWith: 'Record<PropertyKey, unknown>',
-            },
-            Buffer: {
-              message:
-                'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',
-              suggest: ['Uint8Array'],
-            },
-            '[]': "Don't use the empty array type `[]`. It only allows empty arrays. Use `SomeType[]` instead.",
-            '[[]]':
-              "Don't use `[[]]`. It only allows an array with a single element which is an empty array. Use `SomeType[][]` instead.",
-            '[[[]]]': "Don't use `[[[]]]`. Use `SomeType[][][]` instead.",
-          },
-        },
-      ],
-      '@typescript-eslint/no-shadow': 'error',
-      '@typescript-eslint/no-use-before-define': 'off', // Enabling this will cause a lot of thrash to the git history
-      '@typescript-eslint/no-useless-empty-export': 'error',
-    },
-  },
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/base.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/eslint-recommended-raw.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/recommended.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/strict.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
-  ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
-  ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
-  typeAwareLintRules,
-  {
-    name: 'plugin/typescript-eslint/overrides',
-    // https://typescript-eslint.io/rules/
-    plugins: {'@typescript-eslint': typescript.plugin},
-    rules: {
-      'prefer-spread': 'off',
-      '@typescript-eslint/prefer-enum-initializers': 'error',
-      'no-unused-expressions': 'off', // Disabled in favor of @typescript-eslint/no-unused-expressions
-      '@typescript-eslint/no-unused-expressions': ['error', {allowTernary: true}],
+  //       '@typescript-eslint/no-restricted-types': [
+  //         'error',
+  //         {
+  //           types: {
+  //             object: {
+  //               message:
+  //                 'The `object` type is hard to use. Use `Record<PropertyKey, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
+  //               fixWith: 'Record<PropertyKey, unknown>',
+  //             },
+  //             Buffer: {
+  //               message:
+  //                 'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',
+  //               suggest: ['Uint8Array'],
+  //             },
+  //             '[]': "Don't use the empty array type `[]`. It only allows empty arrays. Use `SomeType[]` instead.",
+  //             '[[]]':
+  //               "Don't use `[[]]`. It only allows an array with a single element which is an empty array. Use `SomeType[][]` instead.",
+  //             '[[[]]]': "Don't use `[[[]]]`. Use `SomeType[][][]` instead.",
+  //           },
+  //         },
+  //       ],
+  //       '@typescript-eslint/no-shadow': 'error',
+  //       '@typescript-eslint/no-use-before-define': 'off', // Enabling this will cause a lot of thrash to the git history
+  //       '@typescript-eslint/no-useless-empty-export': 'error',
+  //     },
+  //   },
+  //   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/base.ts
+  //   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/eslint-recommended-raw.ts
+  //   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/recommended.ts
+  //   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/strict.ts
+  //   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
+  //   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
+  //   ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
+  //   typeAwareLintRules,
+  //   {
+  //     name: 'plugin/typescript-eslint/overrides',
+  //     // https://typescript-eslint.io/rules/
+  //     plugins: {'@typescript-eslint': typescript.plugin},
+  //     rules: {
+  //       'prefer-spread': 'off',
+  //       '@typescript-eslint/prefer-enum-initializers': 'error',
+  //       'no-unused-expressions': 'off', // Disabled in favor of @typescript-eslint/no-unused-expressions
+  //       '@typescript-eslint/no-unused-expressions': ['error', {allowTernary: true}],
 
-      // Recommended overrides
-      '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-namespace': 'off',
-      '@typescript-eslint/no-non-null-asserted-optional-chain': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-require-imports': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-this-alias': 'off', // TODO(ryan953): Fix violations and delete this line
+  //       // Recommended overrides
+  //       '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
+  //       '@typescript-eslint/no-explicit-any': 'off',
+  //       '@typescript-eslint/no-namespace': 'off',
+  //       '@typescript-eslint/no-non-null-asserted-optional-chain': 'off', // TODO(ryan953): Fix violations and delete this line
+  //       '@typescript-eslint/no-require-imports': 'off', // TODO(ryan953): Fix violations and delete this line
+  //       '@typescript-eslint/no-this-alias': 'off', // TODO(ryan953): Fix violations and delete this line
 
-      // Strict overrides
-      '@typescript-eslint/no-dynamic-delete': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-invalid-void-type': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/unified-signatures': 'off',
+  //       // Strict overrides
+  //       '@typescript-eslint/no-dynamic-delete': 'off', // TODO(ryan953): Fix violations and delete this line
+  //       '@typescript-eslint/no-invalid-void-type': 'off', // TODO(ryan953): Fix violations and delete this line
+  //       '@typescript-eslint/no-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
+  //       '@typescript-eslint/unified-signatures': 'off',
 
-      // Stylistic overrides
-      '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
-      '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
+  //       // Stylistic overrides
+  //       '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
+  //       '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
+  //       '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
+  //       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
+  //       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
 
-      // Customization
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-          vars: 'all',
-          args: 'all',
-          // TODO(scttcper): We could enable this to enforce catch (error)
-          // https://eslint.org/docs/latest/rules/no-unused-vars#caughterrors
-          caughtErrors: 'none',
+  //       // Customization
+  //       '@typescript-eslint/no-unused-vars': [
+  //         'error',
+  //         {
+  //           vars: 'all',
+  //           args: 'all',
+  //           // TODO(scttcper): We could enable this to enforce catch (error)
+  //           // https://eslint.org/docs/latest/rules/no-unused-vars#caughterrors
+  //           caughtErrors: 'none',
 
-          // Ignore vars that start with an underscore
-          // e.g. if you want to omit a property using object spread:
-          //
-          //   const {name: _name, ...props} = this.props;
-          //
-          varsIgnorePattern: '^_',
-          argsIgnorePattern: '^_',
-          destructuredArrayIgnorePattern: '^_',
-        },
-      ],
-    },
-  },
-  {
-    name: 'plugin/typescript-eslint/process.env.SENTRY_DETECT_DEPRECATIONS=1',
-    rules: {
-      '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
-        ? 'error'
-        : 'off',
-    },
-  },
+  //           // Ignore vars that start with an underscore
+  //           // e.g. if you want to omit a property using object spread:
+  //           //
+  //           //   const {name: _name, ...props} = this.props;
+  //           //
+  //           varsIgnorePattern: '^_',
+  //           argsIgnorePattern: '^_',
+  //           destructuredArrayIgnorePattern: '^_',
+  //         },
+  //       ],
+  //     },
+  //   },
+  //   {
+  //     name: 'plugin/typescript-eslint/process.env.SENTRY_DETECT_DEPRECATIONS=1',
+  //     rules: {
+  //       '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
+  //         ? 'error'
+  //         : 'off',
+  //     },
+  //   },
   {
     name: 'plugin/typescript-sort-keys',
     // https://github.com/infctr/eslint-plugin-typescript-sort-keys
@@ -975,5 +975,12 @@ export default typescript.config([
       // Allow imports from gsApp into getsentry-test fixtures
       'no-restricted-imports': 'off',
     },
+  },
+
+  // MDX Configuration
+  {
+    ...mdx.flat,
+    name: 'files/mdx',
+    files: ['**/*.mdx'],
   },
 ]);
