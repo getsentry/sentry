@@ -3,6 +3,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {getIsAiSpan} from 'sentry/views/insights/agentMonitoring/utils/query';
 
 function ensureAttributeObject(
   attributes: Record<string, string> | TraceItemResponseAttribute[]
@@ -20,11 +21,19 @@ function ensureAttributeObject(
   return attributes;
 }
 
-export function getHighlightedSpanAttributes(
-  organization: Organization,
-  attributes: Record<string, string> | undefined | TraceItemResponseAttribute[] = {}
-) {
-  if (!hasAgentInsightsFeature(organization)) {
+export function getHighlightedSpanAttributes({
+  op,
+  description,
+  attributes = {},
+  organization,
+}: {
+  attributes: Record<string, string> | undefined | TraceItemResponseAttribute[];
+  description: string | undefined;
+  op: string | undefined;
+
+  organization: Organization;
+}) {
+  if (!hasAgentInsightsFeature(organization) && !getIsAiSpan({op, description})) {
     return [];
   }
 

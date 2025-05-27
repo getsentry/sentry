@@ -86,10 +86,12 @@ export function TransactionHighlights(props: HighlightProps) {
       avgDuration={avgDurationInSeconds}
       headerContent={headerContent}
       bodyContent={bodyContent}
-      highlightedAttributes={getHighlightedSpanAttributes(
-        props.organization,
-        props.event.contexts.trace?.data
-      )}
+      highlightedAttributes={getHighlightedSpanAttributes({
+        organization: props.organization,
+        attributes: props.event.contexts.trace?.data,
+        op: props.node.value['transaction.op'],
+        description: props.node.value.transaction,
+      })}
     />
   );
 }

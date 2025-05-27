@@ -212,7 +212,12 @@ export function SpanDescription({
       avgDuration={avgSpanDuration ? avgSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
-      highlightedAttributes={getHighlightedSpanAttributes(organization, attributes)}
+      highlightedAttributes={getHighlightedSpanAttributes({
+        organization,
+        attributes,
+        op: span.op,
+        description: span.description,
+      })}
     />
   );
 }
