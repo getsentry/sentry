@@ -23,9 +23,9 @@ interface SubfilterProps {
   subfilter_id: string;
 }
 
-export const SubfilterContext = createContext<SubfilterProps | null>(null);
+const SubfilterContext = createContext<SubfilterProps | null>(null);
 
-export function useSubfilterContext(): SubfilterProps {
+function useSubfilterContext(): SubfilterProps {
   const context = useContext(SubfilterContext);
   if (!context) {
     throw new Error('useSubfilterContext was called outside of Subfilter');
