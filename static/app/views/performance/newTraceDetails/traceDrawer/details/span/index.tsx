@@ -22,10 +22,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {
-  LogsPageDataProvider,
-  useLogsPageData,
-} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {useLogsPageDateQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -137,7 +134,7 @@ function SpanSections({
 }
 
 function LogDetails() {
-  const {logsQueryResult} = useLogsPageData();
+  const logsQueryResult = useLogsPageDateQueryResult();
   if (!logsQueryResult?.data?.length) {
     return null;
   }
@@ -374,35 +371,33 @@ function EAPSpanNodeDetails({
           limitToProjectIds={[node.value.project_id]}
           analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
         >
-          <LogsPageDataProvider>
-            {issues.length > 0 ? (
-              <IssueList organization={organization} issues={issues} node={node} />
-            ) : null}
-            <EAPSpanDescription
-              node={node}
-              project={project}
-              organization={organization}
-              location={location}
-              attributes={attributes}
-              avgSpanDuration={avgSpanDuration}
+          {issues.length > 0 ? (
+            <IssueList organization={organization} issues={issues} node={node} />
+          ) : null}
+          <EAPSpanDescription
+            node={node}
+            project={project}
+            organization={organization}
+            location={location}
+            attributes={attributes}
+            avgSpanDuration={avgSpanDuration}
+          />
+          <FoldSection
+            sectionKey={SectionKey.SPAN_ATTRIBUTES}
+            title={t('Attributes')}
+            disableCollapsePersistence
+          >
+            <AttributesTree
+              columnCount={columnCount}
+              attributes={sortAttributes(attributes)}
+              rendererExtra={{
+                theme,
+                location,
+                organization,
+              }}
             />
-            <FoldSection
-              sectionKey={SectionKey.SPAN_ATTRIBUTES}
-              title={t('Attributes')}
-              disableCollapsePersistence
-            >
-              <AttributesTree
-                columnCount={columnCount}
-                attributes={sortAttributes(attributes)}
-                rendererExtra={{
-                  theme,
-                  location,
-                  organization,
-                }}
-              />
-            </FoldSection>
-            <LogDetails />
-          </LogsPageDataProvider>
+          </FoldSection>
+          <LogDetails />
         </LogsPageParamsProvider>
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>

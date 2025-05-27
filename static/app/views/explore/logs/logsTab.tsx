@@ -24,7 +24,7 @@ import {
   useSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
-import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {useLogsPageDateQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsFields,
   useLogsSearch,
@@ -66,7 +66,7 @@ export function LogsTabContent({
   const fields = useLogsFields();
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
-  const {logsQueryResult: tableData} = useLogsPageData();
+  const tableData = useLogsPageDateQueryResult();
   const pageFilters = usePageFilters();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 

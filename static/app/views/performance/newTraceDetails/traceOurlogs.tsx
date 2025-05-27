@@ -11,13 +11,14 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   LogsPageDataProvider,
-  useLogsPageData,
+  useLogsPageDateQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LogsPageParamsProvider,
   useLogsSearch,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
@@ -44,23 +45,24 @@ export function TraceViewLogsDataProvider({
   );
 }
 
-export function TraceViewLogsSection() {
-  const tableData = useLogsPageData();
+export function TraceViewLogsSection({
+  scrollContainer,
+}: {
+  scrollContainer: React.RefObject<HTMLDivElement | null>;
+}) {
+  const tableData = useLogsPageDateQueryResult();
   const logsSearch = useLogsSearch();
   const hasTraceTabsUi = useHasTraceTabsUI();
 
   if (hasTraceTabsUi) {
     return (
       <StyledPanel>
-        <LogsSectionContent />
+        <LogsSectionContent scrollContainer={scrollContainer} />
       </StyledPanel>
     );
   }
 
-  if (
-    !tableData?.logsQueryResult ||
-    (tableData.logsQueryResult?.data?.length === 0 && logsSearch.isEmpty())
-  ) {
+  if (!tableData || (tableData.data?.length === 0 && logsSearch.isEmpty())) {
     return null;
   }
 
@@ -72,15 +74,20 @@ export function TraceViewLogsSection() {
       initialCollapse={false}
       disableCollapsePersistence
     >
-      <LogsSectionContent />
+      <LogsSectionContent scrollContainer={scrollContainer} />
     </FoldSection>
   );
 }
 
-function LogsSectionContent() {
+function LogsSectionContent({
+  scrollContainer,
+}: {
+  scrollContainer: React.RefObject<HTMLDivElement | null>;
+}) {
   const organization = useOrganization();
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
+  const hasInfiniteFeature = organization.features.includes('ourlogs-live-refresh');
 
   return (
     <Fragment>
@@ -94,7 +101,11 @@ function LogsSectionContent() {
         onSearch={query => setLogsSearch(new MutableSearch(query))}
       />
       <TableContainer>
-        <LogsTable showHeader={false} />
+        {hasInfiniteFeature ? (
+          <LogsInfiniteTable showHeader={false} scrollContainer={scrollContainer} />
+        ) : (
+          <LogsTable showHeader={false} />
+        )}
       </TableContainer>
     </Fragment>
   );

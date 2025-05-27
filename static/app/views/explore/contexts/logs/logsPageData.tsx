@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {
@@ -25,9 +27,14 @@ export function LogsPageDataProvider({children}: {children: React.ReactNode}) {
   const infiniteLogsQueryResult = useInfiniteLogsQuery({
     disabled: !liveRefresh || !feature,
   });
-  return (
-    <_LogsPageDataProvider value={{logsQueryResult, infiniteLogsQueryResult}}>
-      {children}
-    </_LogsPageDataProvider>
-  );
+  const value = useMemo(() => {
+    return {logsQueryResult, infiniteLogsQueryResult};
+  }, [logsQueryResult, infiniteLogsQueryResult]);
+  return <_LogsPageDataProvider value={value}>{children}</_LogsPageDataProvider>;
+}
+
+export function useLogsPageDateQueryResult() {
+  const hasInfiniteFeature = useOrganization().features.includes('ourlogs-live-refresh');
+  const pageData = useLogsPageData();
+  return hasInfiniteFeature ? pageData.infiniteLogsQueryResult : pageData.logsQueryResult;
 }
