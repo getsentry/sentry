@@ -223,6 +223,7 @@ export function LogsTabContent({
 
 const TopSectionBody = styled(Body)`
   padding-bottom: 0;
+  flex: 0 0 auto;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding-bottom: ${space(2)};
