@@ -411,7 +411,7 @@ class SpansBuffer:
 
         return return_segments
 
-    def _load_segment_data(self, segment_keys: list[SegmentKey]) -> dict[SegmentKey, list[str]]:
+    def _load_segment_data(self, segment_keys: list[SegmentKey]) -> dict[SegmentKey, list[bytes]]:
         """
         Loads the segments from Redis, given a list of segment keys. Segments
         exceeding a certain size are skipped, and an error is logged.
@@ -420,7 +420,7 @@ class SpansBuffer:
         :return: Dictionary mapping segment keys to lists of span payloads.
         """
 
-        payloads = {key: [] for key in segment_keys}
+        payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
         sizes = {key: 0 for key in segment_keys}
 
