@@ -12,15 +12,16 @@ from sentry.issues.auto_source_code_config.frame_info import FrameInfo
 
 UNSUPPORTED_FRAME_FILENAMES = [
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    "/gtm.js",  # Top source; starts with backslash
     "<anonymous>",
     "<frozen importlib._bootstrap>",
     "[native code]",
     "O$t",
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    "README",  # top level file
+    "README",
+    "/foo",  # no extension
+    # These single files would work if they would provide the abs_path
+    "/gtm.js",  # It includes backslash
     "ssl.py",
-    # XXX: The following will need to be supported
     "initialization.dart",
     "backburner.js",
 ]
@@ -35,10 +36,12 @@ class TestFrameInfo:
         path = "getsentry/billing/tax/manager.py"
         assert FrameInfo({"filename": path}).__repr__() == f"FrameInfo: {path}"
 
-    def test_raises_unsupported(self) -> None:
-        for filepath in UNSUPPORTED_FRAME_FILENAMES:
-            with pytest.raises(UnsupportedFrameInfo):
-                FrameInfo({"filename": filepath})
+    @pytest.mark.parametrize(
+        "filepath", UNSUPPORTED_FRAME_FILENAMES, ids=lambda x: f"unsupported_{x}"
+    )
+    def test_raises_unsupported(self, filepath: str) -> None:
+        with pytest.raises(UnsupportedFrameInfo):
+            FrameInfo({"filename": filepath})
 
     def test_raises_no_extension(self) -> None:
         for filepath in NO_EXTENSION_FRAME_FILENAMES:
@@ -126,3 +129,15 @@ class TestFrameInfo:
     def test_straight_path_prefix(self, frame_filename: str, prefix: str) -> None:
         frame_info = FrameInfo({"filename": frame_filename})
         assert frame_info.stack_root == prefix
+
+    def test_single_file_path_uses_abs_path(self) -> None:
+        # Some platforms return just the filename rather than a full path
+        # (which will be rejected below), however, they may contain the path
+        # in the abs_path.
+        frame_info = FrameInfo(
+            {
+                "filename": "BugVisuals.cs",
+                "abs_path": "/Users/foo/bar/BugVisuals.cs",
+            }
+        )
+        assert frame_info.normalized_path == "/Users/foo/bar/BugVisuals.cs"
