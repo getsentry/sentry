@@ -100,7 +100,7 @@ export function FeatureFlagsLogTable({
         data-test-id="audit-log-table"
       />
 
-      <Pagination pageLinks={pageLinks} onCursor={handlePageChange} size="xs" />
+      <Pagination pageLinks={pageLinks} onCursor={handlePageChange} />
     </Fragment>
   );
 }
