@@ -143,6 +143,9 @@ class SQLInjectionDetector(PerformanceDetector):
 
     @classmethod
     def is_span_eligible(cls, span: Span) -> bool:
+        if not span.get("span_id"):
+            return False
+
         op = span.get("op", None)
 
         if not op or not op.startswith("db") or op.startswith("db.redis"):
