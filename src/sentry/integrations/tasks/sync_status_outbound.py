@@ -81,13 +81,14 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
                 installation.sync_status_outbound(
                     external_issue, group.status == GroupStatus.RESOLVED, group.project_id
                 )
+
+                analytics.record(
+                    "integration.issue.status.synced",
+                    provider=integration.provider,
+                    id=integration.id,
+                    organization_id=external_issue.organization_id,
+                )
         except (IntegrationFormError, ApiUnauthorized, OrganizationIntegrationNotFound) as e:
             lifecycle.record_halt(halt_reason=e)
             return None
-            analytics.record(
-                "integration.issue.status.synced",
-                provider=integration.provider,
-                id=integration.id,
-                organization_id=external_issue.organization_id,
-            )
     return None
