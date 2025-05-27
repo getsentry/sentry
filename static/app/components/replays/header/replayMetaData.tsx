@@ -15,19 +15,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
-type Props = {
+interface Props {
   replayErrors: ReplayError[];
-  replayRecord: ReplayRecord | undefined;
-  isLoading?: boolean;
+  replayRecord: ReplayRecord;
   showDeadRageClicks?: boolean;
-};
+}
 
-function ReplayMetaData({
+export default function ReplayMetaData({
   replayErrors,
   replayRecord,
   showDeadRageClicks = true,
-  isLoading,
 }: Props) {
+  const nonFeedbackErrors = replayErrors.filter(e => e.title !== 'User Feedback');
+
   const location = useLocation();
   const routes = useRoutes();
   const referrer = getRouteStringFromRoutes(routes);
@@ -43,9 +43,7 @@ function ReplayMetaData({
     },
   };
 
-  return isLoading ? (
-    <Placeholder height="47px" width="203px" />
-  ) : (
+  return (
     <KeyMetrics>
       {showDeadRageClicks && (
         <Fragment>
@@ -86,7 +84,7 @@ function ReplayMetaData({
       <KeyMetricLabel>{t('Errors')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord ? (
-          <ErrorCounts replayErrors={replayErrors} replayRecord={replayRecord} />
+          <ErrorCounts replayErrors={nonFeedbackErrors} replayRecord={replayRecord} />
         ) : (
           <Placeholder width="20px" height="16px" />
         )}
@@ -142,5 +140,3 @@ const ClickCount = styled(Count)`
   gap: ${space(0.75)};
   align-items: center;
 `;
-
-export default ReplayMetaData;
