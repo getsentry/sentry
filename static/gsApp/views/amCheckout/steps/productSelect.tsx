@@ -10,6 +10,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 
 import formatCurrency from 'getsentry/utils/formatCurrency';
@@ -155,7 +156,7 @@ function ProductSelect({
               <Row style={{justifyContent: 'center'}}>
                 <Subtitle>
                   {tct(
-                    'Includes [cost]/[billingInterval] of credits for Seer services. Additional usage billed from [budgetTerm] budget. ',
+                    'Includes [cost]/[billingInterval] of credits for [productName] services. Additional usage billed from [budgetTerm] budget. ',
                     {
                       cost,
                       billingInterval,
@@ -163,6 +164,7 @@ function ProductSelect({
                         activePlan.budgetTerm === 'pay-as-you-go'
                           ? 'PAYG'
                           : activePlan.budgetTerm,
+                      productName: toTitleCase(productInfo.productName),
                     }
                   )}
                 </Subtitle>
