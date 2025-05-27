@@ -506,12 +506,12 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
 class DBInjectionVulnerabilityGroupType(GroupType):
     type_id = 1020
     slug = "db_injection_vulnerability"
-    description = "Database Injection Vulnerability"
+    description = "Potential Database Injection Vulnerability"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.DB_QUERY.value
     enable_auto_resolve = False
     enable_escalation_detection = False
-    default_priority = PriorityLevel.LOW
+    default_priority = PriorityLevel.MEDIUM
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType

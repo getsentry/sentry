@@ -30,7 +30,7 @@ from sentry.issues.grouptype import (
 from sentry.utils.performance_issues.performance_detection import get_merged_settings
 
 MAX_VALUE = 2147483647
-TEN_SECONDS = 10000  # ten seconds in millisecondsp
+TEN_SECONDS = 10000  # ten seconds in milliseconds
 TEN_MB = 10000000  # ten MB in bytes
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 
@@ -52,7 +52,7 @@ class InternalProjectOptions(Enum):
     HTTP_OVERHEAD = "http_overhead_detection_enabled"
     TRANSACTION_DURATION_REGRESSION = "transaction_duration_regression_detection_enabled"
     FUNCTION_DURATION_REGRESSION = "function_duration_regression_detection_enabled"
-    SQL_INJECTION = "sql_injection_detection_enabled"
+    DATABASE_INJECTION = "database_injection_detection_enabled"
 
 
 class ConfigurableThresholds(Enum):
@@ -156,7 +156,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     http_overhead_detection_enabled = serializers.BooleanField(required=False)
     transaction_duration_regression_detection_enabled = serializers.BooleanField(required=False)
     function_duration_regression_detection_enabled = serializers.BooleanField(required=False)
-    sql_injection_detection_enabled = serializers.BooleanField(required=False)
+    database_injection_detection_enabled = serializers.BooleanField(required=False)
 
 
 def get_disabled_threshold_options(payload, current_settings):

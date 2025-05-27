@@ -33,11 +33,11 @@ class SQLInjectionDetectorTest(TestCase):
         assert len(problems) == 1
         problem = problems[0]
         assert problem.type == DBInjectionVulnerabilityGroupType
-        assert problem.fingerprint == "1-1020-6333ad81b9a8694d7e4a3608a313aae851b024d4"
+        assert problem.fingerprint == "1-1020-841b1fd77bae6e89b3570a2ab0bf43d3c8cfbac6"
         assert problem.op == "db"
-        assert problem.desc == "SELECT * FROM users WHERE username = 'hello'"
-        assert problem.cause_span_ids == []
-        assert problem.parent_span_ids == []
+        assert problem.desc == "SELECT * FROM users WHERE username = '?'"
+        assert problem.evidence_data["vulnerable_query_keys"] == ["username"]
+        assert problem.evidence_data["request_url"] == "http://localhost:3001/vulnerable-login"
 
     def test_sql_injection_on_non_vulnerable_query(self):
         injection_event = get_event("sql-injection/sql-injection-event-non-vulnerable")
