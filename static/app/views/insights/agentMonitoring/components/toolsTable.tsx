@@ -93,7 +93,7 @@ export function ToolsTable() {
           : undefined,
       keepPreviousData: true,
     },
-    Referrer.QUERIES_CHART // TODO
+    Referrer.QUERIES_CHART // TODO: add referrer
   );
 
   const tableData = useMemo(() => {
