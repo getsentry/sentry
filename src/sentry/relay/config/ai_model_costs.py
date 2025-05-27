@@ -225,7 +225,7 @@ _AI_MODEL_COST_DATA =  [
     ("gpt-35-turbo-16k-0613", False, 0.003),
     # Azure GPT-35 output
     ("gpt-35-turbo", True, 0.002),  # Azure OpenAI version of ChatGPT
-    ("gpt-35-turbo-0125", True, 0.0015)
+    ("gpt-35-turbo-0125", True, 0.0015),
     ("gpt-35-turbo-0301", True, 0.002),  # Azure OpenAI version of ChatGPT
     ("gpt-35-turbo-0613", True, 0.002),
     ("gpt-35-turbo-instruct", True, 0.002),
