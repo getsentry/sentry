@@ -12,6 +12,7 @@ import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
+import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -318,12 +319,16 @@ export function ExploreCharts({
               Visualization={
                 <TimeSeriesWidgetVisualization
                   plottables={chartInfo.data.map(timeSeries => {
-                    return new DataPlottableConstructor(timeSeries, {
-                      alias: timeSeries.seriesName,
-                      delay: INGESTION_DELAY,
-                      color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
-                      stack: chartInfo.stack,
-                    });
+                    return new DataPlottableConstructor(
+                      markDelayedData(timeSeries, INGESTION_DELAY),
+                      {
+                        alias: timeSeries.seriesName,
+                        color: isTimeSeriesOther(timeSeries)
+                          ? theme.chartOther
+                          : undefined,
+                        stack: chartInfo.stack,
+                      }
+                    );
                   })}
                 />
               }

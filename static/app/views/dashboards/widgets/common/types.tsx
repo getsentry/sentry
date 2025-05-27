@@ -40,7 +40,10 @@ export type TimeSeriesItem = {
    */
   timestamp: number;
   value: number | null;
-  delayed?: boolean;
+  /**
+   * A data point might be incomplete for a few reasons. One possible reason is that it's too new, and the ingestion of data for this time bucket is still going. Another reason is that it's truncated. For example, if we're plotting a data bucket from 1:00pm to 2:00pm, but the data set only includes data from 1:15pm and on, the bucket is incomplete.
+   */
+  incomplete?: boolean;
 };
 
 export type TimeSeries = {
