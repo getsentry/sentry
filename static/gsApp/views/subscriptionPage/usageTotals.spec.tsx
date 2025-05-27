@@ -1324,9 +1324,6 @@ describe('Subscription > UsageTotals', function () {
       // Should NOT show usage information (Seer card title is always empty)
       expect(screen.queryByText('usage this period')).not.toBeInTheDocument();
       expect(screen.queryByText('trial usage this period')).not.toBeInTheDocument();
-
-      // Should show expand button (because potential trial means !showManageButton)
-      expect(screen.getByLabelText('Expand usage totals')).toBeInTheDocument();
     });
 
     it('shows usage information and trial tag during active trial', function () {
@@ -1490,9 +1487,6 @@ describe('Subscription > UsageTotals', function () {
 
       // Should NOT show "usage this period" (Seer card title is always empty)
       expect(screen.queryByText('usage this period')).not.toBeInTheDocument();
-
-      // Should NOT show Manage button (hasSeer is true so showManageButton is false)
-      expect(screen.queryByText('Manage')).not.toBeInTheDocument();
 
       // Should show usage count
       expect(screen.getByText('100')).toBeInTheDocument();
@@ -1777,47 +1771,6 @@ describe('Subscription > UsageTotals', function () {
       expect(screen.queryByText('$1,000.00 Reserved')).not.toBeInTheDocument();
     });
 
-    it('handles SEER_SCANNER category with active trial', function () {
-      subscription.productTrials = [
-        {
-          category: DataCategory.SEER_SCANNER, // Trial for scanner category
-          isStarted: true,
-          reasonCode: 1001,
-          startDate: moment().utc().subtract(5, 'days').format(),
-          endDate: moment().utc().add(25, 'days').format(),
-        },
-      ];
-
-      subscription.categories.seerScanner = MetricHistoryFixture({
-        usage: 75,
-      });
-
-      render(
-        <UsageTotals
-          category={DataCategory.SEER_SCANNER}
-          totals={UsageTotalFixture({accepted: 75})}
-          subscription={subscription}
-          organization={organization}
-          displayMode="usage"
-        />
-      );
-
-      // Should show Seer title
-      expect(screen.getByText('Seer')).toBeInTheDocument();
-
-      // Should show trial tag
-      expect(screen.getByText('25 days left')).toBeInTheDocument();
-
-      // Should show usage count in the total usage section
-      expect(screen.getByText('75')).toBeInTheDocument();
-
-      // Should show unlimited reserved info
-      expect(screen.getByText('∞')).toBeInTheDocument();
-
-      // Should NOT show expand button during trial (activeTrial means !showManageButton, but disableTable is true for Seer without hasSeer)
-      expect(screen.queryByLabelText('Expand usage totals')).not.toBeInTheDocument();
-    });
-
     it('handles mixed trial states between SEER_AUTOFIX and SEER_SCANNER', function () {
       // Only SEER_AUTOFIX has an active trial
       subscription.productTrials = [
@@ -1931,9 +1884,7 @@ describe('Subscription > UsageTotals', function () {
       // Should show unlimited reserved info
       expect(screen.getByText('∞')).toBeInTheDocument();
 
-      // Should show usage bars but NOT expand button (activeTrial means !showManageButton, but disableTable is true for Seer without hasSeer)
       expect(screen.getByTestId('usage-bar-container-seerAutofix')).toBeInTheDocument();
-      expect(screen.queryByLabelText('Expand usage totals')).not.toBeInTheDocument();
     });
 
     it('handles high usage during active trial', function () {

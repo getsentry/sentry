@@ -446,7 +446,7 @@ function UsageTotals({
   const showUsage = !isSeerCard || activeTrial || hasSeer;
   const showSeerPromptBar = isSeerCard && !activeTrial && !hasSeer;
 
-  disableTable = disableTable || (isSeerCard && !hasSeer); // special case for Seer
+  disableTable = disableTable || (isSeerCard && !hasSeer && !activeTrial); // special case for Seer
 
   const {
     ondemandPercentUsed,
