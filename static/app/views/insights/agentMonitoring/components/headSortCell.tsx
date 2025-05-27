@@ -24,7 +24,7 @@ function decodeSortOrder(value: QueryValue): 'asc' | 'desc' {
   return 'desc';
 }
 
-function useTableSortParams() {
+export function useTableSortParams() {
   const {field: sortField, order: sortOrder} = useLocationQuery({
     fields: {
       field: decodeSortField,
