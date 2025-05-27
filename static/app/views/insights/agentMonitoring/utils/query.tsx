@@ -48,6 +48,6 @@ export const getAIToolCallsFilter = () => {
   return `span.description:[${AI_TOOL_CALL_OPS.join(',')}]`;
 };
 
-export const getAiTracesFilter = () => {
+export const getAITracesFilter = () => {
   return `has:${AI_MODEL_ID_ATTRIBUTE}`;
 };

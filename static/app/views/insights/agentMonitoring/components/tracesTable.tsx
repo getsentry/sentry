@@ -21,6 +21,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
+import {getAITracesFilter} from 'sentry/views/insights/agentMonitoring/utils/query';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -49,7 +50,7 @@ export function TracesTable() {
 
   const tracesRequest = useTraces({
     dataset: DiscoverDatasets.SPANS_EAP,
-    query: 'has:ai.model.id',
+    query: `${getAITracesFilter()}`,
     sort: '-timestamp',
     limit: 10,
   });
