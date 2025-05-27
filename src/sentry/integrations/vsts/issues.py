@@ -32,6 +32,8 @@ VSTS_IDENTITY_DELETED_ERROR_SUBSTRING = [
     "is currently Deleted within the following Microsoft Entra tenant"
 ]
 
+VSTS_ISSUE_TITLE_MAX_LENGTH = 128
+
 
 class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
     description = "Integrate Azure DevOps work items by linking a project."
@@ -200,6 +202,9 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         title = data["title"]
         description = data["description"]
         item_type = data["work_item_type"]
+
+        if len(title) > VSTS_ISSUE_TITLE_MAX_LENGTH:
+            title = title[: VSTS_ISSUE_TITLE_MAX_LENGTH - 3] + "..."
 
         try:
             created_item = client.create_work_item(
