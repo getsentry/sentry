@@ -1,14 +1,17 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
+import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -50,11 +53,22 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
 
 export function ToolsTable() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
   const {query} = useTransactionNameQuery();
 
   const fullQuery = `${getAIToolCallsFilter()} ${query}`.trim();
+
+  const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
+    navigate(
+      {
+        pathname,
+        search: qs.stringify({...transactionQuery, toolsCursor: cursor}),
+      },
+      {replace: true, preventScrollReset: true}
+    );
+  };
 
   const toolsRequest = useEAPSpans(
     {
@@ -68,6 +82,11 @@ export function ToolsTable() {
       sorts: [{field: 'count()', kind: 'desc'}],
       search: fullQuery,
       limit: 10,
+      cursor:
+        typeof location.query.toolsCursor === 'string'
+          ? location.query.toolsCursor
+          : undefined,
+      keepPreviousData: true,
     },
     Referrer.QUERIES_CHART // TODO
   );
@@ -120,18 +139,7 @@ export function ToolsTable() {
         />
         {toolsRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination
-        pageLinks={toolsRequest.pageLinks}
-        onCursor={(cursor, path, currentQuery) => {
-          navigate(
-            {
-              pathname: path,
-              query: {...currentQuery, pathsCursor: cursor},
-            },
-            {replace: true, preventScrollReset: true}
-          );
-        }}
-      />
+      <Pagination pageLinks={toolsRequest.pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }
