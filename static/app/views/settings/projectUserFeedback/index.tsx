@@ -35,6 +35,8 @@ function ProjectUserFeedback({organization, project, params: {projectId}}: Props
     });
   };
 
+  const features = new Set(organization.features);
+
   // We need this mock here, otherwise the demo crash modal report will send to Sentry.
   // We also need to unset window.sentryEmbedCallback, otherwise if we get a legit crash modal in our app this code would gobble it up.
   useEffect(() => {
@@ -85,7 +87,9 @@ function ProjectUserFeedback({organization, project, params: {projectId}}: Props
         initialData={project.options}
       >
         <Access access={['project:write']} project={project}>
-          {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
+          {({hasAccess}) => (
+            <JsonForm disabled={!hasAccess} forms={formGroups} features={features} />
+          )}
         </Access>
       </Form>
     </SentryDocumentTitle>
