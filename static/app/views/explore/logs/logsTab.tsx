@@ -38,12 +38,14 @@ import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {
+  BottomSectionBody,
   FilterBarContainer,
   LogsGraphContainer,
   LogsItemContainer,
   LogsTableActionsContainer,
   StyledPageFilterBar,
   TableActionsContainer,
+  TopSectionBody,
 } from 'sentry/views/explore/logs/styles';
 import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
@@ -153,7 +155,7 @@ export function LogsTabContent({
   }, [fields, setFields, stringAttributes, numberAttributes]);
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
-      <Layout.Body noRowGap>
+      <TopSectionBody noRowGap>
         <Layout.Main fullWidth>
           <FilterBarContainer>
             <StyledPageFilterBar condensed>
@@ -178,6 +180,10 @@ export function LogsTabContent({
               searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
             />
           </SchemaHintsSection>
+        </Layout.Main>
+      </TopSectionBody>
+      <BottomSectionBody noRowGap>
+        <Layout.Main fullWidth>
           <LogsGraphContainer>
             <LogsGraph timeseriesResult={timeseriesResult} />
           </LogsGraphContainer>
@@ -209,7 +215,7 @@ export function LogsTabContent({
             </Feature>
           </LogsItemContainer>
         </Layout.Main>
-      </Layout.Body>
+      </BottomSectionBody>
     </SearchQueryBuilderProvider>
   );
 }
