@@ -47,3 +47,7 @@ export const getLLMGenerationsFilter = () => {
 export const getAIToolCallsFilter = () => {
   return `span.description:[${AI_TOOL_CALL_OPS.join(',')}]`;
 };
+
+export const getAiTracesFilter = () => {
+  return `has:${AI_MODEL_ID_ATTRIBUTE}`;
+};
