@@ -16,7 +16,7 @@ import {
 
 export type ColumnKey = 'provider' | 'flag' | 'action' | 'createdAt';
 
-export interface FeatureFlagsLogTableProps {
+interface FeatureFlagsLogTableProps {
   columns: Array<GridColumnOrder<ColumnKey>>;
   error: RequestError | null;
   flags: RawFlag[];
