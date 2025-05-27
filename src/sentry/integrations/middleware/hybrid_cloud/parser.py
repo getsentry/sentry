@@ -357,5 +357,3 @@ class BaseRequestParser(ABC):
             integration_id=integration_id,
             request=self.request,
         )
-
-        return HttpResponse(status=status.HTTP_202_ACCEPTED)
