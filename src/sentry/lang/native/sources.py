@@ -585,7 +585,7 @@ def get_sources_for_project(project):
                 # token could not be fetched successfully
                 if token is not None:
                     # Create a new dict to avoid reference issues
-                    source = source.copy()
+                    source = deepcopy(source)
                     source["bearer_token"] = token
 
                     # Remove other credentials if we have a token
