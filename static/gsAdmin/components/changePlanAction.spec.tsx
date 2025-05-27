@@ -355,4 +355,69 @@ describe('ChangePlanAction', () => {
     expect(requestData).toHaveProperty('reservedErrors', 50000);
     expect(requestData).toHaveProperty('reservedTransactions', 25000);
   });
+
+  describe('Seer Budget', () => {
+    beforeEach(() => {
+      mockOrg.features = ['seer-billing'];
+      jest.clearAllMocks();
+      MockApiClient.clearMockResponses();
+
+      const user = UserFixture();
+      user.permissions = new Set(['billing.provision']);
+      ConfigStore.set('user', user);
+      SubscriptionStore.set(mockOrg.slug, subscription);
+
+      // Set up default subscription response
+      MockApiClient.addMockResponse({
+        url: `/subscriptions/${mockOrg.slug}/`,
+        body: subscription,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+        body: BILLING_CONFIG,
+      });
+    });
+
+    it('shows Seer budget checkbox for AM tiers', async () => {
+      openAndLoadModal();
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
+      });
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      const am2Tab = screen.getByRole('tab', {name: 'AM2'});
+      await userEvent.click(am2Tab);
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      const am1Tab = screen.getByRole('tab', {name: 'AM1'});
+      await userEvent.click(am1Tab);
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+    });
+    it('hides Seer budget checkbox for MM2 tier', async () => {
+      openAndLoadModal();
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
+      });
+
+      const mm2Tab = screen.getByRole('tab', {name: 'MM2'});
+      await userEvent.click(mm2Tab);
+
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      expect(
+        screen.queryByRole('checkbox', {
+          name: 'Seer Budget',
+        })
+      ).not.toBeInTheDocument();
+    });
+  });
 });
