@@ -22,6 +22,7 @@ class GitProvider(StrEnum):
     Codecov doesn't require this to be GitHub, but that's all that's implemented
     for now.
     """
+
     GitHub = "github"
 
 
