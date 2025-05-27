@@ -114,7 +114,7 @@ export function SpanDescription({
                 location,
                 node.event?.projectID,
                 SpanIndexedField.SPAN_DESCRIPTION,
-                span.description!,
+                span.description,
                 TraceDrawerActionKind.INCLUDE
               )
             : spanDetailsRouteWithQuery({
