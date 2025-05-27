@@ -73,5 +73,11 @@ class SnubaQueryValidatorTest(TestCase):
             assert validator.is_valid()
             validator.create_source(validator.validated_data)
 
-            with pytest.raises(serializers.ValidationError):
+            with pytest.raises(serializers.ValidationError) as e:
                 validator.create_source(validator.validated_data)
+            assert e.value.detail == [
+                ErrorDetail(
+                    string="You've already created the maximum number of detectors of this type.",
+                    code="invalid",
+                )
+            ]
