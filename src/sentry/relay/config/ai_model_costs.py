@@ -336,6 +336,26 @@ def ai_model_costs_config() -> AIModelCosts:
                 ("command-r-ft", True, 0.0012),
                 ("command-r-plus", True, 0.01),
                 ("command-r7b", True, 0.00015),
+                # xAI Grok-3 input
+                ("grok-3-latest", False, 0.003),
+                ("grok-3-fast-latest", False, 0.005),
+                ("grok-3-mini-latest", False, 0.0003),
+                ("grok-3-mini-fast-latest", False, 0.0006),
+                # xAI Grok-3 output
+                ("grok-3-latest", True, 0.015),
+                ("grok-3-fast-latest", True, 0.025),
+                ("grok-3-mini-latest", True, 0.0005),
+                ("grok-3-mini-fast-latest", True, 0.004),
+                # xAI Grok-2 input
+                ("grok-2-vision", False, 0.002),
+                ("grok-2-vision-latest", False, 0.002),
+                ("grok-2", False, 0.002),
+                ("grok-2-latest", False, 0.002),
+                # xAI Grok-2 output
+                ("grok-2-vision", True, 0.01),
+                ("grok-2-vision-latest", True, 0.01),
+                ("grok-2", True, 0.01),
+                ("grok-2-latest", True, 0.01),
             ]
         ],
     }
