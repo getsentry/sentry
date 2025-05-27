@@ -9,7 +9,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
-
 import FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
@@ -290,11 +289,11 @@ function ChangePlanAction({
             setBillingInterval(MONTHLY);
             setContractInterval(MONTHLY);
             // Reset Seer budget when switching to tiers that don't support Seer
-            if (!supportsSeerBudget(tab)) {
-              formModel.setValue('seer', false);
-            } else {
+            if (supportsSeerBudget(tab)) {
               // Reset to current subscription state when switching to tiers that support Seer
               formModel.setValue('seer', hasCurrentSeerBudget);
+            } else {
+              formModel.setValue('seer', false);
             }
           }}
         >
