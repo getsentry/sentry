@@ -4697,6 +4697,37 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 }
             ]
 
+    def test_ai_total_tokens_returns_integer_meta(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"data": {"ai_total_tokens_used": 100}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"data": {"ai_total_tokens_used": 50}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["sum(ai.total_tokens.used)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        data, meta = response.data["data"], response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sum(ai.total_tokens.used)"] == 150
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"]["sum(ai.total_tokens.used)"] == "integer"
+
     def test_release(self):
         span1 = self.create_span(
             {

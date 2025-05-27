@@ -14,12 +14,15 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import useOrganization from 'sentry/utils/useOrganization';
 import {TableBody} from 'sentry/views/explore/components/table';
 import {
+  LogsPageDataProvider,
+  useLogsPageData,
+} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {
   LogsPageParamsProvider,
   useLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
-import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -40,7 +43,9 @@ export function OurlogsSection({
       blockRowExpanding
       limitToTraceId={event.contexts?.trace?.trace_id}
     >
-      <OurlogsSectionContent event={event} group={group} project={project} />
+      <LogsPageDataProvider>
+        <OurlogsSectionContent event={event} group={group} project={project} />
+      </LogsPageDataProvider>
     </LogsPageParamsProvider>
   );
 }
@@ -56,11 +61,11 @@ function OurlogsSectionContent({
 }) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
-  const tableData = useExploreLogsTable({enabled: feature, limit: 10});
+  const tableData = useLogsPageData().logsQueryResult;
   const logsSearch = useLogsSearch();
   const abbreviatedTableData = (tableData.data ?? []).slice(0, 5);
   const {openDrawer} = useDrawer();
-  const logsTableRef = useRef<HTMLButtonElement>(null);
+  const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const limitToTraceId = event.contexts?.trace?.trace_id;
@@ -75,9 +80,11 @@ function OurlogsSectionContent({
           isTableFrozen
           limitToTraceId={limitToTraceId}
         >
-          <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <OurlogsDrawer group={group} event={event} project={project} />
-          </TraceItemAttributeProvider>
+          <LogsPageDataProvider>
+            <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+              <OurlogsDrawer group={group} event={event} project={project} />
+            </TraceItemAttributeProvider>
+          </LogsPageDataProvider>
         </LogsPageParamsProvider>
       ),
       {
@@ -85,11 +92,8 @@ function OurlogsSectionContent({
         drawerKey: 'logs-issue-drawer',
 
         shouldCloseOnInteractOutside: element => {
-          const viewAllButton = logsTableRef.current;
-          if (viewAllButton?.contains(element)) {
-            return false;
-          }
-          return true;
+          const viewAllButton = viewAllButtonRef.current;
+          return !viewAllButton?.contains(element);
         },
       }
     );
@@ -102,7 +106,10 @@ function OurlogsSectionContent({
     // We may change this in the future if we have a trace-group or we generate trace sids for these issue types.
     return null;
   }
-  if (!tableData || (tableData.data?.length === 0 && logsSearch.isEmpty())) {
+  if (
+    !tableData ||
+    (tableData.data && tableData.data.length === 0 && logsSearch.isEmpty())
+  ) {
     // Like breadcrumbs, we don't show the logs section if there are no logs.
     return null;
   }
@@ -113,7 +120,7 @@ function OurlogsSectionContent({
       title={t('Logs')}
       data-test-id="logs-data-section"
     >
-      <SmallTableContentWrapper ref={logsTableRef} onClick={() => onOpenLogsDrawer()}>
+      <SmallTableContentWrapper onClick={() => onOpenLogsDrawer()}>
         <SmallTable>
           <TableBody>
             {abbreviatedTableData?.map((row, index) => (
@@ -127,13 +134,14 @@ function OurlogsSectionContent({
             ))}
           </TableBody>
         </SmallTable>
-        {tableData.data?.length > 5 ? (
+        {tableData.data && tableData.data.length > 5 ? (
           <div>
             <Button
               icon={<IconChevron direction="right" />}
               aria-label={t('View more')}
               size="sm"
               onClick={() => onOpenLogsDrawer()}
+              ref={viewAllButtonRef}
             >
               {t('View more')}
             </Button>
@@ -149,8 +157,7 @@ const SmallTable = styled('table')`
   grid-template-columns: 15px auto 1fr;
 `;
 
-const SmallTableContentWrapper = styled('button')`
-  all: unset;
+const SmallTableContentWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 `;

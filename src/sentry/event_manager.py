@@ -1260,6 +1260,7 @@ def assign_event_to_group(
     return group_info
 
 
+@sentry_sdk.tracing.trace
 def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
@@ -1294,6 +1295,7 @@ def get_hashes_and_grouphashes(
         return NULL_GROUPHASH_INFO
 
 
+@sentry_sdk.tracing.trace
 def handle_existing_grouphash(
     job: Job,
     existing_grouphash: GroupHash,
