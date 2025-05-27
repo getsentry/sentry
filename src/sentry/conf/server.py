@@ -3155,6 +3155,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-billing-dlq": "default",
     "taskworker-control": "default",
     "taskworker-control-dlq": "default",
+    "taskworker-cutover": "default",
+    "taskworker-email": "default",
+    "taskworker-email-dlq": "default",
     "taskworker-ingest": "default",
     "taskworker-ingest-dlq": "default",
     "taskworker-ingest-errors": "default",
@@ -3563,10 +3566,6 @@ SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
 # key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS
 DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
 
-
-# If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
-# to the buffer service.
-SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
 
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True
