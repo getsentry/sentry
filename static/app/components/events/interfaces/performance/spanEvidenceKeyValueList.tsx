@@ -183,9 +183,8 @@ function NPlusOneDBQueriesSpanEvidence({
       )
     );
   const evidenceData = event?.occurrence?.evidenceData ?? {};
-  const patternSize = evidenceData.pattern_size ?? 0;
-  const patternSpanIds = evidenceData.pattern_span_ids ?? [];
-  const numPatternRepetitions = evidenceData.num_pattern_repetitions ?? 0;
+  const patternSize = evidenceData.patternSize ?? 0;
+  const patternSpanIds = (evidenceData.patternSpanIds ?? []).join(', ');
 
   return (
     <PresortedKeyValueList
@@ -200,9 +199,6 @@ function NPlusOneDBQueriesSpanEvidence({
           patternSize > 0 ? makeRow(t('Pattern Size'), patternSize) : null,
           patternSpanIds.length > 0
             ? makeRow(t('Pattern Span IDs'), patternSpanIds)
-            : null,
-          numPatternRepetitions > 0
-            ? makeRow(t('Number of Repetitions'), numPatternRepetitions)
             : null,
         ].filter(Boolean) as KeyValueListData
       }
