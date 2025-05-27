@@ -44,13 +44,13 @@ describe('combineMeta', () => {
     };
     const meta3: EventsMetaType = {
       fields: {c: 'integer'},
-      units: {c: undefined},
+      units: {},
     };
 
     const combinedMeta = combineMeta(meta1, meta2, meta3);
     expect(combinedMeta).toEqual({
       fields: {a: 'boolean', b: 'duration', c: 'integer'},
-      units: {a: 'boolean', b: 'millisecond', c: undefined},
+      units: {a: 'boolean', b: 'millisecond'},
     });
   });
 });
