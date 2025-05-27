@@ -1,5 +1,6 @@
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -148,7 +149,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             totals_2_result["data"][0]["count(span.duration)"],
         )
 
-        ranked_distribution = {"rankedAttributes": []}
+        ranked_distribution: dict[str, list[dict[str, Any]]] = {"rankedAttributes": []}
         for attr, _ in scored_attrs:
             distribution = {
                 "attributeName": translate_internal_to_public_alias(
