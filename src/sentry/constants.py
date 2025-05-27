@@ -133,6 +133,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "from",
         "get-cli",
         "github-deployment-gate",
+        "gsnlink",
         "guide",
         "help",
         "ingest",
