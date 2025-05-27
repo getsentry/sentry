@@ -38,18 +38,16 @@ export function OurlogsSection({
   project: Project;
 }) {
   return (
-    <PageFiltersContainer>
-      <LogsPageParamsProvider
-        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-        isTableFrozen
-        blockRowExpanding
-        limitToTraceId={event.contexts?.trace?.trace_id}
-      >
-        <LogsPageDataProvider>
-          <OurlogsSectionContent event={event} group={group} project={project} />
-        </LogsPageDataProvider>
-      </LogsPageParamsProvider>
-    </PageFiltersContainer>
+    <LogsPageParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+      isTableFrozen
+      blockRowExpanding
+      limitToTraceId={event.contexts?.trace?.trace_id}
+    >
+      <LogsPageDataProvider>
+        <OurlogsSectionContent event={event} group={group} project={project} />
+      </LogsPageDataProvider>
+    </LogsPageParamsProvider>
   );
 }
 
