@@ -46,7 +46,6 @@ def convert_span_to_item(span: Span) -> TraceItem:
                 attributes[k] = _anyvalue(v)
             except Exception:
                 sentry_sdk.capture_exception()
-                pass
 
     for k, v in (span.get("measurements") or {}).items():
         if k is not None and v is not None:
