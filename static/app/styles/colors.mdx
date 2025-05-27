@@ -146,7 +146,7 @@ export const ExampleCardGrid = styled('figcaption')`
 export function ExampleCard({imgSrc, text, isPositive}) {
   return (
     <figure>
-    <ExampleImg src={imgSrc} />
+      <ExampleImg src={imgSrc} />
       <ExampleCardGrid>
         {isPositive ? <PositiveLabel /> : <NegativeLabel />}
         <span>{text}</span>
