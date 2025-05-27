@@ -1006,11 +1006,12 @@ class JiraIntegration(IssueSyncIntegration):
                     extra={
                         "integration_id": external_issue.integration_id,
                         "user_id": user.id,
+                        "user_emails": user.emails,
                         "issue_key": external_issue.key,
                         "organization_id": external_issue.organization_id,
                     },
                 )
-                raise
+                raise IntegrationFormError("Unable to find the requested user from Jira")
         try:
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
