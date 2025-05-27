@@ -169,7 +169,11 @@ export function updateVisualizeAggregate({
   }
 
   // switching away from count_unique means we need to reset the field
-  if (oldAggregate === AggregationKey.COUNT_UNIQUE) {
+  if (
+    oldAggregate === AggregationKey.COUNT_UNIQUE ||
+    oldAggregate === AggregationKey.EPM ||
+    oldAggregate === AggregationKey.EPS
+  ) {
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }
 
