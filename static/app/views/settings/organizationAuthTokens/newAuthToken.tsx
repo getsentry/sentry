@@ -23,7 +23,7 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -57,7 +57,7 @@ function AuthTokenCreateForm({
     [navigate, organization.slug]
   );
 
-  const {mutate: submitToken} = useMutation<
+  const {mutate: submitToken, isPending} = useMutation<
     CreateOrgAuthTokensResponse,
     RequestError,
     CreateTokenQueryVariables
@@ -102,13 +102,12 @@ function AuthTokenCreateForm({
       initialData={initialData}
       apiEndpoint={`/organizations/${organization.slug}/org-auth-tokens/`}
       onSubmit={({name}) => {
-        submitToken({
-          name,
-        });
+        submitToken({name});
       }}
       onCancel={handleGoBack}
       submitLabel={t('Create Auth Token')}
       requireChanges
+      submitDisabled={isPending}
     >
       <TextField
         name="name"
@@ -130,11 +129,8 @@ function AuthTokenCreateForm({
   );
 }
 
-export function OrganizationAuthTokensNewAuthToken({
-  organization,
-}: {
-  organization: Organization;
-}) {
+export default function OrganizationAuthTokensNewAuthToken() {
+  const organization = useOrganization();
   const navigate = useNavigate();
   const [newToken, setNewToken] = useState<OrgAuthTokenWithToken | null>(null);
 
@@ -181,8 +177,6 @@ export function OrganizationAuthTokensNewAuthToken({
     </div>
   );
 }
-
-export default withOrganization(OrganizationAuthTokensNewAuthToken);
 
 const ScopeHelpText = styled('div')`
   color: ${p => p.theme.subText};
