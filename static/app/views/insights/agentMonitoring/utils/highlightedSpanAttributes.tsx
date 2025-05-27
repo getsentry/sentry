@@ -1,4 +1,5 @@
 import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
@@ -32,7 +33,7 @@ export function getHighlightedSpanAttributes(
 
   if (attributeObject['ai.model.id']) {
     highlightedAttributes.push({
-      name: 'Model',
+      name: t('Model'),
       value: attributeObject['ai.model.id'],
     });
   }
@@ -42,7 +43,7 @@ export function getHighlightedSpanAttributes(
   const totalTokens = attributeObject['ai.total_tokens.used'];
   if (promptTokens && completionTokens && totalTokens) {
     highlightedAttributes.push({
-      name: 'Tokens',
+      name: t('Tokens'),
       value: (
         <span>
           {promptTokens} <IconArrow direction="right" size="xs" />{' '}
@@ -54,7 +55,7 @@ export function getHighlightedSpanAttributes(
 
   if (attributeObject['ai.toolCall.name']) {
     highlightedAttributes.push({
-      name: 'Tool Name',
+      name: t('Tool Name'),
       value: attributeObject['ai.toolCall.name'],
     });
   }
