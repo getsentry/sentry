@@ -10,7 +10,6 @@ import {DOMAIN_VIEW_BASE_TITLE} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 
-import {useOTelFriendlyUI} from './otlp/useOTelFriendlyUI';
 import type Tab from './transactionSummary/tabs';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 
@@ -72,10 +71,12 @@ export const getTabCrumbs = ({
   traceSlug,
   view,
   vitalName,
+  shouldUseOTelFriendlyUI,
 }: {
   location: Location;
   organization: Organization;
   eventSlug?: string;
+  shouldUseOTelFriendlyUI?: boolean;
   spanSlug?: SpanSlug;
   traceSlug?: string;
   transaction?: {
@@ -113,8 +114,6 @@ export const getTabCrumbs = ({
     query: location.query,
     view,
   };
-
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
   shouldUseOTelFriendlyUI
     ? crumbs.push({
