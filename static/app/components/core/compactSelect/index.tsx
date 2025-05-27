@@ -21,7 +21,6 @@ export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
 interface BaseSelectProps<Value extends SelectKey> extends ControlProps {
   options: Array<SelectOptionOrSection<Value>>;
-  createPortalOnDropdown?: boolean;
 }
 
 export interface SingleSelectProps<Value extends SelectKey>
