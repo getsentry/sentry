@@ -4697,6 +4697,69 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 }
             ]
 
+    def test_release(self):
+        span1 = self.create_span(
+            {
+                "sentry_tags": {
+                    "release": "1.0.8",
+                    "environment": self.environment.name,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        span2 = self.create_span(
+            {
+                "sentry_tags": {
+                    "release": "1.0.9",
+                    "environment": self.environment.name,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([span1, span2], is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["release"],
+                "query": "release:1.0.8",
+                "project": self.project.id,
+                "environment": self.environment.name,
+                "dataset": self.dataset,
+                "orderby": "release",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "1.0.8",
+            },
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["release"],
+                "query": "release:1*",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "release",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "1.0.8",
+            },
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "1.0.9",
+            },
+        ]
+
     def test_latest_release_alias(self):
         self.create_release(version="0.8")
         span1 = self.create_span({"sentry_tags": {"release": "0.8"}}, start_ts=self.ten_mins_ago)
@@ -4846,6 +4909,22 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         }
 
         response = self.do_request({**request, "query": "release.version:>1.2.1"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.2",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3",
+            },
+        ]
+
+        with mock.patch("sentry.search.eap.spans.filter_aliases.constants.MAX_SEARCH_RELEASES", 2):
+            response = self.do_request({**request, "query": "release.version:>1.2.1"})
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {
