@@ -51,28 +51,10 @@ describe('ProjectUserFeedback', function () {
       })
     );
   });
-
-  it('cannot toggle spam detection', function () {
-    render(
-      <ProjectUserFeedback
-        {...routerProps}
-        organization={organization}
-        project={project}
-      />
-    );
-
-    expect(
-      screen.queryByRole('checkbox', {name: 'Enable Spam Detection'})
-    ).not.toBeInTheDocument();
-  });
 });
 
 describe('ProjectUserFeedbackProcessing', function () {
-  const {routerProps, organization, project} = initializeOrg({
-    organization: {
-      features: ['user-feedback-spam-ingest'],
-    },
-  });
+  const {routerProps, organization, project} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/`;
 
   beforeEach(function () {
@@ -87,9 +69,26 @@ describe('ProjectUserFeedbackProcessing', function () {
       method: 'GET',
       body: [],
     });
+    organization.features = [];
+  });
+
+  it('cannot toggle spam detection', function () {
+    render(
+      <ProjectUserFeedback
+        {...routerProps}
+        organization={organization}
+        project={project}
+      />
+    );
+
+    expect(
+      screen.queryByRole('checkbox', {name: 'Enable Spam Detection'})
+    ).not.toBeInTheDocument();
   });
 
   it('can toggle spam detection', async function () {
+    organization.features.push('user-feedback-spam-ingest');
+
     render(
       <ProjectUserFeedback
         {...routerProps}
