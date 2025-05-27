@@ -21,6 +21,7 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import {
   ChonkStyledGroupWrap,
+  ChonkStyledLabelWrap,
   ChonkStyledSegmentWrap,
   ChonkStyledVisibleLabel,
   type Priority,
@@ -219,7 +220,12 @@ function Segment<Value extends string>({
         <Divider visible={showDivider} role="separator" aria-hidden />
       )}
 
-      <LabelWrap size={size} role="presentation">
+      <LabelWrap
+        size={size}
+        isSelected={isSelected}
+        priority={priority}
+        role="presentation"
+      >
         {icon}
         {props.children && label}
       </LabelWrap>
@@ -373,13 +379,20 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
   `}
 `;
 
-const LabelWrap = styled('span')<{size: FormSize}>`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
-  z-index: 1;
-`;
+const LabelWrap = withChonk(
+  styled('span')<{
+    isSelected: boolean;
+    priority: Priority;
+    size: FormSize;
+  }>`
+    display: grid;
+    grid-auto-flow: column;
+    align-items: center;
+    gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
+    z-index: 1;
+  `,
+  ChonkStyledLabelWrap
+);
 
 const InnerLabelWrap = styled('span')`
   position: relative;

@@ -2,6 +2,7 @@ import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import {DO_NOT_USE_getChonkButtonStyles} from 'sentry/components/core/button/styles.chonk';
+import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
@@ -82,16 +83,11 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   }
 `;
 
-export const ChonkStyledVisibleLabel = chonkStyled('span')<{
-  isSelected: boolean;
-  priority: Priority;
-  size: FormSize;
-}>`
+export const ChonkStyledVisibleLabel = chonkStyled('span')`
   ${p => p.theme.overflowEllipsis}
   user-select: none;
   font-weight: ${p => p.theme.fontWeightBold};
   text-align: center;
-  color: ${p => getTextColor(p)};
 `;
 
 function getTextColor({
@@ -110,3 +106,16 @@ function getTextColor({
 
   return theme.subText;
 }
+
+export const ChonkStyledLabelWrap = chonkStyled('span')<{
+  isSelected: boolean;
+  priority: Priority;
+  size: FormSize;
+}>`
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
+  z-index: 1;
+  color: ${p => getTextColor(p)};
+`;
