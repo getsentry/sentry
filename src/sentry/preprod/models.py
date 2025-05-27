@@ -109,8 +109,6 @@ class PreprodArtifact(DefaultFieldsModel):
     build_version = models.CharField(max_length=255, null=True)
     # E.g. 9999
     build_number = BoundedBigIntegerField(null=True)
-    # Some artifacts are embedded with a UUID, e.g. iOS Mach-O binaries
-    build_uuid = models.UUIDField(null=True)
 
     misc: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
 
