@@ -18,7 +18,7 @@ export function SeerAutomationDefault() {
     name: 'defaultAutofixAutomationTuning',
     label: t('Default for New Projects'),
     help: t(
-      "Set the default automation level for newly-created projects. This setting can be overridden on a per-project basis. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager."
+      "Set the default automation level for newly-created projects. This setting can be overridden on a per-project basis. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager. This may have billing implications."
     ),
   } satisfies FieldObject;
 

@@ -47,7 +47,7 @@ export const autofixAutomatingTuningField = {
   label: t('Automatically Fix Issues with Seer'),
   help: props =>
     tct(
-      "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager.[break][break][link:You can configure automation for other projects too.]",
+      "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager. This may have billing implications.[break][break][link:You can configure automation for other projects too.]",
       {
         break: <br />,
         link: <Link to={`/settings/${props.organization?.slug}/seer`} />,
