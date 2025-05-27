@@ -479,8 +479,8 @@ def get_auto_monitored_detectors_for_project(
 ) -> list[Detector]:
     if modes is None:
         modes = [
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE.value,
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         ]
     return list(
         Detector.objects.filter(
