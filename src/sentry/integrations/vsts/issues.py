@@ -79,7 +79,6 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
                 field_name = str(exc).split("Error for field ")[1].split(".")[0]
                 raise IntegrationFormError(field_errors={field_name: f"{field_name} is required."})
             except IndexError:
-                # raise a generic error on the `project` field
                 raise IntegrationFormError()
         raise super().raise_error(exc, identity)
 
