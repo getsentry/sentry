@@ -15,6 +15,7 @@ export type FeedbackIssue = Overwrite<
       name: null | string;
       title: string;
       value: string;
+      associated_event_id?: string;
       initial_priority?: number;
       sdk?: {
         name: string;
@@ -40,6 +41,7 @@ export type FeedbackIssueListItem = Overwrite<
       name: string;
       title: string;
       value: string;
+      associated_event_id?: string;
       sdk?: {
         name: string;
         name_normalized: string;
