@@ -101,7 +101,7 @@ export function LogsInfiniteTable({
   const containerVirtualizer = useVirtualizer({
     count: data?.length ?? 0,
     estimateSize: () => LOGS_GRID_BODY_ROW_HEIGHT,
-    overscan: 100,
+    overscan: 150,
     getScrollElement: () => scrollContainer?.current ?? null,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
   });
