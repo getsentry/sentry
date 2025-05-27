@@ -322,14 +322,20 @@ def ai_model_costs_config() -> AIModelCosts:
                 ("claude-instant*", True, 0.0024),
                 # Cohere command input
                 ("command", False, 0.001),
+                ("command-a", False, 0.0025),
                 ("command-light", False, 0.0003),
-                ("command-r", False, 0.0005),
-                ("command-r-plus", False, 0.003),
+                ("command-r", False, 0.00015),
+                ("command-r-ft", False, 0.0003),
+                ("command-r-plus", False, 0.0025),
+                ("command-r7b", False, 0.0000375),
                 # Cohere command output
                 ("command", True, 0.002),
+                ("command-a", True, 0.01),
                 ("command-light", True, 0.0006),
-                ("command-r", True, 0.0015),
-                ("command-r-plus", True, 0.015),
+                ("command-r", True, 0.0006),
+                ("command-r-ft", True, 0.0012),
+                ("command-r-plus", True, 0.01),
+                ("command-r7b", True, 0.00015),
             ]
         ],
     }
