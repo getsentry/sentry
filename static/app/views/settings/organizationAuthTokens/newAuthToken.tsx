@@ -52,20 +52,17 @@ function AuthTokenCreateForm({
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const handleGoBack = useCallback(
     () => navigate(`/settings/${organization.slug}/auth-tokens/`),
     [navigate, organization.slug]
   );
 
-  const {mutate: submitToken} = useMutation<
+  const {mutate: submitToken, isPending} = useMutation<
     CreateOrgAuthTokensResponse,
     RequestError,
     CreateTokenQueryVariables
   >({
     mutationFn: ({name}) => {
-      setIsSubmitting(true);
       addLoadingMessage();
       return api.requestPromise(`/organizations/${organization.slug}/org-auth-tokens/`, {
         method: 'POST',
@@ -83,7 +80,6 @@ function AuthTokenCreateForm({
       });
 
       onCreatedToken(token);
-      setIsSubmitting(false);
     },
     onError: error => {
       const detail = error.responseJSON?.detail;
@@ -97,7 +93,6 @@ function AuthTokenCreateForm({
           : t('Failed to create a new auth token.');
       handleXhrErrorResponse(message, error);
       addErrorMessage(message);
-      setIsSubmitting(false);
     },
   });
 
@@ -112,7 +107,7 @@ function AuthTokenCreateForm({
       onCancel={handleGoBack}
       submitLabel={t('Create Auth Token')}
       requireChanges
-      submitDisabled={isSubmitting}
+      submitDisabled={isPending}
     >
       <TextField
         name="name"
