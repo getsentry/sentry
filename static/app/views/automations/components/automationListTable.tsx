@@ -90,6 +90,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 
   .last-triggered,
   .action,
+  .projects,
   .connected-monitors {
     display: none;
   }
@@ -119,7 +120,11 @@ const StyledPanelHeader = styled(PanelHeader)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr;
+    grid-template-columns: minmax(0, 3fr) 1fr 1fr 0.5fr 1fr;
+
+    .projects {
+      display: flex;
+    }
   }
 `;
 

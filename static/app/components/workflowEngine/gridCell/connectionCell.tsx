@@ -7,9 +7,11 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
+import {useDetectorQueriesByIds} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 export type ConnectionCellProps = {
@@ -55,28 +57,33 @@ function Overlay(props: ConnectionCellProps) {
   const organization = useOrganization();
 
   const createLink = links[type];
-  // TODO(natemoo-re): fetch data for each id
-  return ids.map((id, index) => {
-    const link = createLink(organization.slug, id);
+  const detectorsQuery = useDetectorQueriesByIds(ids);
+
+  return detectorsQuery.map(({data: detector}, index) => {
+    if (!detector) {
+      return null;
+    }
+    const link = createLink(organization.slug, detector.id);
     const description = 'description';
+    const project = ProjectsStore.getById(detector.projectId);
     return (
-      <Fragment key={id}>
+      <Fragment key={detector.id}>
         {index > 0 && <Divider />}
         <HovercardRow to={link}>
-          <strong>
-            {type}-{index + 1}
-          </strong>
+          <strong>{detector.name}</strong>
           <MonitorDetails>
-            <ProjectBadge
-              css={css`
-                && img {
-                  box-shadow: none;
-                }
-              `}
-              project={{id: '1', slug: 'project-slug'}}
-              avatarSize={16}
-              disableLink
-            />
+            {project && (
+              <ProjectBadge
+                css={css`
+                  && img {
+                    box-shadow: none;
+                  }
+                `}
+                project={project}
+                avatarSize={16}
+                disableLink
+              />
+            )}
             {description && (
               <Fragment>
                 <Separator />
