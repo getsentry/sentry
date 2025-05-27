@@ -413,6 +413,7 @@ def perform_request(payload: WebhookPayload) -> None:
 
     match destination_type:
         case DestinationType.SENTRY_REGION:
+            assert payload.region_name is not None
             region = get_region_by_name(name=payload.region_name)
             perform_region_request(region, payload)
         case DestinationType.CODECOV:

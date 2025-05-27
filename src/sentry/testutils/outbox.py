@@ -93,10 +93,11 @@ def assert_webhook_payloads_for_mailbox(
         assert message.attempts == 0
 
         if destination_types:
-            assert message.destination_type in destination_types
-            destination_types[message.destination_type] -= 1
-            if destination_types[message.destination_type] == 0:
-                del destination_types[message.destination_type]
+            destination_type = DestinationType(message.destination_type)
+            assert destination_type in destination_types
+            destination_types[destination_type] -= 1
+            if destination_types[destination_type] == 0:
+                del destination_types[destination_type]
 
         if message.region_name:
             try:
