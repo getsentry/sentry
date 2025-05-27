@@ -24,6 +24,7 @@ from sentry.constants import (
 )
 from sentry.db.models import BoundedPositiveIntegerField, region_silo_model, sane_repr
 from sentry.db.models.fields.slug import SentryOrgSlugField
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.utils import slugify_instance
@@ -209,7 +210,9 @@ class Organization(ReplicatedRegionModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"
-        indexes = (models.Index(Upper("slug"), name="organization_slug_upper_idx"),)
+        indexes = (
+            IndexWithPostgresNameLimits(Upper("slug"), name="sentry_organization_slug_upper_idx"),
+        )
 
     __repr__ = sane_repr("owner_id", "name", "slug")
 

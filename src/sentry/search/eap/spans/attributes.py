@@ -21,15 +21,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
-from sentry.utils.validators import is_empty_string, is_event_id, is_span_id
-
-
-def validate_event_id(value: str | list[str]) -> bool:
-    if isinstance(value, list):
-        return all([is_event_id(item) for item in value])
-    else:
-        return is_event_id(value)
-
+from sentry.utils.validators import is_empty_string, is_event_id_or_list, is_span_id
 
 SPAN_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
@@ -37,7 +29,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
     + [
         ResolvedAttribute(
             public_alias="id",
-            internal_name="sentry.span_id",
+            internal_name="sentry.item_id",
             search_type="string",
             validator=is_span_id,
         ),
@@ -54,24 +46,24 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias="span.description",
-            internal_name="sentry.name",
+            internal_name="sentry.raw_description",
             search_type="string",
         ),
         ResolvedAttribute(
             public_alias="description",
-            internal_name="sentry.name",
+            internal_name="sentry.raw_description",
             search_type="string",
             secondary_alias=True,
         ),
         ResolvedAttribute(
             public_alias="sentry.normalized_description",
-            internal_name="sentry.description",
+            internal_name="sentry.normalized_description",
             search_type="string",
         ),
         # Message maps to description, this is to allow wildcard searching
         ResolvedAttribute(
             public_alias="message",
-            internal_name="sentry.name",
+            internal_name="sentry.raw_description",
             search_type="string",
             secondary_alias=True,
         ),
@@ -125,11 +117,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",
-            validator=validate_event_id,
+            validator=is_event_id_or_list,
         ),
         ResolvedAttribute(
             public_alias="transaction",
-            internal_name="sentry.segment_name",
+            internal_name="sentry.transaction",
             search_type="string",
         ),
         ResolvedAttribute(
@@ -220,12 +212,12 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias=PRECISE_START_TS,
-            internal_name="sentry.start_timestamp",
+            internal_name="sentry.start_timestamp_precise",
             search_type="number",
         ),
         ResolvedAttribute(
             public_alias=PRECISE_FINISH_TS,
-            internal_name="sentry.end_timestamp",
+            internal_name="sentry.end_timestamp_precise",
             search_type="number",
         ),
         ResolvedAttribute(
@@ -285,27 +277,27 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias="spans.browser",
-            internal_name="sentry.span_ops.ops.browser",
+            internal_name="span_ops.ops.browser",
             search_type="millisecond",
         ),
         ResolvedAttribute(
             public_alias="spans.db",
-            internal_name="sentry.span_ops.ops.db",
+            internal_name="span_ops.ops.db",
             search_type="millisecond",
         ),
         ResolvedAttribute(
             public_alias="spans.http",
-            internal_name="sentry.span_ops.ops.http",
+            internal_name="span_ops.ops.http",
             search_type="millisecond",
         ),
         ResolvedAttribute(
             public_alias="spans.resource",
-            internal_name="sentry.span_ops.ops.resource",
+            internal_name="span_ops.ops.resource",
             search_type="millisecond",
         ),
         ResolvedAttribute(
             public_alias="spans.ui",
-            internal_name="sentry.span_ops.ops.ui",
+            internal_name="span_ops.ops.ui",
             search_type="millisecond",
         ),
         ResolvedAttribute(
@@ -464,7 +456,7 @@ def is_starred_segment_context_constructor(params: SnubaParams) -> VirtualColumn
     value_map = {result.segment_name: "true" for result in starred_segment_results}
 
     return VirtualColumnContext(
-        from_column_name="sentry.segment_name",
+        from_column_name="sentry.transaction",
         to_column_name="is_starred_transaction",
         value_map=value_map,
         default_value="false",  # We can directly make this a boolean when https://github.com/getsentry/eap-planning/issues/224 is fixed
@@ -480,11 +472,22 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[
     | {
         # sentry.service is the project id as a string, but map to project for convenience
         "sentry.service": "project",
+        # Temporarily reverse map these old aliases.
+        # TODO: Once TraceItemAttributeNamesResponse is updated
+        # to return the new aliases, remove these temp mappings.
+        "sentry.name": "span.description",
+        "sentry.description": "sentry.normalized_description",
+        "sentry.span_id": "id",
+        "sentry.segment_name": "transaction",
     },
     "number": {
         definition.internal_name: definition.public_alias
         for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
         if not definition.secondary_alias and definition.search_type != "string"
+    }
+    | {
+        "sentry.start_timestamp": PRECISE_START_TS,
+        "sentry.end_timestamp": PRECISE_FINISH_TS,
     },
 }
 

@@ -62,10 +62,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 id=1, is_new=False, is_regression=True, is_new_group_environment=False
             ),
         )
-        self.workflow_metric_tags = {
-            "detector_type": self.error_detector.type,
-            "organization_id": None,
-        }
 
     def test_skips_disabled_workflows(self):
         workflow_triggers = self.create_data_condition_group()
@@ -280,7 +276,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_incr.assert_any_call(
             "workflow_engine.process_workflows",
             1,
-            tags=self.workflow_metric_tags,
+            tags={"detector_type": self.error_detector.type},
         )
 
     @patch("sentry.utils.metrics.incr")
@@ -290,7 +286,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_incr.assert_any_call(
             "workflow_engine.process_workflows.triggered_workflows",
             1,
-            tags=self.workflow_metric_tags,
+            tags={"detector_type": self.error_detector.type},
         )
 
     @with_feature("organizations:workflow-engine-process-workflows")
@@ -302,20 +298,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_incr.assert_any_call(
             "workflow_engine.process_workflows.triggered_actions",
             amount=0,
-            tags=self.workflow_metric_tags,
-        )
-
-    @with_feature("organizations:workflow-engine-process-workflows")
-    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
-    @patch("sentry.utils.metrics.incr")
-    def test_metrics_issue_dual_processing_metrics(self, mock_incr):
-        process_workflows(self.event_data)
-        mock_incr.assert_any_call(
-            "workflow_engine.process_workflows.fired_actions",
-            tags={
-                "detector_type": self.error_detector.type,
-                "organization_id": self.error_detector.project.organization_id,
-            },
+            tags={"detector_type": self.error_detector.type},
         )
 
 
@@ -548,6 +531,18 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
         self.event_data = WorkflowEventData(event=self.group_event)
 
+    @with_feature("organizations:workflow-engine-process-workflows")
+    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
+    @patch("sentry.utils.metrics.incr")
+    def test_metrics_issue_dual_processing_metrics(self, mock_incr):
+        process_workflows(self.event_data)
+        mock_incr.assert_any_call(
+            "workflow_engine.process_workflows.fired_actions",
+            tags={
+                "detector_type": self.detector.type,
+            },
+        )
+
     def test_basic__no_filter(self):
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
         assert set(triggered_actions) == {self.action}
@@ -628,7 +623,6 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
-                has_fired_actions=True,
             ).count()
             == 1
         )

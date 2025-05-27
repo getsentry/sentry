@@ -323,17 +323,13 @@ const HeaderContainer = styled('div')`
 export function IssuesWidget() {
   const location = useLocation();
   const {query} = useTransactionNameQuery();
-  const queryWithDefault = new MutableSearch(['is:unresolved', 'event.type:error']);
-  if (query) {
-    queryWithDefault.setFilterValues('transaction', [query]);
-  }
 
   const queryParams = {
     limit: '5',
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
-    query: queryWithDefault.formatString(),
+    query: `is:unresolved event.type:error ${query}`,
     sort: 'freq',
   };
 

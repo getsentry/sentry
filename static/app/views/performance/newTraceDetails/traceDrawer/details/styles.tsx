@@ -416,6 +416,7 @@ type HighlightProps = {
   node: TraceTreeNode<TraceTree.NodeValue>;
   project: Project | undefined;
   transaction: EventTransaction | undefined;
+  highlightedAttributes?: Array<{name: string; value: React.ReactNode}>;
 };
 
 function Highlights({
@@ -425,6 +426,7 @@ function Highlights({
   project,
   headerContent,
   bodyContent,
+  highlightedAttributes,
 }: HighlightProps) {
   const dispatch = useTraceStateDispatch();
 
@@ -479,6 +481,16 @@ function Highlights({
               </HiglightsDurationComparison>
             ) : null}
           </HighlightsDurationWrapper>
+          {highlightedAttributes && highlightedAttributes.length > 0 ? (
+            <HighlightedAttributesWrapper>
+              {highlightedAttributes.map(({name, value}) => (
+                <Fragment key={name}>
+                  <HighlightedAttributeName>{name}</HighlightedAttributeName>
+                  <div>{value}</div>
+                </Fragment>
+              ))}
+            </HighlightedAttributesWrapper>
+          ) : null}
           <StyledPanel>
             <StyledPanelHeader>{headerContent}</StyledPanelHeader>
             <PanelBody>{bodyContent}</PanelBody>
@@ -651,6 +663,19 @@ const HighlightOp = styled('div')`
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: normal;
+`;
+
+const HighlightedAttributesWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: ${space(1.5)};
+  row-gap: ${space(0.5)};
+  margin-bottom: ${space(1.5)};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const HighlightedAttributeName = styled('div')`
+  color: ${p => p.theme.subText};
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
@@ -1156,7 +1181,7 @@ const ActionWrapper = styled('div')`
   overflow: visible;
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${space(0.5)};
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {

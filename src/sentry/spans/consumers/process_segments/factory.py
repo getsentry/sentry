@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping
+from datetime import datetime
 
 import orjson
 import sentry_sdk
@@ -14,7 +15,9 @@ from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
+from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.message import process_segment
+from sentry.spans.consumers.process_segments.types import Span
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -48,7 +51,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.num_processes = num_processes
         self.pool = MultiprocessingPool(num_processes)
 
-        topic_definition = get_topic_definition(Topic.SNUBA_SPANS)
+        topic_definition = get_topic_definition(Topic.SNUBA_ITEMS)
         producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
 
         # Due to the unfold step that precedes the producer, this pipeline
@@ -99,7 +102,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.pool.close()
 
 
-def _process_message(message: Message[KafkaPayload]) -> list[bytes]:
+def _process_message(message: Message[KafkaPayload]) -> list[Value[KafkaPayload]]:
     if not options.get("standalone-spans.process-segments-consumer.enable"):
         return []
 
@@ -107,16 +110,28 @@ def _process_message(message: Message[KafkaPayload]) -> list[bytes]:
         value = message.payload.value
         segment = orjson.loads(value)
         processed = process_segment(segment["spans"])
-        return [orjson.dumps(span) for span in processed]
+        return [_serialize_payload(span, message.timestamp) for span in processed]
     except Exception:
         # TODO: revise error handling
         sentry_sdk.capture_exception()
         return []
 
 
-def _unfold_segment(spans: list[bytes]):
-    return [
-        Value(KafkaPayload(key=None, value=span, headers=[]), {})
-        for span in spans
-        if span is not None
-    ]
+def _serialize_payload(span: Span, timestamp: datetime | None) -> Value[KafkaPayload]:
+    item = convert_span_to_item(span)
+    return Value(
+        KafkaPayload(
+            key=None,
+            value=item.SerializeToString(),
+            headers=[
+                ("item_type", str(item.item_type).encode("ascii")),
+                ("project_id", str(span["project_id"]).encode("ascii")),
+            ],
+        ),
+        {},
+        timestamp,
+    )
+
+
+def _unfold_segment(spans: list[Value[KafkaPayload]]):
+    return [span for span in spans if span is not None]
