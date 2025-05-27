@@ -43,12 +43,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         max_memory_percentage: float,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
         next_step: ProcessingStrategy[FilteredPayload | int],
-        max_segment_size_bytes: int = 10000000,
     ):
         self.buffer = buffer
         self.max_flush_segments = max_flush_segments
         self.max_memory_percentage = max_memory_percentage
-        self.max_segment_size_bytes = max_segment_size_bytes
         self.next_step = next_step
 
         self.stopped = multiprocessing.Value("i", 0)
@@ -80,7 +78,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 self.buffer,
                 self.max_flush_segments,
                 self.produce_to_pipe,
-                self.max_segment_size_bytes,
             ),
             daemon=True,
         )
@@ -97,7 +94,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         buffer: SpansBuffer,
         max_flush_segments: int,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
-        max_segment_size_bytes: int,
     ) -> None:
         if initializer:
             initializer()
@@ -124,7 +120,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
             while not stopped.value:
                 now = int(time.time()) + current_drift.value
-                flushed_segments = buffer.flush_segments(max_segments=max_flush_segments, now=now)
+                flushed_segments = buffer.flush_segments(now=now, max_segments=max_flush_segments)
 
                 if len(flushed_segments) >= max_flush_segments * len(buffer.assigned_shards):
                     if backpressure_since.value == 0:
@@ -139,25 +135,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 with metrics.timer("spans.buffer.flusher.produce"):
                     for _, flushed_segment in flushed_segments.items():
                         if not flushed_segment.spans:
-                            # This is a bug, most likely the input topic is not
-                            # partitioned by trace_id so multiple consumers are writing
-                            # over each other. The consequence is duplicated segments,
-                            # worst-case.
-                            metrics.incr("sentry.spans.buffer.empty_segments")
                             continue
 
                         spans = [span.payload for span in flushed_segment.spans]
-
                         kafka_payload = KafkaPayload(None, orjson.dumps({"spans": spans}), [])
-
                         metrics.timing("spans.buffer.segment_size_bytes", len(kafka_payload.value))
-                        if len(kafka_payload.value) <= max_segment_size_bytes:
-                            produce(kafka_payload)
-                        else:
-                            metrics.incr("spans.buffer.flusher.segment_size_exceeded")
-                            logger.error(
-                                "Skipping too large segment, byte size %s", len(kafka_payload.value)
-                            )
+                        produce(kafka_payload)
 
                 with metrics.timer("spans.buffer.flusher.wait_produce"):
                     for future in producer_futures:
