@@ -85,7 +85,7 @@ internal_only_project_settings_to_group_map: dict[str, type[GroupType]] = {
     InternalProjectOptions.HTTP_OVERHEAD.value: PerformanceHTTPOverheadGroupType,
     InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
     InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: ProfileFunctionRegressionType,
-    InternalProjectOptions.SQL_INJECTION.value: DBInjectionVulnerabilityGroupType,
+    InternalProjectOptions.DATABASE_INJECTION.value: DBInjectionVulnerabilityGroupType,
 }
 
 configurable_thresholds_to_internal_settings_map: dict[str, str] = {
