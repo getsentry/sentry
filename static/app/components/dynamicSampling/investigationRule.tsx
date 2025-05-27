@@ -24,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Datasource} from 'sentry/views/alerts/rules/metric/types';
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 
 // Number of samples under which we can trigger an investigation rule
 const INVESTIGATION_MAX_SAMPLES_TRIGGER = 5;
@@ -193,7 +194,8 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     ? appendEventTypeCondition(eventView.getQuery())
     : eventView.getQuery();
 
-  if (organization.features.includes('performance-transaction-summary-eap')) {
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  if (shouldUseOTelFriendlyUI) {
     query = query.replace(/\bis_transaction:true\b/i, 'event.type:transaction');
   }
 
