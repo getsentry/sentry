@@ -142,7 +142,7 @@ describe('CheckInRow', () => {
     await userEvent.hover(earlyBadge);
 
     const expectedTooltip = textWithMarkupMatcher(
-      'This check-in was Received 24 hours before it was expected. This is likely due to a misconfiguration.'
+      'This check-in was recorded 24 hours earlier than expected, which may indicate a configuration issue.'
     );
 
     expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe('CheckInRow', () => {
     await userEvent.hover(earlyBadge);
 
     const expectedTooltip = textWithMarkupMatcher(
-      'This check-in was received 24 hours before it was expected. This may be due to the missing in-progress check-in, as your job reported a duration of 12 minutes without sending an in-progress. Your grace period for the first check-in is 5 minutes.'
+      'This check-in was recorded 24 hours earlier than expected. This may be due to a missing in-progress check-in, as your job reported a duration of 12 minutes without sending one. The grace period for your monitor before the check-in is considered missed is 5 minutes.'
     );
 
     expect(await screen.findByText(expectedTooltip)).toBeInTheDocument();
