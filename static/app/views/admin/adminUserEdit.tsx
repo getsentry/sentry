@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {useParams} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -24,6 +23,7 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
 
 const userEditForm: JsonFormObject = {
   title: 'User details',
