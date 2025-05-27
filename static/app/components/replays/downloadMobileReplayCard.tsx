@@ -57,8 +57,8 @@ export default function DownloadMobileReplayCard({
         <Hovercard
           body={
             <DownloadResourceButtons
-              replayId={replayRecord?.id ? undefined : undefined}
-              projectId={undefined}
+              replayId={replayRecord?.id}
+              projectId={replayRecord?.project_id}
             />
           }
           bodyClassName={css`
