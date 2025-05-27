@@ -1,3 +1,4 @@
+from enum import IntEnum
 from typing import Any
 
 from django.db import models
@@ -16,7 +17,7 @@ from sentry.db.models.fields.jsonfield import JSONField
 @region_silo_model
 class PreprodArtifact(DefaultFieldsModel):
     """
-    A pre-production artifact provided by the user, presumably from their CI/CD pipeline.
+    A pre-production artifact provided by the user, presumably from their CI/CD pipeline or a manual build.
     With this, we can analyze their artifact and provide them with insights to fix _before_
     it's released to production.
 
@@ -25,7 +26,7 @@ class PreprodArtifact(DefaultFieldsModel):
     - Android app builds
     """
 
-    class ArtifactState:
+    class ArtifactState(IntEnum):
         UPLOADING = 0
         """The user has initiated the upload, but it is not yet complete."""
         UPLOADED = 1
@@ -44,7 +45,7 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.FAILED, "failed"),
             )
 
-    class ArtifactType:
+    class ArtifactType(IntEnum):
         XCARCHIVE = 0
         """Apple Xcode archive."""
         AAB = 1
@@ -60,7 +61,7 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.APK, "apk"),
             )
 
-    class ErrorCode:
+    class ErrorCode(IntEnum):
         UNKNOWN = 0
         """The error code is unknown. Try to use a descriptive error code if possible."""
         UPLOAD_TIMEOUT = 1
@@ -81,8 +82,6 @@ class PreprodArtifact(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    # Having a FK to both Org/Project is unnecessary
-    organization_id = BoundedBigIntegerField(db_index=True)
     project = FlexibleForeignKey("sentry.Project")
 
     # Nullable in case the file upload fails
@@ -93,13 +92,14 @@ class PreprodArtifact(DefaultFieldsModel):
     date_built = models.DateTimeField(null=True)
 
     build_configuration = FlexibleForeignKey(
-        "sentry.PreprodBuildConfiguration", null=True, on_delete=models.SET_NULL
+        "preprod.PreprodBuildConfiguration", null=True, on_delete=models.SET_NULL
     )
 
     state = BoundedPositiveIntegerField(
         default=ArtifactState.UPLOADING, choices=ArtifactState.as_choices()
     )
 
+    # Nullable because we only know the type after the artifact has been processed
     artifact_type = BoundedPositiveIntegerField(choices=ArtifactType.as_choices(), null=True)
 
     error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
@@ -110,10 +110,10 @@ class PreprodArtifact(DefaultFieldsModel):
     # E.g. 9999
     build_number = BoundedBigIntegerField(null=True)
 
-    misc: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+    extras: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
 
     class Meta:
-        app_label = "sentry"
+        app_label = "preprod"
         db_table = "sentry_preprodartifact"
 
 
@@ -123,12 +123,11 @@ class PreprodBuildConfiguration(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
     project = FlexibleForeignKey("sentry.Project")
     name = models.CharField(max_length=255)
 
     class Meta:
-        app_label = "sentry"
+        app_label = "preprod"
         db_table = "sentry_preprodbuildconfiguration"
         unique_together = ("project", "name")
 
@@ -140,7 +139,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     size metrics.
     """
 
-    class MetricsArtifactType:
+    class MetricsArtifactType(IntEnum):
         MAIN_ARTIFACT = 0
         """The main artifact."""
         WATCH_ARTIFACT = 1
@@ -156,7 +155,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
                 (cls.ANDROID_DYNAMIC_FEATURE, "android_dynamic_feature_artifact"),
             )
 
-    class SizeAnalysisState:
+    class SizeAnalysisState(IntEnum):
         PENDING = 0
         """Size analysis has not started yet."""
         PROCESSING = 1
@@ -175,7 +174,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
                 (cls.FAILED, "failed"),
             )
 
-    class ErrorCode:
+    class ErrorCode(IntEnum):
         UNKNOWN = 0
         """The error code is unknown. Try to use a descriptive error code if possible."""
         TIMEOUT = 1
@@ -196,7 +195,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    preprod_artifact = FlexibleForeignKey("sentry.PreprodArtifact")
+    preprod_artifact = FlexibleForeignKey("preprod.PreprodArtifact")
     metrics_artifact_type = BoundedPositiveIntegerField(
         choices=MetricsArtifactType.as_choices(), null=True
     )
@@ -218,6 +217,6 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     max_download_size = BoundedPositiveBigIntegerField(null=True)
 
     class Meta:
-        app_label = "sentry"
+        app_label = "preprod"
         db_table = "sentry_preprodartifactsizemetrics"
         unique_together = ("preprod_artifact", "metrics_artifact_type")
