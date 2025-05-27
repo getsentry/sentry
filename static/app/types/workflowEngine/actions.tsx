@@ -37,7 +37,7 @@ export interface ActionHandler {
   sentryApp?: SentryAppContext;
   services?: PluginService[];
 }
-export interface Integration {
+interface Integration {
   id: string;
   name: string;
   services?: Array<{
@@ -46,7 +46,7 @@ export interface Integration {
   }>;
 }
 
-export interface SentryAppContext {
+interface SentryAppContext {
   id: string;
   installationId: string;
   name: string;
@@ -55,7 +55,7 @@ export interface SentryAppContext {
   title?: string;
 }
 
-export interface PluginService {
+interface PluginService {
   name: string;
   slug: string;
 }

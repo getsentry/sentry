@@ -10,16 +10,14 @@ interface UseAutomationsQueryOptions {
 export function useAutomationsQuery(_options: UseAutomationsQueryOptions = {}) {
   const {slug} = useOrganization();
 
-  return useApiQuery<Automation[]>([`/organizations/${slug}/workflows/`], {
+  return useApiQuery<Automation[]>(makeAutomationQueryKey(slug), {
     staleTime: 0,
     retry: false,
   });
 }
-
-export const makeAutomationQueryKey = (
-  orgSlug: string,
-  automationId = ''
-): [url: string] => [`/organizations/${orgSlug}/workflows/${automationId}/`];
+const makeAutomationQueryKey = (orgSlug: string, automationId = ''): [url: string] => [
+  `/organizations/${orgSlug}/workflows/${automationId ? `${automationId}/` : ''}/`,
+];
 
 export function useAvailableActionsQuery() {
   const {slug} = useOrganization();

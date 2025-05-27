@@ -8,7 +8,7 @@ export function WebhookNode() {
   });
 }
 
-export function ServicesField() {
+function ServicesField() {
   const {action, actionId, onUpdate, handler} = useActionNodeContext();
   const services = handler?.services;
 
