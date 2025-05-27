@@ -35,7 +35,7 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
   } else if (autofixRunExists) {
     seerTitle = t('Seer has insight into this issue');
   } else if (seerFixable) {
-    seerTitle = t('This issue might be quick to fix');
+    seerTitle = t('Seer thinks this issue might be quick to fix');
   }
 
   if (!showSeer) {
