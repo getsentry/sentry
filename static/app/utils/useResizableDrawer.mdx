@@ -5,15 +5,23 @@ import { useResizableDrawer } from './useResizableDrawer';
 
 Use this hook to create a resizable drawer.
 
-```
+### Return
+
+- `resizing`: A boolean that indicates if the drawer is resizing.
+- `resizeHandleProps`: The props to pass to the resize handle.
+- `resizedElementProps`: The props to pass to the element you wish to resize.
+
+```tsx
 function App() {
-  const { isHeld, onMouseDown } = useResizableDrawer({
+  const { resizing, resizeHandleProps, resizedElementProps } = useResizableDrawer({
     direction: 'right',
   });
 
   return (
     <div>
-      <div onMouseDown={onMouseDown}>Resize</div>
+      <div {...resizedElementProps}>
+        <div {...resizeHandleProps}>Resize</div>
+      </div>
     </div>
   );
 }
@@ -22,20 +30,20 @@ function App() {
 ## Resizing Width
 
 export function Demo() {
-  const [size, setSize] = useState(200);
-  const { resizeHandleProps, resize } = useResizableDrawer({
+  const { resizing, resizeHandleProps, resizedElementProps } = useResizableDrawer({
     direction: 'right',
-    initialSize: {width: 200, height: 200},
+    initialSize: {width: 200},
+    max: {width: 400},
+    min: {width: 100},
   });
-
 
   return (
     <div>
       <div
-        {...resizeHandleProps}
-        style={{ padding: '10px', border: '1px solid #ccc', width: size }}
+        {...resizedElementProps}
+        style={{ padding: '10px', border: '1px solid #ccc' }}
       >
-        Resize
+        <div {...resizeHandleProps}>Resize to max 400px and min 100px</div>
       </div>
     </div>
   );
