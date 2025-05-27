@@ -225,35 +225,36 @@ export default typescript.config([
     'stylelint.config.js',
     '.artifacts/**/*',
   ]),
-  //    * Rules are grouped by plugin. If you want to override a specific rule inside
-  //    * the recommended set, then it's recommended to spread the new rule on top
-  //    * of the predefined ones.
-  //    *
-  //    * For example: if you want to enable a new plugin in the codebase and their
-  //    * recommended rules (or a new rule that's part of an existing plugin)
-  //    *
-  //    * 1. First you'd setup a configuration object for that plugin:
-  //    *    {
-  //    *      name: 'my-plugin/recommended',
-  //    *      ...myPlugin.configs.recommended,
-  //    *    },
-  //    *
-  //    * 2. Second you'd override the rule you want to deal with, maybe making it a
-  //    *    warning to start:
-  //    *    {
-  //    *      name: 'my-plugin/recommended',
-  //    *      ...myPlugin.configs.recommended,
-  //    *      rules: {
-  //    *        ['a-rule-outside-the-recommended-list']: 'error',
-  //    *
-  //    *        ...myPlugin.configs.recommended.rules,
-  //    *        ['a-recommended-rule']: 'warn',
-  //    *      }
-  //    *    },
-  //    *
-  //    * 3. Finally, once all warnings are fixed, update from 'warning' to 'error',
-  //    *    or remove the override and rely on the recommended rules again.
-  //
+  /**
+   * Rules are grouped by plugin. If you want to override a specific rule inside
+   * the recommended set, then it's recommended to spread the new rule on top
+   * of the predefined ones.
+   *
+   * For example: if you want to enable a new plugin in the codebase and their
+   * recommended rules (or a new rule that's part of an existing plugin)
+   *
+   * 1. First you'd setup a configuration object for that plugin:
+   *    {
+   *      name: 'my-plugin/recommended',
+   *      ...myPlugin.configs.recommended,
+   *    },
+   *
+   * 2. Second you'd override the rule you want to deal with, maybe making it a
+   *    warning to start:
+   *    {
+   *      name: 'my-plugin/recommended',
+   *      ...myPlugin.configs.recommended,
+   *      rules: {
+   *        ['a-rule-outside-the-recommended-list']: 'error',
+   *
+   *        ...myPlugin.configs.recommended.rules,
+   *        ['a-recommended-rule']: 'warn',
+   *      }
+   *    },
+   *
+   * 3. Finally, once all warnings are fixed, update from 'warning' to 'error',
+   *    or remove the override and rely on the recommended rules again.
+   */
   {
     name: 'eslint/rules',
     // https://eslint.org/docs/latest/rules/
@@ -502,11 +503,11 @@ export default typescript.config([
       '@typescript-eslint/no-useless-empty-export': 'error',
     },
   },
-  //   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/base.ts
-  //   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/eslint-recommended-raw.ts
-  //   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/recommended.ts
-  //   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/strict.ts
-  //   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/base.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/eslint-recommended-raw.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/recommended.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/strict.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
   ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
   {
