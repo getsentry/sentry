@@ -52,7 +52,7 @@ function bfsFilter(root: ProcessedTreeCoverageSunburstData, maxDepth: number) {
  *   children: <recursive structure>[] | undefined - only dir nodes should have the children field;
  * }
  */
-export interface TreeCoverageSunburstData {
+interface TreeCoverageSunburstData {
   children: TreeCoverageSunburstData[];
   coverage: number;
   fullPath: string;

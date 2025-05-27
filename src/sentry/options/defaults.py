@@ -1676,7 +1676,7 @@ register(
 )
 register(
     "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
-    default=0.25,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2661,6 +2661,11 @@ register(
 register(
     "standalone-spans.deserialize-spans-orjson.enable",
     default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.buffer.flusher.backpressure_seconds",
+    default=10,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
