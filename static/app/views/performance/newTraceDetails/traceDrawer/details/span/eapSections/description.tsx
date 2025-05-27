@@ -73,28 +73,27 @@ export function SpanDescription({
 
   const category = findSpanAttributeValue(attributes, 'span.category');
   const dbSystem = findSpanAttributeValue(attributes, 'db.system');
-  const description = findSpanAttributeValue(attributes, 'raw_description');
   const group = findSpanAttributeValue(attributes, 'span.group');
 
   const resolvedModule: ModuleName = resolveSpanModule(span.op, category);
 
   const formattedDescription = useMemo(() => {
     if (resolvedModule !== ModuleName.DB) {
-      return description ?? '';
+      return span.description ?? '';
     }
 
     if (
       dbSystem === SupportedDatabaseSystem.MONGODB &&
-      description &&
-      isValidJson(description)
+      span.description &&
+      isValidJson(span.description)
     ) {
-      return prettyPrintJsonString(description).prettifiedQuery;
+      return prettyPrintJsonString(span.description).prettifiedQuery;
     }
 
     return formatter.toString(span.description ?? '');
-  }, [span.description, resolvedModule, description, dbSystem]);
+  }, [span.description, resolvedModule, dbSystem]);
 
-  const actions = description ? (
+  const actions = span.description ? (
     <BodyContentWrapper
       padding={
         resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
@@ -115,7 +114,7 @@ export function SpanDescription({
                 location,
                 node.event?.projectID,
                 SpanIndexedField.SPAN_DESCRIPTION,
-                span.description!,
+                span.description,
                 TraceDrawerActionKind.INCLUDE
               )
             : spanDetailsRouteWithQuery({
@@ -186,10 +185,10 @@ export function SpanDescription({
       <DescriptionWrapper>
         {formattedDescription ? (
           <Fragment>
-            <span>
+            <FormattedDescription>
               {formattedDescription}
               <LinkHint value={formattedDescription} />
-            </span>
+            </FormattedDescription>
             <CopyToClipboardButton
               borderless
               size="zero"
@@ -361,9 +360,15 @@ const StyledCodeSnippet = styled(CodeSnippet)`
   }
 `;
 
+const FormattedDescription = styled('div')`
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+`;
+
 const DescriptionWrapper = styled('div')`
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   font-size: ${p => p.theme.fontSizeMedium};
   width: 100%;
   justify-content: space-between;
