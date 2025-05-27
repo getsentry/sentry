@@ -21,6 +21,7 @@ import type {
 
 import {shiftTabularDataToNow} from './__stories__/shiftTabularDataToNow';
 import {shiftTimeSeriesToNow} from './__stories__/shiftTimeSeriesToNow';
+import {sampleCrashFreeRateTimeSeries} from './fixtures/sampleCrashFreeRateTimeSeries';
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleScoreTimeSeries} from './fixtures/sampleScoreTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
@@ -57,6 +58,19 @@ const sampleDurationTimeSeriesP75: TimeSeries = {
 };
 
 const shiftedSpanSamples = shiftTabularDataToNow(spanSamplesWithDurations);
+
+const releases = [
+  {
+    version: 'ui@0.1.2',
+    timestamp: new Date(sampleThroughputTimeSeries.values.at(2)!.timestamp).toISOString(),
+  },
+  {
+    version: 'ui@0.1.3',
+    timestamp: new Date(
+      sampleThroughputTimeSeries.values.at(20)!.timestamp
+    ).toISOString(),
+  },
+].filter(hasTimestamp);
 
 export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIReference) => {
   APIReference(types.TimeSeriesWidgetVisualization);
@@ -218,8 +232,8 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           {`
 <TimeSeriesWidgetVisualization
   plottables={[
-    new Bars(timeSeries, {color: 'red', delay: 60 * 60 * 3, stack: 'all'}),
-    new Bars(timeSeries2, {color: 'yellow', delay: 60 * 60 * 3, stack: 'all'})
+    new Bars(timeSeries, {color: 'red', stack: 'all'}),
+    new Bars(timeSeries2, {color: 'yellow', stack: 'all'})
   ]}
 />
           `}
@@ -312,15 +326,9 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {
-                  delay: 90,
-                }),
-                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
-                  delay: 90,
-                }),
-                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeriesP50), {
-                  delay: 90,
-                }),
+                new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {}),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {}),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeriesP50), {}),
               ]}
             />
           </MediumWidget>
@@ -405,6 +413,53 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
             />
           </SmallWidget>
         </Storybook.SideBySide>
+
+        <p>
+          A common issue with Y axes is data ranges. Some time series, like crash rates
+          tend to hover very close to 100%. In these cases, starting the Y axis at 0 can
+          make it difficult to see the actual values. You can set the{' '}
+          <code>axisRange</code> prop to <code>"dataMin"</code> to start the Y axis at the
+          minimum value of the data.
+        </p>
+
+        <p>
+          In the charts below you can see an example. The left chart is not very useful,
+          because it looks like a flat line at 100%. The chart in the middle shows the
+          actual data much clearer, and a dip is visible.
+        </p>
+
+        <Storybook.SideBySide>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[new Line(sampleCrashFreeRateTimeSeries)]}
+            />
+          </SmallWidget>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[new Line(sampleCrashFreeRateTimeSeries)]}
+              axisRange="dataMin"
+            />
+          </SmallWidget>
+        </Storybook.SideBySide>
+
+        <p>A few notes of caution:</p>
+        <ol>
+          <li>
+            This only works well for line series. If you try this with area or bar
+            plottables you will have a bad time because the chart will look weird and make
+            no sense
+          </li>
+          <li>
+            If your data range is very narrow (e.g., &lt;0.00001) you will have a bad time
+            because the Y axis labels will become very long to accommodate the high
+            precision
+          </li>
+          <li>
+            Some customers find floating Y axis minimum disorienting. When they change the
+            date range or environment, the floating Y axis minimum makes it harder to
+            compare the data visually
+          </li>
+        </ol>
       </Fragment>
     );
   });
@@ -473,9 +528,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
 
   story('Samples', () => {
     const timeSeriesPlottable = useMemo(() => {
-      return new Bars(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
-        delay: 1800,
-      });
+      return new Bars(shiftTimeSeriesToNow(sampleDurationTimeSeries), {});
     }, []);
 
     const samplesPlottable = useMemo(() => {
@@ -553,50 +606,67 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
     );
   });
 
-  story('Delay', () => {
-    const shiftedSampleDurationTimeSeries = shiftTimeSeriesToNow(
+  story('Incomplete Data', () => {
+    const createIncompleteTimeSeriesClone = function (
+      timeSeries: TimeSeries
+    ): TimeSeries {
+      return {
+        ...timeSeries,
+        values: timeSeries.values.map((value, index) => {
+          if (index < 5 || index > 50 || (index > 20 && index < 25)) {
+            return {...value, incomplete: true};
+          }
+          return value;
+        }),
+      };
+    };
+
+    const incompleteDurationTimeSeries = createIncompleteTimeSeriesClone(
       sampleDurationTimeSeries
     );
-    const shiftedSampleDurationTimeSeries2 = shiftTimeSeriesToNow(
+    const incompleteDurationP50TimeSeries = createIncompleteTimeSeriesClone(
       sampleDurationTimeSeriesP50
     );
-
-    const delay = 60 * 60 * 3;
 
     return (
       <Fragment>
         <p>
-          The <code>delay</code> plottable configuration option indicates that this data
-          is live, and the last few buckets might not have complete data. The delay is a
-          number in seconds. By default the delay is <code>0</code>.
+          You can mark data as incomplete by setting the <code>incomplete</code> property
+          to <code>true</code> for the data points in the <code>TimeSeries</code> that are
+          not complete. An incomplete data point might be caused by an ingestion delay, a
+          filter that's misaligned with the bucket edges, or any other number of reasons.
+        </p>
+
+        <p>
+          The sample data series in these stories have several incomplete data points, and
+          you can see them visualized as dotted lines and pale areas. The examples below
+          show this in more detail.
         </p>
 
         <Storybook.SideBySide>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line(shiftedSampleDurationTimeSeries, {delay}),
-                new Line(shiftedSampleDurationTimeSeries2, {delay}),
+                new Line(incompleteDurationTimeSeries),
+                new Line(incompleteDurationP50TimeSeries),
               ]}
             />
           </MediumWidget>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Area(shiftedSampleDurationTimeSeries, {delay}),
-                new Area(shiftedSampleDurationTimeSeries2, {delay}),
+                new Area(incompleteDurationTimeSeries),
+                new Area(incompleteDurationP50TimeSeries),
               ]}
             />
           </MediumWidget>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Bars(shiftedSampleDurationTimeSeries, {
-                  delay,
+                new Bars(incompleteDurationTimeSeries, {
                   stack: 'all',
                 }),
-                new Bars(shiftedSampleDurationTimeSeries2, {
-                  delay,
+                new Bars(incompleteDurationP50TimeSeries, {
                   stack: 'all',
                 }),
               ]}
@@ -643,9 +713,10 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
     const [legendSelection, setLegendSelection] = useState<LegendSelection>({});
     const [sampleId, setSampleId] = useState<string | null>(null);
 
-    const aggregatePlottable = new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
-      delay: 1800,
-    });
+    const aggregatePlottable = new Line(
+      shiftTimeSeriesToNow(sampleDurationTimeSeries),
+      {}
+    );
 
     const samplesPlottable = useMemo(() => {
       return new Samples(shiftedSpanSamples, {
@@ -881,21 +952,6 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
   });
 
   story('Releases', () => {
-    const releases = [
-      {
-        version: 'ui@0.1.2',
-        timestamp: new Date(
-          sampleThroughputTimeSeries.values.at(2)!.timestamp
-        ).toISOString(),
-      },
-      {
-        version: 'ui@0.1.3',
-        timestamp: new Date(
-          sampleThroughputTimeSeries.values.at(20)!.timestamp
-        ).toISOString(),
-      },
-    ].filter(hasTimestamp);
-
     return (
       <Fragment>
         <p>

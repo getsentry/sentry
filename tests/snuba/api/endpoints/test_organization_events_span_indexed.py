@@ -2826,7 +2826,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"trace.status": status}},
+                    {"sentry_tags": {"status": status}},
                     start_ts=self.ten_mins_ago,
                 )
                 for status in trace_statuses
@@ -2855,7 +2855,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         spans = [
             self.create_span(
                 {
-                    "sentry_tags": {"trace.status": status},
+                    "sentry_tags": {"status": status},
                     "is_segment": True,
                 },
                 start_ts=self.ten_mins_ago,
@@ -2866,7 +2866,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         spans.append(
             self.create_span(
                 {
-                    "sentry_tags": {"trace.status": "ok"},
+                    "sentry_tags": {"status": "ok"},
                     "is_segment": False,
                 },
                 start_ts=self.ten_mins_ago,
@@ -3037,6 +3037,23 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert response.status_code == 400, response.content
         assert (
             "Span.Duration Is Invalid For Parameter 2 In Avg_If. Its A Millisecond Type Field, But It Must Be One Of These Types: {'String'}"
+            == response.data["detail"].title()
+        )
+
+    def test_count_if_invalid_param(self):
+        response = self.do_request(
+            {
+                "field": [
+                    "count_if(span.description, equals, queue.process)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert (
+            "Span.Description Is Invalid For Parameter 1 In Count_If."
             == response.data["detail"].title()
         )
 
@@ -4678,3 +4695,34 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                     f"tag{c}": c,
                 }
             ]
+
+    def test_ai_total_tokens_returns_integer_meta(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"data": {"ai_total_tokens_used": 100}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"data": {"ai_total_tokens_used": 50}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["sum(ai.total_tokens.used)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        data, meta = response.data["data"], response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sum(ai.total_tokens.used)"] == 150
+        assert meta["dataset"] == self.dataset
+        assert meta["fields"]["sum(ai.total_tokens.used)"] == "integer"

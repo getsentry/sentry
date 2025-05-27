@@ -1,6 +1,8 @@
+from collections import defaultdict
 from typing import Any, cast
 
-from sentry.spans.consumers.process_segments.types import Span
+from sentry.models.project import Project
+from sentry.spans.consumers.process_segments.types import MeasurementValue, Span
 
 # Keys in `sentry_tags` that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -127,7 +129,7 @@ def set_exclusive_time(spans: list[Span]) -> None:
     span_map: dict[str, list[tuple[int, int]]] = {}
     for span in spans:
         if parent_span_id := span.get("parent_span_id"):
-            interval = (_us(span["start_timestamp_precise"]), _us(span["end_timestamp_precise"]))
+            interval = _span_interval(span)
             span_map.setdefault(parent_span_id, []).append(interval)
 
     for span in spans:
@@ -136,7 +138,7 @@ def set_exclusive_time(spans: list[Span]) -> None:
         intervals.sort(key=lambda x: (x[0], -x[1]))
 
         exclusive_time_us: int = 0  # microseconds to prevent rounding issues
-        start, end = _us(span["start_timestamp_precise"]), _us(span["end_timestamp_precise"])
+        start, end = _span_interval(span)
 
         # Progressively add time gaps before the next span and then skip to its end.
         for child_start, child_end in intervals:
@@ -155,7 +157,75 @@ def set_exclusive_time(spans: list[Span]) -> None:
         span["exclusive_time_ms"] = exclusive_time_us / 1_000
 
 
+def _span_interval(span: Span) -> tuple[int, int]:
+    """Get the start and end timestamps of a span in microseconds."""
+    return _us(span["start_timestamp_precise"]), _us(span["end_timestamp_precise"])
+
+
 def _us(timestamp: float) -> int:
     """Convert the floating point duration or timestamp to integer microsecond
     precision."""
     return int(timestamp * 1_000_000)
+
+
+def compute_breakdowns(segment: Span, spans: list[Span], project: Project) -> None:
+    """
+    Computes breakdowns from all spans and writes them to the segment span.
+
+    Breakdowns are measurements that are derived from the spans in the segment.
+    By convention, their unit is in milliseconds. In the end, these measurements
+    are converted into attributes on the span trace item.
+    """
+
+    config = project.get_option("sentry:breakdowns")
+
+    for breakdown_name, breakdown_config in config.items():
+        ty = breakdown_config.get("type")
+
+        if ty == "spanOperations":
+            breakdowns = _compute_span_ops(spans, breakdown_config)
+        else:
+            continue
+
+        measurements = segment.setdefault("measurements", {})
+        for key, value in breakdowns.items():
+            measurements[f"{breakdown_name}.{key}"] = value
+
+
+def _compute_span_ops(spans: list[Span], config: Any) -> dict[str, MeasurementValue]:
+    matches = config.get("matches")
+    if not matches:
+        return {}
+
+    intervals_by_op = defaultdict(list)
+    for span in spans:
+        op = span.get("sentry_tags", {}).get("op", "")
+        if operation_name := next(filter(lambda m: op.startswith(m), matches), None):
+            intervals_by_op[operation_name].append(_span_interval(span))
+
+    measurements: dict[str, MeasurementValue] = {}
+    for operation_name, intervals in intervals_by_op.items():
+        duration = _get_duration_us(intervals)
+        measurements[f"ops.{operation_name}"] = {"value": duration / 1000, "unit": "millisecond"}
+    return measurements
+
+
+def _get_duration_us(intervals: list[tuple[int, int]]) -> int:
+    """
+    Get the wall clock time duration covered by the intervals in microseconds.
+
+    Overlapping intervals are merged so that they are not counted twice. For
+    example, the intervals [(1, 3), (2, 4)] would yield a duration of 3, not 4.
+    """
+
+    duration = 0
+    last_end = 0
+
+    intervals.sort(key=lambda x: (x[0], -x[1]))
+    for start, end in intervals:
+        # Ensure the current interval doesn't overlap with the last one
+        start = max(start, last_end)
+        duration += max(end - start, 0)
+        last_end = end
+
+    return duration
