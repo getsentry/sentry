@@ -269,6 +269,7 @@ export function EventGraph({
       staleTime: 0,
     }
   );
+
   const {data: flags} = useIntersectionFlags({
     event,
     query: {
@@ -276,7 +277,6 @@ export function EventGraph({
       end: eventView.end,
       period: eventView.statsPeriod,
     },
-    enabled: showReleasesAs === 'line',
   });
 
   const handleReleaseLineClick = useCallback(
