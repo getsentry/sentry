@@ -3,17 +3,14 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
-import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
@@ -21,23 +18,18 @@ import {
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {
-  ScreenCharts,
-  YAxis,
-} from 'sentry/views/insights/mobile/screenload/components/charts/screenCharts';
+import {ScreenCharts} from 'sentry/views/insights/mobile/screenload/components/charts/screenCharts';
 import {ScreenLoadEventSamples} from 'sentry/views/insights/mobile/screenload/components/eventSamples';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
-import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {ScreenLoadSpansTable} from 'sentry/views/insights/mobile/screenload/components/tables/screenLoadSpansTable';
 import {
   MobileCursors,
   MobileSortKeys,
 } from 'sentry/views/insights/mobile/screenload/constants';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Query = {
@@ -50,38 +42,10 @@ type Query = {
   spanDescription?: string;
 };
 
-function ScreenLoadSpans() {
-  const location = useLocation<Query>();
-  const {isProjectCrossPlatform} = useCrossPlatformProject();
-  const {transaction: transactionName} = location.query;
-
-  return (
-    <Layout.Page>
-      <PageAlertProvider>
-        <MobileHeader
-          module={ModuleName.SCREEN_LOAD}
-          headerTitle={transactionName}
-          headerActions={isProjectCrossPlatform && <PlatformSelector />}
-          breadcrumbs={[
-            {
-              label: t('Screen Summary'),
-            },
-          ]}
-        />
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <PageAlert />
-            <ScreenLoadSpansContent />
-          </Layout.Main>
-        </Layout.Body>
-      </PageAlertProvider>
-    </Layout.Page>
-  );
-}
-
 export function ScreenLoadSpansContent() {
   const router = useRouter();
   const location = useLocation<Query>();
+  const useEap = useInsightsEap();
 
   const {spanGroup, transaction: transactionName} = location.query;
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
@@ -113,8 +77,8 @@ export function ScreenLoadSpansContent() {
         <MobileMetricsRibbon
           dataset={DiscoverDatasets.METRICS}
           filters={[
-            'event.type:transaction',
-            'transaction.op:ui.load',
+            useEap ? 'is_transaction:true' : 'event.type:transaction',
+            'transaction.op:[ui.load,navigation]',
             `transaction:${transactionName}`,
           ]}
           fields={[
@@ -163,7 +127,6 @@ export function ScreenLoadSpansContent() {
 
       <ErrorBoundary mini>
         <ScreenCharts
-          yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
           additionalFilters={[`transaction:${transactionName}`]}
           chartHeight={120}
         />
@@ -199,16 +162,6 @@ export function ScreenLoadSpansContent() {
     </Fragment>
   );
 }
-
-function PageWithProviders() {
-  return (
-    <ModulePageProviders moduleName="screen_load" pageTitle={t('Screen Summary')}>
-      <ScreenLoadSpans />
-    </ModulePageProviders>
-  );
-}
-
-export default PageWithProviders;
 
 const FilterContainer = styled('div')`
   display: grid;

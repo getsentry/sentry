@@ -10,6 +10,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -49,6 +50,7 @@ function SegmentedIssueViewSaveButton({
 
   const discardUnsavedChanges = () => {
     if (view) {
+      trackAnalytics('issue_views.reset.clicked', {organization});
       navigate({
         pathname: location.pathname,
         query: getIssueViewQueryParams({view}),
@@ -58,6 +60,7 @@ function SegmentedIssueViewSaveButton({
 
   const saveView = () => {
     if (view) {
+      trackAnalytics('issue_views.save.clicked', {organization});
       updateGroupSearchView(
         {
           id: view.id,
@@ -77,11 +80,14 @@ function SegmentedIssueViewSaveButton({
     <ButtonBar merged>
       <PrimarySaveButton
         priority={buttonPriority}
-        analyticsEventName={
-          canEdit ? 'issue_views.save.clicked' : 'issue_views.save_as.clicked'
-        }
         data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
-        onClick={canEdit ? saveView : openCreateIssueViewModal}
+        onClick={() => {
+          if (canEdit) {
+            saveView();
+          } else {
+            openCreateIssueViewModal();
+          }
+        }}
         disabled={isSaving}
       >
         {canEdit ? t('Save') : t('Save As')}
@@ -93,7 +99,6 @@ function SegmentedIssueViewSaveButton({
             label: t('Reset'),
             disabled: !hasUnsavedChanges,
             onAction: () => {
-              trackAnalytics('issue_views.reset.clicked', {organization});
               discardUnsavedChanges();
             },
           },
@@ -101,7 +106,6 @@ function SegmentedIssueViewSaveButton({
             key: 'save-as',
             label: t('Save as new view'),
             onAction: () => {
-              trackAnalytics('issue_views.save_as.clicked', {organization});
               openCreateIssueViewModal();
             },
             hidden: !canEdit,
@@ -126,11 +130,14 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   const {viewId} = useParams();
   const {selection} = usePageFilters();
   const {data: view} = useSelectedGroupSearchView();
+  const organization = useOrganization();
 
   const openCreateIssueViewModal = () => {
+    trackAnalytics('issue_views.save_as.clicked', {organization});
     openModal(props => (
       <CreateIssueViewModal
         {...props}
+        analyticsSurface={viewId ? 'issue-view-details' : 'issues-feed'}
         name={view ? `${view.name} (Copy)` : undefined}
         query={query}
         querySort={sort}
@@ -143,11 +150,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
 
   if (!viewId) {
     return (
-      <Button
-        priority="primary"
-        onClick={openCreateIssueViewModal}
-        analyticsEventName="issue_views.save_as.clicked"
-      >
+      <Button priority="primary" onClick={openCreateIssueViewModal}>
         {t('Save As')}
       </Button>
     );
@@ -158,23 +161,26 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   );
 }
 
-const PrimarySaveButton = styled(Button)`
-  box-shadow: none;
+const PrimarySaveButton = withChonk(
+  styled(Button)`
+    box-shadow: none;
 
-  ${p =>
-    p.priority === 'primary' &&
-    css`
-      &::after {
-        content: '';
-        position: absolute;
-        top: -1px;
-        bottom: -1px;
-        right: -1px;
-        border-right: solid 1px currentColor;
-        opacity: 0.25;
-      }
-    `}
-`;
+    ${p =>
+      p.priority === 'primary' &&
+      css`
+        &::after {
+          content: '';
+          position: absolute;
+          top: -1px;
+          bottom: -1px;
+          right: -1px;
+          border-right: solid 1px currentColor;
+          opacity: 0.25;
+        }
+      `}
+  `,
+  Button
+);
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;

@@ -1,6 +1,7 @@
 from unittest.mock import PropertyMock, patch
 
 import pytest
+from django.db.utils import OperationalError
 
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
@@ -92,9 +93,10 @@ class TestRefresher(TestCase):
         }
         assert e.value.public_context == {}
 
+    @patch("sentry.sentry_apps.token_exchange.refresher.Refresher._validate")
     @patch("sentry.models.ApiApplication.objects.get", side_effect=ApiApplication.DoesNotExist)
-    def test_api_application_must_exist(self, _):
-        with pytest.raises(SentryAppIntegratorError) as e:
+    def test_api_application_must_exist(self, _, mock_validate):
+        with pytest.raises(SentryAppSentryError) as e:
             self.refresher.run()
 
         assert e.value.message == "Could not find matching Application for given client_id"
@@ -133,3 +135,12 @@ class TestRefresher(TestCase):
             sentry_app_installation_id=self.install.id,
             exchange_type="refresh",
         )
+
+    def test_returns_token_on_outbox_error(self):
+        # Mock the transaction to raise OperationalError after token creation
+        with patch("sentry.hybridcloud.models.outbox.OutboxBase.process_coalesced") as mock_process:
+            mock_process.side_effect = OperationalError("Outbox issue")
+
+            # The refresher should return the token even though there was an error
+            token = self.refresher.run()
+            assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token

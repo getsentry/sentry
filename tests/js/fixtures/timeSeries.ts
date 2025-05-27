@@ -1,12 +1,13 @@
-import { RateUnit } from "sentry/utils/discover/fields";
-import { TimeSeries } from "sentry/views/dashboards/widgets/common/types";
+import {RateUnit} from 'sentry/utils/discover/fields';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export function TimeSeriesFixture(params: Partial<TimeSeries> = {}): TimeSeries {
   return {
-    field: 'eps()',
+    yAxis: 'eps()',
     meta: {
       valueType: 'rate',
-      valueUnit: RateUnit.PER_SECOND
+      valueUnit: RateUnit.PER_SECOND,
+      interval: 1_800_000, // 30 minutes
     },
     values: [
       {
@@ -20,5 +21,4 @@ export function TimeSeriesFixture(params: Partial<TimeSeries> = {}): TimeSeries 
     ],
     ...params,
   };
-
 }

@@ -7,16 +7,19 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {SeerLoadingIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
+import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function StreamContentText({stream}: {stream: string}) {
   const [displayedText, setDisplayedText] = useState('');
@@ -94,6 +97,7 @@ interface Props {
   runId: string;
   stream: string;
   activeLog?: string;
+  autofixData?: AutofixData;
   isProcessing?: boolean;
   responseRequired?: boolean;
 }
@@ -103,6 +107,7 @@ export function AutofixOutputStream({
   activeLog = '',
   groupId,
   runId,
+  autofixData,
   responseRequired = false,
 }: Props) {
   const api = useApi({persistInFlight: true});
@@ -115,29 +120,34 @@ export function AutofixOutputStream({
 
   const displayedActiveLog = useTypingAnimation({
     text: activeLog,
-    speed: 100,
+    speed: 200,
     enabled: !!activeLog,
   });
 
+  const orgSlug = useOrganization().slug;
+
   const {mutate: send} = useMutation({
     mutationFn: (params: {message: string}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'user_message',
-            text: params.message,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'user_message',
+              text: params.message,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
       addSuccessMessage('Thanks for the input.');
     },
     onError: () => {
-      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
+      addErrorMessage(t('Something went wrong when sending Seer your message.'));
     },
   });
 
@@ -184,18 +194,29 @@ export function AutofixOutputStream({
           <Container required={responseRequired}>
             {activeLog && (
               <ActiveLogWrapper>
-                <SeerIconContainer ref={seerIconRef}>
-                  <StyledAnimatedSeerIcon size="lg" />
-                  {seerIconRef.current && isInitializingRun && (
-                    <FlyingLinesEffect targetElement={seerIconRef.current} />
+                <Tooltip
+                  title={t(
+                    "Seer is hard at work. Feel free to leave - it'll keep running in the background."
                   )}
-                </SeerIconContainer>
+                >
+                  <SeerIconContainer ref={seerIconRef}>
+                    <StyledAnimatedSeerIcon size="lg" />
+                    {seerIconRef.current && isInitializingRun && (
+                      <FlyingLinesEffect targetElement={seerIconRef.current} />
+                    )}
+                  </SeerIconContainer>
+                </Tooltip>
                 <ActiveLog
                   dangerouslySetInnerHTML={{
                     __html: singleLineRenderer(displayedActiveLog),
                   }}
                 />
               </ActiveLogWrapper>
+            )}
+            {autofixData && (
+              <ProgressBarWrapper>
+                <AutofixProgressBar autofixData={autofixData} />
+              </ProgressBarWrapper>
             )}
             {!responseRequired && stream && <StreamContentText stream={stream} />}
             <InputWrapper onSubmit={handleSend}>
@@ -222,7 +243,7 @@ export function AutofixOutputStream({
                 aria-label={t('Submit Comment')}
                 size="zero"
               >
-                <IconChevron direction="right" />
+                {'\u23CE'}
               </StyledButton>
             </InputWrapper>
           </Container>
@@ -237,7 +258,6 @@ const Wrapper = styled(motion.div)`
   flex-direction: column;
   align-items: flex-start;
   margin-bottom: ${space(1)};
-  margin-right: ${space(2)};
   gap: ${space(1)};
 `;
 
@@ -247,7 +267,6 @@ const ScaleContainer = styled(motion.div)`
   flex-direction: column;
   align-items: flex-start;
   transform-origin: top left;
-  padding-left: ${space(2)};
 `;
 
 const shimmer = keyframes`
@@ -314,7 +333,7 @@ const VerticalLine = styled('div')`
   width: 0;
   height: ${space(4)};
   border-left: 2px dashed ${p => p.theme.subText};
-  margin-left: 17px;
+  margin-left: 16px;
   margin-bottom: -1px;
 `;
 
@@ -345,6 +364,7 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
+  color: ${p => p.theme.subText};
 `;
 
 const SeerIconContainer = styled('div')`
@@ -359,4 +379,8 @@ const StyledAnimatedSeerIcon = styled(SeerLoadingIcon)`
   flex-shrink: 0;
   color: ${p => p.theme.textColor};
   z-index: 10000;
+`;
+
+const ProgressBarWrapper = styled('div')`
+  position: relative;
 `;

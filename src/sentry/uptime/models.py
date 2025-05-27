@@ -7,6 +7,10 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
 from django.db.models.functions import Now
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+)
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -28,9 +32,16 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, ProjectUptimeSubscriptionMode
 from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
-from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
+from sentry.workflow_engine.models import (
+    Condition,
+    DataCondition,
+    DataConditionGroup,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+)
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DataSourceTypeHandler
+from sentry.workflow_engine.types import DataSourceTypeHandler, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -75,10 +86,10 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # The url to check
     url = models.CharField(max_length=255)
     # The domain of the url, extracted via TLDExtract
-    url_domain = models.CharField(max_length=255, db_index=True, default="", db_default="")
+    url_domain = models.CharField(max_length=255, default="", db_default="")
     # The suffix of the url, extracted via TLDExtract. This can be a public
     # suffix, such as com, gov.uk, com.au, or a private suffix, such as vercel.dev
-    url_domain_suffix = models.CharField(max_length=255, db_index=True, default="", db_default="")
+    url_domain_suffix = models.CharField(max_length=255, default="", db_default="")
     # A unique identifier for the provider hosting the domain
     host_provider_id = models.CharField(max_length=255, db_index=True, null=True)
     # The name of the provider hosting this domain
@@ -102,7 +113,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False, db_default=False)
-    # Tracks the curernt status of this subscrioption. This is possibly going
+    # Tracks the current status of this subscription. This is possibly going
     # to be replaced in the future with open-periods as we replace
     # ProjectUptimeSubscription with Detectors.
     uptime_status = models.PositiveSmallIntegerField(db_default=UptimeStatus.OK.value)
@@ -173,11 +184,6 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
         default=ProjectUptimeSubscriptionMode.MANUAL.value,
         db_default=ProjectUptimeSubscriptionMode.MANUAL.value,
     )
-    uptime_status = models.PositiveSmallIntegerField(
-        default=UptimeStatus.OK.value, db_default=UptimeStatus.OK.value
-    )
-    # (Likely) temporary column to keep track of the current uptime status of this monitor
-    uptime_status_update_date = models.DateTimeField(db_default=Now())
     # Date of the last time we updated the status for this monitor
     name = models.TextField()
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
@@ -193,7 +199,6 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
 
         indexes = [
             models.Index(fields=("project", "mode")),
-            models.Index(fields=("uptime_status", "uptime_status_update_date")),
         ]
 
         constraints = [
@@ -363,6 +368,21 @@ def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscrip
         organization=project_sub.project.organization,
         source_id=str(project_sub.uptime_subscription_id),
     )
+    condition_group = DataConditionGroup.objects.create(
+        organization=project_sub.project.organization,
+    )
+    DataCondition.objects.create(
+        comparison=CHECKSTATUS_FAILURE,
+        type=Condition.EQUAL,
+        condition_result=DetectorPriorityLevel.HIGH,
+        condition_group=condition_group,
+    )
+    DataCondition.objects.create(
+        comparison=CHECKSTATUS_SUCCESS,
+        type=Condition.EQUAL,
+        condition_result=DetectorPriorityLevel.OK,
+        condition_group=condition_group,
+    )
     env = project_sub.environment.name if project_sub.environment else None
     detector = Detector.objects.create(
         type=UptimeDomainCheckFailure.slug,
@@ -374,6 +394,7 @@ def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscrip
             "environment": env,
             "mode": project_sub.mode,
         },
+        workflow_condition_group=condition_group,
     )
     DataSourceDetector.objects.create(data_source=data_source, detector=detector)
 

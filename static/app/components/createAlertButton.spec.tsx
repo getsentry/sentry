@@ -11,7 +11,7 @@ import CreateAlertButton, {
 import GuideStore from 'sentry/stores/guideStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 
 const onClickMock = jest.fn();
 
@@ -78,7 +78,10 @@ describe('CreateAlertFromViewButton', () => {
       }
     );
 
-    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Create Alert'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('enables the button for org-owner/manager', () => {

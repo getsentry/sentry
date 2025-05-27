@@ -105,7 +105,8 @@ function useTraceRootEvents(
   }, [traceData, organization.slug]);
 
   return useApiQueries<EventTransaction>(queryKeys, {
-    staleTime: 0,
+    // 10 minutes
+    staleTime: 1000 * 60 * 10,
     enabled:
       Array.isArray(traceData) && traceData.length > 0 && storedTraceFormat === 'non-eap',
   });

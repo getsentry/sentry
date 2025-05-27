@@ -22,6 +22,7 @@ NOTIFICATION_SETTINGS_TYPE_DEFAULTS = {
     NotificationSettingEnum.QUOTA_SPANS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_PROFILE_DURATION: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_PROFILE_DURATION_UI: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_SEER_BUDGET: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_WARNINGS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_THRESHOLDS: NotificationSettingsOptionEnum.ALWAYS,

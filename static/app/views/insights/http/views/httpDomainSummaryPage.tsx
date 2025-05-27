@@ -17,7 +17,6 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryChartFilter';
 import HttpDomainSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget';
 import HttpDomainSummaryResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesChartWidget';
@@ -90,7 +89,6 @@ export function HTTPDomainSummaryPage() {
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
-        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       ],
     },
     Referrer.DOMAIN_SUMMARY_METRICS_RIBBON
@@ -115,7 +113,6 @@ export function HTTPDomainSummaryPage() {
         'http_response_rate(5)',
         'avg(span.self_time)',
         'sum(span.self_time)',
-        'time_spent_percentage()',
       ],
       sorts: [sort],
       limit: TRANSACTIONS_TABLE_ROW_COUNT,
@@ -217,10 +214,6 @@ export function HTTPDomainSummaryPage() {
                       title={DataTitles.timeSpent}
                       value={domainMetrics?.[0]?.['sum(span.self_time)']}
                       unit={DurationUnit.MILLISECOND}
-                      tooltip={getTimeSpentExplanation(
-                        domainMetrics?.[0]?.['time_spent_percentage()']!,
-                        'http'
-                      )}
                       isLoading={areDomainMetricsLoading}
                     />
                   </ReadoutRibbon>
@@ -259,7 +252,7 @@ export function HTTPDomainSummaryPage() {
 }
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
   kind: 'desc' as const,
 };
 

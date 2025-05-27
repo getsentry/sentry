@@ -103,7 +103,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert len(response.data["timeseries"]) == 1
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 3
-        assert timeseries["yaxis"] == "count()"
+        assert timeseries["yAxis"] == "count()"
         assert timeseries["values"] == [
             {
                 "timestamp": self.start.timestamp() * 1000,
@@ -143,7 +143,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert len(response.data["timeseries"]) == 2
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 3
-        assert timeseries["yaxis"] == "count()"
+        assert timeseries["yAxis"] == "count()"
         assert timeseries["values"] == [
             {
                 "timestamp": self.start.timestamp() * 1000,
@@ -165,7 +165,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
 
         timeseries = response.data["timeseries"][1]
         assert len(timeseries["values"]) == 3
-        assert timeseries["yaxis"] == "count_unique(user)"
+        assert timeseries["yAxis"] == "count_unique(user)"
         assert timeseries["values"] == [
             {
                 "timestamp": self.start.timestamp() * 1000,
@@ -192,7 +192,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "end": self.end,
                 "interval": "1h",
                 "yAxis": ["count()", "p95()"],
-                "field": ["count()", "message"],
+                "groupBy": ["count()", "message"],
                 "orderby": ["-count()"],
                 "topEvents": 5,
                 "project": [self.project.id, self.project2.id],
@@ -208,8 +208,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert len(response.data["timeseries"]) == 4
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 3
-        assert timeseries["yaxis"] == "count()"
-        assert timeseries["groupBy"] == [{"message": "very bad"}]
+        assert timeseries["yAxis"] == "count()"
+        assert timeseries["groupBy"] == [{"key": "message", "value": "very bad"}]
         assert timeseries["meta"] == {
             "order": 0,
             "isOther": False,
@@ -233,8 +233,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
 
         timeseries = response.data["timeseries"][1]
         assert len(timeseries["values"]) == 3
-        assert timeseries["yaxis"] == "p95()"
-        assert timeseries["groupBy"] == [{"message": "very bad"}]
+        assert timeseries["yAxis"] == "p95()"
+        assert timeseries["groupBy"] == [{"key": "message", "value": "very bad"}]
         assert timeseries["meta"] == {
             "order": 0,
             "isOther": False,
@@ -259,8 +259,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
 
         timeseries = response.data["timeseries"][2]
         assert len(timeseries["values"]) == 3
-        assert timeseries["yaxis"] == "count()"
-        assert timeseries["groupBy"] == [{"message": "oh my"}]
+        assert timeseries["yAxis"] == "count()"
+        assert timeseries["groupBy"] == [{"key": "message", "value": "oh my"}]
         assert timeseries["meta"] == {
             "order": 1,
             "isOther": False,
@@ -284,8 +284,8 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
 
         timeseries = response.data["timeseries"][3]
         assert len(timeseries["values"]) == 3
-        assert timeseries["yaxis"] == "p95()"
-        assert timeseries["groupBy"] == [{"message": "oh my"}]
+        assert timeseries["yAxis"] == "p95()"
+        assert timeseries["groupBy"] == [{"key": "message", "value": "oh my"}]
         assert timeseries["meta"] == {
             "order": 1,
             "isOther": False,

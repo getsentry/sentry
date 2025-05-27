@@ -65,7 +65,7 @@ describe('AutofixChanges', () => {
 
   it('passes correct analytics props for Create PR button when write access is enabled', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/?check_write_access=true',
+      url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: AutofixSetupFixture({
         setupAcknowledgement: {
@@ -78,7 +78,7 @@ describe('AutofixChanges', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
       body: {ok: true},
     });
@@ -121,7 +121,7 @@ describe('AutofixChanges', () => {
 
   it('passes correct analytics props for Create PR Setup button when write access is not enabled', () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/?check_write_access=true',
+      url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: AutofixSetupFixture({
         setupAcknowledgement: {
@@ -176,7 +176,7 @@ describe('AutofixChanges', () => {
 
   it('passes correct analytics props for Create Branch button when write access is enabled', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/?check_write_access=true',
+      url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: AutofixSetupFixture({
         setupAcknowledgement: {
@@ -192,7 +192,7 @@ describe('AutofixChanges', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
       body: {ok: true},
     });
@@ -236,7 +236,7 @@ describe('AutofixChanges', () => {
 
   it('passes correct analytics props for Create Branch Setup button when write access is not enabled', () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/?check_write_access=true',
+      url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: AutofixSetupFixture({
         setupAcknowledgement: {

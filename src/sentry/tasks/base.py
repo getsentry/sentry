@@ -82,7 +82,6 @@ def taskworker_override(
             elif "*" in rollout_map:
                 rollout_rate = rollout_map.get("*", 0)
 
-        random.seed(datetime.now().timestamp())
         if rollout_rate > random.random():
             return taskworker_attr(*args, **kwargs)
 
@@ -211,6 +210,10 @@ def instrumented_task(
             )(func)
 
             task = override_task(task, taskworker_task, taskworker_config, name)
+        else:
+            raise Exception(
+                f"taskworker_config must be defined, please add TaskworkerConfig to instrumented_task call for {name}"
+            )
 
         if silo_mode:
             silo_limiter = TaskSiloLimit(silo_mode)

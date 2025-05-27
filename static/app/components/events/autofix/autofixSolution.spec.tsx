@@ -21,6 +21,7 @@ describe('AutofixSolution', () => {
       relevant_code_file: {
         file_path: 'src/file.js',
         repo_name: 'owner/repo',
+        url: 'https://github.com/owner/repo/blob/main/src/file.js',
       },
     },
   ];
@@ -35,7 +36,7 @@ describe('AutofixSolution', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
     });
     jest.mocked(useAutofixRepos).mockReset();
@@ -221,7 +222,7 @@ describe('AutofixSolution', () => {
   it('passes the solution array when Code It Up button is clicked', async () => {
     // Mock the API directly before the test
     const mockApi = MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
     });
 
@@ -253,7 +254,7 @@ describe('AutofixSolution', () => {
 
     // Verify payload
     expect(mockApi).toHaveBeenCalledWith(
-      '/issues/123/autofix/update/',
+      '/organizations/org-slug/issues/123/autofix/update/',
       expect.objectContaining({
         data: {
           run_id: 'run-123',
@@ -275,7 +276,7 @@ describe('AutofixSolution', () => {
   it('allows toggling solution items active/inactive', async () => {
     // Mock the API directly before the test
     const mockApi = MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
     });
 
@@ -318,7 +319,7 @@ describe('AutofixSolution', () => {
 
     // Verify payload
     expect(mockApi).toHaveBeenCalledWith(
-      '/issues/123/autofix/update/',
+      '/organizations/org-slug/issues/123/autofix/update/',
       expect.objectContaining({
         data: {
           run_id: 'run-123',
@@ -340,7 +341,7 @@ describe('AutofixSolution', () => {
   it('allows adding custom instructions', async () => {
     // Mock the API directly before the test
     const mockApi = MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
     });
 
@@ -386,7 +387,7 @@ describe('AutofixSolution', () => {
 
     // Verify payload
     expect(mockApi).toHaveBeenCalledWith(
-      '/issues/123/autofix/update/',
+      '/organizations/org-slug/issues/123/autofix/update/',
       expect.objectContaining({
         data: {
           run_id: 'run-123',
@@ -510,7 +511,7 @@ describe('AutofixSolution', () => {
 
     // Mock the API directly before the test
     const mockApi = MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
+      url: '/organizations/org-slug/issues/123/autofix/update/',
       method: 'POST',
     });
 
@@ -541,7 +542,7 @@ describe('AutofixSolution', () => {
 
     // Verify payload
     expect(mockApi).toHaveBeenCalledWith(
-      '/issues/123/autofix/update/',
+      '/organizations/org-slug/issues/123/autofix/update/',
       expect.objectContaining({
         data: {
           run_id: 'run-123',

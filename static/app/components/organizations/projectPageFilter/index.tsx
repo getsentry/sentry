@@ -7,7 +7,7 @@ import sortBy from 'lodash/sortBy';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {
   SelectOption,
   SelectOptionOrSection,
@@ -277,7 +277,7 @@ export function ProjectPageFilter({
               to={
                 makeProjectsPathname({
                   path: `/${project.slug}/`,
-                  orgSlug: organization.slug,
+                  organization,
                 }) + `?project=${project.id}`
               }
               visible={isFocused}
@@ -345,12 +345,11 @@ export function ProjectPageFilter({
     );
 
     // ProjectPageFilter will try to expand to accommodate the longest project slug
-    const longestSlugLength = flatOptions
-      .slice(0, 25)
-      .reduce(
-        (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
-        0
-      );
+    const longestSlugLength = flatOptions.slice(0, 25).reduce(
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
+      (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
+      0
+    );
 
     // Calculate an appropriate width for the menu. It should be between 22  and 28em.
     // Within that range, the width is a function of the length of the longest slug.

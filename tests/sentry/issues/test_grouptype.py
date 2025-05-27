@@ -49,7 +49,7 @@ class GroupTypeTest(BaseGroupTypeTest):
             slug = "hellboy"
             description = "Hellboy"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
 
         @dataclass(frozen=True)
         class TestGroupType3(GroupType):
@@ -57,7 +57,7 @@ class GroupTypeTest(BaseGroupTypeTest):
             slug = "angelgirl"
             description = "AngelGirl"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
 
         assert get_group_types_by_category(GroupCategory.PERFORMANCE.value) == {2, 3}
         assert get_group_types_by_category(GroupCategory.ERROR.value) == {1}
@@ -105,7 +105,7 @@ class GroupTypeTest(BaseGroupTypeTest):
             slug = "hellboy"
             description = "Hellboy"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
 
         assert TestGroupType.noise_config is None
         assert TestGroupType2.noise_config == NoiseConfig()
@@ -119,7 +119,7 @@ class GroupTypeTest(BaseGroupTypeTest):
             slug = "hellboy"
             description = "Hellboy"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
             noise_config = NoiseConfig(ignore_limit=100, expiry_time=timedelta(hours=12))
 
         assert TestGroupType.noise_config.ignore_limit == 100
@@ -134,7 +134,7 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
             released = True
 
         assert TestGroupType.allow_post_process_group(self.organization)
@@ -147,7 +147,7 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
             released = False
 
         assert not TestGroupType.allow_post_process_group(self.organization)
@@ -160,7 +160,7 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
             released = False
 
         with self.feature(TestGroupType.build_post_process_group_feature_name()):
@@ -198,7 +198,7 @@ class GroupRegistryTest(BaseGroupTypeTest):
         }
 
         # Works for new category mapping
-        assert registry.get_by_category(GroupCategory.PERFORMANCE_BEST_PRACTICE.value) == {
+        assert registry.get_by_category(GroupCategory.DB_QUERY.value) == {
             PerformanceSlowDBQueryGroupType.type_id,
             PerformanceNPlusOneGroupType.type_id,
         }

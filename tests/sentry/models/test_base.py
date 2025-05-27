@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock
 
+from django.apps import apps
 from django.test import override_settings
 from pytest import raises
 
@@ -82,3 +83,17 @@ class AvailableOnTest(TestCase):
         app_config.get_model.side_effect = LookupError
         assert get_model_if_available(app_config, "BogusModel") is None
         app_config.get_model.assert_called_with("BogusModel")
+
+
+def test_model_index_location():
+    """
+    Validates that we didn't misconfigure a model such that the index or
+    constraints are defined on the model body itself.
+    """
+    for model in apps.get_models():
+        for attr in ["indexes", "constraints", "unique_together"]:
+            if hasattr(model, attr):
+                model_name = f"{model._meta.app_label}.{model.__name__}"
+                raise AssertionError(
+                    f"{model_name} declares `{attr}` on the model class, not in Meta"
+                )

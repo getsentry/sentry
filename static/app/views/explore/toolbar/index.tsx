@@ -11,7 +11,6 @@ import {
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
 import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
-import {ToolbarSuggestedQueries} from 'sentry/views/explore/toolbar/toolbarSuggestedQueries';
 import {ToolbarVisualize} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 type Extras = 'equations';
@@ -21,7 +20,7 @@ interface ExploreToolbarProps {
   width?: number;
 }
 
-export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
+export function ExploreToolbar({width}: ExploreToolbarProps) {
   const fields = useExploreFields();
   const groupBys = useExploreGroupBys();
   const visualizes = useExploreVisualizes();
@@ -30,7 +29,7 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
 
   return (
     <Container width={width}>
-      <ToolbarVisualize equationSupport={extras?.includes('equations')} />
+      <ToolbarVisualize />
       <ToolbarGroupBy autoSwitchToAggregates />
       <ToolbarSortBy
         fields={fields}
@@ -40,7 +39,6 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
         setSorts={setSortBys}
       />
       <ToolbarSaveAs />
-      <ToolbarSuggestedQueries />
     </Container>
   );
 }

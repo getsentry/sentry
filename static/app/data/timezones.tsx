@@ -475,9 +475,9 @@ const OffsetLabel = styled('div')`
 
 const groupedTimezones = Object.entries(groupBy(timezones, ([group]) => group));
 
-// @ts-expect-error TS(2322): Type '{ label: string; options: { value: string; t... Remove this comment to see the full error message
 const timezoneOptions: Array<SelectValue<string>> = groupedTimezones.map(
   ([group, zones]) => ({
+    value: '',
     label: group,
     options: zones.map(([_, value, label]) => {
       const offsetLabel = moment.tz(value).format('Z');

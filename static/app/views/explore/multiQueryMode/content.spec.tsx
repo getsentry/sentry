@@ -44,7 +44,7 @@ describe('MultiQueryModeContent', function () {
     );
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [{key: 'span.op', name: 'span.op'}],
     });
@@ -174,6 +174,96 @@ describe('MultiQueryModeContent', function () {
           },
         ],
         fields: ['id', 'span.duration', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+  });
+
+  it('disables changing fields for epm', async function () {
+    function Component() {
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>
+    );
+
+    const section = await screen.findByTestId('section-visualize-0');
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
+    expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
+  });
+
+  it('changes to epm() when using epm', async function () {
+    let queries: any;
+    function Component() {
+      queries = useReadQueriesFromLocation();
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>
+    );
+
+    const section = await screen.findByTestId('section-visualize-0');
+
+    expect(queries).toEqual([
+      {
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(queries).toEqual([
+      {
+        yAxes: ['avg(span.self_time)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.self_time', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
+
+    expect(queries).toEqual([
+      {
+        yAxes: ['epm()'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -617,7 +707,6 @@ describe('MultiQueryModeContent', function () {
             referrer: 'api.explorer.stats',
             statsPeriod: '7d',
             topEvents: undefined,
-            useRpc: '1',
             yAxis: 'count(span.duration)',
           }),
         })
@@ -645,7 +734,6 @@ describe('MultiQueryModeContent', function () {
             referrer: 'api.explore.multi-query-spans-table',
             sort: '-timestamp',
             statsPeriod: '7d',
-            useRpc: '1',
           }),
         })
       )
@@ -669,7 +757,6 @@ describe('MultiQueryModeContent', function () {
             sort: '-count_span_duration',
             statsPeriod: '7d',
             topEvents: '5',
-            useRpc: '1',
             yAxis: 'count(span.duration)',
           }),
         })
@@ -690,7 +777,6 @@ describe('MultiQueryModeContent', function () {
             referrer: 'api.explore.multi-query-spans-table',
             sort: '-count_span_duration',
             statsPeriod: '7d',
-            useRpc: '1',
           }),
         })
       )

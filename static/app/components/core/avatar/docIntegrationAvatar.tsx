@@ -4,15 +4,14 @@ import type {DocIntegration} from 'sentry/types/integrations';
 
 export interface DocIntegrationAvatarProps extends BaseAvatarProps {
   docIntegration?: DocIntegration;
+  ref?: React.Ref<HTMLSpanElement>;
 }
 
 export function DocIntegrationAvatar({
   ref,
   docIntegration,
   ...props
-}: DocIntegrationAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement>;
-}) {
+}: DocIntegrationAvatarProps) {
   if (!docIntegration?.avatar) {
     // @TODO(jonasbadalic): This is not passing a ref!
     return <PluginIcon size={props.size} pluginId={docIntegration?.slug ?? ''} />;

@@ -29,7 +29,7 @@ import {
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LogsTable} from 'sentry/views/explore/logs/logsTable';
+import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -37,11 +37,15 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {getProfileMeta} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {
+  getProfileMeta,
+  sortAttributes,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -133,8 +137,8 @@ function SpanSections({
 }
 
 function LogDetails() {
-  const {logsData} = useLogsPageData();
-  if (!logsData.data?.length) {
+  const {logsQueryResult} = useLogsPageData();
+  if (!logsQueryResult?.data?.length) {
     return null;
   }
   return (
@@ -143,7 +147,7 @@ function LogDetails() {
       title={t('Logs')}
       disableCollapsePersistence
     >
-      <LogsTable tableData={logsData} showHeader={false} />
+      <LogsTable showHeader={false} />
     </FoldSection>
   );
 }
@@ -338,6 +342,8 @@ function EAPSpanNodeDetails({
 
   const avgSpanDuration = useAvgSpanDuration(node.value, location);
 
+  const traceState = useTraceState();
+
   if (isPending) {
     return <LoadingIndicator />;
   }
@@ -347,6 +353,11 @@ function EAPSpanNodeDetails({
   }
 
   const attributes = data?.attributes;
+  const columnCount =
+    traceState.preferences.layout === 'drawer left' ||
+    traceState.preferences.layout === 'drawer right'
+      ? 1
+      : undefined;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -357,7 +368,7 @@ function EAPSpanNodeDetails({
       />
       <TraceDrawerComponents.BodyContainer>
         <LogsPageParamsProvider
-          isOnEmbeddedView
+          isTableFrozen
           limitToTraceId={traceId}
           limitToSpanId={node.value.event_id}
           limitToProjectIds={[node.value.project_id]}
@@ -381,7 +392,8 @@ function EAPSpanNodeDetails({
               disableCollapsePersistence
             >
               <AttributesTree
-                attributes={attributes}
+                columnCount={columnCount}
+                attributes={sortAttributes(attributes)}
                 rendererExtra={{
                   theme,
                   location,

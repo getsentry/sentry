@@ -883,22 +883,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-#  Percentage of orgs that will be put into a bucket using the split rate below.
-register(
-    "issues.details.streamline-experiment-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# 50% of orgs will only see the Streamline UI, 50% will only see the Legacy UI.
-register(
-    "issues.details.streamline-experiment-split-rate",
-    type=Float,
-    default=0.5,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Killswitch for issue priority
 register(
@@ -958,6 +942,12 @@ register(
     "seer.similarity.grouping_killswitch_projects",
     default=[],
     type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity.grouping-ingest-timeout",
+    type=Int,
+    default=1,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1641,12 +1631,12 @@ register(
 )
 register(
     "performance.issues.consecutive_http.problem-creation",
-    default=0.25,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.large_http_payload.problem-creation",
-    default=0.25,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1685,6 +1675,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.http_overhead.problem-creation",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1701,7 +1696,7 @@ register(
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=500.0,  # ms
+    default=1000.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2558,6 +2553,15 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Rate at which to run split enhancements and compare the results to the default enhancements
+register(
+    "grouping.split_enhancements.sample_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "metrics.sample-list.sample-rate",
     type=Float,
@@ -2657,6 +2661,11 @@ register(
 register(
     "standalone-spans.deserialize-spans-orjson.enable",
     default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.buffer.flusher.backpressure_seconds",
+    default=10,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3018,6 +3027,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "demo-mode.disable-sandbox-redirect",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",
@@ -3096,6 +3111,27 @@ register(
 )
 
 # Taskbroker flags
+register(
+    "taskworker.try_compress.profile_metrics",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "taskworker.try_compress.profile_metrics.rollout",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Taskbroker flags
+register(
+    "taskworker.try_compress.profile_metrics.level",
+    default=6,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "taskworker.route.overrides",
@@ -3178,7 +3214,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "sdk-deprecation.profile-chunk.python.hard",
+    default="2.24.1",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "sdk-deprecation.profile-chunk.cocoa",
+    default="8.49.2",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sdk-deprecation.profile-chunk.cocoa.hard",
     default="8.49.0",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3307,7 +3353,21 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
+register(
+    "taskworker.ingest.attachments.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.ingest.errors.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.ingest.transactions.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)

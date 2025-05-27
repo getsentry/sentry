@@ -16,10 +16,6 @@ export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'
    */
   prefix?: React.ReactNode;
   /**
-   * Forward a ref to the button's root
-   */
-  ref?: React.Ref<HTMLButtonElement>;
-  /**
    * Should a chevron icon be shown?
    */
   showChevron?: boolean;
@@ -51,7 +47,9 @@ function DropdownButton({
       {showChevron && (
         <ChevronWrap>
           <IconChevron
-            color="subText"
+            color={
+              !props.priority || props.priority === 'default' ? 'subText' : undefined
+            }
             direction={isOpen ? 'up' : 'down'}
             size={size === 'zero' || size === 'xs' ? 'xs' : 'sm'}
           />

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
+import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
@@ -34,7 +34,6 @@ import {
   IconSettings,
   IconSiren,
   IconStats,
-  IconSupport,
   IconTelescope,
   IconTimer,
 } from 'sentry/icons';
@@ -54,7 +53,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {AgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
+import {
+  AGENTS_LANDING_SUB_PATH,
+  AGENTS_SIDEBAR_LABEL,
+} from 'sentry/views/insights/pages/agents/settings';
 import {
   AI_LANDING_SUB_PATH,
   AI_SIDEBAR_LABEL,
@@ -228,6 +232,7 @@ function Sidebar() {
         to={`/organizations/${organization?.slug}/explore/logs/`}
         id="ourlogs"
         icon={<SubitemDot collapsed />}
+        isNew
       />
     </Feature>
   );
@@ -240,18 +245,6 @@ function Sidebar() {
       to={`/organizations/${organization.slug}/releases/`}
       id="releases"
     />
-  );
-
-  const userFeedback = hasOrganization && (
-    <Feature features="old-user-feedback" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconSupport />}
-        label={t('User Feedback')}
-        to={`/organizations/${organization.slug}/user-feedback/`}
-        id="user-feedback"
-      />
-    </Feature>
   );
 
   const feedback = hasOrganization && (
@@ -392,13 +385,26 @@ function Sidebar() {
           id="performance-domains-mobile"
           icon={<SubitemDot collapsed />}
         />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={AI_SIDEBAR_LABEL}
-          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[AI_LANDING_SUB_PATH]}/`}
-          id="performance-domains-ai"
-          icon={<SubitemDot collapsed />}
-        />
+        <AgentInsightsFeature
+          organization={organization}
+          renderDisabled={() => (
+            <SidebarItem
+              {...sidebarItemProps}
+              label={AI_SIDEBAR_LABEL}
+              to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[AI_LANDING_SUB_PATH]}/`}
+              id="performance-domains-ai"
+              icon={<SubitemDot collapsed />}
+            />
+          )}
+        >
+          <SidebarItem
+            {...sidebarItemProps}
+            label={AGENTS_SIDEBAR_LABEL}
+            to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/${MODULE_BASE_URLS[AGENTS_LANDING_SUB_PATH]}/`}
+            id="performance-domains-agents"
+            icon={<SubitemDot collapsed />}
+          />
+        </AgentInsightsFeature>
       </SidebarAccordion>
     </Feature>
   );
@@ -468,7 +474,6 @@ function Sidebar() {
                       {discover}
                       {dashboards}
                       {releases}
-                      {userFeedback}
                     </SidebarSection>
                   </Fragment>
                 )}

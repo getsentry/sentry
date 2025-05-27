@@ -545,13 +545,19 @@ const TruncatedLabel = styled(TextOverflow)<{hasNewNav?: boolean}>`
     `}
 `;
 
-const getCollapsedBadgeStyle = ({collapsed, theme}: any) => {
+const getCollapsedBadgeStyle = ({
+  collapsed,
+  theme,
+}: {
+  collapsed: boolean | undefined;
+  theme: Theme;
+}) => {
   if (!collapsed) {
     return '';
   }
 
   return css`
-    background: ${theme.red300};
+    background: ${isChonkTheme(theme) ? theme.colors.chonk.red400 : theme.red300};
     text-indent: -99999em;
     position: absolute;
     right: 0;
@@ -560,12 +566,11 @@ const getCollapsedBadgeStyle = ({collapsed, theme}: any) => {
     height: 11px;
     border-radius: 11px;
     line-height: 11px;
-    box-shadow: ${theme.isChonk ? 'none' : '0 3px 3px #2f2936'};
+    box-shadow: ${isChonkTheme(theme) ? 'none' : '0 3px 3px #2f2936'};
   `;
 };
 
-// @ts-expect-error TS(7031): Binding element '_' implicitly has an 'any' type.
-const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} />)`
+const SidebarItemBadge = styled('span')<{collapsed: boolean | undefined}>`
   color: ${p => p.theme.white};
   background: ${p =>
     isChonkTheme(p.theme) ? p.theme.colors.chonk.red400 : p.theme.red300};
@@ -576,7 +581,7 @@ const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} /
   height: 22px;
   border-radius: 22px;
   line-height: 22px;
-
+  font-variant-numeric: tabular-nums;
   ${getCollapsedBadgeStyle};
 `;
 

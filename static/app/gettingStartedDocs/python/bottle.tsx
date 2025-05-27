@@ -72,7 +72,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[bottle]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[bottle]'}),
     },
   ],
   configure: (params: Params) => [

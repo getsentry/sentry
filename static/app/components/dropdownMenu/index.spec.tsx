@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -25,10 +24,7 @@ describe('DropdownMenu', function () {
           },
         ]}
         triggerLabel="This is a Menu"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     // Open the mneu
@@ -71,10 +67,7 @@ describe('DropdownMenu', function () {
           },
         ]}
         triggerLabel="Menu"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
@@ -95,10 +88,7 @@ describe('DropdownMenu', function () {
       <Fragment>
         <DropdownMenu items={[{key: 'item1', label: 'Item One'}]} triggerLabel="Menu A" />
         <DropdownMenu items={[{key: 'item2', label: 'Item Two'}]} triggerLabel="Menu B" />
-      </Fragment>,
-      {
-        deprecatedRouterMocks: true,
-      }
+      </Fragment>
     );
 
     // Can be dismissed by clicking outside
@@ -164,10 +154,7 @@ describe('DropdownMenu', function () {
           },
         ]}
         triggerLabel="Menu"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
@@ -254,10 +241,7 @@ describe('DropdownMenu', function () {
           },
         ]}
         triggerLabel="Menu"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
@@ -271,10 +255,7 @@ describe('DropdownMenu', function () {
       <DropdownMenu
         items={[{key: 'item1', label: 'Item One', to: '/test'}]}
         triggerLabel="Menu"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
@@ -285,14 +266,13 @@ describe('DropdownMenu', function () {
   });
 
   it('closes after clicking external link', async function () {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
     render(
       <DropdownMenu
         items={[{key: 'item1', label: 'Item One', externalHref: 'https://example.com'}]}
         triggerLabel="Menu"
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
@@ -300,39 +280,34 @@ describe('DropdownMenu', function () {
     await waitFor(() => {
       expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
     });
+
+    // JSDOM throws an error on navigation to random urls
+    expect(errorSpy).toHaveBeenCalledTimes(1);
   });
 
   it('navigates to link on enter', async function () {
     const onAction = jest.fn();
-    const router = RouterFixture();
-    render(
+    const {router} = render(
       <DropdownMenu
         items={[
           {key: 'item1', label: 'Item One', to: '/test'},
           {key: 'item2', label: 'Item Two', to: '/test2', onAction},
         ]}
         triggerLabel="Menu"
-      />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
     await userEvent.keyboard('{ArrowDown}');
     await userEvent.keyboard('{Enter}');
     await waitFor(() => {
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({pathname: '/test2'})
-      );
+      expect(router.location.pathname).toBe('/test2');
     });
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
   it('navigates to link on meta key', async function () {
     const onAction = jest.fn();
-    const router = RouterFixture();
     const user = userEvent.setup();
 
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -344,11 +319,7 @@ describe('DropdownMenu', function () {
           {key: 'item2', label: 'Item Two', to: '/test2', onAction},
         ]}
         triggerLabel="Menu"
-      />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     await user.click(screen.getByRole('button', {name: 'Menu'}));
@@ -366,8 +337,9 @@ describe('DropdownMenu', function () {
 
   it('navigates to external link enter', async function () {
     const onAction = jest.fn();
-    const router = RouterFixture();
     const user = userEvent.setup();
+
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
       <DropdownMenu
@@ -381,11 +353,7 @@ describe('DropdownMenu', function () {
           },
         ]}
         triggerLabel="Menu"
-      />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     await user.click(screen.getByRole('button', {name: 'Menu'}));
@@ -393,5 +361,7 @@ describe('DropdownMenu', function () {
     await user.keyboard('{Enter}');
 
     expect(onAction).toHaveBeenCalledTimes(1);
+    // JSDOM throws an error on navigation
+    expect(errorSpy).toHaveBeenCalledTimes(1);
   });
 });

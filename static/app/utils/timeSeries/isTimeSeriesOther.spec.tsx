@@ -11,7 +11,7 @@ describe('isTimeSeriesOther', () => {
     expect(
       isTimeSeriesOther(
         TimeSeriesFixture({
-          field: 'Other',
+          yAxis: 'Other',
         })
       )
     ).toBeTruthy();
@@ -21,7 +21,7 @@ describe('isTimeSeriesOther', () => {
     expect(
       isTimeSeriesOther(
         TimeSeriesFixture({
-          field: 'eps() : Other',
+          yAxis: 'eps() : Other',
         })
       )
     ).toBeTruthy();

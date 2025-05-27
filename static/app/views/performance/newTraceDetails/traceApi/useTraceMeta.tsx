@@ -145,7 +145,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
     Error
   >({
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: ['traceData', replayTraces],
+    queryKey: ['traceData', replayTraces.map(trace => trace.traceSlug)],
     queryFn: () =>
       fetchTraceMetaInBatches(
         api,
@@ -154,6 +154,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
         normalizedParams,
         filters.selection
       ),
+    staleTime: 1000 * 60 * 10,
     enabled: replayTraces.length > 0,
   });
 

@@ -29,7 +29,7 @@ const indexedDbPersister = createAsyncStoragePersister({
   key: cacheKey,
 });
 
-export const hasIndexedDb = !!window.indexedDB;
+const hasIndexedDb = !!window.indexedDB;
 
 /**
  * Enables the PersistQueryClientProvider when the flag is enabled

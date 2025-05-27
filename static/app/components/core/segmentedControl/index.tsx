@@ -1,5 +1,5 @@
 import {useMemo, useRef} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaRadioProps} from '@react-aria/radio';
 import {useRadio, useRadioGroup} from '@react-aria/radio';
@@ -21,6 +21,7 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import {
   ChonkStyledGroupWrap,
+  ChonkStyledLabelWrap,
   ChonkStyledSegmentWrap,
   ChonkStyledVisibleLabel,
   type Priority,
@@ -88,7 +89,13 @@ export function SegmentedControl<Value extends string>({
   const collectionList = useMemo(() => [...collection], [collection]);
 
   return (
-    <GroupWrap {...radioGroupProps} size={size} priority={priority} ref={ref}>
+    <GroupWrap
+      {...radioGroupProps}
+      size={size}
+      priority={priority}
+      ref={ref}
+      listSize={collectionList.length}
+    >
       <LayoutGroup id={radioGroupProps.id}>
         {collectionList.map(option => (
           <Segment
@@ -213,7 +220,12 @@ function Segment<Value extends string>({
         <Divider visible={showDivider} role="separator" aria-hidden />
       )}
 
-      <LabelWrap size={size} role="presentation">
+      <LabelWrap
+        size={size}
+        isSelected={isSelected}
+        priority={priority}
+        role="presentation"
+      >
         {icon}
         {props.children && label}
       </LabelWrap>
@@ -236,7 +248,7 @@ function Segment<Value extends string>({
 }
 
 const GroupWrap = withChonk(
-  styled('div')<{priority: Priority; size: FormSize}>`
+  styled('div')<{listSize: number; priority: Priority; size: FormSize}>`
     position: relative;
     display: inline-grid;
     grid-auto-flow: column;
@@ -272,15 +284,15 @@ const SegmentWrap = withChonk(
 
     ${p =>
       !p.isDisabled &&
-      `
-    &:hover {
-      background-color: inherit;
+      css`
+        &:hover {
+          background-color: inherit;
 
-      [role='separator'] {
-        opacity: 0;
-      }
-    }
-  `}
+          [role='separator'] {
+            opacity: 0;
+          }
+        }
+      `}
 
     ${p => p.isSelected && `z-index: 1;`}
   `,
@@ -367,13 +379,20 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
   `}
 `;
 
-const LabelWrap = styled('span')<{size: FormSize}>`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
-  z-index: 1;
-`;
+const LabelWrap = withChonk(
+  styled('span')<{
+    isSelected: boolean;
+    priority: Priority;
+    size: FormSize;
+  }>`
+    display: grid;
+    grid-auto-flow: column;
+    align-items: center;
+    gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
+    z-index: 1;
+  `,
+  ChonkStyledLabelWrap
+);
 
 const InnerLabelWrap = styled('span')`
   position: relative;

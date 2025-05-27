@@ -27,6 +27,7 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
    * Shows clickable IconClose on the right side.
    */
   onDismiss?: () => void;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * Dictates color scheme of the tag.
    */
@@ -40,9 +41,7 @@ export function Tag({
   onDismiss,
   children,
   ...props
-}: TagProps & {
-  ref?: React.Ref<HTMLDivElement>;
-}) {
+}: TagProps) {
   return (
     <StyledTag type={type} data-test-id="tag-background" ref={ref} {...props}>
       {icon && (

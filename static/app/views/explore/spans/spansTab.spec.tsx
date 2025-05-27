@@ -4,6 +4,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldKind} from 'sentry/utils/fields';
 import {
   PageParamsProvider,
@@ -11,7 +12,9 @@ import {
   useExploreGroupBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
+import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
+import type {PickableDays} from 'sentry/views/explore/utils';
 
 jest.mock('sentry/utils/analytics');
 
@@ -23,6 +26,17 @@ const mockStringTags: TagCollection = {
 const mockNumberTags: TagCollection = {
   numberTag1: {key: 'numberTag1', kind: FieldKind.MEASUREMENT, name: 'numberTag1'},
   numberTag2: {key: 'numberTag2', kind: FieldKind.MEASUREMENT, name: 'numberTag2'},
+};
+
+const datePageFilterProps: PickableDays = {
+  defaultPeriod: '7d' as const,
+  maxPickableDays: 7,
+  relativeOptions: ({arbitraryOptions}) => ({
+    ...arbitraryOptions,
+    '1h': 'Last hour',
+    '24h': 'Last 24 hours',
+    '7d': 'Last 7 days',
+  }),
 };
 
 describe('SpansTabContent', function () {
@@ -78,11 +92,11 @@ describe('SpansTabContent', function () {
 
   it('should fire analytics once per change', async function () {
     render(
-      <SpansTabContent
-        defaultPeriod="7d"
-        maxPickableDays={7}
-        relativeOptions={{'1h': 'Last hour', '24h': 'Last 24 hours', '7d': 'Last 7 days'}}
-      />,
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP_RPC} enabled>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
       {organization}
     );
 
@@ -120,22 +134,14 @@ describe('SpansTabContent', function () {
     function Component() {
       fields = useExploreFields();
       groupBys = useExploreGroupBys();
-      return (
-        <SpansTabContent
-          defaultPeriod="7d"
-          maxPickableDays={7}
-          relativeOptions={{
-            '1h': 'Last hour',
-            '24h': 'Last 24 hours',
-            '7d': 'Last 7 days',
-          }}
-        />
-      );
+      return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
 
     render(
       <PageParamsProvider>
-        <Component />
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP_RPC} enabled>
+          <Component />
+        </SpanTagsProvider>
       </PageParamsProvider>,
       {organization}
     );
@@ -157,11 +163,11 @@ describe('SpansTabContent', function () {
     // Add a group by, and leave one unselected
     await userEvent.click(aggregates);
     await userEvent.click(within(groupBy).getByRole('button', {name: '\u2014'}));
-    await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
+    await userEvent.click(within(groupBy).getByRole('option', {name: 'project'}));
 
-    expect(groupBys).toEqual(['release']);
+    expect(groupBys).toEqual(['project']);
     await userEvent.click(within(groupBy).getByRole('button', {name: 'Add Group'}));
-    expect(groupBys).toEqual(['release', '']);
+    expect(groupBys).toEqual(['project', '']);
 
     await userEvent.click(samples);
     expect(fields).toEqual([
@@ -171,7 +177,7 @@ describe('SpansTabContent', function () {
       'span.duration',
       'transaction',
       'timestamp',
-      'release',
+      'project',
     ]);
   });
 
@@ -235,23 +241,10 @@ describe('SpansTabContent', function () {
       spies.forEach(spy => spy.mockRestore());
     });
 
-    it('should show hints when the feature flag is enabled', function () {
-      const {organization: schemaHintsOrganization} = initializeOrg({
-        organization: {...organization, features: ['traces-schema-hints']},
+    it('should show hints', function () {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization,
       });
-
-      render(
-        <SpansTabContent
-          defaultPeriod="7d"
-          maxPickableDays={7}
-          relativeOptions={{
-            '1h': 'Last hour',
-            '24h': 'Last 24 hours',
-            '7d': 'Last 7 days',
-          }}
-        />,
-        {organization: schemaHintsOrganization}
-      );
 
       expect(screen.getByText('stringTag1')).toBeInTheDocument();
       expect(screen.getByText('stringTag2')).toBeInTheDocument();

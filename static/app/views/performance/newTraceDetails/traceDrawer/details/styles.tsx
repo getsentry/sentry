@@ -1,10 +1,11 @@
-import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
+import {Fragment, type PropsWithChildren, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   DropdownMenu,
@@ -51,8 +52,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
-  SENTRY_SPAN_NUMBER_TAGS,
-  SENTRY_SPAN_STRING_TAGS,
+  SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
+  SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
@@ -415,6 +416,7 @@ type HighlightProps = {
   node: TraceTreeNode<TraceTree.NodeValue>;
   project: Project | undefined;
   transaction: EventTransaction | undefined;
+  highlightedAttributes?: Array<{name: string; value: React.ReactNode}>;
 };
 
 function Highlights({
@@ -424,7 +426,17 @@ function Highlights({
   project,
   headerContent,
   bodyContent,
+  highlightedAttributes,
 }: HighlightProps) {
+  const dispatch = useTraceStateDispatch();
+
+  const onOpsBreakdownRowClick = useCallback(
+    (op: string) => {
+      dispatch({type: 'set query', query: `op:${op}`, source: 'external'});
+    },
+    [dispatch]
+  );
+
   if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
     return null;
   }
@@ -469,14 +481,24 @@ function Highlights({
               </HiglightsDurationComparison>
             ) : null}
           </HighlightsDurationWrapper>
+          {highlightedAttributes && highlightedAttributes.length > 0 ? (
+            <HighlightedAttributesWrapper>
+              {highlightedAttributes.map(({name, value}) => (
+                <Fragment key={name}>
+                  <HighlightedAttributeName>{name}</HighlightedAttributeName>
+                  <div>{value}</div>
+                </Fragment>
+              ))}
+            </HighlightedAttributesWrapper>
+          ) : null}
           <StyledPanel>
             <StyledPanelHeader>{headerContent}</StyledPanelHeader>
             <PanelBody>{bodyContent}</PanelBody>
           </StyledPanel>
           {isEAPSpanNode(node) ? (
-            <HighLightEAPOpsBreakdown node={node} />
+            <HighLightEAPOpsBreakdown onRowClick={onOpsBreakdownRowClick} node={node} />
           ) : event ? (
-            <HighLightsOpsBreakdown event={event} />
+            <HighLightsOpsBreakdown onRowClick={onOpsBreakdownRowClick} event={event} />
           ) : null}
         </HighlightsRightColumn>
       </HighlightsWrapper>
@@ -489,7 +511,13 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
-function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
+function HighLightsOpsBreakdown({
+  event,
+  onRowClick,
+}: {
+  event: EventTransaction;
+  onRowClick: (op: string) => void;
+}) {
   const theme = useTheme();
   const breakdown = generateStats(event, {type: 'no_filter'});
 
@@ -507,7 +535,10 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
           const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
 
           return (
-            <HighlightsOpRow key={operationName}>
+            <HighlightsOpRow
+              key={operationName}
+              onClick={() => onRowClick(operationName)}
+            >
               <IconCircleFill size="xs" color={color as Color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
@@ -519,7 +550,13 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
   );
 }
 
-function HighLightEAPOpsBreakdown({node}: {node: TraceTreeNode<TraceTree.EAPSpan>}) {
+function HighLightEAPOpsBreakdown({
+  node,
+  onRowClick,
+}: {
+  node: TraceTreeNode<TraceTree.EAPSpan>;
+  onRowClick: (op: string) => void;
+}) {
   const theme = useTheme();
   const breakdown = node.eapSpanOpsBreakdown;
 
@@ -546,9 +583,7 @@ function HighLightEAPOpsBreakdown({node}: {node: TraceTreeNode<TraceTree.EAPSpan
 
   return (
     <HighlightsOpsBreakdownWrapper>
-      <HighlightsSpanCount>
-        {t('Most frequent embedded span ops are')}
-      </HighlightsSpanCount>
+      <HighlightsSpanCount>{t('Most frequent child span ops are:')}</HighlightsSpanCount>
       <TopOpsList>
         {displayOps.map(currOp => {
           const operationName = currOp.op;
@@ -556,7 +591,10 @@ function HighLightEAPOpsBreakdown({node}: {node: TraceTreeNode<TraceTree.EAPSpan
           const pctLabel = Math.round(currOp.percentage);
 
           return (
-            <HighlightsOpRow key={operationName}>
+            <HighlightsOpRow
+              key={operationName}
+              onClick={() => onRowClick(operationName)}
+            >
               <IconCircleFill size="xs" color={color as Color} />
               {operationName}
               <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
@@ -587,6 +625,7 @@ const HighlightsSpanCount = styled('div')`
 const HighlightsOpRow = styled(FlexBox)`
   font-size: 13px;
   gap: ${space(0.5)};
+  cursor: pointer;
 `;
 
 const HighlightsOpsBreakdownWrapper = styled(FlexBox)`
@@ -624,6 +663,19 @@ const HighlightOp = styled('div')`
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: normal;
+`;
+
+const HighlightedAttributesWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: ${space(1.5)};
+  row-gap: ${space(0.5)};
+  margin-bottom: ${space(1.5)};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const HighlightedAttributeName = styled('div')`
+  color: ${p => p.theme.subText};
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
@@ -810,7 +862,8 @@ function KeyValueAction({
   if (
     kind === TraceDrawerActionValueKind.SENTRY_TAG &&
     !(
-      SENTRY_SPAN_NUMBER_TAGS.includes(rowKey) || SENTRY_SPAN_STRING_TAGS.includes(rowKey)
+      SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS.includes(rowKey) ||
+      SENTRY_SEARCHABLE_SPAN_STRING_TAGS.includes(rowKey)
     )
   ) {
     return null;
@@ -825,6 +878,7 @@ function KeyValueAction({
         location,
         projectIds,
         rowKey,
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         rowValue.toString(),
         TraceDrawerActionKind.INCLUDE
       ),
@@ -837,6 +891,7 @@ function KeyValueAction({
         location,
         projectIds,
         rowKey,
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         rowValue.toLocaleString(),
         TraceDrawerActionKind.EXCLUDE
       ),
@@ -867,6 +922,7 @@ function KeyValueAction({
           location,
           projectIds,
           rowKey,
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           TraceDrawerActionKind.GREATER_THAN
         ),
@@ -879,6 +935,7 @@ function KeyValueAction({
           location,
           projectIds,
           rowKey,
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           TraceDrawerActionKind.LESS_THAN
         ),
@@ -903,6 +960,7 @@ function KeyValueAction({
         traceAnalytics.trackExploreSearch(
           organization,
           rowKey,
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           key as TraceDrawerActionKind,
           'drawer'
@@ -1123,7 +1181,7 @@ const ActionWrapper = styled('div')`
   overflow: visible;
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${space(0.5)};
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {

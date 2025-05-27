@@ -20,7 +20,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   Table,
   TableBody,
@@ -36,10 +35,12 @@ import {
   useExploreGroupBys,
   useExploreQuery,
   useExploreSortBys,
+  useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {viewSamplesTarget} from 'sentry/views/explore/utils';
 
@@ -47,22 +48,18 @@ import {FieldRenderer} from './fieldRenderer';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;
-  isProgressivelyLoading: boolean;
 }
 
-export function AggregatesTable({
-  aggregatesTableResult,
-  isProgressivelyLoading,
-}: AggregatesTableProps) {
+export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
 
-  const topEvents = useTopEvents();
-  const groupBys = useExploreGroupBys();
-
   const {result, eventView, fields} = aggregatesTableResult;
 
+  const topEvents = useTopEvents();
+  const groupBys = useExploreGroupBys();
+  const visualizes = useExploreVisualizes();
   const sorts = useExploreSortBys();
   const setSorts = useSetExploreSortBys();
   const query = useExploreQuery();
@@ -84,17 +81,18 @@ export function AggregatesTable({
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
 
+  const paginationAnalyticsEvent = usePaginationAnalytics(
+    'aggregates',
+    result.data?.length ?? 0
+  );
+
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles}>
+      <Table ref={tableRef} style={initialTableStyles}>
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
-              <TableHeadCellContent>
-                <LoadingIndicatorWrapper>
-                  {getProgressiveLoadingIndicator(isProgressivelyLoading, 'table')}
-                </LoadingIndicatorWrapper>
-              </TableHeadCellContent>
+              <TableHeadCellContent />
             </TableHeadCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined
@@ -168,7 +166,13 @@ export function AggregatesTable({
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
-              const target = viewSamplesTarget(location, query, groupBys, row, {
+              const target = viewSamplesTarget({
+                location,
+                query,
+                groupBys,
+                visualizes,
+                sorts,
+                row,
                 projects,
               });
               return (
@@ -207,7 +211,10 @@ export function AggregatesTable({
           )}
         </TableBody>
       </Table>
-      <Pagination pageLinks={result.pageLinks} />
+      <Pagination
+        pageLinks={result.pageLinks}
+        paginationAnalyticsEvent={paginationAnalyticsEvent}
+      />
     </Fragment>
   );
 }
@@ -224,14 +231,4 @@ const TopResultsIndicator = styled('div')<{color: string}>`
 
 const StyledLink = styled(Link)`
   display: flex;
-`;
-
-// Positions the loading indicator in the center of the cell that
-// corresponds to the stack column. Prevents layout shift when the
-// loading indicator is removed.
-const LoadingIndicatorWrapper = styled('div')`
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
 `;

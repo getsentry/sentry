@@ -1,13 +1,14 @@
-import { ANNUAL, MONTHLY } from 'getsentry/constants';
+import {DataCategory} from 'sentry/types/core';
+
+import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import {CheckoutType, type Plan} from 'getsentry/types';
-import { DataCategory } from 'sentry/types/core';
 
 // mm2 plans with data volume up to 500k
 const MM2_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
 };
 
-const MM2_CATEGORIES = [DataCategory.ERRORS] ;
+const MM2_CATEGORIES = [DataCategory.ERRORS];
 
 const BUDGET_TERM = 'on-demand';
 const MM2_PLANS: Record<string, Plan> = {
@@ -65,6 +66,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_100k_ac: {
     isTestPlan: false,
@@ -120,6 +122,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_100k_auf: {
     isTestPlan: false,
@@ -175,6 +178,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_500k: {
     isTestPlan: false,
@@ -230,6 +234,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_500k_ac: {
     isTestPlan: false,
@@ -285,6 +290,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_a_500k_auf: {
     isTestPlan: false,
@@ -340,6 +346,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-query',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_100k: {
     isTestPlan: false,
@@ -384,6 +391,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_100k_ac: {
     isTestPlan: false,
@@ -428,6 +436,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_100k_auf: {
     isTestPlan: false,
@@ -472,6 +481,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_500k: {
     isTestPlan: false,
@@ -517,6 +527,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_500k_ac: {
     isTestPlan: false,
@@ -561,6 +572,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_b_500k_auf: {
     isTestPlan: false,
@@ -605,6 +617,7 @@ const MM2_PLANS: Record<string, Plan> = {
       'discover-basic',
       'extended-data-retention',
     ],
+    availableReservedBudgetTypes: {},
   },
   mm2_f: {
     isTestPlan: false,
@@ -640,6 +653,7 @@ const MM2_PLANS: Record<string, Plan> = {
     onDemandEventPrice: 0,
     retentionDays: 30,
     features: ['advanced-search'],
+    availableReservedBudgetTypes: {},
   },
   mm2_a: {
     id: 'mm2_a',
@@ -657,28 +671,28 @@ const MM2_PLANS: Record<string, Plan> = {
     features: [
       'advanced-search',
       'discover-basic',
-        "incidents",
-        "integrations-alert-rule",
-        "integrations-chat-unfurl",
-        "integrations-incident-management",
-        "integrations-issue-basic",
-        "integrations-issue-sync",
-        "sso-basic",
-        "weekly-reports",
-        "custom-inbound-filters",
-        "custom-symbol-sources",
-        "data-forwarding",
-        "discard-groups",
-        "dashboards-basic",
-        "discover-query",
-        "global-views",
-        "integrations-codeowners",
-        "integrations-event-hooks",
-        "integrations-stacktrace-link",
-        "rate-limits",
-        "relay",
-        "sso-saml2",
-        "extended-data-retention"
+      'incidents',
+      'integrations-alert-rule',
+      'integrations-chat-unfurl',
+      'integrations-incident-management',
+      'integrations-issue-basic',
+      'integrations-issue-sync',
+      'sso-basic',
+      'weekly-reports',
+      'custom-inbound-filters',
+      'custom-symbol-sources',
+      'data-forwarding',
+      'discard-groups',
+      'dashboards-basic',
+      'discover-query',
+      'global-views',
+      'integrations-codeowners',
+      'integrations-event-hooks',
+      'integrations-stacktrace-link',
+      'rate-limits',
+      'relay',
+      'sso-saml2',
+      'extended-data-retention',
     ],
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
@@ -687,8 +701,7 @@ const MM2_PLANS: Record<string, Plan> = {
     reservedMinimum: 100000,
     allowAdditionalReservedEvents: true,
     categories: MM2_CATEGORIES,
-    availableCategories: [
-    ],
+    availableCategories: [],
     onDemandCategories: MM2_CATEGORIES,
     checkoutCategories: MM2_CATEGORIES,
     hasOnDemandModes: false,
@@ -698,10 +711,11 @@ const MM2_PLANS: Record<string, Plan> = {
           events: 100000,
           price: 0,
         },
-        ]
+      ],
     },
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
+    availableReservedBudgetTypes: {},
   },
 };
 

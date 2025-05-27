@@ -381,11 +381,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "snooze_alert_url": alert_link + "&mute=1",
         }
 
-        open_period = GroupOpenPeriod.objects.create(
-            group=self.group,
-            project=self.project,
-            date_started=timezone.now(),
-        )
+        open_period = GroupOpenPeriod.objects.get(group=self.group, project=self.project)
+        open_period.update(date_started=timezone.now())
         self.create_incident_group_open_period(incident=incident, group_open_period=open_period)
 
         metric_issue_context = MetricIssueContext(
@@ -454,11 +451,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "snooze_alert_url": None,
         }
 
-        open_period = GroupOpenPeriod.objects.create(
-            group=self.group,
-            project=self.project,
-            date_started=timezone.now(),
-        )
+        open_period = GroupOpenPeriod.objects.get(group=self.group, project=self.project)
+        open_period.update(date_started=timezone.now())
         self.create_incident_group_open_period(incident=incident, group_open_period=open_period)
 
         metric_issue_context = MetricIssueContext(

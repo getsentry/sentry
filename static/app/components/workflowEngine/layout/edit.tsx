@@ -24,7 +24,7 @@ function EditLayout({children, onTitleChange}: WorkflowEngineEditLayoutProps) {
   const title = useDocumentTitle();
   return (
     <Layout.Page>
-      <StyledHeader>
+      <Layout.Header unified>
         <Layout.HeaderContent>
           <BreadcrumbsFromContext />
           <Layout.Title>
@@ -37,15 +37,11 @@ function EditLayout({children, onTitleChange}: WorkflowEngineEditLayoutProps) {
           </Layout.Title>
         </Layout.HeaderContent>
         <ActionsFromContext />
-      </StyledHeader>
+      </Layout.Header>
       <Body>{children}</Body>
     </Layout.Page>
   );
 }
-
-const StyledHeader = styled(Layout.Header)`
-  background: ${p => p.theme.background};
-`;
 
 const Body = styled('div')`
   display: flex;

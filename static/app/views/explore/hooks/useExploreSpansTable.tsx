@@ -11,7 +11,6 @@ import {
   useExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {
-  QUERY_MODE,
   type SpansRPCQueryExtras,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -46,8 +45,6 @@ export function useExploreSpansTable({
     queryHookImplementation: useExploreSpansTableImp,
     queryHookArgs: {enabled, limit, query},
     queryOptions: {
-      queryMode: QUERY_MODE.SERIAL,
-      withholdBestEffort: true,
       canTriggerHighAccuracy,
     },
   });

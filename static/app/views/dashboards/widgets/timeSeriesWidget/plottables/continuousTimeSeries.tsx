@@ -21,10 +21,6 @@ export type ContinuousTimeSeriesConfig = {
    */
   color?: string;
   /**
-   * Data delay, in seconds. Data older than N seconds will be visually deemphasized.
-   */
-  delay?: number;
-  /**
    * Callback for ECharts' `onHighlight`. Called with the data point that corresponds to the highlighted point in the chart
    */
   onHighlight?: (datum: Readonly<TimeSeries['values'][number]>) => void;
@@ -63,11 +59,11 @@ export abstract class ContinuousTimeSeries<
   }
 
   get name(): string {
-    return this.timeSeries.field;
+    return this.timeSeries.yAxis;
   }
 
   get label(): string {
-    return this.config?.alias ?? formatSeriesName(this.timeSeries.field);
+    return this.config?.alias ?? formatSeriesName(this.timeSeries.yAxis);
   }
 
   get isEmpty(): boolean {

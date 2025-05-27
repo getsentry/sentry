@@ -11,7 +11,6 @@ import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBy
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {
-  QUERY_MODE,
   type SpansRPCQueryExtras,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -122,8 +121,6 @@ export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: P
     queryHookImplementation: useMultiQueryTableSampleModeImpl,
     queryHookArgs: {query, yAxes, sortBys, enabled},
     queryOptions: {
-      queryMode: QUERY_MODE.SERIAL,
-      withholdBestEffort: true,
       canTriggerHighAccuracy,
     },
   });

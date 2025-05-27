@@ -86,7 +86,7 @@ describe('GroupSidebar', function () {
       method: 'GET',
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/autofix/setup/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,

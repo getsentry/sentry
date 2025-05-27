@@ -11,7 +11,6 @@ import {
 } from 'sentry/views/explore/constants';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {useSpanFieldCustomTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 type TypedTraceItemAttributes = {number: TagCollection; string: TagCollection};
 
@@ -38,10 +37,6 @@ export function TraceItemAttributeProvider({
   traceItemType,
   enabled,
 }: TraceItemAttributeProviderProps) {
-  const {data: indexedTags} = useSpanFieldCustomTags({
-    enabled: traceItemType === TraceItemDataset.SPANS && enabled,
-  });
-
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
       enabled,
@@ -71,12 +66,8 @@ export function TraceItemAttributeProvider({
       {key: tag, name: tag, kind: FieldKind.TAG},
     ]);
 
-    if (traceItemType === TraceItemDataset.SPANS) {
-      return {...indexedTags, ...stringAttributes, ...Object.fromEntries(tags)};
-    }
-
     return {...stringAttributes, ...Object.fromEntries(tags)};
-  }, [traceItemType, indexedTags, stringAttributes]);
+  }, [traceItemType, stringAttributes]);
 
   const attributesResult = useMemo(() => {
     return {

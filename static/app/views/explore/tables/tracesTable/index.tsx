@@ -24,6 +24,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useExploreQuery} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {
   Description,
@@ -58,6 +59,11 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
 
   const showErrorState = !isPending && isError;
   const showEmptyState = !isPending && !showErrorState && (data?.data?.length ?? 0) === 0;
+
+  const paginationAnalyticsEvent = usePaginationAnalytics(
+    'traces',
+    data?.data?.length ?? 0
+  );
 
   return (
     <Fragment>
@@ -124,7 +130,10 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
           ))}
         </TracePanelContent>
       </StyledPanel>
-      <Pagination pageLinks={getResponseHeader?.('Link')} />
+      <Pagination
+        pageLinks={getResponseHeader?.('Link')}
+        paginationAnalyticsEvent={paginationAnalyticsEvent}
+      />
     </Fragment>
   );
 }

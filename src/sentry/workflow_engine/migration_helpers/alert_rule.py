@@ -5,6 +5,7 @@ from typing import Any
 from django.db import router, transaction
 from django.forms import ValidationError
 
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -211,6 +212,7 @@ def get_action_filter(
     action_filter = DataCondition.objects.get(
         condition_group__in=workflow_dcgs,
         comparison=priority,
+        type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
     )
     return action_filter
 
@@ -261,7 +263,7 @@ def migrate_metric_action(
 
 def migrate_metric_data_conditions(
     alert_rule_trigger: AlertRuleTrigger,
-) -> tuple[DataCondition, DataCondition]:
+) -> tuple[DataCondition, DataCondition, DataCondition]:
     alert_rule = alert_rule_trigger.alert_rule
     # create a data condition for the Detector's data condition group with the
     # threshold and associated priority level
@@ -312,7 +314,15 @@ def migrate_metric_data_conditions(
         type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
         condition_group=data_condition_group,
     )
-    return detector_trigger, action_filter
+    # finally, create a "resolution action filter": the condition result is set to true
+    # if we're de-escalating from the priority specified in the comparison
+    resolve_action_filter = DataCondition.objects.create(
+        comparison=PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH),
+        condition_result=True,
+        type=Condition.ISSUE_PRIORITY_DEESCALATING,
+        condition_group=data_condition_group,
+    )
+    return detector_trigger, action_filter, resolve_action_filter
 
 
 def get_resolve_threshold(detector_data_condition_group: DataConditionGroup) -> float:
@@ -539,7 +549,7 @@ def migrate_alert_rule(
     data_source.detectors.set([detector])
     detector_state = DetectorState.objects.create(
         detector=detector,
-        active=True if open_incident else False,
+        is_triggered=True if open_incident else False,
         state=state,
     )
     alert_rule_detector, alert_rule_workflow, detector_workflow = create_metric_alert_lookup_tables(
@@ -663,32 +673,17 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule) -> (
         else:
             dc.update(type=threshold_type)
 
-    # update the resolution data condition threshold in case the resolve threshold was updated
-    resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
-    if alert_rule.resolve_threshold is None:
-        # we need to figure out the resolve threshold ourselves
-        resolve_threshold = get_resolve_threshold(data_condition_group)
-        if resolve_threshold != -1:
-            resolve_condition.update(comparison=resolve_threshold)
-        else:
-            raise UnresolvableResolveThreshold
-    else:
-        resolve_condition.update(comparison=alert_rule.resolve_threshold)
-
     # reset detector status, as the rule was updated
-    detector_state.update(active=False, state=DetectorPriorityLevel.OK)
+    detector_state.update(is_triggered=False, state=DetectorPriorityLevel.OK)
 
     return detector_state, detector
 
 
 def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None:
     """
-    Helper method to update the detector trigger for a legacy resolution "trigger" if
-    no explicit resolution threshold is set on the alert rule.
+    Helper method to update the detector trigger for a legacy resolution "trigger."
     """
-    # if the alert rule has a resolve threshold or if it hasn't been dual written, return early
-    if alert_rule.resolve_threshold is not None:
-        return None
+    # if the alert rule hasn't been dual written, return early
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id)
     except AlertRuleDetector.DoesNotExist:
@@ -704,7 +699,10 @@ def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None
         )
         raise MissingDataConditionGroup
 
-    resolve_threshold = get_resolve_threshold(detector_data_condition_group)
+    if alert_rule.resolve_threshold is not None:
+        resolve_threshold = alert_rule.resolve_threshold
+    else:
+        resolve_threshold = get_resolve_threshold(detector_data_condition_group)
     if resolve_threshold == -1:
         raise UnresolvableResolveThreshold
 
@@ -730,7 +728,10 @@ def dual_update_migrated_alert_rule_trigger(
         # we won't reach this path
         return None
     action_filter = get_action_filter(alert_rule_trigger, priority)
-
+    resolve_action_filter = DataCondition.objects.filter(
+        condition_group=action_filter.condition_group,
+        type=Condition.ISSUE_PRIORITY_DEESCALATING,
+    ).first()
     updated_detector_trigger_fields: dict[str, Any] = {}
     updated_action_filter_fields: dict[str, Any] = {}
     label = alert_rule_trigger.label
@@ -742,7 +743,10 @@ def dual_update_migrated_alert_rule_trigger(
 
     detector_trigger.update(**updated_detector_trigger_fields)
     if updated_action_filter_fields:
+        # these are updated together
         action_filter.update(**updated_action_filter_fields)
+        if resolve_action_filter is not None:
+            resolve_action_filter.update(**updated_action_filter_fields)
 
     return detector_trigger, action_filter
 
@@ -814,39 +818,10 @@ def dual_delete_migrated_alert_rule(alert_rule: AlertRule) -> None:
 
     workflow: Workflow = alert_rule_workflow.workflow
     detector: Detector = alert_rule_detector.detector
-    data_condition_group: DataConditionGroup | None = detector.workflow_condition_group
 
-    data_source = get_data_source(alert_rule=alert_rule)
-    if data_source is None:
-        logger.info(
-            "DataSource does not exist",
-            extra={"alert_rule_id": alert_rule.id},
-        )
     with transaction.atomic(router.db_for_write(Detector)):
-        triggers_to_dual_delete = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
-        for trigger in triggers_to_dual_delete:
-            dual_delete_migrated_alert_rule_trigger(trigger)
-
-        if data_condition_group:
-            # we need to delete the "resolve" dataconditions here as well
-            data_conditions = DataCondition.objects.filter(condition_group=data_condition_group)
-            resolve_detector_trigger = data_conditions.get(
-                condition_result=DetectorPriorityLevel.OK
-            )
-
-            resolve_detector_trigger.delete()
-
-        # NOTE: for migrated alert rules, each workflow is associated with a single detector
-        # make sure there are no other detectors associated with the workflow, then delete it if so
-        if DetectorWorkflow.objects.filter(workflow=workflow).count() == 1:
-            # also deletes alert_rule_workflow
-            workflow.delete()
-        # also deletes alert_rule_detector, detector_workflow (if not already deleted), detector_state
-        detector.delete()
-        if data_condition_group:
-            data_condition_group.delete()
-        if data_source:
-            data_source.delete()
+        RegionScheduledDeletion.schedule(instance=detector, days=0)
+        RegionScheduledDeletion.schedule(instance=workflow, days=0)
 
     return
 
@@ -875,8 +850,7 @@ def dual_delete_migrated_alert_rule_trigger(alert_rule_trigger: AlertRuleTrigger
             action.delete()
 
         detector_trigger.delete()
-        action_filter.delete()
-        action_filter_dcg.delete()
+        action_filter_dcg.delete()  # deletes the action filter and resolve action filter
 
     return None
 

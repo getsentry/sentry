@@ -1,8 +1,8 @@
 import {
   BannerWrapper,
   FeatureFlagCTAContent,
-} from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
-import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
+} from 'sentry/components/events/featureFlags/cta/featureFlagInlineCTA';
+import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/onboarding/useFeatureFlagOnboarding';
 import {useDrawerContentContext} from 'sentry/components/globalDrawer/components';
 import type {PlatformKey} from 'sentry/types/project';
 

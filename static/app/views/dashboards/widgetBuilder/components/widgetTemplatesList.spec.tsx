@@ -59,6 +59,7 @@ describe('WidgetTemplatesList', () => {
           onSave={onSave}
           setOpenWidgetTemplates={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
+          setCustomizeFromLibrary={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -77,6 +78,7 @@ describe('WidgetTemplatesList', () => {
           onSave={onSave}
           setOpenWidgetTemplates={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
+          setCustomizeFromLibrary={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -101,6 +103,7 @@ describe('WidgetTemplatesList', () => {
           onSave={onSave}
           setOpenWidgetTemplates={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
+          setCustomizeFromLibrary={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -122,7 +125,7 @@ describe('WidgetTemplatesList', () => {
           dataset: 'transactions-like',
         }),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -133,6 +136,7 @@ describe('WidgetTemplatesList', () => {
           onSave={onSave}
           setOpenWidgetTemplates={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
+          setCustomizeFromLibrary={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {

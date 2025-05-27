@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from django.contrib.postgres.fields import ArrayField as DjangoArrayField
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 from django.db.models.functions import Now
 from django.utils import timezone
@@ -11,7 +11,6 @@ from django.utils.translation import gettext_lazy
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    ArrayField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -64,6 +63,10 @@ class DashboardWidgetTypes(TypesClass):
     This targets transaction-like data from the split from discover. Itt may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
     """
     SPANS = 102
+    """
+    These represent the logs trace item type on the EAP dataset.
+    """
+    LOGS = 103
 
     TYPES = [
         (DISCOVER, "discover"),
@@ -75,6 +78,7 @@ class DashboardWidgetTypes(TypesClass):
         (ERROR_EVENTS, "error-events"),
         (TRANSACTION_LIKE, "transaction-like"),
         (SPANS, "spans"),
+        (LOGS, "logs"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -156,17 +160,17 @@ class DashboardWidgetQuery(Model):
 
     widget = FlexibleForeignKey("sentry.DashboardWidget")
     name = models.CharField(max_length=255)
-    fields = ArrayField()
+    fields = ArrayField(models.TextField(), default=list)
     conditions = models.TextField()
     # aggregates and columns will eventually replace fields.
     # Using django's built-in array field here since the one
     # from sentry/db/model/fields.py adds a default value to the
     # database migration.
-    aggregates = DjangoArrayField(models.TextField(), null=True)
-    columns = DjangoArrayField(models.TextField(), null=True)
+    aggregates = ArrayField(models.TextField(), null=True)
+    columns = ArrayField(models.TextField(), null=True)
     # Currently only used for tabular widgets.
     # If an alias is defined it will be shown in place of the field description in the table header
-    field_aliases = DjangoArrayField(models.TextField(), null=True)
+    field_aliases = ArrayField(models.TextField(), null=True)
     # Orderby condition for the query
     orderby = models.TextField(default="")
     # Order of the widget query in the widget.
@@ -198,7 +202,7 @@ class DashboardWidgetQueryOnDemand(Model):
 
     dashboard_widget_query = FlexibleForeignKey("sentry.DashboardWidgetQuery")
 
-    spec_hashes = ArrayField()
+    spec_hashes = ArrayField(models.TextField(), default=list)
 
     class OnDemandExtractionState(models.TextChoices):
         DISABLED_NOT_APPLICABLE = "disabled:not-applicable", gettext_lazy("disabled:not-applicable")

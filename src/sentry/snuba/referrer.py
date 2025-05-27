@@ -676,6 +676,10 @@ class Referrer(StrEnum):
     API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
     API_TRACE_VIEW_GET_META = "api.trace-view.get-meta"
+    API_TRACE_VIEW_SPAN_META = "api.trace-view.spans-meta"
+    API_TRACE_VIEW_SPAN_OP_META = "api.trace-view.spans-op-count"
+    API_TRACE_VIEW_TRANSACTION_CHILDREN = "api.trace-view.transaction-children"
+    API_TRACE_VIEW_LOGS_META = "api.trace-view.logs-meta"
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
     API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES = "api.trace-view.count-performance-issues"
@@ -757,6 +761,7 @@ class Referrer(StrEnum):
         "getsentry.promotion.mobile_performance_adoption.check_eligible"
     )
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
+    GITLAB_PR_COMMENT_BOT = "tasks.gitlab_comment"
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
     GROUP_GET_HELPFUL = "Group.get_helpful"
     GROUP_GET_LATEST = "Group.get_latest"

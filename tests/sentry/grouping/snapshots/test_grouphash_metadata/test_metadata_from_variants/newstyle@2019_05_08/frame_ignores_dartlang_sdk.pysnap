@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:10.162087+00:00'
+created: '2025-04-25T21:24:10.384900+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -29,7 +29,7 @@ contributing variants:
     component:
       app*
         stacktrace*
-          frame*
+          frame* (marked in-app by the client)
             filename*
               "async_patch.dart"
             function*

@@ -760,6 +760,50 @@ describe('TraceTree', () => {
       tree.expand(eapTxn!, false);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
+
+    it('collects measurements', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'eap-span-1',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            measurements: {
+              'measurements.fcp': 100,
+              'measurements.lcp': 200,
+            },
+            children: [
+              makeEAPSpan({
+                event_id: 'eap-span-2',
+                start_timestamp: start + 1,
+                end_timestamp: start + 4,
+                is_transaction: false,
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null}
+      );
+
+      expect(tree.vitals.size).toBe(1);
+
+      const span1 = findEAPSpanByEventId(tree, 'eap-span-1');
+      expect(tree.vitals.get(span1!)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({key: 'fcp', measurement: {value: 100}}),
+          expect.objectContaining({key: 'lcp', measurement: {value: 200}}),
+        ])
+      );
+
+      expect(tree.indicators).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({type: 'fcp', label: 'FCP', measurement: {value: 100}}),
+          expect.objectContaining({type: 'lcp', label: 'LCP', measurement: {value: 200}}),
+        ])
+      );
+    });
   });
 
   describe('events', () => {

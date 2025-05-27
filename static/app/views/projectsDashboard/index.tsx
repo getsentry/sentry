@@ -5,8 +5,8 @@ import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
 import uniqBy from 'lodash/uniqBy';
 
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -36,7 +36,7 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import ProjectCard from './projectCard';
@@ -241,7 +241,7 @@ function Dashboard() {
               }
               to={makeProjectsPathname({
                 path: '/new/',
-                orgSlug: organization.slug,
+                organization,
               })}
               icon={<IconAdd isCircled />}
               data-test-id="create-project"

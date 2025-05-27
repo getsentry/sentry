@@ -9,6 +9,7 @@ from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.performance_issues.experiments import exclude_experimental_detectors
 from sentry.utils.performance_issues.base import DetectorType
 from sentry.utils.performance_issues.detectors.mn_plus_one_db_span_detector import (
     MNPlusOneDBSpanDetector,
@@ -22,6 +23,7 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 
 
 @pytest.mark.django_db
+@exclude_experimental_detectors
 class MNPlusOneDBDetectorTest(TestCase):
     def setUp(self):
         super().setUp()

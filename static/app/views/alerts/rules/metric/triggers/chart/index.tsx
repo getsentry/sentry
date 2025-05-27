@@ -698,8 +698,6 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
-    const useRpc = dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
-
     const baseProps = {
       api,
       organization,
@@ -714,15 +712,7 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
-      useRpc,
     };
-
-    const isProgressiveLoadingEnabled = organization.features.includes(
-      'visibility-explore-progressive-loading'
-    );
-    const isUsingNormalSamplingMode = organization.features.includes(
-      'visibility-explore-progressive-loading-normal-sampling-mode'
-    );
 
     return (
       <Fragment>
@@ -757,13 +747,9 @@ class TriggersChart extends PureComponent<Props, State> {
           period={period}
           dataLoadedCallback={onDataLoaded}
           sampling={
-            isUsingNormalSamplingMode &&
-            !isProgressiveLoadingEnabled &&
             dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
               ? SAMPLING_MODE.NORMAL
-              : isProgressiveLoadingEnabled
-                ? SAMPLING_MODE.BEST_EFFORT
-                : undefined
+              : undefined
           }
         >
           {({

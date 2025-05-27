@@ -61,7 +61,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
             />
             <StartTextRow>
               <StyledSeerWaitingIcon size="lg" />
-              <Fragment>Need help digging deeper?</Fragment>
+              <Fragment>{t('Need help digging deeper?')}</Fragment>
             </StartTextRow>
           </AutofixStartText>
           <InputWrapper onSubmit={handleSubmit}>
@@ -95,7 +95,7 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }
               analyticsParams={{group_id: groupId}}
             >
-              {t('Start Autofix')}
+              {t('Start Seer')}
             </StyledButton>
           </InputWrapper>
         </Container>

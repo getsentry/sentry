@@ -196,3 +196,6 @@ register(key="sentry:tempest_fetch_screenshots", default=False)
 
 # Should tempest fetch dumps for this project
 register(key="sentry:tempest_fetch_dumps", default=False)
+
+# Should autofix run automatically on new issues
+register(key="sentry:autofix_automation_tuning", default="off")

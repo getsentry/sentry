@@ -20,6 +20,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {CohortId, OnDemandBudgetMode, PlanTier, type Subscription} from 'getsentry/types';
 import {isAm3DsPlan} from 'getsentry/utils/billing';
@@ -406,18 +407,14 @@ describe('Subscription > Overview', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'mm2_b_100k',
-      pendingChanges: {
+      pendingChanges: PendingChangesFixture({
         plan: 'mm2_a_100k',
         reservedEvents: 100000,
         onDemandMaxSpend: 0,
         effectiveDate: '2021-09-01',
         onDemandEffectiveDate: '2021-09-01',
-        // @ts-expect-error: idk idk idk
-        planDetails: {
-          name: 'Business',
-          contractInterval: 'monthly',
-        },
-      },
+        planDetails: PlanDetailsLookupFixture('mm2_a_100k')!,
+      }),
     });
 
     it('renders pending changes', async function () {

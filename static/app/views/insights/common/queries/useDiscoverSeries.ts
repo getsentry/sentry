@@ -36,7 +36,7 @@ interface UseMetricsSeriesOptions<Fields> {
   interval?: string;
   overriddenRoute?: string;
   referrer?: string;
-  samplingMode?: SamplingMode | 'NONE';
+  samplingMode?: SamplingMode;
   search?: MutableSearch | string;
   // TODO: Remove string type and always require MutableSearch
   transformAliasToInputFormat?: boolean;
@@ -66,9 +66,15 @@ export const useEAPSeries = <
     | string[],
 >(
   options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string
+  referrer: string,
+  pageFilters?: PageFilters
 ) => {
-  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_EAP_RPC, referrer);
+  return useDiscoverSeries<Fields>(
+    options,
+    DiscoverDatasets.SPANS_EAP_RPC,
+    referrer,
+    pageFilters
+  );
 };
 
 export const useMetricsSeries = <Fields extends MetricsProperty[]>(
@@ -156,8 +162,7 @@ const useDiscoverSeries = <T extends string[]>(
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
-      sampling:
-        samplingMode === 'NONE' || !shouldSetSamplingMode ? undefined : samplingMode,
+      sampling: shouldSetSamplingMode ? samplingMode : undefined,
     }),
     options: {
       enabled: options.enabled && defaultPageFilters.isReady,

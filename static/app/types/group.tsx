@@ -2,6 +2,7 @@ import type {LocationDescriptor} from 'history';
 
 import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
 import type {TitledPlugin} from 'sentry/components/group/pluginActions';
+import {t} from 'sentry/locale';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -68,8 +69,8 @@ export enum IssueCategory {
 
   /**
    * @deprecated
-   * Regression issues will move to the "performance_regression" category
-   * Other issues will move to the "performance_best_practice" category
+   * Regression issues will move to the "metric" category
+   * Other issues will move to "db_query"/"http_client"/"mobile"/"frontend"
    */
   PERFORMANCE = 'performance',
   /**
@@ -79,7 +80,7 @@ export enum IssueCategory {
   CRON = 'cron',
   /**
    * @deprecated
-   * Rage/dead click issues will move to the "user_experience" category
+   * Rage click and hydration issues will move to the "frontend" category
    */
   REPLAY = 'replay',
   /**
@@ -89,17 +90,48 @@ export enum IssueCategory {
   UPTIME = 'uptime',
   /**
    * @deprecated
-   * Metric alert issues will move to the "performance_regression" category
+   * Metric alert issues will move to the "metric" category
    */
   METRIC_ALERT = 'metric_alert',
 
   // New issue categories (under the issue-taxonomy flag)
   OUTAGE = 'outage',
-  PERFORMANCE_REGRESSION = 'performance_regression',
-  USER_EXPERIENCE = 'user_experience',
-  RESPONSIVENESS = 'responsiveness',
-  PERFORMANCE_BEST_PRACTICE = 'performance_best_practice',
+  METRIC = 'metric',
+  FRONTEND = 'frontend',
+  HTTP_CLIENT = 'http_client',
+  DB_QUERY = 'db_query',
+  MOBILE = 'mobile',
 }
+
+/**
+ * Valid issue categories for the new issue-taxonomy flag
+ */
+export const VALID_ISSUE_CATEGORIES_V2 = [
+  IssueCategory.ERROR,
+  IssueCategory.OUTAGE,
+  IssueCategory.METRIC,
+  IssueCategory.DB_QUERY,
+  IssueCategory.HTTP_CLIENT,
+  IssueCategory.FRONTEND,
+  IssueCategory.MOBILE,
+  IssueCategory.FEEDBACK,
+];
+
+export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
+  [IssueCategory.ERROR]: t('Runtime errors or exceptions.'),
+  [IssueCategory.OUTAGE]: t('Uptime or cron monitoring issues.'),
+  [IssueCategory.METRIC]: t('Performance regressions or metric threshold violations.'),
+  [IssueCategory.FRONTEND]: t('Frontend performance or usability issues.'),
+  [IssueCategory.HTTP_CLIENT]: t('Inefficient or problematic outgoing HTTP requests.'),
+  [IssueCategory.DB_QUERY]: t('Inefficient or problematic database queries.'),
+  [IssueCategory.MOBILE]: t('Mobile performance or usability issues.'),
+  [IssueCategory.FEEDBACK]: t('Feedback submitted directly by users.'),
+  [IssueCategory.METRIC_ALERT]: '',
+  [IssueCategory.PERFORMANCE]: '',
+  [IssueCategory.CRON]: '',
+  [IssueCategory.REPLAY]: '',
+  [IssueCategory.UPTIME]: '',
+};
 
 export enum IssueType {
   // Error
@@ -117,7 +149,6 @@ export enum IssueType {
   PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
   PERFORMANCE_LARGE_HTTP_PAYLOAD = 'performance_large_http_payload',
   PERFORMANCE_HTTP_OVERHEAD = 'performance_http_overhead',
-  PERFORMANCE_DURATION_REGRESSION = 'performance_duration_regression',
   PERFORMANCE_ENDPOINT_REGRESSION = 'performance_p95_endpoint_regression',
 
   // Profile
@@ -126,9 +157,7 @@ export enum IssueType {
   PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
   PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
   PROFILE_FRAME_DROP = 'profile_frame_drop',
-  PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
   PROFILE_FUNCTION_REGRESSION = 'profile_function_regression',
-  PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
 
   // Replay
   REPLAY_RAGE_CLICK = 'replay_click_rage',
@@ -145,13 +174,7 @@ export enum IssueType {
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
-export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
-  type =>
-    ![
-      IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL,
-      IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
-    ].includes(type)
-);
+export const VISIBLE_ISSUE_TYPES = Object.values(IssueType);
 
 export enum IssueTitle {
   ERROR = 'Error',
@@ -168,7 +191,6 @@ export enum IssueTitle {
   PERFORMANCE_UNCOMPRESSED_ASSET = 'Uncompressed Asset',
   PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP payload',
   PERFORMANCE_HTTP_OVERHEAD = 'HTTP/1.1 Overhead',
-  PERFORMANCE_DURATION_REGRESSION = 'Duration Regression',
   PERFORMANCE_ENDPOINT_REGRESSION = 'Endpoint Regression',
 
   // Profile
@@ -178,7 +200,6 @@ export enum IssueTitle {
   PROFILE_REGEX_MAIN_THREAD = 'Regex on Main Thread',
   PROFILE_FRAME_DROP = 'Frame Drop',
   PROFILE_FUNCTION_REGRESSION = 'Function Regression',
-  PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'Function Duration Regression (Experimental)',
 
   // Replay
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
@@ -199,7 +220,6 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   performance_uncompressed_assets: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
   performance_large_http_payload: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   performance_http_overhead: IssueTitle.PERFORMANCE_HTTP_OVERHEAD,
-  performance_duration_regression: IssueTitle.PERFORMANCE_DURATION_REGRESSION,
   performance_p95_endpoint_regression: IssueTitle.PERFORMANCE_ENDPOINT_REGRESSION,
 
   profile_file_io_main_thread: IssueTitle.PROFILE_FILE_IO_MAIN_THREAD,
@@ -209,7 +229,6 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_frame_drop: IssueTitle.PROFILE_FRAME_DROP,
   profile_frame_drop_experimental: IssueTitle.PROFILE_FRAME_DROP,
   profile_function_regression: IssueTitle.PROFILE_FUNCTION_REGRESSION,
-  profile_function_regression_exp: IssueTitle.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
@@ -227,24 +246,23 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1001: IssueType.PERFORMANCE_SLOW_DB_QUERY,
   1004: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
   1006: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+  1906: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
   1007: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
   1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
   1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
   1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+  1910: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
   1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
   1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
   1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
-  1017: IssueType.PERFORMANCE_DURATION_REGRESSION,
   1018: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
   2001: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
   2002: IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
   2003: IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
   2007: IssueType.PROFILE_REGEX_MAIN_THREAD,
   2008: IssueType.PROFILE_FRAME_DROP,
-  2009: IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL,
   2010: IssueType.PROFILE_FUNCTION_REGRESSION,
-  2011: IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
 };
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
@@ -837,6 +855,12 @@ export const enum PriorityLevel {
   LOW = 'low',
 }
 
+export const enum FixabilityScoreThresholds {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -880,6 +904,8 @@ export interface BaseGroup {
   latestEventHasAttachments?: boolean;
   openPeriods?: GroupOpenPeriod[] | null;
   owners?: SuggestedOwner[] | null;
+  seerAutofixLastTriggered?: string | null;
+  seerFixabilityScore?: number | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
 }
@@ -966,7 +992,7 @@ export type KeyValueListDataItem = {
   key: string;
   subject: string;
   action?: {
-    link?: string | LocationDescriptor;
+    link?: LocationDescriptor;
   };
   actionButton?: React.ReactNode;
   /**

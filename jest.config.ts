@@ -220,7 +220,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['screenfull'];
+const ESM_NODE_MODULES = ['screenfull', 'cbor2'];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -231,7 +231,7 @@ const config: Config.InitialOptions = {
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
-    '\\.(css|less|png|jpg|woff|mp4)$':
+    '\\.(css|less|png|gif|jpg|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/importStyleMock.js',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',

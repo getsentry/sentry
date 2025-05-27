@@ -178,7 +178,7 @@ def test_namespace_with_retry_send_task() -> None:
     activation = simple_task.create_activation([], {})
     assert activation.retry_state.attempts == 0
     assert activation.retry_state.max_attempts == 3
-    assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
+    assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
 
     mock_producer = Mock()
     namespace._producers[Topic.TASKWORKER] = mock_producer

@@ -421,6 +421,7 @@ function LeafBreadCrumbLabel({
         iconSize="xs"
         style={{
           transform: 'translateY(-1px) translateX(-3px)',
+          height: '18px',
         }}
       />
     </Wrapper>

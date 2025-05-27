@@ -7,9 +7,16 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
-import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
+import type {
+  BillingConfig,
+  Plan,
+  Promotion,
+  ReservedBudgetCategoryType,
+  Subscription,
+} from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
@@ -62,6 +69,35 @@ class CheckoutOverview extends Component<Props> {
         plan: this.nextPlan.id,
       });
     }
+  };
+
+  renderProducts = () => {
+    const {formData, activePlan} = this.props;
+
+    return Object.entries(formData.selectedProducts ?? {}).map(([apiName, product]) => {
+      const productInfo =
+        activePlan.availableReservedBudgetTypes[apiName as ReservedBudgetCategoryType];
+      if (!productInfo || !product.enabled) {
+        return null;
+      }
+      const price = utils.displayPrice({
+        cents: utils.getReservedPriceForReservedBudgetCategory({
+          plan: activePlan,
+          reservedBudgetCategory: productInfo.apiName,
+        }),
+      });
+      return (
+        <DetailItem
+          key={productInfo.apiName}
+          data-test-id={`${productInfo.apiName}-reserved`}
+        >
+          <DetailTitle>{toTitleCase(productInfo.productName)}</DetailTitle>
+          <DetailPrice>
+            {price}/{this.shortInterval}
+          </DetailPrice>
+        </DetailItem>
+      );
+    });
   };
 
   renderDataOptions = () => {
@@ -223,6 +259,7 @@ class CheckoutOverview extends Component<Props> {
             )}
           </PriceContainer>
         </DetailItem>
+        {this.renderProducts()}
         {this.renderDataOptions()}
         {this.renderOnDemand()}
       </Fragment>

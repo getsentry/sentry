@@ -2,23 +2,22 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import {NavContextProvider} from 'sentry/views/nav/context';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import {SecondarySidebar} from 'sentry/views/nav/secondary/secondarySidebar';
 
-export default storyBook('SecondaryNav', story => {
+export default Storybook.story('SecondaryNav', story => {
   story('Basics (WIP)', () => {
     const [activeItem, setActiveItem] = useState<string | null>('product-area-1');
 
     return (
       <Container>
         <NavContextProvider>
-          <SecondarySidebar />
-          <SecondaryNav>
+          <StyledSecondaryNav>
+            <SecondaryNav.Header>Section Title</SecondaryNav.Header>
             <SecondaryNav.Body>
-              <SecondaryNav.Section>
+              <SecondaryNav.Section id="stories-product-areas">
                 <SecondaryNav.Item
                   to="/product-area-1"
                   isActive={activeItem === 'product-area-1'}
@@ -50,7 +49,7 @@ export default storyBook('SecondaryNav', story => {
                   Product Area 3
                 </SecondaryNav.Item>
               </SecondaryNav.Section>
-              <SecondaryNav.Section title="Starred">
+              <SecondaryNav.Section id="stories-starred" title="Starred">
                 <SecondaryNav.Item
                   to="/starred-item"
                   isActive={activeItem === 'starred-item'}
@@ -75,7 +74,7 @@ export default storyBook('SecondaryNav', story => {
                 Footer Item
               </SecondaryNav.Item>
             </SecondaryNav.Footer>
-          </SecondaryNav>
+          </StyledSecondaryNav>
         </NavContextProvider>
       </Container>
     );
@@ -84,6 +83,10 @@ export default storyBook('SecondaryNav', story => {
 
 const Container = styled(NegativeSpaceContainer)`
   padding: ${space(2)};
-  height: 400px;
-  width: min-content;
+`;
+
+const StyledSecondaryNav = styled(SecondaryNav)`
+  height: 500px;
+  width: 300px;
+  background: ${p => p.theme.background};
 `;

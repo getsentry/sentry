@@ -1,11 +1,11 @@
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {TabList} from 'sentry/components/core/tabs';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {TabList} from 'sentry/components/tabs';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';

@@ -3,38 +3,47 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {ELLIPSIS} from 'sentry/views/insights/common/utils/centerTruncate';
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
 }));
 
-const {organization, router} = initializeOrg({
-  organization: {features: ['global-views', 'open-membership', 'dashboards-eap']},
-  projects: [],
-  router: {
-    location: {
-      pathname: '/organizations/org-slug/dashboard/1/',
-      query: {
-        displayType: 'line',
-        fields: ['transaction.duration', 'count()', 'id'],
-        yAxis: ['count()', 'count_unique(transaction.duration)'],
-      },
-    },
-    params: {},
-  },
-});
-
 const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('WidgetBuilderSortBySelector', function () {
+  let organization: Organization;
+  let router: InjectedRouter<Record<string, string | undefined>, any>;
   beforeEach(function () {
+    const setupOrg = initializeOrg({
+      organization: {
+        features: ['global-views', 'open-membership', 'visibility-explore-view'],
+      },
+      projects: [],
+      router: {
+        location: {
+          pathname: '/organizations/org-slug/dashboard/1/',
+          query: {
+            displayType: 'line',
+            fields: ['transaction.duration', 'count()', 'id'],
+            yAxis: ['count()', 'count_unique(transaction.duration)'],
+          },
+        },
+        params: {},
+      },
+    });
+    organization = setupOrg.organization;
+    router = setupOrg.router;
+
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/spans/fields/',
+      url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
   });
@@ -116,7 +125,7 @@ describe('WidgetBuilderSortBySelector', function () {
         ...router.location,
         query: expect.objectContaining({sort: ['-count()']}),
       }),
-      {replace: true}
+      expect.anything()
     );
 
     await userEvent.click(sortDirectionSelector);
@@ -126,7 +135,7 @@ describe('WidgetBuilderSortBySelector', function () {
         ...router.location,
         query: expect.objectContaining({sort: ['count()']}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -200,7 +209,69 @@ describe('WidgetBuilderSortBySelector', function () {
       expect.objectContaining({
         query: expect.objectContaining({limit: 3}),
       }),
-      {replace: true}
+      expect.anything()
+    );
+  });
+
+  it('switches the default value for count_unique functions', async function () {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/trace-items/attributes/`,
+      body: [{key: 'span.duration', name: 'span.duration'}],
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.attributeType === 'number';
+        },
+      ],
+    });
+
+    const setupOrg = initializeOrg({
+      organization: {
+        features: ['global-views', 'open-membership', 'visibility-explore-view'],
+      },
+      projects: [],
+      router: {
+        location: {
+          pathname: '/organizations/org-slug/dashboard/1/',
+          query: {
+            displayType: 'line',
+            fields: ['transaction.duration', 'count()', 'id'],
+            yAxis: ['count()', 'count_unique(span.op)'],
+            sort: ['-count(span.duration)'],
+            dataset: 'spans',
+          },
+        },
+        params: {},
+      },
+    });
+    organization = setupOrg.organization;
+    router = setupOrg.router;
+
+    render(
+      <WidgetBuilderProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <WidgetBuilderSortBySelector />
+        </SpanTagsProvider>
+      </WidgetBuilderProvider>,
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(await screen.findByText(`count(${ELLIPSIS})`)).toBeInTheDocument();
+    expect(screen.getByText('spans')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText(`count(${ELLIPSIS})`));
+    await userEvent.click(screen.getByText(`count_unique(${ELLIPSIS})`));
+
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({sort: ['-count_unique(span.op)']}),
+      }),
+      expect.anything()
     );
   });
 });

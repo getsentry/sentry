@@ -12,7 +12,7 @@ export default function useDeadRageSelectors(params: DeadRageSelectorQueryParams
   const location = useLocation();
   const {query} = location;
 
-  const {isPending, isError, data, getResponseHeader} =
+  const {isPending, isError, error, data, getResponseHeader} =
     useApiQuery<DeadRageSelectorListResponse>(
       [
         `/organizations/${organization.slug}/replay-selectors/`,
@@ -34,6 +34,7 @@ export default function useDeadRageSelectors(params: DeadRageSelectorQueryParams
   return {
     isLoading: isPending,
     isError,
+    error,
     data: hydratedSelectorData(
       data ? data.data : [],
       params.isWidgetData ? params.sort?.replace(/^-/, '') : null

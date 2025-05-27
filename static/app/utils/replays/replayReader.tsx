@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import type {eventWithTime} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {type Duration, duration} from 'moment-timezone';
 
@@ -45,6 +46,7 @@ import {
   isMetaFrame,
   isPaintFrame,
   isTouchEndFrame,
+  isTouchMoveFrame,
   isTouchStartFrame,
   isWebVitalFrame,
   NodeType,
@@ -310,8 +312,8 @@ export default class ReplayReader {
   private _errorBeforeReplayStart = false;
 
   private _applyClipWindow = (clipWindow: ClipWindow, eventTimestampMs?: number) => {
-    let clipStartTimestampMs;
-    let clipEndTimestampMs;
+    let clipStartTimestampMs: number;
+    let clipEndTimestampMs: number;
     const replayStart = this._replayRecord.started_at.getTime();
     const replayEnd = this._replayRecord.finished_at.getTime();
 
@@ -495,9 +497,14 @@ export default class ReplayReader {
 
   getRRWebFrames = () => this._sortedRRWebEvents;
 
+  clampNextFrame = (currEvent: eventWithTime, nextEvent: eventWithTime) => {
+    nextEvent.timestamp = Math.max(nextEvent.timestamp, currEvent.timestamp + 750);
+  };
+
   getRRWebFramesWithSnapshots = memoize(() => {
     const eventsWithSnapshots: RecordingFrame[] = [];
     const events = this._sortedRRWebEvents;
+
     events.forEach((e, index) => {
       // For taps, sometimes the timestamp difference between TouchStart
       // and TouchEnd is too small. This clamps the tap to a min time
@@ -505,7 +512,19 @@ export default class ReplayReader {
       if (isTouchStartFrame(e) && index < events.length - 2) {
         const nextEvent = events[index + 1]!;
         if (isTouchEndFrame(nextEvent)) {
-          nextEvent.timestamp = Math.max(nextEvent.timestamp, e.timestamp + 500);
+          this.clampNextFrame(e, nextEvent);
+        }
+
+        // Do the same thing if the next event is a TouchMove
+        if (isTouchMoveFrame(nextEvent)) {
+          this.clampNextFrame(e, nextEvent);
+
+          if (index < events.length - 3) {
+            const nextNextEvent = events[index + 2]!;
+            if (isTouchEndFrame(nextNextEvent)) {
+              this.clampNextFrame(nextEvent, nextNextEvent);
+            }
+          }
         }
       }
       eventsWithSnapshots.push(e);
@@ -552,8 +571,8 @@ export default class ReplayReader {
   });
 
   /**
-   * Filter out style mutations as they can cause perf problems especially when
-   * used in replayStepper
+   * Do not include style mutation content as they can cause perf problems when
+   * used in replayStepper. However, we need to keep the nodes itself as to not affect the tree structure.
    */
   getRRWebFramesWithoutStyles = memoize(() => {
     return this.getRRWebFrames().map(e => {
@@ -562,17 +581,62 @@ export default class ReplayReader {
         'source' in e.data &&
         e.data.source === IncrementalSource.Mutation
       ) {
+        // Example `data` object:
+        // [{
+        //       "parentId": 4,
+        //       "nextId": 21,
+        //       "node": {
+        //           "type": 2,
+        //           "tagName": "style",
+        //           "attributes": {
+        //               "data-emotion": "css",
+        //               "data-s": "",
+        //               "_cssText": ".css {...} "
+        //           },
+        //           "childNodes": [],
+        //           "id": 47
+        //       }
+        //   },
+        //   {
+        //       "parentId": 414,
+        //       "nextId": null,
+        //       "node": {
+        //           "type": 3,
+        //           "textContent": ".css {...}",
+        //           "isStyle": true,
+        //           "id": 427
+        //       }
+        //   }
+        // ]
+
         return {
           ...e,
           data: {
             ...e.data,
-            adds: e.data.adds.filter(
-              add =>
-                !(
-                  (add.node.type === 3 && add.node.isStyle) ||
-                  (add.node.type === 2 && add.node.tagName === 'style')
-                )
-            ),
+            adds: e.data.adds.map(add => {
+              if (add.node.type === 3 && add.node.isStyle) {
+                return {
+                  ...add,
+                  node: {
+                    ...add.node,
+                    textContent: '',
+                  },
+                };
+              }
+
+              if (add.node.type === 2 && add.node.tagName === 'style') {
+                return {
+                  ...add,
+                  node: {
+                    ...add.node,
+                    attributes: {},
+                    childNodes: [],
+                  },
+                };
+              }
+
+              return add;
+            }),
           },
         };
       }

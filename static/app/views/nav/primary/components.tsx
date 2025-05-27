@@ -1,13 +1,14 @@
 import {Fragment, type MouseEventHandler} from 'react';
-import {css, type Theme, useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {useHovercardContext} from 'sentry/components/hovercard';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
-import {linkStyles} from 'sentry/components/links/styles';
+import Link, {linkStyles} from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
@@ -20,12 +21,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
+import {SecondaryHovercard} from 'sentry/views/nav/primary/secondaryHovercard';
+import type {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
-  label: string;
+  group: PrimaryNavGroup;
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
@@ -136,42 +140,72 @@ export function SidebarMenu({
   );
 }
 
+function SidebarNavLink({
+  children,
+  to,
+  activeTo = to,
+  analyticsKey,
+  group,
+}: SidebarItemLinkProps) {
+  const organization = useOrganization();
+  const {reset: closeCollapsedNavHovercard} = useHovercardContext();
+  const {layout} = useNavContext();
+  const theme = useTheme();
+  const location = useLocation();
+  const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
+  const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
+
+  return (
+    <NavLink
+      to={to}
+      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
+      onClick={() => {
+        recordPrimaryItemClick(analyticsKey, organization);
+
+        // When the nav is collapsed, clicking on a link will close the hovercard.
+        closeCollapsedNavHovercard();
+      }}
+      aria-selected={isActive}
+      aria-current={isActive ? 'page' : undefined}
+      isMobile={layout === NavLayout.MOBILE}
+    >
+      {layout === NavLayout.MOBILE ? (
+        <Fragment>
+          {theme.isChonk ? null : <InteractionStateLayer />}
+          {children}
+          {label}
+        </Fragment>
+      ) : (
+        <Fragment>
+          <NavLinkIconContainer>{children}</NavLinkIconContainer>
+          <NavLinkLabel>{label}</NavLinkLabel>
+        </Fragment>
+      )}
+    </NavLink>
+  );
+}
+
 export function SidebarLink({
   children,
   to,
   activeTo = to,
   analyticsKey,
-  label,
+  group,
 }: SidebarItemLinkProps) {
-  const theme = useTheme();
-  const organization = useOrganization();
-  const location = useLocation();
-  const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
-  const {layout} = useNavContext();
+  const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
 
   return (
     <SidebarItem label={label} showLabel>
-      <NavLink
-        to={to}
-        state={{source: SIDEBAR_NAVIGATION_SOURCE}}
-        onClick={() => recordPrimaryItemClick(analyticsKey, organization)}
-        aria-selected={isActive}
-        aria-current={isActive ? 'page' : undefined}
-        isMobile={layout === NavLayout.MOBILE}
-      >
-        {layout === NavLayout.MOBILE ? (
-          <Fragment>
-            {theme.isChonk ? null : <InteractionStateLayer />}
-            {children}
-            {label}
-          </Fragment>
-        ) : (
-          <Fragment>
-            <NavLinkIconContainer>{children}</NavLinkIconContainer>
-            <NavLinkLabel>{label}</NavLinkLabel>
-          </Fragment>
-        )}
-      </NavLink>
+      <SecondaryHovercard group={group}>
+        <SidebarNavLink
+          to={to}
+          activeTo={activeTo}
+          analyticsKey={analyticsKey}
+          group={group}
+        >
+          {children}
+        </SidebarNavLink>
+      </SecondaryHovercard>
     </SidebarItem>
   );
 }
@@ -343,7 +377,7 @@ const ChonkNavLink = chonkStyled(Link, {
   gap: ${p => (p.isMobile ? space(1) : space(0.5))};
 
   /* Disable default link styles and only apply them to the icon container */
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.muted};
   outline: none;
   box-shadow: none;
   transition: none;
@@ -380,7 +414,7 @@ const ChonkNavLink = chonkStyled(Link, {
   }
 
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.muted};
     ${NavLinkIconContainer} {
       background-color: ${p => p.theme.colors.gray100};
     }
@@ -458,7 +492,7 @@ const ChonkNavButton = styled(Button, {
   justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
   height: ${p => (p.isMobile ? 'auto' : '44px')};
   width: ${p => (p.isMobile ? '100%' : '44px')};
-  padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : undefined)};
+  padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : space(0.5))};
 
   svg {
     margin-right: ${p => (p.isMobile ? space(1) : undefined)};

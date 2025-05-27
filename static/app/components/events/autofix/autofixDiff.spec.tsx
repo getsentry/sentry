@@ -105,7 +105,7 @@ describe('AutofixDiff', function () {
     await userEvent.type(textarea!, 'New content');
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
     });
 
@@ -123,7 +123,7 @@ describe('AutofixDiff', function () {
     render(<AutofixDiff {...defaultProps} />);
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
     });
 
@@ -145,7 +145,7 @@ describe('AutofixDiff', function () {
     await userEvent.type(textarea!, 'New content');
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
       statusCode: 500,
     });

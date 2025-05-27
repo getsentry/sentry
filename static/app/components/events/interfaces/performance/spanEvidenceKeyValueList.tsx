@@ -8,7 +8,7 @@ import mapValues from 'lodash/mapValues';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -182,6 +182,9 @@ function NPlusOneDBQueriesSpanEvidence({
         getSpanEvidenceValue(span)
       )
     );
+  const evidenceData = event?.occurrence?.evidenceData ?? {};
+  const patternSize = evidenceData.patternSize ?? 0;
+  const patternSpanIds = (evidenceData.patternSpanIds ?? []).join(', ');
 
   return (
     <PresortedKeyValueList
@@ -193,6 +196,10 @@ function NPlusOneDBQueriesSpanEvidence({
             ? makeRow(t('Preceding Span'), getSpanEvidenceValue(causeSpans[0]!))
             : null,
           ...repeatingSpanRows,
+          patternSize > 0 ? makeRow(t('Pattern Size'), patternSize) : null,
+          patternSpanIds.length > 0
+            ? makeRow(t('Pattern Span IDs'), patternSpanIds)
+            : null,
         ].filter(Boolean) as KeyValueListData
       }
     />
@@ -207,10 +214,14 @@ function NPlusOneAPICallsSpanEvidence({
   location,
 }: SpanEvidenceKeyValueListProps) {
   const requestEntry = event?.entries?.find(isRequestEntry);
+  const occurrence = event?.occurrence;
+  const evidenceData = occurrence?.evidenceData ?? {};
   const baseURL = requestEntry?.data?.url;
 
-  const problemParameters = formatChangingQueryParameters(offendingSpans, baseURL);
-  const commonPathPrefix = formatBasePath(offendingSpans[0]!, baseURL);
+  const queryParameters = formatChangingQueryParameters(offendingSpans, baseURL);
+  const pathParameters = evidenceData.pathParameters ?? [];
+  const commonPathPrefix =
+    occurrence?.subtitle ?? formatBasePath(offendingSpans[0]!, baseURL);
 
   return (
     <PresortedKeyValueList
@@ -224,16 +235,24 @@ function NPlusOneAPICallsSpanEvidence({
                   <AnnotatedText
                     value={
                       <Fragment>
-                        {commonPathPrefix}
-                        <HighlightedEvidence>[Parameters]</HighlightedEvidence>
+                        {commonPathPrefix.split('').map((char, i) => {
+                          return char === '*' ? (
+                            <HighlightedEvidence key={i}>{char}</HighlightedEvidence>
+                          ) : (
+                            char
+                          );
+                        })}
                       </Fragment>
                     }
                   />
                 </pre>
               )
             : null,
-          problemParameters.length > 0
-            ? makeRow(t('Parameters'), problemParameters)
+          queryParameters.length > 0
+            ? makeRow(t('Query Parameters'), queryParameters)
+            : null,
+          pathParameters.length > 0
+            ? makeRow(t('Path Parameters'), pathParameters)
             : null,
         ].filter(Boolean) as KeyValueListData
       }
@@ -304,16 +323,13 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
   [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
   [IssueType.PERFORMANCE_HTTP_OVERHEAD]: HTTPOverheadSpanEvidence,
-  [IssueType.PERFORMANCE_DURATION_REGRESSION]: RegressionEvidence,
   [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: RegressionEvidence,
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_JSON_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_REGEX_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
-  [IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
-  [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: RegressionEvidence,
 };
 
 export function SpanEvidenceKeyValueList({

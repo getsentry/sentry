@@ -13,10 +13,11 @@ import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
+import {useDiscoverOrEap} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
-import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT = {
@@ -40,6 +41,7 @@ export function ScreenLoadEventSamples({
   showDeviceClassSelector,
 }: Props) {
   const location = useLocation();
+  const useEap = useInsightsEap();
   const {selection} = usePageFilters();
   const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
@@ -49,11 +51,18 @@ export function ScreenLoadEventSamples({
   const subregions = decodeList(location.query[SpanMetricsField.USER_GEO_SUBREGION]);
 
   const searchQuery = useMemo(() => {
-    const mutableQuery = new MutableSearch([
-      'transaction.op:ui.load',
-      `transaction:${transaction}`,
-      `release:${release}`,
-    ]);
+    const mutableQuery = useEap
+      ? new MutableSearch([
+          'span.op:[ui.load,navigation]',
+          `is_transaction:true`,
+          `transaction:${transaction}`,
+          `release:${release}`,
+        ])
+      : new MutableSearch([
+          'transaction.op:[ui.load,navigation]',
+          `transaction:${transaction}`,
+          `release:${release}`,
+        ]);
 
     if (subregions.length > 0) {
       mutableQuery.addDisjunctionFilterValues(
@@ -75,7 +84,15 @@ export function ScreenLoadEventSamples({
     }
 
     return mutableQuery;
-  }, [deviceClass, isProjectCrossPlatform, platform, release, transaction, subregions]);
+  }, [
+    deviceClass,
+    isProjectCrossPlatform,
+    platform,
+    release,
+    transaction,
+    subregions,
+    useEap,
+  ]);
 
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
@@ -95,7 +112,7 @@ export function ScreenLoadEventSamples({
       'id',
       'trace',
       'timestamp',
-      'project.name',
+      'project',
       'profile.id',
       'measurements.time_to_initial_display',
       'measurements.time_to_full_display',
@@ -109,13 +126,25 @@ export function ScreenLoadEventSamples({
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
   eventView.sorts = [sort];
 
-  const {data, isPending, pageLinks} = useTableQuery({
-    eventView,
-    enabled: true,
-    limit: 4,
-    cursor,
-    referrer: 'api.starfish.mobile-event-samples',
-  });
+  const {data, meta, isPending, pageLinks} = useDiscoverOrEap(
+    {
+      search: searchQuery.formatString(),
+      cursor,
+      limit: 4,
+      enabled: true,
+      sorts: [sort],
+      fields: [
+        'id',
+        'trace',
+        'timestamp',
+        'project',
+        'profile.id',
+        'measurements.time_to_initial_display',
+        'measurements.time_to_full_display',
+      ],
+    },
+    'api.starfish.mobile-event-samples'
+  );
 
   return (
     <EventSamplesTable
@@ -126,7 +155,7 @@ export function ScreenLoadEventSamples({
       pageLinks={pageLinks}
       eventView={eventView}
       sortKey={sortKey}
-      data={data}
+      data={{data, meta}}
       showDeviceClassSelector={showDeviceClassSelector}
       columnNameMap={columnNameMap}
       sort={sort}

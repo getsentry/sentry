@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -79,7 +80,8 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
   const period = useMemo<Date[]>(() => {
     const {onDemandPeriodStart, onDemandPeriodEnd} = subscription;
-    let start, end;
+    let start: Date;
+    let end: Date;
     if (viewNextPeriod) {
       // NOTE: this is hacky and not a proper representation of the actual subscription periods.
       // There's currently no better way to get billing periods though, so for now we just
@@ -487,7 +489,9 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
         )}
       {!isLoading && orgEnabledFlag && canViewSpendAllocation && (
         <Confirm
-          onConfirm={disableSpendAllocations}
+          onConfirm={() => {
+            disableSpendAllocations();
+          }}
           renderMessage={confirmDisableContent}
         >
           <Button

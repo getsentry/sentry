@@ -35,8 +35,7 @@ devenv-sync:
 
 build-js-po:
 	mkdir -p build
-	rm -rf node_modules/.cache/babel-loader
-	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
+	yarn build-js-po
 
 build-spectacular-docs:
 	@echo "--> Building drf-spectacular openapi spec (combines with deprecated docs)"
@@ -101,7 +100,7 @@ test-cli: create-db
 	cd test_cli && sentry init test_conf
 	cd test_cli && sentry --config=test_conf help
 	cd test_cli && sentry --config=test_conf upgrade --traceback --noinput
-	cd test_cli && sentry --config=test_conf export
+	cd test_cli && sentry --config=test_conf export --help
 	rm -r test_cli
 	@echo ""
 

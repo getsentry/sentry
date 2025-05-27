@@ -1,12 +1,13 @@
-import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
-import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 export default function SavedQueriesView() {
   const organization = useOrganization();
@@ -14,25 +15,21 @@ export default function SavedQueriesView() {
   return (
     <SentryDocumentTitle title={t('All Queries')} orgSlug={organization?.slug}>
       <Layout.Page>
-        <Layout.Header>
+        <Layout.Header unified>
           <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Explore'),
-                  to: makeTracesPathname({organization, path: '/'}),
-                },
-                {
-                  label: t('All Queries'),
-                  to: `/organizations/${organization.slug}/explore/saved-queries/`,
-                },
-              ]}
-            />
             <Layout.Title>{t('All Queries')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
               <FeedbackWidgetButton />
+              <LinkButton
+                priority="primary"
+                icon={<IconAdd />}
+                size="sm"
+                to={getExploreUrl({organization, visualize: []})}
+              >
+                {t('Create Query')}
+              </LinkButton>
             </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>

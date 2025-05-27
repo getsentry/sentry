@@ -1,3 +1,4 @@
+import time
 import uuid
 from typing import Literal
 
@@ -9,7 +10,6 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -44,6 +44,8 @@ def convert_rpc_attribute_to_json(
                     column_type = "string"
                 elif val_type in ["int", "float", "double"]:
                     column_type = "number"
+                    if val_type == "double":
+                        val_type = "float"
                 else:
                     raise BadRequest(f"unknown column type in protobuf: {val_type}")
 
@@ -100,12 +102,6 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
 
         For example, you might ask 'give me all the details about the span/log with id 01234567'
         """
-
-        if not features.has(
-            "organizations:discover-basic", project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
         serializer = ProjectTraceItemDetailsEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -128,7 +124,9 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         start_timestamp_proto.FromSeconds(0)
 
         end_timestamp_proto = ProtoTimestamp()
-        end_timestamp_proto.GetCurrentTime()
+
+        # due to clock drift, the end time can be in the future - add a week to be safe
+        end_timestamp_proto.FromSeconds(int(time.time()) + 60 * 60 * 24 * 7)
 
         trace_id = request.GET.get("trace_id")
         if not trace_id:

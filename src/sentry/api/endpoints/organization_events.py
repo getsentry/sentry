@@ -29,6 +29,7 @@ from sentry.snuba import (
     errors,
     metrics_enhanced_performance,
     metrics_performance,
+    ourlogs,
     spans_rpc,
     transactions,
 )
@@ -436,9 +437,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             or batch_features.get("organizations:on-demand-metrics-extraction-widgets", False)
         ) and use_on_demand_metrics
 
-        save_discover_dataset_decision = features.has(
-            "organizations:performance-discover-dataset-selector", organization, actor=request.user
-        )
+        save_discover_dataset_decision = True
 
         dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
@@ -489,11 +488,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
-                fallback_to_transactions=features.has(
-                    "organizations:performance-discover-dataset-selector",
-                    organization,
-                    actor=request.user,
-                ),
+                fallback_to_transactions=True,
                 query_source=query_source,
                 debug=debug,
             )
@@ -509,13 +504,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             try:
                 widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                 does_widget_have_split = widget.discover_widget_split is not None
-                has_override_feature = features.has(
-                    "organizations:performance-discover-widget-split-override-save",
-                    organization,
-                    actor=request.user,
-                )
 
-                if does_widget_have_split and not has_override_feature:
+                if does_widget_have_split:
                     dataset_query: DatasetQuery
 
                     # This is essentially cached behaviour and we skip the check
@@ -754,6 +744,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         data_fn = data_fn_factory(dataset)
 
+        max_per_page = 1000 if dataset == ourlogs else None
+
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them
             if request.GET.get("noPagination"):
@@ -779,4 +771,5 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         standard_meta=True,
                         dataset=dataset,
                     ),
+                    max_per_page=max_per_page,
                 )

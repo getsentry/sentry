@@ -1,35 +1,50 @@
-import type {EventTransaction} from 'sentry/types/event';
+import {useMemo} from 'react';
+
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 export function useTraceContextSections({
   tree,
-  rootEvent,
+  rootEventResults,
   logs,
 }: {
   logs: OurLogsResponseItem[] | undefined;
-  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  rootEventResults: TraceRootEventQueryResults;
   tree: TraceTree;
 }) {
-  const hasProfiles = tree.type === 'trace' && tree.profiled_events.size > 0;
-  const hasLogs = logs && logs?.length > 0;
-  const hasTags =
-    rootEvent.data &&
-    rootEvent.data.tags.length > 0 &&
-    !(tree.type === 'empty' && hasLogs); // We don't show tags for only logs trace views
+  const organization = useOrganization();
+
+  const hasProfiles: boolean = tree.type === 'trace' && tree.profiled_events.size > 0;
+
+  const hasLogs = !!(logs && logs?.length > 0);
+  const hasOnlyLogs: boolean = tree.type === 'empty' && hasLogs;
+
+  const hasTags: boolean = hasOnlyLogs
+    ? false // We don't show tags for only logs trace views
+    : isTraceItemDetailsResponse(rootEventResults.data)
+      ? rootEventResults.data.attributes.length > 0
+      : Boolean(rootEventResults.data?.tags.length);
 
   const allowedVitals = Object.keys(VITAL_DETAILS);
-  const hasVitals = Array.from(tree.vitals.values()).some(vitalGroup =>
+  const hasVitals: boolean = Array.from(tree.vitals.values()).some(vitalGroup =>
     vitalGroup.some(vital => allowedVitals.includes(`measurements.${vital.key}`))
   );
 
-  return {
-    hasProfiles,
-    hasLogs,
-    hasTags,
-    hasVitals,
-  };
+  const hasSummary: boolean = organization.features.includes('single-trace-summary');
+
+  return useMemo(
+    () => ({
+      hasProfiles,
+      hasTraceEvents: !hasOnlyLogs,
+      hasLogs,
+      hasTags,
+      hasVitals,
+      hasSummary,
+    }),
+    [hasProfiles, hasOnlyLogs, hasLogs, hasTags, hasVitals, hasSummary]
+  );
 }

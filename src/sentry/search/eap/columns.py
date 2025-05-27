@@ -20,6 +20,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
+from sentry.search.eap.types import EAPResponse
 from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int | float
@@ -29,6 +30,7 @@ ResolvedArguments: TypeAlias = list[ResolvedArgument]
 class ResolverSettings(TypedDict):
     extrapolation_mode: ExtrapolationMode.ValueType
     snuba_params: SnubaParams
+    query_result_cache: dict[str, EAPResponse]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -113,6 +115,7 @@ class ValueArgumentDefinition(BaseArgumentDefinition):
 class AttributeArgumentDefinition(BaseArgumentDefinition):
     # the allowed types of data stored in the attribute
     attribute_types: set[constants.SearchType] | None = None
+    field_allowlist: set[str] | None = None
 
 
 @dataclass
@@ -259,6 +262,8 @@ class FunctionDefinition:
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        extrapolation_override: bool = False,
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -278,6 +283,8 @@ class AggregateDefinition(FunctionDefinition):
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        extrapolation_override: bool = False,
     ) -> ResolvedAggregate:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -299,7 +306,7 @@ class AggregateDefinition(FunctionDefinition):
             search_type=search_type,
             internal_type=self.internal_type,
             processor=self.processor,
-            extrapolation=self.extrapolation,
+            extrapolation=self.extrapolation if not extrapolation_override else False,
             argument=resolved_attribute,
         )
 
@@ -324,17 +331,19 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        extrapolation_override: bool = False,
     ) -> ResolvedConditionalAggregate:
-        key, filter = self.aggregate_resolver(resolved_arguments)
+        key, aggregate_filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
             public_alias=alias,
             internal_name=self.internal_function,
             search_type=search_type,
             internal_type=self.internal_type,
-            filter=filter,
+            filter=aggregate_filter,
             key=key,
             processor=self.processor,
-            extrapolation=self.extrapolation,
+            extrapolation=self.extrapolation if not extrapolation_override else False,
         )
 
 
@@ -354,14 +363,17 @@ class FormulaDefinition(FunctionDefinition):
         search_type: constants.SearchType,
         resolved_arguments: list[AttributeKey | Any],
         snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        extrapolation_override: bool = False,
     ) -> ResolvedFormula:
         resolver_settings = ResolverSettings(
             extrapolation_mode=(
                 ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-                if self.extrapolation
+                if self.extrapolation and not extrapolation_override
                 else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
             ),
             snuba_params=snuba_params,
+            query_result_cache=query_result_cache,
         )
 
         return ResolvedFormula(

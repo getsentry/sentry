@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -43,8 +43,12 @@ dummy_project = Mock(id=11211231)
     set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
+@patch("sentry.grouping.enhancer.logger.info")
 def test_hash_basis_with_legacy_configs(
-    config_name: str, grouping_input: GroupingInput, insta_snapshot: InstaSnapshotter
+    mock_logger_info: MagicMock,
+    config_name: str,
+    grouping_input: GroupingInput,
+    insta_snapshot: InstaSnapshotter,
 ) -> None:
     """
     Run the grouphash metadata snapshot tests using a minimal (and much more performant) save
@@ -59,7 +63,9 @@ def test_hash_basis_with_legacy_configs(
     # This ensures we won't try to touch the DB when getting event variants
     event.project = dummy_project
 
-    _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
+    _assert_and_snapshot_results(
+        event, config_name, grouping_input.filename, mock_logger_info, insta_snapshot
+    )
 
 
 @django_db_all
@@ -72,7 +78,9 @@ def test_hash_basis_with_legacy_configs(
     {DEFAULT_GROUPING_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
+@patch("sentry.grouping.enhancer.logger.info")
 def test_hash_basis_with_current_default_config(
+    mock_logger_info: MagicMock,
     config_name: str,
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
@@ -91,7 +99,9 @@ def test_hash_basis_with_current_default_config(
         config_name, use_full_ingest_pipeline=True, project=default_project
     )
 
-    _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
+    _assert_and_snapshot_results(
+        event, config_name, grouping_input.filename, mock_logger_info, insta_snapshot
+    )
 
 
 @django_db_all
@@ -100,7 +110,9 @@ def test_hash_basis_with_current_default_config(
     CONFIGURATIONS.keys(),
     ids=lambda config_name: config_name.replace("-", "_"),
 )
+@patch("sentry.grouping.enhancer.logger.info")
 def test_unknown_hash_basis(
+    mock_logger_info: MagicMock,
     config_name: str,
     insta_snapshot: InstaSnapshotter,
     default_project: Project,
@@ -126,13 +138,16 @@ def test_unknown_hash_basis(
     ):
         # Overrride the input filename since there isn't a real input which will generate the mock
         # variants above, but we still want the snapshot.
-        _assert_and_snapshot_results(event, config_name, "unknown_variant.json", insta_snapshot)
+        _assert_and_snapshot_results(
+            event, config_name, "unknown_variant.json", mock_logger_info, insta_snapshot
+        )
 
 
 def _assert_and_snapshot_results(
     event: Event,
     config_name: str,
     input_file: str,
+    mock_logger_info: MagicMock,
     insta_snapshot: InstaSnapshotter,
     project: Project = dummy_project,
 ) -> None:
@@ -143,6 +158,7 @@ def _assert_and_snapshot_results(
     hash_basis = metadata["hash_basis"]
     hashing_metadata = metadata["hashing_metadata"]
 
+    # Check that the right metrics are being recorded
     with patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr") as mock_metrics_incr:
         record_grouphash_metadata_metrics(
             GroupHashMetadata(hash_basis=hash_basis, hashing_metadata=hashing_metadata),
@@ -164,6 +180,22 @@ def _assert_and_snapshot_results(
                 f"grouping.grouphashmetadata.event_hashing_metadata.{hash_basis}"
             )
         assert metric_names == expected_metric_names
+
+    # Ensure the split enhancements didn't give back any unexpected results
+    if hash_basis == HashBasis.STACKTRACE and not config_name.startswith("legacy"):
+        split_enhancement_check_outcomes = [
+            mock_call.kwargs["extra"]["outcome"]
+            for mock_call in filter(
+                lambda mock_call: mock_call.args[0]
+                == "grouping.split_enhancements.classifier_results"
+                or mock_call.args[0] == "grouping.split_enhancements.contributes_results",
+                mock_logger_info.mock_calls,
+            )
+        ]
+
+        assert len(split_enhancement_check_outcomes) >= 3
+        assert "success" in split_enhancement_check_outcomes
+        assert "failure" not in split_enhancement_check_outcomes
 
     # Convert any fingerprint value from json to a string before jsonifying the entire metadata dict
     # below to avoid a bunch of escaping which would be caused by double jsonification

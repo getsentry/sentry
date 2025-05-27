@@ -9,9 +9,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
-import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
-  type AutofixFeedback,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   AutofixStatus,
@@ -25,11 +23,11 @@ import {
 import {IconCheckmark, IconClose, IconFocus, IconInput} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
-import {Divider} from 'sentry/views/issueDetails/divider';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
@@ -40,7 +38,6 @@ type AutofixRootCauseProps = {
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
   agentCommentThread?: CommentThread;
-  feedback?: AutofixFeedback;
   isRootCauseFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
@@ -71,6 +68,7 @@ const cardAnimationProps: AnimationProps = {
 function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
 
   return useMutation({
     mutationFn: (
@@ -83,31 +81,34 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
             customRootCause: string;
           }
     ) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data:
-          'customRootCause' in params
-            ? {
-                run_id: runId,
-                payload: {
-                  type: 'select_root_cause',
-                  custom_root_cause: params.customRootCause,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data:
+            'customRootCause' in params
+              ? {
+                  run_id: runId,
+                  payload: {
+                    type: 'select_root_cause',
+                    custom_root_cause: params.customRootCause,
+                  },
+                }
+              : {
+                  run_id: runId,
+                  payload: {
+                    type: 'select_root_cause',
+                    cause_id: params.causeId,
+                    instruction: params.instruction,
+                  },
                 },
-              }
-            : {
-                run_id: runId,
-                payload: {
-                  type: 'select_root_cause',
-                  cause_id: params.causeId,
-                  instruction: params.instruction,
-                },
-              },
-      });
+        }
+      );
     },
     onSuccess: (_, params) => {
       setApiQueryData<AutofixResponse>(
         queryClient,
-        makeAutofixQueryKey(groupId),
+        makeAutofixQueryKey(orgSlug, groupId),
         data => {
           if (!data?.autofix) {
             return data;
@@ -190,6 +191,7 @@ function RootCauseDescription({
       {cause.root_cause_reproduction && (
         <AutofixTimeline
           events={cause.root_cause_reproduction}
+          eventCodeUrls={cause.reproduction_urls}
           groupId={groupId}
           runId={runId}
           stepIndex={previousDefaultStepIndex ?? 0}
@@ -280,7 +282,6 @@ function AutofixRootCauseDisplay({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
-  feedback,
 }: AutofixRootCauseProps) {
   const {mutate: handleContinue, isPending} = useSelectCause({groupId, runId});
   const [isEditing, setIsEditing] = useState(false);
@@ -329,15 +330,6 @@ function AutofixRootCauseDisplay({
             {t('Root Cause')}
           </HeaderText>
           <ButtonBar>
-            <AutofixThumbsUpDownButtons
-              thumbsUpDownType="root_cause"
-              feedback={feedback}
-              groupId={groupId}
-              runId={runId}
-            />
-            <DividerWrapper>
-              <Divider />
-            </DividerWrapper>
             <CopyRootCauseButton cause={cause} isEditing={isEditing} />
             <EditButton
               size="sm"
@@ -387,7 +379,7 @@ function AutofixRootCauseDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Autofix is uncertain of the root cause...')}
+              blockName={t('Seer is uncertain of the root cause...')}
             />
           )}
         </AnimatePresence>
@@ -474,9 +466,6 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-left: ${space(0.5)};
-  padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(1)};
   flex-wrap: wrap;
 `;
@@ -501,7 +490,7 @@ const CustomRootCausePadding = styled('div')`
 
 const CauseDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-top: ${space(1)};
+  margin-top: ${space(0.5)};
 `;
 
 const AnimationWrapper = styled(motion.div)`
@@ -524,8 +513,4 @@ const TextArea = styled('textarea')`
 
 const EditButton = styled(Button)`
   color: ${p => p.theme.subText};
-`;
-
-const DividerWrapper = styled('div')`
-  margin: 0 ${space(1)};
 `;

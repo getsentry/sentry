@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NoReturn
 
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -17,6 +17,7 @@ from sentry.integrations.source_code_management.issues import SourceCodeIssueInt
 from sentry.models.activity import Activity
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.silo.base import all_silo_function
+from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -24,6 +25,14 @@ from sentry.users.services.user.service import user_service
 if TYPE_CHECKING:
     from sentry.integrations.models.external_issue import ExternalIssue
     from sentry.models.group import Group
+
+# Specific substring to identify Azure Entra ID "identity deleted" errors
+# Example: According to Microsoft Entra, your Identity xxx is currently Deleted within the following Microsoft Entra tenant: xxx Please contact your Microsoft Entra administrator to resolve this.
+VSTS_IDENTITY_DELETED_ERROR_SUBSTRING = [
+    "is currently Deleted within the following Microsoft Entra tenant"
+]
+
+VSTS_ISSUE_TITLE_MAX_LENGTH = 128
 
 
 class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
@@ -45,6 +54,14 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         # default_repo should be the project_id
         project = self.get_client().get_project(default_repo)
         return (project["id"], project["name"])
+
+    def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
+        # Reraise Azure Specific Errors correctly
+        if isinstance(exc, ApiError) and any(
+            substring in str(exc) for substring in VSTS_IDENTITY_DELETED_ERROR_SUBSTRING
+        ):
+            raise ApiUnauthorized(text=str(exc))
+        raise super().raise_error(exc, identity)
 
     def get_project_choices(
         self, group: Group | None = None, **kwargs: Any
@@ -185,6 +202,9 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         title = data["title"]
         description = data["description"]
         item_type = data["work_item_type"]
+
+        if len(title) > VSTS_ISSUE_TITLE_MAX_LENGTH:
+            title = title[: VSTS_ISSUE_TITLE_MAX_LENGTH - 3] + "..."
 
         try:
             created_item = client.create_work_item(

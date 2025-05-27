@@ -9,12 +9,12 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
-import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
-import AutofixPreferenceDropdown from 'sentry/components/events/autofix/preferences/autofixPreferenceDropdown';
+import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -22,8 +22,9 @@ import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -31,6 +32,8 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -49,14 +52,26 @@ const AiSetupDataConsent = HookOrDefault({
 
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
-  const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
+  const {
+    autofixData,
+    triggerAutofix,
+    reset,
+    isPending: autofixDataPending,
+  } = useAiAutofix(group, event);
   const aiConfig = useAiConfig(group, project);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useRouteAnalyticsParams({autofix_status: autofixData?.status ?? 'none'});
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const userScrolledRef = useRef(false);
+  const userScrolledRef = useRef(true);
   const lastScrollTopRef = useRef(0);
+  const autofixDataRef = useRef(autofixData);
+
+  useEffect(() => {
+    autofixDataRef.current = autofixData;
+  }, [autofixData]);
 
   const handleScroll = () => {
     const container = scrollContainerRef.current;
@@ -83,12 +98,96 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     }
   };
 
+  const scrollToSection = useCallback(
+    (sectionType: string | null) => {
+      if (!scrollContainerRef.current || !autofixDataRef.current) {
+        return;
+      }
+
+      const findStepByType = (type: string) => {
+        const currentData = autofixDataRef.current;
+        if (!currentData?.steps?.length) {
+          return null;
+        }
+        const step = currentData.steps.find(s => {
+          if (type === 'root_cause')
+            return s.type === AutofixStepType.ROOT_CAUSE_ANALYSIS;
+          if (type === 'solution') return s.type === AutofixStepType.SOLUTION;
+          if (type === 'code_changes') return s.type === AutofixStepType.CHANGES;
+          return false;
+        });
+        return step;
+      };
+
+      if (sectionType) {
+        const step = findStepByType(sectionType);
+        if (step) {
+          const elementId = `autofix-step-${step.id}`;
+          const element = document.getElementById(elementId);
+          if (element) {
+            element.scrollIntoView({behavior: 'smooth'});
+            userScrolledRef.current = true;
+
+            // Clear the scrollTo parameter from the URL after scrolling
+            setTimeout(() => {
+              navigate(
+                {
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    scrollTo: undefined,
+                  },
+                },
+                {replace: true}
+              );
+            }, 200);
+          }
+        } else {
+          // No matching step found, scroll to bottom
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+          userScrolledRef.current = true;
+
+          // Clear the scrollTo parameter from the URL after scrolling
+          setTimeout(() => {
+            navigate(
+              {
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  scrollTo: undefined,
+                },
+              },
+              {replace: true}
+            );
+          }, 200);
+        }
+      }
+    },
+    [location, navigate]
+  );
+
   useEffect(() => {
     // Only auto-scroll if user hasn't manually scrolled
     if (!userScrolledRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [autofixData]);
+
+  useEffect(() => {
+    const scrollTo = location.query.scrollTo as string | undefined;
+    if (scrollTo) {
+      const timeoutId = setTimeout(() => {
+        scrollToSection(scrollTo);
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+    return () => {};
+  }, [location.query.scrollTo, scrollToSection]);
+
+  let lastTriggeredAt = autofixData?.last_triggered_at;
+  if (lastTriggeredAt && !lastTriggeredAt.endsWith('Z')) {
+    lastTriggeredAt = lastTriggeredAt + 'Z';
+  }
 
   return (
     <SeerDrawerContainer className="seer-drawer-container">
@@ -110,7 +209,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       </SeerDrawerHeader>
       <SeerDrawerNavigator>
         <Flex align="center" gap={space(1)}>
-          <Header>{t('Autofix')}</Header>
+          <Header>{t('Seer')}</Header>
           <FeatureBadge
             type="beta"
             tooltipProps={{
@@ -139,7 +238,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                   {tct('Seer can be turned off in [settingsDocs:Settings].', {
                     settingsDocs: (
                       <Link
-                        to={`/settings/${organization.slug}/general-settings/#hideAiFeatures`}
+                        to={{
+                          pathname: `/settings/${organization.slug}/`,
+                          hash: '#hideAiFeatures',
+                        }}
                       />
                     ),
                   })}
@@ -150,10 +252,16 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           />
         </Flex>
         {!aiConfig.needsGenAiAcknowledgement && (
-          <ButtonBarWrapper data-test-id="autofix-button-bar">
+          <ButtonBarWrapper data-test-id="seer-button-bar">
             <ButtonBar gap={1}>
               <Feature features={['organizations:autofix-seer-preferences']}>
-                <AutofixPreferenceDropdown project={project} />
+                <LinkButton
+                  to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                  size="xs"
+                  title={t('Project Settings for Seer')}
+                  aria-label={t('Project Settings for Seer')}
+                  icon={<IconSettings />}
+                />
               </Feature>
               <AutofixFeedback />
               {aiConfig.hasAutofix && (
@@ -163,7 +271,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                   title={
                     autofixData?.last_triggered_at
                       ? tct('Last run at [date]', {
-                          date: <DateTime date={autofixData.last_triggered_at} />,
+                          date: <DateTime date={lastTriggeredAt} />,
                         })
                       : null
                   }
@@ -177,14 +285,13 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         )}
       </SeerDrawerNavigator>
 
-      {!aiConfig.isAutofixSetupLoading &&
-        !aiConfig.needsGenAiAcknowledgement &&
-        autofixData && <AutofixProgressBar autofixData={autofixData} />}
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
-          <div data-test-id="ai-setup-loading-indicator">
-            <LoadingIndicator />
-          </div>
+          <PlaceholderStack data-test-id="ai-setup-loading-indicator">
+            <Placeholder height="10rem" />
+            <Placeholder height="15rem" />
+            <Placeholder height="15rem" />
+          </PlaceholderStack>
         ) : aiConfig.needsGenAiAcknowledgement ? (
           <AiSetupDataConsent groupId={group.id} />
         ) : (
@@ -207,6 +314,11 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                     groupId={group.id}
                     runId={autofixData.run_id}
                   />
+                ) : autofixDataPending ? (
+                  <PlaceholderStack>
+                    <Placeholder height="15rem" />
+                    <Placeholder height="15rem" />
+                  </PlaceholderStack>
                 ) : (
                   <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
                 )}
@@ -219,16 +331,27 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   );
 }
 
-export const useOpenSeerDrawer = (
-  group: Group,
-  project: Project,
-  event: Event | undefined,
-  buttonRef?: React.RefObject<HTMLButtonElement | null>
-) => {
+export const useOpenSeerDrawer = ({
+  group,
+  project,
+  event,
+}: {
+  event: Event | null;
+  group: Group;
+  project: Project;
+  buttonRef?: React.RefObject<HTMLButtonElement | null>;
+}) => {
   const {openDrawer} = useDrawer();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const organization = useOrganization();
 
-  return useCallback(() => {
-    if (!event) {
+  const openSeerDrawer = useCallback(() => {
+    if (
+      !event ||
+      !organization.features.includes('gen-ai-features') ||
+      organization.hideAiFeatures
+    ) {
       return;
     }
 
@@ -239,57 +362,37 @@ export const useOpenSeerDrawer = (
         height: fit-content;
         max-height: 100%;
       `,
-      shouldCloseOnInteractOutside: element => {
-        const viewAllButton = buttonRef?.current;
-
-        // Check if the element is inside any autofix input element
-        const isInsideAutofixInput = () => {
-          const rethinkInputs = document.querySelectorAll(
-            '[data-autofix-input-type="rethink"]'
-          );
-          const agentCommentInputs = document.querySelectorAll(
-            '[data-autofix-input-type="agent-comment"]'
-          );
-
-          // Check if element is inside any rethink input
-          for (const input of rethinkInputs) {
-            if (input.contains(element)) {
-              return true;
-            }
-          }
-
-          // Check if element is inside any agent comment input
-          for (const input of agentCommentInputs) {
-            if (input.contains(element)) {
-              return true;
-            }
-          }
-
-          return false;
-        };
-
-        if (
-          viewAllButton?.contains(element) ||
-          document.getElementById('sentry-feedback')?.contains(element) ||
-          isInsideAutofixInput() ||
-          document.getElementById('autofix-output-stream')?.contains(element) ||
-          document.getElementById('autofix-write-access-modal')?.contains(element) ||
-          element.closest('[data-overlay="true"]')
-        ) {
-          return false;
-        }
-        return true;
+      shouldCloseOnInteractOutside: () => {
+        return false;
+      },
+      onClose: () => {
+        navigate({
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            seerDrawer: undefined,
+          },
+        });
       },
     });
-  }, [openDrawer, buttonRef, event, group, project]);
+  }, [openDrawer, event, group, project, location, navigate, organization]);
+
+  return {openSeerDrawer};
 };
+
+const PlaceholderStack = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  margin-top: ${space(2)};
+`;
 
 const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
   overflow: visible;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(3)};
+  padding: ${space(2)} ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 

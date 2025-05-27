@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
@@ -42,7 +41,6 @@ type Props = RouteComponentProps<{
 
 function ViewEditDashboard(props: Props) {
   const api = useApi();
-  const theme = useTheme();
   const organization = useOrganization();
 
   const {params, location} = props;
@@ -81,7 +79,6 @@ function ViewEditDashboard(props: Props) {
               <DashboardDetail
                 {...props}
                 key={dashboard.id}
-                theme={theme}
                 organization={organization}
                 initialState={dashboardInitialState}
                 dashboard={dashboard}

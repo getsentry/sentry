@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import useOrganization from 'sentry/utils/useOrganization';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
@@ -15,6 +17,7 @@ export function AdminNavigation() {
       stickyTop="0"
       navigationObjects={[
         {
+          id: 'admin-system-status',
           name: 'System Status',
           items: [
             {path: '/manage/', index: true, title: 'Overview'},
@@ -29,6 +32,7 @@ export function AdminNavigation() {
           ],
         },
         {
+          id: 'admin-manage',
           name: 'Manage',
           items: [
             {path: '/manage/organizations/', title: 'Organizations'},
@@ -37,6 +41,7 @@ export function AdminNavigation() {
           ],
         },
       ]}
+      primaryNavGroup={PrimaryNavGroup.ADMIN}
     />
   );
 }
@@ -46,12 +51,16 @@ type Props = {
 } & RouteComponentProps;
 
 function AdminLayout({children, ...props}: Props) {
+  const organization = useOrganization();
+
   return (
     <SentryDocumentTitle noSuffix title={t('Sentry Admin')}>
       <Page>
         <BreadcrumbProvider>
           <SettingsLayout
-            renderNavigation={prefersStackedNav() ? undefined : AdminNavigation}
+            renderNavigation={
+              prefersStackedNav(organization) ? undefined : AdminNavigation
+            }
             {...props}
           >
             {children}

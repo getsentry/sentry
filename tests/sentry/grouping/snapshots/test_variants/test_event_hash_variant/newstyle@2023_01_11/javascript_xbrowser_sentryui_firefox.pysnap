@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:16.102577+00:00'
+created: '2025-04-25T21:22:09.739839+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
     app*
       exception*
         stacktrace*
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask"
             filename (module takes precedence)
@@ -19,7 +19,7 @@ app:
               "M"
             context-line*
               "fn();"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise"
             filename (module takes precedence)
@@ -28,7 +28,7 @@ app:
               "fn"
             context-line*
               "while (chain.length > i) run(chain[i++]); // variable length - can't use forEach"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise"
             filename (module takes precedence)
@@ -37,7 +37,7 @@ app:
               "run"
             context-line*
               "result = handler(value); // may throw"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
             filename (module takes precedence)
@@ -46,7 +46,7 @@ app:
               "_next"
             context-line*
               "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
             filename (module takes precedence)
@@ -55,7 +55,7 @@ app:
               "asyncGeneratorStep"
             context-line*
               "var info = gen[key](arg);"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
             filename (module takes precedence)
@@ -64,7 +64,7 @@ app:
               "key"
             context-line*
               "return this._invoke(method, arg);"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
             filename (module takes precedence)
@@ -73,7 +73,7 @@ app:
               "this"
             context-line*
               "var record = tryCatch(innerFn, self, context);"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
             filename (module takes precedence)
@@ -82,7 +82,7 @@ app:
               "tryCatch"
             context-line*
               "return { type: \"normal\", arg: fn.call(obj, arg) };"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "app/components/lazyLoad"
             filename (module takes precedence)
@@ -91,7 +91,7 @@ app:
               "fn"
             context-line*
               "this.setState({"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"
             filename (module takes precedence)
@@ -100,7 +100,7 @@ app:
               "this"
             context-line (discarded because line too long)
               "{snip} !==typeof a&&\"function\"!==typeof a&&null!=a?B(\"85\"):void 0;this.updater.enqueueSetState(this,a,b,\"setState\")};E.prototype.forceUpdate=functi {snip}"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -109,7 +109,7 @@ app:
               "this"
             context-line (discarded because line too long)
               "{snip} );e.payload=b;void 0!==c&&null!==c&&(e.callback=c);ff(a,e);If(a,d)},enqueueReplaceState:function(a,b,c){a=a._reactInternalFiber;var d=Gf();d {snip}"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -118,7 +118,7 @@ app:
               "If"
             context-line (discarded because line too long)
               "{snip} );else if(c=b.expirationTime,0===c||a<c)b.expirationTime=a;V||(W?Wg&&(Y=b,Z=1,Xg(b,1,!0)):1===a?Yg(1,null):Zg(b,a))}$g>ah&&($g=0,t(\"185\"))}} {snip}"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -127,7 +127,7 @@ app:
               "Yg"
             context-line (discarded because line too long)
               "{snip} ),qh(),oh(),lh=kh;else for(;null!==Y&&0!==Z&&(0===a||a>=Z);)Xg(Y,Z,!0),qh();null!==hh&&(ch=0,dh=null);0!==Z&&Zg(Y,Z);hh=null;eh=!1;$g=0;mh=n {snip}"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -136,7 +136,7 @@ app:
               "Xg"
             context-line (discarded because line too long)
               "{snip} t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finishedWork,null!==d&&rh( {snip}"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -145,7 +145,7 @@ app:
               "rh"
             context-line (discarded because line too long)
               "{snip} nate;q=Q;p=y;switch(q.tag){case 2:case 3:var X=q.stateNode;if(q.effectTag&4)if(null===oc)X.props=q.memoizedProps,X.state=q.memoizedState,X.c {snip}"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "app/views/groupDetails/shared/groupEventDetails"
             filename (module takes precedence)
@@ -154,7 +154,7 @@ app:
               "X"
             context-line*
               "this.fetchData();"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "app/views/groupDetails/shared/groupEventDetails"
             filename (module takes precedence)
@@ -163,7 +163,7 @@ app:
               "this"
             context-line*
               "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "app/api"
             filename (module takes precedence)

@@ -231,7 +231,6 @@ def create_project_uptime_subscription(
             name=name,
             owner_user_id=owner_user_id,
             owner_team_id=owner_team_id,
-            uptime_status=uptime_status,
         )
         detector = create_detector_from_project_subscription(uptime_monitor)
 
@@ -340,46 +339,47 @@ def update_project_uptime_subscription(
 
 def disable_uptime_detector(detector: Detector):
     """
-    Disables a uptime detector. The associated UptimeSubscription will also be disabled
-    longer has any active project subscriptions the subscription itself will
+    Disables a uptime detector. The associated ProjectUptimeSubscription will also be disabled,
+    and if the UptimeSubscription no longer has any active ProjectUptimeSubscriptions, it will
     also be disabled.
     """
-    uptime_monitor = get_project_subscription(detector)
-    if uptime_monitor.status == ObjectStatus.DISABLED:
-        return
+    with atomic_transaction(
+        using=(
+            router.db_for_write(UptimeSubscription),
+            router.db_for_write(ProjectUptimeSubscription),
+            router.db_for_write(Detector),
+        )
+    ):
+        uptime_monitor = get_project_subscription(detector)
+        uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
 
-    if uptime_monitor.uptime_status == UptimeStatus.FAILED:
-        # Resolve the issue so that we don't see it in the ui anymore
-        resolve_uptime_issue(uptime_monitor)
+        if uptime_monitor.status == ObjectStatus.DISABLED and not detector.enabled:
+            return
 
-    uptime_subscription = uptime_monitor.uptime_subscription
+        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
+            # Resolve the issue so that we don't see it in the ui anymore
+            resolve_uptime_issue(detector)
 
-    uptime_monitor.update(
-        status=ObjectStatus.DISABLED,
         # We set the status back to ok here so that if we re-enable we'll start
         # from a good state
-        uptime_status=UptimeStatus.OK,
-    )
-    uptime_subscription.update(
-        # We set the status back to ok here so that if we re-enable we'll start
-        # from a good state
-        uptime_status=UptimeStatus.OK
-    )
-    detector.update(enabled=False)
+        uptime_subscription.update(uptime_status=UptimeStatus.OK)
 
-    quotas.backend.remove_seat(DataCategory.UPTIME, uptime_monitor)
+        uptime_monitor.update(status=ObjectStatus.DISABLED)
+        detector.update(enabled=False)
 
-    # Are there any other project subscriptions associated to the subscription
-    # that are NOT disabled?
-    has_active_subscription = uptime_subscription.projectuptimesubscription_set.exclude(
-        status=ObjectStatus.DISABLED
-    ).exists()
+        quotas.backend.disable_seat(DataCategory.UPTIME, uptime_monitor)
 
-    # All project subscriptions are disabled, we can disable the subscription
-    # and remove the remote subscription.
-    if not has_active_subscription:
-        uptime_subscription.update(status=UptimeSubscription.Status.DISABLED.value)
-        delete_remote_uptime_subscription.delay(uptime_subscription.id)
+        # Are there any other project subscriptions associated to the subscription
+        # that are NOT disabled?
+        has_active_subscription = uptime_subscription.projectuptimesubscription_set.exclude(
+            status=ObjectStatus.DISABLED
+        ).exists()
+
+        # All project subscriptions are disabled, we can disable the subscription
+        # and remove the remote subscription.
+        if not has_active_subscription:
+            uptime_subscription.update(status=UptimeSubscription.Status.DISABLED.value)
+            delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
 def enable_uptime_detector(detector: Detector, ensure_assignment: bool = False):
@@ -395,7 +395,12 @@ def enable_uptime_detector(detector: Detector, ensure_assignment: bool = False):
     no-op. Pass `ensure_assignment=True` to force seat assignment.
     """
     uptime_monitor = get_project_subscription(detector)
-    if not ensure_assignment and uptime_monitor.status != ObjectStatus.DISABLED:
+
+    if (
+        not ensure_assignment
+        and uptime_monitor.status != ObjectStatus.DISABLED
+        and detector.enabled
+    ):
         return
 
     seat_assignment = quotas.backend.check_assign_seat(DataCategory.UPTIME, uptime_monitor)
@@ -410,7 +415,7 @@ def enable_uptime_detector(detector: Detector, ensure_assignment: bool = False):
         disable_uptime_detector(detector)
         raise UptimeMonitorNoSeatAvailable(None)
 
-    uptime_subscription = uptime_monitor.uptime_subscription
+    uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
     uptime_monitor.update(status=ObjectStatus.ACTIVE)
     detector.update(enabled=True)
 
@@ -422,7 +427,7 @@ def enable_uptime_detector(detector: Detector, ensure_assignment: bool = False):
 
 def delete_uptime_detector(detector: Detector):
     uptime_monitor = get_project_subscription(detector)
-    uptime_subscription = uptime_monitor.uptime_subscription
+    uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
     quotas.backend.remove_seat(DataCategory.UPTIME, uptime_monitor)
     uptime_monitor.delete()
     RegionScheduledDeletion.schedule(detector, days=0)

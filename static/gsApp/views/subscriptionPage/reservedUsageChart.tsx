@@ -77,8 +77,8 @@ export function getCategoryOptions({
 }): CategoryOption[] {
   return USAGE_CHART_OPTIONS_DATACATEGORY.filter(
     opt =>
-      (plan.checkoutCategories.includes(opt.value as DataCategory) ||
-        plan.onDemandCategories.includes(opt.value as DataCategory)) &&
+      (plan.checkoutCategories.includes(opt.value) ||
+        plan.onDemandCategories.includes(opt.value)) &&
       (opt.value === DataCategory.SPANS_INDEXED ? hadCustomDynamicSampling : true)
   );
 }
@@ -611,7 +611,7 @@ function ReservedUsageChart({
       plan: planDetails,
       hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
     }).reduce((acc, option) => {
-      if (hasOrUsedCategory(option.value as DataCategory)) {
+      if (hasOrUsedCategory(option.value)) {
         if (
           option.value === DataCategory.SPANS &&
           subscription.hadCustomDynamicSampling
@@ -620,9 +620,7 @@ function ReservedUsageChart({
         }
         acc.push(option);
         // Display upsell if the category is available
-      } else if (
-        planDetails.availableCategories?.includes(option.value as DataCategory)
-      ) {
+      } else if (planDetails.availableCategories?.includes(option.value)) {
         acc.push({
           ...option,
           tooltip: t(

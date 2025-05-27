@@ -29,7 +29,10 @@ logger = logging.getLogger(__name__)
     max_retries=5,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
-        retry=Retry(times=5),
+        retry=Retry(
+            times=5,
+            delay=60 * 5,
+        ),
     ),
 )
 @retry(exclude=(Integration.DoesNotExist, OrganizationIntegration.DoesNotExist))

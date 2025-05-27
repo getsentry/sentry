@@ -59,7 +59,8 @@ export interface DrawerOptions {
    */
   onOpen?: () => void;
   /**
-   * If true (default), allows the drawer to be resized
+   * If true (default), allows the drawer to be resized - requires `drawerKey`
+   * to be defined
    */
   resizable?: boolean;
   /**
@@ -201,7 +202,11 @@ export function GlobalDrawer({children}: any) {
 
   return (
     <DrawerContext value={{closeDrawer, isDrawerOpen, openDrawer, panelRef}}>
-      <ErrorBoundary mini message={t('There was a problem rendering the drawer.')}>
+      <ErrorBoundary
+        mini
+        allowDismiss
+        message={t('There was a problem rendering the drawer.')}
+      >
         <AnimatePresence>
           {isDrawerOpen && (
             <DrawerComponents.DrawerPanel

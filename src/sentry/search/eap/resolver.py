@@ -6,6 +6,9 @@ from typing import Any, Literal, cast
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
@@ -47,7 +50,7 @@ from sentry.search.eap.columns import (
     VirtualColumnDefinition,
 )
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.eap.utils import validate_sampling
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
@@ -66,6 +69,7 @@ class SearchResolver:
     config: SearchResolverConfig
     definitions: ColumnDefinitions
     granularity_secs: int | None = None
+    _query_result_cache: dict[str, EAPResponse] = field(default_factory=dict)
     _resolved_attribute_cache: dict[
         str, tuple[ResolvedAttribute, VirtualColumnDefinition | None]
     ] = field(default_factory=dict)
@@ -586,8 +590,11 @@ class SearchResolver:
         self, term: event_search.AggregateFilter
     ) -> tuple[AggregationFilter, VirtualColumnDefinition | None]:
         resolved_column, context = self.resolve_column(term.key.name)
+        proto_definition = resolved_column.proto_definition
 
-        if not isinstance(resolved_column.proto_definition, AttributeAggregation):
+        if not isinstance(
+            proto_definition, (AttributeAggregation, AttributeConditionalAggregation)
+        ):
             raise ValueError(f"{term.key.name} is not valid search term")
 
         # TODO: Handle different units properly
@@ -598,13 +605,16 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
+        kwargs = {"op": operator, "val": value}
+        aggregation_key = (
+            "conditional_aggregation"
+            if isinstance(proto_definition, AttributeConditionalAggregation)
+            else "aggregation"
+        )
+        kwargs[aggregation_key] = proto_definition
         return (
             AggregationFilter(
-                comparison_filter=AggregationComparisonFilter(
-                    aggregation=resolved_column.proto_definition,
-                    op=operator,
-                    val=value,
-                ),
+                comparison_filter=AggregationComparisonFilter(**kwargs),
             ),
             context,
         )
@@ -666,6 +676,8 @@ class SearchResolver:
                         )
                     bool_value = lowered_value in constants.TRUTHY_VALUES
                     return AttributeValue(val_bool=bool_value)
+                elif isinstance(value, bool):
+                    return AttributeValue(val_bool=value)
             raise InvalidSearchQuery(
                 f"{value} is not a valid filter value for {column.public_alias}, expecting {constants.TYPE_TO_STRING_MAP[column_type]}, but got a {type(value)}"
             )
@@ -790,7 +802,8 @@ class SearchResolver:
                 field_type = "string"
             else:
                 field_type = None
-            field = tag_match.group("tag") if tag_match else column
+            # make sure to remove surrounding quotes if it's a tag
+            field = tag_match.group("tag").strip('"') if tag_match else column
             if field is None:
                 raise InvalidSearchQuery(f"Could not parse {column}")
             # Assume string if a type isn't passed. eg. tags[foo]
@@ -858,12 +871,24 @@ class SearchResolver:
                 f"Invalid number of arguments for {function_name}, was expecting {len(function_definition.required_arguments)} arguments"
             )
 
-        for index, argument_definition in enumerate(function_definition.arguments):
+        missing_args = len(function_definition.arguments) - len(arguments)
+        argument_index = 0
+
+        for argument_definition in function_definition.arguments:
             if argument_definition.ignored:
                 continue
 
-            if index < len(arguments):
-                argument = arguments[index]
+            # If there are missing arguments, and the argument definition has a default arg, use the default arg
+            # this assumes the missing args are at the beginning or end of the arguments list
+            if missing_args > 0 and argument_definition.default_arg:
+                parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
+                parsed_args.append(parsed_argument)
+                missing_args -= 1
+                continue
+
+            if argument_index < len(arguments):
+                argument = arguments[argument_index]
+                argument_index += 1
                 if argument_definition.validator is not None:
                     if not argument_definition.validator(argument):
                         raise InvalidSearchQuery(
@@ -871,6 +896,7 @@ class SearchResolver:
                         )
                 if isinstance(argument_definition, AttributeArgumentDefinition):
                     parsed_argument, _ = self.resolve_attribute(argument)
+                    parsed_args.append(parsed_argument)
                 else:
                     if argument_definition.argument_types is None:
                         parsed_args.append(argument)  # assume it's a string
@@ -884,23 +910,24 @@ class SearchResolver:
                         else:
                             parsed_args.append(argument)
                     continue
-
-            elif argument_definition.default_arg:
-                parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
             else:
                 raise InvalidSearchQuery(
                     f"Invalid number of arguments for {function_name}, was expecting {len(function_definition.required_arguments)} arguments"
                 )
 
-            if (
-                isinstance(argument_definition, AttributeArgumentDefinition)
-                and argument_definition.attribute_types is not None
+            if isinstance(argument_definition, AttributeArgumentDefinition) and (
+                argument_definition.attribute_types is not None
                 and parsed_argument.search_type not in argument_definition.attribute_types
             ):
-                raise InvalidSearchQuery(
-                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
-                )
-            parsed_args.append(parsed_argument)
+                if argument_definition.field_allowlist is not None:
+                    if parsed_argument.public_alias not in argument_definition.field_allowlist:
+                        raise InvalidSearchQuery(
+                            f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}."
+                        )
+                else:
+                    raise InvalidSearchQuery(
+                        f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
+                    )
 
         resolved_arguments = []
         for parsed_arg in parsed_args:
@@ -926,6 +953,8 @@ class SearchResolver:
             search_type=search_type,
             resolved_arguments=resolved_arguments,
             snuba_params=self.params,
+            query_result_cache=self._query_result_cache,
+            extrapolation_override=self.config.disable_aggregate_extrapolation,
         )
 
         resolved_context = None

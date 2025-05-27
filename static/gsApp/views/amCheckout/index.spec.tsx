@@ -1110,6 +1110,156 @@ describe('AM2 Checkout', function () {
     await userEvent.click(screen.getByText('On-Demand Max Spend'));
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
+
+  it('does not use trial volumes for trial subscriptions in checkout', async function () {
+    /**
+     * Test for the trial checkout slider fix. When subscription.isTrial is true,
+     * the checkout should use default volumes instead of trial reserved volumes.
+     */
+    const trialSub = SubscriptionFixture({
+      organization,
+      plan: 'am2_business',
+      planTier: 'am2',
+      isTrial: true,
+      categories: {
+        // These are high trial volumes that should NOT be used in checkout
+        errors: MetricHistoryFixture({reserved: 500_000}), // High trial volume
+        transactions: MetricHistoryFixture({reserved: 50_000_000}), // High trial volume
+        replays: MetricHistoryFixture({reserved: 25_000}), // High trial volume
+        attachments: MetricHistoryFixture({reserved: 100}), // High trial volume
+        monitorSeats: MetricHistoryFixture({reserved: 10}),
+        profileDuration: MetricHistoryFixture({reserved: 10}),
+      },
+      onDemandMaxSpend: 5000,
+    });
+
+    SubscriptionStore.set(organization.slug, trialSub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Change Subscription'})
+    ).toBeInTheDocument();
+
+    // Navigate to Reserved Volumes step
+    await userEvent.click(screen.getByText('Reserved Volumes'));
+
+    // Verify that sliders show DEFAULT values, NOT the high trial volumes
+    // The key test is that they are NOT the trial volumes we set above
+    expect(screen.getByRole('slider', {name: 'Errors'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '500000' // Should NOT be the trial value
+    );
+    expect(screen.getByRole('slider', {name: 'Performance units'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '50000000' // Should NOT be the trial value
+    );
+    expect(screen.getByRole('slider', {name: 'Replays'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '25000' // Should NOT be the trial value
+    );
+    expect(screen.getByRole('slider', {name: 'Attachments'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '100' // Should NOT be the trial value
+    );
+
+    // Verify they are reasonable default values instead
+    const errorsSlider = screen.getByRole('slider', {name: 'Errors'});
+    const errorsValue = parseInt(errorsSlider.getAttribute('aria-valuetext') || '0', 10);
+    expect(errorsValue).toBe(50_000); // Should be much less than trial volume
+    expect(errorsValue).toBeGreaterThan(0); // Should be a reasonable default
+
+    const replaysSlider = screen.getByRole('slider', {name: 'Replays'});
+    const replaysValue = parseInt(
+      replaysSlider.getAttribute('aria-valuetext') || '0',
+      10
+    );
+    expect(replaysValue).toBe(500); // Should be much less than trial volume
+    expect(replaysValue).toBeGreaterThan(0); // Should be a reasonable default
+  });
+
+  it('continues to use reserved volumes for non-trial subscriptions', async function () {
+    /**
+     * Regression test to ensure non-trial subscriptions still work as expected
+     * and use their actual reserved volumes in checkout.
+     */
+    const nonTrialSub = SubscriptionFixture({
+      organization,
+      plan: 'am2_business',
+      planTier: 'am2',
+      isTrial: false, // NOT a trial subscription
+      categories: {
+        errors: MetricHistoryFixture({reserved: 200_000}),
+        transactions: MetricHistoryFixture({reserved: 30_000_000}),
+        replays: MetricHistoryFixture({reserved: 25_000}),
+        attachments: MetricHistoryFixture({reserved: 50}),
+        monitorSeats: MetricHistoryFixture({reserved: 5}),
+        profileDuration: MetricHistoryFixture({reserved: 5}),
+      },
+      onDemandMaxSpend: 3000,
+    });
+
+    SubscriptionStore.set(organization.slug, nonTrialSub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Change Subscription'})
+    ).toBeInTheDocument();
+
+    // Navigate to Reserved Volumes step
+    await userEvent.click(screen.getByText('Reserved Volumes'));
+
+    // Verify that sliders show the ACTUAL reserved volumes from subscription
+    // These values might be adjusted by price comparison logic, but should be based on the reserved values
+    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
+      'aria-valuetext',
+      '200000' // Should use actual reserved volume
+    );
+
+    // Performance units might be adjusted by price comparison, but should be reasonable
+    const performanceSlider = screen.getByRole('slider', {name: 'Performance units'});
+    const performanceValue = parseInt(
+      performanceSlider.getAttribute('aria-valuetext') || '0',
+      10
+    );
+    expect(performanceValue).toBe(30_000_000);
+
+    // Replays and attachments should be close to our reserved values
+    const replaysSlider = screen.getByRole('slider', {name: 'Replays'});
+    const replaysValue = parseInt(
+      replaysSlider.getAttribute('aria-valuetext') || '0',
+      10
+    );
+    expect(replaysValue).toBe(25_000);
+
+    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
+      'aria-valuetext',
+      '50' // Should use actual reserved volume
+    );
+
+    // Verify onDemand also uses actual value
+    await userEvent.click(screen.getByText('On-Demand Max Spend'));
+    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('30');
+  });
 });
 
 describe('AM3 Checkout', function () {
@@ -1593,7 +1743,7 @@ describe('AM3 Checkout', function () {
       await screen.findByRole('heading', {name: 'Change Subscription'})
     ).toBeInTheDocument();
 
-    // For AM3, we should see "Set Your Pay-as-you-go Budget" first
+    // For AM3, first step is pay-as-you-go budget
     expect(screen.getByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
 
     // Verify that the 'Pay-as-you-go budget' is correctly set
@@ -1648,5 +1798,99 @@ describe('AM3 Checkout', function () {
       reservedProfileDuration: 0,
       reservedSpans: 0,
     });
+  });
+
+  it('does not use trial volumes for trial subscriptions in AM3 checkout', async function () {
+    /**
+     * Test for the trial checkout slider fix in AM3 tier. When subscription.isTrial is true,
+     * the checkout should use default volumes instead of trial reserved volumes.
+     */
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    const trialSub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      planTier: PlanTier.AM3,
+      isTrial: true, // This is the key - subscription is in trial mode
+      categories: {
+        // These are high trial volumes that should NOT be used in checkout
+        errors: MetricHistoryFixture({reserved: 750_000}), // High trial volume
+        attachments: MetricHistoryFixture({reserved: 200}), // High trial volume
+        replays: MetricHistoryFixture({reserved: 50_000}), // High trial volume
+        spans: MetricHistoryFixture({reserved: 100_000_000}), // High trial volume
+        monitorSeats: MetricHistoryFixture({reserved: 20}),
+        profileDuration: MetricHistoryFixture({reserved: 20}),
+      },
+      onDemandBudgets: {
+        onDemandSpendUsed: 0,
+        sharedMaxBudget: 10000, // High trial budget
+        budgetMode: OnDemandBudgetMode.SHARED,
+        enabled: true,
+      },
+      onDemandMaxSpend: 10000,
+      supportsOnDemand: true,
+      isFree: false,
+    });
+
+    SubscriptionStore.set(organization.slug, trialSub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Change Subscription'})
+    ).toBeInTheDocument();
+
+    // For AM3, first step is pay-as-you-go budget
+    expect(screen.getByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
+
+    // Continue to Reserved Volumes step
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
+
+    // Verify that sliders show reasonable values, NOT the high trial volumes
+    // The key test is that they are NOT the trial volumes we set above
+    expect(screen.getByRole('slider', {name: 'Errors'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '750000' // Should NOT be the trial value
+    );
+    expect(screen.getByRole('slider', {name: 'Replays'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '50000' // Should NOT be the trial value
+    );
+    expect(screen.getByRole('slider', {name: 'Spans'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '100000000' // Should NOT be the trial value
+    );
+    expect(screen.getByRole('slider', {name: 'Attachments'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '200' // Should NOT be the trial value
+    );
+
+    // Verify they are reasonable default values instead
+    const errorsSlider = screen.getByRole('slider', {name: 'Errors'});
+    const errorsValue = parseInt(errorsSlider.getAttribute('aria-valuetext') || '0', 10);
+    expect(errorsValue).toBe(50_000); // Should be much less than trial volume
+    expect(errorsValue).toBeGreaterThan(0); // Should be a reasonable default
+
+    const replaysSlider = screen.getByRole('slider', {name: 'Replays'});
+    const replaysValue = parseInt(
+      replaysSlider.getAttribute('aria-valuetext') || '0',
+      10
+    );
+    expect(replaysValue).toBe(50); // Should be much less than trial volume
+    expect(replaysValue).toBeGreaterThan(0); // Should be a reasonable default
   });
 });

@@ -5,7 +5,7 @@ import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryCl
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import type {StarredGroupSearchView} from 'sentry/views/issueList/types';
-import type {NavIssueView} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
+import type {IssueView} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViews';
 
 export function useStarredIssueViews() {
   const organization = useOrganization();
@@ -25,7 +25,7 @@ export function useStarredIssueViews() {
       .map(convertGSVtoIssueView) ?? [];
 
   const setStarredIssueViews = useCallback(
-    (newViews: NavIssueView[]) => {
+    (newViews: IssueView[]) => {
       setApiQueryData<StarredGroupSearchView[]>(
         queryClient,
         makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
@@ -38,7 +38,7 @@ export function useStarredIssueViews() {
   return {starredViews, setStarredIssueViews};
 }
 
-export const convertGSVtoIssueView = (gsv: StarredGroupSearchView): NavIssueView => {
+const convertGSVtoIssueView = (gsv: StarredGroupSearchView): IssueView => {
   return {
     id: gsv.id,
     label: gsv.name,
@@ -55,7 +55,7 @@ export const convertGSVtoIssueView = (gsv: StarredGroupSearchView): NavIssueView
   };
 };
 
-const convertIssueViewToGSV = (view: NavIssueView): StarredGroupSearchView => {
+const convertIssueViewToGSV = (view: IssueView): StarredGroupSearchView => {
   return {
     id: view.id,
     name: view.label,

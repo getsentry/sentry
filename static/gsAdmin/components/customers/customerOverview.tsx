@@ -8,11 +8,11 @@ import type {ResponseMeta} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
 import ChangeARRAction from 'admin/components/changeARRAction';
@@ -157,11 +157,6 @@ type ReservedDataProps = {
   customer: Subscription;
 };
 
-type ReservedBudgetProps = {
-  customer: Subscription;
-  reservedBudget: ReservedBudget;
-};
-
 function ReservedData({customer}: ReservedDataProps) {
   const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> = {};
   customer.reservedBudgets?.forEach(budget => {
@@ -255,26 +250,23 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
   );
 }
 
-function ReservedBudgetData({customer, reservedBudget}: ReservedBudgetProps) {
-  const categories = Object.keys(reservedBudget.categories);
-  if (categories.length === 0) {
-    return null;
-  }
-
-  const shouldUseDsNames = customer.planDetails.categories.includes(
-    DataCategory.SPANS_INDEXED
-  );
-
+function ReservedBudgetData({
+  customer,
+  reservedBudget,
+}: {
+  customer: Subscription;
+  reservedBudget: ReservedBudget;
+}) {
   const budgetName = getReservedBudgetDisplayName({
-    plan: customer.planDetails,
-    categories: categories as DataCategory[],
-    hadCustomDynamicSampling: shouldUseDsNames,
+    reservedBudget,
     shouldTitleCase: true,
+    plan: customer.planDetails,
+    hadCustomDynamicSampling: customer.hadCustomDynamicSampling,
   });
 
   return (
     <Fragment>
-      <h6>{budgetName} Reserved Budget</h6>
+      <h6>{budgetName}</h6>
       <DetailList>
         <DetailLabel title="Reserved Budget">
           {displayPriceWithCents({cents: reservedBudget.reservedBudget})}
@@ -450,7 +442,13 @@ function CustomerOverview({customer, onAction, organization}: Props) {
     ? Object.values(BILLED_DATA_CATEGORY_INFO).filter(
         categoryInfo =>
           categoryInfo.canProductTrial &&
-          customer.planDetails.categories.includes(categoryInfo.plural as DataCategory)
+          customer.planDetails.categories.includes(categoryInfo.plural)
+      )
+    : [];
+
+  const productTrialCategoryGroups = customer.canSelfServe
+    ? Object.values(customer.planDetails.availableReservedBudgetTypes).filter(
+        group => group.canProductTrial
       )
     : [];
 
@@ -470,6 +468,43 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       },
     });
   }
+
+  const getTrialManagementActions = (apiName: string, trialName: string) => {
+    const formattedApiName = upperFirst(apiName);
+    return (
+      <DetailLabel
+        key={apiName}
+        title={toTitleCase(trialName, {allowInnerUpperCase: true})}
+      >
+        <TrialActions>
+          <Button
+            size="xs"
+            onClick={() =>
+              updateCustomerStatus(`allowTrial${formattedApiName}`, 'product trial')
+            }
+          >
+            Allow Trial
+          </Button>
+          <Button
+            size="xs"
+            onClick={() =>
+              updateCustomerStatus(`startTrial${formattedApiName}`, 'product trial')
+            }
+          >
+            Start Trial
+          </Button>
+          <Button
+            size="xs"
+            onClick={() =>
+              updateCustomerStatus(`stopTrial${formattedApiName}`, 'product trial')
+            }
+          >
+            Stop Trial
+          </Button>
+        </TrialActions>
+      </DetailLabel>
+    );
+  };
 
   return (
     <DetailsContainer>
@@ -651,57 +686,20 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             </ExternalLink>
           </DetailLabel>
         </DetailList>
-        {productTrialCategories.length > 0 && (
+        {productTrialCategories.length + productTrialCategoryGroups.length > 0 && (
           <Fragment>
             <h6>Product Trials</h6>
             <ProductTrialsDetailListContainer>
               {productTrialCategories.map(categoryInfo => {
                 const categoryName = getPlanCategoryName({
                   plan: customer.planDetails,
-                  category: categoryInfo.plural as DataCategory,
+                  category: categoryInfo.plural,
                   title: true,
                 });
-                const upperCategory = upperFirst(categoryInfo.plural);
-
-                return (
-                  <DetailLabel key={categoryInfo.plural} title={categoryName}>
-                    <TrialActions>
-                      <Button
-                        size="xs"
-                        onClick={() =>
-                          updateCustomerStatus(
-                            `allowTrial${upperCategory}`,
-                            'product trial'
-                          )
-                        }
-                      >
-                        {tct('Allow Trial', {categoryName})}
-                      </Button>
-                      <Button
-                        size="xs"
-                        onClick={() =>
-                          updateCustomerStatus(
-                            `startTrial${upperCategory}`,
-                            'product trial'
-                          )
-                        }
-                      >
-                        {tct('Start Trial', {categoryName})}
-                      </Button>
-                      <Button
-                        size="xs"
-                        onClick={() =>
-                          updateCustomerStatus(
-                            `stopTrial${upperCategory}`,
-                            'product trial'
-                          )
-                        }
-                      >
-                        {tct('Stop Trial', {categoryName})}
-                      </Button>
-                    </TrialActions>
-                  </DetailLabel>
-                );
+                return getTrialManagementActions(categoryInfo.plural, categoryName);
+              })}
+              {productTrialCategoryGroups.map(group => {
+                return getTrialManagementActions(group.apiName, group.productName);
               })}
             </ProductTrialsDetailListContainer>
           </Fragment>

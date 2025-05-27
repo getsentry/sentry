@@ -1,3 +1,5 @@
+from django.db import connections
+
 from sentry.hybridcloud.models import ApiKeyReplica
 from sentry.models.apikey import ApiKey
 from sentry.silo.base import SiloMode
@@ -48,8 +50,11 @@ class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
 
     def test_update_api_key_details_legacy_data(self):
         # Some old api keys have this psql special format string
-        self.api_key.scope_list = "{event:read,member:read,org:read,project:read,team:read}"
-        self.api_key.save()
+        with connections[ApiKey.objects.db].cursor() as cur:
+            cur.execute(
+                "update sentry_apikey set scope_list = %s where id = %s",
+                ("{event:read,member:read,org:read,project:read,team:read}", self.api_key.id),
+            )
 
         with assume_test_silo_mode(SiloMode.REGION):
             assert ApiKeyReplica.objects.get(apikey_id=self.api_key.id).get_scopes() == [

@@ -1,14 +1,16 @@
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
+import {
+  DynamicSamplingReservedBudgetFixture,
+  ReservedBudgetMetricHistoryFixture,
+} from 'getsentry-test/fixtures/reservedBudget';
 
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
-import type {Subscription as TSubscription, Plan} from 'getsentry/types';
-import {BillingType} from 'getsentry/types';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import {ReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
-import {ReservedBudgetMetricHistoryFixture} from 'getsentry-test/fixtures/reservedBudget';
+import type {Plan, Subscription as TSubscription} from 'getsentry/types';
+import {BillingType} from 'getsentry/types';
 
 type Props = Partial<TSubscription> & {organization: Organization};
 
@@ -17,29 +19,22 @@ export function SubscriptionFixture(props: Props): TSubscription {
   const planData = {plan: 'am1_f', ...params};
 
   // Use planDetails from params if provided, otherwise look it up
-  const planDetails = (planData.planDetails || PlanDetailsLookupFixture(planData.plan)) as Plan;
+  const planDetails = (planData.planDetails ||
+    PlanDetailsLookupFixture(planData.plan)) as Plan;
 
-  const hasPerformance = planDetails?.categories?.includes(
-    DataCategory.TRANSACTIONS
-  );
+  const hasPerformance = planDetails?.categories?.includes(DataCategory.TRANSACTIONS);
   const hasReplays = planDetails?.categories?.includes(DataCategory.REPLAYS);
-  const hasMonitors = planDetails?.categories?.includes(
-    DataCategory.MONITOR_SEATS
-  );
+  const hasMonitors = planDetails?.categories?.includes(DataCategory.MONITOR_SEATS);
   const hasUptime = planDetails?.categories?.includes(DataCategory.UPTIME);
   const hasSpans = planDetails?.categories?.includes(DataCategory.SPANS);
-  const hasSpansIndexed = planDetails?.categories?.includes(
-    DataCategory.SPANS_INDEXED
-  );
+  const hasSpansIndexed = planDetails?.categories?.includes(DataCategory.SPANS_INDEXED);
   const hasProfileDuration = planDetails?.categories?.includes(
     DataCategory.PROFILE_DURATION
   );
   const hasProfileDurationUI = planDetails?.categories?.includes(
     DataCategory.PROFILE_DURATION_UI
   );
-  const hasAttachments = planDetails?.categories?.includes(
-    DataCategory.ATTACHMENTS
-  );
+  const hasAttachments = planDetails?.categories?.includes(DataCategory.ATTACHMENTS);
 
   // Create a safe default for planCategories if it doesn't exist
   const safeCategories = planDetails?.planCategories || {};
@@ -88,7 +83,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     onDemandSpendUsed: 0,
     renewalDate: '2018-10-25',
     partner: null,
-    planDetails: planDetails,
+    planDetails,
     totalMembers: 1,
     contractInterval: 'monthly',
     canGracePeriod: true,
@@ -232,17 +227,11 @@ export function InvoicedSubscriptionFixture(props: Props): TSubscription {
   const planDetails = PlanDetailsLookupFixture(planData.plan);
 
   const hasErrors = planDetails?.categories?.includes(DataCategory.ERRORS);
-  const hasPerformance = planDetails?.categories?.includes(
-    DataCategory.TRANSACTIONS
-  );
+  const hasPerformance = planDetails?.categories?.includes(DataCategory.TRANSACTIONS);
   const hasReplays = planDetails?.categories?.includes(DataCategory.REPLAYS);
-  const hasMonitors = planDetails?.categories?.includes(
-    DataCategory.MONITOR_SEATS
-  );
+  const hasMonitors = planDetails?.categories?.includes(DataCategory.MONITOR_SEATS);
   const hasSpans = planDetails?.categories?.includes(DataCategory.SPANS);
-  const hasAttachments = planDetails?.categories?.includes(
-    DataCategory.ATTACHMENTS
-  );
+  const hasAttachments = planDetails?.categories?.includes(DataCategory.ATTACHMENTS);
 
   return {
     customPrice: null,
@@ -401,7 +390,7 @@ export function InvoicedSubscriptionFixture(props: Props): TSubscription {
 }
 
 export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription {
-  const {organization, ...params} = props;
+  const {organization: _organization, ...params} = props;
   const planData = {plan: 'am3_business_ent_ds_auf', ...params};
 
   const subscription = SubscriptionFixture({
@@ -410,9 +399,12 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
     planTier: planData.planTier,
   });
   subscription.hasReservedBudgets = true;
-  subscription.reservedBudgetCategories = [DataCategory.SPANS, DataCategory.SPANS_INDEXED];
+  subscription.reservedBudgetCategories = [
+    DataCategory.SPANS,
+    DataCategory.SPANS_INDEXED,
+  ];
   subscription.reservedBudgets = [
-    ReservedBudgetFixture({
+    DynamicSamplingReservedBudgetFixture({
       id: '11',
       reservedBudget: 100_000_00,
       totalReservedSpend: 60_000_00,

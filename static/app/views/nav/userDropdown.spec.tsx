@@ -18,7 +18,7 @@ describe('UserDropdown', function () {
     expect(screen.getByText('Foo Bar')).toBeInTheDocument();
     expect(screen.getByText('foo@example.com')).toBeInTheDocument();
 
-    expect(screen.getByRole('link', {name: 'User Settings'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'User Settings'})).toHaveAttribute(
       'href',
       '/settings/account/'
     );
@@ -46,7 +46,7 @@ describe('UserDropdown', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'foo@example.com'}));
 
-    expect(screen.queryByRole('link', {name: 'Admin'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Admin'})).not.toBeInTheDocument();
   });
 
   it('shows admin link if user is admin', async function () {
@@ -56,6 +56,9 @@ describe('UserDropdown', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'foo@example.com'}));
 
-    expect(screen.getByRole('link', {name: 'Admin'})).toHaveAttribute('href', `/manage/`);
+    expect(screen.getByRole('menuitemradio', {name: 'Admin'})).toHaveAttribute(
+      'href',
+      `/manage/`
+    );
   });
 });

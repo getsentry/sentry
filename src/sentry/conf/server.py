@@ -726,9 +726,6 @@ from kombu import Exchange, Queue
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
-# Ensure workers run async by default
-# in Development you might want them to run in-process
-TASK_WORKER_ALWAYS_EAGER = False
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
@@ -738,6 +735,7 @@ CELERY_ALWAYS_EAGER = False
 # Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
 # this works.
 CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
+CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE = 0.02
 
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
@@ -1043,8 +1041,8 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "reattempt-deletions-control": {
         "task": "sentry.deletions.tasks.reattempt_deletions_control",
-        # 03:00 PDT, 07:00 EDT, 10:00 UTC
-        "schedule": crontab(hour="10", minute="0"),
+        # Every other hour
+        "schedule": crontab(hour="*/2", minute="0"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "schedule-hybrid-cloud-foreign-key-jobs-control": {
@@ -1177,8 +1175,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "reattempt-deletions": {
         "task": "sentry.deletions.tasks.reattempt_deletions",
-        # 03:00 PDT, 07:00 EDT, 10:00 UTC
-        "schedule": crontab(hour="10", minute="0"),
+        # Every other hour
+        "schedule": crontab(hour="*/2", minute="0"),
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports-new": {
@@ -1386,6 +1384,10 @@ BGTASKS: dict[str, BgTaskConfig] = {
 # Taskworker settings #
 #######################
 
+# If true, tasks will be run immediately.
+# Used primarily in tests.
+TASKWORKER_ALWAYS_EAGER = False
+
 # Shared secrets used to sign RPC requests to taskbrokers
 # The first secret is used for signing.
 # Environment variable is expected to be a JSON encoded list
@@ -1405,6 +1407,11 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+    "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
@@ -1428,7 +1435,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.vsts.tasks.subscription_check",
-    "sentry.issues.forecasts",
+    "sentry.issues.escalating.forecasts",
     "sentry.middleware.integrations.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
@@ -1452,6 +1459,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auto_source_code_config",
     "sentry.tasks.autofix",
     "sentry.tasks.beacon",
+    "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_resolutions",
     "sentry.tasks.clear_expired_rulesnoozes",
@@ -1464,14 +1472,15 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
-    "sentry.tasks.relay",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.groupowner",
     "sentry.tasks.merge",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.options",
     "sentry.tasks.ping",
+    "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
+    "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
@@ -1489,12 +1498,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.processors.delayed_workflow",
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
-    "sentry.dynamic_sampling.tasks.sliding_window_org",
-    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-    "sentry.tasks.check_am2_compatibility",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1505,6 +1508,12 @@ TASKWORKER_SCHEDULES: ScheduleConfigMap = {
         "schedule": timedelta(minutes=5),
         "task": "options:sentry.tasks.options.sync_options",
     },
+}
+
+TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
+    "ingest.profiling",
+    "ingest.transactions",
+    "ingest.errors",
 }
 
 # Sentry logs to two major places: stdout, and its internal project.
@@ -1908,10 +1917,6 @@ SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS: dict[str, Any] = {}
-
-# Node storage backend used for ArtifactBundle indexing (aka FlatFileIndex aka BundleIndex)
-SENTRY_INDEXSTORE = "sentry.nodestore.django.DjangoNodeStorage"
-SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
 
 # Tag storage backend
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
@@ -2328,10 +2333,6 @@ SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {}
 # Raise an error in dev on failed lookups
 SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 
-# You should not change this setting after your database has been created
-# unless you have altered all schemas first
-SENTRY_USE_BIG_INTS = False
-
 # Delay (in ms) to induce on API responses
 #
 # Simulates a small amount of lag which helps uncover more obvious race
@@ -2345,18 +2346,16 @@ SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
 # XXX(dcramer): this doesn't work outside of a source distribution as the
-# webpack.config.js is not part of Sentry's datafiles
+# rspack.config.ts is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
     (
         "webpack",
         [
-            os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            os.path.join(NODE_MODULES_ROOT, ".bin", "rspack"),
             "serve",
-            "--color",
-            "--output-pathinfo=true",
             "--config={}".format(
                 os.path.normpath(
-                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.ts")
+                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "rspack.config.ts")
                 )
             ),
         ],
@@ -2690,7 +2689,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.4.0"
+SELF_HOSTED_STABLE_VERSION = "25.5.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2940,6 +2939,7 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
+        "has_index": True,
     },
     "chromium": {
         "type": "http",
@@ -3110,6 +3110,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "generic-metrics-subscription-results": "default",
     "metrics-subscription-results": "default",
     "eap-spans-subscription-results": "default",
+    "subscription-results-eap-items": "default",
     "ingest-events": "default",
     "ingest-feedback-events": "default",
     "ingest-feedback-events-dlq": "default",
@@ -3142,11 +3143,41 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
     "snuba-spans": "default",
+    "snuba-items": "default",
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
-    "taskworker": "default",
     "snuba-ourlogs": "default",
+    # Taskworker topics
+    "taskworker": "default",
+    "taskworker-dlq": "default",
+    "taskworker-billing": "default",
+    "taskworker-billing-dlq": "default",
+    "taskworker-control": "default",
+    "taskworker-control-dlq": "default",
+    "taskworker-cutover": "default",
+    "taskworker-email": "default",
+    "taskworker-email-dlq": "default",
+    "taskworker-ingest": "default",
+    "taskworker-ingest-dlq": "default",
+    "taskworker-ingest-errors": "default",
+    "taskworker-ingest-errors-dlq": "default",
+    "taskworker-ingest-transactions": "default",
+    "taskworker-ingest-transactions-dlq": "default",
+    "taskworker-internal": "default",
+    "taskworker-internal-dlq": "default",
+    "taskworker-limited": "default",
+    "taskworker-limited-dlq": "default",
+    "taskworker-long": "default",
+    "taskworker-long-dlq": "default",
+    "taskworker-products": "default",
+    "taskworker-products-dlq": "default",
+    "taskworker-sentryapp": "default",
+    "taskworker-sentryapp-dlq": "default",
+    "taskworker-symbolication": "default",
+    "taskworker-symbolication-dlq": "default",
+    "taskworker-usage": "default",
+    "taskworker-usage-dlq": "default",
 }
 
 
@@ -3163,13 +3194,13 @@ JIRA_USE_EMAIL_SCOPE = False
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
+    "flags",
     "nodestore",
     "replays",
     "sentry",
     "social_auth",
     "feedback",
     "hybridcloud",
-    "remote_subscriptions",
     "uptime",
     "workflow_engine",
     "tempest",
@@ -3321,13 +3352,13 @@ SEER_SEVERITY_RETRIES = 1
 SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-SEER_GROUPING_TIMEOUT = 1
 
 SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
+SEER_HISTORICAL_ANOMALY_DETECTION_TIMEOUT = 10
 
 SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
     f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/detect"
@@ -3535,10 +3566,6 @@ SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
 # key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS
 DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
 
-
-# If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
-# to the buffer service.
-SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
 
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True

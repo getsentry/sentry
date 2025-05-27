@@ -7,6 +7,7 @@ type Props = {
   events: AutofixTimelineEvent[];
   groupId: string;
   runId: string;
+  eventCodeUrls?: Array<string | null>;
   getCustomIcon?: (event: AutofixTimelineEvent) => React.ReactNode;
   retainInsightCardIndex?: number | null;
   stepIndex?: number;
@@ -19,6 +20,7 @@ export function AutofixTimeline({
   runId,
   stepIndex = 0,
   retainInsightCardIndex = null,
+  eventCodeUrls,
 }: Props) {
   if (!events?.length) {
     return null;
@@ -41,6 +43,7 @@ export function AutofixTimeline({
             runId={runId}
             stepIndex={stepIndex}
             retainInsightCardIndex={retainInsightCardIndex}
+            codeUrl={eventCodeUrls ? eventCodeUrls[index] : null}
           />
         );
       })}

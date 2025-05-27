@@ -5,6 +5,9 @@ from django.utils import timezone
 
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils.db import atomic_transaction
 
 MAX_RETRIES = 5
@@ -18,6 +21,13 @@ MAX_RETRIES = 5
     autoretry_for=(DatabaseError, IntegrityError),
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=deletion_tasks,
+        retry=Retry(
+            times=MAX_RETRIES,
+            on=(DatabaseError, IntegrityError),
+        ),
+    ),
 )
 def delete_file_region(path, checksum, **kwargs):
     from sentry.models.files import FileBlob
@@ -33,6 +43,14 @@ def delete_file_region(path, checksum, **kwargs):
     autoretry_for=(DatabaseError, IntegrityError),
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=deletion_control_tasks,
+        retry=Retry(
+            times=MAX_RETRIES,
+            on=(DatabaseError, IntegrityError),
+            delay=60 * 5,
+        ),
+    ),
 )
 def delete_file_control(path, checksum, **kwargs):
     from sentry.models.files import ControlFileBlob
@@ -56,6 +74,13 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=deletion_tasks,
+        retry=Retry(
+            times=MAX_RETRIES,
+            delay=60 * 5,
+        ),
+    ),
 )
 @retry
 def delete_unreferenced_blobs_region(blob_ids):
@@ -71,6 +96,13 @@ def delete_unreferenced_blobs_region(blob_ids):
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=deletion_control_tasks,
+        retry=Retry(
+            times=MAX_RETRIES,
+            delay=60 * 5,
+        ),
+    ),
 )
 @retry
 def delete_unreferenced_blobs_control(blob_ids):

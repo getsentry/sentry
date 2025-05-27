@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
@@ -7,7 +8,8 @@ import bannerStar from 'sentry-images/spot/banner-star.svg';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -244,7 +246,7 @@ const DropdownButton = styled(Button)`
   ${p =>
     // Chonk tags have a smaller border radius, so we need make sure it matches.
     p.theme.isChonk &&
-    `
+    css`
       > span > div {
         border-radius: 20px;
       }

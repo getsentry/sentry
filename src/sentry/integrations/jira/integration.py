@@ -28,6 +28,7 @@ from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncIntegration, Re
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -36,6 +37,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiUnauthorized,
     IntegrationError,
@@ -65,7 +67,7 @@ FEATURE_DESCRIPTIONS = [
     FeatureDescription(
         """
         Create and link Sentry issue groups directly to a Jira ticket in any of your
-        projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+        projects, providing a quick way to jump from a Sentry bug to tracked ticket.
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
@@ -1067,7 +1069,10 @@ class JiraIntegration(IssueSyncIntegration):
             logger.warning("jira.status-sync-fail", extra=log_context)
             return
 
-        client.transition_issue(external_issue.key, transition["id"])
+        try:
+            client.transition_issue(external_issue.key, transition["id"])
+        except ApiInvalidRequestError as e:
+            self.raise_error(e)
 
     def _get_done_statuses(self):
         client = self.get_client()
@@ -1102,7 +1107,7 @@ class JiraIntegration(IssueSyncIntegration):
 
 
 class JiraIntegrationProvider(IntegrationProvider):
-    key = "jira"
+    key = IntegrationProviderSlug.JIRA.value
     name = "Jira"
     metadata = metadata
     integration_cls = JiraIntegration

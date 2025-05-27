@@ -4,12 +4,16 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry.grouping.api import get_grouping_config_dict_for_project, load_grouping_config
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.grouping.enhancer import (
+    ENHANCEMENT_BASES,
     Enhancements,
+    _split_rules,
     is_valid_profiling_action,
     is_valid_profiling_matcher,
     keep_profiling_rules,
@@ -19,6 +23,7 @@ from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import ReturnValueCache, _cached, create_match_frame
 from sentry.grouping.enhancer.parser import parse_enhancements
 from sentry.grouping.enhancer.rules import EnhancementRule
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 
 
@@ -32,10 +37,13 @@ def convert_to_dict(obj: object) -> object | dict[str, Any]:
             continue
         elif key in [
             "rust_enhancements",
+            "classifier_rust_enhancements",
+            "contributes_rust_enhancements",
             "is_classifier",
             "sets_contributes",
             "has_classifier_actions",
             "has_contributes_actions",
+            "run_split_enhancements",
         ]:
             continue
         elif isinstance(value, list):
@@ -96,7 +104,7 @@ def assert_no_matching_frame_found(
     assert not bool(get_matching_frame_actions(rule, frames, platform, exception_data, cache))
 
 
-@pytest.mark.parametrize("version", [2])
+@pytest.mark.parametrize("version", [2, 3])
 def test_basic_parsing(insta_snapshot, version):
     enhancements = Enhancements.from_rules_text(
         """
@@ -113,17 +121,16 @@ def test_basic_parsing(insta_snapshot, version):
             error.value:"*something*"                       max-frames=12
         """,
         bases=["common:v1"],
+        version=version,
     )
-    enhancements.version = version
 
     insta_snapshot(convert_to_dict(enhancements))
 
     enhancements_str = enhancements.base64_string
     assert Enhancements.from_base64_string(enhancements_str).base64_string == enhancements_str
-    assert (
-        Enhancements.from_base64_string(enhancements_str)._to_config_structure()
-        == enhancements._to_config_structure()
-    )
+    assert Enhancements.from_base64_string(enhancements_str)._get_base64_bytes_from_rules(
+        enhancements.rules
+    ) == enhancements._get_base64_bytes_from_rules(enhancements.rules)
     assert isinstance(enhancements_str, str)
 
 
@@ -534,8 +541,8 @@ def test_keep_profiling_rules(test_input, expected):
 
 
 class EnhancementsTest(TestCase):
-    def test_differentiates_between_classifier_and_contributes_rules(self):
-        rules_text = """
+    def setUp(self):
+        self.rules_text = """
             function:sit              +app                  # should end up in classifiers
             function:roll_over        category=trick        # should end up in classifiers
             function:shake            +group                # should end up in contributes
@@ -543,7 +550,9 @@ class EnhancementsTest(TestCase):
             function:stay             min-frames=12         # should end up in contributes
             function:kangaroo         -app -group           # should end up in both
             """
-        rules = parse_enhancements(rules_text)
+
+    def test_differentiates_between_classifier_and_contributes_rules(self):
+        rules = parse_enhancements(self.rules_text)
 
         expected_results = [
             # (has_classifier_actions, has_contributes_actions, classifier_actions, contributes_actions)
@@ -577,6 +586,140 @@ class EnhancementsTest(TestCase):
             assert rule.has_contributes_actions == expected_has_contributes_actions_value
             assert classifier_rule_actions == expected_as_classifier_rule_actions
             assert contributes_rule_actions == expected_as_contributes_rule_actions
+
+    def test_splits_rules_correctly(self):
+        enhancements = Enhancements.from_rules_text(self.rules_text, version=3)
+        assert [rule.text for rule in enhancements.classifier_rules] == [
+            "function:sit +app",
+            "function:roll_over category=trick",
+            "function:kangaroo -app",  # Split of `function:kangaroo -app -group`
+        ]
+        assert [rule.text for rule in enhancements.contributes_rules] == [
+            "function:shake +group",
+            "function:lie_down max-frames=11",
+            "function:stay min-frames=12",
+            "function:kangaroo -group",  # Split of `function:kangaroo -app -group`
+        ]
+
+    def test_obeys_version_for_splitting_choice(self):
+        enhancements = Enhancements.from_rules_text(self.rules_text)
+        assert enhancements.classifier_rules == []
+        assert enhancements.contributes_rules == []
+
+        enhancements = Enhancements.from_rules_text(self.rules_text, version=2)
+        assert enhancements.classifier_rules == []
+        assert enhancements.contributes_rules == []
+
+        enhancements = Enhancements.from_rules_text(self.rules_text, version=3)
+        assert len(enhancements.classifier_rules) > 0
+        assert len(enhancements.contributes_rules) > 0
+
+    def test_adds_split_rules_to_base_enhancements(self):
+        for base in ENHANCEMENT_BASES.values():
+            # Make these sets so checking in them is faster
+            classifier_rules = set(base.classifier_rules)
+            contributes_rules = set(base.contributes_rules)
+
+            for rule in base.rules:
+                if rule.has_classifier_actions:
+                    assert rule.as_classifier_rule() in classifier_rules
+                if rule.has_contributes_actions:
+                    assert rule.as_contributes_rule() in contributes_rules
+
+    @patch("sentry.grouping.enhancer.parse_enhancements", wraps=parse_enhancements)
+    def test_caches_enhancements(self, parse_enhancements_spy: MagicMock):
+        self.project.update_option(
+            "sentry:grouping_enhancements", "stack.function:recordMetrics +app -group"
+        )
+        get_grouping_config_dict_for_project(self.project)
+        assert parse_enhancements_spy.call_count == 1
+
+        get_grouping_config_dict_for_project(self.project)
+        # We didn't parse again because the result was cached
+        assert parse_enhancements_spy.call_count == 1
+
+    @patch("sentry.grouping.enhancer.parse_enhancements", wraps=parse_enhancements)
+    def test_caches_split_enhancements(self, parse_enhancements_spy: MagicMock):
+        self.project.update_option("sentry:grouping_enhancements", "function:playFetch +app +group")
+
+        # Using version 3 forces the enhancements to be split, and we know a split will happen
+        # because the custom rule added above has both an in-app and a contributes action
+        with patch("sentry.grouping.api.get_enhancements_version", return_value=3):
+            get_grouping_config_dict_for_project(self.project)
+            assert parse_enhancements_spy.call_count == 1
+
+            get_grouping_config_dict_for_project(self.project)
+            # We didn't parse again because the result was cached
+            assert parse_enhancements_spy.call_count == 1
+
+    def test_loads_enhancements_from_base64_string(self):
+        enhancements = Enhancements.from_rules_text("function:playFetch +app")
+        assert len(enhancements.rules) == 1
+        assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app>"
+        assert enhancements.id is None
+
+        strategy_config = load_grouping_config(
+            {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements.base64_string}
+        )
+        assert len(strategy_config.enhancements.rules) == 1
+        assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app>"
+        assert strategy_config.enhancements.id is None
+
+    @patch("sentry.grouping.enhancer._split_rules", wraps=_split_rules)
+    def test_loads_split_enhancements_from_base64_string(self, split_rules_spy: MagicMock):
+        # Using version 3 forces the enhancements to be split, and we know a split will happen
+        # because the rule below has both an in-app and a contributes action
+        enhancements = Enhancements.from_rules_text("function:playFetch +app +group", version=3)
+        assert len(enhancements.rules) == 1
+        assert len(enhancements.classifier_rules) == 1
+        assert len(enhancements.contributes_rules) == 1
+        assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app +group>"
+        assert str(enhancements.classifier_rules[0]) == "<EnhancementRule function:playFetch +app>"
+        assert (
+            str(enhancements.contributes_rules[0]) == "<EnhancementRule function:playFetch +group>"
+        )
+        assert enhancements.id is None
+        assert split_rules_spy.call_count == 1
+
+        strategy_config = load_grouping_config(
+            {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements.base64_string}
+        )
+        assert len(strategy_config.enhancements.rules) == 1
+        assert len(strategy_config.enhancements.classifier_rules) == 1
+        assert len(strategy_config.enhancements.contributes_rules) == 1
+        assert (
+            str(strategy_config.enhancements.rules[0])
+            == "<EnhancementRule function:playFetch +app +group>"
+        )
+        assert (
+            str(strategy_config.enhancements.classifier_rules[0])
+            == "<EnhancementRule function:playFetch +app>"
+        )
+        assert (
+            str(strategy_config.enhancements.contributes_rules[0])
+            == "<EnhancementRule function:playFetch +group>"
+        )
+        assert strategy_config.enhancements.id is None
+        # Rules didn't have to be split again because they were cached in split form
+        assert split_rules_spy.call_count == 1
+
+    def test_uses_default_enhancements_when_loading_string_with_invalid_version(self):
+        enhancements = Enhancements.from_rules_text("function:playFetch +app")
+        assert len(enhancements.rules) == 1
+        assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app>"
+        assert enhancements.id is None
+
+        # Version 1 no longer exists
+        enhancements.version = 1
+
+        strategy_config = load_grouping_config(
+            {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements.base64_string}
+        )
+        assert len(strategy_config.enhancements.rules) > 1
+        assert "<EnhancementRule function:playFetch +app>" not in {
+            str(rule) for rule in strategy_config.enhancements.rules
+        }
+        assert strategy_config.enhancements.id == DEFAULT_GROUPING_CONFIG
 
 
 class AssembleStacktraceComponentTest(TestCase):
@@ -643,9 +786,11 @@ class AssembleStacktraceComponentTest(TestCase):
         ):
             assert (
                 frame_component.contributes is expected_contributes
-            ), f"frame {i} has incorrect `contributes` value"
+            ), f"frame {i} has incorrect `contributes` value. Expected {expected_contributes} but got {frame_component.contributes}."
 
-            assert frame_component.hint == expected_hint, f"frame {i} has incorrect `hint` value"
+            assert (
+                frame_component.hint == expected_hint
+            ), f"frame {i} has incorrect `hint` value. Expected '{expected_hint}' but got '{frame_component.hint}'."
 
     def test_uses_or_ignores_rust_results_as_appropriate(self):
         """
@@ -653,11 +798,76 @@ class AssembleStacktraceComponentTest(TestCase):
             - App variant frames never contribute if they're out of app
             - App variant frame hints for system frames are only used if they relate to in-app-ness
             - System variant frame hints are only used if they relate to ignoring/un-ignoring
+            - In-app hints in either variant aren't used if the rust result matches the incoming
+              value set by the client
             - In all other cases, the frame results from rust are used
             - For both variants, the rust stacktrace results are used. (There's one exception to
               this rule, but it needs its own test - see
               `test_marks_app_stacktrace_non_contributing_if_no_in_app_frames` below.)
         """
+        incoming_frames: list[dict[str, Any]] = [
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": True},
+            {
+                "in_app": True,
+                "data": {"client_in_app": True, "in_app_hint": "marked in-app by the client"},
+            },
+            {
+                "in_app": True,
+                "data": {"client_in_app": True, "in_app_hint": "marked in-app by the client"},
+            },
+            {
+                "in_app": True,
+                "data": {"client_in_app": True, "in_app_hint": "marked in-app by the client"},
+            },
+            {
+                "in_app": True,
+                "data": {"client_in_app": True, "in_app_hint": "marked in-app by the client"},
+            },
+            {
+                "in_app": True,
+                "data": {"client_in_app": True, "in_app_hint": "marked in-app by the client"},
+            },
+            {
+                "in_app": True,
+                "data": {"client_in_app": True, "in_app_hint": "marked in-app by the client"},
+            },
+            {"in_app": False},
+            {"in_app": False},
+            {"in_app": False},
+            {"in_app": False},
+            {"in_app": False},
+            {"in_app": False},
+            {
+                "in_app": False,
+                "data": {"client_in_app": False, "in_app_hint": "marked out of app by the client"},
+            },
+            {
+                "in_app": False,
+                "data": {"client_in_app": False, "in_app_hint": "marked out of app by the client"},
+            },
+            {
+                "in_app": False,
+                "data": {"client_in_app": False, "in_app_hint": "marked out of app by the client"},
+            },
+            {
+                "in_app": False,
+                "data": {"client_in_app": False, "in_app_hint": "marked out of app by the client"},
+            },
+            {
+                "in_app": False,
+                "data": {"client_in_app": False, "in_app_hint": "marked out of app by the client"},
+            },
+            {
+                "in_app": False,
+                "data": {"client_in_app": False, "in_app_hint": "marked out of app by the client"},
+            },
+        ]
+
         app_variant_frame_components = [
             self.in_app_frame(contributes=True, hint=None),
             self.in_app_frame(contributes=True, hint=None),
@@ -665,12 +875,24 @@ class AssembleStacktraceComponentTest(TestCase):
             self.in_app_frame(contributes=True, hint=None),
             self.in_app_frame(contributes=True, hint=None),
             self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint="marked in-app by the client"),
+            self.in_app_frame(contributes=True, hint="marked in-app by the client"),
+            self.in_app_frame(contributes=True, hint="marked in-app by the client"),
+            self.in_app_frame(contributes=True, hint="marked in-app by the client"),
+            self.in_app_frame(contributes=True, hint="marked in-app by the client"),
+            self.in_app_frame(contributes=True, hint="marked in-app by the client"),
             self.system_frame(contributes=False, hint="non app frame"),
             self.system_frame(contributes=False, hint="non app frame"),
             self.system_frame(contributes=False, hint="non app frame"),
             self.system_frame(contributes=False, hint="non app frame"),
             self.system_frame(contributes=False, hint="non app frame"),
             self.system_frame(contributes=False, hint="non app frame"),
+            self.system_frame(contributes=False, hint="marked out of app by the client"),
+            self.system_frame(contributes=False, hint="marked out of app by the client"),
+            self.system_frame(contributes=False, hint="marked out of app by the client"),
+            self.system_frame(contributes=False, hint="marked out of app by the client"),
+            self.system_frame(contributes=False, hint="marked out of app by the client"),
+            self.system_frame(contributes=False, hint="marked out of app by the client"),
         ]
         system_variant_frame_components = [
             self.in_app_frame(contributes=True, hint=None),
@@ -679,6 +901,18 @@ class AssembleStacktraceComponentTest(TestCase):
             self.in_app_frame(contributes=True, hint=None),
             self.in_app_frame(contributes=True, hint=None),
             self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint=None),
+            self.system_frame(contributes=True, hint=None),
+            self.system_frame(contributes=True, hint=None),
+            self.system_frame(contributes=True, hint=None),
+            self.system_frame(contributes=True, hint=None),
+            self.system_frame(contributes=True, hint=None),
+            self.system_frame(contributes=True, hint=None),
             self.system_frame(contributes=True, hint=None),
             self.system_frame(contributes=True, hint=None),
             self.system_frame(contributes=True, hint=None),
@@ -705,8 +939,20 @@ class AssembleStacktraceComponentTest(TestCase):
             (True, "un-ignored by stacktrace rule (...)"),
             (True, "marked in-app by stacktrace rule (...)"),
             (True, None),
+            (False, "ignored by stacktrace rule (...)"),
+            (False, "marked in-app by stacktrace rule (...)"),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, "marked in-app by stacktrace rule (...)"),
+            (True, None),
             # All the possible results which could be sent back for system frames (IOW, everything
             # but "marked in-app").
+            (False, "ignored by stacktrace rule (...)"),
+            (False, "marked out of app by stacktrace rule (...)"),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, "marked out of app by stacktrace rule (...)"),
+            (True, None),
             (False, "ignored by stacktrace rule (...)"),
             (False, "marked out of app by stacktrace rule (...)"),
             (False, None),
@@ -716,26 +962,56 @@ class AssembleStacktraceComponentTest(TestCase):
         ]
 
         app_expected_frame_results = [
-            # With the in-app frames, all of the rust results are used
+            # With the in-app frames with no `client_in_app` value, all of the rust results are used
             (False, "ignored by stacktrace rule (...)"),
             (False, "marked in-app by stacktrace rule (...)"),
             (False, None),
             (True, "un-ignored by stacktrace rule (...)"),
             (True, "marked in-app by stacktrace rule (...)"),
             (True, None),
+            # With the in-app frames which do have a `client_in_app` value, the rust results are
+            # used only if they aren't taking credit for marking the frame in-app, since the frame
+            # already was in-app.
+            (False, "ignored by stacktrace rule (...)"),
+            (False, "marked in-app by the client"),
+            (False, "marked in-app by the client"),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, "marked in-app by the client"),
+            (True, "marked in-app by the client"),
             # With the system frames, none of them contributes (regardless of what rust says),
-            # because they're all out of app, and the rust hint is only used when it relates to a
-            # `-app` rule.
+            # because they're all out of app. For the ones with no `client_in_app` value, the rust
+            # hint is only used when it relates to a `-app` rule.
             (False, "non app frame"),
             (False, "marked out of app by stacktrace rule (...)"),
             (False, "non app frame"),
             (False, "non app frame"),
             (False, "marked out of app by stacktrace rule (...)"),
             (False, "non app frame"),
+            # For the ones which do have a `client_in_app` value, the rust hint is never used,
+            # because either it's for a +/-group rule or it's taking credit for marking the frame
+            # out of app, even though it already was out of app.
+            (False, "marked out of app by the client"),
+            (False, "marked out of app by the client"),
+            (False, "marked out of app by the client"),
+            (False, "marked out of app by the client"),
+            (False, "marked out of app by the client"),
+            (False, "marked out of app by the client"),
         ]
         system_expected_frame_results = [
             # For all frames in this variant, the rust hint is used when it relates to a `+/-group`
             # rule, but not when it relates to a `+/-app` rule
+            (False, "ignored by stacktrace rule (...)"),
+            (False, None),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, None),
+            (True, None),
+            (False, "ignored by stacktrace rule (...)"),
+            (False, None),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, None),
+            (True, None),
             (False, "ignored by stacktrace rule (...)"),
             (False, None),
             (False, None),
@@ -760,14 +1036,14 @@ class AssembleStacktraceComponentTest(TestCase):
             app_stacktrace_component = enhancements.assemble_stacktrace_component(
                 variant_name="app",
                 frame_components=app_variant_frame_components,
-                frames=[{}] * 6,
+                frames=incoming_frames,
                 platform="javascript",
                 exception_data={},
             )
             system_stacktrace_component = enhancements.assemble_stacktrace_component(
                 variant_name="system",
                 frame_components=system_variant_frame_components,
-                frames=[{}] * 6,
+                frames=incoming_frames,
                 platform="javascript",
                 exception_data={},
             )
@@ -789,6 +1065,11 @@ class AssembleStacktraceComponentTest(TestCase):
         Test that if frame special-casing for the app variant results in no contributing frames, the
         stacktrace is marked non-contributing.
         """
+        incoming_frames = [
+            {"in_app": False},
+            {"in_app": True},
+            {"in_app": True},
+        ]
         frame_components = [
             # All possibilities (all combos of app vs system, contributing vs not) except a
             # contributing system frame, since that will never be passed to
@@ -840,7 +1121,7 @@ class AssembleStacktraceComponentTest(TestCase):
             stacktrace_component1 = enhancements1.assemble_stacktrace_component(
                 variant_name="app",
                 frame_components=frame_components,
-                frames=[{}] * 3,
+                frames=incoming_frames,
                 platform="javascript",
                 exception_data={},
             )
@@ -858,7 +1139,7 @@ class AssembleStacktraceComponentTest(TestCase):
             stacktrace_component2 = enhancements2.assemble_stacktrace_component(
                 variant_name="app",
                 frame_components=frame_components,
-                frames=[{}] * 3,
+                frames=incoming_frames,
                 platform="javascript",
                 exception_data={},
             )

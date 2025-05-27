@@ -22,6 +22,7 @@ import DisabledQuickTrace from 'getsentry/components/features/disabledQuickTrace
 import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
 import DisabledRelay from 'getsentry/components/features/disabledRelay';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
+import ExploreDateRangeQueryLimitFooter from 'getsentry/components/features/exploreDateRangeQueryLimitFooter';
 import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
 import InsightsUpsellPage from 'getsentry/components/features/insightsUpsellPage';
 import PerformanceNewProjectPrompt from 'getsentry/components/features/performanceNewProjectPrompt';
@@ -31,7 +32,6 @@ import HelpSearchFooter from 'getsentry/components/helpSearchFooter';
 import InviteMembersButtonCustomization from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
-import OnboardingWizardHelp from 'getsentry/components/onboardingWizardHelp';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
@@ -176,11 +176,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   ),
 
   /**
-   * Augment the onboarding wizard skip confirm help button
-   */
-  'onboarding-wizard:skip-help': () => OnboardingWizardHelp,
-
-  /**
    * Get list of organization roles
    */
   'member-invite-modal:organization-roles': getOrgRoles,
@@ -213,6 +208,8 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
   'component:continuous-profiling-beta-sdk-banner': () =>
     ContinuousProfilingBetaSDKAlertBanner,
+  'component:explore-date-range-query-limit-footer': () =>
+    ExploreDateRangeQueryLimitFooter,
   /**
    * Augment the datetime picker based on plan retention days. Includes upsell interface
    */
@@ -260,6 +257,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'feature-disabled:relay': p => <DisabledRelay {...p} />,
   'feature-disabled:rate-limits': p => <DisabledRateLimits {...p} />,
   'feature-disabled:sso-basic': p => <DisabledAuthProvider {...p} />,
+  'feature-disabled:sso-saml2': p => <DisabledAuthProvider {...p} />,
   'feature-disabled:custom-inbound-filters': p => <DisabledCustomInboundFilters {...p} />,
   'feature-disabled:discover2-sidebar-item': p =>
     typeof p.children === 'function' ? p.children(p) : p.children,
@@ -352,6 +350,11 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     </PowerFeatureHovercard>
   ),
   'feature-disabled:open-in-discover': p => <OpenInDiscoverBtn {...p} />,
+  'feature-disabled:issue-views': p => (
+    <PowerFeatureHovercard features={['organizations:issue-views']} id="issue-views">
+      {typeof p.children === 'function' ? p.children(p) : p.children}
+    </PowerFeatureHovercard>
+  ),
 
   /**
    * Augment integration installation modals with feature grouping based on
