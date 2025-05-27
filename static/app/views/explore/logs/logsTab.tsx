@@ -1,15 +1,18 @@
 import {useCallback, useMemo, useRef} from 'react';
+import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {Body} from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -153,7 +156,7 @@ export function LogsTabContent({
   }, [fields, setFields, stringAttributes, numberAttributes]);
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
-      <Layout.Body noRowGap>
+      <TopSectionBody noRowGap>
         <Layout.Main fullWidth>
           <FilterBarContainer>
             <StyledPageFilterBar condensed>
@@ -178,6 +181,10 @@ export function LogsTabContent({
               searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
             />
           </SchemaHintsSection>
+        </Layout.Main>
+      </TopSectionBody>
+      <BottomSectionBody noRowGap>
+        <Layout.Main fullWidth>
           <LogsGraphContainer>
             <LogsGraph timeseriesResult={timeseriesResult} />
           </LogsGraphContainer>
@@ -209,7 +216,25 @@ export function LogsTabContent({
             </Feature>
           </LogsItemContainer>
         </Layout.Main>
-      </Layout.Body>
+      </BottomSectionBody>
     </SearchQueryBuilderProvider>
   );
 }
+
+const TopSectionBody = styled(Body)`
+  padding-bottom: 0;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding-bottom: ${space(2)};
+  }
+`;
+
+const BottomSectionBody = styled(Body)`
+  padding-top: 0;
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-top: 1px solid ${p => p.theme.border};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding-top: ${space(1)};
+  }
+`;
