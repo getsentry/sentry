@@ -51,6 +51,20 @@ describe('ProjectUserFeedback', function () {
       })
     );
   });
+
+  it('cannot toggle spam detection', function () {
+    render(
+      <ProjectUserFeedback
+        {...routerProps}
+        organization={organization}
+        project={project}
+      />
+    );
+
+    expect(
+      screen.queryByRole('checkbox', {name: 'Enable Spam Detection'})
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe('ProjectUserFeedbackProcessing', function () {
@@ -100,38 +114,5 @@ describe('ProjectUserFeedbackProcessing', function () {
         },
       })
     );
-  });
-});
-
-describe('ProjectUserFeedbackProcessingNoSpamDetection', function () {
-  const {routerProps, organization, project} = initializeOrg();
-  const url = `/projects/${organization.slug}/${project.slug}/`;
-
-  beforeEach(function () {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url,
-      method: 'GET',
-      body: ProjectFixture(),
-    });
-    MockApiClient.addMockResponse({
-      url: `${url}keys/`,
-      method: 'GET',
-      body: [],
-    });
-  });
-
-  it('cannot toggle spam detection', function () {
-    render(
-      <ProjectUserFeedback
-        {...routerProps}
-        organization={organization}
-        project={project}
-      />
-    );
-
-    expect(
-      screen.queryByRole('checkbox', {name: 'Enable Spam Detection'})
-    ).not.toBeInTheDocument();
   });
 });
