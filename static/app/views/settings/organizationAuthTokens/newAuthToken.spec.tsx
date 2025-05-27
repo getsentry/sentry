@@ -8,17 +8,7 @@ import OrganizationAuthTokensNewAuthToken from 'sentry/views/settings/organizati
 
 describe('OrganizationAuthTokensNewAuthToken', function () {
   const ENDPOINT = '/organizations/org-slug/org-auth-tokens/';
-  const {organization, router} = initializeOrg();
-
-  const defaultProps = {
-    organization,
-    router,
-    location: router.location,
-    params: {orgId: organization.slug},
-    routes: router.routes,
-    route: {},
-    routeParams: router.params,
-  };
+  const {organization} = initializeOrg();
 
   beforeEach(function () {
     OrganizationsStore.addOrReplace(organization);
@@ -29,7 +19,7 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
   });
 
   it('can create token', async function () {
-    render(<OrganizationAuthTokensNewAuthToken {...defaultProps} />);
+    render(<OrganizationAuthTokensNewAuthToken />);
 
     const generatedToken: OrgAuthToken & {token: string} = {
       id: '1',
@@ -65,7 +55,7 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
   it('handles API errors when creating token', async function () {
     jest.spyOn(indicators, 'addErrorMessage');
 
-    render(<OrganizationAuthTokensNewAuthToken {...defaultProps} />);
+    render(<OrganizationAuthTokensNewAuthToken />);
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -98,7 +88,7 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
   it('handles missing_system_url_prefix API error when creating token', async function () {
     jest.spyOn(indicators, 'addErrorMessage');
 
-    render(<OrganizationAuthTokensNewAuthToken {...defaultProps} />);
+    render(<OrganizationAuthTokensNewAuthToken />);
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
