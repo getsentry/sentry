@@ -3,7 +3,6 @@ import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceExc
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -20,6 +19,7 @@ import ModalStore from 'sentry/stores/modalStore';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {GroupActions} from 'sentry/views/issueDetails/actions';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 const project = ProjectFixture({
   id: '2448',
@@ -68,7 +68,6 @@ describe('GroupActions', function () {
         <GroupActions group={group} project={project} disabled={false} event={null} />,
         {
           organization,
-          deprecatedRouterMocks: true,
         }
       );
       expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
@@ -90,7 +89,6 @@ describe('GroupActions', function () {
         <GroupActions group={group} project={project} disabled={false} event={null} />,
         {
           organization,
-          deprecatedRouterMocks: true,
         }
       );
       await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
@@ -120,7 +118,6 @@ describe('GroupActions', function () {
         <GroupActions group={group} project={project} disabled={false} event={null} />,
         {
           organization,
-          deprecatedRouterMocks: true,
         }
       );
 
@@ -148,7 +145,6 @@ describe('GroupActions', function () {
         <GroupActions group={group} project={project} event={event} disabled={false} />,
         {
           organization,
-          deprecatedRouterMocks: true,
         }
       );
 
@@ -167,7 +163,6 @@ describe('GroupActions', function () {
         <GroupActions group={group} project={project} event={event} disabled={false} />,
         {
           organization,
-          deprecatedRouterMocks: true,
         }
       );
 
@@ -184,7 +179,6 @@ describe('GroupActions', function () {
 
   describe('delete', function () {
     it('opens delete confirm modal from more actions dropdown', async () => {
-      const router = RouterFixture();
       const org = OrganizationFixture({
         ...organization,
         access: [...organization.access, 'event:admin'],
@@ -199,15 +193,13 @@ describe('GroupActions', function () {
         method: 'DELETE',
         body: {},
       });
-      render(
+      const {router} = render(
         <Fragment>
           <GlobalModal />
           <GroupActions group={group} project={project} disabled={false} event={null} />
         </Fragment>,
         {
-          router,
           organization: org,
-          deprecatedRouterMocks: true,
         }
       );
 
@@ -222,14 +214,15 @@ describe('GroupActions', function () {
       await userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
 
       expect(deleteMock).toHaveBeenCalled();
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: `/organizations/${org.slug}/issues/`,
-        query: {project: project.id},
-      });
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${org.slug}/issues/`,
+          query: {project: project.id},
+        })
+      );
     });
 
     it('delete for issue platform', async () => {
-      const router = RouterFixture();
       const org = OrganizationFixture({
         ...organization,
         access: [...organization.access, 'event:admin'],
@@ -244,7 +237,7 @@ describe('GroupActions', function () {
         method: 'DELETE',
         body: {},
       });
-      render(
+      const {router} = render(
         <Fragment>
           <GlobalModal />
           <GroupActions
@@ -255,9 +248,7 @@ describe('GroupActions', function () {
           />
         </Fragment>,
         {
-          router,
           organization: org,
-          deprecatedRouterMocks: true,
         }
       );
 
@@ -272,10 +263,12 @@ describe('GroupActions', function () {
       await userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
 
       expect(deleteMock).toHaveBeenCalled();
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: `/organizations/${org.slug}/issues/`,
-        query: {project: project.id},
-      });
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${org.slug}/issues/`,
+          query: {project: project.id},
+        })
+      );
     });
   });
 
@@ -288,10 +281,7 @@ describe('GroupActions', function () {
 
     const {rerender} = render(
       <GroupActions group={group} project={project} disabled={false} event={null} />,
-      {
-        organization,
-        deprecatedRouterMocks: true,
-      }
+      {organization}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
@@ -362,5 +352,52 @@ describe('GroupActions', function () {
         action_type: 'ignored',
       })
     );
+  });
+
+  it('refetches group data after resolve action using useGroup hook', async () => {
+    const issuesApi = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      body: {...group, status: 'resolved'},
+    });
+
+    // Mock the group fetch API that useGroup hook will call
+    const groupFetchApi = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      method: 'GET',
+      body: group,
+    });
+
+    function GroupActionsWrapper() {
+      const {data: groupData, isLoading} = useGroup({groupId: group.id});
+
+      if (isLoading || !groupData) {
+        return <div>Loading...</div>;
+      }
+
+      return (
+        <GroupActions group={groupData} project={project} disabled={false} event={null} />
+      );
+    }
+
+    render(<GroupActionsWrapper />, {organization});
+
+    await waitFor(() => {
+      expect(groupFetchApi).toHaveBeenCalledTimes(1);
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+    expect(issuesApi).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/project/issues/`,
+      expect.objectContaining({
+        data: {status: 'resolved', statusDetails: {}, substatus: null},
+      })
+    );
+
+    // Verify that the group is fetched a second time after the action to refresh data
+    await waitFor(() => {
+      expect(groupFetchApi).toHaveBeenCalledTimes(2);
+    });
   });
 });

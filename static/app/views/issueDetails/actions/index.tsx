@@ -47,6 +47,7 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -56,7 +57,11 @@ import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIss
 import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {
+  useEnvironmentsFromUrl,
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 
 type UpdateData =
   | {isBookmarked: boolean}
@@ -81,6 +86,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const navigate = useNavigate();
   const location = useLocation();
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const queryClient = useQueryClient();
+  const environments = useEnvironmentsFromUrl();
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -200,6 +207,13 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         complete: () => {
           clearIndicators();
           onComplete?.();
+          queryClient.invalidateQueries({
+            queryKey: makeFetchGroupQueryKey({
+              organizationSlug: organization.slug,
+              groupId: group.id,
+              environments,
+            }),
+          });
         },
       }
     );
