@@ -1,6 +1,7 @@
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
 import {getIsAiSpan} from 'sentry/views/insights/agentMonitoring/utils/query';
@@ -11,7 +12,9 @@ function ensureAttributeObject(
   if (Array.isArray(attributes)) {
     return attributes.reduce(
       (acc, attribute) => {
-        acc[attribute.name] = attribute.value.toString();
+        // Some attribute keys include prefixes and metadata (e.g. "tags[ai.prompt_tokens.used,number]")
+        // prettifyAttributeName normalizes those
+        acc[prettifyAttributeName(attribute.name)] = attribute.value.toString();
         return acc;
       },
       {} as Record<string, string>
