@@ -214,7 +214,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         """
         project_id = data.get("project")
         if project_id is None:
-            raise ValueError("Azure DevOps expects project")
+            raise IntegrationFormError({"project": "Project is required."})
 
         client = self.get_client()
 
