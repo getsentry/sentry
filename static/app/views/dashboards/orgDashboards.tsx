@@ -93,31 +93,29 @@ function OrgDashboards(props: Props) {
   useEffect(() => {
     // Only redirect if there are saved filters and none of the filters
     // appear in the query params
-
-    // Get current query params from URL
-    const currentDashboardDetails = getCurrentPageFilters(location);
     if (
       !selectedDashboard ||
       !hasSavedPageFilters(selectedDashboard) ||
       // Apply redirect once for each dashboard id
-      dashboardRedirectRef.current === selectedDashboard.id ||
-      hasSavedPageFilters(currentDashboardDetails)
+      dashboardRedirectRef.current === selectedDashboard.id
     ) {
       return;
     }
 
+    // Get current query params from location to prioritize using
+    const locationFilters = getCurrentPageFilters(location);
     dashboardRedirectRef.current = selectedDashboard.id;
     navigate(
       {
         ...location,
         query: {
           ...location.query,
-          project: selectedDashboard.projects,
-          environment: selectedDashboard.environment,
-          statsPeriod: selectedDashboard.period,
-          start: selectedDashboard.start,
-          end: selectedDashboard.end,
-          utc: selectedDashboard.utc,
+          project: locationFilters.projects || selectedDashboard.projects,
+          environment: locationFilters.environment || selectedDashboard.environment,
+          statsPeriod: locationFilters.period || selectedDashboard.period,
+          start: locationFilters.start || selectedDashboard.start,
+          end: locationFilters.end || selectedDashboard.end,
+          utc: locationFilters.utc || selectedDashboard.utc,
         },
       },
       {replace: true}

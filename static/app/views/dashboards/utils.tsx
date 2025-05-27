@@ -454,12 +454,7 @@ export function isWidgetUsingTransactionName(widget: Widget) {
   );
 }
 
-export function hasSavedPageFilters(
-  dashboard: Pick<
-    DashboardDetails,
-    'projects' | 'environment' | 'period' | 'start' | 'end' | 'utc'
-  >
-) {
+export function hasSavedPageFilters(dashboard: DashboardDetails) {
   return !(
     (dashboard.projects === undefined || dashboard.projects.length === 0) &&
     dashboard.environment === undefined &&
