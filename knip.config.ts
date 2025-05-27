@@ -33,8 +33,6 @@ const testingEntryPoints = [
 const storyBookEntryPoints = [
   // our storybook implementation is here
   'static/app/stories/storyBook.tsx',
-  // custom webpack loaders for stories
-  'static/app/stories/*loader.ts',
   // we have some stories in mdx format
   'static/app/**/*.mdx',
 ];
