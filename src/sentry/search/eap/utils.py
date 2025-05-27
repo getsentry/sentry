@@ -132,9 +132,7 @@ SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES: dict[SupportedTraceItemType, set[str]
     SupportedTraceItemType.LOGS: LOGS_REPLACEMENT_ATTRIBUTES,
 }
 
-SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[
-    SupportedTraceItemType, dict[Literal["string", "number"], dict[str, str]]
-] = {
+SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[SupportedTraceItemType, dict[str, str]] = {
     SupportedTraceItemType.SPANS: SPANS_REPLACEMENT_MAP,
     SupportedTraceItemType.LOGS: LOGS_REPLACEMENT_MAP,
 }
