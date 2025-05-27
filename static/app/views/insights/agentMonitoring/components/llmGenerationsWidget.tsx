@@ -48,7 +48,7 @@ export default function LLMGenerationsWidget() {
       search: fullQuery,
       limit: 3,
     },
-    Referrer.QUERIES_CHART // TODO
+    Referrer.QUERIES_CHART // TODO: add referrer
   );
 
   const timeSeriesRequest = useTopNSpanEAPSeries(
@@ -61,7 +61,7 @@ export default function LLMGenerationsWidget() {
       topN: 3,
       enabled: !!generationsRequest.data,
     },
-    Referrer.QUERIES_CHART // TODO
+    Referrer.QUERIES_CHART // TODO: add referrer
   );
 
   const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');

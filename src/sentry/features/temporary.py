@@ -511,6 +511,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:github-multi-org", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Relay extracting logs from breadcrumbs for a project.
     manager.add("projects:ourlogs-breadcrumb-extraction", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables quick testing of disabling transaction name clustering for a project.
+    manager.add("projects:transaction-name-clustering-disabled", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=False)
 
     # NOTE: Don't add features down here! Add them to their specific group and sort
     #       them alphabetically! The order features are registered is not important.

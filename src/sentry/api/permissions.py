@@ -181,9 +181,10 @@ class SentryPermission(ScopedPermission):
 
             if org_context.member and self.is_not_2fa_compliant(request, organization):
                 logger.info(
-                    "access.not-2fa-compliant.dry-run",
+                    "access.not-2fa-compliant.auth-token",
                     extra=extra,
                 )
+                raise TwoFactorRequired()
             return
 
         request.access = access.from_request_org_and_scopes(

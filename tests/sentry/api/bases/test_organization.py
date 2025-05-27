@@ -170,6 +170,18 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         with pytest.raises(SuperuserRequired):
             assert self.has_object_perm("GET", self.org, user=user)
 
+    def test_org_requires_2fa_for_user_auth_token_request(self):
+        self.org_require_2fa()
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="owner")
+        token = self.create_user_auth_token(user)
+
+        request = drf_request_from_request(self.make_request(user=user, auth=token, method="GET"))
+        permission = self.permission_cls()
+
+        with pytest.raises(TwoFactorRequired), assume_test_silo_mode(SiloMode.CONTROL):
+            permission.determine_access(request=request, organization=self.org)
+
     def test_org_does_not_require_2fa_for_user_auth_token_request_if_no_membership(self):
         # make sure that 2FA requirement is not visible to the outsiders
         self.org_require_2fa()
