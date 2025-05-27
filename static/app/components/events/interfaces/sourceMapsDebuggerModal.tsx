@@ -158,7 +158,7 @@ export interface SourceMapsDebuggerModalProps extends ModalRenderProps {
   orgSlug?: string;
 }
 
-const projectPlatformToDocsMap: Record<string, string> = {
+export const projectPlatformToDocsMap: Record<string, string> = {
   'node-azurefunctions': 'azure-functions',
   'node-cloudflare-pages': 'cloudflare',
   'node-cloudflare-workers': 'cloudflare',
@@ -171,6 +171,20 @@ const projectPlatformToDocsMap: Record<string, string> = {
   'node-nestjs': 'nestjs',
   'node-restify': 'restify',
   'node-awslambda': 'aws-lambda',
+  'javascript-react': 'react',
+  'javascript-angular': 'angular',
+  'javascript-ember': 'ember',
+  'javascript-gatsby': 'gatsby',
+  'javascript-vue': 'vue',
+  'javascript-nextjs': 'nextjs',
+  'javascript-nuxt': 'nuxt',
+  'javascript-remix': 'remix',
+  'javascript-solid': 'solid',
+  'javascript-solidstart': 'solidstart',
+  'javascript-svelte': 'svelte',
+  'javascript-sveltekit': 'sveltekit',
+  'javascript-astro': 'astro',
+  'javascript-tanstackstart-react': 'tanstackstart-react',
 };
 
 function isReactNativeSDK({sdkName}: Pick<FrameSourceMapDebuggerData, 'sdkName'>) {
@@ -191,7 +205,7 @@ function getPlatform({
   );
 }
 
-function getSourceMapsDocLinks(platform: string) {
+export function getSourceMapsDocLinks(platform: string) {
   if (platform === 'react-native') {
     return {
       sourcemaps: `https://docs.sentry.io/platforms/react-native/sourcemaps/`,
