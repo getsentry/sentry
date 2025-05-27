@@ -290,12 +290,30 @@ def ai_model_costs_config() -> AIModelCosts:
                 ("davinci:ft-*", True, 0.12),
                 # Anthropic Claude 3 input
                 ("claude-3-haiku", False, 0.00025),
+                ("claude-3-haiku-cached", False, 0.00003),
                 ("claude-3-sonnet", False, 0.003),
+                ("claude-3-sonnet-cached", False, 0.00003),
                 ("claude-3-opus", False, 0.015),
+                ("claude-3-opus-cached", False, 0.0015),
                 # Anthropic Claude 3 output
                 ("claude-3-haiku", True, 0.00125),
                 ("claude-3-sonnet", True, 0.015),
                 ("claude-3-opus", True, 0.075),
+                # Anthropic Claude 3.5 Haiku input
+                ("claude-3.5-haiku", False, 0.0008),
+                ("claude-3.5-haiku-cached", False, 0.00008),
+                # Anthropic Claude 3.5 Haiku output
+                ("claude-3.5-haiku", True, 0.004),
+                # Anthropic Claude 4 Sonnet input
+                ("claude-4-sonnet", False, 0.003),
+                ("claude-4-sonnet-cached", False, 0.0003),
+                # Anthropic Claude 4 Sonnet output
+                ("claude-4-sonnet", True, 0.015),
+                # Anthropic Claude 4 Opus input
+                ("claude-4-opus", False, 0.015),
+                ("claude-4-opus-cached", False, 0.0015),
+                # Anthropic Claude 4 Opus output
+                ("claude-4-opus", True, 0.075),
                 # Anthropic Claude 2 input
                 ("claude-2.*", False, 0.008),
                 ("claude-instant*", False, 0.0008),
