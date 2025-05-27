@@ -12,9 +12,7 @@ interface NavContext {
   isInteractingRef: React.RefObject<boolean | null>;
   layout: NavLayout;
   navParentRef: React.RefObject<HTMLDivElement | null>;
-  secondaryNavEl: HTMLElement | null;
   setIsCollapsed: (isCollapsed: boolean) => void;
-  setSecondaryNavEl: (el: HTMLElement | null) => void;
   setShowTourReminder: (showTourReminder: boolean) => void;
   showTourReminder: boolean;
   startInteraction: () => void;
@@ -22,8 +20,6 @@ interface NavContext {
 
 const NavContext = createContext<NavContext>({
   navParentRef: {current: null},
-  secondaryNavEl: null,
-  setSecondaryNavEl: () => {},
   layout: NavLayout.SIDEBAR,
   isCollapsed: false,
   setIsCollapsed: () => {},
@@ -45,7 +41,6 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
     NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
     false
   );
-  const [secondaryNavEl, setSecondaryNavEl] = useState<HTMLElement | null>(null);
   const [showTourReminder, setShowTourReminder] = useState(false);
 
   const theme = useTheme();
@@ -62,8 +57,6 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
   const value = useMemo(
     () => ({
       navParentRef,
-      secondaryNavEl,
-      setSecondaryNavEl,
       layout: isMobile ? NavLayout.MOBILE : NavLayout.SIDEBAR,
       isCollapsed,
       setIsCollapsed,
@@ -74,7 +67,6 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       setShowTourReminder,
     }),
     [
-      secondaryNavEl,
       isMobile,
       isCollapsed,
       setIsCollapsed,

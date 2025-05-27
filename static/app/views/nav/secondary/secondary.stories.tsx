@@ -6,7 +6,6 @@ import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 import {NavContextProvider} from 'sentry/views/nav/context';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import {SecondarySidebar} from 'sentry/views/nav/secondary/secondarySidebar';
 
 export default Storybook.story('SecondaryNav', story => {
   story('Basics (WIP)', () => {
@@ -15,8 +14,8 @@ export default Storybook.story('SecondaryNav', story => {
     return (
       <Container>
         <NavContextProvider>
-          <SecondarySidebar />
-          <SecondaryNav>
+          <StyledSecondaryNav>
+            <SecondaryNav.Header>Section Title</SecondaryNav.Header>
             <SecondaryNav.Body>
               <SecondaryNav.Section id="stories-product-areas">
                 <SecondaryNav.Item
@@ -75,7 +74,7 @@ export default Storybook.story('SecondaryNav', story => {
                 Footer Item
               </SecondaryNav.Item>
             </SecondaryNav.Footer>
-          </SecondaryNav>
+          </StyledSecondaryNav>
         </NavContextProvider>
       </Container>
     );
@@ -84,6 +83,10 @@ export default Storybook.story('SecondaryNav', story => {
 
 const Container = styled(NegativeSpaceContainer)`
   padding: ${space(2)};
-  height: 400px;
-  width: min-content;
+`;
+
+const StyledSecondaryNav = styled(SecondaryNav)`
+  height: 500px;
+  width: 300px;
+  background: ${p => p.theme.background};
 `;
