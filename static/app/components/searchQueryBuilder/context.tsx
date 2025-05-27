@@ -5,6 +5,7 @@ import {
   useContext,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
@@ -43,6 +44,8 @@ interface SearchQueryBuilderContextData {
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
+  seerMode: boolean;
+  setSeerMode: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
   placeholder?: string;
@@ -90,6 +93,7 @@ export function SearchQueryBuilderProvider({
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
+  const [seerMode, setSeerMode] = useState(false);
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
     getFieldDefinition: fieldDefinitionGetter,
@@ -153,6 +157,8 @@ export function SearchQueryBuilderProvider({
       searchSource,
       size,
       portalTarget,
+      seerMode,
+      setSeerMode,
     };
   }, [
     state,
@@ -174,6 +180,8 @@ export function SearchQueryBuilderProvider({
     size,
     portalTarget,
     parseQuery,
+    seerMode,
+    setSeerMode,
   ]);
 
   return (

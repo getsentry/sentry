@@ -13,7 +13,10 @@ import {
   EAPSpanSearchQueryBuilder,
   useEAPSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -38,6 +41,7 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
+import {SeerSearch} from 'sentry/views/explore/components/seerSearch';
 import {
   useExploreFields,
   useExploreId,
@@ -139,6 +143,20 @@ interface SpanTabSearchSectionProps {
   datePageFilterProps: PickableDays;
 }
 
+function SearchToggle({
+  eapSpanSearchQueryBuilderProps,
+}: {
+  eapSpanSearchQueryBuilderProps: any;
+}) {
+  const {seerMode} = useSearchQueryBuilder();
+
+  return seerMode ? (
+    <SeerSearch />
+  ) : (
+    <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
+  );
+}
+
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useExploreMode();
   const fields = useExploreFields();
@@ -212,7 +230,9 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
               <EnvironmentPageFilter />
               <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
-            <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
+            <SearchToggle
+              eapSpanSearchQueryBuilderProps={eapSpanSearchQueryBuilderProps}
+            />
           </FilterSection>
           <StyledSchemaHintsSection>
             <SchemaHintsList
