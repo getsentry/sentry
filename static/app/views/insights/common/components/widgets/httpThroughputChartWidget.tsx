@@ -8,13 +8,14 @@ import {Referrer} from 'sentry/views/insights/http/referrers';
 
 export default function HttpThroughputChartWidget(props: LoadableChartWidgetProps) {
   const chartFilters = useHttpLandingChartFilter();
+  const search = MutableSearch.fromQueryObject(chartFilters);
   const {
     isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(
     {
-      search: MutableSearch.fromQueryObject(chartFilters),
+      search,
       yAxis: ['epm()'],
       transformAliasToInputFormat: true,
     },
@@ -25,6 +26,7 @@ export default function HttpThroughputChartWidget(props: LoadableChartWidgetProp
   return (
     <InsightsLineChartWidget
       {...props}
+      search={search}
       id="httpThroughputChartWidget"
       title={getThroughputChartTitle('http')}
       series={[throughputData['epm()']]}

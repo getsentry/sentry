@@ -8,13 +8,14 @@ import {Referrer} from 'sentry/views/insights/http/referrers';
 
 export default function HttpDurationChartWidget(props: LoadableChartWidgetProps) {
   const chartFilters = useHttpLandingChartFilter();
+  const search = MutableSearch.fromQueryObject(chartFilters);
   const {
     isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries(
     {
-      search: MutableSearch.fromQueryObject(chartFilters),
+      search,
       yAxis: ['avg(span.self_time)'],
       transformAliasToInputFormat: true,
     },
@@ -25,6 +26,7 @@ export default function HttpDurationChartWidget(props: LoadableChartWidgetProps)
   return (
     <InsightsLineChartWidget
       {...props}
+      search={search}
       id="httpDurationChartWidget"
       title={getDurationChartTitle('http')}
       series={[durationData['avg(span.self_time)']]}

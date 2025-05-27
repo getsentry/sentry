@@ -9,13 +9,14 @@ import {FIELD_ALIASES} from 'sentry/views/insights/http/settings';
 
 export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetProps) {
   const chartFilters = useHttpLandingChartFilter();
+  const search = MutableSearch.fromQueryObject(chartFilters);
   const {
     isPending: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
   } = useSpanMetricsSeries(
     {
-      search: MutableSearch.fromQueryObject(chartFilters),
+      search,
       yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
       transformAliasToInputFormat: true,
     },
@@ -27,6 +28,7 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
     <InsightsLineChartWidget
       {...props}
       id="httpResponseCodesChartWidget"
+      search={search}
       title={DataTitles.unsuccessfulHTTPCodes}
       series={[
         responseCodeData[`http_response_rate(3)`],
