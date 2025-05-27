@@ -1,4 +1,4 @@
-import {segmentSequentialBy} from 'sentry/utils/array/multiPartition';
+import {segmentSequentialBy} from 'sentry/utils/array/segmentSequentialBy';
 
 describe('segmentSequentialBy', function () {
   it('handles empty array', function () {
@@ -10,8 +10,6 @@ describe('segmentSequentialBy', function () {
 
     const result = segmentSequentialBy(data, isEven);
 
-    // For a single item, the function doesn't explicitly add to predicateGroups array
-    // This is actually a bug in the current implementation
     expect(result).toEqual([{predicateValue: true, data: [42]}]);
   });
 
