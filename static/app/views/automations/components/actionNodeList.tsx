@@ -40,8 +40,8 @@ export default function ActionNodeList({
   updateAction,
 }: ActionNodeListProps) {
   const {data: availableActions = []} = useAvailableActionsQuery();
-  const [actionHandlerMap, setActionHandlerMap] = useState<Map<string, ActionHandler>>(
-    new Map()
+  const [actionHandlerMap, setActionHandlerMap] = useState<Record<string, ActionHandler>>(
+    {}
   );
 
   const options = useMemo(() => {
@@ -92,6 +92,7 @@ export default function ActionNodeList({
           key={`${group}.action.${action.id}`}
           onDelete={() => {
             onDeleteRow(action.id);
+            setActionHandlerMap(({[action.id]: _, ...rest}) => rest);
           }}
         >
           {(() => {
@@ -119,7 +120,10 @@ export default function ActionNodeList({
         onChange={(obj: any) => {
           const actionId = uuid4();
           onAddRow(actionId, obj.value);
-          setActionHandlerMap(new Map(actionHandlerMap).set(actionId, obj.value));
+          setActionHandlerMap(currActionHandlerMap => ({
+            ...currActionHandlerMap,
+            [actionId]: obj.value,
+          }));
         }}
         placeholder={placeholder}
         value={null}
