@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 
@@ -26,6 +26,11 @@ interface ActionNodeListProps {
   updateAction: (id: string, data: Record<string, any>) => void;
 }
 
+interface Option {
+  label: string;
+  value: ActionHandler;
+}
+
 export default function ActionNodeList({
   group,
   placeholder,
@@ -35,43 +40,47 @@ export default function ActionNodeList({
   updateAction,
 }: ActionNodeListProps) {
   const {data: availableActions = []} = useAvailableActionsQuery();
-  const actionHandlerMapRef = useRef(new Map());
+  const [actionHandlerMap, setActionHandlerMap] = useState<Map<string, ActionHandler>>(
+    new Map()
+  );
 
   const options = useMemo(() => {
-    const typeOptionsMap = new Map<
-      ActionGroup,
-      Array<{label: string; value: ActionHandler}>
-    >();
+    const notificationActions: Option[] = [];
+    const ticketCreationActions: Option[] = [];
+    const otherActions: Option[] = [];
 
     availableActions.forEach(action => {
-      const existingOptions = typeOptionsMap.get(action.handlerGroup) || [];
       const label =
         actionNodesMap.get(action.type)?.label || action.sentryApp?.name || action.type;
+      const newAction = {
+        value: action,
+        label,
+      };
 
-      typeOptionsMap.set(action.handlerGroup, [
-        ...existingOptions,
-        {
-          value: action,
-          label,
-        },
-      ]);
+      if (action.handlerGroup === ActionGroup.NOTIFICATION) {
+        notificationActions.push(newAction);
+      } else if (action.handlerGroup === ActionGroup.TICKET_CREATION) {
+        ticketCreationActions.push(newAction);
+      } else {
+        otherActions.push(newAction);
+      }
     });
 
     return [
       {
         key: ActionGroup.NOTIFICATION,
         label: t('Notifications'),
-        options: typeOptionsMap.get(ActionGroup.NOTIFICATION) || [],
+        options: notificationActions,
       },
       {
         key: ActionGroup.TICKET_CREATION,
         label: t('Ticket Creation'),
-        options: typeOptionsMap.get(ActionGroup.TICKET_CREATION) || [],
+        options: ticketCreationActions,
       },
       {
         key: ActionGroup.OTHER,
         label: t('Other Integrations'),
-        options: typeOptionsMap.get(ActionGroup.OTHER) || [],
+        options: otherActions,
       },
     ];
   }, [availableActions]);
@@ -90,7 +99,13 @@ export default function ActionNodeList({
               action,
               actionId: `${group}.action.${action.id}`,
               onUpdate: newAction => updateAction(action.id, newAction),
-              handler: actionHandlerMapRef.current.get(action.id),
+              handler: (() => {
+                const handler = actionHandlerMap.get(action.id);
+                if (!handler) {
+                  throw new Error(`${action.type} action handler not found`);
+                }
+                return handler;
+              })(),
             }}
           >
             <Node />
@@ -102,7 +117,7 @@ export default function ActionNodeList({
         onChange={(obj: any) => {
           const actionId = uuid4();
           onAddRow(actionId, obj.value);
-          actionHandlerMapRef.current.set(actionId, obj.value);
+          setActionHandlerMap(new Map(actionHandlerMap).set(actionId, obj.value));
         }}
         placeholder={placeholder}
         value={null}
