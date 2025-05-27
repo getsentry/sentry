@@ -39,6 +39,7 @@ invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 
 // Exclude MDX files from type-aware linting
+// https://github.com/orgs/mdx-js/discussions/2454
 const MDXIgnore = ['**/*.mdx'];
 
 // lint rules that need type information need to go here
