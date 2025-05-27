@@ -94,6 +94,10 @@ jest.mock(
       isPending: false,
       error: null,
     })),
+    useResourceLandingSeriesSearch: jest.fn(() => ({
+      search: jest.fn(),
+      enabled: true,
+    })),
   })
 );
 jest.mock(
@@ -109,6 +113,10 @@ jest.mock(
       },
       isPending: false,
       error: null,
+    })),
+    useResourceSummarySeriesSearch: jest.fn(() => ({
+      search: jest.fn(),
+      enabled: true,
     })),
   })
 );
