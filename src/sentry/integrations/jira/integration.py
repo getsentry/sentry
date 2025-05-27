@@ -1007,16 +1007,18 @@ class JiraIntegration(IssueSyncIntegration):
                         "integration_id": external_issue.integration_id,
                         "user_id": user.id,
                         "issue_key": external_issue.key,
+                        "organization_id": external_issue.organization_id,
                     },
                 )
-                return
+                raise
         try:
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
-        except (ApiUnauthorized, ApiError):
+        except (ApiUnauthorized, ApiError) as e:
             # TODO(jess): do we want to email people about these types of failures?
             logger.info(
                 "jira.failed-to-assign",
+                exc_info=e,
                 extra={
                     "organization_id": external_issue.organization_id,
                     "integration_id": external_issue.integration_id,
@@ -1024,6 +1026,7 @@ class JiraIntegration(IssueSyncIntegration):
                     "issue_key": external_issue.key,
                 },
             )
+            raise
 
     def sync_status_outbound(
         self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
