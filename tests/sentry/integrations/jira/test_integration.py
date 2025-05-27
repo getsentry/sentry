@@ -18,7 +18,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import EventType
@@ -824,7 +824,8 @@ class RegionJiraIntegrationTest(APITestCase):
             "https://example.atlassian.net/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
         )
-        installation.sync_assignee_outbound(external_issue, user)
+        with pytest.raises(IntegrationFormError):
+            installation.sync_assignee_outbound(external_issue, user)
 
         # No sync made as jira users don't have email addresses
         assert len(responses.calls) == 1
