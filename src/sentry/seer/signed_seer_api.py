@@ -5,6 +5,7 @@ from random import random
 from typing import Any
 from urllib.parse import urlparse
 
+import sentry_sdk
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
@@ -14,6 +15,7 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
+@sentry_sdk.tracing.trace
 def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
     path: str,
