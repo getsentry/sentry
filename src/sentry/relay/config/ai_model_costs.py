@@ -11,7 +11,8 @@ class AIModelCosts(TypedDict):
     version: int
     costs: list[AIModelCost]
 
-_AI_MODEL_COST_DATA =  [
+
+_AI_MODEL_COST_DATA = [
     # GPT-4.1 input
     ("gpt-4.1", False, 0.002),
     ("gpt-4.1-2025-04-14", False, 0.002),
@@ -20,7 +21,7 @@ _AI_MODEL_COST_DATA =  [
     # GPT-4.1 output
     ("gpt-4.1", True, 0.008),
     ("gpt-4.1-2025-04-14", True, 0.008),
-        # GPT-4.1-mini input
+    # GPT-4.1-mini input
     # GPT-4.1-mini input
     ("gpt-4.1-mini", False, 0.0004),
     ("gpt-4.1-mini-2025-04-14", False, 0.0004),
@@ -217,7 +218,7 @@ _AI_MODEL_COST_DATA =  [
     ("gpt-3.5-turbo-16k-0613", True, 0.004),
     # Azure GPT-35 input
     ("gpt-35-turbo", False, 0.0015),  # Azure OpenAI version of ChatGPT
-    ("gpt-35-turbo-0125", False,  0.0005),
+    ("gpt-35-turbo-0125", False, 0.0005),
     ("gpt-35-turbo-0301", False, 0.002),  # Azure OpenAI version of ChatGPT
     ("gpt-35-turbo-0613", False, 0.0015),
     ("gpt-35-turbo-instruct", False, 0.0015),
@@ -346,7 +347,7 @@ _AI_MODEL_COST_DATA =  [
     ("grok-2-vision-latest", True, 0.01),
     ("grok-2", True, 0.01),
     ("grok-2-latest", True, 0.01),
-    ]
+]
 
 _PRECOMPUTED_AI_MODEL_COSTS: AIModelCosts = {
     "version": 1,
@@ -357,8 +358,9 @@ _PRECOMPUTED_AI_MODEL_COSTS: AIModelCosts = {
             "costPer1kTokens": row[2],
         }
         for row in _AI_MODEL_COST_DATA
-    ]
+    ],
 }
+
 
 def ai_model_costs_config() -> AIModelCosts:
     return _PRECOMPUTED_AI_MODEL_COSTS
