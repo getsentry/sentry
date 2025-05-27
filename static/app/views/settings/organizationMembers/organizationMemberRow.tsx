@@ -36,7 +36,7 @@ type State = {
 
 const DisabledMemberTooltip = HookOrDefault({
   hookName: 'component:disabled-member-tooltip',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+  defaultComponent: ({children}) => children,
 });
 
 export default class OrganizationMemberRow extends PureComponent<Props, State> {

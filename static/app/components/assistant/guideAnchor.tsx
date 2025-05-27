@@ -1,4 +1,4 @@
-import {Component, Fragment, useEffect, useRef} from 'react';
+import {Component, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -212,7 +212,7 @@ type WrapperProps = Props & {
  */
 function GuideAnchor({disabled, children, wrapperComponent, ...rest}: WrapperProps) {
   if (disabled) {
-    return <Fragment>{children}</Fragment>;
+    return children;
   }
   return (
     <BaseGuideAnchor wrapperComponent={wrapperComponent} {...rest}>

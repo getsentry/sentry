@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import type {InitializeUrlStateParams} from 'sentry/actionCreators/pageFilters';
@@ -203,7 +203,7 @@ function PageFiltersContainer({
     );
   }
 
-  return <Fragment>{children}</Fragment>;
+  return children;
 }
 
 export default PageFiltersContainer;

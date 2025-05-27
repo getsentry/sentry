@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -118,8 +118,7 @@ class FeatureTourModal extends Component<Props, State> {
   };
 
   render() {
-    const {children} = this.props;
-    return <Fragment>{children({showModal: this.handleShow})}</Fragment>;
+    return this.props.children({showModal: this.handleShow});
   }
 }
 

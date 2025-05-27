@@ -1,5 +1,5 @@
 import type {Ref} from 'react';
-import {createContext, Fragment, useEffect, useRef} from 'react';
+import {createContext, useEffect, useRef} from 'react';
 import identity from 'lodash/identity';
 
 import type {Client} from 'sentry/api';
@@ -237,7 +237,7 @@ export function QueryBatchNode(props: {
   try {
     batchContext = _useGenericQueryBatcher();
   } catch (_) {
-    return <Fragment>{children({})}</Fragment>;
+    return children({});
   }
 
   function batchRequest(

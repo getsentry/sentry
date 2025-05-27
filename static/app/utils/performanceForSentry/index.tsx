@@ -1,5 +1,5 @@
 import type {ProfilerOnRenderCallback, ReactNode} from 'react';
-import {Fragment, Profiler, useEffect, useRef} from 'react';
+import {Profiler, useEffect, useRef} from 'react';
 import type {MeasurementUnit, Span, TransactionEvent} from '@sentry/core';
 import {browserPerformanceTimeOrigin, timestampInSeconds} from '@sentry/core';
 import * as Sentry from '@sentry/react';
@@ -229,12 +229,12 @@ export function VisuallyCompleteWithData({
   }, [_hasData, disabled, id]);
 
   if (disabled) {
-    return <Fragment>{children}</Fragment>;
+    return children;
   }
 
   return (
     <Profiler id={id} onRender={onRenderCallback}>
-      <Fragment>{children}</Fragment>
+      {children}
     </Profiler>
   );
 }

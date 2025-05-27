@@ -26,7 +26,7 @@ import {SIDEBAR_NAVIGATION_SOURCE} from './utils';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+  defaultComponent: ({children}) => children,
 });
 
 const tooltipDisabledProps = {

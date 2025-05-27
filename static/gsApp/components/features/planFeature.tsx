@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import type {Organization} from 'sentry/types/organization';
 import {descopeFeatureName} from 'sentry/utils';
 
@@ -115,7 +113,7 @@ function PlanFeature({subscription, features, organization, children}: Props) {
       ? billingConfig.id
       : null;
 
-  return <Fragment>{children({plan: requiredPlan ?? null, tierChange})}</Fragment>;
+  return children({plan: requiredPlan ?? null, tierChange});
 }
 
 export default withSubscription(PlanFeature, {noLoader: true});

@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -128,7 +128,7 @@ export function CronsLandingPanel() {
 
   const OnboardingPanelHook = HookOrDefault({
     hookName: 'component:crons-onboarding-panel',
-    defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+    defaultComponent: ({children}) => children,
   });
 
   useEffect(() => {

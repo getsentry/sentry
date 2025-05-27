@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import Confirm from 'sentry/components/confirm';
 
 type ConfirmProps = React.ComponentProps<typeof Confirm>;
@@ -16,5 +14,5 @@ export default function ConfirmableAction({shouldConfirm, children, ...props}: P
     return <Confirm {...props}>{children as ConfirmProps['children']}</Confirm>;
   }
 
-  return <Fragment>{children as React.ReactNode}</Fragment>;
+  return children;
 }

@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -35,5 +33,5 @@ export function OnDemandThresholdChecker({
   const isOnDemandLimitReached =
     data === undefined ? undefined : data.totalOnDemandAlertSpecs >= data.maxAllowed;
 
-  return <Fragment>{children({isOnDemandLimitReached})}</Fragment>;
+  return children({isOnDemandLimitReached});
 }

@@ -22,14 +22,14 @@ type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof HighlightProps> &
 function HighlightComponent({className, children, disabled, text}: Props) {
   // There are instances when children is not string in breadcrumbs but not caught by TS
   if (!text || disabled || typeof children !== 'string') {
-    return <Fragment>{children}</Fragment>;
+    return children;
   }
 
   const highlightText = text.toLowerCase();
   const idx = children.toLowerCase().indexOf(highlightText);
 
   if (idx === -1) {
-    return <Fragment>{children}</Fragment>;
+    return children;
   }
 
   return (

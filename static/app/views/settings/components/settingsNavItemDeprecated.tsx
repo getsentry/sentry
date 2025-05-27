@@ -1,5 +1,4 @@
 import type {ReactElement} from 'react';
-import {Fragment} from 'react';
 import {NavLink as RouterNavLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -23,7 +22,7 @@ type Props = {
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+  defaultComponent: ({children}) => children,
 });
 
 function SettingsNavItemDeprecated({badge, label, index, id, to, ...props}: Props) {

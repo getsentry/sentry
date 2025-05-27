@@ -35,7 +35,7 @@ type Props = {
 
 const HookedCustomSymbolSources = HookOrDefault({
   hookName: 'component:disabled-custom-symbol-sources',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+  defaultComponent: ({children}) => children,
 });
 
 function DebugFileCustomRepository({

@@ -1,5 +1,4 @@
 import type {ReactElement} from 'react';
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -21,7 +20,7 @@ type Props = {
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+  defaultComponent: ({children}) => children,
 });
 
 function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement}) {

@@ -36,12 +36,12 @@ type Breakpoints = {
 
 const OnboardingCTAHook = HookOrDefault({
   hookName: 'component:replay-onboarding-cta',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+  defaultComponent: ({children}) => children,
 });
 
 const OnboardingAlertHook = HookOrDefault({
   hookName: 'component:replay-onboarding-alert',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+  defaultComponent: ({children}) => children,
 });
 
 export default function ReplayOnboardingPanel() {

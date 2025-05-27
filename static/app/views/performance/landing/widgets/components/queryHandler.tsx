@@ -23,7 +23,7 @@ export function QueryHandler<T extends WidgetDataConstraint>(
   const children = props.children ?? <Fragment />;
 
   if (!props.queries.length) {
-    return <Fragment>{children}</Fragment>;
+    return children;
   }
 
   return (

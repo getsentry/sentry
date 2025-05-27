@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import type {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotFound from 'sentry/components/errors/notFound';
@@ -24,7 +22,7 @@ function DashboardsV2Container(props: Props) {
   const {organization, children} = props;
 
   if (organization.features.includes('dashboards-edit')) {
-    return <Fragment>{children}</Fragment>;
+    return children;
   }
 
   return (

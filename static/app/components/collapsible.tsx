@@ -35,7 +35,7 @@ function Collapsible({
   const canCollapse = items.length > maxVisibleItems;
 
   if (!canCollapse) {
-    return <Fragment>{children}</Fragment>;
+    return children;
   }
 
   const visibleItems = isCollapsed ? items.slice(0, maxVisibleItems) : items;

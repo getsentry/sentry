@@ -37,7 +37,7 @@ function NoProjectMessage({
       : !!projects?.some(p => p.isMember && p.hasAccess);
 
   if (hasProjectAccess || !projectsLoaded) {
-    return <Fragment>{children}</Fragment>;
+    return children;
   }
 
   // If the organization has some projects, but the user doesn't have access to

@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {useTeams} from 'sentry/utils/useTeams';
 
 type RenderProps = ReturnType<typeof useTeams>;
@@ -16,7 +14,7 @@ type Props = Parameters<typeof useTeams>[0] & {
 function Teams({children, ...props}: Props) {
   const renderProps = useTeams(props);
 
-  return <Fragment>{children(renderProps)}</Fragment>;
+  return children(renderProps);
 }
 
 export default Teams;

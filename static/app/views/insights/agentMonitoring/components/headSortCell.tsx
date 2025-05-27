@@ -1,4 +1,4 @@
-import {Fragment, memo} from 'react';
+import {memo} from 'react';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -58,7 +58,7 @@ export const HeadSortCell = memo(function HeadCell({
             sortField === column.key ? (sortOrder === 'asc' ? 'desc' : 'asc') : 'desc',
         },
       })}
-      title={<Fragment>{children}</Fragment>}
+      title={children}
     />
   );
 });

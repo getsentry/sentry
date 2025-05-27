@@ -57,7 +57,7 @@ const TWO_FACTOR_REQUIRED = t(
 
 const DisabledMemberTooltip = HookOrDefault({
   hookName: 'component:disabled-member-tooltip',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+  defaultComponent: ({children}) => children,
 });
 
 function MemberStatus({

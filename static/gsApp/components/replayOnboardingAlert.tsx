@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {Fragment} from 'react';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
@@ -17,7 +16,7 @@ function ReplayOnboardingAlert({children, subscription}: Props) {
     return null;
   }
 
-  return <Fragment>{children}</Fragment>;
+  return children;
 }
 
 export default withSubscription(ReplayOnboardingAlert, {noLoader: true});
