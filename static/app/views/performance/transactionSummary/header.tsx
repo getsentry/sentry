@@ -38,6 +38,7 @@ import {
   getCurrentLandingDisplay,
   LandingDisplayField,
 } from 'sentry/views/performance/landing/utils';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
@@ -240,6 +241,8 @@ function TransactionHeader({
     </HasMeasurementsQuery>
   );
 
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+
   if (isInDomainView) {
     const headerProps = {
       headerTitle: (
@@ -271,6 +274,7 @@ function TransactionHeader({
           project: projectId,
         },
         view,
+        shouldUseOTelFriendlyUI,
       }),
       headerActions: (
         <Fragment>
