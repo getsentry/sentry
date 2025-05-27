@@ -3,8 +3,8 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -4,13 +4,14 @@ import threading
 import time
 from collections.abc import Callable
 
-import rapidjson
+import orjson
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import FilteredPayload, Message
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer import SpansBuffer
 from sentry.utils import metrics
@@ -51,7 +52,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.stopped = multiprocessing.Value("i", 0)
         self.redis_was_full = False
         self.current_drift = multiprocessing.Value("i", 0)
-        self.should_backpressure = multiprocessing.Value("i", 0)
+        self.backpressure_since = multiprocessing.Value("i", 0)
         self.produce_to_pipe = produce_to_pipe
 
         self._create_process()
@@ -73,7 +74,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 initializer,
                 self.stopped,
                 self.current_drift,
-                self.should_backpressure,
+                self.backpressure_since,
                 self.buffer,
                 self.max_flush_segments,
                 self.produce_to_pipe,
@@ -89,7 +90,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         initializer: Callable | None,
         stopped,
         current_drift,
-        should_backpressure,
+        backpressure_since,
         buffer: SpansBuffer,
         max_flush_segments: int,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
@@ -119,36 +120,31 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
             while not stopped.value:
                 now = int(time.time()) + current_drift.value
-                flushed_segments = buffer.flush_segments(max_segments=max_flush_segments, now=now)
+                flushed_segments = buffer.flush_segments(now=now, max_segments=max_flush_segments)
 
-                should_backpressure.value = len(flushed_segments) >= max_flush_segments * len(
-                    buffer.assigned_shards
-                )
+                if len(flushed_segments) >= max_flush_segments * len(buffer.assigned_shards):
+                    if backpressure_since.value == 0:
+                        backpressure_since.value = int(time.time())
+                else:
+                    backpressure_since.value = 0
 
                 if not flushed_segments:
                     time.sleep(1)
                     continue
 
-                for _, flushed_segment in flushed_segments.items():
-                    if not flushed_segment.spans:
-                        # This is a bug, most likely the input topic is not
-                        # partitioned by trace_id so multiple consumers are writing
-                        # over each other. The consequence is duplicated segments,
-                        # worst-case.
-                        metrics.incr("sentry.spans.buffer.empty_segments")
-                        continue
+                with metrics.timer("spans.buffer.flusher.produce"):
+                    for _, flushed_segment in flushed_segments.items():
+                        if not flushed_segment.spans:
+                            continue
 
-                    spans = [span.payload for span in flushed_segment.spans]
+                        spans = [span.payload for span in flushed_segment.spans]
+                        kafka_payload = KafkaPayload(None, orjson.dumps({"spans": spans}), [])
+                        metrics.timing("spans.buffer.segment_size_bytes", len(kafka_payload.value))
+                        produce(kafka_payload)
 
-                    kafka_payload = KafkaPayload(
-                        None, rapidjson.dumps({"spans": spans}).encode("utf8"), []
-                    )
-
-                    metrics.timing("spans.buffer.segment_size_bytes", len(kafka_payload.value))
-                    produce(kafka_payload)
-
-                for future in producer_futures:
-                    future.result()
+                with metrics.timer("spans.buffer.flusher.wait_produce"):
+                    for future in producer_futures:
+                        future.result()
 
                 producer_futures.clear()
 
@@ -187,12 +183,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # efforts, it is still always going to be less durable than Kafka.
         # Minimizing our Redis memory usage also makes COGS easier to reason
         # about.
-        #
-        # should_backpressure is true if there are many segments to flush, but
-        # the flusher can't get all of them out.
-        if self.should_backpressure.value:
-            metrics.incr("sentry.spans.buffer.flusher.backpressure")
-            raise MessageRejected()
+        if self.backpressure_since.value > 0:
+            if int(time.time()) - self.backpressure_since.value > options.get(
+                "standalone-spans.buffer.flusher.backpressure_seconds"
+            ):
+                metrics.incr("sentry.spans.buffer.flusher.backpressure")
+                raise MessageRejected()
 
         # We set the drift. The backpressure based on redis memory comes after.
         # If Redis is full for a long time, the drift will grow into a large
