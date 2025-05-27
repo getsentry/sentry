@@ -40,6 +40,31 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
+    def get_rich_text_link(emojis: list[str], text: str, link: str | None = None) -> SlackBlock:
+        elements: list[dict[str, Any]] = []
+        for emoji in emojis:
+            elements.append({"type": "emoji", "name": emoji})
+            elements.append({"type": "text", "text": " "})
+
+        url: dict[str, Any] = {}
+        if link:
+            url = {
+                "type": "link",
+                "url": link,
+                "text": text,
+                "style": {"bold": True},
+            }
+        else:
+            url = {"type": "text", "text": text}
+
+        elements.append(url)
+
+        return {
+            "type": "rich_text",
+            "elements": [{"type": "rich_text_section", "elements": elements}],
+        }
+
+    @staticmethod
     def get_markdown_quote_block(text: str, max_block_text_length: int) -> SlackBlock:
         if len(text) > max_block_text_length:
             text = text[: max_block_text_length - 3] + "..."
