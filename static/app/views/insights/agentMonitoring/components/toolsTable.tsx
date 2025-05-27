@@ -22,7 +22,10 @@ import {
   GridEditableContainer,
   LoadingOverlay,
 } from 'sentry/views/insights/agentMonitoring/components/common';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {
+  HeadSortCell,
+  useTableSortParams,
+} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {
   AI_TOOL_NAME_ATTRIBUTE,
@@ -45,10 +48,10 @@ const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'tool', name: t('Tool Name'), width: COL_WIDTH_UNDEFINED},
-  {key: 'requests', name: t('Requests'), width: 120},
-  {key: 'avg', name: t('Avg'), width: 100},
-  {key: 'p95', name: t('P95'), width: 100},
-  {key: 'errorRate', name: t('Error Rate'), width: 120},
+  {key: 'count()', name: t('Requests'), width: 120},
+  {key: 'avg(span.duration)', name: t('Avg'), width: 100},
+  {key: 'p95(span.duration)', name: t('P95'), width: 100},
+  {key: 'failure_rate()', name: t('Error Rate'), width: 120},
 ];
 
 export function ToolsTable() {
@@ -70,6 +73,8 @@ export function ToolsTable() {
     );
   };
 
+  const {sortField, sortOrder} = useTableSortParams();
+
   const toolsRequest = useEAPSpans(
     {
       fields: [
@@ -79,7 +84,7 @@ export function ToolsTable() {
         'p95(span.duration)',
         'failure_rate()',
       ],
-      sorts: [{field: 'count()', kind: 'desc'}],
+      sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
       limit: 10,
       cursor:
@@ -169,13 +174,13 @@ const BodyCell = memo(function BodyCell({
   switch (column.key) {
     case 'tool':
       return <CellLink to={exploreUrl}>{dataRow.tool}</CellLink>;
-    case 'requests':
+    case 'count()':
       return dataRow.requests;
-    case 'avg':
+    case 'avg(span.duration)':
       return getDuration(dataRow.avg / 1000, 2, true);
-    case 'p95':
+    case 'p95(span.duration)':
       return getDuration(dataRow.p95 / 1000, 2, true);
-    case 'errorRate':
+    case 'failure_rate()':
       return formatPercentage(dataRow.errorRate ?? 0);
     default:
       return null;
