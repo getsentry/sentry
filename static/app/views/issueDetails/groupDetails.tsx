@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
+import {TabPanels, Tabs} from 'sentry/components/core/tabs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';
@@ -11,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {featureFlagDrawerPlatforms} from 'sentry/data/platformCategories';
