@@ -94,22 +94,24 @@ export default function ActionNodeList({
             onDeleteRow(action.id);
           }}
         >
-          <ActionNodeContext.Provider
-            value={{
-              action,
-              actionId: `${group}.action.${action.id}`,
-              onUpdate: newAction => updateAction(action.id, newAction),
-              handler: (() => {
-                const handler = actionHandlerMap.get(action.id);
-                if (!handler) {
-                  throw new Error(`${action.type} action handler not found`);
-                }
-                return handler;
-              })(),
-            }}
-          >
-            <Node />
-          </ActionNodeContext.Provider>
+          {(() => {
+            const handler = actionHandlerMap[action.id];
+            if (!handler) {
+              return null;
+            }
+            return (
+              <ActionNodeContext.Provider
+                value={{
+                  action,
+                  actionId: `${group}.action.${action.id}`,
+                  onUpdate: newAction => updateAction(action.id, newAction),
+                  handler,
+                }}
+              >
+                <Node />
+              </ActionNodeContext.Provider>
+            );
+          })()}
         </AutomationBuilderRow>
       ))}
       <StyledSelectControl
