@@ -382,12 +382,9 @@ describe('GroupActions', function () {
 
     render(<GroupActionsWrapper />, {organization});
 
-    // Wait for initial group data to load
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(groupFetchApi).toHaveBeenCalledTimes(1);
     });
-
-    expect(groupFetchApi).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
