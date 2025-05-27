@@ -18,7 +18,7 @@ import {useParams} from 'sentry/utils/useParams';
 
 import {assignTempId} from './layoutUtils';
 import type {DashboardDetails, DashboardListItem} from './types';
-import {hasSavedPageFilters} from './utils';
+import {getCurrentPageFilters, hasSavedPageFilters} from './utils';
 
 type OrgDashboardsChildrenProps = {
   dashboard: DashboardDetails | null;
@@ -93,11 +93,15 @@ function OrgDashboards(props: Props) {
   useEffect(() => {
     // Only redirect if there are saved filters and none of the filters
     // appear in the query params
+
+    // Get current query params from URL
+    const currentDashboardDetails = getCurrentPageFilters(location);
     if (
       !selectedDashboard ||
       !hasSavedPageFilters(selectedDashboard) ||
       // Apply redirect once for each dashboard id
-      dashboardRedirectRef.current === selectedDashboard.id
+      dashboardRedirectRef.current === selectedDashboard.id ||
+      hasSavedPageFilters(currentDashboardDetails)
     ) {
       return;
     }
