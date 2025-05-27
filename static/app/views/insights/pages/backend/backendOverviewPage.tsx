@@ -301,6 +301,7 @@ const StackedWidgetWrapper = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   height: 100%;
+  min-height: 502px;
 `;
 
 const TripleRowWidgetWrapper = styled('div')`
