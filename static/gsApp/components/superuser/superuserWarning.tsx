@@ -1,4 +1,5 @@
 import {Fragment, useEffect} from 'react';
+import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
 import {Badge} from 'sentry/components/core/badge';
@@ -15,7 +16,7 @@ const POLICY_URL =
 const SUPERUSER_MESSAGE = 'You are in superuser mode.';
 const WARNING_MESSAGE = (
   <Fragment>
-    Please be familiar with the{' '}
+    Please refer to Sentry's{' '}
     <a href={POLICY_URL} target="_none">
       rules for handling customer data
     </a>
@@ -44,7 +45,7 @@ function ExitSuperuserButton() {
         top: space(0.5),
         bottom: space(0.75),
       }}
-      size="xs"
+      size="sm"
       priority="primary"
       onClick={() => {
         handleExitSuperuser(api);
@@ -85,22 +86,40 @@ function SuperuserWarning({organization, className}: Props) {
   }
 
   return (
-    <Badge type="warning" className={className}>
+    <StyledBadge type="warning" className={className}>
       <Tooltip
         isHoverable
         title={
-          <Fragment>
+          <TooltipContent>
+            <Content>{WARNING_MESSAGE}</Content>
             <ExitSuperuserButton />
-            <br />
-            <br />
-            {WARNING_MESSAGE}
-          </Fragment>
+          </TooltipContent>
         }
       >
         Superuser
       </Tooltip>
-    </Badge>
+    </StyledBadge>
   );
 }
+
+const StyledBadge = styled(Badge)`
+  color: ${p => (p.theme.isChonk ? p.theme.white : undefined)};
+  background: ${p =>
+    p.theme.isChonk ? (p.theme as any).colors.chonk.red400 : undefined};
+`;
+
+const TooltipContent = styled('div')`
+  padding: ${space(0.5)} ${space(0.25)};
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: column;
+  gap: ${space(1)};
+  text-align: left;
+`;
+
+const Content = styled('p')`
+  margin: 0;
+`;
 
 export default SuperuserWarning;

@@ -4,6 +4,8 @@ import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 interface Props {
   children: React.ReactNode;
@@ -12,11 +14,12 @@ interface Props {
 
 export default function FlagDetailsLink({flag, children}: Props) {
   const location = useLocation();
+  const {baseUrl} = useGroupDetailsRoute();
 
   return (
     <StyledLink
       to={{
-        pathname: `${location.pathname}${flag.key}/`,
+        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${flag.key}/`,
         query: {
           ...location.query,
           tab: DrawerTab.FEATURE_FLAGS,

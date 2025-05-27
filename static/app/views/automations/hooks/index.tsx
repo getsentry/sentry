@@ -2,7 +2,7 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export interface UseAutomationsQueryOptions {
+interface UseAutomationsQueryOptions {
   query?: string;
   sort?: string;
 }

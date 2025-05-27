@@ -1,5 +1,6 @@
 import type {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {useDetectorQueriesByIds} from 'sentry/views/detectors/hooks';
 
 export function useAutomationActions(automation: Automation): ActionType[] {
   return [
@@ -11,4 +12,12 @@ export function useAutomationActions(automation: Automation): ActionType[] {
         .filter(x => x)
     ),
   ] as ActionType[];
+}
+
+export const NEW_AUTOMATION_CONNECTED_IDS_KEY = 'new-automation-connected-ids';
+export function useAutomationProjectIds(automation: Automation): string[] {
+  const queries = useDetectorQueriesByIds(automation.detectorIds);
+  return [
+    ...new Set(queries.map(query => query.data?.projectId).filter(x => x)),
+  ] as string[];
 }

@@ -70,7 +70,7 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], {label: 'A'})]);
 
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
   });
@@ -93,7 +93,7 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], {label: 'A'})]);
 
     // try changing the aggregate
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
@@ -103,12 +103,75 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
 
-    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], {label: 'A'})]);
 
     await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
     await userEvent.click(within(section).getByRole('option', {name: 'count'}));
 
-    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], {label: 'A'})]);
+  });
+
+  it('disables changing visualize fields for epm', async function () {
+    let visualizes: any;
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], {label: 'A'})]);
+
+    // change aggregate to epm
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
+
+    expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
+  });
+
+  it('changes to epm() when using epm', async function () {
+    let visualizes: any;
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], {label: 'A'})]);
+
+    // try changing the aggregate
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+    // try changing the field
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], {label: 'A'})]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
+
+    expect(visualizes).toEqual([new Visualize(['epm()'], {label: 'A'})]);
   });
 
   it('defaults count_unique argument to span.op', async function () {
@@ -129,13 +192,13 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], {label: 'A'})]);
 
     // try changing the aggregate
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
 
-    expect(visualizes).toEqual([new Visualize(['count_unique(span.op)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['count_unique(span.op)'], {label: 'A'})]);
 
     // try changing the aggregate + field
     await userEvent.click(within(section).getByRole('button', {name: 'count_unique'}));
@@ -145,13 +208,13 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
 
-    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], {label: 'A'})]);
     //
     // try changing the aggregate back to count_unique
     await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
     await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
 
-    expect(visualizes).toEqual([new Visualize(['count_unique(span.op)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['count_unique(span.op)'], {label: 'A'})]);
   });
 
   it('allows changing visualizes', async function () {
@@ -174,7 +237,7 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], {label: 'A'})]);
 
     expect(fields).toEqual([
       'id',
@@ -188,12 +251,12 @@ describe('ExploreToolbar', function () {
     // try changing the aggregate
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-    expect(visualizes).toEqual([new Visualize(['avg(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.duration)'], {label: 'A'})]);
 
     // try changing the field
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], {label: 'A'})]);
 
     expect(fields).toEqual([
       'id',
@@ -205,134 +268,19 @@ describe('ExploreToolbar', function () {
       'span.self_time',
     ]);
 
-    // try adding an overlay
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
-    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'avg(span.duration)'], 'A'),
-    ]);
-
     // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'avg(span.duration)'], 'A'),
-      new Visualize(['count(span.duration)'], 'B'),
-    ]);
-
-    // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.duration)'], 'A'),
-      new Visualize(['count(span.duration)'], 'B'),
+      new Visualize(['avg(span.self_time)'], {label: 'A'}),
+      new Visualize(['count(span.duration)'], {label: 'B'}),
     ]);
 
     // delete second chart
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
-    expect(visualizes).toEqual([new Visualize(['avg(span.duration)'], 'A')]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], {label: 'A'})]);
 
     // only one left so we hide the delete button
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
-  });
-
-  it('allows changing visualizes equations', async function () {
-    let fields!: string[];
-    let visualizes: any;
-    function Component() {
-      fields = useExploreFields();
-      visualizes = useExploreVisualizes();
-      return <ExploreToolbar extras={['equations']} />;
-    }
-
-    render(
-      <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <Component />
-        </SpanTagsProvider>
-      </PageParamsProvider>
-    );
-
-    const section = screen.getByTestId('section-visualizes');
-
-    // this is the default
-    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
-
-    expect(fields).toEqual([
-      'id',
-      'span.op',
-      'span.description',
-      'span.duration',
-      'transaction',
-      'timestamp',
-    ]); // default
-
-    let input: HTMLElement;
-
-    // try changing the field
-    input = within(section).getByRole('combobox', {
-      name: 'Select an attribute',
-    });
-    await userEvent.click(input);
-    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    await userEvent.keyboard('{Escape}');
-
-    expect(fields).toEqual([
-      'id',
-      'span.op',
-      'span.description',
-      'span.duration',
-      'transaction',
-      'timestamp',
-      'span.self_time',
-    ]);
-
-    await userEvent.click(input);
-    await userEvent.keyboard('{Backspace}');
-
-    await userEvent.click(within(section).getByRole('option', {name: 'avg(\u2026)'}));
-    await userEvent.click(within(section).getByText('span.duration'));
-    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    await userEvent.keyboard('{Escape}');
-    await userEvent.click(within(section).getByText('Visualize'));
-
-    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
-
-    // try adding an overlay
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
-    input = within(section)
-      .getAllByRole('combobox', {
-        name: 'Select an attribute',
-      })
-      .at(-1)!;
-    await userEvent.click(input);
-    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    await userEvent.keyboard('{Escape}');
-    await userEvent.click(within(section).getByText('Visualize'));
-
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'count(span.self_time)'], 'A'),
-    ]);
-
-    // try adding a new chart
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
-    expect(visualizes).toEqual([
-      new Visualize(['avg(span.self_time)', 'count(span.self_time)'], 'A'),
-      new Visualize(['count(span.duration)'], 'B'),
-    ]);
-
-    // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
-    expect(visualizes).toEqual([
-      new Visualize(['count(span.self_time)'], 'A'),
-      new Visualize(['count(span.duration)'], 'B'),
-    ]);
-
-    // delete second chart
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
-    expect(visualizes).toEqual([new Visualize(['count(span.self_time)'], 'A')]);
-
-    // only one left so cant be deleted
-    expect(within(section).getByLabelText('Remove Overlay')).toBeDisabled();
   });
 
   it('allows changing group bys', async function () {

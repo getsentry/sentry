@@ -183,8 +183,8 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         )
         OrganizationMemberTeam.objects.get(organizationmember_id=org_member.id, team_id=team.id)
 
-    def test_slugs(self):
-        valid_slugs = ["santry", "downtown-canada", "1234-foo", "CaNaDa"]
+    def test_valid_slugs(self):
+        valid_slugs = ["santry", "downtown-canada", "1234-foo"]
         for input_slug in valid_slugs:
             self.organization.refresh_from_db()
             response = self.get_success_response(name=input_slug, slug=input_slug)
@@ -201,6 +201,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             self.get_error_response(name="name", slug="-canada", status_code=400)
             self.get_error_response(name="name", slug="----", status_code=400)
             self.get_error_response(name="name", slug="1234", status_code=400)
+            self.get_error_response(name="name", slug="I-contain-UPPERCASE", status_code=400)
 
     def test_without_slug(self):
         response = self.get_success_response(name="hello world")

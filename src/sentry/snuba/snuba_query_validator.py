@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from snuba_sdk import Column, Condition, Entity, Limit, Op
 
@@ -116,35 +117,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 )
         return query
 
-    def validate_aggregate(self, value: str):
-        allow_mri = features.has(
-            "organizations:custom-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ) or features.has(
-            "organizations:insights-alerts",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        )
-        allow_eap = features.has(
-            "organizations:alerts-eap",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        )
-        try:
-            if not check_aggregate_column_support(
-                value,
-                allow_mri=allow_mri,
-                allow_eap=allow_eap,
-            ):
-                raise serializers.ValidationError(
-                    "Invalid Metric: We do not currently support this field."
-                )
-        except InvalidSearchQuery as e:
-            raise serializers.ValidationError(f"Invalid Metric: {e}")
-
-        return translate_aggregate_field(value, allow_mri=allow_mri)
-
     def validate_event_types(self, value: Sequence[str]) -> list[SnubaQueryEventType.EventType]:
         try:
             return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in value]
@@ -156,6 +128,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     def validate(self, data):
         data = super().validate(data)
+        self._validate_aggregate(data)
         self._validate_query(data)
 
         query_type = data["query_type"]
@@ -172,6 +145,35 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         return data
 
+    def _validate_aggregate(self, data):
+        dataset = data.setdefault("dataset", Dataset.Events)
+        aggregate = data.get("aggregate")
+        allow_mri = features.has(
+            "organizations:custom-metrics",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ) or features.has(
+            "organizations:insights-alerts",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        )
+        allow_eap = dataset == Dataset.EventsAnalyticsPlatform
+        try:
+            if not check_aggregate_column_support(
+                aggregate,
+                allow_mri=allow_mri,
+                allow_eap=allow_eap,
+            ):
+                raise serializers.ValidationError(
+                    {"aggregate": _("Invalid Metric: We do not currently support this field.")}
+                )
+        except InvalidSearchQuery as e:
+            raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
+
+        data["aggregate"] = translate_aggregate_field(
+            aggregate, allow_mri=allow_mri, allow_eap=allow_eap
+        )
+
     def _validate_query(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
 
@@ -184,7 +186,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             self.context["organization"],
             actor=self.context.get("user", None),
         ):
-            column = get_column_from_aggregate(data["aggregate"], allow_mri=True)
+            column = get_column_from_aggregate(
+                data["aggregate"],
+                allow_mri=True,
+                allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
+            )
             if is_mri(column) and dataset != Dataset.PerformanceMetrics:
                 raise serializers.ValidationError(
                     "You can use an MRI only on alerts on performance metrics"

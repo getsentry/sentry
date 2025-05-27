@@ -214,7 +214,7 @@ def send_beacon() -> None:
     queue="update",
     taskworker_config=TaskworkerConfig(namespace=selfhosted_tasks),
 )
-def send_beacon_metric(metrics: list[dict[str, Any]], **kwargs: object) -> None:
+def send_beacon_metric(metrics: list[dict[str, Any]], **kwargs: Any) -> None:
     install_id = get_install_id()
 
     if should_skip_beacon(install_id):

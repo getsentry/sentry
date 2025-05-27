@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Count from 'sentry/components/count';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -197,7 +197,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             )
           }
         />
-        <LargeInThisIssueText aria-hidden>{t('in this issue')}</LargeInThisIssueText>
+        <LargeInThisIssueText aria-hidden>
+          {t('matching your filters')}
+        </LargeInThisIssueText>
       </LargeDropdownButtonWrapper>
       <TourElement<IssueDetailsTour>
         tourContext={IssueDetailsTourContext}

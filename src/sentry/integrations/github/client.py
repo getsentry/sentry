@@ -86,12 +86,31 @@ class GithubSetupApiClient(IntegrationProxyClient):
 
     def get_installation_info(self, installation_id: int | str) -> dict[str, Any]:
         """
-        https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
+        Authentication: JWT
+        Docs: https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
         """
         return self.get(f"/app/installations/{installation_id}")
 
     def get_user_info(self) -> dict[str, Any]:
+        """
+        Authentication: Access Token
+        Docs: https://docs.github.com/en/rest/users/users?apiVersion=2022-11-28#get-the-authenticated-user
+        """
         return self.get("/user")
+
+    def get_user_info_installations(self):
+        """
+        Authentication: Access Token
+        Docs: https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
+        """
+        return self.get("/user/installations")
+
+    def get_organization_memberships_for_user(self):
+        """
+        Authentication: Access Token
+        Docs: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#get-an-organization-membership-for-the-authenticated-user
+        """
+        return self.get("/user/memberships/orgs")
 
 
 class GithubProxyClient(IntegrationProxyClient):
@@ -386,13 +405,12 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get_with_pagination("/installation/repositories", response_key="repositories")
 
-    # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
         Find repositories matching a query.
-        NOTE: All search APIs share a rate limit of 30 requests/minute
+        https://docs.github.com/en/rest/search/search?apiVersion=2022-11-28#search-repositories
 
-        https://docs.github.com/en/rest/search#search-repositories
+        NOTE: All search APIs (except code search) share a rate limit of 30 requests/minute
         """
         return self.get("/search/repositories", params={"q": query})
 
@@ -442,8 +460,9 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         """
-        https://docs.github.com/en/rest/search?#search-issues-and-pull-requests
-        NOTE: All search APIs share a rate limit of 30 requests/minute
+        https://docs.github.com/en/rest/search?apiVersion=2022-11-28#search-issues-and-pull-requests
+
+        NOTE: All search APIs (except code search) share a rate limit of 30 requests/minute
         """
         return self.get("/search/issues", params={"q": query})
 
@@ -498,12 +517,12 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get(f"/users/{gh_username}")
 
-    def get_labels(self, repo: str) -> Sequence[Any]:
+    def get_labels(self, owner: str, repo: str) -> list[Any]:
         """
-        Fetches up to the first 100 labels for a repository.
+        Fetches all labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
-        return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
+        return self.get_with_pagination(f"/repos/{owner}/{repo}/labels")
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})

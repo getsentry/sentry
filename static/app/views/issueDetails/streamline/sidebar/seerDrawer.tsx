@@ -7,11 +7,11 @@ import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumb
 import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
-import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
@@ -161,6 +161,11 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     return () => {};
   }, [location.query.scrollTo, scrollToSection]);
 
+  let lastTriggeredAt = autofixData?.last_triggered_at;
+  if (lastTriggeredAt && !lastTriggeredAt.endsWith('Z')) {
+    lastTriggeredAt = lastTriggeredAt + 'Z';
+  }
+
   return (
     <SeerDrawerContainer className="seer-drawer-container">
       <SeerDrawerHeader>
@@ -181,7 +186,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       </SeerDrawerHeader>
       <SeerDrawerNavigator>
         <Flex align="center" gap={space(1)}>
-          <Header>{t('Autofix')}</Header>
+          <Header>{t('Seer')}</Header>
           <FeatureBadge
             type="beta"
             tooltipProps={{
@@ -224,14 +229,14 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           />
         </Flex>
         {!aiConfig.needsGenAiAcknowledgement && (
-          <ButtonBarWrapper data-test-id="autofix-button-bar">
+          <ButtonBarWrapper data-test-id="seer-button-bar">
             <ButtonBar gap={1}>
               <Feature features={['organizations:autofix-seer-preferences']}>
                 <LinkButton
                   to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                   size="xs"
-                  title={t('Project Settings for Autofix')}
-                  aria-label={t('Project Settings for Autofix')}
+                  title={t('Project Settings for Seer')}
+                  aria-label={t('Project Settings for Seer')}
                   icon={<IconSettings />}
                 />
               </Feature>
@@ -243,7 +248,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                   title={
                     autofixData?.last_triggered_at
                       ? tct('Last run at [date]', {
-                          date: <DateTime date={autofixData.last_triggered_at} />,
+                          date: <DateTime date={lastTriggeredAt} />,
                         })
                       : null
                   }
@@ -257,9 +262,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         )}
       </SeerDrawerNavigator>
 
-      {!aiConfig.isAutofixSetupLoading &&
-        !aiConfig.needsGenAiAcknowledgement &&
-        autofixData && <AutofixProgressBar autofixData={autofixData} />}
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
@@ -303,7 +305,6 @@ export const useOpenSeerDrawer = ({
   group,
   project,
   event,
-  buttonRef,
 }: {
   event: Event | null;
   group: Group;
@@ -313,9 +314,14 @@ export const useOpenSeerDrawer = ({
   const {openDrawer} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
 
   const openSeerDrawer = useCallback(() => {
-    if (!event) {
+    if (
+      !event ||
+      !organization.features.includes('gen-ai-features') ||
+      organization.hideAiFeatures
+    ) {
       return;
     }
 
@@ -326,46 +332,8 @@ export const useOpenSeerDrawer = ({
         height: fit-content;
         max-height: 100%;
       `,
-      shouldCloseOnInteractOutside: element => {
-        const viewAllButton = buttonRef?.current;
-
-        // Check if the element is inside any autofix input element
-        const isInsideAutofixInput = () => {
-          const rethinkInputs = document.querySelectorAll(
-            '[data-autofix-input-type="rethink"]'
-          );
-          const agentCommentInputs = document.querySelectorAll(
-            '[data-autofix-input-type="agent-comment"]'
-          );
-
-          // Check if element is inside any rethink input
-          for (const input of rethinkInputs) {
-            if (input.contains(element)) {
-              return true;
-            }
-          }
-
-          // Check if element is inside any agent comment input
-          for (const input of agentCommentInputs) {
-            if (input.contains(element)) {
-              return true;
-            }
-          }
-
-          return false;
-        };
-
-        if (
-          viewAllButton?.contains(element) ||
-          document.getElementById('sentry-feedback')?.contains(element) ||
-          isInsideAutofixInput() ||
-          document.getElementById('autofix-output-stream')?.contains(element) ||
-          document.getElementById('autofix-write-access-modal')?.contains(element) ||
-          element.closest('[data-overlay="true"]')
-        ) {
-          return false;
-        }
-        return true;
+      shouldCloseOnInteractOutside: () => {
+        return false;
       },
       onClose: () => {
         navigate({
@@ -377,7 +345,7 @@ export const useOpenSeerDrawer = ({
         });
       },
     });
-  }, [openDrawer, buttonRef, event, group, project, location, navigate]);
+  }, [openDrawer, event, group, project, location, navigate, organization]);
 
   return {openSeerDrawer};
 };
@@ -387,7 +355,7 @@ const StyledCard = styled('div')`
   overflow: visible;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(3)};
+  padding: ${space(2)} ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 

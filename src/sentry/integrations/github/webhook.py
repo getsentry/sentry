@@ -46,7 +46,6 @@ from sentry.plugins.providers.integration_repository import (
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
@@ -459,7 +458,6 @@ class PushEventWebhook(GitHubWebhook):
                         )
 
             except IntegrityError:
-                incr_rollback_metrics(name="github_push_event_handle")
                 pass
 
         languages.discard(None)

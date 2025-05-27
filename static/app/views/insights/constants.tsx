@@ -68,6 +68,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
+  [SpanFunction.FAILURE_RATE_IF]: {
+    desc: t('Failed event percentage based on span.status'),
+    defaultOutputType: 'percentage',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
 };
 
 const RELEASE_FILTERS: FilterKeySection = {

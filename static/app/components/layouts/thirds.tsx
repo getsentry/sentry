@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tabs} from 'sentry/components/tabs';
+import {Tabs} from 'sentry/components/core/tabs';
 import {space} from 'sentry/styles/space';
 
 /**
@@ -60,15 +60,8 @@ export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
-  margin-bottom: ${space(1)};
   overflow: hidden;
   max-width: 100%;
-
-  ${p =>
-    p.unified &&
-    css`
-      margin-bottom: 0;
-    `}
 `;
 
 /**

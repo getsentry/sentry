@@ -43,6 +43,8 @@ export const typeAwareLintRules = {
   rules: {
     '@typescript-eslint/await-thenable': 'error',
     '@typescript-eslint/no-array-delete': 'error',
+    '@typescript-eslint/no-base-to-string': 'error',
+    '@typescript-eslint/no-for-in-array': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
     '@typescript-eslint/prefer-optional-chain': 'error',
     '@typescript-eslint/consistent-type-exports': 'error',
@@ -167,7 +169,6 @@ export default typescript.config([
         // https://typescript-eslint.io/packages/parser/#projectservice
         // `projectService` is recommended, but slower, with our current tsconfig files.
         projectService: true,
-        // @ts-expect-error TS1343: The import.meta meta-property is only allowed when the --module option is es2020, es2022, esnext, system, node16, or nodenext
         tsconfigRootDir: import.meta.dirname,
       },
     },

@@ -1,9 +1,10 @@
-import logging
 from time import time
-from typing import Any
 
+from sentry import nodestore
 from sentry.api.serializers import serialize
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.http import safe_urlopen
+from sentry.models.group import Group
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -12,8 +13,6 @@ from sentry.taskworker.namespaces import sentryapp_tasks
 from sentry.taskworker.retry import Retry
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
-
-logger = logging.getLogger(__name__)
 
 
 def get_payload_v0(event):
@@ -48,23 +47,26 @@ def get_payload_v0(event):
 )
 @retry
 def process_service_hook(
-    servicehook_id: int,
-    event: Any,
-    payload: str | None = None,
-    project_id: int | None = None,
-    **kwargs,
-):
+    servicehook_id: int, project_id: int, group_id: int, event_id: str
+) -> None:
     try:
         servicehook = ServiceHook.objects.get(id=servicehook_id)
     except ServiceHook.DoesNotExist:
         return
 
-    project_id = project_id or event.project_id
-    if not payload:
-        if servicehook.version == 0:
-            payload = json.dumps(get_payload_v0(event))
-        else:
-            raise NotImplementedError
+    node_id = Event.generate_node_id(project_id, event_id)
+    group = Group.objects.get_from_cache(id=group_id)
+    nodedata = nodestore.backend.get(node_id)
+    event = GroupEvent(
+        project_id=project_id,
+        event_id=event_id,
+        group=group,
+        data=nodedata,
+    )
+    if servicehook.version == 0:
+        payload = json.dumps(get_payload_v0(event))
+    else:
+        raise NotImplementedError
 
     from sentry import tsdb
 
@@ -78,4 +80,3 @@ def process_service_hook(
     }
 
     safe_urlopen(url=servicehook.url, data=payload, headers=headers, timeout=5, verify_ssl=False)
-    logger.info("service_hook.success", extra={"project_id": project_id})

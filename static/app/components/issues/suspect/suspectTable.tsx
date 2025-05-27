@@ -3,20 +3,23 @@ import styled from '@emotion/styled';
 import Color from 'color';
 
 import {Flex} from 'sentry/components/container/flex';
-import {Alert} from 'sentry/components/core/alert';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
 import useSuspectFlagScoreThreshold from 'sentry/components/issues/suspect/useSuspectFlagScoreThreshold';
+import Link from 'sentry/components/links/link';
 import {IconSentry} from 'sentry/icons/iconSentry';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
+import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 interface Props {
   debugSuspectScores: boolean;
@@ -26,7 +29,9 @@ interface Props {
 
 export default function SuspectTable({debugSuspectScores, environments, group}: Props) {
   const organization = useOrganization();
+  const location = useLocation();
   const [threshold, setThreshold] = useSuspectFlagScoreThreshold();
+  const {baseUrl} = useGroupDetailsRoute();
 
   const {displayFlags, isPending} = useGroupFlagDrawerData({
     environments,
@@ -57,27 +62,32 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
     }
   }, [isPending, organization, displayFlags.length, susFlags.length, threshold]);
 
+  if (displayFlags.length === 0) {
+    // If there are no display flags then we don't need this section at all.
+    return null;
+  }
+
   if (isPending) {
     return (
-      <Alert type="muted">
+      <GradientBox>
         <TagHeader>
-          {t('Suspect')}
+          {t('Suspect Flags')}
           {debugThresholdInput}
         </TagHeader>
         {t('Loading...')}
-      </Alert>
+      </GradientBox>
     );
   }
 
   if (!susFlags.length) {
     return (
-      <Alert type="muted">
+      <GradientBox>
         <TagHeader>
-          {t('Suspect')}
+          {t('Suspect Flags')}
           {debugThresholdInput}
         </TagHeader>
         {t('Nothing suspicious')}
-      </Alert>
+      </GradientBox>
     );
   }
 
@@ -95,15 +105,24 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
           return (
             <TagValueRow key={flag.key}>
               {/* TODO: why is flag.name transformed to TitleCase? */}
-              <FlagDetailsLink flag={flag}>
-                <Tooltip
-                  title={flag.key}
-                  showOnlyOnOverflow
-                  data-underline-on-hover="true"
+              <Tooltip
+                skipWrapper
+                title={flag.key}
+                showOnlyOnOverflow
+                data-underline-on-hover="true"
+              >
+                <StyledLink
+                  to={{
+                    pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${flag.key}/`,
+                    query: {
+                      ...location.query,
+                      tab: DrawerTab.FEATURE_FLAGS,
+                    },
+                  }}
                 >
                   {flag.key}
-                </Tooltip>
-              </FlagDetailsLink>
+                </StyledLink>
+              </Tooltip>
               <RightAligned>
                 {toRoundedPercent((topValue?.count ?? 0) / flag.totalValues)}
               </RightAligned>
@@ -128,6 +147,9 @@ const GradientBox = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
   padding: ${space(1)};
+  height: max-content;
+  display: flex;
+  flex-direction: column;
 `;
 
 const TagHeader = styled('h4')`
@@ -140,11 +162,10 @@ const TagHeader = styled('h4')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const progressBarWidth = '45px'; // Prevent percentages from overflowing
 const TagValueGrid = styled('ul')`
   display: grid;
-  grid-template-columns: 4fr ${progressBarWidth} auto auto max-content auto;
-
+  grid-template-columns: auto max-content max-content;
+  gap: ${space(0.25)} ${space(0.5)};
   margin: 0;
   padding: 0;
   list-style: none;
@@ -152,9 +173,9 @@ const TagValueGrid = styled('ul')`
 
 const TagValueRow = styled('li')`
   display: grid;
-  grid-template-columns: subgrid;
   grid-column: 1 / -1;
-  grid-column-gap: ${space(1)};
+  grid-template-columns: subgrid;
+
   align-items: center;
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
@@ -163,6 +184,15 @@ const TagValueRow = styled('li')`
 
   &:nth-child(2n) {
     background-color: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+  }
+`;
+
+const StyledLink = styled(Link)`
+  ${p => p.theme.overflowEllipsis};
+  width: auto;
+
+  &:hover [data-underline-on-hover='true'] {
+    text-decoration: underline;
   }
 `;
 

@@ -422,7 +422,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         result_qs = reduce(
             lambda q1, q2: q1.union(q2),
             [
-                WorkflowFireHistory.objects.filter(workflow=item, has_fired_actions=True)
+                WorkflowFireHistory.objects.filter(workflow=item)
                 .order_by("-date_added")
                 .values("workflow_id", "date_added")[:1]
                 for item in item_list

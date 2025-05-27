@@ -6,6 +6,7 @@ from sentry.workflow_engine.endpoints.organization_workflow_group_history import
 
 from .organization_available_action_index import OrganizationAvailableActionIndexEndpoint
 from .organization_data_condition_index import OrganizationDataConditionIndexEndpoint
+from .organization_detector_details import OrganizationDetectorDetailsEndpoint
 from .organization_detector_index import OrganizationDetectorIndexEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
 from .organization_detector_workflow_details import OrganizationDetectorWorkflowDetailsEndpoint
@@ -13,8 +14,6 @@ from .organization_detector_workflow_index import OrganizationDetectorWorkflowIn
 from .organization_test_fire_action import OrganizationTestFireActionsEndpoint
 from .organization_workflow_details import OrganizationWorkflowDetailsEndpoint
 from .organization_workflow_index import OrganizationWorkflowIndexEndpoint
-from .project_detector_details import ProjectDetectorDetailsEndpoint
-from .project_detector_index import ProjectDetectorIndexEndpoint
 
 # TODO @saponifi3d - Add the remaining API endpoints
 
@@ -27,20 +26,12 @@ from .project_detector_index import ProjectDetectorIndexEndpoint
 # - PUT /workflow/:id
 # - DELETE /workflow/:id
 
-project_urlpatterns = [
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/detectors/$",
-        ProjectDetectorIndexEndpoint.as_view(),
-        name="sentry-api-0-project-detector-index",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/detectors/(?P<detector_id>[^\/]+)/$",
-        ProjectDetectorDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-detector-details",
-    ),
-]
-
 organization_urlpatterns = [
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/detectors/(?P<detector_id>\d+)/$",
+        OrganizationDetectorDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-detector-details",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/workflows/$",
         OrganizationWorkflowIndexEndpoint.as_view(),
@@ -52,12 +43,12 @@ organization_urlpatterns = [
         name="sentry-api-0-organization-detector-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/workflows/(?P<workflow_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/workflows/(?P<workflow_id>\d+)/$",
         OrganizationWorkflowDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/workflows/(?P<workflow_id>[^\/]+)/group-history$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/workflows/(?P<workflow_id>\d+)/group-history$",
         OrganizationWorkflowGroupHistoryEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-group-history",
     ),
@@ -77,7 +68,7 @@ organization_urlpatterns = [
         name="sentry-api-0-organization-detector-workflow-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/detector-workflow/(?P<detector_workflow_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/detector-workflow/(?P<detector_workflow_id>\d+)/$",
         OrganizationDetectorWorkflowDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-detector-workflow-details",
     ),

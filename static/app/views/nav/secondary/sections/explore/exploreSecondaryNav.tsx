@@ -1,5 +1,9 @@
+import {Fragment} from 'react';
+
 import Feature from 'sentry/components/acl/feature';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
+import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -22,8 +26,11 @@ export function ExploreSecondaryNav() {
     perPage: MAX_STARRED_QUERIES_DISPLAYED,
   });
 
+  const ourlogsSeenKey = `sidebar-new-seen:ourlogs`;
+  const showOurlogsNew = !localStorage.getItem(ourlogsSeenKey);
+
   return (
-    <SecondaryNav>
+    <Fragment>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.EXPLORE].label}
       </SecondaryNav.Header>
@@ -39,7 +46,17 @@ export function ExploreSecondaryNav() {
             </SecondaryNav.Item>
           </Feature>
           <Feature features="ourlogs-enabled">
-            <SecondaryNav.Item to={`${baseUrl}/logs/`} analyticsItemName="explore_logs">
+            <SecondaryNav.Item
+              to={`${baseUrl}/logs/`}
+              analyticsItemName="explore_logs"
+              trailingItems={showOurlogsNew ? <FeatureBadge type="new" /> : null}
+              onMouseDown={() => {
+                localStorage.setItem(ourlogsSeenKey, 'true');
+              }}
+              onTouchStart={() => {
+                localStorage.setItem(ourlogsSeenKey, 'true');
+              }}
+            >
               {t('Logs')}
             </SecondaryNav.Item>
           </Feature>
@@ -75,7 +92,7 @@ export function ExploreSecondaryNav() {
             {t('Releases')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <Feature features={['performance-trace-explorer', 'performance-view']}>
+        <Feature features={['visibility-explore-view', 'performance-view']}>
           <SecondaryNav.Section id="explore-all-queries">
             <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
               {t('All Queries')}
@@ -91,6 +108,6 @@ export function ExploreSecondaryNav() {
           )}
         </Feature>
       </SecondaryNav.Body>
-    </SecondaryNav>
+    </Fragment>
   );
 }

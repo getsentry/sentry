@@ -7,21 +7,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {useLocation} from 'sentry/utils/useLocation';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import SummaryContent from 'sentry/views/performance/transactionSummary/transactionOverview/content';
-
-jest.mock('sentry/utils/useLocation');
-
-jest.mocked(useLocation).mockReturnValue({
-  action: 'POP',
-  hash: '',
-  key: 'abc123',
-  pathname: '/organizations/org-slug/performance/',
-  query: {},
-  search: '',
-  state: undefined,
-});
 
 function initialize(query: Record<string, string>, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
@@ -226,6 +213,12 @@ describe('Transaction Summary Content', function () {
       />,
       {
         organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/performance/',
+          location: {
+            pathname: '/organizations/org-slug/performance/',
+          },
+        },
       }
     );
 

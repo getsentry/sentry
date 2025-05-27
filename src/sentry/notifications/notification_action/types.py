@@ -356,6 +356,7 @@ class BaseMetricAlertHandler(ABC):
     ) -> None:
         raise NotImplementedError
 
+    @classmethod
     def invoke_legacy_registry(
         cls,
         job: WorkflowEventData,

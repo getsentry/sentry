@@ -6,8 +6,9 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import ClippedBox from 'sentry/components/clippedBox';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
@@ -230,7 +231,7 @@ export function AutofixChanges({
               <MarkdownAlert
                 text={
                   step.termination_reason ||
-                  t('Autofix had trouble applying its code changes.')
+                  t('Seer had trouble applying its code changes.')
                 }
               />
             </Alert.Container>
@@ -343,7 +344,7 @@ export function AutofixChanges({
                       : null
                   }
                   isAgentComment
-                  blockName={t('Autofix is uncertain of the code changes...')}
+                  blockName={t('Seer is uncertain of the code changes...')}
                 />
               )}
             </AnimatePresence>
@@ -388,7 +389,7 @@ const ChangesContainer = styled('div')`
 `;
 
 const Content = styled('div')`
-  padding: 0 ${space(1)} ${space(1)} ${space(1)};
+  padding: 0 0 ${space(1)};
 `;
 
 const Title = styled('div')`
@@ -440,9 +441,6 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-left: ${space(0.5)};
-  padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
   flex-wrap: wrap;
   gap: ${space(1)};
 `;

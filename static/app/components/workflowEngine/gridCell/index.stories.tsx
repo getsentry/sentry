@@ -21,7 +21,7 @@ import {
   UserCell,
   type UserCellProps,
 } from 'sentry/components/workflowEngine/gridCell/userCell';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 type ExampleAutomation = {
@@ -34,7 +34,7 @@ type ExampleAutomation = {
   type: TypeCellProps['type'];
 };
 
-export default storyBook('Grid Cell Components', story => {
+export default Storybook.story('Grid Cell Components', story => {
   const data: ExampleAutomation[] = [
     {
       title: {
@@ -50,7 +50,7 @@ export default storyBook('Grid Cell Components', story => {
       },
       openIssues: 3,
       creator: '1',
-      type: 'trace',
+      type: 'uptime',
     },
     {
       title: {
@@ -95,7 +95,7 @@ export default storyBook('Grid Cell Components', story => {
       },
       actions: [ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL],
       creator: 'sentry',
-      type: 'errors',
+      type: 'uptime',
       timeAgo: null,
       linkedItems: {
         ids: [],

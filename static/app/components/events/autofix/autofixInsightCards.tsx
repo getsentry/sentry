@@ -228,7 +228,7 @@ function AutofixInsightCard({
                             groupId={groupId}
                             runId={runId}
                             editable={false}
-                            isExpandable={false}
+                            integratedStyle
                           />
                         </DiffContainer>
                       )}
@@ -261,7 +261,6 @@ interface CollapsibleChainLinkProps {
   groupId: string;
   runId: string;
   stepIndex: number;
-  alignment?: 'start' | 'center';
   insightCount?: number;
   isCollapsed?: boolean;
   isEmpty?: boolean;
@@ -280,7 +279,6 @@ function CollapsibleChainLink({
   stepIndex,
   groupId,
   runId,
-  alignment = 'center',
 }: CollapsibleChainLinkProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newInsightText, setNewInsightText] = useState('');
@@ -304,11 +302,8 @@ function CollapsibleChainLink({
   };
 
   return (
-    <VerticalLineContainer isEmpty={isEmpty} alignment={alignment}>
-      <RethinkButtonContainer
-        className="rethink-button-container"
-        parentAlignment={alignment}
-      >
+    <VerticalLineContainer isEmpty={isEmpty}>
+      <RethinkButtonContainer className="rethink-button-container">
         {showCollapseControl && onToggleCollapse && (
           <CollapseButtonWrapper
             onClick={onToggleCollapse}
@@ -450,7 +445,6 @@ function AutofixInsightCards({
                 stepIndex={stepIndex}
                 groupId={groupId}
                 runId={runId}
-                alignment="start"
               />
             )}
             <AnimatePresence>
@@ -489,13 +483,23 @@ function AutofixInsightCards({
                 runId={runId}
                 insightCount={validInsightCount}
                 showAddControl
-                alignment="start"
               />
             )}
           </Fragment>
         ) : stepIndex === 0 && !hasStepBelow ? (
           <NoInsightsYet />
-        ) : null}
+        ) : (
+          hasStepBelow && (
+            <CollapsibleChainLink
+              isEmpty={false}
+              stepIndex={stepIndex}
+              groupId={groupId}
+              runId={runId}
+              insightCount={validInsightCount}
+              showAddControl
+            />
+          )
+        )}
       </CardsColumn>
     </InsightsGridContainer>
   );
@@ -533,7 +537,7 @@ function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}
       addSuccessMessage(t('Rethinking this...'));
     },
     onError: () => {
-      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
+      addErrorMessage(t('Something went wrong when sending Seer your message.'));
     },
   });
 }
@@ -543,7 +547,6 @@ const InsightCardRow = styled('div')<{expanded?: boolean; isUserMessage?: boolea
   justify-content: space-between;
   align-items: stretch;
   cursor: pointer;
-  background-color: ${p => (p.expanded ? p.theme.backgroundSecondary : 'transparent')};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -595,6 +598,8 @@ const InsightContainer = styled(motion.div)<{expanded?: boolean}>`
   overflow: hidden;
   margin-bottom: 0;
   background: ${p => p.theme.background};
+  border: 1px dashed ${p => p.theme.border};
+  border-color: ${p => (p.expanded ? p.theme.border : 'transparent')};
 
   box-shadow: ${p => (p.expanded ? p.theme.dropShadowMedium : 'none')};
 
@@ -620,7 +625,6 @@ const InsightContainer = styled(motion.div)<{expanded?: boolean}>`
 `;
 
 const VerticalLineContainer = styled('div')<{
-  alignment?: 'start' | 'center';
   isEmpty?: boolean;
 }>`
   position: relative;
@@ -629,10 +633,6 @@ const VerticalLineContainer = styled('div')<{
   display: flex;
   padding: 0;
   min-height: ${p => (p.isEmpty ? space(4) : 'auto')};
-
-  .rethink-button-container {
-    /* Styles are now primarily in RethinkButtonContainer itself */
-  }
 `;
 
 const VerticalLine = styled('div')`
@@ -660,16 +660,15 @@ const CollapseButtonWrapper = styled('div')`
   }
 `;
 
-const RethinkButtonContainer = styled('div')<{parentAlignment?: 'start' | 'center'}>`
+const RethinkButtonContainer = styled('div')`
   position: relative;
   display: flex;
-  justify-content: ${p => (p.parentAlignment === 'start' ? 'flex-end' : 'center')};
+  justify-content: flex-end;
   align-items: center;
-  width: ${p => (p.parentAlignment === 'start' ? '100%' : 'max-content')};
-  background: ${p =>
-    p.parentAlignment === 'center' ? p.theme.background : 'transparent'};
-  border-radius: ${p => (p.parentAlignment === 'center' ? '50%' : '0')};
-  padding: ${p => (p.parentAlignment === 'center' ? space(0.25) : '0')};
+  width: 100%;
+  background: ${p => p.theme.background};
+  border-radius: 0;
+  padding: 0;
   z-index: 1;
 
   &:has(> ${CollapseButtonWrapper}) {
@@ -692,24 +691,16 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
 
 const ContextBody = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background: ${p => p.theme.pink400}10;
+  background: ${p => p.theme.pink400}05;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
+  border-top: 1px dashed ${p => p.theme.innerBorder};
 
   code {
     white-space: pre-wrap;
     word-break: break-word;
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background-color: ${p => p.theme.subText};
+    background-color: transparent;
   }
 `;
 
@@ -739,7 +730,7 @@ const StyledIconChevron = styled(IconChevron)`
 const RightSection = styled('div')`
   display: flex;
   align-items: center;
-  padding-right: ${space(1)};
+  padding-right: ${space(0.5)};
 `;
 
 const EditContainer = styled('div')`
@@ -790,7 +781,9 @@ const AddEditContainer = styled('div')`
 `;
 
 const DiffContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-left: -${space(2)};
+  margin-right: -${space(2)};
+  margin-top: -${space(2)};
 `;
 
 const AddButton = styled(Button)`

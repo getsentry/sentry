@@ -23,6 +23,8 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 
 @pytest.mark.django_db
 class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
+    fingerprint_prefix = "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES_EXPERIMENTAL"
+
     def setUp(self):
         super().setUp()
         self._settings = get_detection_settings()
@@ -48,7 +50,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
         event = get_event("n-plus-one-in-django-index-view-unparameterized")
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                fingerprint=f"{self.fingerprint_prefix}-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = 1 LIMIT 21",
                 type=PerformanceNPlusOneExperimentalGroupType,
@@ -122,7 +124,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
         event = get_event("n-plus-one-in-django-index-view-activerecord")
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                fingerprint=f"{self.fingerprint_prefix}-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
                 type=PerformanceNPlusOneExperimentalGroupType,
@@ -182,7 +184,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
 
         assert self.find_problems(event, {"duration_threshold": 0}) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-e55ea09e1cff0ca2369f287cf624700f98cf4b50",
+                fingerprint=f"{self.fingerprint_prefix}-e55ea09e1cff0ca2369f287cf624700f98cf4b50",
                 op="db",
                 type=PerformanceNPlusOneExperimentalGroupType,
                 desc='SELECT "expense_expenses"."id", "expense_expenses"."report_id", "expense_expenses"."amount" FROM "expense_expenses" WHERE "expense_expenses"."report_id" = %s',
@@ -245,7 +247,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
         event = get_event("parallel-n-plus-one-in-django-index-view")
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                fingerprint=f"{self.fingerprint_prefix}-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
                 type=PerformanceNPlusOneExperimentalGroupType,
@@ -305,7 +307,7 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
         ]
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-4e7d5e9be7cb7af2dc8af3ab6be354707e3ab2bc",
+                fingerprint=f"{self.fingerprint_prefix}-4e7d5e9be7cb7af2dc8af3ab6be354707e3ab2bc",
                 op="db",
                 desc='{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}',
                 type=PerformanceNPlusOneExperimentalGroupType,
@@ -355,6 +357,16 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
             override_spans.append(span)
         event["spans"] = override_spans
         assert self.find_problems(event) == []
+
+    def test_detects_n_plus_one_with_mongoose(self):
+        """
+        Without the check for "{" in the description, this event would have 2 problems, due to
+        the mongoose.findOne spans.
+        """
+        event = get_event("n-plus-one-db/n-plus-one-db-mongoose")
+        problems = self.find_problems(event)
+        assert len(problems) == 1
+        assert "mongoose" not in problems[0].desc
 
 
 @pytest.mark.django_db

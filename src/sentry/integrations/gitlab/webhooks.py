@@ -30,7 +30,6 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -250,7 +249,6 @@ class PushEventWebhook(GitlabWebhook):
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
             except IntegrityError:
-                incr_rollback_metrics(Commit)
                 pass
 
 

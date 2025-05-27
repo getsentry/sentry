@@ -5,7 +5,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
@@ -22,10 +21,15 @@ import type {
   SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
+interface UseDiscoverQueryOptions {
+  additonalQueryKey?: string[];
+}
+
 interface UseDiscoverOptions<Fields> {
   cursor?: string;
   enabled?: boolean;
   fields?: Fields;
+  keepPreviousData?: boolean;
   limit?: number;
   noPagination?: boolean;
   orderby?: string | string[];
@@ -37,6 +41,7 @@ interface UseDiscoverOptions<Fields> {
    */
   search?: MutableSearch | string;
   sorts?: Sort[];
+  useQueryOptions?: UseDiscoverQueryOptions;
 }
 
 // The default sampling mode for eap queries
@@ -53,19 +58,6 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_INDEXED,
     referrer
   );
-};
-
-export const useOurlogs = <Fields extends OurLogFieldKey[]>(
-  options: UseDiscoverOptions<Fields> = {},
-  referrer: string
-) => {
-  const {data, ...rest} = useDiscover<Fields, OurLogsResponseItem>(
-    options,
-    DiscoverDatasets.OURLOGS,
-    referrer
-  );
-  const castData = data as OurLogsResponseItem[];
-  return {...rest, data: castData};
 };
 
 export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
@@ -134,6 +126,7 @@ export const useDiscover = <
     projectIds,
     orderby,
     samplingMode = DEFAULT_SAMPLING_MODE,
+    useQueryOptions,
   } = options;
 
   // TODO: remove this check with eap
@@ -160,6 +153,8 @@ export const useDiscover = <
     cursor,
     noPagination,
     samplingMode: shouldSetSamplingMode ? samplingMode : undefined,
+    additionalQueryKey: useQueryOptions?.additonalQueryKey,
+    keepPreviousData: options.keepPreviousData,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
@@ -172,7 +167,7 @@ export const useDiscover = <
   };
 };
 
-function getEventView(
+export function getEventView(
   search: MutableSearch | string | undefined,
   fields: string[] = [],
   sorts: Sort[] = [],

@@ -25,7 +25,7 @@ import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreA
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import type {UseLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   combineConfidenceForSeries,
@@ -121,6 +121,7 @@ function useTrackAnalytics({
       interval,
     });
 
+    /* eslint-disable @typescript-eslint/no-base-to-string */
     info(
       fmt`trace.explorer.metadata:
       organization: ${organization.slug}
@@ -138,6 +139,7 @@ function useTrackAnalytics({
     `,
       {isAnalytics: true}
     );
+    /* eslint-enable @typescript-eslint/no-base-to-string */
   }, [
     organization,
     dataset,
@@ -372,7 +374,8 @@ export function useCompareAnalytics({
   const query = queryParts.query;
   const fields = queryParts.fields;
   const visualizes = queryParts.yAxes.map(
-    yAxis => new Visualize([yAxis], String(index), queryParts.chartType)
+    yAxis =>
+      new Visualize([yAxis], {label: String(index), chartType: queryParts.chartType})
   );
 
   return useTrackAnalytics({
@@ -394,7 +397,7 @@ export function useLogAnalytics({
   logsTableResult,
   source,
 }: {
-  logsTableResult: UseExploreLogsTableResult;
+  logsTableResult: UseLogsQueryResult;
   source: LogsAnalyticsPageSource;
 }) {
   const organization = useOrganization();

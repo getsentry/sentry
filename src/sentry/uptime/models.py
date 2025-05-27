@@ -86,10 +86,10 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # The url to check
     url = models.CharField(max_length=255)
     # The domain of the url, extracted via TLDExtract
-    url_domain = models.CharField(max_length=255, db_index=True, default="", db_default="")
+    url_domain = models.CharField(max_length=255, default="", db_default="")
     # The suffix of the url, extracted via TLDExtract. This can be a public
     # suffix, such as com, gov.uk, com.au, or a private suffix, such as vercel.dev
-    url_domain_suffix = models.CharField(max_length=255, db_index=True, default="", db_default="")
+    url_domain_suffix = models.CharField(max_length=255, default="", db_default="")
     # A unique identifier for the provider hosting the domain
     host_provider_id = models.CharField(max_length=255, db_index=True, null=True)
     # The name of the provider hosting this domain
@@ -113,7 +113,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False, db_default=False)
-    # Tracks the curernt status of this subscrioption. This is possibly going
+    # Tracks the current status of this subscription. This is possibly going
     # to be replaced in the future with open-periods as we replace
     # ProjectUptimeSubscription with Detectors.
     uptime_status = models.PositiveSmallIntegerField(db_default=UptimeStatus.OK.value)

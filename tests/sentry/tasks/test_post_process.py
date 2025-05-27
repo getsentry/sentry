@@ -29,6 +29,7 @@ from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, Group, GroupStatus
@@ -47,7 +48,6 @@ from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
-from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
@@ -97,23 +97,6 @@ class EventMatcher:
                 and self.expected_group.id == other.group_id
             )
         return matching_id
-
-
-class ServiceHookPayloadMatcher:
-    def __init__(self, event: Event):
-        self.event = event
-
-    def __eq__(self, other: Any) -> bool:
-        assert isinstance(other, str), "other should be a string"
-        assert self.event.group
-
-        payload = json.loads(other)
-        assert payload["event"]["id"] == self.event.event_id
-        assert payload["group"]["id"] == str(self.event.group.id)
-        assert "url" in payload["group"]
-        assert "tags" in payload["event"]
-        assert "project" in payload
-        return True
 
 
 class BasePostProgressGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
@@ -537,8 +520,8 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         mock_process_service_hook.delay.assert_called_once_with(
             servicehook_id=hook.id,
             project_id=self.project.id,
-            event=EventMatcher(event),
-            payload=ServiceHookPayloadMatcher(event),
+            group_id=event.group_id,
+            event_id=event.event_id,
         )
 
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
@@ -569,8 +552,8 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         mock_process_service_hook.delay.assert_called_once_with(
             servicehook_id=hook.id,
             project_id=self.project.id,
-            event=EventMatcher(event),
-            payload=ServiceHookPayloadMatcher(event),
+            group_id=event.group_id,
+            event_id=event.event_id,
         )
 
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
@@ -1727,7 +1710,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.escalating.is_escalating", return_value=(True, 0))
+    @patch("sentry.issues.escalating.escalating.is_escalating", return_value=(True, 0))
     def test_forecast_in_activity(self, mock_is_escalating):
         """
         Test that the forecast is added to the activity for escalating issues that were
@@ -1754,7 +1737,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             data={"event_id": event.event_id, "forecast": 0},
         ).exists()
 
-    @patch("sentry.issues.escalating.is_escalating")
+    @patch("sentry.issues.escalating.escalating.is_escalating")
     def test_skip_escalation_logic_for_new_groups(self, mock_is_escalating):
         """
         Test that we skip checking escalation in the process_snoozes job if the group is less than
@@ -2240,7 +2223,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         )
         event.group = Group.objects.get(id=group.id)
 
-        with patch("sentry.issues.issue_velocity.calculate_threshold", return_value=9):
+        with patch("sentry.issues.escalating.issue_velocity.calculate_threshold", return_value=9):
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -2253,7 +2236,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.ESCALATING
         assert group.priority == PriorityLevel.MEDIUM
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2273,7 +2256,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.NEW
         assert group.priority == PriorityLevel.HIGH
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=11)
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold", return_value=11)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_not_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2297,7 +2280,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.NEW
         assert group.priority == PriorityLevel.LOW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated_locked(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2317,7 +2300,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated_already_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2347,7 +2330,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.ESCALATING
         assert group.priority == PriorityLevel.MEDIUM
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_does_not_escalate_non_new_substatus(self, mock_run_post_process_job, mock_threshold):
         for substatus, status in GROUP_SUBSTATUS_TO_STATUS_MAP.items():
@@ -2375,7 +2358,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             group.refresh_from_db()
             assert group.substatus == substatus
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=8)
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold", return_value=8)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_no_escalation_less_than_floor(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2395,7 +2378,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=11)
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold", return_value=11)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_not_escalated_less_than_an_hour(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2415,7 +2398,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=0)
+    @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold", return_value=0)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_zero_escalation_rate(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2499,7 +2482,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("projects:trigger-issue-summary-on-alerts")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_with_features(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2522,7 +2505,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
-    @with_feature("projects:trigger-issue-summary-on-alerts")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_org_feature(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2567,7 +2550,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("projects:trigger-issue-summary-on-alerts")
+    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_seer_enabled(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):

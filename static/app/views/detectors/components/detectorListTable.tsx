@@ -36,17 +36,21 @@ function DetectorListTable({detectors}: DetectorListTableProps) {
           isSelectAllChecked={isSelectAllChecked}
           toggleSelectAll={toggleSelectAll}
         />
+        <Flex className="type">
+          <HeaderDivider />
+          <Heading>{t('Type')}</Heading>
+        </Flex>
         <Flex className="issue">
           <HeaderDivider />
-          <Heading>{t('Issue')}</Heading>
+          <Heading>{t('Last Issue')}</Heading>
         </Flex>
-        <Flex className="open-issues">
+        <Flex className="owner">
           <HeaderDivider />
-          <Heading>{t('Open Issues')}</Heading>
+          <Heading>{t('Owner')}</Heading>
         </Flex>
         <Flex className="connected-automations">
           <HeaderDivider />
-          <Heading>{t('Connected Automations')}</Heading>
+          <Heading>{t('Automations')}</Heading>
         </Flex>
       </StyledPanelHeader>
       <PanelBody>
@@ -82,23 +86,25 @@ const StyledPanelHeader = styled(PanelHeader)`
   min-height: 40px;
   align-items: center;
   display: grid;
+  text-transform: none;
 
-  .open-issues,
+  .type,
+  .creator,
   .last-issue,
   .connected-automations {
     display: none;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    grid-template-columns: 3fr 1fr;
+    grid-template-columns: 3fr 0.8fr;
 
-    .open-issues {
+    .type {
       display: flex;
     }
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 3fr 1fr 0.6fr;
+    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
     .last-issue {
       display: flex;
@@ -106,15 +112,19 @@ const StyledPanelHeader = styled(PanelHeader)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 2.5fr 1fr 0.75fr 1fr;
+    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
-    .connected-automations {
+    .creator {
       display: flex;
     }
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 3fr 1fr 0.75fr 1fr;
+    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
+
+    .connected-automations {
+      display: flex;
+    }
   }
 `;
 

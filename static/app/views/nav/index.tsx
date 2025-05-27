@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {useNavContext} from 'sentry/views/nav/context';
 import MobileTopbar from 'sentry/views/nav/mobileTopbar';
-import {SecondaryNavContent} from 'sentry/views/nav/secondary/secondaryNavContent';
 import {Sidebar} from 'sentry/views/nav/sidebar';
 import {
   NavigationTourProvider,
@@ -32,7 +31,6 @@ function NavContent() {
       isMobile={layout === NavLayout.MOBILE}
     >
       {layout === NavLayout.SIDEBAR ? <Sidebar /> : <MobileTopbar />}
-      <SecondaryNavContent />
     </NavContainer>
   );
 }

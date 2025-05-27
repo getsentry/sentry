@@ -1,8 +1,9 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {viewSamplesTarget} from 'sentry/views/explore/utils';
+import {findSuggestedColumns, viewSamplesTarget} from 'sentry/views/explore/utils';
 
 describe('viewSamplesTarget', function () {
   const project = ProjectFixture();
@@ -155,4 +156,129 @@ describe('viewSamplesTarget', function () {
       },
     });
   });
+});
+
+describe('findSuggestedColumns', function () {
+  it.each([
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: '',
+    },
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: 'key:value',
+    },
+    {
+      cols: ['key'],
+      oldQuery: 'key:value1',
+      newQuery: 'key:[value1,value2]',
+    },
+    {
+      cols: ['key'],
+      oldQuery: '',
+      newQuery: 'key:[value1,value2]',
+    },
+    {
+      cols: ['key'],
+      oldQuery: '',
+      newQuery: '!key:value',
+    },
+    {
+      cols: ['key'],
+      oldQuery: '',
+      newQuery: 'key:*',
+    },
+    {
+      cols: ['key'],
+      oldQuery: '',
+      newQuery: 'key:v*',
+    },
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: 'key:\\*',
+    },
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: 'key:v\\*',
+    },
+    {
+      cols: ['key'],
+      oldQuery: '',
+      newQuery: 'key:\\\\*',
+    },
+    {
+      cols: ['key'],
+      oldQuery: '',
+      newQuery: 'key:v\\\\*',
+    },
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: 'key:\\\\\\*',
+    },
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: 'key:v\\\\\\*',
+    },
+    {
+      cols: ['key'],
+      oldQuery: '',
+      newQuery: 'has:key',
+    },
+    {
+      cols: [],
+      oldQuery: 'key:value',
+      newQuery: 'has:key',
+    },
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: 'key:value has:key',
+    },
+    {
+      cols: ['key'],
+      oldQuery: '',
+      newQuery: 'key:[value1,value2] has:key',
+    },
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: '!has:a',
+    },
+    {
+      cols: ['num'],
+      oldQuery: '',
+      newQuery: 'num:>0',
+    },
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: 'foo:[a,b]',
+    },
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: 'count():>0',
+    },
+  ])(
+    'should inject $cols when changing from `$oldQuery` to `$newQuery`',
+    function ({cols, oldQuery, newQuery}) {
+      const oldSearch = new MutableSearch(oldQuery);
+      const newSearch = new MutableSearch(newQuery);
+      const suggestion = findSuggestedColumns(newSearch, oldSearch, {
+        numberAttributes: {
+          num: {key: 'num', name: 'num'},
+        },
+        stringAttributes: {
+          key: {key: 'key', name: 'key'},
+        },
+      });
+      expect(new Set(suggestion)).toEqual(new Set(cols));
+    }
+  );
 });

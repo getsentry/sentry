@@ -51,7 +51,10 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
         project={ProjectFixture({teams: []})}
       />
     );
-    expect(screen.getByRole('button', {name: 'Assign Team'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Assign Team'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('collapses more than 5 teams', async function () {

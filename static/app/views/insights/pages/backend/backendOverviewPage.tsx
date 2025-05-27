@@ -8,7 +8,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -24,6 +23,12 @@ import useProjects from 'sentry/utils/useProjects';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
+import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
+import OverviewCacheMissChartWidget from 'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget';
+import OverviewJobsChartWidget from 'sentry/views/insights/common/components/widgets/overviewJobsChartWidget';
+import OverviewRequestsChartWidget from 'sentry/views/insights/common/components/widgets/overviewRequestsChartWidget';
+import OverviewSlowQueriesChartWidget from 'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
@@ -34,6 +39,7 @@ import {
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/backend/backendTable';
+import {EAPExperimentButton} from 'sentry/views/insights/pages/backend/eapExperimentButton';
 import {OldBackendOverviewPage} from 'sentry/views/insights/pages/backend/oldBackendOverviewPage';
 import {
   BACKEND_LANDING_TITLE,
@@ -44,16 +50,14 @@ import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOve
 import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
-import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
-import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
-import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
-import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {
+  useIsNextJsInsightsAvailable,
+  useIsNextJsInsightsEnabled,
+} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
-import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
-import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
@@ -64,14 +68,14 @@ function BackendOverviewPage() {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
   const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
-  const useEap = useInsightsEap();
+  const isNewBackendExperienceEnabled = useInsightsEap();
   if (isLaravelPageAvailable) {
     return <LaravelOverviewPage />;
   }
   if (isNextJsPageEnabled) {
     return <NextJsOverviewPage performanceType="backend" />;
   }
-  if (useEap) {
+  if (isNewBackendExperienceEnabled) {
     return <EAPBackendOverviewPage />;
   }
   return <OldBackendOverviewPage />;
@@ -85,6 +89,7 @@ function EAPBackendOverviewPage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
+  const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
 
   const {query: searchBarQuery} = useLocationQuery({
     fields: {
@@ -167,6 +172,7 @@ function EAPBackendOverviewPage() {
       search: existingQuery,
       sorts,
       cursor,
+      useQueryOptions: {additonalQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
       fields: [
         'is_starred_transaction',
         'request.method',
@@ -196,7 +202,13 @@ function EAPBackendOverviewPage() {
     >
       <BackendHeader
         headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={<NewNextJsExperienceButton />}
+        headerActions={
+          isNextJsInsightsAvailable ? (
+            <NewNextJsExperienceButton />
+          ) : (
+            <EAPExperimentButton />
+          )
+        }
       />
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -225,12 +237,8 @@ function EAPBackendOverviewPage() {
               <Fragment>
                 <ModuleLayout.Third>
                   <StackedWidgetWrapper>
-                    <TrafficWidget
-                      title={t('Requests')}
-                      trafficSeriesName={t('Requests')}
-                      baseQuery={'span.op:http.server'}
-                    />
-                    <DurationWidget />
+                    <OverviewRequestsChartWidget />
+                    <OverviewApiLatencyChartWidget />
                   </StackedWidgetWrapper>
                 </ModuleLayout.Third>
                 <ModuleLayout.TwoThirds>
@@ -239,13 +247,13 @@ function EAPBackendOverviewPage() {
                 <ModuleLayout.Full>
                   <TripleRowWidgetWrapper>
                     <ModuleLayout.Third>
-                      <JobsWidget />
+                      <OverviewJobsChartWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <QueriesWidget />
+                      <OverviewSlowQueriesChartWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <CachesWidget />
+                      <OverviewCacheMissChartWidget />
                     </ModuleLayout.Third>
                   </TripleRowWidgetWrapper>
                 </ModuleLayout.Full>

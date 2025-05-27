@@ -17,6 +17,7 @@ import AuthLayout from 'sentry/views/auth/layout';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
+import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
@@ -306,7 +307,7 @@ function buildRoutes() {
       </Route>
       <Route
         path="/stories/"
-        component={make(() => import('sentry/views/stories/index'))}
+        component={make(() => import('sentry/stories/view/index'))}
         withOrgPath
       />
     </Route>
@@ -1797,6 +1798,16 @@ function buildRoutes() {
         {traceViewRoute}
         {moduleRoutes}
       </Route>
+      <Route path={`${AGENTS_LANDING_SUB_PATH}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/agentMonitoring/views/agentsOverviewPage')
+          )}
+        />
+        {transactionSummaryRoutes}
+        {traceViewRoute}
+        {moduleRoutes}
+      </Route>
       <Route path="projects/" component={make(() => import('sentry/views/projects/'))}>
         {projectsChildRoutes}
       </Route>
@@ -1928,14 +1939,6 @@ function buildRoutes() {
         component={make(() => import('sentry/views/explore/savedQueries'))}
       />
     </Route>
-  );
-
-  const userFeedbackRoutes = (
-    <Route
-      path="/user-feedback/"
-      component={make(() => import('sentry/views/userFeedback'))}
-      withOrgPath
-    />
   );
 
   const codecovCommitRoutes = (
@@ -2447,7 +2450,6 @@ function buildRoutes() {
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}
-      {userFeedbackRoutes}
       {feedbackv2Routes}
       {issueRoutes}
       {alertRoutes}

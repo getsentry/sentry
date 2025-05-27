@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from datetime import datetime
 from typing import Any
 
 from rest_framework.request import Request
@@ -11,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import reformat_timestamp_ms_to_isoformat
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 
@@ -107,10 +107,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
         )
         for event in results["data"]:
             if "timestamp_ms" in event and event["timestamp_ms"] is not None:
-                # add ms to timestamp by taking the timestamp_ms, they differ in format, so we convert to datetime and back to isoformat
-                event["timestamp"] = (
-                    datetime.fromisoformat(event["timestamp_ms"]).astimezone().isoformat()
-                )
+                event["timestamp"] = reformat_timestamp_ms_to_isoformat(event["timestamp_ms"])
 
             if "timestamp_ms" in event:
                 del event["timestamp_ms"]

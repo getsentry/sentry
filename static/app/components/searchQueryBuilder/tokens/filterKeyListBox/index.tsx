@@ -23,6 +23,8 @@ import {
   createRecentFilterOptionKey,
   RECENT_SEARCH_CATEGORY_VALUE,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
+import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconMegaphone} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
@@ -33,7 +35,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
-  recentFilters: string[];
+  recentFilters: Array<TokenResult<Token.FILTER>>;
   sections: Section[];
   selectedSection: string;
   setSelectedSection: (section: string) => void;
@@ -127,14 +129,15 @@ function RecentSearchFilterOption<T>({
   state,
   filter,
 }: {
-  filter: string;
+  filter: TokenResult<Token.FILTER>;
   state: ComboBoxState<T>;
 }) {
   const ref = useRef<HTMLLIElement>(null);
+  const key = getKeyName(filter.key);
   const {optionProps, labelProps, isFocused, isPressed} = useOption(
     {
-      key: createRecentFilterOptionKey(filter),
-      'aria-label': filter,
+      key: createRecentFilterOptionKey(key),
+      'aria-label': key,
       shouldFocusOnHover: true,
       shouldSelectOnPressUp: true,
     },
@@ -143,9 +146,11 @@ function RecentSearchFilterOption<T>({
   );
 
   return (
-    <RecentFilterPill key={filter} data-test-id="recent-filter-key" {...optionProps}>
+    <RecentFilterPill key={key} data-test-id="recent-filter-key" {...optionProps}>
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
-      <RecentFilterPillLabel {...labelProps}>{filter}</RecentFilterPillLabel>
+      <RecentFilterPillLabel {...labelProps}>
+        {getKeyLabel(filter.key)}
+      </RecentFilterPillLabel>
     </RecentFilterPill>
   );
 }
@@ -240,7 +245,11 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
       {showRecentFilters ? (
         <RecentFiltersPane>
           {recentFilters.map(filter => (
-            <RecentSearchFilterOption key={filter} filter={filter} state={state} />
+            <RecentSearchFilterOption
+              key={getKeyName(filter.key)}
+              filter={filter}
+              state={state}
+            />
           ))}
         </RecentFiltersPane>
       ) : null}
@@ -314,7 +323,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   const hiddenOptionsWithRecentsAdded = useMemo<Set<SelectKey>>(() => {
     return new Set([
       ...hiddenOptions,
-      ...recentFilters.map(filter => createRecentFilterOptionKey(filter)),
+      ...recentFilters.map(filter => createRecentFilterOptionKey(getKeyName(filter.key))),
     ]);
   }, [hiddenOptions, recentFilters]);
 

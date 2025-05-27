@@ -126,7 +126,9 @@ function TeamSettings({team, params}: TeamSettingsProps) {
           <div>
             <Confirm
               disabled={isIdpProvisioned || !hasTeamAdmin}
-              onConfirm={handleRemoveTeam}
+              onConfirm={() => {
+                handleRemoveTeam();
+              }}
               priority="danger"
               message={tct('Are you sure you want to remove the team [team]?', {
                 team: `#${team.slug}`,

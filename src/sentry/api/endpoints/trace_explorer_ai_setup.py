@@ -15,7 +15,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.models.organization import Organization
-from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
@@ -69,25 +68,24 @@ class TraceExplorerAISetup(OrganizationEndpoint):
         """
         Checks if we are able to run Autofix on the given group.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         project_ids = [int(x) for x in request.data.get("project_ids", [])]
+
+        if organization.get_option("sentry:hide_ai_features", False):
+            return Response(
+                {"detail": "AI features are disabled for this organization."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         if not features.has(
             "organizations:gen-ai-explore-traces", organization=organization, actor=request.user
+        ) or not features.has(
+            "organizations:gen-ai-features", organization=organization, actor=request.user
         ):
             return Response(
                 {"detail": "Organization does not have access to this feature"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        user_acknowledgement = get_seer_user_acknowledgement(
-            user_id=request.user.id, org_id=organization.id
-        )
-        org_acknowledgement = user_acknowledgement or get_seer_org_acknowledgement(
-            org_id=organization.id
-        )
-
-        if not org_acknowledgement:
-            return Response(
-                {"detail": "Organization has not opted in to this feature."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
