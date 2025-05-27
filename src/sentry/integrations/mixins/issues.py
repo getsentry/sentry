@@ -11,7 +11,6 @@ from typing import Any, ClassVar
 
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
@@ -380,18 +379,13 @@ class IssueSyncIntegration(IssueBasicIntegration, ABC):
 
     def should_sync(self, attribute: str, sync_source: AssignmentSource | None = None) -> bool:
         key = getattr(self, f"{attribute}_key", None)
-        try:
-            org_integration = self.org_integration
-        except OrganizationIntegrationNotFound:
-            return False
-
-        if key is None or org_integration is None:
+        if key is None or self.org_integration is None:
             return False
 
         # Check that the assignment source isn't this same integration in order to
         # prevent sync-cycles from occurring. This should still allow other
         # integrations to propagate changes outward.
-        if sync_source and sync_source.integration_id == org_integration.integration_id:
+        if sync_source and sync_source.integration_id == self.org_integration.integration_id:
             return False
 
         value: bool = self.org_integration.config.get(key, False)
