@@ -1,5 +1,5 @@
 import type {MouseEvent} from 'react';
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -307,11 +307,9 @@ function NativeFrame({
           </SymbolicatorIcon>
           <div>
             {!fullStackTrace && !expanded && leadsToApp && (
-              <Fragment>
-                <PackageNote>
-                  {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
-                </PackageNote>
-              </Fragment>
+              <PackageNote>
+                {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
+              </PackageNote>
             )}
             <Tooltip
               title={frame.package ?? t('Go to images loaded')}

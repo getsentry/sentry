@@ -128,56 +128,54 @@ export function LogsInfiniteTable({
   ]);
 
   return (
-    <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} data-test-id="logs-table">
-        {showHeader ? (
-          <LogsTableHeader
-            numberAttributes={numberAttributes}
-            stringAttributes={stringAttributes}
-            onResizeMouseDown={onResizeMouseDown}
-          />
-        ) : null}
-        <LogTableBody showHeader={showHeader} ref={tableBodyRef}>
-          {paddingTop > 0 && (
-            <TableRow>
-              {fields.map(field => (
-                <TableBodyCell key={field} style={{height: paddingTop}} />
-              ))}
-            </TableRow>
-          )}
-          {isPending && <LoadingRenderer />}
-          {isError && <ErrorRenderer />}
-          {isEmpty && <EmptyRenderer />}
-          {virtualItems.map(virtualRow => {
-            const dataRow = data?.[virtualRow.index];
-            const isPastFetchedRows = virtualRow.index > data?.length - 1;
+    <Table ref={tableRef} style={initialTableStyles} data-test-id="logs-table">
+      {showHeader ? (
+        <LogsTableHeader
+          numberAttributes={numberAttributes}
+          stringAttributes={stringAttributes}
+          onResizeMouseDown={onResizeMouseDown}
+        />
+      ) : null}
+      <LogTableBody showHeader={showHeader} ref={tableBodyRef}>
+        {paddingTop > 0 && (
+          <TableRow>
+            {fields.map(field => (
+              <TableBodyCell key={field} style={{height: paddingTop}} />
+            ))}
+          </TableRow>
+        )}
+        {isPending && <LoadingRenderer />}
+        {isError && <ErrorRenderer />}
+        {isEmpty && <EmptyRenderer />}
+        {virtualItems.map(virtualRow => {
+          const dataRow = data?.[virtualRow.index];
+          const isPastFetchedRows = virtualRow.index > data?.length - 1;
 
-            if (!dataRow) {
-              return null;
-            }
-            return (
-              <Fragment key={virtualRow.key}>
-                <LogRowContent
-                  dataRow={dataRow}
-                  meta={meta}
-                  highlightTerms={highlightTerms}
-                  sharedHoverTimeoutRef={sharedHoverTimeoutRef}
-                  key={virtualRow.key}
-                />
-                {isPastFetchedRows && <LoadingRenderer />}
-              </Fragment>
-            );
-          })}
-          {paddingBottom > 0 && (
-            <TableRow>
-              {fields.map(field => (
-                <TableBodyCell key={field} style={{height: paddingBottom}} />
-              ))}
-            </TableRow>
-          )}
-        </LogTableBody>
-      </Table>
-    </Fragment>
+          if (!dataRow) {
+            return null;
+          }
+          return (
+            <Fragment key={virtualRow.key}>
+              <LogRowContent
+                dataRow={dataRow}
+                meta={meta}
+                highlightTerms={highlightTerms}
+                sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+                key={virtualRow.key}
+              />
+              {isPastFetchedRows && <LoadingRenderer />}
+            </Fragment>
+          );
+        })}
+        {paddingBottom > 0 && (
+          <TableRow>
+            {fields.map(field => (
+              <TableBodyCell key={field} style={{height: paddingBottom}} />
+            ))}
+          </TableRow>
+        )}
+      </LogTableBody>
+    </Table>
   );
 }
 

@@ -99,35 +99,33 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   );
 
   return (
-    <Fragment>
-      <Form
-        saveOnBlur
-        apiMethod="PUT"
-        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
-        allowUndo
-        initialData={{
-          autofixAutomationTuning: SEER_THRESHOLD_MAP.indexOf(
-            project.autofixAutomationTuning ?? 'off'
-          ),
-        }}
-        onSubmitSuccess={handleSubmitSuccess}
-        additionalFieldProps={{organization}}
-      >
-        <JsonForm
-          forms={seerFormGroups}
-          disabled={!canWriteProject}
-          renderHeader={() =>
-            !canWriteProject && (
-              <Alert type="warning" system>
-                {t(
-                  'These settings can only be edited by users with the organization-level owner, manager, or team-level admin role.'
-                )}
-              </Alert>
-            )
-          }
-        />
-      </Form>
-    </Fragment>
+    <Form
+      saveOnBlur
+      apiMethod="PUT"
+      apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
+      allowUndo
+      initialData={{
+        autofixAutomationTuning: SEER_THRESHOLD_MAP.indexOf(
+          project.autofixAutomationTuning ?? 'off'
+        ),
+      }}
+      onSubmitSuccess={handleSubmitSuccess}
+      additionalFieldProps={{organization}}
+    >
+      <JsonForm
+        forms={seerFormGroups}
+        disabled={!canWriteProject}
+        renderHeader={() =>
+          !canWriteProject && (
+            <Alert type="warning" system>
+              {t(
+                'These settings can only be edited by users with the organization-level owner, manager, or team-level admin role.'
+              )}
+            </Alert>
+          )
+        }
+      />
+    </Form>
   );
 }
 

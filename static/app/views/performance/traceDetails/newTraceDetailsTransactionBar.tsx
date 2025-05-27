@@ -473,72 +473,70 @@ function NewTraceDetailsTransactionBar(props: Props) {
     }
 
     return (
-      <Fragment>
-        <QuickTraceQuery
-          event={embeddedChildren}
-          location={location}
-          orgSlug={organization.slug}
-          skipLight={false}
-        >
-          {results => (
-            <ProfilesProvider
-              orgSlug={organization.slug}
-              projectSlug={embeddedChildren.projectSlug ?? ''}
-              profileMeta={profileId || ''}
-            >
-              <ProfileContext.Consumer>
-                {profiles => (
-                  <ProfileGroupProvider
-                    type="flamechart"
-                    input={profiles?.type === 'resolved' ? profiles.data : null}
-                    traceID={profileId || ''}
-                  >
-                    <SpanContext.Provider>
-                      <SpanContext.Consumer>
-                        {spanContextProps => (
-                          <Observer>
-                            {() => (
-                              <NewTraceDetailsSpanTree
-                                theme={theme}
-                                measurements={props.measurements}
-                                quickTrace={results}
-                                location={props.location}
-                                onRowClick={props.onRowClick}
-                                traceInfo={traceInfo}
-                                traceViewHeaderRef={traceViewRef}
-                                traceViewRef={traceViewRef}
-                                parentContinuingDepths={props.continuingDepths}
-                                traceHasMultipleRoots={props.continuingDepths.some(
-                                  c => c.depth === 0 && c.isOrphanDepth
-                                )}
-                                parentIsOrphan={props.isOrphan}
-                                parentIsLast={isLast}
-                                parentGeneration={transaction.generation ?? 0}
-                                organization={organization}
-                                waterfallModel={waterfallModel}
-                                filterSpans={waterfallModel.filterSpans}
-                                spans={waterfallModel
-                                  .getWaterfall({
-                                    viewStart: 0,
-                                    viewEnd: 1,
-                                  })
-                                  .slice(1)}
-                                focusedSpanIds={waterfallModel.focusedSpanIds}
-                                spanContextProps={spanContextProps}
-                                operationNameFilters={waterfallModel.operationNameFilters}
-                              />
-                            )}
-                          </Observer>
-                        )}
-                      </SpanContext.Consumer>
-                    </SpanContext.Provider>
-                  </ProfileGroupProvider>
-                )}
-              </ProfileContext.Consumer>
-            </ProfilesProvider>
-          )}
-        </QuickTraceQuery>
-      </Fragment>
+      <QuickTraceQuery
+        event={embeddedChildren}
+        location={location}
+        orgSlug={organization.slug}
+        skipLight={false}
+      >
+        {results => (
+          <ProfilesProvider
+            orgSlug={organization.slug}
+            projectSlug={embeddedChildren.projectSlug ?? ''}
+            profileMeta={profileId || ''}
+          >
+            <ProfileContext.Consumer>
+              {profiles => (
+                <ProfileGroupProvider
+                  type="flamechart"
+                  input={profiles?.type === 'resolved' ? profiles.data : null}
+                  traceID={profileId || ''}
+                >
+                  <SpanContext.Provider>
+                    <SpanContext.Consumer>
+                      {spanContextProps => (
+                        <Observer>
+                          {() => (
+                            <NewTraceDetailsSpanTree
+                              theme={theme}
+                              measurements={props.measurements}
+                              quickTrace={results}
+                              location={props.location}
+                              onRowClick={props.onRowClick}
+                              traceInfo={traceInfo}
+                              traceViewHeaderRef={traceViewRef}
+                              traceViewRef={traceViewRef}
+                              parentContinuingDepths={props.continuingDepths}
+                              traceHasMultipleRoots={props.continuingDepths.some(
+                                c => c.depth === 0 && c.isOrphanDepth
+                              )}
+                              parentIsOrphan={props.isOrphan}
+                              parentIsLast={isLast}
+                              parentGeneration={transaction.generation ?? 0}
+                              organization={organization}
+                              waterfallModel={waterfallModel}
+                              filterSpans={waterfallModel.filterSpans}
+                              spans={waterfallModel
+                                .getWaterfall({
+                                  viewStart: 0,
+                                  viewEnd: 1,
+                                })
+                                .slice(1)}
+                              focusedSpanIds={waterfallModel.focusedSpanIds}
+                              spanContextProps={spanContextProps}
+                              operationNameFilters={waterfallModel.operationNameFilters}
+                            />
+                          )}
+                        </Observer>
+                      )}
+                    </SpanContext.Consumer>
+                  </SpanContext.Provider>
+                </ProfileGroupProvider>
+              )}
+            </ProfileContext.Consumer>
+          </ProfilesProvider>
+        )}
+      </QuickTraceQuery>
     );
   };
 

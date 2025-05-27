@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import * as qs from 'query-string';
 
 import Link from 'sentry/components/links/link';
@@ -87,13 +86,11 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
       const link = normalizeUrl(`${moduleURL}/details/?${queryString}`);
 
       return (
-        <Fragment>
-          <OverflowEllipsisTextContainer>
-            <Link to={link} style={{display: `block`, width: `100%`}}>
-              {row.transaction}
-            </Link>
-          </OverflowEllipsisTextContainer>
-        </Fragment>
+        <OverflowEllipsisTextContainer>
+          <Link to={link} style={{display: `block`, width: `100%`}}>
+            {row.transaction}
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 

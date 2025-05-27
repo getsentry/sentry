@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -170,64 +170,62 @@ class OwnerInput extends Component<Props, State> {
     const {hasChanges, text, error} = this.state;
 
     return (
-      <Fragment>
-        <div
-          style={{position: 'relative'}}
-          onKeyDown={e => {
-            if (e.metaKey && e.key === 'Enter') {
-              this.handleUpdateOwnership();
-            }
-          }}
-        >
-          <Panel>
-            <PanelHeader>
-              {t('Ownership Rules')}
+      <div
+        style={{position: 'relative'}}
+        onKeyDown={e => {
+          if (e.metaKey && e.key === 'Enter') {
+            this.handleUpdateOwnership();
+          }
+        }}
+      >
+        <Panel>
+          <PanelHeader>
+            {t('Ownership Rules')}
 
-              {dateUpdated && (
-                <SyncDate>
-                  {t('Last Edited')} <TimeSince date={dateUpdated} />
-                </SyncDate>
-              )}
-            </PanelHeader>
-            <PanelBody>
-              <StyledTextArea
-                aria-label={t('Ownership Rules')}
-                placeholder={
-                  '#example usage\n' +
-                  'path:src/example/pipeline/* person@sentry.io #infra\n' +
-                  'module:com.module.name.example #sdks\n' +
-                  'url:http://example.com/settings/* #product\n' +
-                  'tags.sku_class:enterprise #enterprise'
-                }
-                monospace
-                onChange={this.handleChange}
-                disabled={disabled}
-                value={defined(text) ? text : initialText}
-                spellCheck="false"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-              />
-            </PanelBody>
-          </Panel>
-          <ActionBar>
-            <div>{this.parseError(error)}</div>
-            <ButtonBar gap={1}>
-              <Button type="button" size="sm" onClick={this.props.onCancel}>
-                {t('Cancel')}
-              </Button>
-              <Button
-                size="sm"
-                priority="primary"
-                onClick={this.handleUpdateOwnership}
-                disabled={disabled || !hasChanges}
-              >
-                {t('Save')}
-              </Button>
-            </ButtonBar>
-          </ActionBar>
-        </div>
-      </Fragment>
+            {dateUpdated && (
+              <SyncDate>
+                {t('Last Edited')} <TimeSince date={dateUpdated} />
+              </SyncDate>
+            )}
+          </PanelHeader>
+          <PanelBody>
+            <StyledTextArea
+              aria-label={t('Ownership Rules')}
+              placeholder={
+                '#example usage\n' +
+                'path:src/example/pipeline/* person@sentry.io #infra\n' +
+                'module:com.module.name.example #sdks\n' +
+                'url:http://example.com/settings/* #product\n' +
+                'tags.sku_class:enterprise #enterprise'
+              }
+              monospace
+              onChange={this.handleChange}
+              disabled={disabled}
+              value={defined(text) ? text : initialText}
+              spellCheck="false"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+            />
+          </PanelBody>
+        </Panel>
+        <ActionBar>
+          <div>{this.parseError(error)}</div>
+          <ButtonBar gap={1}>
+            <Button type="button" size="sm" onClick={this.props.onCancel}>
+              {t('Cancel')}
+            </Button>
+            <Button
+              size="sm"
+              priority="primary"
+              onClick={this.handleUpdateOwnership}
+              disabled={disabled || !hasChanges}
+            >
+              {t('Save')}
+            </Button>
+          </ButtonBar>
+        </ActionBar>
+      </div>
     );
   }
 }

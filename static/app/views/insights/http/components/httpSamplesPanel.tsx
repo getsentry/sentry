@@ -414,30 +414,26 @@ export function HTTPSamplesPanel() {
             </ModuleLayout.Full>
 
             {query.panel === 'duration' && (
-              <Fragment>
-                <ModuleLayout.Full>
-                  <InsightsLineChartWidget
-                    showLegend="never"
-                    title={getDurationChartTitle('http')}
-                    isLoading={isDurationDataFetching}
-                    error={durationError}
-                    series={[durationData[`avg(span.self_time)`]]}
-                    samples={samplesPlottable}
-                  />
-                </ModuleLayout.Full>
-              </Fragment>
+              <ModuleLayout.Full>
+                <InsightsLineChartWidget
+                  showLegend="never"
+                  title={getDurationChartTitle('http')}
+                  isLoading={isDurationDataFetching}
+                  error={durationError}
+                  series={[durationData[`avg(span.self_time)`]]}
+                  samples={samplesPlottable}
+                />
+              </ModuleLayout.Full>
             )}
 
             {query.panel === 'status' && (
-              <Fragment>
-                <ModuleLayout.Full>
-                  <ResponseCodeCountChart
-                    series={Object.values(responseCodeData).filter(Boolean)}
-                    isLoading={isResponseCodeDataLoading}
-                    error={responseCodeError}
-                  />
-                </ModuleLayout.Full>
-              </Fragment>
+              <ModuleLayout.Full>
+                <ResponseCodeCountChart
+                  series={Object.values(responseCodeData).filter(Boolean)}
+                  isLoading={isResponseCodeDataLoading}
+                  error={responseCodeError}
+                />
+              </ModuleLayout.Full>
             )}
 
             <ModuleLayout.Full>

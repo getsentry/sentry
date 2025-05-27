@@ -1,5 +1,4 @@
 import type React from 'react';
-import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -15,17 +14,15 @@ type Props = ModalRenderProps & InsightChartModalOptions;
 
 export default function InsightChartModal({Header, title, children}: Props) {
   return (
-    <Fragment>
-      <Container>
-        <Header closeButton>
-          <h3>{title}</h3>
-        </Header>
+    <Container>
+      <Header closeButton>
+        <h3>{title}</h3>
+      </Header>
 
-        <ChartRenderingContext value={{height: 300, isFullscreen: true}}>
-          {children}
-        </ChartRenderingContext>
-      </Container>
-    </Fragment>
+      <ChartRenderingContext value={{height: 300, isFullscreen: true}}>
+        {children}
+      </ChartRenderingContext>
+    </Container>
   );
 }
 

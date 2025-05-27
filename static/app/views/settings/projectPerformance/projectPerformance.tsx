@@ -1020,32 +1020,30 @@ function ProjectPerformance() {
       </Feature>
       <Fragment>
         {isSuperUser && (
-          <Fragment>
-            <Form
-              saveOnBlur
-              allowUndo
-              initialData={performanceIssueSettings}
-              apiMethod="PUT"
-              onSubmitError={error => {
-                if (error.status === 403) {
-                  addErrorMessage(
-                    t(
-                      'This action requires active super user access. Please re-authenticate to make changes.'
-                    )
-                  );
-                }
-              }}
-              apiEndpoint={performanceIssuesEndpoint}
-            >
-              <JsonForm
-                title={t(
-                  '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
-                )}
-                fields={performanceRegressionAdminFields}
-                disabled={!isSuperUser}
-              />
-            </Form>
-          </Fragment>
+          <Form
+            saveOnBlur
+            allowUndo
+            initialData={performanceIssueSettings}
+            apiMethod="PUT"
+            onSubmitError={error => {
+              if (error.status === 403) {
+                addErrorMessage(
+                  t(
+                    'This action requires active super user access. Please re-authenticate to make changes.'
+                  )
+                );
+              }
+            }}
+            apiEndpoint={performanceIssuesEndpoint}
+          >
+            <JsonForm
+              title={t(
+                '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
+              )}
+              fields={performanceRegressionAdminFields}
+              disabled={!isSuperUser}
+            />
+          </Form>
         )}
         <Form
           allowUndo

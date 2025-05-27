@@ -56,19 +56,17 @@ function EditOption({option}: {option: SerializedOption}) {
       size="sm"
     />
   ) : (
-    <Fragment>
-      <RangeField
-        label={option.name}
-        name={option.name}
-        min={0}
-        max={1}
-        step={0.01}
-        value={option.value}
-        alignRight
-        flexibleControlStateSize
-        size="xs"
-      />
-    </Fragment>
+    <RangeField
+      label={option.name}
+      name={option.name}
+      min={0}
+      max={1}
+      step={0.01}
+      value={option.value}
+      alignRight
+      flexibleControlStateSize
+      size="xs"
+    />
   );
 }
 

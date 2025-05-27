@@ -14,5 +14,5 @@ export default function ConfirmableAction({shouldConfirm, children, ...props}: P
     return <Confirm {...props}>{children as ConfirmProps['children']}</Confirm>;
   }
 
-  return children;
+  return children as React.ReactNode;
 }

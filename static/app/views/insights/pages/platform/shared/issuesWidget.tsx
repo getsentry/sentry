@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -241,51 +241,49 @@ class IssuesGroupList extends Component<Props, State> {
         : DEFAULT_STREAM_GROUP_STATS_PERIOD;
 
     return (
-      <Fragment>
-        <StyledPanel>
-          <HeaderContainer>
-            <SuperHeader disablePadding>
-              <SuperHeaderLabel hideDivider>{t('Recommended Issues')}</SuperHeaderLabel>
-              <LinkButton to={this.getIssuesUrl(queryParams)} size="xs">
-                {t('View All')}
-              </LinkButton>
-            </SuperHeader>
-            <GroupListHeader withChart={!!withChart} withColumns={columns} />
-          </HeaderContainer>
-          <PanelBody>
-            {loading
-              ? [
-                  ...new Array(
-                    typeof queryParams?.limit === 'number' ? queryParams?.limit : 4
-                  ),
-                ].map((_, i) => (
-                  <GroupPlaceholder key={i}>
-                    <Placeholder height="50px" />
-                  </GroupPlaceholder>
-                ))
-              : groups.map(({id, project}) => {
-                  const members = memberList?.hasOwnProperty(project.slug)
-                    ? memberList[project.slug]
-                    : undefined;
+      <StyledPanel>
+        <HeaderContainer>
+          <SuperHeader disablePadding>
+            <SuperHeaderLabel hideDivider>{t('Recommended Issues')}</SuperHeaderLabel>
+            <LinkButton to={this.getIssuesUrl(queryParams)} size="xs">
+              {t('View All')}
+            </LinkButton>
+          </SuperHeader>
+          <GroupListHeader withChart={!!withChart} withColumns={columns} />
+        </HeaderContainer>
+        <PanelBody>
+          {loading
+            ? [
+                ...new Array(
+                  typeof queryParams?.limit === 'number' ? queryParams?.limit : 4
+                ),
+              ].map((_, i) => (
+                <GroupPlaceholder key={i}>
+                  <Placeholder height="50px" />
+                </GroupPlaceholder>
+              ))
+            : groups.map(({id, project}) => {
+                const members = memberList?.hasOwnProperty(project.slug)
+                  ? memberList[project.slug]
+                  : undefined;
 
-                  return (
-                    <StreamGroup
-                      key={id}
-                      id={id}
-                      canSelect={canSelectGroups}
-                      withChart={withChart}
-                      withColumns={columns}
-                      memberList={members}
-                      useFilteredStats={useFilteredStats}
-                      useTintRow={useTintRow}
-                      statsPeriod={statsPeriod}
-                      source={source}
-                    />
-                  );
-                })}
-          </PanelBody>
-        </StyledPanel>
-      </Fragment>
+                return (
+                  <StreamGroup
+                    key={id}
+                    id={id}
+                    canSelect={canSelectGroups}
+                    withChart={withChart}
+                    withColumns={columns}
+                    memberList={members}
+                    useFilteredStats={useFilteredStats}
+                    useTintRow={useTintRow}
+                    statsPeriod={statsPeriod}
+                    source={source}
+                  />
+                );
+              })}
+        </PanelBody>
+      </StyledPanel>
     );
   }
 }

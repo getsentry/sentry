@@ -90,40 +90,38 @@ export default Storybook.story('InputGroup', (story, APIReference) => {
 
   story('Matrix', () => {
     return (
-      <Fragment>
-        <Storybook.PropMatrix
-          render={({leadingItems, trailingItems}) => {
-            return (
-              <InputGroup>
-                {leadingItems ? (
-                  <InputGroup.LeadingItems disablePointerEvents>
-                    {leadingItems}
-                  </InputGroup.LeadingItems>
-                ) : null}
-                <InputGroup.Input placeholder="Search" />
-                {trailingItems ? (
-                  <InputGroup.TrailingItems>{trailingItems}</InputGroup.TrailingItems>
-                ) : null}
-              </InputGroup>
-            );
-          }}
-          selectedProps={['leadingItems', 'trailingItems']}
-          propMatrix={{
-            leadingItems: [null, <IconSearch key="leading-icon" size="sm" />],
-            trailingItems: [
-              null,
-              <IconAttachment key="trailing-icon" size="sm" />,
-              <Button
-                key="trailing-button"
-                borderless
-                icon={<IconSettings />}
-                size="zero"
-                aria-label="Toggle story representation"
-              />,
-            ],
-          }}
-        />
-      </Fragment>
+      <Storybook.PropMatrix
+        render={({leadingItems, trailingItems}) => {
+          return (
+            <InputGroup>
+              {leadingItems ? (
+                <InputGroup.LeadingItems disablePointerEvents>
+                  {leadingItems}
+                </InputGroup.LeadingItems>
+              ) : null}
+              <InputGroup.Input placeholder="Search" />
+              {trailingItems ? (
+                <InputGroup.TrailingItems>{trailingItems}</InputGroup.TrailingItems>
+              ) : null}
+            </InputGroup>
+          );
+        }}
+        selectedProps={['leadingItems', 'trailingItems']}
+        propMatrix={{
+          leadingItems: [null, <IconSearch key="leading-icon" size="sm" />],
+          trailingItems: [
+            null,
+            <IconAttachment key="trailing-icon" size="sm" />,
+            <Button
+              key="trailing-button"
+              borderless
+              icon={<IconSettings />}
+              size="zero"
+              aria-label="Toggle story representation"
+            />,
+          ],
+        }}
+      />
     );
   });
 });

@@ -33,102 +33,97 @@ function PlanTable({organization, previewData, reservations, subscription}: Prop
   const effectiveNow = new Date(effectiveAt).getTime() <= Date.now() + 3600;
 
   return (
-    <Fragment>
-      <Wrapper>
-        <TableItem prev={planName} next={planName}>
-          {t('Plan Type')}
-        </TableItem>
+    <Wrapper>
+      <TableItem prev={planName} next={planName}>
+        {t('Plan Type')}
+      </TableItem>
 
-        <TableItem
-          prev={formatReservedWithUnits(
-            subscription.categories.errors?.reserved ?? null,
-            DataCategory.ERRORS,
-            abbr
-          )}
-          next={formatReservedWithUnits(
-            reservations.reservedErrors,
-            DataCategory.ERRORS,
-            abbr
-          )}
-        >
-          {t('Errors')}
-        </TableItem>
-
-        <TableItem
-          prev={formatReservedWithUnits(
-            subscription.categories.transactions?.reserved ?? null,
-            DataCategory.TRANSACTIONS,
-            abbr
-          )}
-          next={formatReservedWithUnits(
-            reservations.reservedTransactions,
-            DataCategory.TRANSACTIONS,
-            abbr
-          )}
-        >
-          {t('Performance Units')}
-        </TableItem>
-
-        <TableItem
-          prev={0}
-          next={formatReservedWithUnits(500, DataCategory.REPLAYS, abbr)}
-        >
-          {t('Replays')}
-        </TableItem>
-
-        <TableItem
-          prev={formatReservedWithUnits(
-            subscription.categories.attachments?.reserved ?? null,
-            DataCategory.ATTACHMENTS,
-            abbr
-          )}
-          next={formatReservedWithUnits(
-            reservations.reservedAttachments,
-            DataCategory.ATTACHMENTS,
-            abbr
-          )}
-        >
-          {t('Attachments')}
-        </TableItem>
-
-        {billedAmount === 0 ? null : (
-          <TableItem
-            isTotal
-            prev={displayPriceWithCents({
-              cents: billedAmount === 0 ? 0 : subscription.planDetails.totalPrice,
-            })}
-            next={displayPriceWithCents({
-              cents: subscription.planDetails.totalPrice + billedAmount + creditApplied,
-            })}
-          >
-            {t('Price Change')}
-          </TableItem>
+      <TableItem
+        prev={formatReservedWithUnits(
+          subscription.categories.errors?.reserved ?? null,
+          DataCategory.ERRORS,
+          abbr
         )}
+        next={formatReservedWithUnits(
+          reservations.reservedErrors,
+          DataCategory.ERRORS,
+          abbr
+        )}
+      >
+        {t('Errors')}
+      </TableItem>
 
+      <TableItem
+        prev={formatReservedWithUnits(
+          subscription.categories.transactions?.reserved ?? null,
+          DataCategory.TRANSACTIONS,
+          abbr
+        )}
+        next={formatReservedWithUnits(
+          reservations.reservedTransactions,
+          DataCategory.TRANSACTIONS,
+          abbr
+        )}
+      >
+        {t('Performance Units')}
+      </TableItem>
+
+      <TableItem prev={0} next={formatReservedWithUnits(500, DataCategory.REPLAYS, abbr)}>
+        {t('Replays')}
+      </TableItem>
+
+      <TableItem
+        prev={formatReservedWithUnits(
+          subscription.categories.attachments?.reserved ?? null,
+          DataCategory.ATTACHMENTS,
+          abbr
+        )}
+        next={formatReservedWithUnits(
+          reservations.reservedAttachments,
+          DataCategory.ATTACHMENTS,
+          abbr
+        )}
+      >
+        {t('Attachments')}
+      </TableItem>
+
+      {billedAmount === 0 ? null : (
         <TableItem
           isTotal
           prev={displayPriceWithCents({
-            cents: billedAmount,
+            cents: billedAmount === 0 ? 0 : subscription.planDetails.totalPrice,
           })}
           next={displayPriceWithCents({
-            cents: billedAmount,
+            cents: subscription.planDetails.totalPrice + billedAmount + creditApplied,
           })}
         >
-          {t('Total Due')}
+          {t('Price Change')}
         </TableItem>
+      )}
 
-        {hasBillingAccess && !effectiveNow ? (
-          <Fragment>
-            <PlanLabel isTotal />
-            <PlanValue isTotal>
-              <EffectiveDate>
-                {tct('Effective on [date]', {date: getFormattedDate(effectiveAt, 'll')})}
-              </EffectiveDate>
-            </PlanValue>
-          </Fragment>
-        ) : null}
-      </Wrapper>
-    </Fragment>
+      <TableItem
+        isTotal
+        prev={displayPriceWithCents({
+          cents: billedAmount,
+        })}
+        next={displayPriceWithCents({
+          cents: billedAmount,
+        })}
+      >
+        {t('Total Due')}
+      </TableItem>
+
+      {hasBillingAccess && !effectiveNow ? (
+        <Fragment>
+          <PlanLabel isTotal />
+          <PlanValue isTotal>
+            <EffectiveDate>
+              {tct('Effective on [date]', {date: getFormattedDate(effectiveAt, 'll')})}
+            </EffectiveDate>
+          </PlanValue>
+        </Fragment>
+      ) : null}
+    </Wrapper>
   );
 }
 

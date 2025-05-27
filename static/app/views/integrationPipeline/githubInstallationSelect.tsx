@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -74,28 +74,26 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
   );
 
   return (
-    <Fragment>
-      <StyledContainer>
-        <StyledHeader>{t('Install on an Existing Github Organization')}</StyledHeader>
-        <p>
-          {t(
-            'We noticed you already integrated with Github! Do you want to connect an existing Github organization to this Sentry organization or connect a new one?'
-          )}
-        </p>
-        <StyledSelect
-          onChange={handleSelect}
-          options={selectOptions}
-          value={installationID}
-          triggerLabel={installationID ? undefined : 'Choose Installation'}
-        />
+    <StyledContainer>
+      <StyledHeader>{t('Install on an Existing Github Organization')}</StyledHeader>
+      <p>
+        {t(
+          'We noticed you already integrated with Github! Do you want to connect an existing Github organization to this Sentry organization or connect a new one?'
+        )}
+      </p>
+      <StyledSelect
+        onChange={handleSelect}
+        options={selectOptions}
+        value={installationID}
+        triggerLabel={installationID ? undefined : 'Choose Installation'}
+      />
 
-        <ButtonContainer>
-          <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
-            Install
-          </StyledButton>
-        </ButtonContainer>
-      </StyledContainer>
-    </Fragment>
+      <ButtonContainer>
+        <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
+          Install
+        </StyledButton>
+      </ButtonContainer>
+    </StyledContainer>
   );
 }
 

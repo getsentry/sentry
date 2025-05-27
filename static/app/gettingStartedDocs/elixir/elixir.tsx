@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -112,16 +110,14 @@ const onboarding: OnboardingConfig = {
     {
       title: t('Setup for Plug and Phoenix Applications'),
       description: (
-        <Fragment>
-          <p>
-            {tct(
-              'You can capture errors in Plug (and Phoenix) applications with [code:Sentry.PlugContext] and [code:Sentry.PlugCapture]:',
-              {
-                code: <code />,
-              }
-            )}
-          </p>
-        </Fragment>
+        <p>
+          {tct(
+            'You can capture errors in Plug (and Phoenix) applications with [code:Sentry.PlugContext] and [code:Sentry.PlugCapture]:',
+            {
+              code: <code />,
+            }
+          )}
+        </p>
       ),
       configurations: [
         {

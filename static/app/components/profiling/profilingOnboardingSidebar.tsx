@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
@@ -226,49 +226,47 @@ function SidebarContent() {
     : undefined;
 
   return (
-    <Fragment>
-      <Content>
-        <Heading>{t('Profile Code')}</Heading>
-        <div
-          onClick={e => {
-            // we need to stop bubbling the CompactSelect click event
-            // failing to do so will cause the sidebar panel to close
-            // the event.target will be unmounted by the time the panel listener
-            // receives the event and assume the click was outside the panel
-            e.stopPropagation();
-          }}
-        >
-          <CompactSelect
-            triggerLabel={
-              currentProject ? (
-                <StyledIdBadge
-                  project={currentProject}
-                  avatarSize={16}
-                  hideOverflow
-                  disableLink
-                />
-              ) : (
-                t('Select a project')
-              )
-            }
-            value={currentProject?.id}
-            onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
-            triggerProps={{'aria-label': currentProject?.slug}}
-            options={projectSelectOptions}
-            position="bottom-end"
-          />
-        </div>
-        {currentProject && currentPlatform ? (
-          <ProfilingOnboardingContent
-            activeProductSelection={PROFILING_ONBOARDING_STEPS}
-            organization={organization}
-            platform={currentPlatform}
-            projectId={currentProject.id}
-            projectSlug={currentProject.slug}
-          />
-        ) : null}
-      </Content>
-    </Fragment>
+    <Content>
+      <Heading>{t('Profile Code')}</Heading>
+      <div
+        onClick={e => {
+          // we need to stop bubbling the CompactSelect click event
+          // failing to do so will cause the sidebar panel to close
+          // the event.target will be unmounted by the time the panel listener
+          // receives the event and assume the click was outside the panel
+          e.stopPropagation();
+        }}
+      >
+        <CompactSelect
+          triggerLabel={
+            currentProject ? (
+              <StyledIdBadge
+                project={currentProject}
+                avatarSize={16}
+                hideOverflow
+                disableLink
+              />
+            ) : (
+              t('Select a project')
+            )
+          }
+          value={currentProject?.id}
+          onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
+          triggerProps={{'aria-label': currentProject?.slug}}
+          options={projectSelectOptions}
+          position="bottom-end"
+        />
+      </div>
+      {currentProject && currentPlatform ? (
+        <ProfilingOnboardingContent
+          activeProductSelection={PROFILING_ONBOARDING_STEPS}
+          organization={organization}
+          platform={currentPlatform}
+          projectId={currentProject.id}
+          projectSlug={currentProject.slug}
+        />
+      ) : null}
+    </Content>
   );
 }
 

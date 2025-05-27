@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -130,23 +129,19 @@ function MetricField({
           numParameters - (hideParameterSelector ? 1 : 0) - (hidePrimarySelector ? 1 : 0);
 
         return (
-          <Fragment>
-            <StyledQueryField
-              filterPrimaryOptions={option =>
-                option.value.kind === FieldValueKind.FUNCTION
-              }
-              fieldOptions={fieldOptions}
-              fieldValue={fieldValue}
-              onChange={v => onChange(generateFieldAsString(v), {})}
-              columnWidth={columnWidth}
-              gridColumns={parameterColumns + 1}
-              inFieldLabels={inFieldLabels}
-              shouldRenderTag={false}
-              disabled={disabled}
-              hideParameterSelector={hideParameterSelector}
-              hidePrimarySelector={hidePrimarySelector}
-            />
-          </Fragment>
+          <StyledQueryField
+            filterPrimaryOptions={option => option.value.kind === FieldValueKind.FUNCTION}
+            fieldOptions={fieldOptions}
+            fieldValue={fieldValue}
+            onChange={v => onChange(generateFieldAsString(v), {})}
+            columnWidth={columnWidth}
+            gridColumns={parameterColumns + 1}
+            inFieldLabels={inFieldLabels}
+            shouldRenderTag={false}
+            disabled={disabled}
+            hideParameterSelector={hideParameterSelector}
+            hidePrimarySelector={hidePrimarySelector}
+          />
         );
       }}
     </FormField>

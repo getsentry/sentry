@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {
   FeatureBadge,
   type FeatureBadgeProps,
@@ -17,20 +15,18 @@ export default Storybook.story('FeatureBadge', story => {
   ));
 
   story('Variants', () => (
-    <Fragment>
-      <Storybook.PropMatrix<FeatureBadgeProps>
-        render={props => (
-          <span>
-            Feature X
-            <FeatureBadge {...props} />
-          </span>
-        )}
-        propMatrix={{
-          variant: ['badge', 'indicator', 'short'],
-          type: ['alpha', 'beta', 'new', 'experimental'],
-        }}
-        selectedProps={['type', 'variant']}
-      />
-    </Fragment>
+    <Storybook.PropMatrix<FeatureBadgeProps>
+      render={props => (
+        <span>
+          Feature X
+          <FeatureBadge {...props} />
+        </span>
+      )}
+      propMatrix={{
+        variant: ['badge', 'indicator', 'short'],
+        type: ['alpha', 'beta', 'new', 'experimental'],
+      }}
+      selectedProps={['type', 'variant']}
+    />
   ));
 });

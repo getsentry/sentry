@@ -109,109 +109,107 @@ function AggregatesTable({
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
 
   return (
-    <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
-        <TableHead>
-          <TableRow>
-            <TableHeadCell isFirst={false}>
-              <TableHeadCellContent />
-            </TableHeadCell>
-            {fields.map((field, i) => {
-              // Hide column names before alignment is determined
-              if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
-              }
+    <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
+      <TableHead>
+        <TableRow>
+          <TableHeadCell isFirst={false}>
+            <TableHeadCellContent />
+          </TableHeadCell>
+          {fields.map((field, i) => {
+            // Hide column names before alignment is determined
+            if (result.isPending) {
+              return <TableHeadCell key={i} isFirst={i === 0} />;
+            }
 
-              let label = field;
+            let label = field;
 
-              const fieldType = meta.fields?.[field];
-              const align = fieldAlignment(field, fieldType);
-              const tag = stringTags[field] ?? numberTags[field] ?? null;
-              if (tag) {
-                label = tag.name;
-              }
+            const fieldType = meta.fields?.[field];
+            const align = fieldAlignment(field, fieldType);
+            const tag = stringTags[field] ?? numberTags[field] ?? null;
+            if (tag) {
+              label = tag.name;
+            }
 
-              const func = parseFunction(field);
-              if (func) {
-                label = prettifyParsedFunction(func);
-              }
+            const func = parseFunction(field);
+            if (func) {
+              label = prettifyParsedFunction(func);
+            }
 
-              const direction = sortBys.find(s => s.field === field)?.kind;
+            const direction = sortBys.find(s => s.field === field)?.kind;
 
-              return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent>
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
+            return (
+              <TableHeadCell align={align} key={i} isFirst={i === 0}>
+                <TableHeadCellContent>
+                  <Tooltip showOnlyOnOverflow title={label}>
+                    {label}
+                  </Tooltip>
+                  {defined(direction) && (
+                    <IconArrow
+                      size="xs"
+                      direction={
+                        direction === 'desc'
+                          ? 'down'
+                          : direction === 'asc'
+                            ? 'up'
+                            : undefined
+                      }
+                    />
+                  )}
+                </TableHeadCellContent>
+              </TableHeadCell>
+            );
+          })}
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {result.isPending ? (
+          <TableStatus>
+            <LoadingIndicator />
+          </TableStatus>
+        ) : result.isError ? (
+          <TableStatus>
+            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+          </TableStatus>
+        ) : result.isFetched && result.data?.length ? (
+          result.data?.map((row, i) => {
+            const target = getSamplesTargetAtIndex(index, [...queries], row, location);
+            return (
+              <TableRow key={i}>
+                <TableBodyCell key={`samples-${i}`}>
+                  {topEvents && i < topEvents && (
+                    <TopResultsIndicator color={palette[i]!} />
+                  )}
+                  <Tooltip title={t('View Samples')} containerDisplayMode="flex">
+                    <StyledLink to={target} data-test-id={'unstack-link'}>
+                      <IconStack />
+                    </StyledLink>
+                  </Tooltip>
+                </TableBodyCell>
+                {fields.map((field, j) => {
+                  return (
+                    <TableBodyCell key={j}>
+                      <MultiQueryFieldRenderer
+                        index={index}
+                        column={columns[j]!}
+                        data={row}
+                        unit={meta?.units?.[field]}
+                        meta={meta}
                       />
-                    )}
-                  </TableHeadCellContent>
-                </TableHeadCell>
-              );
-            })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {result.isPending ? (
-            <TableStatus>
-              <LoadingIndicator />
-            </TableStatus>
-          ) : result.isError ? (
-            <TableStatus>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-            </TableStatus>
-          ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => {
-              const target = getSamplesTargetAtIndex(index, [...queries], row, location);
-              return (
-                <TableRow key={i}>
-                  <TableBodyCell key={`samples-${i}`}>
-                    {topEvents && i < topEvents && (
-                      <TopResultsIndicator color={palette[i]!} />
-                    )}
-                    <Tooltip title={t('View Samples')} containerDisplayMode="flex">
-                      <StyledLink to={target} data-test-id={'unstack-link'}>
-                        <IconStack />
-                      </StyledLink>
-                    </Tooltip>
-                  </TableBodyCell>
-                  {fields.map((field, j) => {
-                    return (
-                      <TableBodyCell key={j}>
-                        <MultiQueryFieldRenderer
-                          index={index}
-                          column={columns[j]!}
-                          data={row}
-                          unit={meta?.units?.[field]}
-                          meta={meta}
-                        />
-                      </TableBodyCell>
-                    );
-                  })}
-                </TableRow>
-              );
-            })
-          ) : (
-            <TableStatus>
-              <EmptyStateWarning>
-                <p>{t('No spans found')}</p>
-              </EmptyStateWarning>
-            </TableStatus>
-          )}
-        </TableBody>
-      </Table>
-    </Fragment>
+                    </TableBodyCell>
+                  );
+                })}
+              </TableRow>
+            );
+          })
+        ) : (
+          <TableStatus>
+            <EmptyStateWarning>
+              <p>{t('No spans found')}</p>
+            </EmptyStateWarning>
+          </TableStatus>
+        )}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -240,84 +238,82 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
   });
 
   return (
-    <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
-        <TableHead>
-          <TableRow>
-            {visibleFields.map((field, i) => {
-              // Hide column names before alignment is determined
-              if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
-              }
+    <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
+      <TableHead>
+        <TableRow>
+          {visibleFields.map((field, i) => {
+            // Hide column names before alignment is determined
+            if (result.isPending) {
+              return <TableHeadCell key={i} isFirst={i === 0} />;
+            }
 
-              const fieldType = meta.fields?.[field];
-              const align = fieldAlignment(field, fieldType);
-              const tag = stringTags[field] ?? numberTags[field] ?? null;
+            const fieldType = meta.fields?.[field];
+            const align = fieldAlignment(field, fieldType);
+            const tag = stringTags[field] ?? numberTags[field] ?? null;
 
-              const direction = sortBys.find(s => s.field === field)?.kind;
-              const label = tag?.name ?? prettifyTagKey(field);
+            const direction = sortBys.find(s => s.field === field)?.kind;
+            const label = tag?.name ?? prettifyTagKey(field);
 
-              return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent>
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </TableHeadCellContent>
-                </TableHeadCell>
-              );
-            })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {result.isPending ? (
-            <TableStatus>
-              <LoadingIndicator />
-            </TableStatus>
-          ) : result.isError ? (
-            <TableStatus>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-            </TableStatus>
-          ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => (
-              <TableRow key={i}>
-                {visibleFields.map((field, j) => {
-                  return (
-                    <TableBodyCell key={j}>
-                      <MultiQueryFieldRenderer
-                        index={index}
-                        column={columnsFromEventView[j]!}
-                        data={row}
-                        unit={meta?.units?.[field]}
-                        meta={meta}
-                      />
-                    </TableBodyCell>
-                  );
-                })}
-              </TableRow>
-            ))
-          ) : (
-            <TableStatus>
-              <EmptyStateWarning>
-                <p>{t('No spans found')}</p>
-              </EmptyStateWarning>
-            </TableStatus>
-          )}
-        </TableBody>
-      </Table>
-    </Fragment>
+            return (
+              <TableHeadCell align={align} key={i} isFirst={i === 0}>
+                <TableHeadCellContent>
+                  <Tooltip showOnlyOnOverflow title={label}>
+                    {label}
+                  </Tooltip>
+                  {defined(direction) && (
+                    <IconArrow
+                      size="xs"
+                      direction={
+                        direction === 'desc'
+                          ? 'down'
+                          : direction === 'asc'
+                            ? 'up'
+                            : undefined
+                      }
+                    />
+                  )}
+                </TableHeadCellContent>
+              </TableHeadCell>
+            );
+          })}
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {result.isPending ? (
+          <TableStatus>
+            <LoadingIndicator />
+          </TableStatus>
+        ) : result.isError ? (
+          <TableStatus>
+            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+          </TableStatus>
+        ) : result.isFetched && result.data?.length ? (
+          result.data?.map((row, i) => (
+            <TableRow key={i}>
+              {visibleFields.map((field, j) => {
+                return (
+                  <TableBodyCell key={j}>
+                    <MultiQueryFieldRenderer
+                      index={index}
+                      column={columnsFromEventView[j]!}
+                      data={row}
+                      unit={meta?.units?.[field]}
+                      meta={meta}
+                    />
+                  </TableBodyCell>
+                );
+              })}
+            </TableRow>
+          ))
+        ) : (
+          <TableStatus>
+            <EmptyStateWarning>
+              <p>{t('No spans found')}</p>
+            </EmptyStateWarning>
+          </TableStatus>
+        )}
+      </TableBody>
+    </Table>
   );
 }
 

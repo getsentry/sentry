@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Select} from 'sentry/components/core/select';
 import * as Storybook from 'sentry/stories';
 
@@ -47,47 +45,45 @@ export default Storybook.story('Multiple Select', story => {
 
   story('Disabled', () => {
     return (
-      <Fragment>
-        <Storybook.Grid columns={3}>
-          <Select
-            isDisabled
-            multiple
-            size="md"
-            placeholder="medium"
-            options={[
-              {value: 'item1', label: 'Item 1'},
-              {value: 'item2', label: 'Item 2'},
-              {value: 'item3', label: 'Item 3'},
-            ]}
-          />
-          <Select
-            isDisabled
-            multiple
-            size="sm"
-            placeholder="small"
-            defaultValue={[
-              {value: 'item1', label: 'Item 1'},
-              {value: 'item3', label: 'Item 3'},
-            ]}
-            options={[
-              {value: 'item1', label: 'Item 1'},
-              {value: 'item2', label: 'Item 2'},
-              {value: 'item3', label: 'Item 3'},
-            ]}
-          />
-          <Select
-            isDisabled
-            multiple
-            size="xs"
-            placeholder="x-small"
-            options={[
-              {value: 'item1', label: 'Item 1'},
-              {value: 'item2', label: 'Item 2'},
-              {value: 'item3', label: 'Item 3'},
-            ]}
-          />
-        </Storybook.Grid>
-      </Fragment>
+      <Storybook.Grid columns={3}>
+        <Select
+          isDisabled
+          multiple
+          size="md"
+          placeholder="medium"
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+            {value: 'item3', label: 'Item 3'},
+          ]}
+        />
+        <Select
+          isDisabled
+          multiple
+          size="sm"
+          placeholder="small"
+          defaultValue={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item3', label: 'Item 3'},
+          ]}
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+            {value: 'item3', label: 'Item 3'},
+          ]}
+        />
+        <Select
+          isDisabled
+          multiple
+          size="xs"
+          placeholder="x-small"
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+            {value: 'item3', label: 'Item 3'},
+          ]}
+        />
+      </Storybook.Grid>
     );
   });
 

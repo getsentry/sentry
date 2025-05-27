@@ -187,30 +187,28 @@ const addNewCredentials = (
   organization: Organization,
   project: Project
 ) => (
-  <Fragment>
-    <ButtonBar gap={1.5}>
-      <FeedbackWidgetButton />
-      <Tooltip
-        title={t('You must be an organization admin to add new credentials.')}
-        disabled={hasWriteAccess}
+  <ButtonBar gap={1.5}>
+    <FeedbackWidgetButton />
+    <Tooltip
+      title={t('You must be an organization admin to add new credentials.')}
+      disabled={hasWriteAccess}
+    >
+      <Button
+        priority="primary"
+        size="sm"
+        data-test-id="create-new-credentials"
+        disabled={!hasWriteAccess}
+        icon={<IconAdd isCircled />}
+        onClick={() => {
+          openAddTempestCredentialsModal({organization, project});
+          trackAnalytics('tempest.credentials.add_modal_opened', {
+            organization,
+            project_slug: project.slug,
+          });
+        }}
       >
-        <Button
-          priority="primary"
-          size="sm"
-          data-test-id="create-new-credentials"
-          disabled={!hasWriteAccess}
-          icon={<IconAdd isCircled />}
-          onClick={() => {
-            openAddTempestCredentialsModal({organization, project});
-            trackAnalytics('tempest.credentials.add_modal_opened', {
-              organization,
-              project_slug: project.slug,
-            });
-          }}
-        >
-          {t('Add Credentials')}
-        </Button>
-      </Tooltip>
-    </ButtonBar>
-  </Fragment>
+        {t('Add Credentials')}
+      </Button>
+    </Tooltip>
+  </ButtonBar>
 );

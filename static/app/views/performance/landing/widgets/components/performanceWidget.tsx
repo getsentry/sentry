@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -69,26 +69,24 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   const totalHeight = props.Visualizations.reduce((acc, curr) => acc + curr.height, 0);
 
   return (
-    <Fragment>
-      <MEPDataProvider chartSetting={props.chartSetting}>
-        <QueryHandler
-          eventView={props.eventView}
-          widgetData={widgetData}
-          setWidgetDataForKey={setWidgetDataForKey}
-          removeWidgetDataForKey={removeWidgetDataForKey}
-          queryProps={props}
-          queries={queries}
-          api={api}
-        />
-        <DataDisplay<T>
-          chartHeight={200}
-          containerType="panel"
-          {...props}
-          {...widgetProps}
-          totalHeight={totalHeight}
-        />
-      </MEPDataProvider>
-    </Fragment>
+    <MEPDataProvider chartSetting={props.chartSetting}>
+      <QueryHandler
+        eventView={props.eventView}
+        widgetData={widgetData}
+        setWidgetDataForKey={setWidgetDataForKey}
+        removeWidgetDataForKey={removeWidgetDataForKey}
+        queryProps={props}
+        queries={queries}
+        api={api}
+      />
+      <DataDisplay<T>
+        chartHeight={200}
+        containerType="panel"
+        {...props}
+        {...widgetProps}
+        totalHeight={totalHeight}
+      />
+    </MEPDataProvider>
   );
 }
 

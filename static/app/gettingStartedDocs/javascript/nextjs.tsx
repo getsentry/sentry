@@ -112,13 +112,11 @@ const onboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: (
-        <Fragment>
-          <p>
-            {t(
-              'If you see an issue in your Sentry Issues, you have successfully set up Sentry with Next.js.'
-            )}
-          </p>
-        </Fragment>
+        <p>
+          {t(
+            'If you see an issue in your Sentry Issues, you have successfully set up Sentry with Next.js.'
+          )}
+        </p>
       ),
     },
   ],

@@ -29,43 +29,41 @@ function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
 
   return (
-    <React.Fragment>
-      <PageAlertProvider>
-        <FrontendHeader module={ModuleName.RESOURCE} />
-        <ModuleBodyUpsellHook moduleName={ModuleName.RESOURCE}>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <PageAlert />
-              <StyledHeaderContainer>
-                <ToolRibbon>
-                  <ModulePageFilterBar
-                    moduleName={ModuleName.RESOURCE}
-                    extraFilters={
-                      <Fragment>
-                        <DomainSelector
-                          domainAlias={t('Domain')}
-                          moduleName={ModuleName.RESOURCE}
-                          emptyOptionLocation="top"
-                          value={filters[SPAN_DOMAIN] || ''}
-                          additionalQuery={[
-                            ...DEFAULT_RESOURCE_FILTERS,
-                            `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
-                          ]}
-                        />
-                        <SubregionSelector />
-                      </Fragment>
-                    }
-                  />
-                </ToolRibbon>
-              </StyledHeaderContainer>
-              <ModulesOnboarding moduleName={ModuleName.RESOURCE}>
-                <ResourceView />
-              </ModulesOnboarding>
-            </Layout.Main>
-          </Layout.Body>
-        </ModuleBodyUpsellHook>
-      </PageAlertProvider>
-    </React.Fragment>
+    <PageAlertProvider>
+      <FrontendHeader module={ModuleName.RESOURCE} />
+      <ModuleBodyUpsellHook moduleName={ModuleName.RESOURCE}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <PageAlert />
+            <StyledHeaderContainer>
+              <ToolRibbon>
+                <ModulePageFilterBar
+                  moduleName={ModuleName.RESOURCE}
+                  extraFilters={
+                    <Fragment>
+                      <DomainSelector
+                        domainAlias={t('Domain')}
+                        moduleName={ModuleName.RESOURCE}
+                        emptyOptionLocation="top"
+                        value={filters[SPAN_DOMAIN] || ''}
+                        additionalQuery={[
+                          ...DEFAULT_RESOURCE_FILTERS,
+                          `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+                        ]}
+                      />
+                      <SubregionSelector />
+                    </Fragment>
+                  }
+                />
+              </ToolRibbon>
+            </StyledHeaderContainer>
+            <ModulesOnboarding moduleName={ModuleName.RESOURCE}>
+              <ResourceView />
+            </ModulesOnboarding>
+          </Layout.Main>
+        </Layout.Body>
+      </ModuleBodyUpsellHook>
+    </PageAlertProvider>
   );
 }
 

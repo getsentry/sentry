@@ -468,14 +468,12 @@ function Sidebar() {
                 )}
 
                 {isSelfHostedErrorsOnly && (
-                  <Fragment>
-                    <SidebarSection>
-                      {alerts}
-                      {discover}
-                      {dashboards}
-                      {releases}
-                    </SidebarSection>
-                  </Fragment>
+                  <SidebarSection>
+                    {alerts}
+                    {discover}
+                    {dashboards}
+                    {releases}
+                  </SidebarSection>
                 )}
 
                 <SidebarSection>

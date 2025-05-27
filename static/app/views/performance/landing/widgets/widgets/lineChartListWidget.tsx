@@ -856,13 +856,11 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
       PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
     ].includes(props.chartSetting) ? (
-      <Fragment>
-        <div>
-          <LinkButton to={`${route}/`} size="sm">
-            {t('View All')}
-          </LinkButton>
-        </div>
-      </Fragment>
+      <div>
+        <LinkButton to={`${route}/`} size="sm">
+          {t('View All')}
+        </LinkButton>
+      </div>
     ) : (
       ContainerActions && (
         <ContainerActions isLoading={provided.widgetData.list?.isLoading} />

@@ -138,7 +138,7 @@ function AddGiftBudgetModal({
                   label="Gift Amount ($)"
                   help={
                     <Fragment>
-                      <Fragment>Enter gift amount in dollars (max $10,000).</Fragment>
+                      Enter gift amount in dollars (max $10,000).
                       <br />
                       <Fragment>{getHelp()}</Fragment>
                     </Fragment>

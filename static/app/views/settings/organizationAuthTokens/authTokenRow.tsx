@@ -50,14 +50,12 @@ function LastUsed({
 
   if (dateLastUsed) {
     return (
-      <Fragment>
-        <TimeSince
-          date={getDynamicText({
-            value: dateLastUsed,
-            fixed: new Date(1508208080000), // National Pasta Day
-          })}
-        />
-      </Fragment>
+      <TimeSince
+        date={getDynamicText({
+          value: dateLastUsed,
+          fixed: new Date(1508208080000), // National Pasta Day
+        })}
+      />
     );
   }
 
@@ -119,14 +117,12 @@ export function OrganizationAuthTokensAuthTokenRow({
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (
-          <Fragment>
-            <TimeSince
-              date={getDynamicText({
-                value: token.dateCreated,
-                fixed: new Date(1508208080000), // National Pasta Day
-              })}
-            />
-          </Fragment>
+          <TimeSince
+            date={getDynamicText({
+              value: token.dateCreated,
+              fixed: new Date(1508208080000), // National Pasta Day
+            })}
+          />
         )}
       </DateTime>
 

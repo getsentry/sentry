@@ -1,4 +1,4 @@
-import React, {Fragment, useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -80,11 +80,7 @@ function WebVitalsLandingPage() {
             <TopMenuContainer>
               <ModulePageFilterBar
                 moduleName={ModuleName.VITAL}
-                extraFilters={
-                  <Fragment>
-                    <BrowserTypeSelector />
-                  </Fragment>
-                }
+                extraFilters={<BrowserTypeSelector />}
               />
             </TopMenuContainer>
             <MainContentContainer>

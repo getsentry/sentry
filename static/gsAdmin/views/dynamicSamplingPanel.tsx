@@ -360,58 +360,56 @@ function DynamicSamplingRulesTable({
     .filter(row => Object.values(row).join().toLowerCase().includes(searchQuery));
 
   return (
-    <Fragment>
-      <DSRulesTable
-        headers={['Name', 'Type', 'Value', 'Target']}
-        isEmpty={!dynamicSamplingRules.length}
-        emptyMessage="No dynamic sampling rules to display"
-      >
-        {dynamicSamplingRules.map(row => (
-          <Fragment key={row.id}>
-            <NameColumn>
-              {row.type}
-              {defined(row.samplingValue.limit) && (
-                <NameColumnDetail data-test-id="limit">
-                  <strong>Limit:</strong>
-                  <span>{row.samplingValue.limit}</span>
+    <DSRulesTable
+      headers={['Name', 'Type', 'Value', 'Target']}
+      isEmpty={!dynamicSamplingRules.length}
+      emptyMessage="No dynamic sampling rules to display"
+    >
+      {dynamicSamplingRules.map(row => (
+        <Fragment key={row.id}>
+          <NameColumn>
+            {row.type}
+            {defined(row.samplingValue.limit) && (
+              <NameColumnDetail data-test-id="limit">
+                <strong>Limit:</strong>
+                <span>{row.samplingValue.limit}</span>
+              </NameColumnDetail>
+            )}
+            {defined(row.timeRange) && (
+              <div data-test-id="timerange">
+                <NameColumnDetail>
+                  <strong>Start:</strong>
+                  <span>
+                    <DateTime date={row.timeRange.start} />
+                  </span>
                 </NameColumnDetail>
-              )}
-              {defined(row.timeRange) && (
-                <div data-test-id="timerange">
-                  <NameColumnDetail>
-                    <strong>Start:</strong>
-                    <span>
-                      <DateTime date={row.timeRange.start} />
-                    </span>
-                  </NameColumnDetail>
-                  <NameColumnDetail>
-                    <strong>End:</strong>
-                    <span>
-                      <DateTime date={row.timeRange.end} />
-                    </span>
-                  </NameColumnDetail>
-                </div>
-              )}
-            </NameColumn>
-            <div>{row.formattedRateType}</div>
-            <ValueCell>
-              <Tooltip isHoverable title={row.samplingValue.value}>
-                {row.formattedRateValue}
-              </Tooltip>
-              <Tooltip
-                isHoverable
-                title={`This rule ${
-                  row.impact > 0 ? 'increases' : 'decreases'
-                } sample rate of matching events`}
-              >
-                <ImpactIndicatorIcon impact={row.impact} size="xs" />
-              </Tooltip>
-            </ValueCell>
-            <div>{row.target}</div>
-          </Fragment>
-        ))}
-      </DSRulesTable>
-    </Fragment>
+                <NameColumnDetail>
+                  <strong>End:</strong>
+                  <span>
+                    <DateTime date={row.timeRange.end} />
+                  </span>
+                </NameColumnDetail>
+              </div>
+            )}
+          </NameColumn>
+          <div>{row.formattedRateType}</div>
+          <ValueCell>
+            <Tooltip isHoverable title={row.samplingValue.value}>
+              {row.formattedRateValue}
+            </Tooltip>
+            <Tooltip
+              isHoverable
+              title={`This rule ${
+                row.impact > 0 ? 'increases' : 'decreases'
+              } sample rate of matching events`}
+            >
+              <ImpactIndicatorIcon impact={row.impact} size="xs" />
+            </Tooltip>
+          </ValueCell>
+          <div>{row.target}</div>
+        </Fragment>
+      ))}
+    </DSRulesTable>
   );
 }
 

@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -397,15 +397,13 @@ function AutofixRootCauseDisplay({
               placeholder={t('Propose your own root cause...')}
             />
           ) : (
-            <Fragment>
-              <RootCauseDescription
-                cause={cause}
-                groupId={groupId}
-                runId={runId}
-                previousDefaultStepIndex={previousDefaultStepIndex}
-                previousInsightCount={previousInsightCount}
-              />
-            </Fragment>
+            <RootCauseDescription
+              cause={cause}
+              groupId={groupId}
+              runId={runId}
+              previousDefaultStepIndex={previousDefaultStepIndex}
+              previousInsightCount={previousInsightCount}
+            />
           )}
         </Content>
       </ClippedBox>

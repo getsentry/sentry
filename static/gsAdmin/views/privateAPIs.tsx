@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
@@ -37,40 +37,38 @@ function ForceAutoAssignment() {
   };
 
   return (
-    <Fragment>
-      <form onSubmit={handleSubmit}>
-        <p>Force auto-assignment for a list of groups for an organization.</p>
-        <p>Limitations:</p>
-        <ul>
-          <li>Length of group ids must be less than or equal to 100</li>
-          <li>This API has a ratelimit of 1 request per org per minute</li>
-          <li>Groups must have been auto-assigned and then manually assigned</li>
-        </ul>
-        <SearchContainer>
-          <div>Organization Slug:</div>
-          <Input
-            type="text"
-            name="organizaton-slug"
-            onChange={e => setOrganizationSlug(e.target.value)}
-            value={organizationSlug}
-            minLength={1}
-            placeholder="sentry"
-          />
-          <div>List of Group Ids:</div>
-          <Input
-            type="text"
-            name="group-list"
-            onChange={e => setGroupIds(e.target.value)}
-            value={groupIds}
-            minLength={1}
-            placeholder="1, 2, 3"
-          />
-          <Button priority="primary" type="submit">
-            Submit
-          </Button>
-        </SearchContainer>
-      </form>
-    </Fragment>
+    <form onSubmit={handleSubmit}>
+      <p>Force auto-assignment for a list of groups for an organization.</p>
+      <p>Limitations:</p>
+      <ul>
+        <li>Length of group ids must be less than or equal to 100</li>
+        <li>This API has a ratelimit of 1 request per org per minute</li>
+        <li>Groups must have been auto-assigned and then manually assigned</li>
+      </ul>
+      <SearchContainer>
+        <div>Organization Slug:</div>
+        <Input
+          type="text"
+          name="organizaton-slug"
+          onChange={e => setOrganizationSlug(e.target.value)}
+          value={organizationSlug}
+          minLength={1}
+          placeholder="sentry"
+        />
+        <div>List of Group Ids:</div>
+        <Input
+          type="text"
+          name="group-list"
+          onChange={e => setGroupIds(e.target.value)}
+          value={groupIds}
+          minLength={1}
+          placeholder="1, 2, 3"
+        />
+        <Button priority="primary" type="submit">
+          Submit
+        </Button>
+      </SearchContainer>
+    </form>
   );
 }
 

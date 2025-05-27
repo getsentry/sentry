@@ -316,43 +316,41 @@ function LogRowDetails({
       <LogDetailTableBodyCell colSpan={fields.length}>
         {isPending && <LoadingIndicator />}
         {!isPending && data && (
-          <Fragment>
-            <DetailsContent>
-              <DetailsBody>
-                {LogBodyRenderer({
-                  item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
-                  extra: {
-                    highlightTerms,
-                    logColors,
-                    wrapBody: true,
-                    location,
-                    organization,
-                    projectSlug,
-                    attributes,
-                    theme,
-                  },
-                })}
-              </DetailsBody>
-              <LogAttributeTreeWrapper>
-                <AttributesTree<RendererExtra>
-                  attributes={data.attributes}
-                  hiddenAttributes={HiddenLogDetailFields}
-                  getCustomActions={getActions}
-                  getAdjustedAttributeKey={adjustAliases}
-                  renderers={LogAttributesRendererMap}
-                  rendererExtra={{
-                    highlightTerms,
-                    logColors,
-                    location,
-                    organization,
-                    projectSlug,
-                    attributes,
-                    theme,
-                  }}
-                />
-              </LogAttributeTreeWrapper>
-            </DetailsContent>
-          </Fragment>
+          <DetailsContent>
+            <DetailsBody>
+              {LogBodyRenderer({
+                item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
+                extra: {
+                  highlightTerms,
+                  logColors,
+                  wrapBody: true,
+                  location,
+                  organization,
+                  projectSlug,
+                  attributes,
+                  theme,
+                },
+              })}
+            </DetailsBody>
+            <LogAttributeTreeWrapper>
+              <AttributesTree<RendererExtra>
+                attributes={data.attributes}
+                hiddenAttributes={HiddenLogDetailFields}
+                getCustomActions={getActions}
+                getAdjustedAttributeKey={adjustAliases}
+                renderers={LogAttributesRendererMap}
+                rendererExtra={{
+                  highlightTerms,
+                  logColors,
+                  location,
+                  organization,
+                  projectSlug,
+                  attributes,
+                  theme,
+                }}
+              />
+            </LogAttributeTreeWrapper>
+          </DetailsContent>
         )}
       </LogDetailTableBodyCell>
     </DetailsWrapper>

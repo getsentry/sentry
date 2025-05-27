@@ -18,12 +18,10 @@ import {formatPercentRate} from 'sentry/utils/formatters';
 
 function FlakyTestsTooltip() {
   return (
-    <Fragment>
-      <p>
-        <ToolTipTitle>What is it:</ToolTipTitle>
-        The number of tests that transition from fail to pass or pass to fail.
-      </p>
-    </Fragment>
+    <p>
+      <ToolTipTitle>What is it:</ToolTipTitle>
+      The number of tests that transition from fail to pass or pass to fail.
+    </p>
   );
 }
 
@@ -60,12 +58,10 @@ function CumulativeFailuresTooltip() {
 
 function SkippedTestsTooltip() {
   return (
-    <Fragment>
-      <p>
-        <ToolTipTitle>What is it:</ToolTipTitle>
-        The number of tests that were skipped.
-      </p>
-    </Fragment>
+    <p>
+      <ToolTipTitle>What is it:</ToolTipTitle>
+      The number of tests that were skipped.
+    </p>
   );
 }
 

@@ -154,90 +154,88 @@ function PageOverview() {
   };
 
   return (
-    <React.Fragment>
-      <Tabs value={tab} onChange={handleTabChange}>
-        <FrontendHeader
-          headerTitle={
-            <Fragment>
-              {transaction && project && <ProjectAvatar project={project} size={24} />}
-              {transaction ?? t('Page Loads')}
-            </Fragment>
-          }
-          headerActions={
-            transactionSummaryTarget && (
-              <LinkButton
-                to={transactionSummaryTarget}
-                onClick={() => {
-                  trackAnalytics('insight.vital.overview.open_transaction_summary', {
-                    organization,
-                  });
-                }}
-                size="sm"
-              >
-                {t('View Summary')}
-              </LinkButton>
-            )
-          }
-          breadcrumbs={transaction ? [{label: 'Page Summary'}] : []}
-          module={ModuleName.VITAL}
-        />
-        <ModuleBodyUpsellHook moduleName={ModuleName.VITAL}>
-          {tab === LandingDisplayField.SPANS ? (
-            <Layout.Body>
-              <Layout.Main fullWidth>
-                {defined(transaction) && <AggregateSpans transaction={transaction} />}
-              </Layout.Main>
-            </Layout.Body>
-          ) : (
-            <Layout.Body>
-              <Layout.Main>
-                <TopMenuContainer>
-                  <ModulePageFilterBar moduleName={ModuleName.VITAL} />
-                  <BrowserTypeSelector />
-                </TopMenuContainer>
-                <Flex>
-                  <ChartContainer>
-                    <PerformanceScoreBreakdownChartWidget />
-                  </ChartContainer>
-                </Flex>
-                <WebVitalMetersContainer>
-                  {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
-                  <WebVitalMeters
-                    projectData={pageData}
-                    projectScore={projectScore}
-                    onClick={webVital => {
-                      router.replace({
-                        pathname: location.pathname,
-                        query: {...location.query, webVital},
-                      });
-                      setState({...state, webVital});
-                    }}
-                    transaction={transaction}
-                    showTooltip={false}
-                  />
-                </WebVitalMetersContainer>
-                <PageSamplePerformanceTableContainer>
-                  <PageSamplePerformanceTable
-                    transaction={transaction}
-                    limit={15}
-                    search={query}
-                  />
-                </PageSamplePerformanceTableContainer>
-              </Layout.Main>
-              <Layout.Side>
-                <PageOverviewSidebar
+    <Tabs value={tab} onChange={handleTabChange}>
+      <FrontendHeader
+        headerTitle={
+          <Fragment>
+            {transaction && project && <ProjectAvatar project={project} size={24} />}
+            {transaction ?? t('Page Loads')}
+          </Fragment>
+        }
+        headerActions={
+          transactionSummaryTarget && (
+            <LinkButton
+              to={transactionSummaryTarget}
+              onClick={() => {
+                trackAnalytics('insight.vital.overview.open_transaction_summary', {
+                  organization,
+                });
+              }}
+              size="sm"
+            >
+              {t('View Summary')}
+            </LinkButton>
+          )
+        }
+        breadcrumbs={transaction ? [{label: 'Page Summary'}] : []}
+        module={ModuleName.VITAL}
+      />
+      <ModuleBodyUpsellHook moduleName={ModuleName.VITAL}>
+        {tab === LandingDisplayField.SPANS ? (
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              {defined(transaction) && <AggregateSpans transaction={transaction} />}
+            </Layout.Main>
+          </Layout.Body>
+        ) : (
+          <Layout.Body>
+            <Layout.Main>
+              <TopMenuContainer>
+                <ModulePageFilterBar moduleName={ModuleName.VITAL} />
+                <BrowserTypeSelector />
+              </TopMenuContainer>
+              <Flex>
+                <ChartContainer>
+                  <PerformanceScoreBreakdownChartWidget />
+                </ChartContainer>
+              </Flex>
+              <WebVitalMetersContainer>
+                {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
+                <WebVitalMeters
+                  projectData={pageData}
                   projectScore={projectScore}
+                  onClick={webVital => {
+                    router.replace({
+                      pathname: location.pathname,
+                      query: {...location.query, webVital},
+                    });
+                    setState({...state, webVital});
+                  }}
                   transaction={transaction}
-                  projectScoreIsLoading={isPending}
-                  browserTypes={browserTypes}
-                  subregions={subregions}
+                  showTooltip={false}
                 />
-              </Layout.Side>
-            </Layout.Body>
-          )}
-        </ModuleBodyUpsellHook>
-      </Tabs>
-    </React.Fragment>
+              </WebVitalMetersContainer>
+              <PageSamplePerformanceTableContainer>
+                <PageSamplePerformanceTable
+                  transaction={transaction}
+                  limit={15}
+                  search={query}
+                />
+              </PageSamplePerformanceTableContainer>
+            </Layout.Main>
+            <Layout.Side>
+              <PageOverviewSidebar
+                projectScore={projectScore}
+                transaction={transaction}
+                projectScoreIsLoading={isPending}
+                browserTypes={browserTypes}
+                subregions={subregions}
+              />
+            </Layout.Side>
+          </Layout.Body>
+        )}
+      </ModuleBodyUpsellHook>
+    </Tabs>
   );
 }
 

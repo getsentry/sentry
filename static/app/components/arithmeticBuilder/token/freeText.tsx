@@ -1,5 +1,5 @@
 import type {ChangeEvent, FocusEvent, MouseEvent, RefObject} from 'react';
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
@@ -288,50 +288,48 @@ function InternalInput({
   }, []);
 
   return (
-    <Fragment>
-      <ComboBox
-        ref={inputRef}
-        items={items}
-        placeholder={showPlaceholder ? t('Enter equation') : ''}
-        inputLabel={t('Add a term')}
-        inputValue={inputValue}
-        filterValue={filterValue}
-        tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
-        shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
-        onClick={onClick}
-        onInputBlur={onInputBlur}
-        onInputChange={onInputChange}
-        onInputCommit={onInputCommit}
-        onInputEscape={onInputEscape}
-        onInputFocus={onInputFocus}
-        onKeyDown={onKeyDown}
-        onKeyDownCapture={onKeyDownCapture}
-        onOpenChange={setIsOpen}
-        onOptionSelected={onOptionSelected}
-        onPaste={onPaste}
-        data-test-id={
-          state.collection.getLastKey() === item.key
-            ? 'arithmetic-builder-input'
-            : undefined
-        }
-      >
-        {keyItem =>
-          itemIsSection(keyItem) ? (
-            <Section title={keyItem.label} key={keyItem.key}>
-              {keyItem.options.map(child => (
-                <Item {...child} key={child.key}>
-                  {child.label}
-                </Item>
-              ))}
-            </Section>
-          ) : (
-            <Item {...keyItem} key={keyItem.key}>
-              {keyItem.label}
-            </Item>
-          )
-        }
-      </ComboBox>
-    </Fragment>
+    <ComboBox
+      ref={inputRef}
+      items={items}
+      placeholder={showPlaceholder ? t('Enter equation') : ''}
+      inputLabel={t('Add a term')}
+      inputValue={inputValue}
+      filterValue={filterValue}
+      tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
+      shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
+      onClick={onClick}
+      onInputBlur={onInputBlur}
+      onInputChange={onInputChange}
+      onInputCommit={onInputCommit}
+      onInputEscape={onInputEscape}
+      onInputFocus={onInputFocus}
+      onKeyDown={onKeyDown}
+      onKeyDownCapture={onKeyDownCapture}
+      onOpenChange={setIsOpen}
+      onOptionSelected={onOptionSelected}
+      onPaste={onPaste}
+      data-test-id={
+        state.collection.getLastKey() === item.key
+          ? 'arithmetic-builder-input'
+          : undefined
+      }
+    >
+      {keyItem =>
+        itemIsSection(keyItem) ? (
+          <Section title={keyItem.label} key={keyItem.key}>
+            {keyItem.options.map(child => (
+              <Item {...child} key={child.key}>
+                {child.label}
+              </Item>
+            ))}
+          </Section>
+        ) : (
+          <Item {...keyItem} key={keyItem.key}>
+            {keyItem.label}
+          </Item>
+        )
+      }
+    </ComboBox>
   );
 }
 

@@ -141,10 +141,6 @@ export default Storybook.story('SimpleTable', story => {
       },
     ];
 
-    return (
-      <Fragment>
-        <SimpleTable columns={columnsWithWidth} data={data} />
-      </Fragment>
-    );
+    return <SimpleTable columns={columnsWithWidth} data={data} />;
   });
 });

@@ -171,16 +171,14 @@ def init_sentry(**_kwargs):
     {
       type: StepType.VERIFY,
       description: (
-        <Fragment>
-          <p>
-            {tct(
-              "To verify if your SDK is initialized on worker start, you can pass [code:debug=True] to [code:sentry_sdk.init()] to see extra output when the SDK is initialized. If the output appears during worker startup and not only after a task has started, then it's working properly.",
-              {
-                code: <code />,
-              }
-            )}
-          </p>
-        </Fragment>
+        <p>
+          {tct(
+            "To verify if your SDK is initialized on worker start, you can pass [code:debug=True] to [code:sentry_sdk.init()] to see extra output when the SDK is initialized. If the output appears during worker startup and not only after a task has started, then it's working properly.",
+            {
+              code: <code />,
+            }
+          )}
+        </p>
       ),
     },
   ],

@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -32,56 +31,49 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
     : area;
 
   return (
-    <Fragment>
-      <TraceIssueLinkContainer
-        to={{
-          pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${event.id}/`,
-          query: {
-            referrer: queryReferrer,
-          },
-        }}
-        onClick={() => {
-          // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
-          if (area.includes('issue_details')) {
-            trackAnalytics('issue_details.related_trace_issue.trace_issue_clicked', {
-              organization,
-              group_id: issueId,
-            });
-          }
-          trackAnalytics('one_other_related_trace_issue.clicked', {
+    <TraceIssueLinkContainer
+      to={{
+        pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${event.id}/`,
+        query: {
+          referrer: queryReferrer,
+        },
+      }}
+      onClick={() => {
+        // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
+        if (area.includes('issue_details')) {
+          trackAnalytics('issue_details.related_trace_issue.trace_issue_clicked', {
             organization,
             group_id: issueId,
-            area,
           });
-        }}
-      >
-        <TraceIssueProjectBadge>
-          {project ? (
-            <ProjectBadge
-              project={project}
-              avatarSize={avatarSize}
-              hideName
-              disableLink
-            />
-          ) : (
-            <Placeholder
-              shape="rect"
-              width={`${projectBadgeSize}px`}
-              height={`${projectBadgeSize}px`}
-            />
-          )}
-        </TraceIssueProjectBadge>
-        <TraceIssueDetailsContainer>
-          <NoOverflowDiv>
-            <TraceIssueEventTitle>{title}</TraceIssueEventTitle>
-            <TraceIssueEventSubtitle data-test-id="subtitle-span">
-              {subtitle}
-            </TraceIssueEventSubtitle>
-          </NoOverflowDiv>
-          <NoOverflowDiv>{message}</NoOverflowDiv>
-        </TraceIssueDetailsContainer>
-      </TraceIssueLinkContainer>
-    </Fragment>
+        }
+        trackAnalytics('one_other_related_trace_issue.clicked', {
+          organization,
+          group_id: issueId,
+          area,
+        });
+      }}
+    >
+      <TraceIssueProjectBadge>
+        {project ? (
+          <ProjectBadge project={project} avatarSize={avatarSize} hideName disableLink />
+        ) : (
+          <Placeholder
+            shape="rect"
+            width={`${projectBadgeSize}px`}
+            height={`${projectBadgeSize}px`}
+          />
+        )}
+      </TraceIssueProjectBadge>
+      <TraceIssueDetailsContainer>
+        <NoOverflowDiv>
+          <TraceIssueEventTitle>{title}</TraceIssueEventTitle>
+          <TraceIssueEventSubtitle data-test-id="subtitle-span">
+            {subtitle}
+          </TraceIssueEventSubtitle>
+        </NoOverflowDiv>
+        <NoOverflowDiv>{message}</NoOverflowDiv>
+      </TraceIssueDetailsContainer>
+    </TraceIssueLinkContainer>
   );
 }
 

@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -49,14 +47,12 @@ function TableHeader() {
 function Actions() {
   const organization = useOrganization();
   return (
-    <Fragment>
-      <LinkButton
-        to={`${makeMonitorBasePathname(organization.slug)}new/`}
-        priority="primary"
-        icon={<IconAdd />}
-      >
-        {t('Create Monitor')}
-      </LinkButton>
-    </Fragment>
+    <LinkButton
+      to={`${makeMonitorBasePathname(organization.slug)}new/`}
+      priority="primary"
+      icon={<IconAdd />}
+    >
+      {t('Create Monitor')}
+    </LinkButton>
   );
 }

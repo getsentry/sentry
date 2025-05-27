@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
@@ -168,100 +166,86 @@ export default Storybook.story('Grid Cell Components', story => {
   };
 
   story('TitleCell', () => (
-    <Fragment>
-      <GridEditable
-        data={data}
-        columnOrder={TitleTable}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-      />
-    </Fragment>
+    <GridEditable
+      data={data}
+      columnOrder={TitleTable}
+      columnSortBy={[]}
+      grid={{
+        renderHeadCell,
+        renderBodyCell,
+      }}
+    />
   ));
 
   story('ActionCell', () => (
-    <Fragment>
-      <GridEditable
-        data={data}
-        columnOrder={actionTable}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-      />
-    </Fragment>
+    <GridEditable
+      data={data}
+      columnOrder={actionTable}
+      columnSortBy={[]}
+      grid={{
+        renderHeadCell,
+        renderBodyCell,
+      }}
+    />
   ));
 
   story('TimeAgoCell', () => (
-    <Fragment>
-      <GridEditable
-        data={data}
-        columnOrder={timeAgoTable}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-      />
-    </Fragment>
+    <GridEditable
+      data={data}
+      columnOrder={timeAgoTable}
+      columnSortBy={[]}
+      grid={{
+        renderHeadCell,
+        renderBodyCell,
+      }}
+    />
   ));
 
   story('ConnectionCell', () => (
-    <Fragment>
-      <GridEditable
-        data={data}
-        columnOrder={linkedGroupsTable}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-      />
-    </Fragment>
+    <GridEditable
+      data={data}
+      columnOrder={linkedGroupsTable}
+      columnSortBy={[]}
+      grid={{
+        renderHeadCell,
+        renderBodyCell,
+      }}
+    />
   ));
 
   story('NumberCell', () => (
-    <Fragment>
-      <GridEditable
-        data={data}
-        columnOrder={openIssuesTable}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-      />
-    </Fragment>
+    <GridEditable
+      data={data}
+      columnOrder={openIssuesTable}
+      columnSortBy={[]}
+      grid={{
+        renderHeadCell,
+        renderBodyCell,
+      }}
+    />
   ));
 
   story('TypeCell', () => (
-    <Fragment>
-      <GridEditable
-        data={data}
-        columnOrder={typeTable}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-      />
-    </Fragment>
+    <GridEditable
+      data={data}
+      columnOrder={typeTable}
+      columnSortBy={[]}
+      grid={{
+        renderHeadCell,
+        renderBodyCell,
+      }}
+    />
   ));
 
   story('UserCell', () => (
-    <Fragment>
-      <GridEditable
-        data={data}
-        columnOrder={userTable}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-        }}
-      />
-    </Fragment>
+    <GridEditable
+      data={data}
+      columnOrder={userTable}
+      columnSortBy={[]}
+      grid={{
+        renderHeadCell,
+        renderBodyCell,
+      }}
+    />
   ));
 });

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -331,41 +331,39 @@ export function WizardProjectSelection({
         )}
       </FieldWrapper>
       {isCreateProjectSelected && (
-        <Fragment>
-          <Columns>
-            <FieldWrapper>
-              <label>{t('Project Name')}</label>
-              <Input
-                value={newProjectName}
-                onChange={event => setNewProjectName(event.target.value)}
-                placeholder={t('Enter a project name')}
-              />
-            </FieldWrapper>
-            <FieldWrapper>
-              <label>{t('Team')}</label>
-              <StyledCompactSelect
-                value={newProjectTeam as string}
-                options={
-                  selectableTeams?.map(team => ({
-                    value: team.slug,
-                    label: `#${team.slug}`,
-                    leadingItems: <IdBadge team={team} hideName />,
-                    searchKey: team.slug,
-                  })) || []
-                }
-                triggerLabel={selectedTeam ? `#${selectedTeam.slug}` : t('Select a team')}
-                triggerProps={{
-                  icon: selectedTeam ? (
-                    <IdBadge avatarSize={16} team={selectedTeam} hideName />
-                  ) : null,
-                }}
-                onChange={({value}) => {
-                  setNewProjectTeam(value as string);
-                }}
-              />
-            </FieldWrapper>
-          </Columns>
-        </Fragment>
+        <Columns>
+          <FieldWrapper>
+            <label>{t('Project Name')}</label>
+            <Input
+              value={newProjectName}
+              onChange={event => setNewProjectName(event.target.value)}
+              placeholder={t('Enter a project name')}
+            />
+          </FieldWrapper>
+          <FieldWrapper>
+            <label>{t('Team')}</label>
+            <StyledCompactSelect
+              value={newProjectTeam as string}
+              options={
+                selectableTeams?.map(team => ({
+                  value: team.slug,
+                  label: `#${team.slug}`,
+                  leadingItems: <IdBadge team={team} hideName />,
+                  searchKey: team.slug,
+                })) || []
+              }
+              triggerLabel={selectedTeam ? `#${selectedTeam.slug}` : t('Select a team')}
+              triggerProps={{
+                icon: selectedTeam ? (
+                  <IdBadge avatarSize={16} team={selectedTeam} hideName />
+                ) : null,
+              }}
+              onChange={({value}) => {
+                setNewProjectTeam(value as string);
+              }}
+            />
+          </FieldWrapper>
+        </Columns>
       )}
       <SubmitButton disabled={!isFormValid || isPending} priority="primary" type="submit">
         {t('Continue')}

@@ -91,11 +91,9 @@ export default function TagsDistributionDrawer({
                 }}
               />
               {includeFeatureFlagsTab ? (
-                <Fragment>
-                  <Tooltip title="Highlighted tags are shown first">
-                    <Button aria-label="" disabled size="xs" icon={<IconSort />} />
-                  </Tooltip>
-                </Fragment>
+                <Tooltip title="Highlighted tags are shown first">
+                  <Button aria-label="" disabled size="xs" icon={<IconSort />} />
+                </Tooltip>
               ) : null}
             </ButtonBar>
           </EventStickyControls>

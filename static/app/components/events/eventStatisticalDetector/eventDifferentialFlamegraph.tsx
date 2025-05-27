@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useReducer, useState} from 'react';
+import {useCallback, useEffect, useMemo, useReducer, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
@@ -80,24 +80,22 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
   });
 
   return (
-    <Fragment>
-      <FlamegraphThemeProvider>
-        <FlamegraphStateProvider
-          initialState={{
-            preferences: {
-              sorting: 'alphabetical',
-              view: 'top down',
-            },
-          }}
-        >
-          <EventDifferentialFlamegraphView
-            project={project}
-            before={before}
-            after={after}
-          />
-        </FlamegraphStateProvider>
-      </FlamegraphThemeProvider>
-    </Fragment>
+    <FlamegraphThemeProvider>
+      <FlamegraphStateProvider
+        initialState={{
+          preferences: {
+            sorting: 'alphabetical',
+            view: 'top down',
+          },
+        }}
+      >
+        <EventDifferentialFlamegraphView
+          project={project}
+          before={before}
+          after={after}
+        />
+      </FlamegraphStateProvider>
+    </FlamegraphThemeProvider>
   );
 }
 

@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -55,26 +55,24 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   return (
     <ErrorBoundary mini>
       {timelineStatus === 'shown' && (
-        <Fragment>
-          <TimelineWrapper>
-            <div ref={timelineRef}>
-              <TimelineEventsContainer>
-                <TimelineOutline />
-                {/* Sets a min width of 200 for testing */}
-                <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
-              </TimelineEventsContainer>
-            </div>
-            <QuestionTooltipWrapper>
-              <QuestionTooltip
-                size="sm"
-                title={t(
-                  'This is a trace timeline showing all related events happening upstream and downstream of this event'
-                )}
-                position="bottom"
-              />
-            </QuestionTooltipWrapper>
-          </TimelineWrapper>
-        </Fragment>
+        <TimelineWrapper>
+          <div ref={timelineRef}>
+            <TimelineEventsContainer>
+              <TimelineOutline />
+              {/* Sets a min width of 200 for testing */}
+              <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
+            </TimelineEventsContainer>
+          </div>
+          <QuestionTooltipWrapper>
+            <QuestionTooltip
+              size="sm"
+              title={t(
+                'This is a trace timeline showing all related events happening upstream and downstream of this event'
+              )}
+              position="bottom"
+            />
+          </QuestionTooltipWrapper>
+        </TimelineWrapper>
       )}
     </ErrorBoundary>
   );

@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Component, createRef, Fragment} from 'react';
+import {Component, createRef} from 'react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -468,30 +468,28 @@ class GridEditable<
     } = this.props;
     const showHeader = title || headerButtons;
     return (
-      <Fragment>
-        <Profiler id="GridEditable" onRender={onRenderCallback}>
-          {showHeader && (
-            <Header>
-              {title && <HeaderTitle>{title}</HeaderTitle>}
-              {headerButtons && (
-                <HeaderButtonContainer>{headerButtons()}</HeaderButtonContainer>
-              )}
-            </Header>
-          )}
-          <Body style={bodyStyle}>
-            <Grid
-              aria-label={ariaLabel}
-              data-test-id="grid-editable"
-              scrollable={scrollable}
-              height={height}
-              ref={this.refGrid}
-            >
-              <GridHead>{this.renderGridHead()}</GridHead>
-              <GridBody>{this.renderGridBody()}</GridBody>
-            </Grid>
-          </Body>
-        </Profiler>
-      </Fragment>
+      <Profiler id="GridEditable" onRender={onRenderCallback}>
+        {showHeader && (
+          <Header>
+            {title && <HeaderTitle>{title}</HeaderTitle>}
+            {headerButtons && (
+              <HeaderButtonContainer>{headerButtons()}</HeaderButtonContainer>
+            )}
+          </Header>
+        )}
+        <Body style={bodyStyle}>
+          <Grid
+            aria-label={ariaLabel}
+            data-test-id="grid-editable"
+            scrollable={scrollable}
+            height={height}
+            ref={this.refGrid}
+          >
+            <GridHead>{this.renderGridHead()}</GridHead>
+            <GridBody>{this.renderGridBody()}</GridBody>
+          </Grid>
+        </Body>
+      </Profiler>
     );
   }
 }

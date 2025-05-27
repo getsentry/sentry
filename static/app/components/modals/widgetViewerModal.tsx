@@ -993,88 +993,86 @@ function WidgetViewerModal(props: Props) {
   }
 
   return (
-    <Fragment>
-      <DashboardsMEPProvider>
-        <MetricsCardinalityProvider organization={organization} location={location}>
-          <MetricsDataSwitcher
-            organization={organization}
-            eventView={eventView}
-            location={location}
-            hideLoadingIndicator
-          >
-            {metricsDataSide => (
-              <MEPSettingProvider
-                location={location}
-                forceTransactions={metricsDataSide.forceTransactionsOnly}
-              >
-                <Header closeButton>
-                  <WidgetHeader>
-                    <WidgetTitleRow>
-                      <h3>{widget.title}</h3>
-                      <DiscoverSplitAlert widget={widget} />
-                    </WidgetTitleRow>
-                    {widget.description && (
-                      <Tooltip
-                        title={widget.description}
-                        containerDisplayMode="grid"
-                        showOnlyOnOverflow
-                        isHoverable
-                        position="bottom"
+    <DashboardsMEPProvider>
+      <MetricsCardinalityProvider organization={organization} location={location}>
+        <MetricsDataSwitcher
+          organization={organization}
+          eventView={eventView}
+          location={location}
+          hideLoadingIndicator
+        >
+          {metricsDataSide => (
+            <MEPSettingProvider
+              location={location}
+              forceTransactions={metricsDataSide.forceTransactionsOnly}
+            >
+              <Header closeButton>
+                <WidgetHeader>
+                  <WidgetTitleRow>
+                    <h3>{widget.title}</h3>
+                    <DiscoverSplitAlert widget={widget} />
+                  </WidgetTitleRow>
+                  {widget.description && (
+                    <Tooltip
+                      title={widget.description}
+                      containerDisplayMode="grid"
+                      showOnlyOnOverflow
+                      isHoverable
+                      position="bottom"
+                    >
+                      <WidgetDescription>{widget.description}</WidgetDescription>
+                    </Tooltip>
+                  )}
+                </WidgetHeader>
+              </Header>
+              <Body>{renderWidgetViewer()}</Body>
+              <Footer>
+                <ResultsContainer>
+                  {renderTotalResults(totalResults, widget.widgetType)}
+                  <ButtonBar gap={1}>
+                    {onEdit && widget.id && (
+                      <Button
+                        onClick={() => {
+                          closeModal();
+                          onEdit();
+                          trackAnalytics('dashboards_views.widget_viewer.edit', {
+                            organization,
+                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            display_type: widget.displayType,
+                          });
+                        }}
+                        disabled={!hasEditAccess}
+                        title={
+                          !hasEditAccess &&
+                          t('You do not have permission to edit this widget')
+                        }
                       >
-                        <WidgetDescription>{widget.description}</WidgetDescription>
-                      </Tooltip>
+                        {t('Edit Widget')}
+                      </Button>
                     )}
-                  </WidgetHeader>
-                </Header>
-                <Body>{renderWidgetViewer()}</Body>
-                <Footer>
-                  <ResultsContainer>
-                    {renderTotalResults(totalResults, widget.widgetType)}
-                    <ButtonBar gap={1}>
-                      {onEdit && widget.id && (
-                        <Button
-                          onClick={() => {
-                            closeModal();
-                            onEdit();
-                            trackAnalytics('dashboards_views.widget_viewer.edit', {
-                              organization,
-                              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                              display_type: widget.displayType,
-                            });
-                          }}
-                          disabled={!hasEditAccess}
-                          title={
-                            !hasEditAccess &&
-                            t('You do not have permission to edit this widget')
-                          }
-                        >
-                          {t('Edit Widget')}
-                        </Button>
-                      )}
-                      {widget.widgetType && (
-                        <OpenButton
-                          widget={primaryWidget}
-                          dashboardFilters={dashboardFilters}
-                          organization={organization}
-                          selection={modalSelection}
-                          selectedQueryIndex={selectedQueryIndex}
-                          disabled={isUsingPerformanceScore(widget)}
-                          disabledTooltip={
-                            isUsingPerformanceScore(widget)
-                              ? performanceScoreTooltip
-                              : undefined
-                          }
-                        />
-                      )}
-                    </ButtonBar>
-                  </ResultsContainer>
-                </Footer>
-              </MEPSettingProvider>
-            )}
-          </MetricsDataSwitcher>
-        </MetricsCardinalityProvider>
-      </DashboardsMEPProvider>
-    </Fragment>
+                    {widget.widgetType && (
+                      <OpenButton
+                        widget={primaryWidget}
+                        dashboardFilters={dashboardFilters}
+                        organization={organization}
+                        selection={modalSelection}
+                        selectedQueryIndex={selectedQueryIndex}
+                        disabled={isUsingPerformanceScore(widget)}
+                        disabledTooltip={
+                          isUsingPerformanceScore(widget)
+                            ? performanceScoreTooltip
+                            : undefined
+                        }
+                      />
+                    )}
+                  </ButtonBar>
+                </ResultsContainer>
+              </Footer>
+            </MEPSettingProvider>
+          )}
+        </MetricsDataSwitcher>
+      </MetricsCardinalityProvider>
+    </DashboardsMEPProvider>
   );
 }
 

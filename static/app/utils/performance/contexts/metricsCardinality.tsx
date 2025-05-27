@@ -1,5 +1,5 @@
 import type {ComponentProps, ReactNode} from 'react';
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
@@ -96,43 +96,41 @@ export function MetricsCardinalityProvider(props: {
   }
 
   return (
-    <Fragment>
-      <MetricsCompatibilityQuery eventView={_eventView} {...baseDiscoverProps}>
-        {compatabilityResult => (
-          <MetricsCompatibilitySumsQuery eventView={_eventView} {...baseDiscoverProps}>
-            {sumsResult => {
-              const isLoading = compatabilityResult.isLoading || sumsResult.isLoading;
-              const outcome =
-                compatabilityResult.isLoading || sumsResult.isLoading
-                  ? undefined
-                  : getMetricsOutcome(
-                      compatabilityResult.tableData && sumsResult.tableData
-                        ? {
-                            ...compatabilityResult.tableData,
-                            ...sumsResult.tableData,
-                          }
-                        : null,
-                      !!compatabilityResult.error && !!sumsResult.error,
-                      props.organization
-                    );
+    <MetricsCompatibilityQuery eventView={_eventView} {...baseDiscoverProps}>
+      {compatabilityResult => (
+        <MetricsCompatibilitySumsQuery eventView={_eventView} {...baseDiscoverProps}>
+          {sumsResult => {
+            const isLoading = compatabilityResult.isLoading || sumsResult.isLoading;
+            const outcome =
+              compatabilityResult.isLoading || sumsResult.isLoading
+                ? undefined
+                : getMetricsOutcome(
+                    compatabilityResult.tableData && sumsResult.tableData
+                      ? {
+                          ...compatabilityResult.tableData,
+                          ...sumsResult.tableData,
+                        }
+                      : null,
+                    !!compatabilityResult.error && !!sumsResult.error,
+                    props.organization
+                  );
 
-              return (
-                <Provider
-                  sendOutcomeAnalytics={props.sendOutcomeAnalytics}
-                  organization={props.organization}
-                  value={{
-                    isLoading,
-                    outcome,
-                  }}
-                >
-                  {props.children}
-                </Provider>
-              );
-            }}
-          </MetricsCompatibilitySumsQuery>
-        )}
-      </MetricsCompatibilityQuery>
-    </Fragment>
+            return (
+              <Provider
+                sendOutcomeAnalytics={props.sendOutcomeAnalytics}
+                organization={props.organization}
+                value={{
+                  isLoading,
+                  outcome,
+                }}
+              >
+                {props.children}
+              </Provider>
+            );
+          }}
+        </MetricsCompatibilitySumsQuery>
+      )}
+    </MetricsCompatibilityQuery>
   );
 }
 

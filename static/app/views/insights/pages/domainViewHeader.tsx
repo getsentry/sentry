@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
@@ -101,47 +100,45 @@ export function DomainViewHeader({
   ];
 
   return (
-    <Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
-          <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            {selectedModule === ModuleName.SESSIONS ? (
-              <FeedbackButtonTour />
-            ) : (
-              <FeedbackWidgetButton
-                optionOverrides={
-                  isLaravelInsightsAvailable || isNextJsInsightsEnabled
-                    ? {
-                        tags: {
-                          ['feedback.source']: isLaravelInsightsAvailable
-                            ? 'laravel-insights'
-                            : 'nextjs-insights',
-                          ['feedback.owner']: 'telemetry-experience',
-                        },
-                      }
-                    : undefined
-                }
-              />
-            )}
-            {additonalHeaderActions}
-          </ButtonBar>
-        </Layout.HeaderActions>
-        <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
-          {!hideDefaultTabs && (
-            <TabList hideBorder>
-              {tabList.map(tab => (
-                <TabList.Item {...tab} key={tab.key} />
-              ))}
-            </TabList>
+    <Layout.Header>
+      <Layout.HeaderContent>
+        {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
+        <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
+      </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        <ButtonBar gap={1}>
+          {selectedModule === ModuleName.SESSIONS ? (
+            <FeedbackButtonTour />
+          ) : (
+            <FeedbackWidgetButton
+              optionOverrides={
+                isLaravelInsightsAvailable || isNextJsInsightsEnabled
+                  ? {
+                      tags: {
+                        ['feedback.source']: isLaravelInsightsAvailable
+                          ? 'laravel-insights'
+                          : 'nextjs-insights',
+                        ['feedback.owner']: 'telemetry-experience',
+                      },
+                    }
+                  : undefined
+              }
+            />
           )}
-          {hideDefaultTabs && tabs?.tabList}
-        </Layout.HeaderTabs>
-      </Layout.Header>
-    </Fragment>
+          {additonalHeaderActions}
+        </ButtonBar>
+      </Layout.HeaderActions>
+      <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
+        {!hideDefaultTabs && (
+          <TabList hideBorder>
+            {tabList.map(tab => (
+              <TabList.Item {...tab} key={tab.key} />
+            ))}
+          </TabList>
+        )}
+        {hideDefaultTabs && tabs?.tabList}
+      </Layout.HeaderTabs>
+    </Layout.Header>
   );
 }
 

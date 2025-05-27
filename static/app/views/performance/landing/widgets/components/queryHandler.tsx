@@ -81,11 +81,7 @@ function SingleQueryHandler<T extends WidgetDataConstraint>(
       referrer={genericQueryReferrer(props.queryProps.chartSetting)}
     >
       {results => {
-        return (
-          <Fragment>
-            <QueryResultSaver<T> results={results} {...props} query={query} />
-          </Fragment>
-        );
+        return <QueryResultSaver<T> results={results} {...props} query={query} />;
       }}
     </query.component>
   );

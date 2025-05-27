@@ -163,17 +163,15 @@ class ResultsHeader extends Component<Props, State> {
             </Fragment>
           ) : (
             // Only has discover-basic
-            <Fragment>
-              <Layout.Title>
-                {t('Discover')}
-                <PageHeadingQuestionTooltip
-                  docsUrl="https://docs.sentry.io/product/discover-queries/"
-                  title={t(
-                    'Create queries to get insights into the health of your system.'
-                  )}
-                />
-              </Layout.Title>
-            </Fragment>
+            <Layout.Title>
+              {t('Discover')}
+              <PageHeadingQuestionTooltip
+                docsUrl="https://docs.sentry.io/product/discover-queries/"
+                title={t(
+                  'Create queries to get insights into the health of your system.'
+                )}
+              />
+            </Layout.Title>
           )}
           {this.renderAuthor()}
         </Layout.HeaderContent>

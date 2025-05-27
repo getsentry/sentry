@@ -1418,11 +1418,7 @@ function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
             key={platform}
             isHoverable
             overlayStyle={{maxWidth: 440}}
-            title={
-              <Fragment>
-                <Storybook.JSXNode name="PlatformIcon" props={{platform}} />
-              </Fragment>
-            }
+            title={<Storybook.JSXNode name="PlatformIcon" props={{platform}} />}
           >
             <Cell>
               <PlatformIcon platform={platform} /> {platform}
@@ -1501,9 +1497,7 @@ function PluginIconsSection({searchTerm}: {searchTerm: string}) {
             isHoverable
             overlayStyle={{maxWidth: 440}}
             title={
-              <Fragment>
-                <Storybook.JSXNode name="PluginIcon" props={{pluginId: platform.id}} />
-              </Fragment>
+              <Storybook.JSXNode name="PluginIcon" props={{pluginId: platform.id}} />
             }
           >
             <Cell>
@@ -1569,12 +1563,7 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
             isHoverable
             overlayStyle={{maxWidth: 440}}
             title={
-              <Fragment>
-                <Storybook.JSXNode
-                  name="IdentityIcon"
-                  props={{providerId: platform.id}}
-                />
-              </Fragment>
+              <Storybook.JSXNode name="IdentityIcon" props={{providerId: platform.id}} />
             }
           >
             <Cell>

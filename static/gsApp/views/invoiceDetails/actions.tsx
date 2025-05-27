@@ -89,30 +89,24 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
   const showPayNowButton = !invoice.isPaid && !invoice.isClosed && !isSelfServePartner;
 
   return (
-    <Fragment>
-      <ActionContainer className="no-print">
-        <EmailForm method="post" action="" onSubmit={handleSend}>
-          {invoice.isPaid && (
-            <Fragment>
-              <Input type="email" name="email" placeholder="you@example.com" />
-              <StyledButton type="submit" priority="primary">
-                {t('Email Receipt')}
-              </StyledButton>
-            </Fragment>
-          )}
-          {showPayNowButton && (
-            <StyledButton
-              priority="primary"
-              onClick={handlePayNow}
-              data-test-id="pay-now"
-            >
-              {t('Pay Now')}
+    <ActionContainer className="no-print">
+      <EmailForm method="post" action="" onSubmit={handleSend}>
+        {invoice.isPaid && (
+          <Fragment>
+            <Input type="email" name="email" placeholder="you@example.com" />
+            <StyledButton type="submit" priority="primary">
+              {t('Email Receipt')}
             </StyledButton>
-          )}
-          <StyledLinkButton href={invoice.receipt.url}>{t('Save PDF')}</StyledLinkButton>
-        </EmailForm>
-      </ActionContainer>
-    </Fragment>
+          </Fragment>
+        )}
+        {showPayNowButton && (
+          <StyledButton priority="primary" onClick={handlePayNow} data-test-id="pay-now">
+            {t('Pay Now')}
+          </StyledButton>
+        )}
+        <StyledLinkButton href={invoice.receipt.url}>{t('Save PDF')}</StyledLinkButton>
+      </EmailForm>
+    </ActionContainer>
   );
 }
 

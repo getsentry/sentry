@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -18,11 +16,9 @@ function renderTraceFull({isLoading, error, type}: any) {
     return error;
   }
   return (
-    <Fragment>
-      <div key="type" data-test-id="type">
-        {type}
-      </div>
-    </Fragment>
+    <div key="type" data-test-id="type">
+      {type}
+    </div>
   );
 }
 

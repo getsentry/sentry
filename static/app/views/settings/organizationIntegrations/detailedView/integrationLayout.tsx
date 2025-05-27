@@ -242,42 +242,38 @@ function InformationCard({
   const {FeatureList} = getIntegrationFeatureGate();
 
   return (
-    <Fragment>
-      <Flex align="center">
-        <FlexContainer>
-          <Description text={description} />
-          <FeatureList
-            features={features}
-            organization={organization}
-            provider={{key: integrationSlug}}
-          />
-          {permissions}
-          {alerts.map((alert, i) => (
-            <Alert.Container key={i}>
-              <Alert key={i} type={alert.type} showIcon>
-                <span
-                  dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
-                />
-              </Alert>
-            </Alert.Container>
-          ))}
-        </FlexContainer>
-        <Metadata>
-          {author && (
-            <AuthorInfo>
-              <CreatedContainer>{t('Created By')}</CreatedContainer>
-              <div>{author}</div>
-            </AuthorInfo>
-          )}
-          {resourceLinks.map(({title, url}) => (
-            <ExternalLinkContainer key={url}>
-              <ResourceIcon title={title} />
-              <ExternalLink href={url}>{title}</ExternalLink>
-            </ExternalLinkContainer>
-          ))}
-        </Metadata>
-      </Flex>
-    </Fragment>
+    <Flex align="center">
+      <FlexContainer>
+        <Description text={description} />
+        <FeatureList
+          features={features}
+          organization={organization}
+          provider={{key: integrationSlug}}
+        />
+        {permissions}
+        {alerts.map((alert, i) => (
+          <Alert.Container key={i}>
+            <Alert key={i} type={alert.type} showIcon>
+              <span dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}} />
+            </Alert>
+          </Alert.Container>
+        ))}
+      </FlexContainer>
+      <Metadata>
+        {author && (
+          <AuthorInfo>
+            <CreatedContainer>{t('Created By')}</CreatedContainer>
+            <div>{author}</div>
+          </AuthorInfo>
+        )}
+        {resourceLinks.map(({title, url}) => (
+          <ExternalLinkContainer key={url}>
+            <ResourceIcon title={title} />
+            <ExternalLink href={url}>{title}</ExternalLink>
+          </ExternalLinkContainer>
+        ))}
+      </Metadata>
+    </Flex>
   );
 }
 

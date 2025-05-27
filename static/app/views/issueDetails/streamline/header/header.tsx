@@ -177,19 +177,17 @@ export default function StreamlinedGroupHeader({
               </Fragment>
             )}
             {statusProps?.status ? (
-              <Fragment>
-                <Tooltip
-                  isHoverable
-                  title={tct('[tooltip] [link:Learn more]', {
-                    tooltip: statusProps?.tooltip ?? '',
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/" />
-                    ),
-                  })}
-                >
-                  <Subtext>{statusProps?.status}</Subtext>
-                </Tooltip>
-              </Fragment>
+              <Tooltip
+                isHoverable
+                title={tct('[tooltip] [link:Learn more]', {
+                  tooltip: statusProps?.tooltip ?? '',
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/" />
+                  ),
+                })}
+              >
+                <Subtext>{statusProps?.status}</Subtext>
+              </Tooltip>
             ) : null}
             {subtitle && (
               <Fragment>

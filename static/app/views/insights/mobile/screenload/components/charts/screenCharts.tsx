@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -180,39 +180,18 @@ export function ScreenCharts({additionalFilters}: Props) {
 
   function renderCharts() {
     return (
-      <Fragment>
-        <Container>
-          <div>
-            <StyledRow>
-              <ChartsContainerItem key="deviceClass">
-                <ScreensBarChart
-                  chartOptions={[
-                    {
-                      title: t('TTID by Device Class'),
-                      yAxis: YAXIS_COLUMNS[yAxes[0]!],
-                      series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[0]!]]!),
-                      xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
-                      subtitle: primaryRelease
-                        ? t(
-                            '%s v. %s',
-                            formatVersionAndCenterTruncate(primaryRelease, 12),
-                            secondaryRelease
-                              ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                              : ''
-                          )
-                        : '',
-                    },
-                  ]}
-                  chartKey="spansChart"
-                  chartHeight={80}
-                  isLoading={isDeviceClassEventsLoading}
-                />
-              </ChartsContainerItem>
-              <ChartsContainerItem key="xyz">
-                <MiniChartPanel
-                  title={t('Average TTID')}
-                  subtitle={
-                    primaryRelease
+      <Container>
+        <div>
+          <StyledRow>
+            <ChartsContainerItem key="deviceClass">
+              <ScreensBarChart
+                chartOptions={[
+                  {
+                    title: t('TTID by Device Class'),
+                    yAxis: YAXIS_COLUMNS[yAxes[0]!],
+                    series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[0]!]]!),
+                    xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
+                    subtitle: primaryRelease
                       ? t(
                           '%s v. %s',
                           formatVersionAndCenterTruncate(primaryRelease, 12),
@@ -220,144 +199,163 @@ export function ScreenCharts({additionalFilters}: Props) {
                             ? formatVersionAndCenterTruncate(secondaryRelease, 12)
                             : ''
                         )
-                      : ''
-                  }
-                >
-                  <Chart
-                    height={80}
-                    data={ttidSeries}
-                    loading={isSeriesLoading}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '8px',
-                      bottom: '0',
-                    }}
-                    showLegend
-                    definedAxisTicks={2}
-                    type={ChartType.LINE}
-                    aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTID]}
-                    tooltipFormatterOptions={{
-                      valueFormatter: value =>
-                        tooltipFormatterUsingAggregateOutputType(
-                          value,
-                          OUTPUT_TYPE[YAxis.TTID]
-                        ),
-                    }}
-                    error={seriesError}
-                  />
-                </MiniChartPanel>
-              </ChartsContainerItem>
-            </StyledRow>
-            <StyledRow>
-              <ChartsContainerItem key="deviceClass">
-                <ScreensBarChart
-                  chartOptions={[
-                    {
-                      title: t('TTFD by Device Class'),
-                      yAxis: YAXIS_COLUMNS[yAxes[1]!],
-                      series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[1]!]]!),
-                      xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
-                      subtitle: primaryRelease
-                        ? t(
-                            '%s v. %s',
-                            formatVersionAndCenterTruncate(primaryRelease, 12),
-                            secondaryRelease
-                              ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                              : ''
-                          )
-                        : '',
-                    },
-                  ]}
-                  chartKey="spansChart"
-                  chartHeight={80}
-                  isLoading={isDeviceClassEventsLoading}
-                />
-              </ChartsContainerItem>
-              <ChartsContainerItem key="xyz">
-                <MiniChartPanel
-                  title={t('Average TTFD')}
-                  subtitle={
-                    primaryRelease
-                      ? t(
-                          '%s v. %s',
-                          formatVersionAndCenterTruncate(primaryRelease, 12),
-                          secondaryRelease
-                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                            : ''
-                        )
-                      : ''
-                  }
-                >
-                  <Chart
-                    height={80}
-                    data={ttfdSeries}
-                    loading={isSeriesLoading}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '8px',
-                      bottom: '0',
-                    }}
-                    showLegend
-                    definedAxisTicks={2}
-                    type={ChartType.LINE}
-                    aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTFD]}
-                    tooltipFormatterOptions={{
-                      valueFormatter: value =>
-                        tooltipFormatterUsingAggregateOutputType(
-                          value,
-                          OUTPUT_TYPE[YAxis.TTFD]
-                        ),
-                    }}
-                    error={seriesError}
-                  />
-                </MiniChartPanel>
-              </ChartsContainerItem>
-            </StyledRow>
-          </div>
-          <ChartsContainerItem key="xyz">
-            <MiniChartPanel
-              title={CHART_TITLES[YAxis.COUNT]}
-              subtitle={
-                primaryRelease
-                  ? t(
-                      '%s v. %s',
-                      formatVersionAndCenterTruncate(primaryRelease, 12),
-                      secondaryRelease
-                        ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                        : ''
-                    )
-                  : ''
-              }
-            >
-              <Chart
-                data={countSeries}
-                height={245}
-                loading={isSeriesLoading}
-                grid={{
-                  left: '0',
-                  right: '0',
-                  top: '8px',
-                  bottom: '0',
-                }}
-                showLegend
-                definedAxisTicks={2}
-                type={ChartType.LINE}
-                aggregateOutputFormat={OUTPUT_TYPE[YAxis.COUNT]}
-                tooltipFormatterOptions={{
-                  valueFormatter: value =>
-                    tooltipFormatterUsingAggregateOutputType(
-                      value,
-                      OUTPUT_TYPE[YAxis.COUNT]
-                    ),
-                }}
-                error={seriesError}
+                      : '',
+                  },
+                ]}
+                chartKey="spansChart"
+                chartHeight={80}
+                isLoading={isDeviceClassEventsLoading}
               />
-            </MiniChartPanel>
-          </ChartsContainerItem>
-        </Container>
-      </Fragment>
+            </ChartsContainerItem>
+            <ChartsContainerItem key="xyz">
+              <MiniChartPanel
+                title={t('Average TTID')}
+                subtitle={
+                  primaryRelease
+                    ? t(
+                        '%s v. %s',
+                        formatVersionAndCenterTruncate(primaryRelease, 12),
+                        secondaryRelease
+                          ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                          : ''
+                      )
+                    : ''
+                }
+              >
+                <Chart
+                  height={80}
+                  data={ttidSeries}
+                  loading={isSeriesLoading}
+                  grid={{
+                    left: '0',
+                    right: '0',
+                    top: '8px',
+                    bottom: '0',
+                  }}
+                  showLegend
+                  definedAxisTicks={2}
+                  type={ChartType.LINE}
+                  aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTID]}
+                  tooltipFormatterOptions={{
+                    valueFormatter: value =>
+                      tooltipFormatterUsingAggregateOutputType(
+                        value,
+                        OUTPUT_TYPE[YAxis.TTID]
+                      ),
+                  }}
+                  error={seriesError}
+                />
+              </MiniChartPanel>
+            </ChartsContainerItem>
+          </StyledRow>
+          <StyledRow>
+            <ChartsContainerItem key="deviceClass">
+              <ScreensBarChart
+                chartOptions={[
+                  {
+                    title: t('TTFD by Device Class'),
+                    yAxis: YAXIS_COLUMNS[yAxes[1]!],
+                    series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[1]!]]!),
+                    xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
+                    subtitle: primaryRelease
+                      ? t(
+                          '%s v. %s',
+                          formatVersionAndCenterTruncate(primaryRelease, 12),
+                          secondaryRelease
+                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                            : ''
+                        )
+                      : '',
+                  },
+                ]}
+                chartKey="spansChart"
+                chartHeight={80}
+                isLoading={isDeviceClassEventsLoading}
+              />
+            </ChartsContainerItem>
+            <ChartsContainerItem key="xyz">
+              <MiniChartPanel
+                title={t('Average TTFD')}
+                subtitle={
+                  primaryRelease
+                    ? t(
+                        '%s v. %s',
+                        formatVersionAndCenterTruncate(primaryRelease, 12),
+                        secondaryRelease
+                          ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                          : ''
+                      )
+                    : ''
+                }
+              >
+                <Chart
+                  height={80}
+                  data={ttfdSeries}
+                  loading={isSeriesLoading}
+                  grid={{
+                    left: '0',
+                    right: '0',
+                    top: '8px',
+                    bottom: '0',
+                  }}
+                  showLegend
+                  definedAxisTicks={2}
+                  type={ChartType.LINE}
+                  aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTFD]}
+                  tooltipFormatterOptions={{
+                    valueFormatter: value =>
+                      tooltipFormatterUsingAggregateOutputType(
+                        value,
+                        OUTPUT_TYPE[YAxis.TTFD]
+                      ),
+                  }}
+                  error={seriesError}
+                />
+              </MiniChartPanel>
+            </ChartsContainerItem>
+          </StyledRow>
+        </div>
+        <ChartsContainerItem key="xyz">
+          <MiniChartPanel
+            title={CHART_TITLES[YAxis.COUNT]}
+            subtitle={
+              primaryRelease
+                ? t(
+                    '%s v. %s',
+                    formatVersionAndCenterTruncate(primaryRelease, 12),
+                    secondaryRelease
+                      ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                      : ''
+                  )
+                : ''
+            }
+          >
+            <Chart
+              data={countSeries}
+              height={245}
+              loading={isSeriesLoading}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '8px',
+                bottom: '0',
+              }}
+              showLegend
+              definedAxisTicks={2}
+              type={ChartType.LINE}
+              aggregateOutputFormat={OUTPUT_TYPE[YAxis.COUNT]}
+              tooltipFormatterOptions={{
+                valueFormatter: value =>
+                  tooltipFormatterUsingAggregateOutputType(
+                    value,
+                    OUTPUT_TYPE[YAxis.COUNT]
+                  ),
+              }}
+              error={seriesError}
+            />
+          </MiniChartPanel>
+        </ChartsContainerItem>
+      </Container>
     );
   }
 

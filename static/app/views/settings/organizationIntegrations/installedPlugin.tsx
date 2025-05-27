@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -40,15 +40,13 @@ class InstalledPlugin extends Component<Props> {
   }
   getConfirmMessage() {
     return (
-      <Fragment>
-        <Alert.Container>
-          <Alert type="error" showIcon>
-            {t(
-              'Deleting this installation will disable the integration for this project and remove any configurations.'
-            )}
-          </Alert>
-        </Alert.Container>
-      </Fragment>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {t(
+            'Deleting this installation will disable the integration for this project and remove any configurations.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

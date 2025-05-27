@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -26,36 +25,34 @@ export function LoaderScript({projectKey, routes, params, location}: Props) {
   const editUrl = recreateRoute(`${projectKey.id}/`, {routes, params, location});
 
   return (
-    <Fragment>
-      <FieldGroup
-        label={t('Loader Script')}
-        help={tct(
-          'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
+    <FieldGroup
+      label={t('Loader Script')}
+      help={tct(
+        'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
+              {t(' What does the script provide?')}
+            </ExternalLink>
+          ),
+        }
+      )}
+      inline={false}
+      flexibleControlStateSize
+    >
+      <TextCopyInput aria-label={t('Loader Script')}>
+        {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
+      </TextCopyInput>
+
+      <HelpFooter>
+        {tct(
+          'You can [configureLink:configure] the Loader Script to enable/disable Performance, Replay, and more.',
           {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
-                {t(' What does the script provide?')}
-              </ExternalLink>
-            ),
+            configureLink: <Link to={editUrl} />,
           }
         )}
-        inline={false}
-        flexibleControlStateSize
-      >
-        <TextCopyInput aria-label={t('Loader Script')}>
-          {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
-        </TextCopyInput>
-
-        <HelpFooter>
-          {tct(
-            'You can [configureLink:configure] the Loader Script to enable/disable Performance, Replay, and more.',
-            {
-              configureLink: <Link to={editUrl} />,
-            }
-          )}
-        </HelpFooter>
-      </FieldGroup>
-    </Fragment>
+      </HelpFooter>
+    </FieldGroup>
   );
 }
 

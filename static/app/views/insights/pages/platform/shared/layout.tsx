@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -65,20 +64,12 @@ export function PlatformLandingPageLayout({
       {performanceType === 'backend' ? (
         <BackendHeader
           headerTitle={BACKEND_LANDING_TITLE}
-          headerActions={
-            <Fragment>
-              <NewNextJsExperienceButton />
-            </Fragment>
-          }
+          headerActions={<NewNextJsExperienceButton />}
         />
       ) : (
         <FrontendHeader
           headerTitle={FRONTEND_LANDING_TITLE}
-          headerActions={
-            <Fragment>
-              <NewNextJsExperienceButton />
-            </Fragment>
-          }
+          headerActions={<NewNextJsExperienceButton />}
         />
       )}
       <Layout.Body>

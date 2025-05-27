@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 
 import {Client} from 'sentry/api';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -65,21 +65,19 @@ class ForkCustomerAction extends Component<Props> {
     const currentRegionData = getRegionDataFromOrganization(organization);
     const regionChoices = getRegionChoices(currentRegionData ? [currentRegionData] : []);
     return (
-      <Fragment>
-        <SelectField
-          name="regionUrl"
-          label={'Duplicate into Region'}
-          help={
-            "Choose which region to duplicate this organization's low volume metadata into. This will kick off a SAAS->SAAS relocation job, but the source organization will not be affected."
-          }
-          choices={regionChoices}
-          inline={false}
-          stacked
-          required
-          value={this.state.regionUrl}
-          onChange={(val: any) => this.setState({regionUrl: val})}
-        />
-      </Fragment>
+      <SelectField
+        name="regionUrl"
+        label={'Duplicate into Region'}
+        help={
+          "Choose which region to duplicate this organization's low volume metadata into. This will kick off a SAAS->SAAS relocation job, but the source organization will not be affected."
+        }
+        choices={regionChoices}
+        inline={false}
+        stacked
+        required
+        value={this.state.regionUrl}
+        onChange={(val: any) => this.setState({regionUrl: val})}
+      />
     );
   }
 }

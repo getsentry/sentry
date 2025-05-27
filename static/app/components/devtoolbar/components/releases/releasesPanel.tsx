@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
@@ -312,18 +311,16 @@ export default function ReleasesPanel() {
           <Placeholder height={issueListPlaceholderHeight} />
         </div>
       ) : (
-        <Fragment>
-          <div style={{alignItems: 'start'}}>
-            <ReleaseSummary release={releaseData.json[0]!} orgSlug={organizationSlug} />
-            <CrashFreeRate
-              currReleaseVersion={releaseData.json[0]!.version}
-              prevReleaseVersion={
-                releaseData.json.length > 1 ? releaseData.json[1]!.version : undefined
-              }
-            />
-            <ReleaseIsssues releaseVersion={releaseData.json[0]!.version} />
-          </div>
-        </Fragment>
+        <div style={{alignItems: 'start'}}>
+          <ReleaseSummary release={releaseData.json[0]!} orgSlug={organizationSlug} />
+          <CrashFreeRate
+            currReleaseVersion={releaseData.json[0]!.version}
+            prevReleaseVersion={
+              releaseData.json.length > 1 ? releaseData.json[1]!.version : undefined
+            }
+          />
+          <ReleaseIsssues releaseVersion={releaseData.json[0]!.version} />
+        </div>
       )}
     </PanelLayout>
   );

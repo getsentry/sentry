@@ -80,20 +80,18 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
   }
 
   return (
-    <Fragment>
-      <p>
-        {tct(
-          'In order to create pull requests, install and grant write access to the [link:Sentry Seer GitHub App] for the relevant repositories.',
-          {
-            link: (
-              <ExternalLink
-                href={`https://github.com/apps/seer-by-sentry/installations/new`}
-              />
-            ),
-          }
-        )}
-      </p>
-    </Fragment>
+    <p>
+      {tct(
+        'In order to create pull requests, install and grant write access to the [link:Sentry Seer GitHub App] for the relevant repositories.',
+        {
+          link: (
+            <ExternalLink
+              href={`https://github.com/apps/seer-by-sentry/installations/new`}
+            />
+          ),
+        }
+      )}
+    </p>
   );
 }
 

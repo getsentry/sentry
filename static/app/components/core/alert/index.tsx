@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -101,16 +101,14 @@ export function Alert({
           </ExpandIconWrap>
         )}
         {isExpanded && (
-          <Fragment>
-            <ExpandContainer
-              ref={expandRef}
-              showIcon={!!showIcon}
-              showTrailingItems={!!trailingItems}
-              {...expandHoverProps}
-            >
-              {Array.isArray(expand) ? expand.map(item => item) : expand}
-            </ExpandContainer>
-          </Fragment>
+          <ExpandContainer
+            ref={expandRef}
+            showIcon={!!showIcon}
+            showTrailingItems={!!trailingItems}
+            {...expandHoverProps}
+          >
+            {Array.isArray(expand) ? expand.map(item => item) : expand}
+          </ExpandContainer>
         )}
       </PanelProvider>
     </AlertContainer>

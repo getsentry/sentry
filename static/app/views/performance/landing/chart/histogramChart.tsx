@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -101,49 +100,47 @@ export function Chart(props: ChartProps) {
   };
 
   return (
-    <Fragment>
-      <BarChartZoom
-        minZoomWidth={10 ** -PRECISION * NUM_BUCKETS}
-        location={location}
-        paramStart={`${field}:>=`}
-        paramEnd={`${field}:<=`}
-        xAxisIndex={[0]}
-        buckets={computeBuckets(chartData)}
-        onHistoryPush={onFilterChange}
-      >
-        {zoomRenderProps => {
-          return (
-            <BarChartContainer hasPadding={!disableChartPadding}>
-              <MaskContainer>
-                <TransparentLoadingMask visible={isLoading} />
-                {getDynamicText({
-                  value: (
-                    <BarChart
-                      height={height ?? 250}
-                      series={allSeries}
-                      xAxis={disableXAxis ? {show: false} : xAxis}
-                      yAxis={yAxis}
-                      colors={colors}
-                      grid={
-                        grid ?? {
-                          left: space(3),
-                          right: space(3),
-                          top: space(3),
-                          bottom: isLoading ? space(4) : space(1.5),
-                        }
+    <BarChartZoom
+      minZoomWidth={10 ** -PRECISION * NUM_BUCKETS}
+      location={location}
+      paramStart={`${field}:>=`}
+      paramEnd={`${field}:<=`}
+      xAxisIndex={[0]}
+      buckets={computeBuckets(chartData)}
+      onHistoryPush={onFilterChange}
+    >
+      {zoomRenderProps => {
+        return (
+          <BarChartContainer hasPadding={!disableChartPadding}>
+            <MaskContainer>
+              <TransparentLoadingMask visible={isLoading} />
+              {getDynamicText({
+                value: (
+                  <BarChart
+                    height={height ?? 250}
+                    series={allSeries}
+                    xAxis={disableXAxis ? {show: false} : xAxis}
+                    yAxis={yAxis}
+                    colors={colors}
+                    grid={
+                      grid ?? {
+                        left: space(3),
+                        right: space(3),
+                        top: space(3),
+                        bottom: isLoading ? space(4) : space(1.5),
                       }
-                      stacked
-                      {...(disableZoom ? {} : zoomRenderProps)}
-                    />
-                  ),
-                  fixed: <Placeholder height="250px" testId="skeleton-ui" />,
-                })}
-              </MaskContainer>
-            </BarChartContainer>
-          );
-        }}
-      </BarChartZoom>
-    </Fragment>
+                    }
+                    stacked
+                    {...(disableZoom ? {} : zoomRenderProps)}
+                  />
+                ),
+                fixed: <Placeholder height="250px" testId="skeleton-ui" />,
+              })}
+            </MaskContainer>
+          </BarChartContainer>
+        );
+      }}
+    </BarChartZoom>
   );
 }
 

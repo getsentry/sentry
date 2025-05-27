@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -101,72 +101,65 @@ function RelocationForm() {
   };
 
   return (
-    <Fragment>
-      <form onSubmit={handleSubmit}>
-        <p>Trigger a relocation job from self-hosted to SaaS.</p>
-        <p>Limitations:</p>
-        <ul>
-          <li>This API has a ratelimit of 1 request per org per day</li>
-          <li>Owner must be a single username</li>
-          <li>Orgs can be entered as a comma separated list of slugs</li>
-          <li>Uploaded files have a maximum size of 200 MB</li>
-          <li>Files must be tar archives (.tar) </li>
-        </ul>
-        <CompactSelect
-          triggerProps={{prefix: 'Region'}}
-          value={region.url}
-          options={regions.map((r: any) => ({
-            label: r.name,
-            value: r.url,
-          }))}
-          onChange={opt => {
-            const reg = ConfigStore.get('regions').find((r: any) => r.url === opt.value);
-            if (reg === undefined) {
-              return;
-            }
-            setRegion(reg);
-          }}
+    <form onSubmit={handleSubmit}>
+      <p>Trigger a relocation job from self-hosted to SaaS.</p>
+      <p>Limitations:</p>
+      <ul>
+        <li>This API has a ratelimit of 1 request per org per day</li>
+        <li>Owner must be a single username</li>
+        <li>Orgs can be entered as a comma separated list of slugs</li>
+        <li>Uploaded files have a maximum size of 200 MB</li>
+        <li>Files must be tar archives (.tar) </li>
+      </ul>
+      <CompactSelect
+        triggerProps={{prefix: 'Region'}}
+        value={region.url}
+        options={regions.map((r: any) => ({
+          label: r.name,
+          value: r.url,
+        }))}
+        onChange={opt => {
+          const reg = ConfigStore.get('regions').find((r: any) => r.url === opt.value);
+          if (reg === undefined) {
+            return;
+          }
+          setRegion(reg);
+        }}
+      />
+      <UploadWell centered>
+        <UploadInput
+          name="file"
+          type="file"
+          aria-label="file-upload"
+          accept=".tar"
+          ref={inputFileRef}
+          onChange={e => handleFileChange(e)}
+          hidden
         />
-        <UploadWell centered>
-          <UploadInput
-            name="file"
-            type="file"
-            aria-label="file-upload"
-            accept=".tar"
-            ref={inputFileRef}
-            onChange={e => handleFileChange(e)}
-            hidden
-          />
-          {file ? (
-            <b>{file.name} ✓</b>
-          ) : (
-            <Button size="xs" onClick={onFileUploadButtonClick}>
-              Upload relocation file data
-            </Button>
-          )}
-        </UploadWell>
-        <InputLabel>Owner</InputLabel>
-        <Input
-          type="text"
-          name="owner"
-          aria-label="owner-input"
-          minLength={1}
-          placeholder=""
-        />
-        <InputLabel>List of Organization Slugs</InputLabel>
-        <Input type="text" name="orgs" aria-label="orgs-input" minLength={1} />
-        <InputLabel>Promo Code (Optional)</InputLabel>
-        <Input
-          type="text"
-          name="promo_code"
-          aria-label="promo-code-input"
-          placeholder=""
-        />
-        <SubmitButton priority="primary" type="submit">
-          Submit
-        </SubmitButton>
-      </form>
-    </Fragment>
+        {file ? (
+          <b>{file.name} ✓</b>
+        ) : (
+          <Button size="xs" onClick={onFileUploadButtonClick}>
+            Upload relocation file data
+          </Button>
+        )}
+      </UploadWell>
+      <InputLabel>Owner</InputLabel>
+      <Input
+        type="text"
+        name="owner"
+        aria-label="owner-input"
+        minLength={1}
+        placeholder=""
+      />
+      <InputLabel>List of Organization Slugs</InputLabel>
+      <Input type="text" name="orgs" aria-label="orgs-input" minLength={1} />
+      <InputLabel>Promo Code (Optional)</InputLabel>
+      <Input type="text" name="promo_code" aria-label="promo-code-input" placeholder="" />
+      <SubmitButton priority="primary" type="submit">
+        Submit
+      </SubmitButton>
+    </form>
   );
 }
 

@@ -136,20 +136,18 @@ function IntegrationExternalUserMappings(props: Props) {
   };
 
   return (
-    <Fragment>
-      <IntegrationExternalMappings
-        type="user"
-        integration={integration}
-        mappings={mappings()}
-        dataEndpoint={DATA_ENDPOINT}
-        getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
-        defaultOptions={defaultUserOptions}
-        sentryNamesMapper={sentryNamesMapper}
-        onCreate={openMembersModal}
-        onDelete={handleDelete}
-        pageLinks={membersPageLinks}
-      />
-    </Fragment>
+    <IntegrationExternalMappings
+      type="user"
+      integration={integration}
+      mappings={mappings()}
+      dataEndpoint={DATA_ENDPOINT}
+      getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
+      defaultOptions={defaultUserOptions}
+      sentryNamesMapper={sentryNamesMapper}
+      onCreate={openMembersModal}
+      onDelete={handleDelete}
+      pageLinks={membersPageLinks}
+    />
   );
 }
 

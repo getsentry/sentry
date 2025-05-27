@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -154,11 +154,7 @@ export function MultiQueryModeChart({
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
 
-  const Title = (
-    <Fragment>
-      <Widget.WidgetTitle title={formattedYAxes.filter(Boolean).join(', ')} />
-    </Fragment>
-  );
+  const Title = <Widget.WidgetTitle title={formattedYAxes.filter(Boolean).join(', ')} />;
 
   if (chartInfo.loading) {
     return (

@@ -44,11 +44,9 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
 
   if (metricsCardinality.isLoading && !props.hideLoadingIndicator) {
     return (
-      <Fragment>
-        <LoadingContainer>
-          <LoadingIndicator />
-        </LoadingContainer>
-      </Fragment>
+      <LoadingContainer>
+        <LoadingIndicator />
+      </LoadingContainer>
     );
   }
 
@@ -63,14 +61,12 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
   }
 
   return (
-    <Fragment>
-      <MetricsSwitchHandler
-        eventView={props.eventView}
-        location={props.location}
-        outcome={metricsCardinality.outcome}
-        switcherChildren={props.children}
-      />
-    </Fragment>
+    <MetricsSwitchHandler
+      eventView={props.eventView}
+      location={props.location}
+      outcome={metricsCardinality.outcome}
+      switcherChildren={props.children}
+    />
   );
 }
 

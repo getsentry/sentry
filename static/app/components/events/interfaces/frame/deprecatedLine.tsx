@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -264,52 +264,50 @@ function DeprecatedLine({
               </ToggleButton>
             ) : null}
             {shouldShowSourceMapDebuggerButton ? (
-              <Fragment>
-                <SourceMapDebuggerModalButton
-                  size="zero"
-                  priority="default"
-                  title={t(
-                    'Click to learn how to show the original source code for this stack frame.'
-                  )}
-                  onClick={e => {
-                    e.stopPropagation();
+              <SourceMapDebuggerModalButton
+                size="zero"
+                priority="default"
+                title={t(
+                  'Click to learn how to show the original source code for this stack frame.'
+                )}
+                onClick={e => {
+                  e.stopPropagation();
 
-                    trackAnalytics(
-                      'source_map_debug_blue_thunder.modal_opened',
-                      sourceMapDebuggerAmplitudeData
-                    );
+                  trackAnalytics(
+                    'source_map_debug_blue_thunder.modal_opened',
+                    sourceMapDebuggerAmplitudeData
+                  );
 
-                    openModal(
-                      modalProps => (
-                        <SourceMapsDebuggerModal
-                          analyticsParams={sourceMapDebuggerAmplitudeData}
-                          sourceResolutionResults={frameSourceResolutionResults}
-                          orgSlug={organization?.slug}
-                          projectId={event.projectID}
-                          {...modalProps}
-                        />
-                      ),
-                      {
-                        modalCss: css`
-                          max-width: 800px;
-                          width: 100%;
-                        `,
-                        onClose: () => {
-                          trackAnalytics(
-                            'source_map_debug_blue_thunder.modal_closed',
-                            sourceMapDebuggerAmplitudeData
-                          );
-                        },
-                      }
-                    );
-                  }}
-                >
-                  <IconFix size="xs" />
-                  <SourceMapDebuggerButtonText>
-                    {t('Unminify Code')}
-                  </SourceMapDebuggerButtonText>
-                </SourceMapDebuggerModalButton>
-              </Fragment>
+                  openModal(
+                    modalProps => (
+                      <SourceMapsDebuggerModal
+                        analyticsParams={sourceMapDebuggerAmplitudeData}
+                        sourceResolutionResults={frameSourceResolutionResults}
+                        orgSlug={organization?.slug}
+                        projectId={event.projectID}
+                        {...modalProps}
+                      />
+                    ),
+                    {
+                      modalCss: css`
+                        max-width: 800px;
+                        width: 100%;
+                      `,
+                      onClose: () => {
+                        trackAnalytics(
+                          'source_map_debug_blue_thunder.modal_closed',
+                          sourceMapDebuggerAmplitudeData
+                        );
+                      },
+                    }
+                  );
+                }}
+              >
+                <IconFix size="xs" />
+                <SourceMapDebuggerButtonText>
+                  {t('Unminify Code')}
+                </SourceMapDebuggerButtonText>
+              </SourceMapDebuggerModalButton>
             ) : null}
             {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
             {isExpandable ? (

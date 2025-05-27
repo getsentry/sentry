@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -62,19 +61,17 @@ export default function EarlyFeaturesSettingsForm({access, location}: Props) {
   };
 
   return (
-    <Fragment>
-      <Form
-        data-test-id="organization-settings"
-        apiMethod="PUT"
-        apiEndpoint={`/internal/feature-flags/`}
-        saveOnBlur
-        allowUndo
-        initialData={initialData}
-        onSubmitError={() => addErrorMessage('Unable to save change')}
-        onSubmitSuccess={() => {}}
-      >
-        <JsonForm {...jsonFormSettings} forms={[featuresForm]} />
-      </Form>
-    </Fragment>
+    <Form
+      data-test-id="organization-settings"
+      apiMethod="PUT"
+      apiEndpoint={`/internal/feature-flags/`}
+      saveOnBlur
+      allowUndo
+      initialData={initialData}
+      onSubmitError={() => addErrorMessage('Unable to save change')}
+      onSubmitSuccess={() => {}}
+    >
+      <JsonForm {...jsonFormSettings} forms={[featuresForm]} />
+    </Form>
   );
 }

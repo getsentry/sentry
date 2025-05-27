@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -27,23 +26,21 @@ function VitalCard({
   onClick,
 }: Props) {
   return (
-    <Fragment>
-      <MeterBarContainer clickable={onClick !== undefined} onClick={onClick}>
-        {onClick && <InteractionStateLayer />}
-        <MeterBarBody>
-          {description && (
-            <StyledQuestionTooltip
-              isHoverable
-              size="xs"
-              title={<span>{description}</span>}
-            />
-          )}
-          <MeterHeader>{title}</MeterHeader>
-          <MeterValueText>{formattedValue ?? '-'}</MeterValueText>
-        </MeterBarBody>
-        <MeterBarFooter label={statusLabel} status={status as PerformanceScore} />
-      </MeterBarContainer>
-    </Fragment>
+    <MeterBarContainer clickable={onClick !== undefined} onClick={onClick}>
+      {onClick && <InteractionStateLayer />}
+      <MeterBarBody>
+        {description && (
+          <StyledQuestionTooltip
+            isHoverable
+            size="xs"
+            title={<span>{description}</span>}
+          />
+        )}
+        <MeterHeader>{title}</MeterHeader>
+        <MeterValueText>{formattedValue ?? '-'}</MeterValueText>
+      </MeterBarBody>
+      <MeterBarFooter label={statusLabel} status={status as PerformanceScore} />
+    </MeterBarContainer>
   );
 }
 
