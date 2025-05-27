@@ -1,6 +1,8 @@
-import {useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import List from 'sentry/components/list';
@@ -9,12 +11,28 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useMutation} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import QueryTokens from 'sentry/views/explore/components/queryTokens';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 const SUGGESTED_SEARCHES = [
   'How many 404s did I get in the last 2 days',
   'p90 of my requests by transaction',
 ];
+
+interface Visualization {
+  chart_type: ChartType;
+  y_axes: string[];
+}
 
 export function SeerSearch() {
   const {setSeerMode} = useSearchQueryBuilder();
@@ -22,19 +40,137 @@ export function SeerSearch() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const openForm = useFeedbackForm();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Handle search submission by calling Seer API
-  };
+  const [rawResult, setRawResult] = useState<any>(null);
+  const api = useApi();
+  const organization = useOrganization();
+  const pageFilters = usePageFilters();
+  const {projects} = useProjects();
+  const memberProjects = projects.filter(p => p.isMember);
+  const navigate = useNavigate();
+
+  const {mutate: submitQuery} = useMutation({
+    mutationFn: async (query: string) => {
+      const selectedProjects =
+        pageFilters.selection.projects &&
+        pageFilters.selection.projects.length > 0 &&
+        pageFilters.selection.projects[0] !== -1
+          ? pageFilters.selection.projects
+          : memberProjects.map(p => p.id);
+
+      const result = await api.requestPromise(
+        `/api/0/organizations/${organization.slug}/trace-explorer-ai/query/`,
+        {
+          method: 'POST',
+          data: {
+            natural_language_query: query,
+            project_ids: selectedProjects,
+            use_flyout: false,
+            limit: 3,
+          },
+        }
+      );
+      return result;
+    },
+    onSuccess: result => {
+      setRawResult(result);
+    },
+    onError: (error: Error) => {
+      addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
+    },
+  });
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!searchQuery.trim()) {
+        return;
+      }
+      submitQuery(searchQuery);
+    },
+    [searchQuery, submitQuery]
+  );
 
   const handleFocus = () => {
     setIsDropdownOpen(true);
   };
 
   const handleBlur = (e: React.FocusEvent) => {
-    // Only close if focus is moving outside the entire component
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+    setTimeout(() => {
+      if (!e.currentTarget.contains(document.activeElement as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }, 100);
+  };
+
+  const handleApply = useCallback(
+    (result: any) => {
+      if (!result) {
+        return;
+      }
+
+      const {
+        query,
+        visualization,
+        group_by: groupBy,
+        sort,
+        stats_period: statsPeriod,
+      } = result;
+
+      const selection = {
+        ...pageFilters.selection,
+        datetime: {
+          start: pageFilters.selection.datetime.start,
+          end: pageFilters.selection.datetime.end,
+          period: statsPeriod,
+          utc: pageFilters.selection.datetime.utc,
+        },
+      };
+      const mode = groupBy.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
+
+      const visualize =
+        visualization?.map((v: Visualization) => ({
+          chartType: v.chart_type,
+          yAxes: v.y_axes,
+        })) ?? [];
+
+      const url = getExploreUrl({
+        organization,
+        selection,
+        query,
+        visualize,
+        groupBy,
+        sort,
+        mode,
+      });
+
+      trackAnalytics('trace.explorer.ai_query_applied', {
+        organization,
+        query,
+        visualize_count: visualize.length,
+        group_by_count: groupBy?.length ?? 0,
+      });
+
+      navigate(url, {replace: true, preventScrollReset: true});
       setIsDropdownOpen(false);
+      setSeerMode(false);
+    },
+    [organization, pageFilters.selection, navigate, setSeerMode]
+  );
+
+  const handleNoneOfTheseClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (openForm) {
+      openForm({
+        messagePlaceholder: t('Why was this query incorrect?'),
+        tags: {
+          ['feedback.source']: 'trace_explorer_ai_query',
+          ['feedback.owner']: 'ml-ai',
+          ['feedback.natural_language_query']: searchQuery,
+        },
+      });
+    } else {
+      addErrorMessage(t('Unable to open feedback form'));
     }
   };
 
@@ -67,15 +203,44 @@ export function SeerSearch() {
 
       {isDropdownOpen && (
         <DropdownContent>
-          <SeerContent>
-            <List>
-              {SUGGESTED_SEARCHES.map((suggestion, index) => (
-                <ListItem key={index} onClick={() => setSearchQuery(suggestion)}>
-                  {suggestion}
-                </ListItem>
+          {rawResult?.queries && rawResult.queries.length > 0 ? (
+            <QueryResultsSection>
+              <QueryResultsHeader>
+                <StyledIconSeer />
+                <QueryResultsTitle>
+                  {t('Do any of these queries look right to you?')}
+                </QueryResultsTitle>
+              </QueryResultsHeader>
+              {rawResult.queries.map((query: any, index: number) => (
+                <QueryResultItem
+                  key={index}
+                  onClick={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleApply(query);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  style={{cursor: 'pointer'}}
+                >
+                  <QueryTokens result={query} />
+                </QueryResultItem>
               ))}
-            </List>
-          </SeerContent>
+              <NoneOfTheseItem onClick={handleNoneOfTheseClick}>
+                {t('None of these')}
+              </NoneOfTheseItem>
+            </QueryResultsSection>
+          ) : (
+            <SeerContent>
+              <List>
+                {SUGGESTED_SEARCHES.map((query, index) => (
+                  <ListItem key={index} onClick={() => setSearchQuery(query)}>
+                    {query}
+                  </ListItem>
+                ))}
+              </List>
+            </SeerContent>
+          )}
 
           <SeerFooter>
             {openForm && (
@@ -147,11 +312,10 @@ const DropdownContent = styled('div')`
 `;
 
 const SeerContent = styled('div')`
+  background: ${p => p.theme.purple100};
   flex: 1;
-  padding: ${space(3)};
   display: flex;
   flex-direction: column;
-  gap: ${space(3)};
 `;
 
 const SeerFooter = styled('div')`
@@ -159,7 +323,7 @@ const SeerFooter = styled('div')`
   justify-content: flex-end;
   padding: ${space(1.5)};
   border-top: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.purple100};
 `;
 
 const SearchIcon = styled(IconSearch)`
@@ -185,4 +349,62 @@ const PositionedCloseButtonContainer = styled('div')`
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
+`;
+
+const QueryResultsSection = styled('div')`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: ${space(2)};
+`;
+
+const QueryResultsHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const QueryResultsTitle = styled('h3')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.textColor};
+  margin: 0;
+`;
+
+const StyledIconSeer = styled(SeerIcon)`
+  color: ${p => p.theme.purple300};
+`;
+
+const QueryResultItem = styled('div')`
+  cursor: pointer;
+  padding: ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const NoneOfTheseItem = styled('div')`
+  cursor: pointer;
+  padding: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  transition: background-color 0.2s ease;
+  user-select: none;
+  position: relative;
+  z-index: 1;
+
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
 `;
