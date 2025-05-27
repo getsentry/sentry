@@ -334,13 +334,16 @@ export async function openWidgetViewerModal({
   onClose,
   ...options
 }: WidgetViewerModalOptions & {onClose?: () => void}) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/widgetViewerModal'
-  );
+  const {
+    default: Modal,
+    modalCss,
+    backdropCss,
+  } = await import('sentry/components/modals/widgetViewerModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {
     closeEvents: 'none',
     modalCss,
+    backdropCss,
     onClose,
   });
 }

@@ -38,8 +38,6 @@ logger = logging.getLogger(__name__)
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
-    "sentry/spans/consumers/process/factory.py",
-    "sentry/spans/consumers/process_segments/factory.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
     # This consumer lives outside of sentry but is just as unsafe.

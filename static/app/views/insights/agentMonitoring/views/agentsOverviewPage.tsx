@@ -12,10 +12,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmGenerationsWidget';
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
+import TokenUsageWidget from 'sentry/views/insights/agentMonitoring/components/tokenUsageWidget';
 import {ToolsTable} from 'sentry/views/insights/agentMonitoring/components/toolsTable';
+import ToolUsageWidget from 'sentry/views/insights/agentMonitoring/components/toolUsageWidget';
 import {TracesTable} from 'sentry/views/insights/agentMonitoring/components/tracesTable';
 import {
   TableType,
@@ -88,13 +90,13 @@ function AgentsMonitoringPage() {
                     <IssuesWidget />
                   </WidgetGrid.Position3>
                   <WidgetGrid.Position4>
-                    <PlaceholderWidget title="LLM Generations" />
+                    <LLMGenerationsWidget />
                   </WidgetGrid.Position4>
                   <WidgetGrid.Position5>
-                    <PlaceholderWidget title="Tool Usage" />
+                    <ToolUsageWidget />
                   </WidgetGrid.Position5>
                   <WidgetGrid.Position6>
-                    <PlaceholderWidget title="Token Usage" />
+                    <TokenUsageWidget />
                   </WidgetGrid.Position6>
                 </WidgetGrid>
                 <ControlsWrapper>
@@ -142,15 +144,6 @@ function PageWithProviders() {
 const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   flex: 2;
 `;
-
-function PlaceholderWidget({title}: {title?: string}) {
-  return (
-    <Widget
-      Title={<Widget.WidgetTitle title={title ?? 'Placeholder'} />}
-      Visualization={null}
-    />
-  );
-}
 
 const ControlsWrapper = styled('div')`
   display: flex;
