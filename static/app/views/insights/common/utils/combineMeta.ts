@@ -14,10 +14,10 @@ export const combineMeta = (
     units: {},
   };
 
-  for (const meta of definedMetas) {
+  definedMetas.forEach(meta => {
     finalMeta.fields = {...finalMeta.fields, ...meta.fields};
     finalMeta.units = {...finalMeta.units, ...meta.units};
-  }
+  });
 
   return finalMeta;
 };
