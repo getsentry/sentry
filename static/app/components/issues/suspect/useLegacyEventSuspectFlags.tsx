@@ -32,7 +32,7 @@ export default function useLegacyEventSuspectFlags({
   organization: Organization;
   rawFlagData: RawFlagData | undefined;
 }): UseApiQueryResult<RawFlagData, RequestError> & {suspectFlags: RawFlag[]} {
-  const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
+  const hydratedFlagData = hydrateToFlagSeries(rawFlagData?.data ?? []);
 
   // map flag data to arrays of flag names
   const auditLogFlagNames = hydratedFlagData.map(f => f.name);

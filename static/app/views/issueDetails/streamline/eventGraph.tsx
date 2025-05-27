@@ -42,6 +42,7 @@ import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useFlagSeries';
+import {useIntersectionFlags} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useIntersectionFlags';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import {
   useIssueDetailsDiscoverQuery,
@@ -268,6 +269,15 @@ export function EventGraph({
       staleTime: 0,
     }
   );
+  const {data: flags} = useIntersectionFlags({
+    event,
+    query: {
+      start: eventView.start,
+      end: eventView.end,
+      period: eventView.statsPeriod,
+    },
+    enabled: showReleasesAs === 'line',
+  });
 
   const handleReleaseLineClick = useCallback(
     (release: ReleaseMetaBasic) => {
@@ -286,6 +296,11 @@ export function EventGraph({
     group,
     releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
     onReleaseClick: handleReleaseLineClick,
+  });
+
+  const flagSeries = useFlagSeries({
+    event,
+    flags,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
@@ -331,14 +346,6 @@ export function EventGraph({
     },
     [connectReleaseBubbleChartRef]
   );
-  const flagSeries = useFlagSeries({
-    query: {
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-    },
-    event,
-  });
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];

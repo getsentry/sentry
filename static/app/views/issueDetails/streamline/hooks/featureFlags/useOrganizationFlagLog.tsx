@@ -5,12 +5,15 @@ import type {RawFlagData} from 'sentry/views/issueDetails/streamline/featureFlag
 export function useOrganizationFlagLog({
   organization,
   query,
+  enabled: enabledParam = true,
 }: {
   organization: Organization;
   query: Record<string, any>;
+  enabled?: boolean;
 }) {
   // Don't make the request if start = end. The backend returns 400 but we prefer an empty response.
-  const enabled = !query.start || !query.end || query.start !== query.end;
+  const enabled =
+    !query.start || !query.end || (query.start !== query.end && enabledParam);
 
   return useApiQuery<RawFlagData>(
     [`/organizations/${organization.slug}/flags/logs/`, {query}],
