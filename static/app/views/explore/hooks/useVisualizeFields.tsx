@@ -39,6 +39,19 @@ export function useVisualizeFields({
       return [FieldKind.MEASUREMENT, countTags];
     }
 
+    if (
+      parsedFunction?.name === AggregationKey.EPM ||
+      parsedFunction?.name === AggregationKey.EPS
+    ) {
+      const countTags: TagCollection = {
+        '': {
+          name: t('spans'),
+          key: '',
+        },
+      };
+      return [FieldKind.MEASUREMENT, countTags];
+    }
+
     if (parsedFunction?.name === AggregationKey.COUNT_UNIQUE) {
       return [FieldKind.TAG, stringTags];
     }

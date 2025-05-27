@@ -144,7 +144,7 @@ function VisualizeDropdown({
     return visualizes.flatMap(visualize => visualize.yAxes);
   }, [visualizes]);
 
-  const parsedFunction = useMemo(() => parseFunction(yAxis)!, [yAxis]);
+  const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -182,8 +182,8 @@ function VisualizeDropdown({
     (option: SelectOption<SelectKey>) => {
       const newYAxis = updateVisualizeAggregate({
         newAggregate: option.value as string,
-        oldAggregate: parsedFunction.name,
-        oldArgument: parsedFunction.arguments[0]!,
+        oldAggregate: parsedFunction?.name,
+        oldArgument: parsedFunction?.arguments[0]!,
       });
       setYAxis(newYAxis);
     },
@@ -192,9 +192,9 @@ function VisualizeDropdown({
 
   const setChartField = useCallback(
     (option: SelectOption<SelectKey>) => {
-      setYAxis(`${parsedFunction.name}(${option.value})`, [option.value as string]);
+      setYAxis(`${parsedFunction?.name}(${option.value})`, [option.value as string]);
     },
-    [parsedFunction.name, setYAxis]
+    [parsedFunction?.name, setYAxis]
   );
 
   return (
@@ -202,13 +202,13 @@ function VisualizeDropdown({
       {label && <ChartLabel>{label}</ChartLabel>}
       <AggregateCompactSelect
         options={aggregateOptions}
-        value={parsedFunction.name}
+        value={parsedFunction?.name ?? ''}
         onChange={setChartAggregate}
       />
       <ColumnCompactSelect
         searchable
         options={fieldOptions}
-        value={parsedFunction.arguments[0]}
+        value={parsedFunction?.arguments[0] ?? ''}
         onChange={setChartField}
         disabled={fieldOptions.length === 1}
       />
