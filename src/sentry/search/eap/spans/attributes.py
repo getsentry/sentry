@@ -172,7 +172,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="ai.total_tokens.used",
             internal_name="ai_total_tokens_used",
-            search_type="number",
+            search_type="integer",
         ),
         ResolvedAttribute(
             public_alias="ai.total_cost",
