@@ -475,11 +475,13 @@ def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
 
 def get_auto_monitored_detectors_for_project(
     project: Project,
-    modes: Sequence[ProjectUptimeSubscriptionMode] = (
-        ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
-        ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE.value,
-    ),
+    modes: Sequence[ProjectUptimeSubscriptionMode] | None = None,
 ) -> list[Detector]:
+    if modes is None:
+        modes = [
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE.value,
+        ]
     return list(
         Detector.objects.filter(
             type=UptimeDomainCheckFailure.slug, project=project, config__mode__in=modes
