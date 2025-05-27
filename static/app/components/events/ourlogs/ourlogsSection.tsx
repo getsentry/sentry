@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -76,19 +75,17 @@ function OurlogsSectionContent({
     });
     openDrawer(
       () => (
-        <PageFiltersContainer>
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-            isTableFrozen
-            limitToTraceId={limitToTraceId}
-          >
-            <LogsPageDataProvider>
-              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                <OurlogsDrawer group={group} event={event} project={project} />
-              </TraceItemAttributeProvider>
-            </LogsPageDataProvider>
-          </LogsPageParamsProvider>
-        </PageFiltersContainer>
+        <LogsPageParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+          isTableFrozen
+          limitToTraceId={limitToTraceId}
+        >
+          <LogsPageDataProvider>
+            <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+              <OurlogsDrawer group={group} event={event} project={project} />
+            </TraceItemAttributeProvider>
+          </LogsPageDataProvider>
+        </LogsPageParamsProvider>
       ),
       {
         ariaLabel: 'logs drawer',
