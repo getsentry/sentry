@@ -249,9 +249,6 @@ def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, A
 
 @metrics.wraps("spans.consumers.process_segments.record_signals")
 def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> None:
-    # TODO: Make transaction name clustering work again
-    # record_transaction_name_for_clustering(project, event.data)
-
     sentry_tags = segment_span.get("sentry_tags", {})
 
     record_generic_event_processed(
