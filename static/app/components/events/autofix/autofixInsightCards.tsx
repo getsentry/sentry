@@ -105,6 +105,21 @@ function AutofixInsightCard({
     return replaceHeadersWithBold(fullJustification || t('No details here.'));
   }, [displayedInsightTitle, isUserMessage, insight.justification, newlineIndex]);
 
+  // Determine if the card is expandable (not just 'No details here.')
+  const isExpandable = useMemo(() => {
+    // Remove markdown formatting and whitespace for the check
+    const plainText = (hasFullJustification ? insight.justification : '').trim();
+    // If there is a diff or markdown_snippets, allow expansion
+    if (insight.change_diff || insight.markdown_snippets) return true;
+    // If the justification is empty or just 'No details here.', not expandable
+    return !!plainText && plainText.toLowerCase() !== t('No details here.').toLowerCase();
+  }, [
+    hasFullJustification,
+    insight.justification,
+    insight.change_diff,
+    insight.markdown_snippets,
+  ]);
+
   return (
     <ContentWrapper>
       <AnimatePresence initial={isNewInsight}>
@@ -147,8 +162,8 @@ function AutofixInsightCard({
                         type="submit"
                         priority="primary"
                         size="sm"
-                        title={t('Rethink from here using your insight')}
-                        aria-label={t('Rethink from here using your insight')}
+                        title={t('Rethink the answer')}
+                        aria-label={t('Rethink the answer')}
                       >
                         <IconRefresh size="sm" />
                       </Button>
@@ -157,7 +172,11 @@ function AutofixInsightCard({
                 </form>
               </EditContainer>
             ) : (
-              <InsightCardRow onClick={toggleExpand} expanded={isExpanded}>
+              <InsightCardRow
+                onClick={isExpandable ? toggleExpand : undefined}
+                expanded={isExpanded}
+                style={isExpandable ? {} : {cursor: 'default', background: 'none'}}
+              >
                 <AutofixHighlightWrapper
                   groupId={groupId}
                   runId={runId}
@@ -171,32 +190,34 @@ function AutofixInsightCard({
                 </AutofixHighlightWrapper>
 
                 <RightSection>
-                  <Button
-                    size="zero"
-                    borderless
-                    title={isExpanded ? t('Hide evidence') : t('Show evidence')}
-                    icon={
-                      <StyledIconChevron
-                        direction={isExpanded ? 'down' : 'right'}
-                        size="xs"
-                      />
-                    }
-                    aria-label={isExpanded ? t('Hide evidence') : t('Show evidence')}
-                  />
+                  {isExpandable && (
+                    <Button
+                      size="zero"
+                      borderless
+                      title={isExpanded ? t('Hide evidence') : t('Show evidence')}
+                      icon={
+                        <StyledIconChevron
+                          direction={isExpanded ? 'down' : 'right'}
+                          size="xs"
+                        />
+                      }
+                      aria-label={isExpanded ? t('Hide evidence') : t('Show evidence')}
+                    />
+                  )}
                   <EditButton
                     size="zero"
                     borderless
                     onClick={handleEdit}
                     icon={<IconRefresh size="xs" />}
                     aria-label={t('Edit insight')}
-                    title={t('Replace insight and rethink')}
+                    title={t('Rethink the answer from here')}
                   />
                 </RightSection>
               </InsightCardRow>
             )}
 
             <AnimatePresence>
-              {isExpanded && (
+              {isExpanded && isExpandable && (
                 <motion.div
                   initial={{height: 0, opacity: 0}}
                   animate={{height: 'auto', opacity: 1}}
@@ -367,8 +388,8 @@ function CollapsibleChainLink({
                       type="submit"
                       priority="primary"
                       size="sm"
-                      title={t('Add insight and rethink')}
-                      aria-label={t('Add insight and rethink')}
+                      title={t('Rethink the answer')}
+                      aria-label={t('Rethink the answer')}
                     >
                       <IconRefresh size="sm" />
                     </Button>
@@ -382,8 +403,8 @@ function CollapsibleChainLink({
               borderless
               onClick={() => setIsAdding(true)}
               icon={<IconRefresh size="sm" />}
-              title={t('Add insight and rethink')}
-              aria-label={t('Add insight and rethink')}
+              title={t('Give feedback and rethink the answer')}
+              aria-label={t('Give feedback and rethink the answer')}
             />
           ))}
       </RethinkButtonContainer>
