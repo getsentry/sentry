@@ -1,5 +1,6 @@
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
