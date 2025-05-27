@@ -88,8 +88,8 @@ class SQLInjectionDetector(PerformanceDetector):
         if not SQLInjectionDetector.is_span_eligible(span):
             return
 
-        description = span.get("description")
-        op = span.get("op", None)
+        description = span.get("description") or ""
+        op = span.get("op") or ""
         spans_involved = [span["span_id"]]
         vulnerable_query_keys = []
 

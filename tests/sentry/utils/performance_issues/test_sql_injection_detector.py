@@ -36,6 +36,7 @@ class SQLInjectionDetectorTest(TestCase):
         assert problem.fingerprint == "1-1020-841b1fd77bae6e89b3570a2ab0bf43d3c8cfbac6"
         assert problem.op == "db"
         assert problem.desc == "SELECT * FROM users WHERE username = '?'"
+        assert problem.evidence_data is not None
         assert problem.evidence_data["vulnerable_query_keys"] == ["username"]
         assert problem.evidence_data["request_url"] == "http://localhost:3001/vulnerable-login"
 
