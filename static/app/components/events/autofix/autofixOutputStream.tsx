@@ -13,7 +13,6 @@ import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEff
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -244,7 +243,7 @@ export function AutofixOutputStream({
                 aria-label={t('Submit Comment')}
                 size="zero"
               >
-                <IconChevron direction="right" />
+                {'\u23CE'}
               </StyledButton>
             </InputWrapper>
           </Container>
@@ -365,6 +364,7 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
+  color: ${p => p.theme.subText};
 `;
 
 const SeerIconContainer = styled('div')`

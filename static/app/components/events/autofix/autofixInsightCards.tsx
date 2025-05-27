@@ -403,6 +403,11 @@ function AutofixInsightCards({
   const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
   const previousInsightsRef = useRef<AutofixInsight[]>([]);
   const [newInsightIndices, setNewInsightIndices] = useState<number[]>([]);
+  const hasMounted = useRef(false);
+
+  useEffect(() => {
+    hasMounted.current = true;
+  }, []);
 
   // Compare current insights with previous insights to determine which ones are new
   useEffect(() => {
@@ -447,7 +452,7 @@ function AutofixInsightCards({
                 runId={runId}
               />
             )}
-            <AnimatePresence>
+            <AnimatePresence initial={hasMounted.current}>
               {!isCollapsed && (
                 <motion.div
                   initial={{height: 0, opacity: 0}}

@@ -22,7 +22,7 @@ import {
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -355,7 +355,7 @@ function AutofixHighlightPopupContent({
             borderless
             aria-label={t('Submit Comment')}
           >
-            <IconChevron direction="right" />
+            {'\u23CE'}
           </StyledButton>
         </InputWrapper>
       )}
@@ -592,7 +592,7 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
-
+  color: ${p => p.theme.subText};
   z-index: 2;
 `;
 
