@@ -15,14 +15,17 @@ export function Resource({
   title,
   subtitle,
   link,
+  disabled,
 }: {
   link: string;
   subtitle: ReactNode;
   title: string;
+  disabled?: boolean;
 }) {
   const organization = useOrganization();
   return (
     <StyledLinkButton
+      disabled={disabled}
       icon={<IconOpen />}
       borderless
       external

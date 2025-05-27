@@ -10,6 +10,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import ConfigureMobileReplayCard from 'sentry/components/replays/configureMobileReplayCard';
 import ConfigureReplayCard from 'sentry/components/replays/configureReplayCard';
+import DownloadMobileReplayCard from 'sentry/components/replays/downloadMobileReplayCard';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
 import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
@@ -89,7 +90,10 @@ export default function Page({
           <Fragment>
             {isVideoReplay ? <FeedbackWidgetButton /> : <FeedbackButton />}
             {isVideoReplay ? (
-              <ConfigureMobileReplayCard replayRecord={replayRecord} />
+              <Fragment>
+                <ConfigureMobileReplayCard replayRecord={replayRecord} />
+                <DownloadMobileReplayCard replayRecord={replayRecord} />
+              </Fragment>
             ) : (
               <ConfigureReplayCard />
             )}
