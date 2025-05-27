@@ -14,14 +14,15 @@ const {
 } = SpanMetricsField;
 
 interface Props {
-  groupId?: string;
+  enabled: boolean;
+  search: MutableSearch;
   pageFilters?: PageFilters;
 }
 
-export function useResourceSummarySeries({pageFilters, groupId}: Props = {}) {
+export function useResourceSummarySeriesSearch(groupId?: string) {
   const filters = useResourceModuleFilters();
 
-  const mutableSearch = MutableSearch.fromQueryObject({
+  const search = MutableSearch.fromQueryObject({
     'span.group': groupId,
     ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
       ? {
@@ -35,9 +36,15 @@ export function useResourceSummarySeries({pageFilters, groupId}: Props = {}) {
       : {}),
   });
 
+  return {search, enabled: Boolean(groupId)};
+}
+
+export function useResourceSummarySeries(props: Props) {
+  const {search, pageFilters, enabled} = props;
+
   return useSpanMetricsSeries(
     {
-      search: mutableSearch,
+      search,
       yAxis: [
         `epm()`,
         `avg(${SPAN_SELF_TIME})`,
@@ -45,7 +52,7 @@ export function useResourceSummarySeries({pageFilters, groupId}: Props = {}) {
         `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
         `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
       ],
-      enabled: Boolean(groupId),
+      enabled,
       transformAliasToInputFormat: true,
     },
     Referrer.RESOURCE_SUMMARY_CHARTS,
