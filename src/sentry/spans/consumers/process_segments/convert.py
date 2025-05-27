@@ -1,6 +1,7 @@
 from collections.abc import MutableMapping
 from typing import Any
 
+import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import (
@@ -41,7 +42,10 @@ def convert_span_to_item(span: Span) -> TraceItem:
 
     for k, v in (span.get("data") or {}).items():
         if v is not None:
-            attributes[k] = _anyvalue(v)
+            try:
+                attributes[k] = _anyvalue(v)
+            except Exception:
+                sentry_sdk.capture_exception()
 
     for k, v in (span.get("measurements") or {}).items():
         if k is not None and v is not None:
