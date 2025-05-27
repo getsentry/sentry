@@ -22,6 +22,7 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
+  useLogsAutoRefresh,
   useLogsFields,
   useLogsIsTableFrozen,
   useLogsSearch,
@@ -63,6 +64,7 @@ export function LogsInfiniteTable({
 }: LogsTableProps) {
   const fields = useLogsFields();
   const search = useLogsSearch();
+  const autoRefresh = useLogsAutoRefresh();
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {
     isPending,
@@ -170,7 +172,9 @@ export function LogsInfiniteTable({
           {isPending && <LoadingRenderer />}
           {isError && <ErrorRenderer />}
           {isEmpty && <EmptyRenderer />}
-          {isFetchingPreviousPage && <LoadingRenderer size={LOGS_GRID_BODY_ROW_HEIGHT} />}
+          {!autoRefresh && !isPending && isFetchingPreviousPage && (
+            <LoadingRenderer size={LOGS_GRID_BODY_ROW_HEIGHT} />
+          )}
           {virtualItems.map(virtualRow => {
             const dataRow = data?.[virtualRow.index];
             const isPastFetchedRows = virtualRow.index > data?.length - 1;
@@ -200,7 +204,9 @@ export function LogsInfiniteTable({
               ))}
             </TableRow>
           )}
-          {isFetchingNextPage && <LoadingRenderer size={LOGS_GRID_BODY_ROW_HEIGHT} />}
+          {!autoRefresh && !isPending && isFetchingNextPage && (
+            <LoadingRenderer size={LOGS_GRID_BODY_ROW_HEIGHT} />
+          )}
         </LogTableBody>
       </Table>
     </Fragment>
