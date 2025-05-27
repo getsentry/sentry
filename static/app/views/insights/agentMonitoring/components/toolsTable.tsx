@@ -1,5 +1,4 @@
-import {Fragment, memo, useCallback} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -8,14 +7,32 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {
+  CellExpander,
+  CellLink,
+  GridEditableContainer,
+  LoadingOverlay,
+} from 'sentry/views/insights/agentMonitoring/components/common';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
+import {
+  AI_TOOL_NAME_ATTRIBUTE,
+  getAIToolCallsFilter,
+} from 'sentry/views/insights/agentMonitoring/utils/query';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
   avg: number;
-  errorRate: string;
+  errorRate: number;
   p95: number;
   requests: number;
   tool: string;
@@ -28,23 +45,46 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'requests', name: t('Requests'), width: 120},
   {key: 'avg', name: t('Avg'), width: 100},
   {key: 'p95', name: t('P95'), width: 100},
-  {key: 'errorRate', name: t('Error Rate'), width: 100},
+  {key: 'errorRate', name: t('Error Rate'), width: 120},
 ];
 
 export function ToolsTable() {
   const navigate = useNavigate();
+
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const {query} = useTransactionNameQuery();
 
-  // TODO: Replace with actual request
-  const toolsRequest = {
-    data: [],
-    isPending: false,
-    error: false,
-    pageLinks: null,
-    isPlaceholderData: false,
-  };
+  const fullQuery = `${getAIToolCallsFilter()} ${query}`.trim();
 
-  const tableData = toolsRequest.data;
+  const toolsRequest = useEAPSpans(
+    {
+      fields: [
+        AI_TOOL_NAME_ATTRIBUTE,
+        'count()',
+        'avg(span.duration)',
+        'p95(span.duration)',
+        'failure_rate()',
+      ],
+      sorts: [{field: 'count()', kind: 'desc'}],
+      search: fullQuery,
+      limit: 10,
+    },
+    Referrer.QUERIES_CHART // TODO
+  );
+
+  const tableData = useMemo(() => {
+    if (!toolsRequest.data) {
+      return [];
+    }
+
+    return toolsRequest.data.map(span => ({
+      tool: `${span[AI_TOOL_NAME_ATTRIBUTE]}`,
+      requests: span['count()'],
+      avg: span['avg(span.duration)'],
+      p95: span['p95(span.duration)'],
+      errorRate: span['failure_rate()'],
+    }));
+  }, [toolsRequest.data]);
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
@@ -103,42 +143,33 @@ const BodyCell = memo(function BodyCell({
   column: GridColumnHeader<string>;
   dataRow: TableData;
 }) {
+  const organization = useOrganization();
+
+  const exploreUrl = getExploreUrl({
+    organization,
+    mode: Mode.AGGREGATE,
+    visualize: [
+      {
+        chartType: ChartType.BAR,
+        yAxes: ['count(span.duration)'],
+      },
+    ],
+    query: `${AI_TOOL_NAME_ATTRIBUTE}:${dataRow.tool}`,
+    sort: `-count(span.duration)`,
+  });
+
   switch (column.key) {
     case 'tool':
-      return dataRow.tool;
+      return <CellLink to={exploreUrl}>{dataRow.tool}</CellLink>;
     case 'requests':
       return dataRow.requests;
     case 'avg':
-      return dataRow.avg;
+      return getDuration(dataRow.avg / 1000, 2, true);
     case 'p95':
-      return dataRow.p95;
+      return getDuration(dataRow.p95 / 1000, 2, true);
     case 'errorRate':
-      return dataRow.errorRate;
+      return formatPercentage(dataRow.errorRate ?? 0);
     default:
       return null;
   }
 });
-
-/**
- * Used to force the cell to expand take as much width as possible in the table layout
- * otherwise grid editable will let the last column grow
- */
-const CellExpander = styled('div')`
-  width: 100vw;
-`;
-
-const GridEditableContainer = styled('div')`
-  position: relative;
-  margin-bottom: ${space(1)};
-`;
-
-const LoadingOverlay = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: ${p => p.theme.background};
-  opacity: 0.5;
-  z-index: 1;
-`;

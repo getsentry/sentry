@@ -1,5 +1,4 @@
-import {Fragment, memo, useCallback} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -8,18 +7,38 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {
+  CellExpander,
+  CellLink,
+  GridEditableContainer,
+  LoadingOverlay,
+} from 'sentry/views/insights/agentMonitoring/components/common';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
+import {
+  AI_MODEL_ID_ATTRIBUTE,
+  AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+  getLLMGenerationsFilter,
+} from 'sentry/views/insights/agentMonitoring/utils/query';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 interface TableData {
-  duration: number;
-  errorRate: string;
+  avg: number;
+  errorRate: number;
   model: string;
+  p95: number;
   requests: number;
   tokens: number;
-  tools: string;
 }
 
 const EMPTY_ARRAY: never[] = [];
@@ -27,26 +46,50 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'model', name: t('Model'), width: COL_WIDTH_UNDEFINED},
   {key: 'requests', name: t('Requests'), width: 120},
-  {key: 'duration', name: t('Duration'), width: 100},
-  {key: 'errorRate', name: t('Error Rate'), width: 140},
-  {key: 'tools', name: t('Tool calls'), width: 120},
   {key: 'tokens', name: t('Tokens used'), width: 140},
+  {key: 'avg', name: t('Avg'), width: 100},
+  {key: 'p95', name: t('P95'), width: 100},
+  {key: 'errorRate', name: t('Error Rate'), width: 120},
 ];
 
 export function ModelsTable() {
   const navigate = useNavigate();
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const {query} = useTransactionNameQuery();
 
-  // TODO: Replace with actual request
-  const modelsRequest = {
-    data: [],
-    isPending: false,
-    error: false,
-    pageLinks: null,
-    isPlaceholderData: false,
-  };
+  const fullQuery = `${getLLMGenerationsFilter()} ${query}`.trim();
 
-  const tableData = modelsRequest.data;
+  const modelsRequest = useEAPSpans(
+    {
+      fields: [
+        AI_MODEL_ID_ATTRIBUTE,
+        AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+        'count()',
+        'avg(span.duration)',
+        'p95(span.duration)',
+        'failure_rate()',
+      ],
+      sorts: [{field: 'count()', kind: 'desc'}],
+      search: fullQuery,
+      limit: 10,
+    },
+    Referrer.QUERIES_CHART // TODO
+  );
+
+  const tableData = useMemo(() => {
+    if (!modelsRequest.data) {
+      return [];
+    }
+
+    return modelsRequest.data.map(span => ({
+      model: `${span[AI_MODEL_ID_ATTRIBUTE]}`,
+      requests: span['count()'],
+      avg: span['avg(span.duration)'],
+      p95: span['p95(span.duration)'],
+      errorRate: span['failure_rate()'],
+      tokens: span[AI_TOKEN_USAGE_ATTRIBUTE_SUM],
+    }));
+  }, [modelsRequest.data]);
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
@@ -105,44 +148,35 @@ const BodyCell = memo(function BodyCell({
   column: GridColumnHeader<string>;
   dataRow: TableData;
 }) {
+  const organization = useOrganization();
+
+  const exploreUrl = getExploreUrl({
+    organization,
+    mode: Mode.AGGREGATE,
+    visualize: [
+      {
+        chartType: ChartType.BAR,
+        yAxes: ['count(span.duration)'],
+      },
+    ],
+    query: `${AI_MODEL_ID_ATTRIBUTE}:${dataRow.model}`,
+    sort: `-count(span.duration)`,
+  });
+
   switch (column.key) {
     case 'model':
-      return dataRow.model;
+      return <CellLink to={exploreUrl}>{dataRow.model}</CellLink>;
     case 'requests':
       return dataRow.requests;
-    case 'duration':
-      return dataRow.duration;
+    case 'avg':
+      return getDuration(dataRow.avg / 1000, 2, true);
+    case 'p95':
+      return getDuration(dataRow.p95 / 1000, 2, true);
     case 'errorRate':
-      return dataRow.errorRate;
+      return formatPercentage(dataRow.errorRate ?? 0);
     case 'tokens':
-      return dataRow.tokens;
-    case 'tools':
-      return dataRow.tools;
+      return formatAbbreviatedNumber(dataRow.tokens);
     default:
       return null;
   }
 });
-
-/**
- * Used to force the cell to expand take as much width as possible in the table layout
- * otherwise grid editable will let the last column grow
- */
-const CellExpander = styled('div')`
-  width: 100vw;
-`;
-
-const GridEditableContainer = styled('div')`
-  position: relative;
-  margin-bottom: ${space(1)};
-`;
-
-const LoadingOverlay = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: ${p => p.theme.background};
-  opacity: 0.5;
-  z-index: 1;
-`;
