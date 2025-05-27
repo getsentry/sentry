@@ -10,8 +10,9 @@ class AddPreprodModelsTests(TestMigrations):
         pass
 
     def test(self):
-        from sentry.preprod.models import PreprodArtifact
+        from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
 
         org = self.create_organization()
         project = self.create_project(organization=org)
         PreprodArtifact.objects.create(project=project)
+        PreprodBuildConfiguration.objects.create(project=project, name="Release")
