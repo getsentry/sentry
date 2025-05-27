@@ -273,8 +273,6 @@ class StatefulDetectorHandler(
     Stateful Detectors are provided as a base class for new detectors that need to track state.
     """
 
-    thresholds: DetectorThresholds = {}
-
     def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
         super().__init__(detector)
 
@@ -284,11 +282,18 @@ class StatefulDetectorHandler(
         self._thresholds: DetectorThresholds = {
             DetectorPriorityLevel.OK: 1,  # Make sure the OK level is always set
             **default_thresholds,
-            **(self.thresholds or {}),  # Allow each handler to override
+            **(self.thresholds),  # Allow each handler to override
             **(thresholds or {}),  # Allow each instance to override
         }
 
         self.state_manager = DetectorStateManager(detector, list(self._thresholds.keys()))
+
+    @property
+    def thresholds(self) -> DetectorThresholds:
+        """
+        Configure default thresholds at the detector level.
+        """
+        return {}
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
         # TODO - Is this something that should be provided by the detector itself rather
