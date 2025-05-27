@@ -1,18 +1,15 @@
 import {useCallback, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Body} from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -41,12 +38,14 @@ import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {
+  BottomSectionBody,
   FilterBarContainer,
   LogsGraphContainer,
   LogsItemContainer,
   LogsTableActionsContainer,
   StyledPageFilterBar,
   TableActionsContainer,
+  TopSectionBody,
 } from 'sentry/views/explore/logs/styles';
 import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
@@ -220,22 +219,3 @@ export function LogsTabContent({
     </SearchQueryBuilderProvider>
   );
 }
-
-const TopSectionBody = styled(Body)`
-  padding-bottom: 0;
-  flex: 0 0 auto;
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding-bottom: ${space(2)};
-  }
-`;
-
-const BottomSectionBody = styled(Body)`
-  padding-top: 0;
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-top: 1px solid ${p => p.theme.border};
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding-top: ${space(1)};
-  }
-`;
