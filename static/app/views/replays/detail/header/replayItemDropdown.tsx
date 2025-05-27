@@ -1,4 +1,3 @@
-import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -44,10 +43,14 @@ export default function ReplayItemDropdown({projectSlug, replay, replayRecord}: 
   const onDeleteReplay = useDeleteReplay({replayId, projectSlug});
 
   const dropdownItems: MenuItemProps[] = [
-    makeItem({
+    {
       key: 'download-rrweb',
-      label: t('Download JSON'),
-      icon: <IconDownload />,
+      label: (
+        <ItemSpacer>
+          <IconDownload />
+          {t('Download JSON')}
+        </ItemSpacer>
+      ),
       onAction: () => {
         try {
           if (!replay) {
@@ -62,33 +65,45 @@ export default function ReplayItemDropdown({projectSlug, replay, replayRecord}: 
         }
       },
       disabled: !canDownload,
-    }),
+    },
     canSeeEmployeeLinks && isMobile
-      ? makeItem({
+      ? {
           key: 'download-1st-video',
-          label: t('Download 1st video segment (employee only)'),
-          icon: <IconDownload />,
+          label: (
+            <ItemSpacer>
+              <IconDownload />
+              {t('Download 1st video segment (employee only)')}
+            </ItemSpacer>
+          ),
           onAction: () =>
             navigate(
               `/api/0/projects/${organization.slug}/${projectSlug}/replays/${replayId}/videos/0/`
             ),
           disabled: !canDownload,
-        })
+        }
       : null,
-    makeItem({
+    {
       key: 'share',
-      label: t('Share'),
-      icon: <IconUpload />,
+      label: (
+        <ItemSpacer>
+          <IconUpload />
+          {t('Share')}
+        </ItemSpacer>
+      ),
       onAction: onShareReplay,
       disabled: !replayId,
-    }),
-    makeItem({
+    },
+    {
       key: 'delete',
-      label: t('Delete'),
-      icon: <IconDelete />,
+      label: (
+        <ItemSpacer>
+          <IconDelete />
+          {t('Delete')}
+        </ItemSpacer>
+      ),
       onAction: onDeleteReplay,
       disabled: !canDelete,
-    }),
+    },
   ].filter(defined);
 
   return (
@@ -103,29 +118,6 @@ export default function ReplayItemDropdown({projectSlug, replay, replayRecord}: 
       isDisabled={dropdownItems.length === 0}
     />
   );
-}
-
-function makeItem({
-  key,
-  label,
-  onAction,
-  disabled,
-  icon,
-}: Pick<MenuItemProps, 'key' | 'onAction' | 'disabled'> & {
-  icon: ReactNode;
-  label: string;
-}): MenuItemProps {
-  return {
-    key,
-    label: (
-      <ItemSpacer>
-        {icon}
-        {label}
-      </ItemSpacer>
-    ),
-    onAction,
-    disabled,
-  };
 }
 
 const ItemSpacer = styled('div')`
