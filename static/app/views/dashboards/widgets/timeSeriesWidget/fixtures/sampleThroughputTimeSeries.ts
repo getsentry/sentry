@@ -12,18 +12,22 @@ export const sampleThroughputTimeSeries: TimeSeries = {
     {
       value: 7456.966666666666,
       timestamp: 1729796400000, // '2024-10-24T15:00:00-04:00'
+      incomplete: true,
     },
     {
       value: 8217.8,
       timestamp: 1729798200000, // '2024-10-24T15:30:00-04:00'
+      incomplete: true,
     },
     {
       value: 8989.4,
       timestamp: 1729800000000, // '2024-10-24T16:00:00-04:00'
+      incomplete: true,
     },
     {
       value: 7930.9,
       timestamp: 1729801800000, // '2024-10-24T16:30:00-04:00'
+      incomplete: true,
     },
     {
       value: 7178.1,
@@ -48,10 +52,12 @@ export const sampleThroughputTimeSeries: TimeSeries = {
     {
       value: 4231.633333333333,
       timestamp: 1729812600000, // '2024-10-24T19:30:00-04:00'
+      incomplete: true,
     },
     {
       value: 4785.733333333334,
       timestamp: 1729814400000, // '2024-10-24T20:00:00-04:00'
+      incomplete: true,
     },
     {
       value: 4394.566666666667,
