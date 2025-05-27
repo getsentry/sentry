@@ -85,6 +85,8 @@ class ResolvedAttribute(ResolvedColumn):
     is_aggregate: bool = field(default=False, init=False)
     # There are columns in RPC that are available but we don't want rendered to the user
     private: bool = False
+    replacement: str | None = field(default=None)
+    deprecation_status: str | None = field(default=None)
 
     @property
     def proto_definition(self) -> AttributeKey:

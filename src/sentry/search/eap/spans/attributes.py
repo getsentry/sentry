@@ -1,4 +1,7 @@
-from typing import Literal
+import logging
+import os
+from dataclasses import replace
+from typing import Any, Literal
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 
@@ -14,6 +17,7 @@ from sentry.search.eap.columns import (
     simple_sentry_field,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS
+from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
 from sentry.search.events.constants import (
     PRECISE_FINISH_TS,
     PRECISE_START_TS,
@@ -21,7 +25,11 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
+from sentry.utils import json
 from sentry.utils.validators import is_empty_string, is_event_id_or_list, is_span_id
+
+logger = logging.getLogger(__name__)
+
 
 SPAN_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
@@ -420,6 +428,39 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
     ]
 }
 
+DEPRECATED_ATTRIBUTES: list[dict[str, Any]] = []
+try:
+    with open(os.path.join(SENTRY_CONVENTIONS_DIRECTORY, "deprecated_attributes.json"), "rb") as f:
+        DEPRECATED_ATTRIBUTES = json.loads(f.read())["attributes"]
+except Exception:
+    logger.exception("Failed to load deprecated attributes from 'deprecated_attributes.json'")
+
+
+try:
+    for attribute in DEPRECATED_ATTRIBUTES:
+        deprecation = attribute.get("deprecation", {})
+        key = attribute["key"]
+        if (
+            "replacement" in deprecation
+            and "_status" in deprecation
+            and deprecation["_status"] == "backfill"
+        ):
+            if key in SPAN_ATTRIBUTE_DEFINITIONS:
+                deprecated_attr = SPAN_ATTRIBUTE_DEFINITIONS[key]
+                status = deprecation["_status"]
+                replacement = deprecation["replacement"]
+
+                SPAN_ATTRIBUTE_DEFINITIONS[key] = replace(
+                    deprecated_attr, replacement=replacement, deprecation_status=status
+                )
+
+                SPAN_ATTRIBUTE_DEFINITIONS[replacement] = replace(
+                    deprecated_attr, public_alias=replacement, internal_name=replacement
+                )
+
+except Exception as e:
+    logger.exception("Failed to update attribute definitions: %s", e)
+
 
 def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContext:
     # EAP defaults to lower case `unknown`, but in querybuilder we used `Unknown`
@@ -495,6 +536,18 @@ SPANS_PRIVATE_ATTRIBUTES: set[str] = {
     definition.internal_name
     for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
     if definition.private
+}
+
+SPANS_REPLACEMENT_ATTRIBUTES: set[str] = {
+    definition.replacement
+    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    if definition.replacement
+}
+
+SPANS_REPLACEMENT_MAP: dict[str, str] = {
+    definition.public_alias: definition.replacement
+    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    if definition.replacement
 }
 
 
