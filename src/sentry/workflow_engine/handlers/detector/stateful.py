@@ -385,6 +385,10 @@ class StatefulDetectorHandler(
         return results
 
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
+        """
+        A hook that allows for additional fingerprinting to be added to the detectors issue occurrences.
+        By default the fingerprint will be the detector id and group key.
+        """
         return []
 
     def create_resolve_message(self) -> StatusChangeMessage:

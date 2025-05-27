@@ -81,6 +81,20 @@ class ExampleDetectorHandler(StatefulDetectorHandler):
         }
 ```
 
+#### `build_issue_fingerprint`
+
+This method is used to add additional fingerprints to the issue occurrence or status change message. This allows you to create customize how issues are grouped together in the issue platform / feed.
+The default issue occurrence fingerprint is `{detector.id}` or `{detector.id}:{detector_group_key}` The `detector_group_key` is used to group evaluation results for a specific detector. An example of this is could be monitoring errors on an API endpoint, and we want to group the issues by the endpoint path.
+
+```python
+class ExampleDetectorHandler(StatefulDetectorHandler):
+    def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
+        uptime = Uptime.objects.get(detector=self.detector)
+        return [f"uptime-{uptime.id}"]
+```
+
+If the above example was used, the resulting fingerprints would be: [`uptime-1`, `1:None`]. Where `uptime-1` is what we defined in `build_issue_fingerprint` and `1:None` is the default fingerprint for the detector.
+
 ### State Tracking
 
 How does the detector track state? The `StatefulDetectorHandler` uses the `thresholds` and other thresholds defined in the `Detector` to decide which state changes of the detector track.
