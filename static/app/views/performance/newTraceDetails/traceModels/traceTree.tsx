@@ -672,7 +672,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
             isServerRequestHandlerTransactionNode(n)
           );
 
-          // todo: add test to only reparent with ssr reason
           if (serverRequestHandler?.reparent_reason === REPARENT_REASON_SSR) {
             serverRequestHandler.parent!.children =
               serverRequestHandler.parent!.children.filter(

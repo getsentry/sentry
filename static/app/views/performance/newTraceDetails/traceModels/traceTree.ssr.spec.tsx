@@ -91,4 +91,24 @@ describe('server side rendering', () => {
 
     expect(tree.build().serialize()).toMatchSnapshot();
   });
+
+  it('does not reparent if server handler does not have SSR reparent reason', () => {
+    const tree = TraceTree.FromTrace(ssrTrace, traceMetadata);
+
+    // The automatic pageload reparenting should have happened
+    const pageload = tree.root.children[0]!.children[0]!;
+    const serverHandler = pageload.children[0]!;
+
+    serverHandler.reparent_reason = null;
+
+    TraceTree.FromSpans(pageload, ssrSpans, makeEventTransaction());
+
+    const browserRequestSpan = tree.root.children[0]!.children[0]!.children.find(
+      span => span.value && 'op' in span.value && span.value.op === 'browser.request'
+    );
+
+    expect(browserRequestSpan).toBeDefined();
+    expect(serverHandler.parent).toBe(pageload);
+    expect(browserRequestSpan?.children).not.toContain(serverHandler);
+  });
 });
