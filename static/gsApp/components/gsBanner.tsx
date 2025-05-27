@@ -1051,6 +1051,14 @@ class GSBanner extends Component<Props, State> {
       categories: [DataCategory.PROFILE_DURATION_UI],
     },
     // TODO(Seer): add in-product links for Seer categories
+    '/issue-fixes/': {
+      product: DataCategory.SEER_AUTOFIX,
+      categories: [DataCategory.SEER_AUTOFIX],
+    },
+    '/issue-scans/': {
+      product: DataCategory.SEER_SCANNER,
+      categories: [DataCategory.SEER_SCANNER],
+    },
   };
 
   renderProductTrialAlerts() {
