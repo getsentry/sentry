@@ -1,4 +1,5 @@
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 import {BASE_FILTERS} from 'sentry/views/insights/database/settings';
@@ -20,10 +21,12 @@ export function useDatabaseLandingChartFilter() {
   const {selectedSystem} = useSystemSelectorOptions();
   const system = systemQueryParam ?? selectedSystem;
 
-  return {
+  const search = MutableSearch.fromQueryObject({
     ...BASE_FILTERS,
     [SpanMetricsField.SPAN_ACTION]: spanAction,
     [SpanMetricsField.SPAN_DOMAIN]: spanDomain,
     [SpanMetricsField.SPAN_SYSTEM]: system,
-  };
+  });
+
+  return {search, enabled: true};
 }

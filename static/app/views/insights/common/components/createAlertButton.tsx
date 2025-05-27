@@ -4,6 +4,7 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
@@ -28,6 +29,7 @@ export function CreateAlertButton({yAxis, search}: Props) {
     ? getAlertsUrl({
         project,
         query: search?.formatString(),
+        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
         pageFilters: selection,
         aggregate: yAxis,
         organization,
