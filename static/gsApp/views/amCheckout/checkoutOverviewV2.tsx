@@ -153,7 +153,7 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                           )}
                         />
                       </ReservedItem>
-                      <Price>
+                      <Title>
                         {utils.displayPrice({
                           cents: utils.getReservedPriceForReservedBudgetCategory({
                             plan: activePlan,
@@ -161,7 +161,7 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                           }),
                         })}
                         /{shortInterval}
-                      </Price>
+                      </Title>
                     </SpaceBetweenRow>
                   );
                 }
