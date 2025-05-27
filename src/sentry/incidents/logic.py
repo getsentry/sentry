@@ -60,7 +60,7 @@ from sentry.search.events.constants import (
     METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
     SPANS_METRICS_FUNCTIONS,
 )
-from sentry.search.events.fields import is_function, is_typed_numeric_tag, resolve_field
+from sentry.search.events.fields import is_function, resolve_field
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data
@@ -1753,6 +1753,7 @@ EAP_COLUMNS = [
 ]
 EAP_FUNCTIONS = [
     "count",
+    "count_unique",
     "avg",
     "p50",
     "p75",
@@ -1766,7 +1767,9 @@ EAP_FUNCTIONS = [
 ]
 
 
-def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
+def get_column_from_aggregate(
+    aggregate: str, allow_mri: bool, allow_eap: bool = False
+) -> str | None:
     # These functions exist as SnQLFunction definitions and are not supported in the older
     # logic for resolving functions. We parse these using `fields.is_function`, otherwise
     # they will fail using the old resolve_field logic.
@@ -1778,7 +1781,7 @@ def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
         return None if match.group("columns") == "" else match.group("columns")
 
     # Skip additional validation for EAP queries. They don't exist in the old logic.
-    if match and match.group("function") in EAP_FUNCTIONS and match.group("columns") in EAP_COLUMNS:
+    if match and match.group("function") in EAP_FUNCTIONS and allow_eap:
         return match.group("columns")
 
     if allow_mri:
@@ -1817,7 +1820,7 @@ def check_aggregate_column_support(
     aggregate: str, allow_mri: bool = False, allow_eap: bool = False
 ) -> bool:
     # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
-    column = get_column_from_aggregate(aggregate, allow_mri)
+    column = get_column_from_aggregate(aggregate, allow_mri, allow_eap)
     match = is_function(aggregate)
     function = match.group("function") if match else None
     return (
@@ -1830,15 +1833,14 @@ def check_aggregate_column_support(
             isinstance(function, str)
             and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
         )
-        or (column in EAP_COLUMNS and allow_eap)
-        or (is_typed_numeric_tag(column) and allow_eap)
+        or allow_eap
     )
 
 
 def translate_aggregate_field(
-    aggregate: str, reverse: bool = False, allow_mri: bool = False
+    aggregate: str, reverse: bool = False, allow_mri: bool = False, allow_eap: bool = False
 ) -> str:
-    column = get_column_from_aggregate(aggregate, allow_mri)
+    column = get_column_from_aggregate(aggregate, allow_mri, allow_eap)
     if not reverse:
         if column in TRANSLATABLE_COLUMNS:
             return aggregate.replace(column, TRANSLATABLE_COLUMNS[column])
