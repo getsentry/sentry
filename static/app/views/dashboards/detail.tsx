@@ -1133,7 +1133,9 @@ class DashboardDetail extends Component<Props, State> {
               (checkDashboardRoute(locationChange.currentLocation.pathname) &&
                 checkDashboardRoute(locationChange.nextLocation.pathname));
             const hasUnsavedChanges =
-              defined(modifiedDashboard) && !isEqual(modifiedDashboard, dashboard);
+              defined(modifiedDashboard) &&
+              !isEqual(modifiedDashboard, dashboard) &&
+              this.isEditingDashboard;
             return (
               locationChange.currentLocation.pathname !==
                 locationChange.nextLocation.pathname &&
