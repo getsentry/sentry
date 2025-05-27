@@ -1,4 +1,4 @@
-import {useContext, useState} from 'react';
+import {useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -91,6 +91,7 @@ type Props = WithRouterProps & {
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
+  showLoadingText?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
@@ -109,8 +110,10 @@ type Data = {
 
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
+  const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
   const navigate = useNavigate();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onDataFetched = (newData: Data) => {
     const {...rest} = newData;
@@ -119,6 +122,8 @@ function WidgetCard(props: Props) {
     }
 
     setData(prevData => ({...prevData, ...rest}));
+
+    setIsLoadingTextVisible(false);
   };
 
   const {
@@ -143,6 +148,7 @@ function WidgetCard(props: Props) {
     showConfidenceWarning,
     minTableColumnWidth,
     disableZoom,
+    showLoadingText,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -168,6 +174,27 @@ function WidgetCard(props: Props) {
   const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
+
+  const onDataFetchStart = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    setIsLoadingTextVisible(false);
+    timeoutRef.current = setTimeout(() => {
+      setIsLoadingTextVisible(true);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [timeoutRef]);
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
@@ -284,6 +311,8 @@ function WidgetCard(props: Props) {
             showConfidenceWarning={showConfidenceWarning}
             minTableColumnWidth={minTableColumnWidth}
             disableZoom={disableZoom}
+            onDataFetchStart={onDataFetchStart}
+            showLoadingText={showLoadingText && isLoadingTextVisible}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>
