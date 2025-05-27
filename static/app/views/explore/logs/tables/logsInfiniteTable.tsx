@@ -113,7 +113,7 @@ export function LogsInfiniteTable({
   const lastItem = virtualItems[virtualItems.length - 1]?.end;
 
   const [paddingTop, paddingBottom] =
-    firstItem && lastItem
+    defined(firstItem) && defined(lastItem)
       ? [
           Math.max(0, firstItem - virtualizer.options.scrollMargin),
           Math.max(0, virtualizer.getTotalSize() - lastItem),
