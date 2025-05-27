@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
@@ -19,10 +19,12 @@ import {useProjectSeerPreferences} from 'sentry/components/events/autofix/prefer
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -83,13 +85,21 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const hasMultipleUnreadableRepos = unreadableRepos.length > 1;
   const hasSingleUnreadableRepo = unreadableRepos.length === 1;
 
-  const anyStepIncomplete =
-    needsGithubIntegration ||
-    needsRepoSelection ||
-    needsAutomation ||
-    needsFixabilityView;
+  // Use localStorage for collapsed state
+  const [stepsCollapsed, setStepsCollapsed] = useLocalStorageState(
+    `seer-onboarding-collapsed:${project.id}`,
+    false
+  );
 
-  const [hideSteps, setHideSteps] = useState(false);
+  // Calculate incomplete steps
+  const stepConditions = [
+    needsGithubIntegration,
+    needsRepoSelection,
+    needsAutomation,
+    needsFixabilityView,
+  ];
+  const incompleteSteps = stepConditions.filter(Boolean).length;
+  const anyStepIncomplete = incompleteSteps > 0;
 
   const handleStarFixabilityView = () => {
     createIssueView({
@@ -110,7 +120,35 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
   return (
     <NoticesContainer>
-      {anyStepIncomplete && !hideSteps && (
+      <StyledAlert type="info" showIcon>
+        <AlertBody>
+          <span>
+            <b>Seer beta is ending soon</b>
+          </span>
+          <span>
+            Thanks for trying Seer. Free access ends on June 9, 2025; to continue using
+            Seer to scan and fix issues, add Seer to your Sentry subscription for
+            $20/month.
+          </span>
+          <ExternalLink href="https://docs.sentry.io/pricing/">Learn more</ExternalLink>
+        </AlertBody>
+      </StyledAlert>
+      {/* Collapsed summary */}
+      {anyStepIncomplete && stepsCollapsed && (
+        <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
+          <SeerWaitingIcon size="lg" style={{marginRight: 8}} />
+          <span>
+            {t(
+              'Only %s step%s left to get the most out of Seer.',
+              incompleteSteps,
+              incompleteSteps === 1 ? '' : 's'
+            )}
+          </span>
+          <IconChevron direction="down" style={{marginLeft: 'auto'}} />
+        </CollapsedSummaryCard>
+      )}
+      {/* Full guided steps */}
+      {anyStepIncomplete && !stepsCollapsed && (
         <Fragment>
           <StepsHeader>
             <SeerWaitingIcon size="xl" />
@@ -259,7 +297,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   </StepImageCol>
                 </StepContentRow>
                 <GuidedSteps.StepButtons>
-                  <Button onClick={() => setHideSteps(true)} size="sm">
+                  <Button onClick={() => setStepsCollapsed(true)} size="sm">
                     {t('Skip for Now')}
                   </Button>
                   <Button onClick={handleStarFixabilityView} size="sm" priority="primary">
@@ -323,7 +361,13 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 }
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
+`;
+
+const AlertBody = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
 `;
 
 const NoticesContainer = styled('div')`
@@ -384,4 +428,24 @@ const StepsDivider = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.border};
   margin: ${space(3)} 0;
+`;
+
+const CollapsedSummaryCard = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  background: ${p => p.theme.pink400}10;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 6px;
+  padding: ${space(1)};
+  margin-bottom: ${space(2)};
+  cursor: pointer;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 500;
+  color: ${p => p.theme.textColor};
+  transition: box-shadow 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  &:hover {
+    background: ${p => p.theme.pink400}20;
+  }
 `;
