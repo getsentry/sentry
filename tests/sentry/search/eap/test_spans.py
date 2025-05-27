@@ -9,9 +9,9 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
-    DoubleArray,
     ExtrapolationMode,
     Function,
+    IntArray,
     StrArray,
     VirtualColumnContext,
 )
@@ -41,7 +41,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("span.description:foo")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.name", type=AttributeKey.Type.TYPE_STRING),
+                key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_EQUALS,
                 value=AttributeValue(val_str="foo"),
             )
@@ -52,7 +52,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("!span.description:foo")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.name", type=AttributeKey.Type.TYPE_STRING),
+                key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_NOT_EQUALS,
                 value=AttributeValue(val_str="foo"),
             )
@@ -63,9 +63,9 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("ai.total_tokens.used:123")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_double=123),
+                value=AttributeValue(val_int=123),
             )
         )
         assert having is None
@@ -74,7 +74,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("span.description:[foo,bar,baz]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.name", type=AttributeKey.Type.TYPE_STRING),
+                key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_IN,
                 value=AttributeValue(val_str_array=StrArray(values=["foo", "bar", "baz"])),
             )
@@ -85,7 +85,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query(f"id:{'f'*16}")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.span_id", type=AttributeKey.Type.TYPE_STRING),
+                key=AttributeKey(name="sentry.item_id", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_EQUALS,
                 value=AttributeValue(val_str="f" * 16),
             )
@@ -100,7 +100,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("!span.description:[foo,bar,baz]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.name", type=AttributeKey.Type.TYPE_STRING),
+                key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_NOT_IN,
                 value=AttributeValue(val_str_array=StrArray(values=["foo", "bar", "baz"])),
             )
@@ -111,9 +111,9 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("ai.total_tokens.used:[123,456,789]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_IN,
-                value=AttributeValue(val_double_array=DoubleArray(values=[123, 456, 789])),
+                value=AttributeValue(val_int_array=IntArray(values=[123, 456, 789])),
             )
         )
         assert having is None
@@ -122,9 +122,9 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("ai.total_tokens.used:>123")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_INT),
                 op=ComparisonFilter.OP_GREATER_THAN,
-                value=AttributeValue(val_double=123),
+                value=AttributeValue(val_int=123),
             )
         )
         assert having is None
@@ -149,7 +149,7 @@ class SearchResolverQueryTest(TestCase):
                     TraceItemFilter(
                         comparison_filter=ComparisonFilter(
                             key=AttributeKey(
-                                name="sentry.name", type=AttributeKey.Type.TYPE_STRING
+                                name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING
                             ),
                             op=ComparisonFilter.OP_EQUALS,
                             value=AttributeValue(val_str="foo"),
@@ -175,7 +175,7 @@ class SearchResolverQueryTest(TestCase):
                     TraceItemFilter(
                         comparison_filter=ComparisonFilter(
                             key=AttributeKey(
-                                name="sentry.name", type=AttributeKey.Type.TYPE_STRING
+                                name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING
                             ),
                             op=ComparisonFilter.OP_EQUALS,
                             value=AttributeValue(val_str="foo"),
@@ -206,7 +206,8 @@ class SearchResolverQueryTest(TestCase):
                                 TraceItemFilter(
                                     comparison_filter=ComparisonFilter(
                                         key=AttributeKey(
-                                            name="sentry.name", type=AttributeKey.Type.TYPE_STRING
+                                            name="sentry.raw_description",
+                                            type=AttributeKey.Type.TYPE_STRING,
                                         ),
                                         op=ComparisonFilter.OP_EQUALS,
                                         value=AttributeValue(val_str="123"),
@@ -230,7 +231,8 @@ class SearchResolverQueryTest(TestCase):
                                 TraceItemFilter(
                                     comparison_filter=ComparisonFilter(
                                         key=AttributeKey(
-                                            name="sentry.name", type=AttributeKey.Type.TYPE_STRING
+                                            name="sentry.raw_description",
+                                            type=AttributeKey.Type.TYPE_STRING,
                                         ),
                                         op=ComparisonFilter.OP_EQUALS,
                                         value=AttributeValue(val_str="foo"),

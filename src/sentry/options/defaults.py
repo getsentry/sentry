@@ -1676,7 +1676,7 @@ register(
 )
 register(
     "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation",
-    default=0.25,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2664,6 +2664,11 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "standalone-spans.buffer.flusher.backpressure_seconds",
+    default=10,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "indexed-spans.agg-span-waterfall.enable",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -3108,6 +3113,13 @@ register(
 # Taskbroker flags
 register(
     "taskworker.try_compress.profile_metrics",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "taskworker.try_compress.profile_metrics.rollout",
     default=0.0,
     type=Float,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

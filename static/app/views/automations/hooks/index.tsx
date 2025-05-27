@@ -14,8 +14,3 @@ export function useAutomationsQuery(_options: UseAutomationsQueryOptions = {}) {
     retry: false,
   });
 }
-
-export const makeAutomationQueryKey = (
-  orgSlug: string,
-  automationId = ''
-): [url: string] => [`/organizations/${orgSlug}/workflows/${automationId}/`];

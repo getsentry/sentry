@@ -72,9 +72,6 @@ const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
-// Storybook related flag configuration
-const STORYBOOK_TYPES = Boolean(env.STORYBOOK_TYPES) || IS_PRODUCTION;
-
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
 const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
@@ -293,10 +290,32 @@ const appConfig: Configuration = {
   },
   plugins: [
     /**
-     * Adds build time measurement instrumentation, which will be reported back
-     * to sentry
+     * Without this, webpack will chunk the locales but attempt to load them all
+     * eagerly.
      */
-    // new SentryInstrumentation(),
+    new rspack.IgnorePlugin({
+      contextRegExp: /moment$/,
+      resourceRegExp: /^\.\/locale$/,
+    }),
+
+    /**
+     * Restrict translation files that are pulled in through app/translations.jsx
+     * and through moment/locale/* to only those which we create bundles for via
+     * locale/catalogs.json.
+     *
+     * Without this, webpack will still output all of the unused locale files despite
+     * the application never loading any of them.
+     */
+    new rspack.ContextReplacementPlugin(
+      /sentry-locale$/,
+      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+      true,
+      new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
+    ),
+    new rspack.ContextReplacementPlugin(
+      /moment\/locale/,
+      new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
+    ),
 
     /**
      * TODO(epurkhiser): Figure out if we still need these
@@ -333,25 +352,6 @@ const appConfig: Configuration = {
     ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
 
     /**
-     * Restrict translation files that are pulled in through app/translations.jsx
-     * and through moment/locale/* to only those which we create bundles for via
-     * locale/catalogs.json.
-     *
-     * Without this, webpack will still output all of the unused locale files despite
-     * the application never loading any of them.
-     */
-    new rspack.ContextReplacementPlugin(
-      /sentry-locale$/,
-      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
-      true,
-      new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
-    ),
-    new rspack.ContextReplacementPlugin(
-      /moment\/locale/,
-      new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
-    ),
-
-    /**
      * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
      * the backend
      */
@@ -379,9 +379,7 @@ const appConfig: Configuration = {
 
   resolveLoader: {
     alias: {
-      'type-loader': STORYBOOK_TYPES
-        ? path.resolve(__dirname, 'static/app/views/stories/type-loader.ts')
-        : path.resolve(__dirname, 'static/app/views/stories/noop-type-loader.ts'),
+      'type-loader': path.resolve(__dirname, 'static/app/stories/type-loader.ts'),
     },
   },
 
@@ -784,7 +782,8 @@ appConfig.plugins?.push(
       create: false,
     },
     reactComponentAnnotation: {
-      enabled: true,
+      // Enabled only in production because annotating is slow
+      enabled: IS_PRODUCTION,
     },
     bundleSizeOptimizations: {
       // This is enabled so that our SDKs send exceptions to Sentry

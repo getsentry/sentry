@@ -1,24 +1,22 @@
 import {Fragment} from 'react';
 
 import {Select} from 'sentry/components/core/select';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import {Grid} from 'sentry/components/stories/sideBySide';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/select';
 
-export default storyBook('Select', (story, APIReference) => {
+export default Storybook.story('Select', (story, APIReference) => {
   APIReference(types.Select);
 
   story('Sizes', () => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="Select" /> component comes in different sizes:
+          The <Storybook.JSXNode name="Select" /> component comes in different sizes:
         </p>
-        <Grid columns={3}>
+        <Storybook.SideBySide>
           <Select
             size="md"
             placeholder="medium"
@@ -44,7 +42,7 @@ export default storyBook('Select', (story, APIReference) => {
               {value: 'item2', label: 'Item 2'},
             ]}
           />
-        </Grid>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
@@ -52,7 +50,7 @@ export default storyBook('Select', (story, APIReference) => {
   story('Disabled', () => {
     return (
       <Fragment>
-        <Grid columns={3}>
+        <Storybook.SideBySide>
           <Select
             isDisabled
             size="md"
@@ -81,14 +79,14 @@ export default storyBook('Select', (story, APIReference) => {
               {value: 'item2', label: 'Item 2'},
             ]}
           />
-        </Grid>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
 
   story('With inFieldLabel', () => {
     return (
-      <Grid columns={3}>
+      <Storybook.SideBySide>
         <Select
           inFieldLabel="Hello world"
           size="md"
@@ -117,13 +115,13 @@ export default storyBook('Select', (story, APIReference) => {
             {value: 'item2', label: 'Item 2'},
           ]}
         />
-      </Grid>
+      </Storybook.SideBySide>
     );
   });
 
   story('Clearable', () => {
     return (
-      <Grid columns={3}>
+      <Storybook.SideBySide>
         <Select
           isClearable
           defaultValue={{value: 'item1', label: 'Item 1'}}
@@ -154,13 +152,13 @@ export default storyBook('Select', (story, APIReference) => {
             {value: 'item2', label: 'Item 2'},
           ]}
         />
-      </Grid>
+      </Storybook.SideBySide>
     );
   });
 
   story('Searchable', () => {
     return (
-      <Grid columns={3}>
+      <Storybook.SideBySide>
         <Select
           isSearchable
           size="md"
@@ -189,7 +187,7 @@ export default storyBook('Select', (story, APIReference) => {
             {value: 'item2', label: 'Item 2'},
           ]}
         />
-      </Grid>
+      </Storybook.SideBySide>
     );
   });
 
@@ -197,10 +195,11 @@ export default storyBook('Select', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="Select" /> component options can use the{' '}
-          <JSXNode name="leadingItems" /> prop to add an icon to the left of the option.
+          The <Storybook.JSXNode name="Select" /> component options can use the{' '}
+          <Storybook.JSXNode name="leadingItems" /> prop to add an icon to the left of the
+          option.
         </p>
-        <Grid columns={3}>
+        <Storybook.SideBySide>
           <Select
             isSearchable
             size="md"
@@ -243,7 +242,7 @@ export default storyBook('Select', (story, APIReference) => {
               {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
             ]}
           />
-        </Grid>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });
