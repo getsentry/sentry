@@ -23,7 +23,7 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -52,6 +52,8 @@ function AuthTokenCreateForm({
   const api = useApi();
   const queryClient = useQueryClient();
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleGoBack = useCallback(
     () => navigate(`/settings/${organization.slug}/auth-tokens/`),
     [navigate, organization.slug]
@@ -63,6 +65,7 @@ function AuthTokenCreateForm({
     CreateTokenQueryVariables
   >({
     mutationFn: ({name}) => {
+      setIsSubmitting(true);
       addLoadingMessage();
       return api.requestPromise(`/organizations/${organization.slug}/org-auth-tokens/`, {
         method: 'POST',
@@ -80,6 +83,7 @@ function AuthTokenCreateForm({
       });
 
       onCreatedToken(token);
+      setIsSubmitting(false);
     },
     onError: error => {
       const detail = error.responseJSON?.detail;
@@ -93,6 +97,7 @@ function AuthTokenCreateForm({
           : t('Failed to create a new auth token.');
       handleXhrErrorResponse(message, error);
       addErrorMessage(message);
+      setIsSubmitting(false);
     },
   });
 
@@ -102,13 +107,12 @@ function AuthTokenCreateForm({
       initialData={initialData}
       apiEndpoint={`/organizations/${organization.slug}/org-auth-tokens/`}
       onSubmit={({name}) => {
-        submitToken({
-          name,
-        });
+        submitToken({name});
       }}
       onCancel={handleGoBack}
       submitLabel={t('Create Auth Token')}
       requireChanges
+      submitDisabled={isSubmitting}
     >
       <TextField
         name="name"
@@ -130,11 +134,8 @@ function AuthTokenCreateForm({
   );
 }
 
-export function OrganizationAuthTokensNewAuthToken({
-  organization,
-}: {
-  organization: Organization;
-}) {
+export default function OrganizationAuthTokensNewAuthToken() {
+  const organization = useOrganization();
   const navigate = useNavigate();
   const [newToken, setNewToken] = useState<OrgAuthTokenWithToken | null>(null);
 
@@ -181,8 +182,6 @@ export function OrganizationAuthTokensNewAuthToken({
     </div>
   );
 }
-
-export default withOrganization(OrganizationAuthTokensNewAuthToken);
 
 const ScopeHelpText = styled('div')`
   color: ${p => p.theme.subText};
