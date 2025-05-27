@@ -1,7 +1,7 @@
+import {TabList} from 'sentry/components/core/tabs';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {makeStatsPathname} from 'sentry/views/organizationStats/pathname';

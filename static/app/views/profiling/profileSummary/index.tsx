@@ -7,6 +7,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
@@ -28,7 +29,6 @@ import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegrap
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';

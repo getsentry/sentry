@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tabs} from 'sentry/components/tabs';
+import {Tabs} from 'sentry/components/core/tabs';
 import {space} from 'sentry/styles/space';
 
 /**

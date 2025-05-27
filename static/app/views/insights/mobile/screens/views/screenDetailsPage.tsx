@@ -5,10 +5,10 @@ import {
   FeatureBadge,
   type FeatureBadgeProps,
 } from 'sentry/components/core/badge/featureBadge';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';

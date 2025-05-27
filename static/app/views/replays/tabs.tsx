@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
+import {TabList} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';

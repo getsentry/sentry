@@ -7,9 +7,9 @@ import {ListCollection} from '@react-stately/list';
 import type {TabListState} from '@react-stately/tabs';
 import type {CollectionBase, Node, Orientation} from '@react-types/shared';
 
-import {TabsContext} from './index';
 import {Item} from './item';
 import {tabsShouldForwardProp} from './utils';
+import {TabsContext} from '.';
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
