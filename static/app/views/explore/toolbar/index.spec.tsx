@@ -172,6 +172,12 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
 
     expect(visualizes).toEqual([new Visualize(['epm()'], {label: 'A'})]);
+
+    // try changing the aggregate
+    await userEvent.click(within(section).getByRole('button', {name: 'epm'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+    expect(visualizes).toEqual([new Visualize(['avg(span.duration)'], {label: 'A'})]);
   });
 
   it('defaults count_unique argument to span.op', async function () {
