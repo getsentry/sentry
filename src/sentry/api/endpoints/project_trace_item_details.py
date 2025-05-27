@@ -61,13 +61,15 @@ def convert_rpc_attribute_to_json(
                     internal_name, column_type, trace_item_type
                 )
 
-                if use_sentry_conventions:
+                if use_sentry_conventions and external_name:
                     external_name = translate_to_sentry_conventions(external_name, trace_item_type)
                     if external_name in seen_sentry_conventions:
                         continue
                     seen_sentry_conventions.add(external_name)
                 else:
-                    if is_sentry_convention_replacement_attribute(external_name, trace_item_type):
+                    if external_name and is_sentry_convention_replacement_attribute(
+                        external_name, trace_item_type
+                    ):
                         continue
 
                 if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith(
