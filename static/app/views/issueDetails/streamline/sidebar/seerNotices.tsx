@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
@@ -89,6 +89,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     needsAutomation ||
     needsFixabilityView;
 
+  const [hideSteps, setHideSteps] = useState(false);
+
   const handleStarFixabilityView = () => {
     createIssueView({
       name: 'Easy Fixes 🤖',
@@ -108,7 +110,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
   return (
     <NoticesContainer>
-      {anyStepIncomplete && (
+      {anyStepIncomplete && !hideSteps && (
         <Fragment>
           <StepsHeader>
             <SeerWaitingIcon size="xl" />
@@ -257,6 +259,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   </StepImageCol>
                 </StepContentRow>
                 <GuidedSteps.StepButtons>
+                  <Button onClick={() => setHideSteps(true)} size="sm">
+                    {t('Skip for Now')}
+                  </Button>
                   <Button onClick={handleStarFixabilityView} size="sm" priority="primary">
                     {t('Star Recommended View')}
                   </Button>

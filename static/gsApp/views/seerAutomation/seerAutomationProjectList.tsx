@@ -6,11 +6,13 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -63,6 +65,9 @@ export function SeerAutomationProjectList() {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const {projects, fetching, fetchError} = useProjects();
+  const projectsWithWriteAccess = projects.filter(p =>
+    hasEveryAccess(['project:write'], {organization, project: p})
+  );
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const queryClient = useQueryClient();
@@ -174,11 +179,17 @@ export function SeerAutomationProjectList() {
             <PanelItem key={project.id}>
               <Flex justify="space-between" gap={space(2)} flex={1}>
                 <Flex gap={space(1)} align="center">
-                  <Checkbox
-                    checked={selected.has(project.id)}
-                    onChange={() => toggleProject(project.id)}
-                    aria-label={t('Toggle project')}
-                  />
+                  <Tooltip
+                    title={t('You do not have permission to edit this project')}
+                    disabled={projectsWithWriteAccess.includes(project)}
+                  >
+                    <Checkbox
+                      checked={selected.has(project.id)}
+                      onChange={() => toggleProject(project.id)}
+                      aria-label={t('Toggle project')}
+                      disabled={!projectsWithWriteAccess.includes(project)}
+                    />
+                  </Tooltip>
                   <ProjectAvatar project={project} title={project.slug} />
                   <Link
                     to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}

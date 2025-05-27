@@ -1,3 +1,4 @@
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
@@ -10,11 +11,15 @@ import {
 
 export function SeerAutomationDefault() {
   const organization = useOrganization();
+  const canWrite = hasEveryAccess(['org:write'], {organization});
 
   const orgDefaultAutomationTuning = {
     ...autofixAutomatingTuningField,
     name: 'defaultAutofixAutomationTuning',
-    label: t('Default for new projects'),
+    label: t('Default for New Projects'),
+    help: t(
+      "Set the default automation level for newly-created projects. This setting can be overridden on a per-project basis. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager. This may have billing implications."
+    ),
   } satisfies FieldObject;
 
   const seerFormGroups: JsonFormObject[] = [
@@ -35,7 +40,7 @@ export function SeerAutomationDefault() {
         ),
       }}
     >
-      <JsonForm forms={seerFormGroups} />
+      <JsonForm forms={seerFormGroups} disabled={!canWrite} />
     </Form>
   );
 }

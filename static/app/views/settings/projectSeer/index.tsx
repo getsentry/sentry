@@ -3,11 +3,13 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
+import Link from 'sentry/components/links/link';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -43,9 +45,14 @@ export function formatSeerValue(value: string | undefined) {
 export const autofixAutomatingTuningField = {
   name: 'autofixAutomationTuning',
   label: t('Automatically Fix Issues with Seer'),
-  help: t(
-    "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager."
-  ),
+  help: props =>
+    tct(
+      "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a 'High' setting enables Seer to be more eager. This may have billing implications.[break][break][link:You can configure automation for other projects too.]",
+      {
+        break: <br />,
+        link: <Link to={`/settings/${props.organization?.slug}/seer`} />,
+      }
+    ),
   type: 'range',
   min: 0,
   max: SEER_THRESHOLD_MAP.length - 1,
@@ -92,20 +99,35 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   );
 
   return (
-    <Form
-      saveOnBlur
-      apiMethod="PUT"
-      apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
-      allowUndo
-      initialData={{
-        autofixAutomationTuning: SEER_THRESHOLD_MAP.indexOf(
-          project.autofixAutomationTuning ?? 'off'
-        ),
-      }}
-      onSubmitSuccess={handleSubmitSuccess}
-    >
-      <JsonForm forms={seerFormGroups} disabled={!canWriteProject} />
-    </Form>
+    <Fragment>
+      <Form
+        saveOnBlur
+        apiMethod="PUT"
+        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
+        allowUndo
+        initialData={{
+          autofixAutomationTuning: SEER_THRESHOLD_MAP.indexOf(
+            project.autofixAutomationTuning ?? 'off'
+          ),
+        }}
+        onSubmitSuccess={handleSubmitSuccess}
+        additionalFieldProps={{organization}}
+      >
+        <JsonForm
+          forms={seerFormGroups}
+          disabled={!canWriteProject}
+          renderHeader={() =>
+            !canWriteProject && (
+              <Alert type="warning" system>
+                {t(
+                  'These settings can only be edited by users with the organization-level owner, manager, or team-level admin role.'
+                )}
+              </Alert>
+            )
+          }
+        />
+      </Form>
+    </Fragment>
   );
 }
 
