@@ -16,6 +16,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {getHighlightedSpanAttributes} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {
   DisabledImages,
@@ -211,6 +212,12 @@ export function SpanDescription({
       avgDuration={avgSpanDuration ? avgSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
+      highlightedAttributes={getHighlightedSpanAttributes({
+        organization,
+        attributes,
+        op: span.op,
+        description: span.description,
+      })}
     />
   );
 }
