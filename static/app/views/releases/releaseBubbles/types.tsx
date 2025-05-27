@@ -1,7 +1,9 @@
 import type {ReleaseMetaBasic} from 'sentry/types/release';
+import type {RawFlag} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 
 export interface Bucket {
   end: number;
+  flags: RawFlag[];
   releases: ReleaseMetaBasic[];
   start: number;
   // This is only set on the last bucket item and represents latest timestamp
