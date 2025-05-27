@@ -532,6 +532,7 @@ export function SearchQueryBuilderValueCombobox({
   const organization = useOrganization();
   const {
     getFieldDefinition,
+    getSuggestedFilterKey,
     filterKeys,
     dispatch,
     searchSource,
@@ -617,6 +618,19 @@ export function SearchQueryBuilderValueCombobox({
 
   const updateFilterValue = useCallback(
     (value: string) => {
+      if (token.filter === FilterType.HAS) {
+        const suggested = getSuggestedFilterKey(value);
+        if (suggested) {
+          dispatch({
+            type: 'UPDATE_TOKEN_VALUE',
+            token,
+            value: suggested,
+          });
+          onCommit();
+          return true;
+        }
+      }
+
       const cleanedValue = cleanFilterValue({
         valueType: getFilterValueType(token, fieldDefinition),
         value,
@@ -682,6 +696,7 @@ export function SearchQueryBuilderValueCombobox({
     [
       token,
       fieldDefinition,
+      getSuggestedFilterKey,
       canSelectMultipleValues,
       analyticsData,
       selectedValuesUnescaped,
