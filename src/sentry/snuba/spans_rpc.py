@@ -41,6 +41,7 @@ def run_table_query(
     params: SnubaParams,
     query_string: str,
     selected_columns: list[str],
+    equations: list[str],
     orderby: list[str] | None,
     offset: int,
     limit: int,
@@ -54,6 +55,7 @@ def run_table_query(
         rpc_dataset_common.TableQuery(
             query_string=query_string,
             selected_columns=selected_columns,
+            equations=equations,
             orderby=orderby,
             offset=offset,
             limit=limit,
