@@ -361,6 +361,19 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
         )
         mock_disable_uptime_detector.assert_called()
 
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.disable_uptime_detector")
+    def test_status_disable_not_called_onboarding(self, mock_disable_uptime_detector):
+        create_project_uptime_subscription(
+            self.project,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            status=ObjectStatus.DISABLED,
+        )
+        mock_disable_uptime_detector.assert_not_called()
+
     @mock.patch("sentry.uptime.subscriptions.subscriptions.enable_uptime_detector")
     def test_status_enable(self, mock_enable_uptime_detector):
         with self.tasks():
@@ -376,6 +389,20 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
             detector = get_detector(proj_sub.uptime_subscription)
             assert detector
             mock_enable_uptime_detector.assert_called_with(detector, ensure_assignment=True)
+
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.enable_uptime_detector")
+    def test_status_enable_not_called_onboarding(self, mock_enable_uptime_detector):
+        with self.tasks():
+            create_project_uptime_subscription(
+                self.project,
+                self.environment,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+                status=ObjectStatus.ACTIVE,
+            )
+            mock_enable_uptime_detector.assert_not_called()
 
     @mock.patch(
         "sentry.quotas.backend.check_assign_seat",
