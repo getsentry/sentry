@@ -3315,6 +3315,18 @@
     socket.io "4.8.1"
     source-map "^0.7.4"
 
+"@rsdoctor/rspack-plugin@1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@rsdoctor/rspack-plugin/-/rspack-plugin-1.1.2.tgz#a30a9554f355f75853775ac70c780adaa3630c51"
+  integrity sha512-5hp+mAKPHje9WtGILsF42KZ9MT4s/IF+LYKkNG9ior0m1W8aZBQNSaLy/hom1CLeYQ1LYKnjFcdsUlvDNkkSmg==
+  dependencies:
+    "@rsdoctor/core" "1.1.2"
+    "@rsdoctor/graph" "1.1.2"
+    "@rsdoctor/sdk" "1.1.2"
+    "@rsdoctor/types" "1.1.2"
+    "@rsdoctor/utils" "1.1.2"
+    lodash "^4.17.21"
+
 "@rsdoctor/sdk@1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@rsdoctor/sdk/-/sdk-1.1.2.tgz#99a2219751165fb72dcfe50102e3f41986cec65d"
