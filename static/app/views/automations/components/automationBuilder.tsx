@@ -178,12 +178,10 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
         </StepLead>
         {/* TODO: add actions dropdown here */}
         <ActionNodeList
-          // TODO: replace constant availableActions with API response
-          availableActions={[]}
           placeholder={t('Select an action')}
           group={`actionFilters.${actionFilter.id}`}
           actions={actionFilter?.actions || []}
-          onAddRow={type => actions.addIfAction(actionFilter.id, type)}
+          onAddRow={(id, type) => actions.addIfAction(actionFilter.id, id, type)}
           onDeleteRow={id => actions.removeIfAction(actionFilter.id, id)}
           updateAction={(id, data) => actions.updateIfAction(actionFilter.id, id, data)}
         />
