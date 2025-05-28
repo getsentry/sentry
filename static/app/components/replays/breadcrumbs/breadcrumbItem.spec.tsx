@@ -28,6 +28,9 @@ describe('BreadcrumbItem', function () {
         onClick={mockClick}
         onInspectorExpanded={() => {}}
         startTimestampMs={MOCK_FRAME!.timestampMs}
+        allowShowSnippet={false}
+        onShowSnippet={() => {}}
+        showSnippet={false}
       />,
       {organization}
     );
