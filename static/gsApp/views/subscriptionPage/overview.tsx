@@ -81,6 +81,7 @@ function Overview({location, subscription, promotionData}: Props) {
         reservedSpend: rbmh.reservedSpend,
         reservedCpe: rbmh.reservedCpe,
         prepaidBudget: rb.reservedBudget + rb.freeBudget,
+        apiName: rb.apiName,
       };
     });
   });
