@@ -38,14 +38,17 @@ class Migrator:
 
     def disable_for_all_projects(self, plugin: Plugin2 | Plugin) -> None:
         for project in self.projects:
-            try:
-                logger.info(
-                    "plugin.disabled",
-                    extra=self._logging_context({"project": project.slug, "plugin": plugin.slug}),
-                )
-                plugin.disable(project=project)
-            except NotImplementedError:
-                pass
+            if plugin.is_enabled(project):
+                try:
+                    logger.info(
+                        "plugin.disabled",
+                        extra=self._logging_context(
+                            {"project": project.slug, "plugin": plugin.slug}
+                        ),
+                    )
+                    plugin.disable(project=project)
+                except NotImplementedError:
+                    pass
 
     def repos_for_provider(self, provider: str) -> list[RpcRepository]:
         return [r for r in self.repositories if r.provider == provider]
