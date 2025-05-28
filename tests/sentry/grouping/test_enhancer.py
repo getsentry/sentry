@@ -722,6 +722,8 @@ class EnhancementsTest(TestCase):
         assert strategy_config.enhancements.id == DEFAULT_GROUPING_CONFIG
 
 
+# Note: This primarily tests `assemble_stacktrace_component`'s handling of `contributes` values, as
+# hints are tested separately in `test_hints.py`.
 class AssembleStacktraceComponentTest(TestCase):
 
     @dataclass
