@@ -574,6 +574,7 @@ def test_client_loadbalance_on_unavailable():
             assert client._num_consecutive_unavailable_errors == 0
 
 
+@django_db_all
 def test_client_single_host_unavailable():
     channel = MockChannel()
     channel.add_response(
@@ -603,6 +604,7 @@ def test_client_single_host_unavailable():
         assert client._cur_host == "localhost-0:50051"
 
 
+@django_db_all
 def test_client_reset_errors_after_success():
     """Test that errors reset after a successful request"""
     channel = MockChannel()
