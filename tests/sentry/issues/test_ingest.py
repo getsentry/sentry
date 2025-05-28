@@ -583,6 +583,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "initial_priority": occurrence.priority,
         }
 
+    # TODO: maybe we write a test here to make sure that the right metadata is being populated?
     def test_populates_feedback_metadata(self) -> None:
         occurrence = self.build_occurrence(
             type=FeedbackGroup.type_id,

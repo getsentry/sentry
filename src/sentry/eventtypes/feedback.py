@@ -11,4 +11,5 @@ class FeedbackEvent(BaseEvent):
         message = get_path(data, "contexts", "feedback", "message")
         name = get_path(data, "contexts", "feedback", "name")
         source = get_path(data, "contexts", "feedback", "source")
+        # TODO: add logging
         return {"contact_email": contact_email, "message": message, "name": name, "source": source}
