@@ -33,6 +33,10 @@ const mockUsePageFilters = jest.mocked(usePageFilters);
 
 type CachedQueryData = InfiniteData<ApiResult<EventsLogsResult>, LogPageParam>;
 
+const linkHeaders = {
+  Link: '<http://127.0.0.1:8000/api/0/organizations/org-slug/teams/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/teams/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
+};
+
 describe('useInfiniteLogsQuery', () => {
   const organization = OrganizationFixture();
   const queryClient = makeTestQueryClient();
@@ -72,6 +76,7 @@ describe('useInfiniteLogsQuery', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: createMockLogsData([{id: '1', timestamp_precise: '100', timestamp: '100'}]),
+      headers: linkHeaders,
     });
 
     const {result} = renderHook(({disabled}) => useInfiniteLogsQuery({disabled}), {
@@ -166,6 +171,7 @@ describe('useInfiniteLogsQuery', () => {
           return query.query.length === 0;
         },
       ],
+      headers: linkHeaders,
     });
 
     const emptyNextPageResponse = createMockLogsData([]);
@@ -183,6 +189,7 @@ describe('useInfiniteLogsQuery', () => {
         },
       ],
       body: emptyNextPageResponse,
+      headers: linkHeaders,
     });
 
     const {result, rerender} = renderHook(() => useInfiniteLogsQuery(), {
@@ -275,6 +282,7 @@ function createDescendingMocks(organization: Organization) {
         return query.query.length === 0;
       },
     ],
+    headers: linkHeaders,
   });
 
   // Reversed because it's the previous page.
@@ -297,6 +305,7 @@ function createDescendingMocks(organization: Organization) {
       },
     ],
     body: previousPageResponse,
+    headers: linkHeaders,
   });
 
   const nextPageResponse = createMockLogsData([
@@ -318,6 +327,7 @@ function createDescendingMocks(organization: Organization) {
       },
     ],
     body: nextPageResponse,
+    headers: linkHeaders,
   });
 
   return {
@@ -345,6 +355,7 @@ function createAscendingMocks(organization: Organization) {
         return query.query.length === 0;
       },
     ],
+    headers: linkHeaders,
   });
 
   // Reversed because it's the previous page.
@@ -367,6 +378,7 @@ function createAscendingMocks(organization: Organization) {
       },
     ],
     body: previousPageResponse,
+    headers: linkHeaders,
   });
 
   const nextPageResponse = createMockLogsData([
@@ -388,6 +400,7 @@ function createAscendingMocks(organization: Organization) {
       },
     ],
     body: nextPageResponse,
+    headers: linkHeaders,
   });
 
   return {

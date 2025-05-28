@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -20,15 +20,17 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   LogsPageDataProvider,
-  useLogsPageData,
+  useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -139,17 +141,24 @@ function SpanSections({
 }
 
 function LogDetails() {
-  const {logsQueryResult} = useLogsPageData();
+  const logsQueryResult = useLogsPageDataQueryResult();
+  const hasInfiniteFeature = useOrganization().features.includes('ourlogs-live-refresh');
+  const scrollContainer = useRef<HTMLDivElement>(null);
   if (!logsQueryResult?.data?.length) {
     return null;
   }
   return (
     <FoldSection
+      ref={scrollContainer}
       sectionKey={SectionKey.LOGS}
       title={t('Logs')}
       disableCollapsePersistence
     >
-      <LogsTable showHeader={false} />
+      {hasInfiniteFeature ? (
+        <LogsInfiniteTable showHeader={false} scrollContainer={scrollContainer} />
+      ) : (
+        <LogsTable showHeader={false} />
+      )}
     </FoldSection>
   );
 }

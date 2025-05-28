@@ -22,6 +22,7 @@ type Props = {
   logs: OurLogsResponseItem[] | undefined;
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   rootEventResults: TraceRootEventQueryResults;
+  scrollContainer: React.RefObject<HTMLDivElement | null>;
   traceSlug: string;
   tree: TraceTree;
 };
@@ -32,6 +33,7 @@ export function TraceContextPanel({
   rootEventResults,
   onScrollToNode,
   logs,
+  scrollContainer,
 }: Props) {
   const {hasProfiles, hasLogs, hasTags} = useTraceContextSections({
     tree,
@@ -65,7 +67,7 @@ export function TraceContextPanel({
       <Feature features={['ourlogs-enabled']}>
         {hasLogs && (
           <ContextRow>
-            <TraceViewLogsSection />
+            <TraceViewLogsSection scrollContainer={scrollContainer} />
           </ContextRow>
         )}
       </Feature>

@@ -63,6 +63,20 @@ jest.mock('@tanstack/react-virtual', () => {
       scrollOffset: 0,
       isScrolling: false,
     }),
+    useVirtualizer: jest.fn().mockReturnValue({
+      getVirtualItems: jest.fn().mockReturnValue([
+        {key: '1', index: 0, start: 0, end: 50, lane: 0},
+        {key: '2', index: 1, start: 50, end: 100, lane: 0},
+        {key: '3', index: 2, start: 100, end: 150, lane: 0},
+      ]),
+      getTotalSize: jest.fn().mockReturnValue(150),
+      options: {
+        scrollMargin: 0,
+      },
+      scrollDirection: 'forward',
+      scrollOffset: 0,
+      isScrolling: false,
+    }),
   };
 });
 

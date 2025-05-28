@@ -4,6 +4,7 @@ import {type ApiResult} from 'sentry/api';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
   type ApiQueryKey,
   fetchDataQuery,
@@ -339,7 +340,7 @@ export function useInfiniteLogsQuery({
     getPreviousPageParam,
     getNextPageParam,
     initialPageParam: null,
-    enabled: !disabled && other.pageFiltersReady,
+    enabled: !disabled,
     staleTime: getStaleTimeForEventView(other.eventView),
     maxPages: 10,
   });
@@ -435,12 +436,17 @@ export function useInfiniteLogsQuery({
     return Promise.resolve();
   }, [hasPreviousPage, fetchPreviousPage, isFetchingPreviousPage, isError, autoRefresh]);
 
+  const nextPageHasData =
+    parseLinkHeader(
+      data?.pages?.[data.pages.length - 1]?.[2]?.getResponseHeader('Link') ?? null
+    )?.next?.results ?? false;
+
   const _fetchNextPage = useCallback(
     () =>
-      hasNextPage
+      hasNextPage && nextPageHasData
         ? !isFetchingNextPage && !isError && fetchNextPage()
         : Promise.resolve(),
-    [hasNextPage, fetchNextPage, isFetchingNextPage, isError]
+    [hasNextPage, fetchNextPage, isFetchingNextPage, isError, nextPageHasData]
   );
 
   return {

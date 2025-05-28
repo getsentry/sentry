@@ -381,8 +381,8 @@ function getPastLogsParamsStorageKey(version: number) {
 }
 
 export function useLogsAutoRefresh() {
-  const {autoRefresh} = useLogsPageParams();
-  return autoRefresh;
+  const {autoRefresh, isTableFrozen} = useLogsPageParams();
+  return isTableFrozen ? false : autoRefresh;
 }
 
 export function useSetLogsAutoRefresh() {

@@ -21,6 +21,8 @@ import {Actions} from 'sentry/views/discover/table/cellAction';
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {
   ref?: React.Ref<HTMLTableElement>;
   showVerticalScrollbar?: boolean;
+  // Size of the loading element in order to match the height of the row.
+  size?: number;
 }
 
 export function Table({ref, children, style, ...props}: TableProps) {
@@ -35,12 +37,13 @@ export function Table({ref, children, style, ...props}: TableProps) {
 
 interface TableStatusProps {
   children: React.ReactNode;
+  size?: number;
 }
 
-export function TableStatus({children}: TableStatusProps) {
+export function TableStatus({children, size}: TableStatusProps) {
   return (
     <GridRow>
-      <GridBodyCellStatus>{children}</GridBodyCellStatus>
+      <GridBodyCellStatus size={size}>{children}</GridBodyCellStatus>
     </GridRow>
   );
 }
