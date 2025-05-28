@@ -77,16 +77,18 @@ function DurationChart({
     filters['os.name'] = platform;
   }
 
+  const search = MutableSearch.fromQueryObject({
+    ...filters,
+    ...additionalFilters,
+  });
+
   const {
     isPending,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
     {
-      search: MutableSearch.fromQueryObject({
-        ...filters,
-        ...additionalFilters,
-      }),
+      search,
       yAxis: [`avg(${SPAN_SELF_TIME})`],
       enabled: Object.values({...filters, ...additionalFilters}).every(value =>
         Boolean(value)
@@ -170,6 +172,7 @@ function DurationChart({
 
   return (
     <InsightsLineChartWidget
+      search={search}
       showLegend="never"
       title={t('Average Duration')}
       isLoading={isPending}
