@@ -591,6 +591,32 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
                 "message": "test",
                 "name": "Name Test",
                 "source": "crash report widget",
+            },
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        materialized = materialize_metadata(occurrence, event)
+        assert materialized["metadata"] == {
+            "title": occurrence.issue_title,
+            "value": occurrence.subtitle,
+            "dogs": "are great",
+            "contact_email": "test@test.com",
+            "message": "test",
+            "name": "Name Test",
+            "source": "crash report widget",
+            "initial_priority": occurrence.priority,
+        }
+
+    def test_populates_feedback_metadata_with_linked_error(self) -> None:
+        occurrence = self.build_occurrence(
+            type=FeedbackGroup.type_id,
+            evidence_data={
+                "contact_email": "test@test.com",
+                "message": "test",
+                "name": "Name Test",
+                "source": "crash report widget",
                 "associated_event_id": "55798fee4d21425c8689c980cde794f2",
             },
         )
