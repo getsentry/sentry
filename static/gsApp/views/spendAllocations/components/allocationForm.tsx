@@ -22,7 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {AllocationTargetTypes} from 'getsentry/constants';
+import {AllocationTargetTypes, BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
 import {
   getCategoryInfoFromPlural,
@@ -545,15 +545,11 @@ const Select = styled(SelectField)`
   }
 `;
 
-// Normalizes singular billingMetric values to match DataCategory enum
+// Normalizes singular billingMetric values to match DataCategory enum using BILLED_DATA_CATEGORY_INFO
 function normalizeBillingMetric(metric: string): DataCategory {
-  switch (metric) {
-    case 'error':
-      return DataCategory.ERRORS;
-    case 'attachment':
-      return DataCategory.ATTACHMENTS;
-    // Add more mappings as needed
-    default:
-      return metric as DataCategory;
-  }
+  return (
+    Object.values(BILLED_DATA_CATEGORY_INFO)
+      .filter(info => info.canAllocate)
+      .find(c => c.name === metric)?.plural ?? (metric as DataCategory)
+  );
 }
