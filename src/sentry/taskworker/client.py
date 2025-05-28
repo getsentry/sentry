@@ -196,23 +196,29 @@ class TaskworkerClient:
             status=status,
             fetch_next_task=fetch_next_task,
         )
+
+        host = self._task_id_to_host.get(task_id, None)
+        if host is None:
+            metrics.incr("taskworker.client.task_id_not_in_client")
+            return None
         try:
             with metrics.timer("taskworker.update_task.rpc"):
-                if task_id not in self._task_id_to_host:
-                    metrics.incr("taskworker.client.task_id_not_in_client")
-                    return None
-                host = self._task_id_to_host.pop(task_id)
                 response = self._host_to_stubs[host].SetTaskStatus(request)
+                del self._task_id_to_host[task_id]
         except grpc.RpcError as err:
             metrics.incr(
                 "taskworker.client.rpc_error",
                 tags={"method": "SetTaskStatus", "status": err.code().name},
             )
             if err.code() == grpc.StatusCode.NOT_FOUND:
+                del self._task_id_to_host[task_id]
+
                 # The current broker is empty, switch.
                 self._num_tasks_before_rebalance = 0
+
                 return None
             raise
+
         if response.HasField("task"):
             self._task_id_to_host[response.task.id] = host
             return response.task
