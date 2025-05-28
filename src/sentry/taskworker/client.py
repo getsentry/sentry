@@ -219,8 +219,8 @@ class TaskworkerClient:
         request = GetTaskRequest(namespace=namespace)
         self._clear_temporary_unavailable_hosts()
         try:
-            with metrics.timer("taskworker.get_task.rpc"):
-                host, stub = self._get_cur_stub()
+            host, stub = self._get_cur_stub()
+            with metrics.timer("taskworker.get_task.rpc", tags={"host": host}):
                 response = stub.GetTask(request)
         except grpc.RpcError as err:
             metrics.incr(
@@ -264,17 +264,17 @@ class TaskworkerClient:
             fetch_next_task=fetch_next_task,
         )
         try:
-            with metrics.timer("taskworker.update_task.rpc"):
-                if task_id not in self._task_id_to_host:
-                    metrics.incr("taskworker.client.task_id_not_in_client")
-                    return None
-                if self._task_id_to_host[task_id] in self._temporary_unavailable_hosts:
-                    metrics.incr("taskworker.client.skipping_update_due_to_unavailable_host")
-                    raise HostTemporarilyUnavailable(
-                        f"Host {self._task_id_to_host[task_id]} is temporarily unavailable"
-                    )
+            if task_id not in self._task_id_to_host:
+                metrics.incr("taskworker.client.task_id_not_in_client")
+                return None
+            if self._task_id_to_host[task_id] in self._temporary_unavailable_hosts:
+                metrics.incr("taskworker.client.skipping_update_due_to_unavailable_host")
+                raise HostTemporarilyUnavailable(
+                    f"Host {self._task_id_to_host[task_id]} is temporarily unavailable"
+                )
 
-                host = self._task_id_to_host.pop(task_id)
+            host = self._task_id_to_host.pop(task_id)
+            with metrics.timer("taskworker.update_task.rpc", tags={"host": host}):
                 response = self._host_to_stubs[host].SetTaskStatus(request)
         except grpc.RpcError as err:
             metrics.incr(
