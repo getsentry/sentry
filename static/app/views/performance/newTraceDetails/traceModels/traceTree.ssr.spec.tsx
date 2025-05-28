@@ -91,4 +91,34 @@ describe('server side rendering', () => {
 
     expect(tree.build().serialize()).toMatchSnapshot();
   });
+
+  it('does not reparent if server handler does not have SSR reparent reason', () => {
+    const tree = TraceTree.FromTrace(ssrTrace, traceMetadata);
+
+    // The automatic pageload reparenting should have happened
+    const pageload = tree.root.children[0]!.children[0]!;
+    const serverHandler = pageload.children[0]!;
+
+    // @ts-expect-error implicit any
+    expect(pageload?.value['transaction.op']).toBe('pageload');
+    // @ts-expect-error implicit any
+    expect(serverHandler?.value['transaction.op']).toBe('http.server');
+
+    expect(serverHandler.parent).toBe(pageload);
+
+    // Usually, an SSR server handler gets a reparent reason, but we want to test that it does not
+    // get re-parented again when there is no reparent reason.
+    serverHandler.reparent_reason = null;
+
+    // This is where it would re-parent again
+    TraceTree.FromSpans(pageload, ssrSpans, makeEventTransaction());
+
+    const browserRequestSpan = tree.root.children[0]!.children[0]!.children.find(
+      span => span.value && 'op' in span.value && span.value.op === 'browser.request'
+    );
+
+    expect(browserRequestSpan).toBeDefined();
+    expect(serverHandler.parent).toBe(pageload);
+    expect(browserRequestSpan?.children).not.toContain(serverHandler);
+  });
 });
