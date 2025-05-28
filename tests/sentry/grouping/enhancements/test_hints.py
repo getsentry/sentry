@@ -28,7 +28,7 @@ default_system_frame_hint = "non app frame"
 @pytest.mark.parametrize(
     [
         "variant_name",
-        "in_app",
+        "final_in_app",
         "client_in_app",
         "rust_hint",
         "incoming_hint",
@@ -38,7 +38,7 @@ default_system_frame_hint = "non app frame"
     # This represents every combo of:
     #
     #    variant_name: app or system
-    #    in_app: True or False
+    #    final_in_app: True or False
     #    client_in_app: None, True, or False
     #    rust_hint: in_app_hint, out_of_app_hint, ignored_hint, unignored_hint, or None
     #    incoming_hint: None or ignored_because_hint (the only kind of hint that gets set ahead of time)
@@ -415,7 +415,7 @@ default_system_frame_hint = "non app frame"
 )
 def test_get_hint_for_frame(
     variant_name: str,
-    in_app: bool,
+    final_in_app: bool,
     client_in_app: bool | None,
     rust_hint: str | None,
     incoming_hint: str | None,
@@ -423,8 +423,8 @@ def test_get_hint_for_frame(
     expected_result: str | None,
 ) -> None:
 
-    frame = {"in_app": in_app, "data": {"client_in_app": client_in_app}}
-    frame_component = FrameGroupingComponent(in_app=in_app, hint=incoming_hint, values=[])
+    frame = {"in_app": final_in_app, "data": {"client_in_app": client_in_app}}
+    frame_component = FrameGroupingComponent(in_app=final_in_app, hint=incoming_hint, values=[])
     rust_frame = DummyRustFrame(hint=rust_hint)
 
     assert (
