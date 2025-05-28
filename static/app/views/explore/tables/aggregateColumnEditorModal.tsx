@@ -7,11 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {
-  SelectKey,
-  SelectOption,
-  SelectSection,
-} from 'sentry/components/core/compactSelect';
+import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
@@ -20,9 +16,7 @@ import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
-import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {isParsedFunction, parseFunction} from 'sentry/utils/discover/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {
@@ -30,20 +24,15 @@ import type {
   BaseAggregateField,
   GroupBy,
 } from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {
-  isGroupBy,
-  isVisualize,
-} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
-import {
+  DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
-
-const GROUP_BY_PREFIX = 'groupby:';
-const FUNCTION_PREFIX = 'function:';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
   columns: AggregateField[];
@@ -68,10 +57,6 @@ export function AggregateColumnEditorModal({
 
   const groupBys = useMemo(() => {
     return columns.filter(isGroupBy).map(groupBy => groupBy.groupBy);
-  }, [columns]);
-
-  const yAxes = useMemo(() => {
-    return columns.filter(isVisualize).flatMap(visualize => visualize.yAxes);
   }, [columns]);
 
   const handleApply = useCallback(() => {
@@ -103,7 +88,6 @@ export function AggregateColumnEditorModal({
                   numberTags={numberTags}
                   stringTags={stringTags}
                   groupBys={groupBys}
-                  yAxes={yAxes}
                 />
               );
             })}
@@ -111,11 +95,19 @@ export function AggregateColumnEditorModal({
               <ButtonBar gap={1}>
                 <Button
                   size="sm"
-                  aria-label={t('Add a Column')}
-                  onClick={insertColumn}
+                  aria-label={t('Add a Group By')}
+                  onClick={() => insertColumn({groupBy: ''})}
                   icon={<IconAdd isCircled />}
                 >
                   {t('Add a Column')}
+                </Button>
+                <Button
+                  size="sm"
+                  aria-label={t('Add a Visualize')}
+                  onClick={() => insertColumn(new Visualize([DEFAULT_VISUALIZATION]))}
+                  icon={<IconAdd isCircled />}
+                >
+                  {t('Add a Visualize')}
                 </Button>
               </ButtonBar>
             </RowContainer>
@@ -145,7 +137,6 @@ interface ColumnEditorRowProps {
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;
   stringTags: TagCollection;
-  yAxes: string[];
 }
 
 function ColumnEditorRow({
@@ -156,21 +147,10 @@ function ColumnEditorRow({
   onColumnDelete,
   numberTags,
   stringTags,
-  yAxes,
 }: ColumnEditorRowProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
   });
-
-  const parsedField = useMemo(() => {
-    if (!defined(column.column)) {
-      return null;
-    }
-    if (isGroupBy(column.column)) {
-      return column.column;
-    }
-    return parseFunction(column.column.yAxes[0]!);
-  }, [column.column]);
 
   return (
     <RowContainer
@@ -189,21 +169,19 @@ function ColumnEditorRow({
         icon={<IconGrabbable size="sm" />}
         {...listeners}
       />
-      <FunctionOrGroupBySelector
-        field={column.column}
-        parsedField={parsedField}
-        tags={stringTags}
-        groupBys={groupBys}
-        onChange={onColumnChange}
-      />
-      {isVisualize(column.column) && isParsedFunction(parsedField) && (
-        <ArgumentSelector
-          field={column.column}
-          parsedFunction={parsedField}
+      {isGroupBy(column.column) ? (
+        <GroupBySelector
+          groupBy={column.column}
+          groupBys={groupBys}
+          onChange={onColumnChange}
+          stringTags={stringTags}
+        />
+      ) : (
+        <VisualizeSelector
+          visualize={column.column}
+          onChange={onColumnChange}
           numberTags={numberTags}
           stringTags={stringTags}
-          onChange={onColumnChange}
-          yAxes={yAxes}
         />
       )}
       <StyledButton
@@ -218,173 +196,136 @@ function ColumnEditorRow({
   );
 }
 
-interface FunctionOrGroupBySelectorProps {
-  field: AggregateField | undefined;
+interface GroupBySelectorProps {
+  groupBy: GroupBy;
   groupBys: string[];
-  onChange: (column: AggregateField) => void;
-  parsedField: GroupBy | ParsedFunction | null;
-  tags: TagCollection;
+  onChange: (groupBy: GroupBy) => void;
+  stringTags: TagCollection;
 }
 
-function FunctionOrGroupBySelector({
-  field,
-  parsedField,
+function GroupBySelector({
+  groupBy,
   groupBys,
-  tags,
   onChange,
-}: FunctionOrGroupBySelectorProps) {
-  const functionOptions: Array<SelectOption<string>> = useMemo(() => {
+  stringTags,
+}: GroupBySelectorProps) {
+  const options: Array<SelectOption<string>> = useGroupByFields({
+    groupBys,
+    tags: stringTags,
+  });
+
+  const label = useMemo(() => {
+    const tag = options.find(option => option.value === groupBy.groupBy);
+    return <TriggerLabel>{tag?.label ?? t('None')}</TriggerLabel>;
+  }, [groupBy.groupBy, options]);
+
+  const handleChange = useCallback(
+    (option: SelectOption<SelectKey>) => {
+      onChange({groupBy: option.value as string});
+    },
+    [onChange]
+  );
+
+  return (
+    <StyledCompactSelect
+      data-test-id="editor-group-by"
+      options={options}
+      triggerLabel={label}
+      value={groupBy.groupBy}
+      onChange={handleChange}
+      searchable
+      triggerProps={{
+        prefix: t('Column'),
+        style: {
+          width: '100%',
+        },
+      }}
+    />
+  );
+}
+
+interface VisualizeSelectorProps {
+  numberTags: TagCollection;
+  onChange: (visualize: Visualize) => void;
+  stringTags: TagCollection;
+  visualize: Visualize;
+}
+
+function VisualizeSelector({
+  onChange,
+  numberTags,
+  stringTags,
+  visualize,
+}: VisualizeSelectorProps) {
+  const yAxis = visualize.yAxes[0]!;
+  const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
+
+  const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return {
         label: aggregate,
-        value: `${FUNCTION_PREFIX}${aggregate}`,
+        value: aggregate,
         textValue: aggregate,
       };
     });
   }, []);
 
-  const rawGroupByOptions: Array<SelectOption<SelectKey>> = useGroupByFields({
-    tags,
-    groupBys,
-  });
-
-  const groupByOptions: Array<SelectOption<SelectKey>> = useMemo(() => {
-    return rawGroupByOptions.map(option => {
-      return {
-        ...option,
-        value: `${GROUP_BY_PREFIX}${option.value}`,
-      };
-    });
-  }, [rawGroupByOptions]);
-
-  const functionOrGroupByOptions: Array<SelectSection<SelectKey>> = useMemo(() => {
-    return [
-      {
-        options: functionOptions,
-        label: t('Functions'),
-      },
-      {
-        options: groupByOptions,
-        label: t('Group By'),
-      },
-    ];
-  }, [functionOptions, groupByOptions]);
-
-  const handleColumnChange = useCallback(
-    (option: SelectOption<SelectKey>) => {
-      if (typeof option.value !== 'string') {
-        return;
-      }
-
-      if (option.value.startsWith(GROUP_BY_PREFIX)) {
-        const groupByValue = option.value.substring(GROUP_BY_PREFIX.length);
-        onChange({groupBy: groupByValue});
-      }
-      if (option.value.startsWith(FUNCTION_PREFIX)) {
-        const functionValue = option.value.substring(FUNCTION_PREFIX.length);
-
-        if (isGroupBy(parsedField)) {
-          const yAxis = updateVisualizeAggregate({
-            newAggregate: functionValue,
-          });
-          onChange(new Visualize([yAxis]));
-        } else {
-          const yAxis = updateVisualizeAggregate({
-            newAggregate: functionValue,
-            oldAggregate: parsedField?.name,
-            oldArgument: parsedField?.arguments[0],
-          });
-          onChange((field as Visualize).replace({yAxes: [yAxis]}));
-        }
-      }
-    },
-    [field, parsedField, onChange]
-  );
-
-  const {label, value} = useMemo(() => {
-    if (defined(parsedField)) {
-      if (isGroupBy(parsedField)) {
-        const groupByValue = `${GROUP_BY_PREFIX}${parsedField.groupBy}`;
-        const option = groupByOptions.find(opt => opt.value === groupByValue);
-        return {
-          label: <TriggerLabel>{option?.label ?? parsedField.groupBy}</TriggerLabel>,
-          value: option?.value ?? groupByValue,
-        };
-      }
-      const functionValue = `${FUNCTION_PREFIX}${parsedField.name}`;
-      const option = functionOptions.find(opt => opt.value === functionValue);
-      return {
-        label: <TriggerLabel>{option?.label ?? parsedField.name}</TriggerLabel>,
-        value: option?.value ?? functionValue,
-      };
-    }
-    return {label: t('\u2014'), value: GROUP_BY_PREFIX};
-  }, [parsedField, groupByOptions, functionOptions]);
-
-  return (
-    <FunctionOrGroupByCompactSelect
-      data-test-id="editor-function-or-group-by"
-      options={functionOrGroupByOptions}
-      triggerLabel={label}
-      value={value}
-      onChange={handleColumnChange}
-      searchable
-      triggerProps={{
-        prefix:
-          !defined(parsedField) || isGroupBy(parsedField) ? t('Group By') : t('Function'),
-        style: {
-          width: '100%',
-        },
-      }}
-    />
-  );
-}
-
-interface ArgumentSelectorProps {
-  field: AggregateField;
-  numberTags: TagCollection;
-  onChange: (column: AggregateField) => void;
-  parsedFunction: ParsedFunction;
-  stringTags: TagCollection;
-  yAxes: string[];
-}
-
-function ArgumentSelector({
-  field,
-  parsedFunction,
-  onChange,
-  numberTags,
-  stringTags,
-  yAxes,
-}: ArgumentSelectorProps) {
-  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
+  const argumentOptions: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
     stringTags,
-    yAxes,
+    yAxes: [],
     parsedFunction,
   });
 
-  const handleColumnChange = useCallback(
+  const handleFunctionChange = useCallback(
     (option: SelectOption<SelectKey>) => {
-      const yAxis = `${parsedFunction.name}(${option.value})`;
-      onChange((field as Visualize).replace({yAxes: [yAxis]}));
+      const newYAxis = updateVisualizeAggregate({
+        newAggregate: option.value as string,
+        oldAggregate: parsedFunction?.name,
+        oldArgument: parsedFunction?.arguments[0]!,
+      });
+      onChange(visualize.replace({yAxes: [newYAxis]}));
     },
-    [field, parsedFunction.name, onChange]
+    [parsedFunction, onChange, visualize]
+  );
+
+  const handleArgumentChange = useCallback(
+    (option: SelectOption<SelectKey>) => {
+      const newYAxis = `${parsedFunction?.name}(${option.value})`;
+      onChange(visualize.replace({yAxes: [newYAxis]}));
+    },
+    [parsedFunction, onChange, visualize]
   );
 
   return (
-    <ArgumentCompactSelect
-      data-test-id="editor-function-or-group-by"
-      searchable
-      options={fieldOptions}
-      value={parsedFunction.arguments[0] ?? ''}
-      onChange={handleColumnChange}
-      triggerProps={{
-        style: {
-          width: '100%',
-        },
-      }}
-    />
+    <Fragment>
+      <StyledCompactSelect
+        data-test-id="editor-visualize-function"
+        options={aggregateOptions}
+        value={parsedFunction?.name}
+        onChange={handleFunctionChange}
+        searchable
+        triggerProps={{
+          prefix: t('Function'),
+          style: {
+            width: '100%',
+          },
+        }}
+      />
+      <StyledCompactSelect
+        data-test-id="editor-visualize-argument"
+        options={argumentOptions}
+        value={parsedFunction?.arguments[0] ?? ''}
+        onChange={handleArgumentChange}
+        searchable
+        disabled={argumentOptions.length === 1}
+        triggerProps={{
+          style: {
+            width: '100%',
+          },
+        }}
+      />
+    </Fragment>
   );
 }
 
@@ -404,13 +345,8 @@ const StyledButton = styled(Button)`
   padding-right: 0;
 `;
 
-const FunctionOrGroupByCompactSelect = styled(CompactSelect)`
+const StyledCompactSelect = styled(CompactSelect)`
   flex-grow: 1;
-  min-width: 0;
-`;
-
-const ArgumentCompactSelect = styled(CompactSelect)`
-  flex-grow: 2;
   min-width: 0;
 `;
 

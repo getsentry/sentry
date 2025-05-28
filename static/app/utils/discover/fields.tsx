@@ -874,16 +874,6 @@ export function parseFunction(field: string): ParsedFunction | null {
   return null;
 }
 
-export function isParsedFunction(value: any): value is ParsedFunction {
-  return (
-    typeof value === 'object' &&
-    'name' in value &&
-    typeof value.name === 'string' &&
-    'arguments' in value &&
-    Array.isArray(value.arguments)
-  );
-}
-
 function _lookback(columnText: string, j: number, str: string) {
   // For parse_arguments, check that the current character is preceeded by string
   if (j < str.length) {

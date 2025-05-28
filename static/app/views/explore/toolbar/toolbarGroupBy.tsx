@@ -84,7 +84,7 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
                 borderless
                 size="zero"
                 icon={<IconAdd />}
-                onClick={insertColumn}
+                onClick={() => insertColumn()}
                 priority="link"
                 aria-label={t('Add Group')}
               >
