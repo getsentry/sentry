@@ -1,26 +1,24 @@
 import {useEffect} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import useProjectFromId from 'sentry/utils/useProjectFromId';
 
-interface Props
-  extends Pick<
-    ReturnType<typeof useLoadReplayReader>,
-    'fetchError' | 'fetching' | 'projectSlug' | 'replay'
-  > {}
+interface Props {
+  projectId: string | null;
+  replay: ReplayReader;
+}
 
-function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Props) {
+export default function useLogReplayDataLoaded({projectId, replay}: Props) {
   const organization = useOrganization();
-  const project = useProjectFromSlug({
-    organization,
-    projectSlug: projectSlug ?? undefined,
+  const project = useProjectFromId({
+    project_id: projectId ?? undefined,
   });
 
   useEffect(() => {
-    if (fetching || fetchError || !replay || !project || replay.getReplay().is_archived) {
+    if (!project || replay.getReplay().is_archived) {
       return;
     }
     const replayRecord = replay.getReplay();
@@ -58,7 +56,5 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
         replay_id: replayRecord.id,
       });
     }
-  }, [organization, project, fetchError, fetching, projectSlug, replay]);
+  }, [organization, project, replay]);
 }
-
-export default useLogReplayDataLoaded;

@@ -2,6 +2,7 @@ from time import time
 
 from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -15,7 +16,7 @@ WEBHOOK_TOKEN = f"{EXTERNAL_ID}:{WEBHOOK_SECRET}"
 
 
 class GitLabTestCase(APITestCase):
-    provider = "gitlab"
+    provider = IntegrationProviderSlug.GITLAB.value
 
     def setUp(self):
         self.login_as(self.user)

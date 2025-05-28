@@ -34,9 +34,6 @@ describe('ExploreToolbar', function () {
   });
 
   beforeEach(function () {
-    // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
-
     const project = ProjectFixture({
       id: '1',
       slug: 'proj-slug',
@@ -46,13 +43,13 @@ describe('ExploreToolbar', function () {
     ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [],
     });
   });
 
-  it('disables changing visualize fields for count', function () {
+  it('disables changing visualize fields for count', async function () {
     let visualizes: any;
     function Component() {
       visualizes = useExploreVisualizes();
@@ -72,7 +69,7 @@ describe('ExploreToolbar', function () {
     // this is the default
     expect(visualizes).toEqual([new Visualize(['count(span.duration)'], {label: 'A'})]);
 
-    expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
+    expect(await within(section).findByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
   it('changes to count(span.duration) when using count', async function () {
@@ -109,6 +106,75 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('option', {name: 'count'}));
 
     expect(visualizes).toEqual([new Visualize(['count(span.duration)'], {label: 'A'})]);
+  });
+
+  it('disables changing visualize fields for epm', async function () {
+    let visualizes: any;
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], {label: 'A'})]);
+
+    // change aggregate to epm
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
+
+    expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
+  });
+
+  it('changes to epm() when using epm', async function () {
+    let visualizes: any;
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], {label: 'A'})]);
+
+    // try changing the aggregate
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+    // try changing the field
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], {label: 'A'})]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
+
+    expect(visualizes).toEqual([new Visualize(['epm()'], {label: 'A'})]);
+
+    // try changing the aggregate
+    await userEvent.click(within(section).getByRole('button', {name: 'epm'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+    expect(visualizes).toEqual([new Visualize(['avg(span.duration)'], {label: 'A'})]);
   });
 
   it('defaults count_unique argument to span.op', async function () {

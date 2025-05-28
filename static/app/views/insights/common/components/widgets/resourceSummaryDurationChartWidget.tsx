@@ -1,6 +1,9 @@
 import {useParams} from 'sentry/utils/useParams';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {useResourceSummarySeries} from 'sentry/views/insights/common/components/widgets/hooks/useResourceSummarySeries';
+import {
+  useResourceSummarySeries,
+  useResourceSummarySeriesSearch,
+} from 'sentry/views/insights/common/components/widgets/hooks/useResourceSummarySeries';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
@@ -12,14 +15,17 @@ export default function ResourceSummaryDurationChartWidget(
 ) {
   const {groupId} = useParams();
 
+  const {search, enabled} = useResourceSummarySeriesSearch(groupId);
   const {data, isPending, error} = useResourceSummarySeries({
-    groupId,
+    search,
+    enabled,
     pageFilters: props.pageFilters,
   });
 
   return (
     <InsightsLineChartWidget
       {...props}
+      search={search}
       id="resourceSummaryDurationChartWidget"
       title={getDurationChartTitle('resource')}
       series={[data?.[`avg(${SPAN_SELF_TIME})`]]}

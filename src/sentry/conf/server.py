@@ -1918,10 +1918,6 @@ SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS: dict[str, Any] = {}
 
-# Node storage backend used for ArtifactBundle indexing (aka FlatFileIndex aka BundleIndex)
-SENTRY_INDEXSTORE = "sentry.nodestore.django.DjangoNodeStorage"
-SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
-
 # Tag storage backend
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
 SENTRY_TAGSTORE_OPTIONS: dict[str, Any] = {}
@@ -3159,6 +3155,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-billing-dlq": "default",
     "taskworker-control": "default",
     "taskworker-control-dlq": "default",
+    "taskworker-cutover": "default",
+    "taskworker-email": "default",
+    "taskworker-email-dlq": "default",
     "taskworker-ingest": "default",
     "taskworker-ingest-dlq": "default",
     "taskworker-ingest-errors": "default",
@@ -3683,6 +3682,10 @@ MARKETO_BASE_URL = os.getenv("MARKETO_BASE_URL")
 MARKETO_CLIENT_ID = os.getenv("MARKETO_CLIENT_ID")
 MARKETO_CLIENT_SECRET = os.getenv("MARKETO_CLIENT_SECRET")
 MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
+
+# Base URL for Codecov API. Override if developing against a local instance
+# of Codecov.
+CODECOV_API_BASE_URL = "https://api.codecov.io"
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

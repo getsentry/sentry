@@ -22,7 +22,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {
+  LogsPageDataProvider,
+  useLogsPageDataQueryResult,
+} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -33,6 +36,8 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   getProfileMeta,
@@ -247,6 +252,8 @@ export function SpanNodeDetails(
                     organization={organization}
                     location={location}
                   />
+                  <AIInputSection node={node} />
+                  <AIOutputSection node={node} />
                   <SpanSections
                     node={node}
                     project={project}
@@ -371,33 +378,37 @@ function EAPSpanNodeDetails({
           limitToProjectIds={[node.value.project_id]}
           analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
         >
-          {issues.length > 0 ? (
-            <IssueList organization={organization} issues={issues} node={node} />
-          ) : null}
-          <EAPSpanDescription
-            node={node}
-            project={project}
-            organization={organization}
-            location={location}
-            attributes={attributes}
-            avgSpanDuration={avgSpanDuration}
-          />
-          <FoldSection
-            sectionKey={SectionKey.SPAN_ATTRIBUTES}
-            title={t('Attributes')}
-            disableCollapsePersistence
-          >
-            <AttributesTree
-              columnCount={columnCount}
-              attributes={sortAttributes(attributes)}
-              rendererExtra={{
-                theme,
-                location,
-                organization,
-              }}
+          <LogsPageDataProvider>
+            {issues.length > 0 ? (
+              <IssueList organization={organization} issues={issues} node={node} />
+            ) : null}
+            <EAPSpanDescription
+              node={node}
+              project={project}
+              organization={organization}
+              location={location}
+              attributes={attributes}
+              avgSpanDuration={avgSpanDuration}
             />
-          </FoldSection>
-          <LogDetails />
+            <AIInputSection node={node} attributes={attributes} />
+            <AIOutputSection node={node} attributes={attributes} />
+            <FoldSection
+              sectionKey={SectionKey.SPAN_ATTRIBUTES}
+              title={t('Attributes')}
+              disableCollapsePersistence
+            >
+              <AttributesTree
+                columnCount={columnCount}
+                attributes={sortAttributes(attributes)}
+                rendererExtra={{
+                  theme,
+                  location,
+                  organization,
+                }}
+              />
+            </FoldSection>
+            <LogDetails />
+          </LogsPageDataProvider>
         </LogsPageParamsProvider>
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>

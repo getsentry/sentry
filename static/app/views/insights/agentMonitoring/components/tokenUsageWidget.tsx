@@ -49,7 +49,7 @@ export default function TokenUsageWidget() {
       search: fullQuery,
       limit: 3,
     },
-    Referrer.QUERIES_CHART // TODO
+    Referrer.QUERIES_CHART // TODO: add referrer
   );
 
   const timeSeriesRequest = useTopNSpanEAPSeries(
@@ -62,7 +62,7 @@ export default function TokenUsageWidget() {
       topN: 3,
       enabled: !!tokensRequest.data,
     },
-    Referrer.QUERIES_CHART // TODO
+    Referrer.QUERIES_CHART // TODO: add referrer
   );
 
   const timeSeries = timeSeriesRequest.data.filter(ts => ts.seriesName !== 'Other');

@@ -1,7 +1,7 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
-import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
+import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
   DevServer,
@@ -71,9 +71,6 @@ const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
-
-// Storybook related flag configuration
-const STORYBOOK_TYPES = Boolean(env.STORYBOOK_TYPES) || IS_PRODUCTION;
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -352,7 +349,7 @@ const appConfig: Configuration = {
         ]
       : []),
 
-    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
+    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorRspackPlugin({})] : []),
 
     /**
      * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
@@ -382,9 +379,7 @@ const appConfig: Configuration = {
 
   resolveLoader: {
     alias: {
-      'type-loader': STORYBOOK_TYPES
-        ? path.resolve(__dirname, 'static/app/stories/type-loader.ts')
-        : path.resolve(__dirname, 'static/app/stories/noop-type-loader.ts'),
+      'type-loader': path.resolve(__dirname, 'static/app/stories/type-loader.ts'),
     },
   },
 
