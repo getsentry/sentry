@@ -653,12 +653,6 @@ const Row = styled('div')`
       background-color: ${p => p.theme.gray100};
     }
   }
-
-  input {
-    &::selection {
-      background-color: ${p => p.theme.gray100};
-    }
-  }
 `;
 
 const GridCell = styled('div')`

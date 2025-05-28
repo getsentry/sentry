@@ -16,9 +16,10 @@ from fixtures.vsts import VstsIntegrationTestCase
 from sentry.integrations.vsts.client import VstsApiClient
 from sentry.integrations.vsts.integration import VstsIntegration, VstsIntegrationProvider
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -252,6 +253,36 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         resp = client.check_file(repo, path, version)
         assert resp
         assert getattr(resp, "status_code") == 200
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.vsts.client.VstsApiClient.check_file",
+        side_effect=ApiUnauthorized(text="Unauthorized"),
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_check_file_unauthorized(self, mock_record_event, mock_check_file):
+        self.assert_installation()
+        integration, installation = self._get_integration_and_install()
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                provider="visualstudio",
+                name="example",
+                organization_id=self.organization.id,
+                config={
+                    "instance": self.vsts_base_url,
+                    "project": "project-name",
+                    "name": "example",
+                },
+                integration_id=integration.id,
+                external_id="albertos-apples",
+            )
+
+        path = "src/sentry/integrations/vsts/client.py"
+        version = "master"
+
+        installation.check_file(repo, path, version)
+
+        assert_halt_metric(mock_record_event, ApiUnauthorized("Unauthorized"))
 
     @responses.activate
     def test_check_no_file(self):
