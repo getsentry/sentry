@@ -4,14 +4,17 @@ import {useTheme} from '@emotion/react';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/nav/constants';
+import type {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {NavLayout} from 'sentry/views/nav/types';
 
 interface NavContext {
+  activePrimaryNavGroup: PrimaryNavGroup | null;
   endInteraction: () => void;
   isCollapsed: boolean;
   isInteractingRef: React.RefObject<boolean | null>;
   layout: NavLayout;
   navParentRef: React.RefObject<HTMLDivElement | null>;
+  setActivePrimaryNavGroup: (activePrimaryNavGroup: PrimaryNavGroup | null) => void;
   setIsCollapsed: (isCollapsed: boolean) => void;
   setShowTourReminder: (showTourReminder: boolean) => void;
   showTourReminder: boolean;
@@ -28,6 +31,8 @@ const NavContext = createContext<NavContext>({
   endInteraction: () => {},
   showTourReminder: false,
   setShowTourReminder: () => {},
+  activePrimaryNavGroup: null,
+  setActivePrimaryNavGroup: () => {},
 });
 
 export function useNavContext(): NavContext {
@@ -42,6 +47,8 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
     false
   );
   const [showTourReminder, setShowTourReminder] = useState(false);
+  const [activePrimaryNavGroup, setActivePrimaryNavGroup] =
+    useState<PrimaryNavGroup | null>(null);
 
   const theme = useTheme();
   const isMobile = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -65,6 +72,8 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       endInteraction,
       showTourReminder,
       setShowTourReminder,
+      activePrimaryNavGroup,
+      setActivePrimaryNavGroup,
     }),
     [
       isMobile,
@@ -74,6 +83,8 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       endInteraction,
       showTourReminder,
       setShowTourReminder,
+      activePrimaryNavGroup,
+      setActivePrimaryNavGroup,
     ]
   );
 

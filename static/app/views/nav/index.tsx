@@ -10,11 +10,13 @@ import {
   useStackedNavigationTour,
 } from 'sentry/views/nav/tour/tour';
 import {NavLayout} from 'sentry/views/nav/types';
+import {useResetActiveNavGroup} from 'sentry/views/nav/useResetActiveNavGroup';
 
 function NavContent() {
   const {layout, navParentRef} = useNavContext();
   const {currentStepId, endTour} = useStackedNavigationTour();
   const tourIsActive = currentStepId !== null;
+  const hoverProps = useResetActiveNavGroup();
 
   // The tour only works with the sidebar layout, so if we change to the mobile
   // layout in the middle of the tour, it needs to end.
@@ -29,6 +31,7 @@ function NavContent() {
       ref={navParentRef}
       tourIsActive={tourIsActive}
       isMobile={layout === NavLayout.MOBILE}
+      {...hoverProps}
     >
       {layout === NavLayout.SIDEBAR ? <Sidebar /> : <MobileTopbar />}
     </NavContainer>

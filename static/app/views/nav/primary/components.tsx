@@ -2,11 +2,11 @@ import {Fragment, type MouseEventHandler} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {useHovercardContext} from 'sentry/components/hovercard';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {linkStyles} from 'sentry/components/links/link';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
@@ -22,7 +22,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
-import {SecondaryHovercard} from 'sentry/views/nav/primary/secondaryHovercard';
 import type {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
@@ -148,12 +147,17 @@ function SidebarNavLink({
   group,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
-  const {reset: closeCollapsedNavHovercard} = useHovercardContext();
-  const {layout} = useNavContext();
+  const {layout, activePrimaryNavGroup, setActivePrimaryNavGroup} = useNavContext();
   const theme = useTheme();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
+
+  const {hoverProps} = useHover({
+    onHoverStart: () => {
+      setActivePrimaryNavGroup(group);
+    },
+  });
 
   return (
     <NavLink
@@ -161,13 +165,11 @@ function SidebarNavLink({
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       onClick={() => {
         recordPrimaryItemClick(analyticsKey, organization);
-
-        // When the nav is collapsed, clicking on a link will close the hovercard.
-        closeCollapsedNavHovercard();
       }}
-      aria-selected={isActive}
+      aria-selected={activePrimaryNavGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === NavLayout.MOBILE}
+      {...hoverProps}
     >
       {layout === NavLayout.MOBILE ? (
         <Fragment>
@@ -196,16 +198,14 @@ export function SidebarLink({
 
   return (
     <SidebarItem label={label} showLabel>
-      <SecondaryHovercard group={group}>
-        <SidebarNavLink
-          to={to}
-          activeTo={activeTo}
-          analyticsKey={analyticsKey}
-          group={group}
-        >
-          {children}
-        </SidebarNavLink>
-      </SecondaryHovercard>
+      <SidebarNavLink
+        to={to}
+        activeTo={activeTo}
+        analyticsKey={analyticsKey}
+        group={group}
+      >
+        {children}
+      </SidebarNavLink>
     </SidebarItem>
   );
 }
@@ -413,14 +413,15 @@ const ChonkNavLink = chonkStyled(Link, {
     }
   }
 
-  &:hover {
+  &:hover,
+  &[aria-selected='true'] {
     color: ${p => p.theme.tokens.content.muted};
     ${NavLinkIconContainer} {
       background-color: ${p => p.theme.colors.gray100};
     }
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     color: ${p => p.theme.purple400};
 
     &::before { opacity: 1; }
@@ -450,7 +451,8 @@ const StyledNavLink = styled(Link, {
       padding-bottom: ${space(1)};
       gap: ${space(0.5)};
 
-      &:hover {
+      &:hover,
+      &[aria-selected='true'] {
         ${NavLinkIconContainer} {
           &::before {
             opacity: 0.06;
@@ -466,7 +468,7 @@ const StyledNavLink = styled(Link, {
         }
       }
 
-      &[aria-selected='true'] {
+      &[aria-current='page'] {
         color: ${p.theme.purple400};
 
         ${NavLinkIconContainer} {
