@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import NotRequired, TypedDict
 
 import sentry_sdk
 from django.db.models import Count, Max, QuerySet
@@ -23,6 +24,11 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES as ERROR_PARSER_CONFIG_OVERRIDES
 from sentry.users.models import User
 from sentry.utils.dates import parse_stats_period, validate_interval
+
+
+class QueryBuilderConfigDict(TypedDict):
+    parser_config_overrides: NotRequired[dict]
+    has_metrics: NotRequired[bool]
 
 
 @extend_schema_serializer(
@@ -242,7 +248,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
 
                 equations, columns = categorize_columns(query["fields"])
 
-                builder_config = {}
+                builder_config: QueryBuilderConfigDict = {}
                 if data.get("queryDataset") == DiscoverSavedQueryTypes.ERROR_EVENTS:
                     builder_config["parser_config_overrides"] = ERROR_PARSER_CONFIG_OVERRIDES
                 elif data.get("queryDataset") == DiscoverSavedQueryTypes.TRANSACTION_LIKE:

@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 import sentry_sdk
 from django.db.models import Max
@@ -57,6 +57,13 @@ DATASET_SOURCE_MAP = {source[1]: source[0] for source in DatasetSourcesTypes.as_
 class QueryWarning(TypedDict):
     queries: list[str | None]
     columns: dict[str, str]
+
+
+class QueryBuilderConfigDict(TypedDict):
+    equation_config: dict[str, bool]
+    use_aggregate_conditions: bool
+    parser_config_overrides: NotRequired[dict]
+    has_metrics: NotRequired[bool]
 
 
 def is_equation(field: str) -> bool:
@@ -273,7 +280,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             # or to provide the start/end so that the interval can be computed.
             # This uses a hard coded start/end to ensure the validation succeeds
             # since the values themselves don't matter.
-            builder_config = {
+            builder_config: QueryBuilderConfigDict = {
                 "equation_config": {
                     "auto_add": bool(not is_table or injected_orderby_equation),
                     "aggregates_only": not is_table,
