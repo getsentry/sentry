@@ -4,8 +4,8 @@ import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/setting
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 type Props = {
-  enabled: boolean;
   search: MutableSearch;
+  enabled?: boolean;
 };
 
 export function useDatabaseLandingDurationQuery({search, enabled}: Props) {

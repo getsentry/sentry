@@ -3,9 +3,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 import {BASE_FILTERS} from 'sentry/views/insights/database/settings';
+import type {SearchHook} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
-export function useDatabaseLandingChartFilter() {
+export function useDatabaseLandingChartFilter(): SearchHook {
   const {
     [SpanMetricsField.SPAN_ACTION]: spanAction,
     [SpanMetricsField.SPAN_DOMAIN]: spanDomain,

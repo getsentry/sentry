@@ -2,8 +2,8 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 
 type Props = {
-  enabled: boolean;
   search: MutableSearch;
+  enabled?: boolean;
 };
 
 export function useDatabaseLandingThroughputQuery({search, enabled}: Props) {
