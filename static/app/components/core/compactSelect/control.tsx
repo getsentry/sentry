@@ -335,6 +335,8 @@ export function Control({
 
       nextFrameCallback(() => {
         if (open) {
+          // Force a overlay update, as sometimes the overlay is misaligned when opened
+          updateOverlay?.();
           // Focus on search box if present
           if (searchable) {
             searchRef.current?.focus();
