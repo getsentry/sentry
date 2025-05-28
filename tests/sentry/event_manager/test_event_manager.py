@@ -3624,6 +3624,3 @@ def test_cogs_event_manager(
     # We cannot assert for exact length because manager save method adds some extra fields. So we
     # assert that the length is at least greater than the expected length.
     assert formatted["amount"] >= expected_len
-
-
-# add test for feedback here to test for associated event ID and the other fields
