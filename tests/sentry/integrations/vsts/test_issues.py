@@ -257,7 +257,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             "description": "Goodnight, sweet prince",
         }
 
-        with pytest.raises(ValueError):
+        with pytest.raises(IntegrationFormError):
             self.integration.create_issue(form_data)
 
     @responses.activate
