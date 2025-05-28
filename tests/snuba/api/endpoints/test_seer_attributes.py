@@ -11,7 +11,6 @@ from tests.snuba.api.endpoints.test_organization_trace_item_attributes import (
 class OrganizationTraceItemAttributesEndpointSpansTest(
     OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase
 ):
-
     def test_get_attribute_names(self):
         self.store_segment(
             self.project.id,
@@ -32,17 +31,17 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             project_ids=[self.project.id],
             stats_period="7d",
         )
+        result["fields"] = result["fields"].sort()
         assert result == {
             "fields": [
                 "span.description",
                 "transaction",
                 "project",
                 "span.duration",
-            ]
+            ].sort(),
         }
 
     def test_get_attribute_values(self):
-
         for transaction in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
