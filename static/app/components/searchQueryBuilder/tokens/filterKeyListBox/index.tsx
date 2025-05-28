@@ -447,7 +447,7 @@ const SectionedOverlay = styled(Overlay, {
         'seer seer'
         'recentFilters recentFilters'
         'tabs tabs'
-        'list list'
+        ${p.showDetailsPane ? "'list details'" : "'list list'"}
         'footer footer';
     `}
   overflow: hidden;
@@ -456,10 +456,6 @@ const SectionedOverlay = styled(Overlay, {
   ${p =>
     p.fullWidth && `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
 `;
-
-// const StyledSeerButton = styled(Button)`
-//   margin-right: ${space(1)};
-// `;
 
 const SectionedOverlayFooter = styled('div')`
   grid-area: footer;
