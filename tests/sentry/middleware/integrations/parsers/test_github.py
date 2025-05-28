@@ -6,11 +6,13 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.webhookpayload import DestinationType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
@@ -133,6 +135,35 @@ class GithubRequestParserTest(TestCase):
             request=request,
             mailbox_name=f"github:{integration.id}",
             region_names=[region.name],
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_options({"codecov.base-url": "https://api.codecov.io"})
+    @override_regions(region_config)
+    def test_webhook_for_codecov(self):
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "github:1"}},
+            content_type="application/json",
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.content == b""
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}",
+            region_names=[region.name],
+            destination_types={DestinationType.SENTRY_REGION: 1},
+        )
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:codecov:{integration.id}",
+            region_names=[],
+            destination_types={DestinationType.CODECOV: 1},
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
