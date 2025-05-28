@@ -16,6 +16,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
@@ -29,14 +30,14 @@ const ALLOWED_TIERS = [PlanTier.MM2, PlanTier.AM1, PlanTier.AM2, PlanTier.AM3];
 
 type Props = {
   onSuccess: () => void;
-  orgId: string;
+  organization: Organization;
   partnerPlanId: string | null;
   subscription: Subscription;
 } & ModalRenderProps;
 
 function ChangePlanAction({
   subscription,
-  orgId,
+  organization,
   partnerPlanId,
   onSuccess,
   closeModal,
@@ -46,6 +47,7 @@ function ChangePlanAction({
   const [activeTier, setActiveTier] = useState<PlanTier>(PlanTier.AM3);
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [formModel] = useState(() => new FormModel());
+  const orgId = organization.slug;
 
   const api = useApi({persistInFlight: true});
   const {
@@ -156,7 +158,10 @@ function ChangePlanAction({
     }
 
     Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
-      if (metricHistory.reserved) {
+      if (
+        metricHistory.reserved &&
+        plan.checkoutCategories.includes(category as DataCategory)
+      ) {
         const closestTier = findClosestTier(
           plan,
           category as DataCategory,
@@ -319,6 +324,7 @@ function ChangePlanAction({
         formModel={formModel}
         activePlan={activePlan}
         subscription={subscription}
+        organization={organization}
         onSubmit={handleSubmit}
         onCancel={closeModal}
         onSubmitSuccess={(data: Data) => {
@@ -340,7 +346,7 @@ function ChangePlanAction({
 
 type Options = {
   onSuccess: () => void;
-  orgId: string;
+  organization: Organization;
   partnerPlanId: string | null;
   subscription: Subscription;
 };

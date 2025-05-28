@@ -89,7 +89,7 @@ describe('ChangePlanAction', () => {
   async function openAndLoadModal(props = {}) {
     triggerChangePlanAction({
       subscription,
-      orgId: mockOrg.slug,
+      organization: mockOrg,
       onSuccess: jest.fn(),
       partnerPlanId: null,
       ...props,
@@ -184,6 +184,7 @@ describe('ChangePlanAction', () => {
   });
 
   it('completes form submission flow', async () => {
+    mockOrg.features = [];
     // Mock the PUT endpoint response
     const putMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/subscription/`,
@@ -212,6 +213,8 @@ describe('ChangePlanAction', () => {
       '1'
     );
 
+    expect(screen.queryByText('Available Products')).not.toBeInTheDocument();
+
     expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
     await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
 
@@ -219,6 +222,44 @@ describe('ChangePlanAction', () => {
     expect(putMock).toHaveBeenCalled();
     const requestData = putMock.mock.calls[0][1].data;
     expect(requestData).toHaveProperty('plan', 'am3_business');
+  });
+
+  it('completes form with seer', async () => {
+    mockOrg.features = ['seer-billing'];
+    const putMock = MockApiClient.addMockResponse({
+      url: `/customers/${mockOrg.slug}/subscription/`,
+      method: 'PUT',
+      body: {success: true},
+    });
+
+    openAndLoadModal();
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Spans'}), '10,000,000');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Uptime monitors'}), '1');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Attachments (GB)'}),
+      '1'
+    );
+
+    expect(screen.getByText('Available Products')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Seer'));
+
+    expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
+
+    expect(putMock).toHaveBeenCalled();
+    const requestData = putMock.mock.calls[0][1].data;
+    expect(requestData).toHaveProperty('plan', 'am3_business');
+    expect(requestData).toHaveProperty('seer', true);
   });
 
   it('updates plan list when switching between tiers', async () => {
@@ -313,5 +354,70 @@ describe('ChangePlanAction', () => {
     expect(requestData).toHaveProperty('plan', 'test_test_monthly');
     expect(requestData).toHaveProperty('reservedErrors', 50000);
     expect(requestData).toHaveProperty('reservedTransactions', 25000);
+  });
+
+  describe('Seer Budget', () => {
+    beforeEach(() => {
+      mockOrg.features = ['seer-billing'];
+      jest.clearAllMocks();
+      MockApiClient.clearMockResponses();
+
+      const user = UserFixture();
+      user.permissions = new Set(['billing.provision']);
+      ConfigStore.set('user', user);
+      SubscriptionStore.set(mockOrg.slug, subscription);
+
+      // Set up default subscription response
+      MockApiClient.addMockResponse({
+        url: `/subscriptions/${mockOrg.slug}/`,
+        body: subscription,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+        body: BILLING_CONFIG,
+      });
+    });
+
+    it('shows Seer budget checkbox for AM tiers', async () => {
+      openAndLoadModal();
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
+      });
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      const am2Tab = screen.getByRole('tab', {name: 'AM2'});
+      await userEvent.click(am2Tab);
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+
+      const am1Tab = screen.getByRole('tab', {name: 'AM1'});
+      await userEvent.click(am1Tab);
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      expect(screen.getByText('Seer')).toBeInTheDocument();
+    });
+    it('hides Seer budget checkbox for MM2 tier', async () => {
+      openAndLoadModal();
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
+      });
+
+      const mm2Tab = screen.getByRole('tab', {name: 'MM2'});
+      await userEvent.click(mm2Tab);
+
+      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+      expect(
+        screen.queryByRole('checkbox', {
+          name: 'Seer Budget',
+        })
+      ).not.toBeInTheDocument();
+    });
   });
 });
