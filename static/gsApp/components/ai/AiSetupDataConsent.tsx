@@ -86,7 +86,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
         <BulletList>
           <li>Issue Triage</li>
           <li>Root Cause Analysis</li>
-          <li>Solution & Code Changes</li>
+          <li>Solutions & Code Changes</li>
         </BulletList>
         {shouldShowBilling ? (
           isTouchCustomer ? (
