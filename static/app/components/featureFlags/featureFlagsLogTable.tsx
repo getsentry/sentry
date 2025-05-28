@@ -1,6 +1,7 @@
 import {Fragment, useCallback} from 'react';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
 import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
@@ -9,10 +10,6 @@ import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  getFlagActionLabel,
-  type RawFlag,
-} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 
 export type ColumnKey = 'provider' | 'flag' | 'action' | 'createdAt';
 

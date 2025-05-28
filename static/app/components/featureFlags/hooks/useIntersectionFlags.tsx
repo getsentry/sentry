@@ -1,6 +1,6 @@
+import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import type {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 
 interface Params {
   event: Event | undefined;
