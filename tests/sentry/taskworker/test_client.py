@@ -634,17 +634,14 @@ def test_client_reset_errors_after_success():
             "localhost:50051", num_brokers=1, max_consecutive_unavailable_errors=3
         )
 
-        # Get one error
         with pytest.raises(grpc.RpcError, match="host is unavailable"):
             client.get_task()
         assert client._num_consecutive_unavailable_errors == 1
 
-        # Get a successful response
         task = client.get_task()
         assert task and task.id == "1"
         assert client._num_consecutive_unavailable_errors == 0
 
-        # Get another error - should start counting from 0 again
         with pytest.raises(grpc.RpcError, match="host is unavailable"):
             client.get_task()
         assert client._num_consecutive_unavailable_errors == 1
