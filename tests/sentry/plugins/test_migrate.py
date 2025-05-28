@@ -54,7 +54,7 @@ class MigratorTest(TestCase):
 
         assert plugin in plugins.for_project(self.project)
 
-        self.migrator.disable_for_all_projects(plugin)
+        self.migrator.run()
 
         assert plugin not in plugins.for_project(self.project)
 
@@ -65,7 +65,7 @@ class MigratorTest(TestCase):
         plugin_2.disable(self.project)
 
         with mock.patch("sentry.plugins.migrator.logger.info") as mock_logger:
-            self.migrator.disable_for_all_projects(plugin)
+            self.migrator.run()
 
             # Should only disable the enabled plugin
             assert mock_logger.call_count == 1
