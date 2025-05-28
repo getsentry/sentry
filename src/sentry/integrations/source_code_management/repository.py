@@ -18,7 +18,12 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError, ApiRetryError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRetryError,
+    ApiUnauthorized,
+    IntegrationError,
+)
 from sentry.users.models.identity import Identity
 
 
@@ -144,6 +149,10 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                     return None
                 else:
                     raise
+            except ApiUnauthorized as e:
+                lifecycle.record_halt(e)
+                return None
+
             except ApiError as e:
                 if e.code in (404, 400):
                     lifecycle.record_halt(e)
