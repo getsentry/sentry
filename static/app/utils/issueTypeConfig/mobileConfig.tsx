@@ -35,7 +35,7 @@ const mobileConfig: IssueCategoryConfigMapping = {
       replays: {enabled: true},
       tagsTab: {enabled: true},
     },
-    autofix: false,
+    autofix: true,
     mergedIssues: {enabled: false},
     similarIssues: {enabled: false},
     stacktrace: {enabled: false},
@@ -43,7 +43,7 @@ const mobileConfig: IssueCategoryConfigMapping = {
     // Should render a custom SpanEvidence component
     evidence: null,
     usesIssuePlatform: true,
-    issueSummary: {enabled: false},
+    issueSummary: {enabled: true},
   },
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: {
     resources: {
