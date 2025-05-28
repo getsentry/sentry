@@ -1,3 +1,5 @@
+import type {EChartsInstance} from 'echarts-for-react';
+
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler} from 'sentry/types/echarts';
 
@@ -6,6 +8,11 @@ import type {EChartDataZoomHandler} from 'sentry/types/echarts';
  * render an Insight Chart Widget
  */
 export interface LoadableChartWidgetProps {
+  /**
+   * Reference to the chart instance
+   */
+  chartRef?: React.Ref<EChartsInstance>;
+
   /**
    * Chart height, needed to ensure that the chart height is consistent with
    * the loading placeholder height

@@ -1,5 +1,6 @@
 import {captureException} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
+import type {EChartsInstance} from 'echarts-for-react';
 
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -12,6 +13,8 @@ interface Props extends LoadableChartWidgetProps {
    * ID of the Chart
    */
   id: ChartId;
+
+  ref?: React.Ref<EChartsInstance>;
 }
 // We need to map the widget id to the dynamic import because we want the import paths to be statically analyzable.
 const CHART_MAP = {
@@ -229,5 +232,5 @@ export function ChartWidgetLoader(props: Props) {
     return <Placeholder height="100%" error={t('Error loading widget')} />;
   }
 
-  return <Component {...props} />;
+  return <Component {...props} chartRef={props.ref} />;
 }
