@@ -74,7 +74,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     })) ?? [];
 
   const hasChartActionsEnabled = organization.features.includes('insights-chart-actions');
-  const yAxes: string[] = [];
+  const yAxes = new Set<string>();
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
     showLegend: props.showLegend,
@@ -90,7 +90,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             ? Area
             : Bars;
 
-      yAxes.push(timeSeries.yAxis);
+      // yAxis should not contain whitespace, some yAxes are like `epm() span.op:queue.publish`
+      yAxes.add(timeSeries.yAxis.split(' ')[0] ?? '');
 
       return new PlottableDataConstructor(timeSeries, {
         color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
@@ -159,6 +160,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     chartType = ChartType.BAR;
   }
 
+  const yAxisArray = [...yAxes];
+
   return (
     <ChartContainer height={props.height}>
       <Widget
@@ -181,13 +184,13 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {hasChartActionsEnabled && (
               <OpenInExploreButton
                 chartType={chartType}
-                yAxes={yAxes}
+                yAxes={yAxisArray}
                 title={props.title}
                 search={props.search}
               />
             )}
             {hasChartActionsEnabled && (
-              <CreateAlertButton yAxis={yAxes[0]} search={props.search} />
+              <CreateAlertButton yAxis={yAxisArray[0]} search={props.search} />
             )}
             {props.loaderSource !== 'releases-drawer' && (
               <Button
