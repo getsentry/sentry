@@ -152,6 +152,9 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         self.handler.evaluate(self.data_packet)
         result = self.handler.evaluate(self.data_packet_two)
 
+        if not result:
+            raise AssertionError("Expected result to not be empty")
+
         evaluation_result = result[self.group_key]
         assert evaluation_result
         assert evaluation_result.priority == DetectorPriorityLevel.HIGH
@@ -209,6 +212,10 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         self.handler.evaluate(self.data_packet)
         self.handler.evaluate(self.data_packet_two)
         result = self.handler.evaluate(self.resolve_data_packet)
+
+        if not result:
+            raise AssertionError("Expected result to not be empty")
+
         evaluation_result = result[self.group_key]
 
         assert evaluation_result
@@ -244,6 +251,8 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert result == {}
 
         result = self.handler.evaluate(self.data_packet_two)
+
+        assert result
         evaluation_result = result[self.group_key]
 
         assert evaluation_result
