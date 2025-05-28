@@ -14,7 +14,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {openCodecovModal} from 'getsentry/actionCreators/modal';
 import withSubscription from 'getsentry/components/withSubscription';
-import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {
   BillingStatTotal,
   CustomerUsage,
@@ -208,7 +207,10 @@ function Overview({location, subscription, promotionData}: Props) {
     return (
       <TotalsWrapper>
         {sortCategories(subscription.categories)
-          .filter(categoryHistory => categoryHistory.reserved !== RESERVED_BUDGET_QUOTA)
+          .filter(
+            categoryHistory =>
+              !subscription.reservedBudgetCategories?.includes(categoryHistory.category)
+          )
           .map(categoryHistory => {
             const category = categoryHistory.category;
             // Stored spans are combined into the accepted spans category's table
