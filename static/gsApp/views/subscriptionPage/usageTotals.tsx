@@ -535,12 +535,8 @@ function UsageTotals({
   const hasReservedQuota: boolean =
     reserved !== null && (reserved === UNLIMITED_RESERVED || reserved > 0);
 
-  // hasReservedQuota || displayGifts || activeTrial || (isSeerCard && hasSeer);
   const showReservedInfo =
-    hasReservedQuota ||
-    displayGifts ||
-    (!isSeerCard && activeTrial) ||
-    (isSeerCard && (hasSeer || activeTrial));
+    hasReservedQuota || displayGifts || activeTrial || (isSeerCard && hasSeer);
 
   const checkoutUrl = `/settings/billing/checkout/?referrer=feature_subscription`;
 
