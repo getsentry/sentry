@@ -226,34 +226,32 @@ const ProductOptionContent = styled('div')<{
     }
   }
 
-  img:nth-child(1) {
-    transition: transform 0.2s ease-out;
+  --star-1-translate: 0, 0;
+  --star-2-translate: 0, 0;
+  --star-3-translate: 0, 0;
 
-    ${p =>
-      p.enabled &&
-      css`
-        transform: translate(-3px, 7px);
-      `}
+  ${p =>
+    p.enabled &&
+    css`
+      --star-1-translate: -3px, 7px;
+      --star-2-translate: 6px, -2px;
+      --star-3-translate: 0px, -5px;
+    `}
+
+  img {
+    transition: transform 0.2s ease-out;
+  }
+
+  img:nth-child(1) {
+    transform: translate(var(--star-1-translate));
   }
 
   img:nth-child(2) {
-    transition: transform 0.2s ease-out;
-
-    ${p =>
-      p.enabled &&
-      css`
-        transform: translate(6px, -2px);
-      `}
+    transform: translate(var(--star-2-translate));
   }
 
   img:nth-child(3) {
-    transition: transform 0.2s ease-out;
-
-    ${p =>
-      p.enabled &&
-      css`
-        transform: translate(0px, -5px);
-      `}
+    transform: translate(var(--star-3-translate));
   }
 
   ${p =>
