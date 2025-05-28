@@ -2,11 +2,9 @@ import React, {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
+import {SeerIcon, SeerLoadingIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -24,14 +22,37 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
-const SUGGESTED_SEARCHES = [
-  'How many 404s did I get in the last 2 days',
-  'p90 of my requests by transaction',
-];
-
 interface Visualization {
   chart_type: ChartType;
   y_axes: string[];
+}
+
+export function SeerHeader({title, loading = false}: {title: string; loading?: boolean}) {
+  return (
+    <QueryResultsHeader>
+      {loading ? <StyledSeerLoadingIcon /> : <StyledIconSeer />}
+      <QueryResultsTitle>{title}</QueryResultsTitle>
+    </QueryResultsHeader>
+  );
+}
+
+export function SeerSearchSkeleton() {
+  return (
+    <LoadingSkeleton>
+      <SeerHeader title={t('Seer is thinking...')} loading />
+      <SkeletonCellsContainer>
+        <SkeletonCell>
+          <SkeletonLine width="95%" />
+        </SkeletonCell>
+        <SkeletonCell>
+          <SkeletonLine width="50%" />
+        </SkeletonCell>
+        <SkeletonCell>
+          <SkeletonLine width="75%" />
+        </SkeletonCell>
+      </SkeletonCellsContainer>
+    </LoadingSkeleton>
+  );
 }
 
 export function SeerSearch() {
@@ -48,7 +69,7 @@ export function SeerSearch() {
   const memberProjects = projects.filter(p => p.isMember);
   const navigate = useNavigate();
 
-  const {mutate: submitQuery} = useMutation({
+  const {mutate: submitQuery, isPending} = useMutation({
     mutationFn: async (query: string) => {
       const selectedProjects =
         pageFilters.selection.projects &&
@@ -203,14 +224,11 @@ export function SeerSearch() {
 
       {isDropdownOpen && (
         <DropdownContent>
-          {rawResult?.queries && rawResult.queries.length > 0 ? (
+          {isPending ? (
+            <SeerSearchSkeleton />
+          ) : rawResult?.queries && rawResult.queries.length > 0 ? (
             <QueryResultsSection>
-              <QueryResultsHeader>
-                <StyledIconSeer />
-                <QueryResultsTitle>
-                  {t('Do any of these queries look right to you?')}
-                </QueryResultsTitle>
-              </QueryResultsHeader>
+              <SeerHeader title={t('Do any of these queries look right to you?')} />
               {rawResult.queries.map((query: any, index: number) => (
                 <QueryResultItem
                   key={index}
@@ -232,13 +250,7 @@ export function SeerSearch() {
             </QueryResultsSection>
           ) : (
             <SeerContent>
-              <List>
-                {SUGGESTED_SEARCHES.map((query, index) => (
-                  <ListItem key={index} onClick={() => setSearchQuery(query)}>
-                    {query}
-                  </ListItem>
-                ))}
-              </List>
+              <SeerHeader title={t("Type something in and I'll do my best to help")} />
             </SeerContent>
           )}
 
@@ -312,7 +324,6 @@ const DropdownContent = styled('div')`
 `;
 
 const SeerContent = styled('div')`
-  background: ${p => p.theme.purple100};
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -355,14 +366,16 @@ const QueryResultsSection = styled('div')`
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: ${space(2)};
 `;
 
 const QueryResultsHeader = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  margin-bottom: ${space(1)};
+
+  background: ${p => p.theme.purple100};
+  padding: ${space(2)};
+  width: 100%;
 `;
 
 const QueryResultsTitle = styled('h3')`
@@ -376,9 +389,13 @@ const StyledIconSeer = styled(SeerIcon)`
   color: ${p => p.theme.purple300};
 `;
 
+const StyledSeerLoadingIcon = styled(SeerLoadingIcon)`
+  color: ${p => p.theme.purple300};
+`;
+
 const QueryResultItem = styled('div')`
   cursor: pointer;
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   transition: background-color 0.2s ease;
 
@@ -406,5 +423,49 @@ const NoneOfTheseItem = styled('div')`
 
   &:last-child {
     border-bottom: none;
+  }
+`;
+
+const LoadingSkeleton = styled('div')`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+`;
+
+const SkeletonCellsContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const SkeletonCell = styled('div')`
+  padding: ${space(1)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const SkeletonLine = styled('div')<{width: string}>`
+  height: 16px;
+  width: ${p => p.width};
+  background: ${p => p.theme.gray200};
+  border-radius: 4px;
+  animation: pulse 1.5s ease-in-out infinite;
+
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+    100% {
+      opacity: 1;
+    }
   }
 `;
