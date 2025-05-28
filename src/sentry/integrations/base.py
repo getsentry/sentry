@@ -575,11 +575,14 @@ def disable_integration(
         return None
 
     if org and (
-        (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
-        or (rpc_integration.provider == "github")
+        (
+            rpc_integration.provider == IntegrationProviderSlug.SLACK
+            and buffer.is_integration_fatal_broken()
+        )
+        or (rpc_integration.provider == IntegrationProviderSlug.GITHUB)
         or (
             features.has("organizations:gitlab-disable-on-broken", org)
-            and rpc_integration.provider == "gitlab"
+            and rpc_integration.provider == IntegrationProviderSlug.GITLAB.value
         )
     ):
         integration_service.update_integration(
