@@ -509,3 +509,62 @@ def test_client_loadbalance_on_notfound():
             assert client._task_id_to_host == {
                 "2": "localhost-2:50051",
             }
+
+
+@django_db_all
+def test_client_loadbalance_on_unavailable():
+    channel_0 = MockChannel()
+    channel_0.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel_0.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+    channel_0.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        MockGrpcError(grpc.StatusCode.UNAVAILABLE, "host is unavailable"),
+    )
+
+    channel_1 = MockChannel()
+    channel_1.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="1",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+
+    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.side_effect = [channel_0, channel_1]
+        with patch("sentry.taskworker.client.random.choice") as mock_randchoice:
+            mock_randchoice.side_effect = [
+                "localhost-0:50051",
+                "localhost-1:50051",
+            ]
+            client = TaskworkerClient(
+                "localhost:50051", num_brokers=2, max_consecutive_unavailable_errors=3
+            )
+
+            # Fetch from the first channel, host should be unavailable
+            with pytest.raises(grpc.RpcError, match="host is unavailable"):
+                client.get_task()
+
+            # Fetch from the first channel, host should be unavailable
+            with pytest.raises(grpc.RpcError, match="host is unavailable"):
+                client.get_task()
+
+            # Fetch from the first channel, host should be unavailable
+            with pytest.raises(grpc.RpcError, match="host is unavailable"):
+                client.get_task()
+
+            # Should rebalance to the second host and receive task
+            task = client.get_task()
+            assert task and task.id == "1"
