@@ -25,7 +25,10 @@ function getFiltersFromParsedQuery(
     return [];
   }
 
-  return parsedQuery.filter(token => token.type === Token.FILTER);
+  // return parsedQuery.filter(token => token.type === Token.FILTER);
+  return parsedQuery.filter(
+    (token): token is TokenResult<Token.FILTER> => token.type === Token.FILTER
+  );
 }
 
 function getTokensFromQuery({
