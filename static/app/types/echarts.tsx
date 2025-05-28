@@ -4,7 +4,6 @@ import type {
   LineSeriesOption,
   PatternObject,
 } from 'echarts';
-// @eslint-disable-next-line no-restricted-imports This is the only file allowed to import `EChartsReact` since we re-export it for use
 import type EChartsReact from 'echarts-for-react';
 
 import type {Confidence} from 'sentry/types/organization';
