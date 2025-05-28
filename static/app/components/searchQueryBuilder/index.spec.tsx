@@ -1638,6 +1638,16 @@ describe('SearchQueryBuilder', function () {
           await screen.findByRole('row', {name: 'is:unresolved'})
         ).toBeInTheDocument();
       });
+
+      it('shows tooltip with field description when hovering over operator label', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="assigned:me" />);
+
+        await userEvent.hover(screen.getByText('assigned'));
+
+        expect(
+          await screen.findByText('Assignee of the issue as a user ID')
+        ).toBeInTheDocument();
+      });
     });
 
     describe('has', function () {

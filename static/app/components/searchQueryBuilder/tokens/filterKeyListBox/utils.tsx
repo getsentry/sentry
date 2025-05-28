@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
@@ -170,19 +169,11 @@ export function createRecentQueryItem({
     textValue: search.query,
     type: 'recent-query' as const,
     label: (
-      <SearchQueryBuilderProvider
+      <FormattedQuery
+        query={search.query}
         filterKeys={filterKeys}
         fieldDefinitionGetter={getFieldDefinition}
-        getTagValues={() => Promise.resolve([])}
-        initialQuery={search.query}
-        searchSource="formatted_query"
-      >
-        <FormattedQuery
-          query={search.query}
-          filterKeys={filterKeys}
-          fieldDefinitionGetter={getFieldDefinition}
-        />
-      </SearchQueryBuilderProvider>
+      />
     ),
     hideCheck: true,
   };
