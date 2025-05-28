@@ -9,6 +9,7 @@ const Container = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(3)};
+  margin-bottom: ${space(3)};
 `;
 
 const Header = styled('h3')`
