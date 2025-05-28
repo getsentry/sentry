@@ -367,6 +367,10 @@ const SearchInput = styled(Input)<{isDropdownOpen: boolean}>`
 `;
 
 const DropdownContent = styled('div')`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-top: none;

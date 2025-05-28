@@ -616,6 +616,7 @@ const SeerButtonWrapper = styled('div')`
   padding: 0;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   background: ${p => p.theme.backgroundSecondary};
+  width: 100%;
 `;
 
 const SeerFullWidthButton = styled(Button)`
@@ -627,6 +628,7 @@ const SeerFullWidthButton = styled(Button)`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
   text-align: left;
+  justify-content: flex-start;
   padding: ${space(1)} ${space(2)};
   display: flex;
   align-items: center;
