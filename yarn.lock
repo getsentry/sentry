@@ -3315,6 +3315,18 @@
     socket.io "4.8.1"
     source-map "^0.7.4"
 
+"@rsdoctor/rspack-plugin@1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@rsdoctor/rspack-plugin/-/rspack-plugin-1.1.2.tgz#a30a9554f355f75853775ac70c780adaa3630c51"
+  integrity sha512-5hp+mAKPHje9WtGILsF42KZ9MT4s/IF+LYKkNG9ior0m1W8aZBQNSaLy/hom1CLeYQ1LYKnjFcdsUlvDNkkSmg==
+  dependencies:
+    "@rsdoctor/core" "1.1.2"
+    "@rsdoctor/graph" "1.1.2"
+    "@rsdoctor/sdk" "1.1.2"
+    "@rsdoctor/types" "1.1.2"
+    "@rsdoctor/utils" "1.1.2"
+    lodash "^4.17.21"
+
 "@rsdoctor/sdk@1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@rsdoctor/sdk/-/sdk-1.1.2.tgz#99a2219751165fb72dcfe50102e3f41986cec65d"
@@ -9463,10 +9475,10 @@ kleur@^3.0.3:
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-3.0.3.tgz#a79c9ecc86ee1ce3fa6206d1216c501f147fc07e"
   integrity sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==
 
-knip@^5.57.0:
-  version "5.57.0"
-  resolved "https://registry.yarnpkg.com/knip/-/knip-5.57.0.tgz#705ec5472a8108cf163b68d83fe483ddf61e242b"
-  integrity sha512-3i2neotCfFWOEGByzz8kzSFePZahelhwZfHXT5SM9FlpMxzN1PE8wV+M65Sl+itd2Z+v7FBXeVd96YLwXnviGg==
+knip@^5.58.0:
+  version "5.58.0"
+  resolved "https://registry.yarnpkg.com/knip/-/knip-5.58.0.tgz#54fe4b71e6ddb0b060de3c2cf45ff4fb68e5373b"
+  integrity sha512-U3+ADL9mylwia7bU85CYeHSdMI7DIpaCzH37NZ8rru/dgq56iyiS0oTELhfNaCYu+TcRyuijU2YQf9o0zUGA5w==
   dependencies:
     "@nodelib/fs.walk" "^1.2.3"
     fast-glob "^3.3.3"

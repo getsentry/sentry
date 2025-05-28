@@ -225,6 +225,7 @@ function generateEventView({
 }: {
   location: Location;
   organization: Organization;
+  shouldUseOTelFriendlyUI: boolean;
   transactionName: string;
 }): EventView {
   const query = decodeScalar(location.query.query, '');
