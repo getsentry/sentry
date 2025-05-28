@@ -48,6 +48,7 @@ type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
   cursorQueryParam: string;
   limit: number;
+  emptyState?: React.ReactNode;
 };
 
 // We expose a few simplified sort options which are mapped to multiple
@@ -81,7 +82,12 @@ function useIssueViewSort(): GroupSearchViewSort {
   return sort as GroupSearchViewSort;
 }
 
-function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSectionProps) {
+function IssueViewSection({
+  createdBy,
+  limit,
+  cursorQueryParam,
+  emptyState,
+}: IssueViewSectionProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -162,6 +168,10 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
 
   const pageLinks = getResponseHeader?.('Link');
 
+  if (emptyState && !isPending && views.length === 0) {
+    return emptyState;
+  }
+
   return (
     <Fragment>
       <IssueViewsTable
@@ -198,6 +208,41 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
         }}
       />
     </Fragment>
+  );
+}
+
+function NoViewsBanner({
+  handleCreateView,
+  isCreatingView,
+}: {
+  handleCreateView: () => void;
+  isCreatingView: boolean;
+}) {
+  const organization = useOrganization();
+
+  return (
+    <Banner>
+      <BannerTitle>{t('Create your first view')}</BannerTitle>
+      <BannerText>
+        {t(
+          'Your haven’t saved any issue views yet — saving views makes it easier to return to your most frequent search queries, like high priority, assigned to you, or most recent.'
+        )}
+      </BannerText>
+      <BannerAddViewButton
+        priority="primary"
+        icon={<IconAdd />}
+        size="sm"
+        onClick={() => {
+          trackAnalytics('issue_views.table.banner_create_view_clicked', {
+            organization,
+          });
+          handleCreateView();
+        }}
+        disabled={isCreatingView}
+      >
+        {t('Create View')}
+      </BannerAddViewButton>
+    </Banner>
   );
 }
 
@@ -267,6 +312,33 @@ export default function IssueViewsList() {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
   }
 
+  const handleCreateView = () => {
+    createGroupSearchView(
+      {
+        name: t('New View'),
+        query: 'is:unresolved',
+        projects: defaultProject,
+        environments: DEFAULT_ENVIRONMENTS,
+        timeFilters: DEFAULT_TIME_FILTERS,
+        querySort: IssueSortOptions.DATE,
+        starred: true,
+      },
+      {
+        onSuccess: data => {
+          navigate({
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}/issues/views/${data.id}/`
+            ),
+            query: {
+              ...getIssueViewQueryParams({view: data}),
+              new: 'true',
+            },
+          });
+        },
+      }
+    );
+  };
+
   return (
     <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
       <Layout.Page>
@@ -306,30 +378,7 @@ export default function IssueViewsList() {
                   trackAnalytics('issue_views.table.create_view_clicked', {
                     organization,
                   });
-                  createGroupSearchView(
-                    {
-                      name: t('New View'),
-                      query: 'is:unresolved',
-                      projects: defaultProject,
-                      environments: DEFAULT_ENVIRONMENTS,
-                      timeFilters: DEFAULT_TIME_FILTERS,
-                      querySort: IssueSortOptions.DATE,
-                      starred: true,
-                    },
-                    {
-                      onSuccess: data => {
-                        navigate({
-                          pathname: normalizeUrl(
-                            `/organizations/${organization.slug}/issues/views/${data.id}/`
-                          ),
-                          query: {
-                            ...getIssueViewQueryParams({view: data}),
-                            new: 'true',
-                          },
-                        });
-                      },
-                    }
-                  );
+                  handleCreateView();
                 }}
               >
                 {t('Create View')}
@@ -362,6 +411,17 @@ export default function IssueViewsList() {
               createdBy={GroupSearchViewCreatedBy.ME}
               limit={20}
               cursorQueryParam="mc"
+              emptyState={
+                <NoViewsBanner
+                  handleCreateView={() => {
+                    trackAnalytics('issue_views.table.banner_create_view_clicked', {
+                      organization,
+                    });
+                    handleCreateView();
+                  }}
+                  isCreatingView={isCreatingView}
+                />
+              }
             />
             <TableHeading>{t('Created by Others')}</TableHeading>
             <IssueViewSection
@@ -375,6 +435,51 @@ export default function IssueViewsList() {
     </SentryDocumentTitle>
   );
 }
+
+const Banner = styled('div')`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-top: ${space(2)};
+  margin-bottom: 0;
+  padding: 12px;
+  gap: ${space(1)};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+
+  background: linear-gradient(
+    269.35deg,
+    ${p => p.theme.backgroundTertiary} 0.32%,
+    rgba(245, 243, 247, 0) 99.69%
+  );
+`;
+
+const BannerTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const BannerText = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightNormal};
+  flex-shrink: 0;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    max-width: 75%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    max-width: 60%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    max-width: 50%;
+  }
+`;
+
+const BannerAddViewButton = styled(Button)`
+  align-self: flex-start;
+`;
 
 const FilterSortBar = styled('div')`
   display: grid;
