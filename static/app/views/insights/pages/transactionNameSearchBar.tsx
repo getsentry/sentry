@@ -56,7 +56,6 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
     attributeKey: 'transaction',
     enabled: true,
     type: 'string',
-    projectIds: projectIds.map(id => parseInt(id, 10)),
   });
 
   const handleSearchChange = (query: any) => {

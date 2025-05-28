@@ -2,6 +2,7 @@ import type React from 'react';
 import {createContext, useContext, useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {FieldKind} from 'sentry/utils/fields';
 import {
   SENTRY_LOG_NUMBER_TAGS,
@@ -30,18 +31,21 @@ interface TraceItemAttributeProviderProps {
   children: React.ReactNode;
   enabled: boolean;
   traceItemType: TraceItemDataset;
+  projects?: Project[];
 }
 
 export function TraceItemAttributeProvider({
   children,
   traceItemType,
   enabled,
+  projects,
 }: TraceItemAttributeProviderProps) {
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
       enabled,
       type: 'number',
       traceItemType,
+      projects,
     });
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
@@ -49,6 +53,7 @@ export function TraceItemAttributeProvider({
       enabled,
       type: 'string',
       traceItemType,
+      projects,
     });
 
   const allNumberAttributes = useMemo(() => {

@@ -522,6 +522,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         ) : (
           <Fragment>
             <SpanTagsProvider
+              projects={[project]}
               dataset={DiscoverDatasets.SPANS_EAP}
               enabled={
                 organization.features.includes('visibility-explore-view') &&
