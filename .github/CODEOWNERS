@@ -577,6 +577,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/components/events/eventTags/                    @getsentry/issue-workflow
 /static/app/components/events/highlights/                   @getsentry/issue-workflow
 /static/app/components/issues/                              @getsentry/issue-workflow
+/static/app/components/searchQueryBuilder/                  @getsentry/issue-workflow
 /static/app/views/issueList                                 @getsentry/issue-workflow
 /static/app/views/issueDetails/                             @getsentry/issue-workflow
 /static/app/views/nav/secondary/sections/issues/            @getsentry/issue-workflow
