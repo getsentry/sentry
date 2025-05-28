@@ -1,5 +1,9 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 
+import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTable';
+import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
+import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
+import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import useQueryBasedColumnResize from 'sentry/components/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
@@ -7,10 +11,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {RawFlag} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
-import type {ColumnKey} from 'sentry/views/releases/components/featureFlagsLogTable';
-import {FeatureFlagsLogTable} from 'sentry/views/releases/components/featureFlagsLogTable';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [

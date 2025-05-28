@@ -2,21 +2,18 @@ import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {hydrateToFlagSeries, type RawFlag} from 'sentry/components/featureFlags/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {getFormattedDate} from 'sentry/utils/dates';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  hydrateToFlagSeries,
-  type RawFlag,
-} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 
 interface FlagSeriesProps {
   event: Event | undefined;
   flags: RawFlag[];
 }
 
-export default function useFlagSeries({event, flags}: FlagSeriesProps) {
+export function useFlagSeries({event, flags}: FlagSeriesProps) {
   const theme = useTheme();
   const {selection} = usePageFilters();
 
