@@ -439,23 +439,37 @@ except Exception:
 try:
     for attribute in DEPRECATED_ATTRIBUTES:
         deprecation = attribute.get("deprecation", {})
+        attr_type = attribute.get("type", "string")
         key = attribute["key"]
         if (
             "replacement" in deprecation
             and "_status" in deprecation
             and deprecation["_status"] == "backfill"
         ):
+            status = deprecation["_status"]
+            replacement = deprecation["replacement"]
             if key in SPAN_ATTRIBUTE_DEFINITIONS:
                 deprecated_attr = SPAN_ATTRIBUTE_DEFINITIONS[key]
-                status = deprecation["_status"]
-                replacement = deprecation["replacement"]
-
                 SPAN_ATTRIBUTE_DEFINITIONS[key] = replace(
                     deprecated_attr, replacement=replacement, deprecation_status=status
                 )
-
+                # TODO: Introduce units to attribute schema.
                 SPAN_ATTRIBUTE_DEFINITIONS[replacement] = replace(
                     deprecated_attr, public_alias=replacement, internal_name=replacement
+                )
+            else:
+                SPAN_ATTRIBUTE_DEFINITIONS[key] = ResolvedAttribute(
+                    public_alias=key,
+                    internal_name=key,
+                    search_type=attr_type,
+                    replacement=replacement,
+                    deprecation_status=status,
+                )
+
+                SPAN_ATTRIBUTE_DEFINITIONS[replacement] = ResolvedAttribute(
+                    public_alias=replacement,
+                    internal_name=replacement,
+                    search_type=attr_type,
                 )
 
 except Exception as e:
