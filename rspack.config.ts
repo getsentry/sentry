@@ -464,15 +464,7 @@ if (IS_TEST) {
     'js-stubs'
   );
 }
-if (IS_TEST || IS_ACCEPTANCE_TEST) {
-  (appConfig.resolve!.alias! as Record<string, string>)['integration-docs-platforms'] =
-    path.join(__dirname, 'fixtures/integration-docs/_platforms.json');
-} else {
-  // const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
-  // appConfig.plugins?.push(plugin);
-  // appConfig.resolve!.alias!['integration-docs-platforms'] = plugin.modulePath;
-}
-//
+
 if (IS_ACCEPTANCE_TEST) {
   appConfig.plugins?.push(new LastBuiltPlugin({basePath: __dirname}));
 }
