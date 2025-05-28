@@ -106,9 +106,15 @@ export function SeerSearch() {
       if (!searchQuery.trim()) {
         return;
       }
+
+      trackAnalytics('trace.explorer.ai_query_submitted', {
+        organization,
+        natural_language_query: searchQuery,
+      });
+
       submitQuery(searchQuery);
     },
-    [searchQuery, submitQuery]
+    [searchQuery, submitQuery, organization]
   );
 
   const handleFocus = () => {
@@ -181,6 +187,13 @@ export function SeerSearch() {
   const handleNoneOfTheseClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    trackAnalytics('trace.explorer.ai_query_rejected', {
+      organization,
+      natural_language_query: searchQuery,
+      num_queries_returned: rawResult?.queries?.length ?? 0,
+    });
+
     if (openForm) {
       openForm({
         messagePlaceholder: t('Why was this query incorrect?'),
@@ -215,7 +228,13 @@ export function SeerSearch() {
             <Button
               size="xs"
               icon={<IconClose />}
-              onClick={() => setSeerMode(false)}
+              onClick={() => {
+                trackAnalytics('trace.explorer.ai_query_interface', {
+                  organization,
+                  action: 'closed',
+                });
+                setSeerMode(false);
+              }}
               aria-label={t('Close Seer search')}
               borderless
             />
