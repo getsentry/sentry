@@ -157,7 +157,7 @@ export function IssueViewsTable({
                         />
                       ));
                     },
-                    hidden: !canEdit,
+                    hidden: !canEdit || !hasIssueViews,
                   },
                   {
                     key: 'duplicate',
@@ -194,7 +194,7 @@ export function IssueViewsTable({
                         groupSearchView: view,
                       });
                     },
-                    hidden: !canEdit || !hasIssueViews,
+                    hidden: !canEdit,
                   },
                 ]}
               />
