@@ -38,6 +38,7 @@ import {OpenInExploreButton} from 'sentry/views/insights/common/components/openI
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
 export interface InsightsTimeSeriesWidgetProps
@@ -63,6 +64,7 @@ export interface InsightsTimeSeriesWidgetProps
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const theme = useTheme();
+  const useEap = useInsightsEap();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const pageFiltersSelection = props.pageFilters || pageFilters.selection;
@@ -73,7 +75,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       version,
     })) ?? [];
 
-  const hasChartActionsEnabled = organization.features.includes('insights-chart-actions');
+  const hasChartActionsEnabled =
+    organization.features.includes('insights-chart-actions') && useEap;
   const yAxes = new Set<string>();
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
@@ -168,6 +171,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         Title={Title}
         Visualization={
           <TimeSeriesWidgetVisualization
+            chartRef={props.chartRef}
             id={props.id}
             pageFilters={props.pageFilters}
             {...enableReleaseBubblesProps}
