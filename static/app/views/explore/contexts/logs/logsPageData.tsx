@@ -10,6 +10,7 @@ import {useInfiniteLogsQuery, useLogsQuery} from 'sentry/views/explore/logs/useL
 
 interface LogsPageData {
   infiniteLogsQueryResult: UseInfiniteLogsQueryResult;
+  infiniteQueryHasMore: boolean;
   logsQueryResult: UseLogsQueryResult;
 }
 
@@ -28,7 +29,13 @@ export function LogsPageDataProvider({children}: {children: React.ReactNode}) {
     disabled: !liveRefresh || !feature,
   });
   const value = useMemo(() => {
-    return {logsQueryResult, infiniteLogsQueryResult};
+    return {
+      logsQueryResult,
+      infiniteLogsQueryResult,
+      infiniteQueryHasMore:
+        infiniteLogsQueryResult.nextPageHasData ||
+        infiniteLogsQueryResult.previousPageHasData,
+    };
   }, [logsQueryResult, infiniteLogsQueryResult]);
   return <_LogsPageDataProvider value={value}>{children}</_LogsPageDataProvider>;
 }
@@ -37,4 +44,10 @@ export function useLogsPageDataQueryResult() {
   const hasInfiniteFeature = useOrganization().features.includes('ourlogs-live-refresh');
   const pageData = useLogsPageData();
   return hasInfiniteFeature ? pageData.infiniteLogsQueryResult : pageData.logsQueryResult;
+}
+
+export function useInfiniteLogsHasMoreData() {
+  const infiniteFeature = useOrganization().features.includes('ourlogs-live-refresh');
+  const pageData = useLogsPageData();
+  return infiniteFeature ? pageData.infiniteQueryHasMore : false;
 }
