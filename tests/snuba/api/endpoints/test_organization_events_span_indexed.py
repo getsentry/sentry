@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 import urllib3
+from django.utils.timezone import now
 
 from sentry.insights.models import InsightsStarredSegment
 from sentry.testutils.helpers import parse_link_header
@@ -4726,3 +4727,388 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data[0]["sum(ai.total_tokens.used)"] == 150
         assert meta["dataset"] == self.dataset
         assert meta["fields"]["sum(ai.total_tokens.used)"] == "integer"
+
+    def test_release(self):
+        span1 = self.create_span(
+            {
+                "sentry_tags": {
+                    "release": "1.0.8",
+                    "environment": self.environment.name,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        span2 = self.create_span(
+            {
+                "sentry_tags": {
+                    "release": "1.0.9",
+                    "environment": self.environment.name,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([span1, span2], is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["release"],
+                "query": "release:1.0.8",
+                "project": self.project.id,
+                "environment": self.environment.name,
+                "dataset": self.dataset,
+                "orderby": "release",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "1.0.8",
+            },
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["release"],
+                "query": "release:1*",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "release",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "1.0.8",
+            },
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "1.0.9",
+            },
+        ]
+
+    def test_latest_release_alias(self):
+        self.create_release(version="0.8")
+        span1 = self.create_span({"sentry_tags": {"release": "0.8"}}, start_ts=self.ten_mins_ago)
+        self.store_spans([span1], is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["release"],
+                "query": "release:latest",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "0.8",
+            }
+        ]
+
+        self.create_release(version="0.9")
+        span2 = self.create_span({"sentry_tags": {"release": "0.9"}}, start_ts=self.ten_mins_ago)
+        self.store_spans([span2], is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["release"],
+                "query": "release:latest",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "0.9",
+            }
+        ]
+
+    def test_release_stage(self):
+        replaced_release = self.create_release(
+            version="replaced_release",
+            environments=[self.environment],
+            adopted=now(),
+            unadopted=now(),
+        )
+        adopted_release = self.create_release(
+            version="adopted_release",
+            environments=[self.environment],
+            adopted=now(),
+        )
+        self.create_release(version="not_adopted_release", environments=[self.environment])
+
+        adopted_span = self.create_span(
+            {
+                "sentry_tags": {
+                    "environment": self.environment.name,
+                    "release": adopted_release.version,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        replaced_span = self.create_span(
+            {
+                "sentry_tags": {
+                    "environment": self.environment.name,
+                    "release": replaced_release.version,
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([adopted_span, replaced_span], is_eap=self.is_eap)
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "orderby": "release",
+            "environment": self.environment.name,
+        }
+
+        response = self.do_request({**request, "query": "release.stage:adopted"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": adopted_span["span_id"],
+                "project.name": self.project.slug,
+                "release": "adopted_release",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "!release.stage:low_adoption"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": adopted_span["span_id"],
+                "project.name": self.project.slug,
+                "release": "adopted_release",
+            },
+            {
+                "id": replaced_span["span_id"],
+                "project.name": self.project.slug,
+                "release": "replaced_release",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "release.stage:[adopted,replaced]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": adopted_span["span_id"],
+                "project.name": self.project.slug,
+                "release": "adopted_release",
+            },
+            {
+                "id": replaced_span["span_id"],
+                "project.name": self.project.slug,
+                "release": "replaced_release",
+            },
+        ]
+
+    def test_semver(self):
+        release_1 = self.create_release(version="test@1.2.1")
+        release_2 = self.create_release(version="test@1.2.2")
+        release_3 = self.create_release(version="test@1.2.3")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        span3 = self.create_span(
+            {"sentry_tags": {"release": release_3.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2, span3], is_eap=self.is_eap)
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.version:>1.2.1"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.2",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3",
+            },
+        ]
+
+        with mock.patch("sentry.search.eap.spans.filter_aliases.constants.MAX_SEARCH_RELEASES", 2):
+            response = self.do_request({**request, "query": "release.version:>1.2.1"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.2",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "release.version:>=1.2.1"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.1",
+            },
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.2",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "release.version:<1.2.2"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.1",
+            }
+        ]
+
+        response = self.do_request({**request, "query": "release.version:1.2.2"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.2",
+            }
+        ]
+
+        response = self.do_request({**request, "query": "!release.version:1.2.2"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.1",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3",
+            },
+        ]
+
+    def test_semver_package(self):
+        release_1 = self.create_release(version="test1@1.2.1")
+        release_2 = self.create_release(version="test2@1.2.1")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2], is_eap=self.is_eap)
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.package:test1"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test1@1.2.1",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "release.package:test2"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test2@1.2.1",
+            },
+        ]
+
+    def test_semver_build(self):
+        release_1 = self.create_release(version="test@1.2.3+121")
+        release_2 = self.create_release(version="test@1.2.3+122")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2], is_eap=self.is_eap)
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.build:121"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3+121",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "release.build:122"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3+122",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "!release.build:121"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@1.2.3+122",
+            },
+        ]

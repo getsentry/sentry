@@ -14,4 +14,5 @@ OURLOG_DEFINITIONS = ColumnDefinitions(
     columns=OURLOG_ATTRIBUTE_DEFINITIONS,
     contexts=OURLOG_VIRTUAL_CONTEXTS,
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
+    filter_aliases={},
 )
