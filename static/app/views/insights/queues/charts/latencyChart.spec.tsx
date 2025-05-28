@@ -47,7 +47,7 @@ describe('latencyChart', () => {
       <LatencyChart
         id="latency-chart-test"
         destination="events"
-        referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+        referrer={Referrer.QUEUES_SUMMARY_LATENCY_CHART}
       />,
       {organization}
     );

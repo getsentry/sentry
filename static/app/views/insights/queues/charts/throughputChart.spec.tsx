@@ -41,7 +41,7 @@ describe('throughputChart', () => {
     render(
       <ThroughputChart
         id="throughput-chart-test"
-        referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+        referrer={Referrer.QUEUES_SUMMARY_THROUGHPUT_CHART}
       />,
       {organization}
     );
