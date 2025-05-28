@@ -50,7 +50,7 @@ interface SidebarButtonProps {
   analyticsKey: string;
   children: React.ReactNode;
   label: string;
-  buttonProps?: Omit<ButtonProps, 'aria-label'>;
+  buttonProps?: Partial<ButtonProps>;
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
