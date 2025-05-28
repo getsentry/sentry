@@ -21,7 +21,7 @@ interface DragNDropContextProps<T> {
   children: (props: {
     deleteColumnAtIndex: (i: number) => void;
     editableColumns: Array<Column<T>>;
-    insertColumn: () => void;
+    insertColumn: (column?: T) => void;
     updateColumnAtIndex: (i: number, column: T) => void;
   }) => React.ReactNode;
   columns: T[];
