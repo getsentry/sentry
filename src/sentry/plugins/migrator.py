@@ -29,13 +29,14 @@ class Migrator:
 
                 if self.all_repos_migrated(plugin.slug):
                     try:
-                        logger.info(
-                            "plugin.disabled",
-                            extra=self._logging_context(
-                                {"project": project.slug, "plugin": plugin.slug}
-                            ),
-                        )
-                        plugin.disable(project=project)
+                        if plugin.is_enabled(project):
+                            logger.info(
+                                "plugin.disabled",
+                                extra=self._logging_context(
+                                    {"project": project.slug, "plugin": plugin.slug}
+                                ),
+                            )
+                            plugin.disable(project=project)
                     except NotImplementedError:
                         pass
 
