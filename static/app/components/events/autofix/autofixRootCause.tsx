@@ -1,8 +1,7 @@
-import React, {Fragment, useRef, useState} from 'react';
+import React, {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
@@ -12,22 +11,13 @@ import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixH
 import {
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
-  AutofixStatus,
-  AutofixStepType,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
-import {
-  type AutofixResponse,
-  makeAutofixQueryKey,
-} from 'sentry/components/events/autofix/useAutofix';
-import {IconChat, IconCheckmark, IconClose, IconFocus, IconInput} from 'sentry/icons';
+import {IconChat, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
@@ -64,89 +54,6 @@ const cardAnimationProps: AnimationProps = {
     },
   }),
 };
-
-function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const orgSlug = useOrganization().slug;
-
-  return useMutation({
-    mutationFn: (
-      params:
-        | {
-            causeId: string;
-            instruction?: string;
-          }
-        | {
-            customRootCause: string;
-          }
-    ) => {
-      return api.requestPromise(
-        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
-        {
-          method: 'POST',
-          data:
-            'customRootCause' in params
-              ? {
-                  run_id: runId,
-                  payload: {
-                    type: 'select_root_cause',
-                    custom_root_cause: params.customRootCause,
-                  },
-                }
-              : {
-                  run_id: runId,
-                  payload: {
-                    type: 'select_root_cause',
-                    cause_id: params.causeId,
-                    instruction: params.instruction,
-                  },
-                },
-        }
-      );
-    },
-    onSuccess: (_, params) => {
-      setApiQueryData<AutofixResponse>(
-        queryClient,
-        makeAutofixQueryKey(orgSlug, groupId),
-        data => {
-          if (!data?.autofix) {
-            return data;
-          }
-
-          return {
-            ...data,
-            autofix: {
-              ...data.autofix,
-              status: AutofixStatus.PROCESSING,
-              steps: data.autofix.steps?.map(step => {
-                if (step.type !== AutofixStepType.ROOT_CAUSE_ANALYSIS) {
-                  return step;
-                }
-
-                return {
-                  ...step,
-                  selection:
-                    'customRootCause' in params
-                      ? {
-                          custom_root_cause: params.customRootCause,
-                        }
-                      : {
-                          cause_id: params.causeId,
-                        },
-                };
-              }),
-            },
-          };
-        }
-      );
-      addSuccessMessage('On it.');
-    },
-    onError: () => {
-      addErrorMessage(t('Something went wrong when selecting the root cause.'));
-    },
-  });
-}
 
 export function replaceHeadersWithBold(markdown: string) {
   const headerRegex = /^(#{1,6})\s+(.*)$/gm;
@@ -257,15 +164,10 @@ export function formatRootCauseText(
 function CopyRootCauseButton({
   cause,
   customRootCause,
-  isEditing,
 }: {
   cause?: AutofixRootCauseData;
   customRootCause?: string;
-  isEditing?: boolean;
 }) {
-  if (isEditing) {
-    return null;
-  }
   const text = formatRootCauseText(cause, customRootCause);
   return (
     <CopyToClipboardButton
@@ -286,9 +188,6 @@ function AutofixRootCauseDisplay({
   previousInsightCount,
   agentCommentThread,
 }: AutofixRootCauseProps) {
-  const {mutate: handleContinue, isPending} = useSelectCause({groupId, runId});
-  const [isEditing, setIsEditing] = useState(false);
-  const [customRootCause, setCustomRootCause] = useState('');
   const cause = causes[0];
   const iconFocusRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
@@ -324,10 +223,7 @@ function AutofixRootCauseDisplay({
               </IconWrapper>
               {t('Custom Root Cause')}
             </HeaderText>
-            <CopyRootCauseButton
-              customRootCause={rootCauseSelection.custom_root_cause}
-              isEditing={isEditing}
-            />
+            <CopyRootCauseButton customRootCause={rootCauseSelection.custom_root_cause} />
           </HeaderWrapper>
           <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
         </CustomRootCausePadding>
@@ -354,39 +250,7 @@ function AutofixRootCauseDisplay({
             </ChatButton>
           </HeaderText>
           <ButtonBar>
-            <CopyRootCauseButton cause={cause} isEditing={isEditing} />
-            <EditButton
-              size="sm"
-              borderless
-              data-test-id="autofix-root-cause-edit-button"
-              title={isEditing ? t('Cancel') : t('Propose your own root cause')}
-              onClick={() => {
-                if (isEditing) {
-                  setIsEditing(false);
-                  setCustomRootCause('');
-                } else {
-                  setIsEditing(true);
-                }
-              }}
-            >
-              {isEditing ? <IconClose size="sm" /> : <IconInput size="sm" />}
-            </EditButton>
-            {isEditing && (
-              <Button
-                size="sm"
-                priority="primary"
-                title={t('Rethink with your new root cause')}
-                data-test-id="autofix-root-cause-save-edit-button"
-                onClick={() => {
-                  if (customRootCause.trim()) {
-                    handleContinue({customRootCause: customRootCause.trim()});
-                  }
-                }}
-                busy={isPending}
-              >
-                <IconCheckmark size="sm" />
-              </Button>
-            )}
+            <CopyRootCauseButton cause={cause} />
           </ButtonBar>
         </HeaderWrapper>
         <AnimatePresence>
@@ -408,30 +272,16 @@ function AutofixRootCauseDisplay({
           )}
         </AnimatePresence>
         <Content>
-          {isEditing ? (
-            <TextArea
-              value={customRootCause}
-              onChange={e => {
-                setCustomRootCause(e.target.value);
-                e.target.style.height = 'auto';
-                e.target.style.height = `${e.target.scrollHeight}px`;
-              }}
-              rows={5}
-              autoFocus
-              placeholder={t('Propose your own root cause...')}
+          <Fragment>
+            <RootCauseDescription
+              cause={cause}
+              groupId={groupId}
+              runId={runId}
+              previousDefaultStepIndex={previousDefaultStepIndex}
+              previousInsightCount={previousInsightCount}
+              ref={descriptionRef}
             />
-          ) : (
-            <Fragment>
-              <RootCauseDescription
-                cause={cause}
-                groupId={groupId}
-                runId={runId}
-                previousDefaultStepIndex={previousDefaultStepIndex}
-                previousInsightCount={previousInsightCount}
-                ref={descriptionRef}
-              />
-            </Fragment>
-          )}
+          </Fragment>
         </Content>
       </ClippedBox>
     </CausesContainer>
@@ -520,24 +370,6 @@ const CauseDescription = styled('div')`
 
 const AnimationWrapper = styled(motion.div)`
   transform-origin: top center;
-`;
-
-const TextArea = styled('textarea')`
-  width: 100%;
-  min-height: 150px;
-  border: none;
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1.4;
-  resize: none;
-  overflow: hidden;
-  &:focus {
-    outline: none;
-  }
-`;
-
-const EditButton = styled(Button)`
-  color: ${p => p.theme.subText};
 `;
 
 const ChatButton = styled(Button)`
