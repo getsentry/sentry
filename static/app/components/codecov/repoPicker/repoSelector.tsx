@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 
 const CODECOV_PLACEHOLDER_REPOS = ['test repo 1', 'test-repo-2', 'Sample-two'];
 
-function MenuBody() {
+function SyncRepoButton() {
   return (
     <StyledButtonContainer>
       <StyledButton
@@ -25,7 +25,6 @@ function MenuBody() {
       >
         sync now
       </StyledButton>
-      {/* </Button> */}
     </StyledButtonContainer>
   );
 }
@@ -101,7 +100,7 @@ export function RepoSelector({onChange, trigger, repository}: RepoSelectorProps)
       value={repository ?? ''}
       onChange={handleChange}
       menuWidth={'16rem'}
-      menuBody={<MenuBody />}
+      menuBody={<SyncRepoButton />}
       menuFooter={<MenuFooter repoAccessLink="placeholder" />}
       trigger={
         trigger ??
@@ -132,6 +131,10 @@ const StyledButton = styled(Button)`
   text-transform: uppercase;
   color: ${p => p.theme.tokens.content.muted};
   padding: ${space(1)};
+  &:hover * {
+    background-color: transparent;
+    border-color: transparent;
+  }
 `;
 
 const StyledButtonContainer = styled('div')`
@@ -139,7 +142,7 @@ const StyledButtonContainer = styled('div')`
   justify-content: flex-end;
   align-items: center;
   gap: ${space(0.5)};
-  margin: 0;
+  margin: 0 ${space(0.5)} ${space(0.5)} 0;
 `;
 
 const FooterTip = styled('p')`
