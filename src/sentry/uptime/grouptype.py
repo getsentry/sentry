@@ -5,14 +5,17 @@ from dataclasses import dataclass
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import (
+    GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+    ProjectUptimeSubscriptionMode,
+)
 from sentry.workflow_engine.types import DetectorSettings
 
 
 @dataclass(frozen=True)
 class UptimeDomainCheckFailure(GroupType):
     type_id = 7001
-    slug = "uptime_domain_failure"
+    slug = GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
     description = "Uptime Domain Monitor Failure"
     category = GroupCategory.UPTIME.value
     category_v2 = GroupCategory.OUTAGE.value
