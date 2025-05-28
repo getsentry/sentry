@@ -13,6 +13,7 @@ import PlatformIcon from 'sentry/components/replays/platformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
+import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {
   IconCalendar,
   IconCursorArrow,
@@ -489,7 +490,7 @@ export function TransactionCell({
 }
 
 export function OSCell({replay, showDropdownFilters}: Props) {
-  const {name, version} = replay.os ?? {};
+  const {name, version} = replay.os;
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
@@ -516,12 +517,17 @@ export function OSCell({replay, showDropdownFilters}: Props) {
 }
 
 export function BrowserCell({replay, showDropdownFilters}: Props) {
-  const {name, version} = replay.browser ?? {};
+  const {name, version} = replay.browser;
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
   if (replay.is_archived) {
     return <Item isArchived />;
+  }
+
+  const sdkName = replay.sdk.name;
+  if (sdkName && replayMobilePlatforms.some(platform => sdkName.includes(platform))) {
+    return <div />;
   }
   return (
     <Item>

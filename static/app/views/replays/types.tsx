@@ -143,6 +143,8 @@ export const REPLAY_LIST_FIELDS = [
   'os.name',
   'os.version',
   'project_id',
+  'sdk.name',
+  'sdk.version',
   'started_at',
   'user',
 ];
@@ -162,6 +164,7 @@ export type ReplayListRecord = Pick<
   | 'is_archived'
   | 'os'
   | 'project_id'
+  | 'sdk'
   | 'started_at'
   | 'user'
 >;
