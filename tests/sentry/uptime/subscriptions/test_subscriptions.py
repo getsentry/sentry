@@ -16,7 +16,10 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.types.actor import Actor
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.issue_platform import create_issue_platform_occurrence
+from sentry.uptime.issue_platform import (
+    build_detector_fingerprint_component,
+    create_issue_platform_occurrence,
+)
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     UptimeStatus,
@@ -748,7 +751,8 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
                 ),
                 detector,
             )
-            hashed_fingerprint = md5(str(proj_sub.id).encode("utf-8")).hexdigest()
+            fingerprint = build_detector_fingerprint_component(detector).encode("utf-8")
+            hashed_fingerprint = md5(fingerprint).hexdigest()
             assert Group.objects.filter(
                 grouphash__hash=hashed_fingerprint, status=GroupStatus.UNRESOLVED
             ).exists()

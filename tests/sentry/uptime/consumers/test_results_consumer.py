@@ -39,6 +39,7 @@ from sentry.uptime.detectors.result_handler import (
 )
 from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.uptime.issue_platform import build_detector_fingerprint_component
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     UptimeStatus,
@@ -154,7 +155,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
         assignee = group.get_assignee()
@@ -218,7 +220,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
 
         # Issue is not created
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
@@ -316,7 +319,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         self.project_subscription.refresh_from_db()
@@ -348,7 +352,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         self.project_subscription.refresh_from_db()
@@ -407,7 +412,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
         assert group.status == GroupStatus.UNRESOLVED
@@ -526,7 +532,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
@@ -558,7 +565,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                     ),
                 ]
             )
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
@@ -587,7 +595,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 "handle_result_for_project.missed",
                 extra={"project_id": self.project.id, **result},
             )
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
@@ -632,7 +641,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
         assert redis.get(key) == "1"
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
@@ -695,7 +705,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # the values we want to check.
         assert remove_call_vals == [(DataCategory.UPTIME, self.project_subscription.id)]
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         with pytest.raises(UptimeSubscription.DoesNotExist):
@@ -746,7 +757,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
         assert not redis.exists(key)
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
@@ -811,7 +823,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
         assert not redis.exists(key)
 
-        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
+        hashed_fingerprint = md5(fingerprint).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
