@@ -6,7 +6,6 @@ import type {
   Configuration,
   DevServer,
   OptimizationSplitChunksCacheGroup,
-  RspackPluginInstance,
   RuleSetRule,
 } from '@rspack/core';
 import rspack from '@rspack/core';
@@ -724,18 +723,40 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
   );
 }
 
-const minificationPlugins: RspackPluginInstance[] = [
+if (IS_PRODUCTION) {
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
-  new CompressionPlugin({
-    algorithm: 'gzip',
-    test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-  }) as unknown as RspackPluginInstance,
-];
+  appConfig.plugins?.push(
+    new CompressionPlugin({
+      algorithm: 'gzip',
+      test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+    })
+  );
 
-if (IS_PRODUCTION) {
-  appConfig.plugins?.push(...minificationPlugins);
+  // Enable sentry-webpack-plugin for production builds
+  appConfig.plugins?.push(
+    sentryWebpackPlugin({
+      applicationKey: 'sentry-spa',
+      telemetry: false,
+      sourcemaps: {
+        disable: true,
+      },
+      release: {
+        create: false,
+      },
+      reactComponentAnnotation: {
+        // Only enable in production, annotating is slow in development
+        enabled: true,
+      },
+      bundleSizeOptimizations: {
+        // This is enabled so that our SDKs send exceptions to Sentry
+        excludeDebugStatements: false,
+        excludeReplayIframe: true,
+        excludeReplayShadowDom: true,
+      },
+    })
+  );
 }
 
 if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
@@ -770,28 +791,5 @@ if (env.WEBPACK_CACHE_PATH) {
     },
   };
 }
-
-appConfig.plugins?.push(
-  sentryWebpackPlugin({
-    applicationKey: 'sentry-spa',
-    telemetry: false,
-    sourcemaps: {
-      disable: true,
-    },
-    release: {
-      create: false,
-    },
-    reactComponentAnnotation: {
-      // Enabled only in production because annotating is slow
-      enabled: IS_PRODUCTION,
-    },
-    bundleSizeOptimizations: {
-      // This is enabled so that our SDKs send exceptions to Sentry
-      excludeDebugStatements: false,
-      excludeReplayIframe: true,
-      excludeReplayShadowDom: true,
-    },
-  })
-);
 
 export default appConfig;
