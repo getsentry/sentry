@@ -2,9 +2,11 @@ import datetime
 from collections.abc import Mapping, Sequence
 from functools import cached_property
 from typing import cast
+from unittest import mock
 from unittest.mock import patch
 
 import orjson
+import pytest
 import responses
 from django.test import RequestFactory
 from django.utils import timezone
@@ -15,6 +17,7 @@ from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import FeedbackGroup
+from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -238,6 +241,103 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "title": "hello",
             "url": "https://github.com/getsentry/sentry/issues/231",
             "repo": "getsentry/sentry",
+        }
+
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
+
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+            payload = orjson.loads(request.body)
+            assert payload == {
+                "body": "This is the description",
+                "assignee": None,
+                "title": "hello",
+                "labels": None,
+            }
+        else:
+            self._check_proxying()
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_create_issue_with_invalid_field(self, mock_record):
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/getsentry/sentry/issues",
+            status=422,
+            json={
+                "message": "Validation Failed",
+                "errors": [
+                    {
+                        "value": "example_username",
+                        "resource": "Issue",
+                        "field": "assignee",
+                        "code": "invalid",
+                    }
+                ],
+                "documentation_url": "https://docs.github.com/rest/issues/issues#create-an-issue",
+                "status": "422",
+            },
+        )
+
+        form_data = {
+            "repo": "getsentry/sentry",
+            "title": "hello",
+            "description": "This is the description",
+        }
+
+        with pytest.raises(IntegrationFormError) as e:
+            self.install.create_issue(form_data)
+
+        assert e.value.field_errors == {
+            "assignee": "Got invalid value: example_username for field: assignee"
+        }
+
+        if self.should_call_api_without_proxying():
+            assert len(responses.calls) == 2
+
+            request = responses.calls[0].request
+            assert request.headers["Authorization"] == "Bearer jwt_token_1"
+
+            request = responses.calls[1].request
+            assert request.headers["Authorization"] == "Bearer token_1"
+            payload = orjson.loads(request.body)
+            assert payload == {
+                "body": "This is the description",
+                "assignee": None,
+                "title": "hello",
+                "labels": None,
+            }
+        else:
+            self._check_proxying()
+
+    @responses.activate
+    def test_create_issue_with_bad_github_repo(self):
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/getsentry/sentry/issues",
+            status=410,
+            json={
+                "message": "Issues are disabled for this repo",
+                "documentation_url": "https://docs.github.com/v3/issues/",
+                "status": "410",
+            },
+        )
+
+        form_data = {
+            "repo": "getsentry/sentry",
+            "title": "hello",
+            "description": "This is the description",
+        }
+
+        with pytest.raises(IntegrationFormError) as e:
+            self.install.create_issue(form_data)
+
+        assert e.value.field_errors == {
+            "message": "Issues are disabled for this repo, please check your repo's permissions"
         }
 
         if self.should_call_api_without_proxying():

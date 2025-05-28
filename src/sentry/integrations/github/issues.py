@@ -198,6 +198,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             issue = client.create_issue(repo=repo, data=issue_data)
         except ApiError as e:
             filter_user_config_errors(error=e)
+            raise IntegrationError(self.message_from_error(e))
 
         return {
             "key": issue["number"],
