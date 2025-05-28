@@ -104,7 +104,7 @@ function BreadcrumbItem({
   }, [isPending, updateDimensions, showSnippet]);
 
   const handleViewHtml = useCallback(
-    (e: React.MouseEvent<HTMLAnchorElement>) => {
+    (e: React.MouseEvent<HTMLButtonElement>) => {
       onShowSnippet();
       e.preventDefault();
       e.stopPropagation();
@@ -128,13 +128,9 @@ function BreadcrumbItem({
           !showSnippet &&
           frame.data?.nodeId !== undefined &&
           (!isSpanFrame(frame) || !isWebVitalFrame(frame)) && (
-            <ViewHtmlLink
-              to=""
-              disabled={showSnippet && isPending}
-              onClick={handleViewHtml}
-            >
+            <ViewHtmlButton priority="link" onClick={handleViewHtml} size="xs">
               {t('View HTML')}
-            </ViewHtmlLink>
+            </ViewHtmlButton>
           )}
       </DescriptionWrapper>
     ) : (
@@ -158,7 +154,6 @@ function BreadcrumbItem({
     frame,
     onInspectorExpanded,
     showSnippet,
-    isPending,
     allowShowSnippet,
     handleViewHtml,
   ]);
@@ -428,7 +423,7 @@ const DescriptionWrapper = styled('div')`
   justify-content: space-between;
 `;
 
-const ViewHtmlLink = styled(Link)`
+const ViewHtmlButton = styled(Button)`
   white-space: nowrap;
 `;
 
