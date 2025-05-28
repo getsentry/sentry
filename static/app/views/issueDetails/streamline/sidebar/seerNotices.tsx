@@ -126,9 +126,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
             <b>Seer beta is ending soon</b>
           </span>
           <span>
-            Thanks for trying Seer. Free access ends on June 9, 2025; to continue using
-            Seer to scan and fix issues after that date, you'll need to add Seer to your
-            Sentry subscription for $20/month.
+            Thanks for trying Seer. FYI: Starting June 10, Seer will require a $20/month
+            subscription to continue scanning and fixing issues.
           </span>
           <ExternalLink href="https://docs.sentry.io/pricing/">Learn more</ExternalLink>
         </AlertBody>
