@@ -28,6 +28,7 @@ import {
   type EventBucket,
   PlanTier,
   type ProductTrial,
+  ReservedBudgetCategoryType,
   type Subscription,
 } from 'getsentry/types';
 import {
@@ -436,8 +437,7 @@ function UsageTotals({
 
   // Determine if the organization has a reserved budget for Seer
   const seerReservedBudget = subscription.reservedBudgets?.find(
-    rb =>
-      rb.categories[DataCategory.SEER_AUTOFIX] || rb.categories[DataCategory.SEER_SCANNER]
+    rb => rb.apiName === ReservedBudgetCategoryType.SEER
   );
   const hasSeer = (seerReservedBudget?.reservedBudget ?? 0) > 0;
 
@@ -501,9 +501,9 @@ function UsageTotals({
         : 100;
   }
 
-  function getTitle(): React.ReactNode {
+  function getTitle(): React.ReactNode | null {
     if (isSeerCard) {
-      return t(' ');
+      return null;
     }
     if (productTrial?.isStarted) {
       return t('trial usage this period');
@@ -535,13 +535,14 @@ function UsageTotals({
   const hasReservedQuota: boolean =
     reserved !== null && (reserved === UNLIMITED_RESERVED || reserved > 0);
 
+  // hasReservedQuota || displayGifts || activeTrial || (isSeerCard && hasSeer);
   const showReservedInfo =
     hasReservedQuota ||
     displayGifts ||
     (!isSeerCard && activeTrial) ||
     (isSeerCard && (hasSeer || activeTrial));
 
-  const checkoutUrl = `/settings/billing/checkout/?referrer=manage_subscription`;
+  const checkoutUrl = `/settings/billing/checkout/?referrer=feature_subscription`;
 
   return (
     <SubscriptionCard data-test-id={`usage-card-${category}`}>
@@ -550,13 +551,13 @@ function UsageTotals({
           <BaseRow>
             <div>
               <UsageSummaryTitle>
-                {isSeerCard && t('Seer')}
-                {!isSeerCard &&
-                  getPlanCategoryName({
-                    plan: subscription.planDetails,
-                    category,
-                    // intentionally not passing hadCustomDynamicSampling as we only show a combined card under "spans" regardless
-                  })}{' '}
+                {isSeerCard
+                  ? t('Seer')
+                  : getPlanCategoryName({
+                      plan: subscription.planDetails,
+                      category,
+                      // intentionally not passing hadCustomDynamicSampling as we only show a combined card under "spans" regardless
+                    })}{' '}
                 {getTitle()}
                 {productTrial && (
                   <MarginSpan>
@@ -564,19 +565,17 @@ function UsageTotals({
                   </MarginSpan>
                 )}
               </UsageSummaryTitle>
-              {isSeerCard && !hasSeer && !activeTrial && (
-                <SubText data-test-id={reservedTestId}>
-                  {t('Detect and fix issues faster with our AI debugging agent.')}
-                </SubText>
-              )}
-              {showReservedInfo && (
-                <SubText data-test-id={reservedTestId}>
-                  {productTrial?.isStarted &&
+              <SubText data-test-id={reservedTestId}>
+                {isSeerCard &&
+                  !hasSeer &&
+                  !activeTrial &&
+                  t('Detect and fix issues faster with our AI debugging agent.')}
+                {showReservedInfo &&
+                  (productTrial?.isStarted &&
                   getDaysSinceDate(productTrial.endDate ?? '') <= 0
                     ? UNLIMITED
-                    : getReservedInfo()}
-                </SubText>
-              )}
+                    : getReservedInfo())}
+              </SubText>
             </div>
             <AcceptedSummary>
               {productTrial && !productTrial.isStarted && (
@@ -631,7 +630,7 @@ function UsageTotals({
           {showSeerPromptBar && (
             <MarginSpan>
               <FeaturePromptBar>
-                <IconLock size="sm" />
+                <IconLock size="sm" locked />
                 {productTrial && !productTrial.isStarted
                   ? t('Start your Seer trial to view usage')
                   : t('Enable Seer to view usage')}

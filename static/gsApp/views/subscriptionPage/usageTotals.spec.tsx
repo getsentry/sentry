@@ -1823,7 +1823,7 @@ describe('Subscription > UsageTotals', function () {
       const enableButton = screen.getByText('Enable Seer');
       expect(enableButton.closest('a')).toHaveAttribute(
         'href',
-        '/settings/billing/checkout/?referrer=manage_subscription'
+        '/settings/billing/checkout/?referrer=feature_subscription'
       );
     });
 
@@ -1846,7 +1846,7 @@ describe('Subscription > UsageTotals', function () {
       const manageButton = screen.getByText('Manage');
       expect(manageButton.closest('a')).toHaveAttribute(
         'href',
-        '/settings/billing/checkout/?referrer=manage_subscription'
+        '/settings/billing/checkout/?referrer=feature_subscription'
       );
     });
 
@@ -2495,7 +2495,7 @@ describe('hasReservedQuotaFunctionality', function () {
       />
     );
 
-    expect(screen.queryByTestId('reserved-errors')).not.toBeInTheDocument();
+    expect(screen.getByTestId('reserved-errors')).toHaveTextContent('');
     expect(screen.queryByTestId('gifted-errors')).not.toBeInTheDocument();
   });
 
