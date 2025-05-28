@@ -12,7 +12,6 @@ import {
   StatusIndicator,
   type StatusIndicatorProps,
 } from 'sentry/components/statusIndicator';
-import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -44,7 +43,7 @@ const checkStatusToIndicatorStatus: Record<
   [CheckInStatus.UNKNOWN]: 'muted',
 };
 
-const emptyCell = <Text>{'\u2014'}</Text>;
+const emptyCell = '\u2014';
 
 /**
  * Represents the 'completion' of a check-in.
