@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/gridEditable/styles';
 import {HighlightComponent} from 'sentry/components/highlight';
+import {Body} from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
@@ -299,3 +300,22 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       throw new Error(`Invalid log type, got ${level}`);
   }
 }
+
+export const TopSectionBody = styled(Body)`
+  padding-bottom: 0;
+  flex: 0 0 auto;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding-bottom: ${space(2)};
+  }
+`;
+
+export const BottomSectionBody = styled(Body)`
+  padding-top: 0;
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-top: 1px solid ${p => p.theme.border};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding-top: ${space(1)};
+  }
+`;
