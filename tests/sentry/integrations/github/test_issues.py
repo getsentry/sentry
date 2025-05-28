@@ -17,7 +17,10 @@ from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import FeedbackGroup
-from sentry.shared_integrations.exceptions import IntegrationFormError
+from sentry.shared_integrations.exceptions import (
+    IntegrationFormError,
+    IntegrationInstallationConfigurationError,
+)
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -333,7 +336,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "description": "This is the description",
         }
 
-        with pytest.raises(IntegrationFormError) as e:
+        with pytest.raises(IntegrationInstallationConfigurationError) as e:
             self.install.create_issue(form_data)
 
         assert e.value.field_errors == {
