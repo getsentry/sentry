@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import importlib.metadata
+import json
 import os
 import shlex
 import subprocess
+import shutil
 
 from devenv import constants
 from devenv.lib import colima, config, fs, limactl, proc, venv
@@ -81,6 +83,44 @@ def check_minimum_version(minimum_version: str) -> bool:
     return parsed_version >= parsed_minimum_version
 
 
+def installed_pnpm(version: str, binroot: str) -> bool:
+    if shutil.which(
+        "pnpm", path=binroot
+    ) != f"{binroot}/pnpm" or not os.path.exists(
+        f"{binroot}/node-env/bin/pnpm"
+    ):
+        return False
+
+    stdout = proc.run((f"{binroot}/pnpm", "--version"), stdout=True)
+    installed_version = stdout.strip()
+    if version == installed_version:
+        return True
+
+
+def install_pnpm(version: str, reporoot: str) -> None:
+    binroot = fs.ensure_binroot(reporoot)
+
+    if installed_pnpm(version, binroot):
+        return
+
+    print(f"installing pnpm {version}...")
+
+    # {binroot}/npm is a devenv-managed shim, so
+    # this install -g ends up putting pnpm into
+    # .devenv/bin/node-env/bin/pnpm which is pointed
+    # to by the {binroot}/pnpm shim
+    proc.run((f"{binroot}/npm", "install", "-g", f"pnpm@{version}"), stdout=True)
+
+    fs.write_script(
+        f"{binroot}/pnpm",
+        """#!/bin/sh
+export PATH={binroot}/node-env/bin:"${{PATH}}"
+exec {binroot}/node-env/bin/pnpm "$@"
+""",
+        shell_escape={"binroot": binroot},
+    )
+
+
 def main(context: dict[str, str]) -> int:
     minimum_version = "1.14.2"
     if not check_minimum_version(minimum_version):
@@ -124,7 +164,14 @@ Then, use it to run sync this one time.
         repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
         reporoot,
     )
-    node.install_yarn(repo_config["node"]["yarn_version"], reporoot)
+
+    with open(f"{reporoot}/package.json", "r") as f:
+        package_json = json.load(f)
+        pnpm = package_json["packageManager"]
+        pnpm_version = pnpm.split("@")[-1]
+
+    # TODO: move pnpm install into devenv
+    install_pnpm(pnpm_version, reporoot)
 
     # no more imports from devenv past this point! if the venv is recreated
     # then we won't have access to devenv libs until it gets reinstalled
