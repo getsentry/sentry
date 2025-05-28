@@ -91,7 +91,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             : Bars;
 
       // yAxis should not contain whitespace, some yAxes are like `epm() span.op:queue.publish`
-      yAxes.add(timeSeries.yAxis.split(' ')[0] ?? '');
+      yAxes.add(timeSeries?.yAxis?.split(' ')[0] ?? '');
 
       return new PlottableDataConstructor(timeSeries, {
         color: serie.color ?? COMMON_COLORS(theme)[timeSeries.yAxis],
