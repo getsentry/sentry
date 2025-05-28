@@ -2,10 +2,16 @@ from unittest import mock
 
 import pytest
 
+from sentry.seer.anomaly_detection.types import (
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+)
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition, DataConditionEvaluationException
-from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import DataConditionHandlerMixin
+from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class GetConditionResultTest(TestCase):
@@ -38,13 +44,28 @@ class GetConditionResultTest(TestCase):
         assert dc.get_condition_result() is True
 
 
-class EvaluateValueTest(DataConditionHandlerMixin, TestCase):
+class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
     def test(self):
         dc = self.create_data_condition(
             type=Condition.GREATER, comparison=1.0, condition_result=DetectorPriorityLevel.HIGH
         )
         assert dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
         assert dc.evaluate_value(1) is None
+
+    def test_non_bool_result(self):
+        _, _, _, self.workflow_triggers = self.create_detector_and_workflow()
+        dc = self.create_data_condition(
+            type=Condition.ANOMALY_DETECTION,
+            comparison={
+                "sensitivity": AnomalyDetectionSensitivity.MEDIUM,
+                "seasonality": AnomalyDetectionSeasonality.AUTO,
+                "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+            },
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=self.workflow_triggers,
+        )
+        assert dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
+        assert dc.evaluate_value(0) == DetectorPriorityLevel.OK
 
     def test_bad_condition(self):
         with pytest.raises(ValueError):
