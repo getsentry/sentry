@@ -542,4 +542,5 @@ const EditButton = styled(Button)`
 
 const ChatButton = styled(Button)`
   color: ${p => p.theme.subText};
+  margin-left: -${space(0.5)};
 `;

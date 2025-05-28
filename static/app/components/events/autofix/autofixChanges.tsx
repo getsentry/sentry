@@ -478,6 +478,7 @@ const HeaderIconWrapper = styled('div')`
 
 const ChatButton = styled(Button)`
   color: ${p => p.theme.subText};
+  margin-left: -${space(0.5)};
 `;
 
 function CreatePRsButton({
