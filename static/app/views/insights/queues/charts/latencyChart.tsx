@@ -7,7 +7,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 // Our loadable chart widgets use this to render, so this import is ok
 // eslint-disable-next-line no-restricted-imports
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
-// Our loadable chart widgets use this to render, so this import is ok
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {FIELD_ALIASES} from 'sentry/views/insights/queues/settings';
