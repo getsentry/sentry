@@ -17,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -36,6 +37,8 @@ function RelatedIssues({
   end,
   statsPeriod,
 }: Props) {
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+
   const getIssuesEndpointQueryParams = () => {
     const queryParams = {
       start,
@@ -65,7 +68,7 @@ function RelatedIssues({
     });
   };
 
-  const renderEmptyMessage = (isEAP: boolean) => {
+  const renderEmptyMessage = () => {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expression of type 'string | null | undefined' can't be used to index type
     const selectedTimePeriod = statsPeriod && DEFAULT_RELATIVE_PERIODS[statsPeriod];
     const displayedPeriod = selectedTimePeriod
@@ -78,7 +81,9 @@ function RelatedIssues({
           <EmptyStateWarning>
             <p>
               {tct('No new issues for this [identifier] for the [timePeriod].', {
-                identifier: isEAP ? 'service entry span' : 'transaction',
+                identifier: shouldUseOTelFriendlyUI
+                  ? 'service entry span'
+                  : 'transaction',
                 timePeriod: displayedPeriod,
               })}
             </p>
@@ -93,8 +98,6 @@ function RelatedIssues({
     pathname: `/organizations/${organization.slug}/issues/`,
     query: {referrer: 'performance-related-issues', ...queryParams},
   };
-
-  const isEAP = organization.features.includes('performance-transaction-summary-eap');
 
   return (
     <Fragment>
@@ -114,7 +117,7 @@ function RelatedIssues({
         <GroupList
           queryParams={queryParams}
           canSelectGroups={false}
-          renderEmptyMessage={() => renderEmptyMessage(isEAP)}
+          renderEmptyMessage={() => renderEmptyMessage()}
           withChart={false}
           withPagination={false}
           source="performance-related-issues"

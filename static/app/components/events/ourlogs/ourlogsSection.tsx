@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -38,18 +37,16 @@ export function OurlogsSection({
   project: Project;
 }) {
   return (
-    <PageFiltersContainer>
-      <LogsPageParamsProvider
-        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-        isTableFrozen
-        blockRowExpanding
-        limitToTraceId={event.contexts?.trace?.trace_id}
-      >
-        <LogsPageDataProvider>
-          <OurlogsSectionContent event={event} group={group} project={project} />
-        </LogsPageDataProvider>
-      </LogsPageParamsProvider>
-    </PageFiltersContainer>
+    <LogsPageParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+      isTableFrozen
+      blockRowExpanding
+      limitToTraceId={event.contexts?.trace?.trace_id}
+    >
+      <LogsPageDataProvider>
+        <OurlogsSectionContent event={event} group={group} project={project} />
+      </LogsPageDataProvider>
+    </LogsPageParamsProvider>
   );
 }
 
@@ -68,7 +65,7 @@ function OurlogsSectionContent({
   const logsSearch = useLogsSearch();
   const abbreviatedTableData = (tableData.data ?? []).slice(0, 5);
   const {openDrawer} = useDrawer();
-  const logsTableRef = useRef<HTMLButtonElement>(null);
+  const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const limitToTraceId = event.contexts?.trace?.trace_id;
@@ -78,30 +75,25 @@ function OurlogsSectionContent({
     });
     openDrawer(
       () => (
-        <PageFiltersContainer>
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-            isTableFrozen
-            limitToTraceId={limitToTraceId}
-          >
-            <LogsPageDataProvider>
-              <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                <OurlogsDrawer group={group} event={event} project={project} />
-              </TraceItemAttributeProvider>
-            </LogsPageDataProvider>
-          </LogsPageParamsProvider>
-        </PageFiltersContainer>
+        <LogsPageParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+          isTableFrozen
+          limitToTraceId={limitToTraceId}
+        >
+          <LogsPageDataProvider>
+            <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+              <OurlogsDrawer group={group} event={event} project={project} />
+            </TraceItemAttributeProvider>
+          </LogsPageDataProvider>
+        </LogsPageParamsProvider>
       ),
       {
         ariaLabel: 'logs drawer',
         drawerKey: 'logs-issue-drawer',
 
         shouldCloseOnInteractOutside: element => {
-          const viewAllButton = logsTableRef.current;
-          if (viewAllButton?.contains(element)) {
-            return false;
-          }
-          return true;
+          const viewAllButton = viewAllButtonRef.current;
+          return !viewAllButton?.contains(element);
         },
       }
     );
@@ -128,7 +120,7 @@ function OurlogsSectionContent({
       title={t('Logs')}
       data-test-id="logs-data-section"
     >
-      <SmallTableContentWrapper ref={logsTableRef} onClick={() => onOpenLogsDrawer()}>
+      <SmallTableContentWrapper onClick={() => onOpenLogsDrawer()}>
         <SmallTable>
           <TableBody>
             {abbreviatedTableData?.map((row, index) => (
@@ -149,6 +141,7 @@ function OurlogsSectionContent({
               aria-label={t('View more')}
               size="sm"
               onClick={() => onOpenLogsDrawer()}
+              ref={viewAllButtonRef}
             >
               {t('View more')}
             </Button>
@@ -164,8 +157,7 @@ const SmallTable = styled('table')`
   grid-template-columns: 15px auto 1fr;
 `;
 
-const SmallTableContentWrapper = styled('button')`
-  all: unset;
+const SmallTableContentWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 `;
