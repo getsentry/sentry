@@ -493,17 +493,17 @@ class Enhancements:
         self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
 
         self.run_split_enhancements = version == 3
-        if self.run_split_enhancements:
-            classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
-            self.classifier_rules = classifier_config.rules
-            self.contributes_rules = contributes_config.rules
-            self.classifier_rust_enhancements = merge_rust_enhancements(
-                self.bases, classifier_config.rust_enhancements, type="classifier"
-            )
-            self.contributes_rust_enhancements = merge_rust_enhancements(
-                self.bases, contributes_config.rust_enhancements, type="contributes"
-            )
+        classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
+
+        self.classifier_rules = classifier_config.rules
+        self.contributes_rules = contributes_config.rules
+        self.classifier_rust_enhancements = merge_rust_enhancements(
+            self.bases, classifier_config.rust_enhancements, type="classifier"
+        )
+        self.contributes_rust_enhancements = merge_rust_enhancements(
+            self.bases, contributes_config.rust_enhancements, type="contributes"
+        )
 
     def apply_category_and_updated_in_app_to_frames(
         self,
