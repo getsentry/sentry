@@ -22,9 +22,13 @@ export function markDelayedData(timeSeries: TimeSeries, delay: number): TimeSeri
       const bucketEndTimestamp = new Date(datum.timestamp).getTime() + bucketSize;
       const delayed = bucketEndTimestamp >= ingestionDelayTimestamp;
 
+      if (!delayed) {
+        return datum;
+      }
+
       return {
         ...datum,
-        delayed,
+        incomplete: true,
       };
     }),
   };

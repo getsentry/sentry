@@ -7,12 +7,13 @@ import requests
 from django.conf import settings
 from rest_framework.response import Response
 
+from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupAiEndpoint
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -126,6 +127,11 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         if not user_acknowledgement:  # If the user has acknowledged, the org must have too.
             org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
 
+        # TODO return BOTH trial status and autofix quota
+        has_autofix_quota: bool = quotas.backend.has_available_reserved_budget(
+            org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
+        )
+
         return Response(
             {
                 "integration": {
@@ -136,6 +142,9 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 "setupAcknowledgement": {
                     "orgHasAcknowledged": org_acknowledgement,
                     "userHasAcknowledged": user_acknowledgement,
+                },
+                "billing": {
+                    "hasAutofixQuota": has_autofix_quota,
                 },
             }
         )
