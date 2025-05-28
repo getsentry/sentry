@@ -211,7 +211,13 @@ function IssueViewSection({
   );
 }
 
-function NoViewsBanner({handleCreateView}: {handleCreateView: () => void}) {
+function NoViewsBanner({
+  handleCreateView,
+  isCreatingView,
+}: {
+  handleCreateView: () => void;
+  isCreatingView: boolean;
+}) {
   const organization = useOrganization();
 
   return (
@@ -232,6 +238,7 @@ function NoViewsBanner({handleCreateView}: {handleCreateView: () => void}) {
           });
           handleCreateView();
         }}
+        disabled={isCreatingView}
       >
         {t('Create View')}
       </BannerAddViewButton>
@@ -412,6 +419,7 @@ export default function IssueViewsList() {
                     });
                     handleCreateView();
                   }}
+                  isCreatingView={isCreatingView}
                 />
               }
             />
