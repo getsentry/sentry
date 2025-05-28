@@ -203,6 +203,11 @@ function Overview({location, subscription, promotionData}: Props) {
     const seerAutofixCategoryInfo = reservedBudgetCategoryInfo[DataCategory.SEER_AUTOFIX];
     if (seerAutofixCategoryInfo) {
       seerAutofixCategoryInfo.reservedSpend = seerAutofixCategoryInfo.reservedSpend ?? 0;
+
+      // Combine SEER_SCANNER into SEER_AUTOFIX
+      const seerScannerSpend =
+        reservedBudgetCategoryInfo[DataCategory.SEER_SCANNER]?.reservedSpend ?? 0;
+      seerAutofixCategoryInfo.reservedSpend += seerScannerSpend;
     }
 
     if (
@@ -216,13 +221,6 @@ function Overview({location, subscription, promotionData}: Props) {
         reservedBudgetCategoryInfo[DataCategory.SPANS_INDEXED]?.reservedSpend ?? 0;
       if (spansCategoryInfo) {
         spansCategoryInfo.reservedSpend += spansIndexedSpend;
-      }
-
-      // Combine SEER_SCANNER into SEER_AUTOFIX
-      const seerScannerSpend =
-        reservedBudgetCategoryInfo[DataCategory.SEER_SCANNER]?.reservedSpend ?? 0;
-      if (seerAutofixCategoryInfo) {
-        seerAutofixCategoryInfo.reservedSpend += seerScannerSpend;
       }
     }
 
