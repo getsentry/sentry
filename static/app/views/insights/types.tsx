@@ -1,4 +1,5 @@
 import type {PlatformKey} from 'sentry/types/project';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -731,3 +732,5 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
+
+export type SearchHook = {search: MutableSearch; enabled?: boolean};

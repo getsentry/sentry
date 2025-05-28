@@ -10,10 +10,11 @@ import {SpanFunction} from 'sentry/views/insights/types';
 const {CACHE_MISS_RATE} = SpanFunction;
 
 export default function CacheMissRateChartWidget(props: LoadableChartWidgetProps) {
+  const search = MutableSearch.fromQueryObject(BASE_FILTERS);
   const {isPending, data, error} = useSpanMetricsSeries(
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
-      search: MutableSearch.fromQueryObject(BASE_FILTERS),
+      search,
       transformAliasToInputFormat: true,
     },
     Referrer.LANDING_CACHE_HIT_MISS_CHART,
@@ -23,6 +24,7 @@ export default function CacheMissRateChartWidget(props: LoadableChartWidgetProps
   return (
     <InsightsLineChartWidget
       {...props}
+      search={search}
       id="cacheMissRateChartWidget"
       title={DataTitles[`${CACHE_MISS_RATE}()`]}
       series={[data[`${CACHE_MISS_RATE}()`]]}
