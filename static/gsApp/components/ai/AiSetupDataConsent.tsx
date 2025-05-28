@@ -140,7 +140,9 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
               </ButtonWrapper>
               {canStartTrial && (
                 <LegalText>
-                  {t('By clicking above, you will begin a 14 day free trial.')}
+                  {t(
+                    'By clicking above, you will begin a 14 day free trial. After the trial ends, it will not auto-renew.'
+                  )}
                 </LegalText>
               )}
             </Fragment>
