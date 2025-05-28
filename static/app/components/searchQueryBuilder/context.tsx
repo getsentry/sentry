@@ -32,6 +32,7 @@ interface SearchQueryBuilderContextData {
   disallowFreeText: boolean;
   disallowWildcard: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
+  displaySeerResults: boolean;
   filterKeyMenuWidth: number;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
@@ -44,8 +45,7 @@ interface SearchQueryBuilderContextData {
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
-  seerMode: boolean;
-  setSeerMode: (enabled: boolean) => void;
+  setDisplaySeerResults: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
   placeholder?: string;
@@ -93,7 +93,7 @@ export function SearchQueryBuilderProvider({
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
-  const [seerMode, setSeerMode] = useState(false);
+  const [displaySeerResults, setDisplaySeerResults] = useState(false);
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
     getFieldDefinition: fieldDefinitionGetter,
@@ -157,8 +157,8 @@ export function SearchQueryBuilderProvider({
       searchSource,
       size,
       portalTarget,
-      seerMode,
-      setSeerMode,
+      displaySeerResults,
+      setDisplaySeerResults,
     };
   }, [
     state,
@@ -180,8 +180,8 @@ export function SearchQueryBuilderProvider({
     size,
     portalTarget,
     parseQuery,
-    seerMode,
-    setSeerMode,
+    displaySeerResults,
+    setDisplaySeerResults,
   ]);
 
   return (

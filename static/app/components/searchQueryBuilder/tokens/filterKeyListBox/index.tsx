@@ -221,7 +221,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   fullWidth,
   sections,
 }: FilterKeyMenuContentProps<T>) {
-  const {filterKeys, setSeerMode} = useSearchQueryBuilder();
+  const {filterKeys, setDisplaySeerResults} = useSearchQueryBuilder();
   const focusedItem = state.collection.getItem(state.selectionManager.focusedKey)?.props
     ?.value as string | undefined;
   const focusedKey = focusedItem ? filterKeys[focusedItem] : null;
@@ -247,7 +247,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
                   organization,
                   action: 'opened',
                 });
-                setSeerMode(true);
+                setDisplaySeerResults(true);
               }}
               borderless
             >

@@ -56,7 +56,7 @@ function SeerSearchSkeleton() {
 }
 
 export function SeerSearch() {
-  const {setSeerMode} = useSearchQueryBuilder();
+  const {setDisplaySeerResults} = useSearchQueryBuilder();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const openForm = useFeedbackForm();
@@ -179,9 +179,9 @@ export function SeerSearch() {
 
       navigate(url, {replace: true, preventScrollReset: true});
       setIsDropdownOpen(false);
-      setSeerMode(false);
+      setDisplaySeerResults(false);
     },
-    [organization, pageFilters.selection, navigate, setSeerMode]
+    [organization, pageFilters.selection, navigate, setDisplaySeerResults]
   );
 
   const handleNoneOfTheseClick = (e: React.MouseEvent) => {
@@ -233,7 +233,7 @@ export function SeerSearch() {
                   organization,
                   action: 'closed',
                 });
-                setSeerMode(false);
+                setDisplaySeerResults(false);
               }}
               aria-label={t('Close Seer search')}
               borderless
