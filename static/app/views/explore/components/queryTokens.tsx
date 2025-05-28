@@ -7,22 +7,24 @@ import {space} from 'sentry/styles/space';
 import {getFieldDefinition} from 'sentry/utils/fields';
 
 interface QueryTokensProps {
-  result: {
-    group_by?: string[];
-    query?: string;
-    sort?: string;
-    stats_period?: string;
-    visualization?: Array<{y_axes: string[]}>;
-  };
+  groupBys?: string[];
+  query?: string;
+  sort?: string;
+  statsPeriod?: string;
+  visualizations?: Array<{y_axes: string[]}>;
 }
 
-function QueryTokens({result}: QueryTokensProps) {
+function QueryTokens({
+  groupBys,
+  query,
+  sort,
+  statsPeriod,
+  visualizations,
+}: QueryTokensProps) {
   const tokens = [];
 
-  const parsedQuery = result.query
-    ? parseQueryBuilderValue(result.query, getFieldDefinition)
-    : null;
-  if (result.query && parsedQuery?.length) {
+  const parsedQuery = query ? parseQueryBuilderValue(query, getFieldDefinition) : null;
+  if (query && parsedQuery?.length) {
     tokens.push(
       <Token key="filter">
         <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
@@ -37,11 +39,11 @@ function QueryTokens({result}: QueryTokensProps) {
     );
   }
 
-  if (result.visualization && result.visualization.length > 0) {
+  if (visualizations && visualizations.length > 0) {
     tokens.push(
       <Token key="visualization">
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
-        {result.visualization.map((visualization, vIdx) =>
+        {visualizations.map((visualization, vIdx) =>
           visualization.y_axes.map(y_axis => (
             <ExploreVisualizes key={`${vIdx}-${y_axis}`}>{y_axis}</ExploreVisualizes>
           ))
@@ -50,32 +52,32 @@ function QueryTokens({result}: QueryTokensProps) {
     );
   }
 
-  if (result.group_by && result.group_by.length > 0) {
+  if (groupBys && groupBys.length > 0) {
     tokens.push(
       <Token key="groupBy">
         <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
-        {result.group_by.map(groupBy => (
-          <ExploreGroupBys key={groupBy}>{groupBy}</ExploreGroupBys>
+        {groupBys.map((groupBy, idx) => (
+          <ExploreGroupBys key={idx}>{groupBy}</ExploreGroupBys>
         ))}
       </Token>
     );
   }
 
-  if (result.stats_period && result.stats_period.length > 0) {
+  if (statsPeriod && statsPeriod.length > 0) {
     tokens.push(
       <Token key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
-        <ExploreGroupBys key={result.stats_period}>{result.stats_period}</ExploreGroupBys>
+        <ExploreGroupBys>{statsPeriod}</ExploreGroupBys>
       </Token>
     );
   }
 
-  if (result.sort && result.sort.length > 0) {
+  if (sort && sort.length > 0) {
     tokens.push(
       <Token key="sort">
         <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
-        <ExploreGroupBys key={result.sort}>
-          {result.sort[0] === '-' ? result.sort.slice(1) + ' Desc' : result.sort + ' Asc'}
+        <ExploreGroupBys>
+          {sort[0] === '-' ? sort.slice(1) + ' Desc' : sort + ' Asc'}
         </ExploreGroupBys>
       </Token>
     );

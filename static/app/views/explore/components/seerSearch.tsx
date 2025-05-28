@@ -261,7 +261,13 @@ export function SeerSearch() {
                   tabIndex={0}
                   style={{cursor: 'pointer'}}
                 >
-                  <QueryTokens result={query} />
+                  <QueryTokens
+                    groupBys={query.groupBys}
+                    query={query.query}
+                    sort={query.sort}
+                    statsPeriod={query.statsPeriod}
+                    visualizations={query.visualizations}
+                  />
                 </QueryResultItem>
               ))}
               <NoneOfTheseItem onClick={handleNoneOfTheseClick}>
